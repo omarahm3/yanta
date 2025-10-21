@@ -1,0 +1,392 @@
+package document
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"path"
+	"strings"
+	"time"
+
+	"yanta/internal/events"
+	"yanta/internal/logger"
+	"yanta/internal/project"
+	"yanta/internal/vault"
+
+	"github.com/google/uuid"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
+)
+
+type Indexer interface {
+	IndexDocument(ctx context.Context, docPath string) error
+	ReindexDocument(ctx context.Context, docPath string) error
+	RemoveDocument(ctx context.Context, docPath string) error
+}
+
+type ProjectCache interface {
+	GetByAlias(alias string) (*project.Project, error)
+}
+
+type Service struct {
+	db           *sql.DB
+	store        *Store
+	fm           *FileManager
+	indexer      Indexer
+	projectCache ProjectCache
+	ctx          context.Context
+}
+
+func NewService(db *sql.DB, store *Store, v *vault.Vault, idx Indexer, projectCache ProjectCache) *Service {
+	return &Service{
+		db:           db,
+		store:        store,
+		fm:           NewFileManager(v),
+		indexer:      idx,
+		projectCache: projectCache,
+		ctx:          context.Background(),
+	}
+}
+
+func (s *Service) SetContext(ctx context.Context) {
+	s.ctx = ctx
+}
+
+func (s *Service) emitEvent(eventName string, payload any) {
+	if s.ctx == context.Background() {
+		return
+	}
+	runtime.EventsEmit(s.ctx, eventName, payload)
+}
+
+func (s *Service) emitDocumentCountChange(projectAlias string) {
+	if s.ctx == context.Background() {
+		return
+	}
+
+	proj, err := s.projectCache.GetByAlias(projectAlias)
+	if err != nil {
+		logger.WithError(err).WithField("alias", projectAlias).Warn("failed to get project for count event")
+		return
+	}
+
+	var count int
+	err = s.db.QueryRowContext(s.ctx,
+		`SELECT doc_count FROM v_project_doc_counts WHERE id = ?`,
+		proj.ID).Scan(&count)
+
+	if err == sql.ErrNoRows {
+		count = 0
+	} else if err != nil {
+		logger.WithField("projectID", proj.ID).WithError(err).Warn("failed to get count for event")
+		return
+	}
+
+	s.emitEvent(events.EntryCountChanged, map[string]any{
+		"projectId": proj.ID,
+		"count":     count,
+	})
+}
+
+type SaveRequest struct {
+	Path         string
+	ProjectAlias string
+	Title        string
+	Blocks       []BlockNoteBlock
+	Tags         []string
+}
+
+func (s *Service) Save(req SaveRequest) (string, error) {
+	if err := project.ValidateAlias(strings.TrimSpace(req.ProjectAlias)); err != nil {
+		return "", fmt.Errorf("invalid project_alias: %w", err)
+	}
+
+	req.ProjectAlias = strings.TrimSpace(req.ProjectAlias)
+	if strings.TrimSpace(req.Title) == "" {
+		return "", errors.New("title is required")
+	}
+
+	isNew := req.Path == ""
+	var docPath string
+
+	if isNew {
+		docID := strings.ReplaceAll(uuid.New().String(), "-", "")[:12]
+		aliasSlug := strings.TrimPrefix(req.ProjectAlias, "@")
+		filename := fmt.Sprintf("doc-%s-%s.json", aliasSlug, docID)
+		docPath = path.Join("projects", req.ProjectAlias, filename)
+	} else {
+		docPath = req.Path
+	}
+
+	docFile := &DocumentFile{
+		Meta: DocumentMeta{
+			Project: req.ProjectAlias,
+			Title:   req.Title,
+			Tags:    req.Tags,
+			Created: time.Now(),
+			Updated: time.Now(),
+		},
+		Blocks: req.Blocks,
+	}
+
+	if !isNew {
+		existing, err := s.fm.ReadFile(docPath)
+		if err != nil {
+			logger.WithError(err).WithField("path", docPath).Error("failed to read existing document")
+			return "", fmt.Errorf("reading existing document: %w", err)
+		}
+		docFile.Meta.Created = existing.Meta.Created
+	}
+
+	if err := s.fm.WriteFile(docPath, docFile); err != nil {
+		logger.WithError(err).WithField("path", docPath).Error("failed to write document file")
+		return "", fmt.Errorf("writing document file: %w", err)
+	}
+
+	if err := s.indexer.IndexDocument(s.ctx, docPath); err != nil {
+		logger.WithError(err).WithField("path", docPath).Error("failed to index document")
+		s.fm.DeleteFile(docPath)
+		return "", fmt.Errorf("indexing document: %w", err)
+	}
+
+	projectID := req.ProjectAlias
+	if proj, err := s.projectCache.GetByAlias(req.ProjectAlias); err == nil && proj != nil {
+		projectID = proj.ID
+	}
+
+	if isNew {
+		s.emitEvent(events.EntryCreated, map[string]any{
+			"path":      docPath,
+			"projectId": projectID,
+			"title":     req.Title,
+		})
+		s.emitDocumentCountChange(req.ProjectAlias)
+	} else {
+		s.emitEvent(events.EntryUpdated, map[string]any{
+			"path":      docPath,
+			"projectId": projectID,
+			"title":     req.Title,
+		})
+	}
+
+	logger.WithFields(map[string]any{
+		"path":    docPath,
+		"project": req.ProjectAlias,
+		"isNew":   isNew,
+	}).Info("document saved")
+
+	return docPath, nil
+}
+
+type DocumentWithTags struct {
+	*Document
+	File *DocumentFile
+	Tags []string
+}
+
+func (s *Service) Get(path string) (*DocumentWithTags, error) {
+	logger.WithField("path", path).Info("document Get called")
+
+	if strings.TrimSpace(path) == "" {
+		logger.Warn("document Get called with empty path")
+		return nil, errors.New("path is required")
+	}
+
+	logger.WithField("path", path).Debug("fetching document metadata from database")
+	doc, err := s.store.GetByPath(s.ctx, path)
+	if err != nil {
+		logger.WithError(err).WithField("path", path).Error("failed to get document metadata")
+		return nil, fmt.Errorf("getting document metadata: %w", err)
+	}
+	logger.WithFields(map[string]any{
+		"path":  path,
+		"title": doc.Title,
+	}).Debug("document metadata retrieved successfully")
+
+	logger.WithField("path", path).Debug("reading document file from disk")
+	file, err := s.fm.ReadFile(path)
+	if err != nil {
+		logger.WithError(err).WithField("path", path).Error("failed to read document file")
+		return nil, fmt.Errorf("reading document file: %w", err)
+	}
+	logger.WithFields(map[string]any{
+		"path":        path,
+		"blocksCount": len(file.Blocks),
+		"tagsCount":   len(file.Meta.Tags),
+	}).Debug("document file read successfully")
+
+	accessedProjectID := doc.ProjectAlias
+	if proj, err := s.projectCache.GetByAlias(doc.ProjectAlias); err == nil && proj != nil {
+		accessedProjectID = proj.ID
+	}
+	s.emitEvent(events.EntryAccessed, map[string]any{
+		"path":      path,
+		"projectId": accessedProjectID,
+		"title":     doc.Title,
+	})
+
+	logger.WithFields(map[string]any{
+		"path":  path,
+		"title": doc.Title,
+	}).Info("document Get completed successfully")
+
+	return &DocumentWithTags{
+		Document: doc,
+		File:     file,
+		Tags:     file.Meta.Tags,
+	}, nil
+}
+
+func (s *Service) ListByProject(projectAlias string, includeArchived bool, limit, offset int) ([]*Document, error) {
+	projectAlias = strings.TrimSpace(projectAlias)
+	if err := project.ValidateAlias(projectAlias); err != nil {
+		return nil, fmt.Errorf("invalid project_alias: %w", err)
+	}
+
+	if limit <= 0 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	filters := &GetFilters{
+		ProjectAlias:   &projectAlias,
+		IncludeDeleted: includeArchived,
+	}
+
+	docs, err := s.store.Get(s.ctx, filters)
+	if err != nil {
+		logger.WithError(err).WithField("projectAlias", projectAlias).Error("failed to list documents")
+		return nil, fmt.Errorf("listing documents: %w", err)
+	}
+
+	if offset >= len(docs) {
+		return []*Document{}, nil
+	}
+
+	end := offset + limit
+	if end > len(docs) {
+		end = len(docs)
+	}
+
+	result := docs[offset:end]
+
+	s.emitEvent(events.EntryListAccessed, map[string]any{
+		"projectId": projectAlias,
+		"count":     len(result),
+		"limit":     limit,
+		"offset":    offset,
+	})
+
+	return result, nil
+}
+
+func (s *Service) SoftDelete(path string) error {
+	if strings.TrimSpace(path) == "" {
+		return errors.New("path is required")
+	}
+
+	doc, err := s.store.GetByPath(s.ctx, path)
+	if err != nil {
+		logger.WithError(err).WithField("path", path).Error("failed to get document for deletion")
+		return fmt.Errorf("getting document: %w", err)
+	}
+
+	if err := s.store.SoftDelete(s.ctx, path); err != nil {
+		logger.WithError(err).WithField("path", path).Error("failed to soft delete document")
+		return fmt.Errorf("soft deleting document: %w", err)
+	}
+
+	if err := s.indexer.RemoveDocument(s.ctx, path); err != nil {
+		logger.WithError(err).WithField("path", path).Warn("failed to remove from index")
+	}
+
+	deletedProjectID := doc.ProjectAlias
+	if proj, err := s.projectCache.GetByAlias(doc.ProjectAlias); err == nil && proj != nil {
+		deletedProjectID = proj.ID
+	}
+	s.emitEvent(events.EntryDeleted, map[string]any{
+		"path":      path,
+		"projectId": deletedProjectID,
+	})
+	s.emitDocumentCountChange(doc.ProjectAlias)
+
+	logger.WithFields(map[string]any{
+		"path":    path,
+		"project": doc.ProjectAlias,
+	}).Info("document soft deleted")
+
+	return nil
+}
+
+func (s *Service) Restore(path string) error {
+	if strings.TrimSpace(path) == "" {
+		return errors.New("path is required")
+	}
+
+	filters := &GetFilters{
+		ProjectAlias:   nil,
+		IncludeDeleted: true,
+	}
+
+	docs, err := s.store.Get(s.ctx, filters)
+	if err != nil {
+		logger.WithError(err).WithField("path", path).Error("failed to query documents")
+		return fmt.Errorf("querying documents: %w", err)
+	}
+
+	var doc *Document
+	for _, d := range docs {
+		if d.Path == path && d.DeletedAt != "" {
+			doc = d
+			break
+		}
+	}
+
+	if doc == nil {
+		return fmt.Errorf("document not found or not deleted: %s", path)
+	}
+
+	if err := s.store.Restore(s.ctx, path); err != nil {
+		logger.WithError(err).WithField("path", path).Error("failed to restore document")
+		return fmt.Errorf("restoring document: %w", err)
+	}
+
+	if err := s.indexer.ReindexDocument(s.ctx, path); err != nil {
+		logger.WithError(err).WithField("path", path).Warn("failed to reindex")
+	}
+
+	restoredProjectID := doc.ProjectAlias
+	if proj, err := s.projectCache.GetByAlias(doc.ProjectAlias); err == nil && proj != nil {
+		restoredProjectID = proj.ID
+	}
+	s.emitEvent(events.EntryRestored, map[string]any{
+		"path":      path,
+		"projectId": restoredProjectID,
+	})
+	s.emitDocumentCountChange(doc.ProjectAlias)
+
+	logger.WithFields(map[string]any{
+		"path":    path,
+		"project": doc.ProjectAlias,
+	}).Info("document restored")
+
+	return nil
+}
+
+func (s *Service) SoftDeleteByProject(projectAlias string) error {
+	projectAlias = strings.TrimSpace(projectAlias)
+	if err := project.ValidateAlias(projectAlias); err != nil {
+		return fmt.Errorf("invalid project_alias: %w", err)
+	}
+
+	if err := s.store.SoftDeleteByProject(s.ctx, projectAlias); err != nil {
+		logger.WithError(err).WithField("projectAlias", projectAlias).Error("failed to soft delete documents by project")
+		return fmt.Errorf("soft deleting documents by project: %w", err)
+	}
+
+	logger.WithField("projectAlias", projectAlias).Info("documents soft deleted by project")
+
+	return nil
+}

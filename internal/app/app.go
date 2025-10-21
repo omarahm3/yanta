@@ -1,0 +1,310 @@
+package app
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"time"
+	"yanta/internal/asset"
+	"yanta/internal/commandline"
+	"yanta/internal/db"
+	"yanta/internal/document"
+	"yanta/internal/events"
+	"yanta/internal/indexer"
+	"yanta/internal/link"
+	"yanta/internal/logger"
+	"yanta/internal/project"
+	"yanta/internal/search"
+	"yanta/internal/system"
+	"yanta/internal/tag"
+	"yanta/internal/vault"
+
+	"github.com/google/uuid"
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
+)
+
+type App struct {
+	ctx context.Context
+
+	DB *sql.DB
+
+	Bindings *Bindings
+
+	DBPath string
+}
+
+type Config struct {
+	DBPath string
+}
+
+func New(cfg Config) (*App, error) {
+	a := &App{
+		DBPath: cfg.DBPath,
+	}
+
+	var err error
+	a.DB, err = db.OpenDB(a.DBPath)
+	if err != nil {
+		return nil, err
+	}
+	logger.Debugf("database opened: %s", a.DBPath)
+
+	if err := db.RunMigrations(a.DB); err != nil {
+		return nil, err
+	}
+
+	logger.Debugf("migrations completed")
+
+	if err := db.IntegrityCheck(a.DB); err != nil {
+		logger.Errorf("database integrity check failed: %v", err)
+		return nil, err
+	}
+
+	if err := db.SeedProjects(a.DB); err != nil {
+		logger.Errorf("failed to seed demo projects: %v", err)
+		return nil, err
+	}
+
+	v, err := vault.New(vault.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	projectStore := project.NewStore(a.DB)
+	documentStore := document.NewStore(a.DB)
+	tagStore := tag.NewStore(a.DB)
+	linkStore := link.NewStore(a.DB)
+	assetStore := asset.NewStore(a.DB)
+	ftsStore := search.NewStore(a.DB)
+
+	idx := indexer.New(a.DB, v, documentStore, ftsStore, tagStore, linkStore, assetStore)
+
+	projectCache := project.NewCache(projectStore)
+	projectService := project.NewService(a.DB, projectStore, projectCache)
+	documentService := document.NewService(a.DB, documentStore, v, idx, projectCache)
+	documentFileManager := document.NewFileManager(v)
+	tagService := tag.NewService(a.DB, tagStore, documentFileManager)
+	searchService := search.NewService(a.DB)
+	systemService := system.NewService(a.DB)
+	systemService.SetDBPath(a.DBPath)
+
+	logger.Debugf("services created")
+
+	if err := seedDemoDocuments(v, documentStore, idx); err != nil {
+		logger.Warnf("failed to seed demo documents: %v", err)
+	}
+
+	projectCommands := commandline.NewProjectCommands(projectService, documentService)
+	globalCommands := commandline.NewGlobalCommands(projectService)
+	documentCommands := commandline.NewDocumentCommands(documentService, tagService)
+
+	logger.Debugf("command handlers created")
+
+	a.Bindings = &Bindings{
+		Projects:         projectService,
+		Documents:        documentService,
+		Tags:             tagService,
+		Search:           searchService,
+		System:           systemService,
+		ProjectCommands:  projectCommands,
+		GlobalCommands:   globalCommands,
+		DocumentCommands: documentCommands,
+	}
+
+	logger.Debugf("bindings created")
+
+	return a, nil
+}
+
+func (a *App) OnStartup(ctx context.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Errorf("PANIC during OnStartup: %v", r)
+			a.writeCrashReport("OnStartup", r)
+		}
+	}()
+
+	a.ctx = ctx
+
+	logger.Info("application started and ready")
+	wailsRuntime.EventsEmit(a.ctx, events.AppReady, map[string]any{
+		"dbPath":  a.DBPath,
+		"version": BuildVersion,
+	})
+
+	if a.Bindings != nil {
+		a.Bindings.OnStartup(ctx)
+	}
+}
+
+func (a *App) OnBeforeClose(ctx context.Context) bool {
+	logger.Debug("OnBeforeClose called")
+	return false
+}
+
+func (a *App) OnShutdown(ctx context.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Errorf("PANIC during OnShutdown: %v", r)
+			a.writeCrashReport("OnShutdown", r)
+		}
+	}()
+
+	logger.Info("application shutdown initiated")
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		if a.DB != nil {
+			logger.Debug("closing database connection...")
+			if err := db.CloseDB(a.DB); err != nil {
+				logger.Errorf("failed to close database: %v", err)
+			} else {
+				logger.Debug("database closed successfully")
+			}
+			a.DB = nil
+		}
+	}()
+
+	select {
+	case <-done:
+		logger.Info("application shutdown completed")
+	case <-time.After(5 * time.Second):
+		logger.Warn("shutdown timeout reached, forcing exit")
+	}
+}
+
+func (a *App) writeCrashReport(location string, panicValue interface{}) {
+	timestamp := time.Now().Format("2006-01-02_15-04-05")
+	crashFile := fmt.Sprintf("crash-%s-%s.log", location, timestamp)
+
+	var crashPath string
+	if home, err := os.UserHomeDir(); err == nil {
+		crashDir := filepath.Join(home, ".yanta", "crashes")
+		os.MkdirAll(crashDir, 0755)
+		crashPath = filepath.Join(crashDir, crashFile)
+	} else {
+		crashPath = crashFile
+	}
+
+	f, err := os.OpenFile(crashPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		logger.Errorf("failed to create crash report: %v", err)
+		return
+	}
+	defer f.Close()
+
+	fmt.Fprintf(f, "=== YANTA CRASH REPORT ===\n")
+	fmt.Fprintf(f, "Time: %s\n", time.Now().Format(time.RFC3339))
+	fmt.Fprintf(f, "Location: %s\n", location)
+	fmt.Fprintf(f, "Version: %s\n", BuildVersion)
+	fmt.Fprintf(f, "Database: %s\n\n", a.DBPath)
+	fmt.Fprintf(f, "Panic Value:\n%v\n\n", panicValue)
+	fmt.Fprintf(f, "Stack Trace:\n")
+
+	buf := make([]byte, 4096)
+	n := runtime.Stack(buf, false)
+	fmt.Fprintf(f, "%s\n", buf[:n])
+
+	logger.Infof("crash report written to: %s", crashPath)
+}
+
+func seedDemoDocuments(v *vault.Vault, docStore *document.Store, idx *indexer.Indexer) error {
+	ctx := context.Background()
+
+	docs, err := docStore.Get(ctx, &document.GetFilters{})
+	if err != nil {
+		return err
+	}
+
+	if len(docs) > 0 {
+		logger.Debug("documents already exist, skipping seed")
+		return nil
+	}
+
+	logger.Info("seeding demo documents...")
+
+	demoDocuments := db.GetDemoDocuments()
+	fileWriter := document.NewFileWriter(v)
+
+	for _, seedDoc := range demoDocuments {
+		blocks := make([]document.BlockNoteBlock, len(seedDoc.Content))
+		for i, sb := range seedDoc.Content {
+			blocks[i] = convertSeedBlock(sb)
+		}
+
+		now := time.Now()
+		docFile := &document.DocumentFile{
+			Meta: document.DocumentMeta{
+				Project: seedDoc.ProjectAlias,
+				Title:   seedDoc.Title,
+				Tags:    seedDoc.Tags,
+				Aliases: []string{},
+				Created: now,
+				Updated: now,
+			},
+			Blocks: blocks,
+		}
+
+		timestamp := now.UnixMicro()
+		aliasSlug := strings.TrimPrefix(seedDoc.ProjectAlias, "@")
+		filename := fmt.Sprintf("doc-%s-%d.json", aliasSlug, timestamp)
+		relativePath := fmt.Sprintf("projects/%s/%s", seedDoc.ProjectAlias, filename)
+
+		if err := fileWriter.WriteFile(relativePath, docFile); err != nil {
+			logger.Errorf("failed to write seed document: %v", err)
+			continue
+		}
+
+		if err := idx.IndexDocument(ctx, relativePath); err != nil {
+			logger.Errorf("failed to index seed document: %v", err)
+			continue
+		}
+
+		logger.Debugf("seeded document: %s (%s)", seedDoc.Title, relativePath)
+	}
+
+	logger.Info("demo documents seeded successfully")
+	return nil
+}
+
+func convertSeedBlock(sb db.SeedBlock) document.BlockNoteBlock {
+	block := document.BlockNoteBlock{
+		ID:   uuid.New().String(),
+		Type: sb.Type,
+	}
+
+	if sb.Props != nil {
+		block.Props = sb.Props
+	}
+
+	if sb.Content != nil {
+		if contentSlice, ok := sb.Content.([]interface{}); ok {
+			block.Content = make([]document.BlockNoteContent, len(contentSlice))
+			for i, c := range contentSlice {
+				if contentMap, ok := c.(map[string]interface{}); ok {
+					bnc := document.BlockNoteContent{}
+					if t, ok := contentMap["type"].(string); ok {
+						bnc.Type = t
+					}
+					if text, ok := contentMap["text"].(string); ok {
+						bnc.Text = text
+					}
+					if styles, ok := contentMap["styles"].(map[string]any); ok {
+						bnc.Styles = styles
+					}
+					if href, ok := contentMap["href"].(string); ok {
+						bnc.Href = href
+					}
+					block.Content[i] = bnc
+				}
+			}
+		}
+	}
+
+	return block
+}

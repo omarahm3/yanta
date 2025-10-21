@@ -1,0 +1,472 @@
+package commandline
+
+import (
+	"context"
+	"fmt"
+	"regexp"
+	"strings"
+	"time"
+	"yanta/internal/document"
+	"yanta/internal/project"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
+)
+
+type ProjectCommand string
+
+const (
+	ProjectCommandNew       ProjectCommand = "new"
+	ProjectCommandArchive   ProjectCommand = "archive"
+	ProjectCommandUnarchive ProjectCommand = "unarchive"
+	ProjectCommandRename    ProjectCommand = "rename"
+	ProjectCommandDelete    ProjectCommand = "delete"
+)
+
+var AllProjectCommands = []struct {
+	Value  ProjectCommand
+	TSName string
+}{
+	{ProjectCommandNew, "New"},
+	{ProjectCommandArchive, "Archive"},
+	{ProjectCommandUnarchive, "Unarchive"},
+	{ProjectCommandRename, "Rename"},
+	{ProjectCommandDelete, "Delete"},
+}
+
+type ProjectResultData struct {
+	Project *project.Project `json:"project,omitempty"`
+}
+
+type ProjectResult struct {
+	Success bool              `json:"success"`
+	Message string            `json:"message"`
+	Data    ProjectResultData `json:"data,omitempty"`
+	Context CommandContext    `json:"context"`
+}
+
+type ProjectCommands struct {
+	projectService  *project.Service
+	documentService *document.Service
+	parser          *Parser
+	ctx             context.Context
+}
+
+func NewProjectCommands(projectService *project.Service, documentService *document.Service) *ProjectCommands {
+	pc := &ProjectCommands{
+		projectService:  projectService,
+		documentService: documentService,
+		parser:          New(ContextProject),
+		ctx:             context.Background(),
+	}
+
+	pc.registerCommands()
+	return pc
+}
+
+func (pc *ProjectCommands) SetContext(ctx context.Context) {
+	pc.ctx = ctx
+}
+
+func (pc *ProjectCommands) Parse(cmd string) (*ProjectResult, error) {
+	result, err := pc.parser.Parse(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	projectResult := &ProjectResult{
+		Success: result.Success,
+		Message: result.Message,
+		Context: result.Context,
+	}
+
+	if result.Data != nil {
+		if p, ok := result.Data.(*project.Project); ok {
+			projectResult.Data = ProjectResultData{
+				Project: p,
+			}
+		}
+	}
+
+	return projectResult, nil
+}
+
+func (pc *ProjectCommands) registerCommands() {
+	pc.parser.MustRegister(formatCommand(string(ProjectCommandNew), `\s+(.+)$`), pc.handleNew)
+	pc.parser.MustRegister(
+		formatCommand(string(ProjectCommandArchive), `\s+(@\w+)$`),
+		pc.handleArchive,
+	)
+	pc.parser.MustRegister(
+		formatCommand(string(ProjectCommandUnarchive), `\s+(@\w+)$`),
+		pc.handleUnarchive,
+	)
+	pc.parser.MustRegister(
+		formatCommand(string(ProjectCommandRename), `\s+(@\w+)\s+(.+)$`),
+		pc.handleRename,
+	)
+	pc.parser.MustRegister(
+		formatCommand(string(ProjectCommandDelete), `\s+(@\w+)\s+--force$`),
+		pc.handleDeleteForce,
+	)
+	pc.parser.MustRegister(
+		formatCommand(string(ProjectCommandDelete), `\s+(@\w+)$`),
+		pc.handleDelete,
+	)
+	pc.parser.MustRegister(`^(help|\?)$`, pc.handleHelp)
+}
+
+func (pc *ProjectCommands) handleNew(matches []string, fullCommand string) (*Result, error) {
+	commandText := strings.TrimSpace(matches[1])
+
+	dates := ExtractDates(commandText)
+	textWithoutDates := RemoveDatesFromText(commandText)
+	parts := strings.Fields(textWithoutDates)
+
+	if len(parts) < 2 {
+		return &Result{
+			Success: false,
+			Message: "usage: new [name] [alias] [start-date] [end-date] (e.g., 'new AcmeCorp @work 25-10-2024 31-12-2024')",
+		}, nil
+	}
+
+	aliasIndex := -1
+	for i, part := range parts {
+		if strings.HasPrefix(part, "@") {
+			aliasIndex = i
+			break
+		}
+	}
+
+	if aliasIndex == -1 {
+		return &Result{
+			Success: false,
+			Message: "alias must start with @",
+		}, nil
+	}
+
+	alias := parts[aliasIndex]
+	name := strings.Join(parts[:aliasIndex], "")
+
+	if strings.Contains(name, " ") {
+		return &Result{
+			Success: false,
+			Message: "project name cannot contain spaces. use camelCase or underscores instead (e.g., 'AcmeCorp' or 'acme_corp')",
+		}, nil
+	}
+
+	aliasPattern := regexp.MustCompile(`^@[a-zA-Z0-9_-]+$`)
+	if !aliasPattern.MatchString(alias) {
+		return &Result{
+			Success: false,
+			Message: "alias can only contain letters, numbers, hyphens, and underscores",
+		}, nil
+	}
+
+	startDate := ""
+	endDate := ""
+
+	if len(dates) > 0 {
+		if dates[0] != "" {
+			startDate = FormatDate(dates[0])
+		}
+		if len(dates) > 1 && dates[1] != "" {
+			endDate = FormatDate(dates[1])
+		}
+	}
+
+	if startDate == "" {
+		startDate = time.Now().Format("2006-01-02")
+	}
+
+	projectID, err := pc.projectService.Create(
+		strings.TrimSpace(name),
+		strings.TrimSpace(alias),
+		startDate,
+		endDate,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	createdProject, err := pc.projectService.Get(projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	if pc.ctx != nil && pc.ctx != context.Background() {
+		runtime.EventsEmit(pc.ctx, "yanta/project/changed", map[string]any{
+			"id": createdProject.ID,
+			"op": "create",
+		})
+	}
+
+	return &Result{
+		Success: true,
+		Message: fmt.Sprintf("created project: %s", createdProject.Name),
+		Data:    createdProject,
+	}, nil
+}
+
+func (pc *ProjectCommands) handleArchive(matches []string, fullCommand string) (*Result, error) {
+	alias := matches[1]
+
+	projects, err := pc.projectService.ListActive()
+	if err != nil {
+		return nil, err
+	}
+
+	var proj *project.Project
+	for _, p := range projects {
+		if p.Alias == alias {
+			proj = p
+			break
+		}
+	}
+
+	if proj == nil {
+		return &Result{
+			Success: false,
+			Message: fmt.Sprintf("project not found: %s", alias),
+		}, nil
+	}
+
+	err = pc.projectService.SoftDelete(proj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if pc.ctx != nil && pc.ctx != context.Background() {
+		runtime.EventsEmit(pc.ctx, "yanta/project/changed", map[string]any{
+			"id": proj.ID,
+			"op": "delete",
+		})
+	}
+
+	return &Result{
+		Success: true,
+		Message: fmt.Sprintf("archived project: %s", proj.Name),
+		Data:    proj,
+	}, nil
+}
+
+func (pc *ProjectCommands) handleUnarchive(matches []string, fullCommand string) (*Result, error) {
+	alias := matches[1]
+
+	projects, err := pc.projectService.ListArchived()
+	if err != nil {
+		return nil, err
+	}
+
+	var proj *project.Project
+	for _, p := range projects {
+		if p.Alias == alias {
+			proj = p
+			break
+		}
+	}
+
+	if proj == nil {
+		return &Result{
+			Success: false,
+			Message: fmt.Sprintf("archived project not found: %s", alias),
+		}, nil
+	}
+
+	err = pc.projectService.Restore(proj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if pc.ctx != nil && pc.ctx != context.Background() {
+		runtime.EventsEmit(pc.ctx, "yanta/project/changed", map[string]any{
+			"id": proj.ID,
+			"op": "restore",
+		})
+	}
+
+	return &Result{
+		Success: true,
+		Message: fmt.Sprintf("restored project: %s", proj.Name),
+		Data:    proj,
+	}, nil
+}
+
+func (pc *ProjectCommands) handleRename(matches []string, fullCommand string) (*Result, error) {
+	alias := matches[1]
+	newName := matches[2]
+
+	projects, err := pc.projectService.ListActive()
+	if err != nil {
+		return nil, err
+	}
+
+	var proj *project.Project
+	for _, p := range projects {
+		if p.Alias == alias {
+			proj = p
+			break
+		}
+	}
+
+	if proj == nil {
+		return &Result{
+			Success: false,
+			Message: fmt.Sprintf("project not found: %s", alias),
+		}, nil
+	}
+
+	proj.Name = strings.TrimSpace(newName)
+
+	err = pc.projectService.Update(proj)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Result{
+		Success: true,
+		Message: fmt.Sprintf("renamed project to: %s", proj.Name),
+		Data:    proj,
+	}, nil
+}
+
+func (pc *ProjectCommands) handleDelete(matches []string, fullCommand string) (*Result, error) {
+	alias := matches[1]
+
+	activeProjects, err := pc.projectService.ListActive()
+	if err != nil {
+		return nil, err
+	}
+
+	var proj *project.Project
+	for _, p := range activeProjects {
+		if p.Alias == alias {
+			proj = p
+			break
+		}
+	}
+
+	if proj == nil {
+		archivedProjects, err := pc.projectService.ListArchived()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, p := range archivedProjects {
+			if p.Alias == alias {
+				proj = p
+				break
+			}
+		}
+	}
+
+	if proj == nil {
+		return &Result{
+			Success: false,
+			Message: fmt.Sprintf("project not found: %s", alias),
+		}, nil
+	}
+
+	entryCount, err := pc.projectService.GetDocumentCount(proj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if entryCount > 0 {
+		return &Result{
+			Success: false,
+			Message: fmt.Sprintf(
+				"project '%s' has %d entries. use 'delete %s --force' to delete the project and all its entries.",
+				proj.Name,
+				entryCount,
+				alias,
+			),
+			Data: proj,
+		}, nil
+	}
+
+	err = pc.projectService.Delete(proj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Result{
+		Success: true,
+		Message: fmt.Sprintf("deleted project: %s", proj.Name),
+		Data:    proj,
+	}, nil
+}
+
+func (pc *ProjectCommands) handleDeleteForce(
+	matches []string,
+	fullCommand string,
+) (*Result, error) {
+	alias := matches[1]
+
+	activeProjects, err := pc.projectService.ListActive()
+	if err != nil {
+		return nil, err
+	}
+
+	var proj *project.Project
+	for _, p := range activeProjects {
+		if p.Alias == alias {
+			proj = p
+			break
+		}
+	}
+
+	if proj == nil {
+		archivedProjects, err := pc.projectService.ListArchived()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, p := range archivedProjects {
+			if p.Alias == alias {
+				proj = p
+				break
+			}
+		}
+	}
+
+	if proj == nil {
+		return &Result{
+			Success: false,
+			Message: fmt.Sprintf("Project not found: %s", alias),
+		}, nil
+	}
+
+	entryCount, err := pc.projectService.GetDocumentCount(proj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if entryCount > 0 {
+		if err := pc.documentService.SoftDeleteByProject(proj.Alias); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := pc.projectService.Delete(proj.ID); err != nil {
+		return nil, err
+	}
+
+	message := fmt.Sprintf("force deleted project: %s", proj.Name)
+	if entryCount > 0 {
+		message += fmt.Sprintf(" (and %d entries)", entryCount)
+	}
+
+	return &Result{
+		Success: true,
+		Message: message,
+		Data:    proj,
+	}, nil
+}
+
+func (pc *ProjectCommands) handleHelp(matches []string, fullCommand string) (*Result, error) {
+	return &Result{
+		Success: true,
+		Message: "help",
+		Data:    "help",
+	}, nil
+}

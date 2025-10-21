@@ -1,0 +1,76 @@
+import { LogFromFrontend } from "../../wailsjs/go/system/Service";
+
+type LogLevel = "debug" | "info" | "warn" | "error";
+
+export class BackendLogger {
+  private static formatArgs(args: any[]): { message: string; data: Record<string, any> } {
+    const message = args.map(arg =>
+      typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+    ).join(' ');
+
+    const data: Record<string, any> = {};
+    args.forEach((arg, index) => {
+      if (typeof arg === 'object' && arg !== null) {
+        Object.assign(data, arg);
+      }
+    });
+
+    return { message, data };
+  }
+
+  private static async log(level: LogLevel, ...args: any[]) {
+    const { message, data } = this.formatArgs(args);
+
+    try {
+      await LogFromFrontend(level, message, data);
+    } catch (error) {
+      // Silently fail if backend logging fails
+      console.error('[BackendLogger] Failed to send log to backend:', error);
+    }
+  }
+
+  static debug(...args: any[]) {
+    console.log(...args); // Also log to console
+    this.log("debug", ...args);
+  }
+
+  static info(...args: any[]) {
+    console.log(...args);
+    this.log("info", ...args);
+  }
+
+  static warn(...args: any[]) {
+    console.warn(...args);
+    this.log("warn", ...args);
+  }
+
+  static error(...args: any[]) {
+    console.error(...args);
+    this.log("error", ...args);
+  }
+}
+
+// Replace console methods to automatically send to backend
+const originalLog = console.log;
+const originalError = console.error;
+const originalWarn = console.warn;
+
+export function enableBackendLogging() {
+  console.log = (...args) => {
+    originalLog(...args);
+    const { message, data } = BackendLogger['formatArgs'](args);
+    LogFromFrontend("info", message, data).catch(() => {});
+  };
+
+  console.error = (...args) => {
+    originalError(...args);
+    const { message, data } = BackendLogger['formatArgs'](args);
+    LogFromFrontend("error", message, data).catch(() => {});
+  };
+
+  console.warn = (...args) => {
+    originalWarn(...args);
+    const { message, data } = BackendLogger['formatArgs'](args);
+    LogFromFrontend("warn", message, data).catch(() => {});
+  };
+}
