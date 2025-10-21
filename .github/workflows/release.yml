@@ -18,34 +18,60 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
       - uses: actions/setup-go@v5
         with:
           go-version: '1.23'
+      
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
+      
       - if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+      
       - run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
+      
       - run: cd frontend && npm ci
+      
+      - name: Set build info
+        id: build_info
+        shell: bash
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          COMMIT=$(git rev-parse --short HEAD)
+          DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "commit=$COMMIT" >> $GITHUB_OUTPUT
+          echo "date=$DATE" >> $GITHUB_OUTPUT
+      
       - if: matrix.platform == 'linux'
         run: |
-          wails build -platform linux/amd64 -clean -tags webkit2_41
+          wails build -platform linux/amd64 -clean -tags webkit2_41 \
+            -ldflags "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
           mkdir -p pkg/yanta
           cp build/bin/yanta pkg/yanta/
           cp yanta.desktop pkg/yanta/
           cp build/appicon.png pkg/yanta/yanta.png
           cd pkg && tar czf ../yanta-linux.tar.gz yanta/
+      
       - if: matrix.platform == 'windows'
         run: |
-          wails build -platform windows/amd64 -clean -o yanta-portable.exe -webview2 download
-          wails build -platform windows/amd64 -o yanta-installer.exe -nsis -webview2 download
+          wails build -platform windows/amd64 -clean -o yanta-portable.exe -webview2 download \
+            -ldflags "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
+          wails build -platform windows/amd64 -o yanta-installer.exe -nsis -webview2 download \
+            -ldflags "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
+      
       - if: matrix.platform == 'macos'
         run: |
-          wails build -platform darwin/universal -clean
+          wails build -platform darwin/universal -clean \
+            -ldflags "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
           cd build/bin && tar czf ../../yanta-macos.tar.gz yanta.app
+      
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}
@@ -58,9 +84,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - uses: actions/download-artifact@v4
         with:
           name: linux
+      
       - run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           tar xzf yanta-linux.tar.gz
@@ -78,6 +106,7 @@ jobs:
           CTRL
           dpkg-deb --build --root-owner-group deb
           mv deb.deb yanta_${VERSION}_amd64.deb
+      
       - uses: actions/upload-artifact@v4
         with:
           name: debian
@@ -90,12 +119,13 @@ jobs:
       contents: write
     steps:
       - uses: actions/download-artifact@v4
+      
       - uses: softprops/action-gh-release@v2
         with:
           files: |
             linux/yanta-linux.tar.gz
-            windows/yanta-portable.exe
-            windows/yanta-installer.exe
+            windows/build/bin/yanta-portable.exe
+            windows/build/bin/yanta-installer.exe
             macos/yanta-macos.tar.gz
             debian/yanta_*_amd64.deb
           generate_release_notes: true
