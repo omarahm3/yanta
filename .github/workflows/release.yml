@@ -68,11 +68,11 @@ jobs:
 
       - name: Build for Windows (Portable)
         if: matrix.build.platform == 'windows/amd64'
-        run: wails build -platform windows/amd64 -o yanta-windows-amd64.exe -webview2 download -clean
+        run: wails build -platform windows/amd64 -o yanta-windows-portable.exe -webview2 download -clean
 
       - name: Build for Windows (Installer)
         if: matrix.build.platform == 'windows/amd64'
-        run: wails build -platform windows/amd64 -o yanta-windows-amd64-installer.exe -nsis -webview2 download
+        run: wails build -platform windows/amd64 -o yanta-windows-installer.exe -nsis -webview2 download
 
       - name: Build for macOS
         if: matrix.build.platform == 'darwin/universal'
