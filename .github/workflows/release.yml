@@ -1,124 +1,101 @@
-name: Release Build
+name: Release
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
-
-env:
-  NODE_OPTIONS: "--max-old-space-size=4096"
+    tags: ['v*']
 
 jobs:
   build:
     strategy:
-      fail-fast: false
       matrix:
-        build:
-          - name: 'yanta'
-            platform: 'linux/amd64'
-            os: 'ubuntu-latest'
-          - name: 'yanta'
-            platform: 'windows/amd64'
-            os: 'windows-latest'
-          - name: 'yanta'
-            platform: 'darwin/universal'
-            os: 'macos-latest'
-
-    runs-on: ${{ matrix.build.os }}
-
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: windows-latest
+            platform: windows
+          - os: macos-latest
+            platform: macos
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Install Linux dependencies
-        if: matrix.build.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libgtk-3-dev \
-            libwebkit2gtk-4.1-dev \
-            build-essential \
-            pkg-config \
-            libayatana-appindicator3-dev
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: '1.23'
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '20'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
-
-      - name: Install Wails
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
-
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Build for Linux
-        if: matrix.build.platform == 'linux/amd64'
-        run: wails build -platform linux/amd64 -o yanta-linux-amd64 -clean -tags webkit2_41
-
-      - name: Build for Windows (Portable)
-        if: matrix.build.platform == 'windows/amd64'
-        run: wails build -platform windows/amd64 -o yanta-windows-portable.exe -webview2 download -clean
-
-      - name: Build for Windows (Installer)
-        if: matrix.build.platform == 'windows/amd64'
-        run: wails build -platform windows/amd64 -o yanta-windows-installer.exe -nsis -webview2 download
-
-      - name: Build for macOS
-        if: matrix.build.platform == 'darwin/universal'
-        run: wails build -platform darwin/universal -o yanta-darwin-universal -clean
-
-      - name: Set artifact name
-        id: artifact-name
-        shell: bash
+      - if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+      - run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
+      - run: cd frontend && npm ci
+      - if: matrix.platform == 'linux'
         run: |
-          PLATFORM="${{ matrix.build.platform }}"
-          ARTIFACT_NAME="${{ matrix.build.name }}-${PLATFORM//\//-}"
-          echo "name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+          wails build -platform linux/amd64 -clean -tags webkit2_41
+          mkdir -p pkg/yanta
+          cp build/bin/yanta pkg/yanta/
+          cp yanta.desktop pkg/yanta/
+          cp build/appicon.png pkg/yanta/yanta.png
+          cd pkg && tar czf ../yanta-linux.tar.gz yanta/
+      - if: matrix.platform == 'windows'
+        run: |
+          wails build -platform windows/amd64 -clean -o yanta-portable.exe -webview2 download
+          wails build -platform windows/amd64 -o yanta-installer.exe -nsis -webview2 download
+      - if: matrix.platform == 'macos'
+        run: |
+          wails build -platform darwin/universal -clean
+          cd build/bin && tar czf ../../yanta-macos.tar.gz yanta.app
+      - uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.artifact-name.outputs.name }}
+          name: ${{ matrix.platform }}
           path: |
-            ./build/bin/*
-          retention-days: 7
+            *.tar.gz
+            build/bin/*.exe
+
+  debian:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux
+      - run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          tar xzf yanta-linux.tar.gz
+          mkdir -p deb/DEBIAN deb/usr/bin deb/usr/share/applications deb/usr/share/pixmaps
+          cp yanta/yanta deb/usr/bin/ && chmod 755 deb/usr/bin/yanta
+          cp yanta/yanta.desktop deb/usr/share/applications/
+          cp yanta/yanta.png deb/usr/share/pixmaps/
+          cat > deb/DEBIAN/control << CTRL
+          Package: yanta
+          Version: ${VERSION}
+          Architecture: amd64
+          Maintainer: Omar Ahmed <me@mrg.sh>
+          Depends: libgtk-3-0, libwebkit2gtk-4.1-0
+          Description: Note-taking app
+          CTRL
+          dpkg-deb --build --root-owner-group deb
+          mv deb.deb yanta_${VERSION}_amd64.deb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: debian
+          path: "*.deb"
 
   release:
-    needs: build
+    needs: [build, debian]
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: ./artifacts
-
-      - name: Display structure of downloaded files
-        run: ls -R ./artifacts
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
+      - uses: actions/download-artifact@v4
+      - uses: softprops/action-gh-release@v2
         with:
           files: |
-            ./artifacts/**/*
+            linux/yanta-linux.tar.gz
+            windows/yanta-portable.exe
+            windows/yanta-installer.exe
+            macos/yanta-macos.tar.gz
+            debian/yanta_*_amd64.deb
           generate_release_notes: true
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

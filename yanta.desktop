@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Yanta
+GenericName=Note Taking App
+Comment=Yet Another Note Taking App - A fast, keyboard-driven note-taking app for developers
+Exec=yanta
+Icon=yanta
+Terminal=false
+Categories=Utility;TextEditor;Office;
+Keywords=notes;markdown;editor;writing;
+StartupWMClass=yanta
+StartupNotify=true
