@@ -92,8 +92,26 @@ jobs:
           LD_FLAGS: "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
         run: |
           set -euo pipefail
-          wails build -platform ${{ matrix.wails_platform }} -clean -o yanta-portable.exe -webview2 download -ldflags "${LD_FLAGS}"
-          wails build -platform ${{ matrix.wails_platform }} -o yanta-installer.exe -nsis -webview2 download -ldflags "${LD_FLAGS}"
+          wails build -platform ${{ matrix.wails_platform }} -clean -nsis -webview2 download -ldflags "${LD_FLAGS}"
+
+      - name: Prepare Windows artifacts
+        if: matrix.name == 'windows'
+        run: |
+          set -euo pipefail
+          PORTABLE=build/bin/yanta.exe
+          if [ ! -f "$PORTABLE" ]; then
+            echo 'Portable binary not found in build/bin' >&2
+            exit 1
+          fi
+          mv "$PORTABLE" build/bin/yanta-portable.exe
+          INSTALLER=$(ls build/bin/*-installer.exe 2>/dev/null | head -n 1)
+          if [ -z "$INSTALLER" ]; then
+            echo 'Could not locate the NSIS installer output in build/bin' >&2
+            exit 1
+          fi
+          mv "$INSTALLER" build/bin/yanta-installer.exe
+          cp build/bin/yanta-portable.exe yanta-windows-portable.exe
+          cp build/bin/yanta-installer.exe yanta-windows-installer.exe
 
       - name: Build macOS tarball
         if: matrix.name == 'macos'
@@ -112,6 +130,7 @@ jobs:
         with:
           name: linux
           path: yanta-linux.tar.gz
+          if-no-files-found: error
 
       - name: Upload Windows artifacts
         if: matrix.name == 'windows'
@@ -119,8 +138,9 @@ jobs:
         with:
           name: windows
           path: |
-            build/bin/yanta-portable.exe
-            build/bin/yanta-installer.exe
+            yanta-windows-portable.exe
+            yanta-windows-installer.exe
+          if-no-files-found: error
 
       - name: Upload macOS artifact
         if: matrix.name == 'macos'
@@ -128,6 +148,7 @@ jobs:
         with:
           name: macos
           path: yanta-macos.tar.gz
+          if-no-files-found: error
 
   debian:
     needs: build
@@ -170,6 +191,7 @@ jobs:
         with:
           name: debian
           path: yanta_${{ env.PACKAGE_VERSION }}_amd64.deb
+          if-no-files-found: error
 
   release:
     needs: [build, debian]
@@ -182,13 +204,16 @@ jobs:
         with:
           path: artifacts
 
+      - name: Inspect artifacts
+        run: ls -R artifacts
+
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             artifacts/linux/yanta-linux.tar.gz
-            artifacts/windows/build/bin/yanta-portable.exe
-            artifacts/windows/build/bin/yanta-installer.exe
+            artifacts/windows/yanta-windows-portable.exe
+            artifacts/windows/yanta-windows-installer.exe
             artifacts/macos/yanta-macos.tar.gz
             artifacts/debian/yanta_*_amd64.deb
           generate_release_notes: true
