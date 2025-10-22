@@ -103,15 +103,19 @@ jobs:
             echo 'Portable binary not found in build/bin' >&2
             exit 1
           fi
-          mv "$PORTABLE" build/bin/yanta-portable.exe
-          INSTALLER=$(ls build/bin/*-installer.exe 2>/dev/null | head -n 1)
+          cp "$PORTABLE" yanta-windows-portable.exe
+          INSTALLER=""
+          for file in build/bin/*-installer.exe; do
+            if [ -f "$file" ]; then
+              INSTALLER="$file"
+              break
+            fi
+          done
           if [ -z "$INSTALLER" ]; then
             echo 'Could not locate the NSIS installer output in build/bin' >&2
             exit 1
           fi
-          mv "$INSTALLER" build/bin/yanta-installer.exe
-          cp build/bin/yanta-portable.exe yanta-windows-portable.exe
-          cp build/bin/yanta-installer.exe yanta-windows-installer.exe
+          cp "$INSTALLER" yanta-windows-installer.exe
 
       - name: Build macOS tarball
         if: matrix.name == 'macos'

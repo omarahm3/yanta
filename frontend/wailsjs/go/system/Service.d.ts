@@ -3,6 +3,10 @@
 import {system} from '../models';
 import {context} from '../models';
 
+export function GetKeepInBackground():Promise<boolean>;
+
+export function GetStartHidden():Promise<boolean>;
+
 export function GetSystemInfo():Promise<system.SystemInfo>;
 
 export function LogFromFrontend(arg1:string,arg2:string,arg3:Record<string, any>):Promise<void>;
@@ -11,4 +15,10 @@ export function SetContext(arg1:context.Context):Promise<void>;
 
 export function SetDBPath(arg1:string):Promise<void>;
 
+export function SetKeepInBackground(arg1:boolean):Promise<void>;
+
 export function SetLogLevel(arg1:string):Promise<void>;
+
+export function SetStartHidden(arg1:boolean):Promise<void>;
+
+export function ShowWindow():Promise<void>;

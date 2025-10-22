@@ -60,11 +60,16 @@ func main() {
 		os.Exit(0)
 	}()
 
+	// Check if app should start hidden
+	startHidden := config.GetStartHidden()
+	logger.Infof("start_hidden config: %v", startHidden)
+
 	err = wails.Run(&options.App{
-		Title:     "YANTA",
-		Width:     1024,
-		Height:    768,
-		Frameless: true,
+		Title:        "YANTA",
+		Width:        1024,
+		Height:       768,
+		Frameless:    true,
+		StartHidden:  startHidden, // Respect user setting (defaults to false)
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
@@ -76,6 +81,7 @@ func main() {
 		EnumBind:         a.Bindings.BindEnums(),
 		Logger:           logger.NewWailsLogger(),
 	})
+
 	if err != nil {
 		writeStartupError(fmt.Sprintf("Failed to run Wails application: %v", err))
 		logger.Errorf("failed to run Wails application: %v", err)

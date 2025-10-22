@@ -25,6 +25,8 @@ import (
 
 	"github.com/google/uuid"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
+	"golang.design/x/hotkey"
+	"golang.design/x/hotkey/mainthread"
 )
 
 type App struct {
@@ -35,6 +37,8 @@ type App struct {
 	Bindings *Bindings
 
 	DBPath string
+
+	restoreHotkey *hotkey.Hotkey
 }
 
 type Config struct {
@@ -129,8 +133,8 @@ func (a *App) OnStartup(ctx context.Context) {
 	}()
 
 	a.ctx = ctx
-
 	logger.Info("application started and ready")
+
 	wailsRuntime.EventsEmit(a.ctx, events.AppReady, map[string]any{
 		"dbPath":  a.DBPath,
 		"version": BuildVersion,
@@ -139,10 +143,30 @@ func (a *App) OnStartup(ctx context.Context) {
 	if a.Bindings != nil {
 		a.Bindings.OnStartup(ctx)
 	}
+
+	// Register global hotkey Ctrl+Shift+Y to restore window
+	a.registerRestoreHotkey()
 }
 
 func (a *App) OnBeforeClose(ctx context.Context) bool {
 	logger.Debug("OnBeforeClose called")
+
+	if ctx == nil || a.Bindings == nil || a.Bindings.System == nil {
+		logger.Debug("app not fully initialized, allowing close")
+		return false
+	}
+
+	keepInBackground := a.Bindings.System.GetKeepInBackground()
+
+	if keepInBackground {
+		logger.Debug("hiding window to background")
+		wailsRuntime.WindowHide(ctx)
+		wailsRuntime.EventsEmit(ctx, events.WindowHidden, map[string]any{
+			"reason": "keep_in_background",
+		})
+		return true
+	}
+
 	return false
 }
 
@@ -155,6 +179,13 @@ func (a *App) OnShutdown(ctx context.Context) {
 	}()
 
 	logger.Info("application shutdown initiated")
+
+	if a.restoreHotkey != nil {
+		logger.Debug("unregistering global hotkey...")
+		if err := a.restoreHotkey.Unregister(); err != nil {
+			logger.Errorf("failed to unregister hotkey: %v", err)
+		}
+	}
 
 	done := make(chan struct{})
 	go func() {
@@ -178,7 +209,29 @@ func (a *App) OnShutdown(ctx context.Context) {
 	}
 }
 
-func (a *App) writeCrashReport(location string, panicValue interface{}) {
+func (a *App) registerRestoreHotkey() {
+	go mainthread.Init(func() {
+		hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyY)
+		if err := hk.Register(); err != nil {
+			logger.Errorf("failed to register global hotkey Ctrl+Shift+Y: %v", err)
+			return
+		}
+
+		a.restoreHotkey = hk
+		logger.Info("registered global hotkey Ctrl+Shift+Y to restore window")
+
+		for range hk.Keydown() {
+			logger.Debug("Ctrl+Shift+Y pressed, restoring window...")
+			if a.ctx != nil {
+				wailsRuntime.WindowShow(a.ctx)
+				wailsRuntime.WindowUnminimise(a.ctx)
+				logger.Debug("window restored")
+			}
+		}
+	})
+}
+
+func (a *App) writeCrashReport(location string, panicValue any) {
 	timestamp := time.Now().Format("2006-01-02_15-04-05")
 	crashFile := fmt.Sprintf("crash-%s-%s.log", location, timestamp)
 

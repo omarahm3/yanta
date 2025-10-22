@@ -12,7 +12,9 @@ import (
 )
 
 type Config struct {
-	LogLevel string `toml:"log_level"`
+	LogLevel        string `toml:"log_level"`
+	KeepInBackground bool   `toml:"keep_in_background"`
+	StartHidden      bool   `toml:"start_hidden"`
 }
 
 var (
@@ -24,7 +26,11 @@ var (
 func Init() error {
 	var initErr error
 	instanceOnce.Do(func() {
-		cfg := &Config{LogLevel: "info"}
+		cfg := &Config{
+			LogLevel:        "info",
+			KeepInBackground: false,
+			StartHidden:      false,
+		}
 
 		configPath, err := getConfigPath()
 		if err != nil {
@@ -35,7 +41,11 @@ func Init() error {
 		if _, err := os.Stat(configPath); !os.IsNotExist(err) {
 			if _, err := toml.DecodeFile(configPath, cfg); err != nil {
 				initErr = fmt.Errorf("failed to decode config: %w", err)
-				instance = &Config{LogLevel: "info"}
+				instance = &Config{
+					LogLevel:        "info",
+					KeepInBackground: false,
+					StartHidden:      false,
+				}
 				return
 			}
 		}
@@ -80,6 +90,48 @@ func SetLogLevel(level string) error {
 	}
 
 	instance.LogLevel = level
+	return save(instance)
+}
+
+func GetKeepInBackground() bool {
+	return Get().KeepInBackground
+}
+
+func SetKeepInBackground(keep bool) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if instance == nil {
+		instance = &Config{}
+	}
+
+	instance.KeepInBackground = keep
+
+	if !keep {
+		instance.StartHidden = false
+	}
+
+	return save(instance)
+}
+
+func GetStartHidden() bool {
+	cfg := Get()
+	return cfg.KeepInBackground && cfg.StartHidden
+}
+
+func SetStartHidden(hidden bool) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if instance == nil {
+		instance = &Config{}
+	}
+
+	if hidden && !instance.KeepInBackground {
+		return fmt.Errorf("cannot enable start_hidden when keep_in_background is disabled")
+	}
+
+	instance.StartHidden = hidden
 	return save(instance)
 }
 

@@ -11,9 +11,10 @@ import {
   HelpProvider,
 } from "./contexts";
 import { MantineProvider } from "@mantine/core";
-import { Notifications } from "@mantine/notifications";
+import { Notifications, notifications } from "@mantine/notifications";
 import { useHotkey } from "./hooks";
 import { useHelp } from "./hooks/useHelp";
+import { EventsOn } from "../wailsjs/runtime/runtime";
 
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
@@ -97,7 +98,7 @@ function App() {
   // Global error handlers for debugging
   React.useEffect(() => {
     const handleError = (event: ErrorEvent) => {
-      console.error('[App] Uncaught error:', {
+      console.error("[App] Uncaught error:", {
         message: event.message,
         filename: event.filename,
         lineno: event.lineno,
@@ -107,20 +108,41 @@ function App() {
     };
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      console.error('[App] Unhandled promise rejection:', {
+      console.error("[App] Unhandled promise rejection:", {
         reason: event.reason,
         promise: event.promise,
       });
     };
 
-    window.addEventListener('error', handleError);
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    window.addEventListener("error", handleError);
+    window.addEventListener("unhandledrejection", handleUnhandledRejection);
 
-    console.log('[App] Global error handlers registered');
+    console.log("[App] Global error handlers registered");
 
     return () => {
-      window.removeEventListener('error', handleError);
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener("error", handleError);
+      window.removeEventListener(
+        "unhandledrejection",
+        handleUnhandledRejection,
+      );
+    };
+  }, []);
+
+  React.useEffect(() => {
+    const unsubscribe = EventsOn("yanta/window/hidden", () => {
+      notifications.show({
+        title: "YANTA is running in background",
+        message:
+          "Press Ctrl+Shift+Y anywhere to restore, or click the taskbar icon",
+        color: "blue",
+        autoClose: 5000,
+      });
+    });
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
     };
   }, []);
 

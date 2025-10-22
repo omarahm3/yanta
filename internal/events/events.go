@@ -3,6 +3,7 @@ package events
 const (
 	AppReady            = "yanta/app/ready"
 	ToastEvent          = "yanta/ui/toast"
+	WindowHidden        = "yanta/window/hidden"         // payload: {reason}
 	ProjectChanged      = "yanta/project/changed"       // payload: {id, op:'create|update|delete|restore'}
 	ProjectCreated      = "yanta/project/created"       // payload: {id, name, alias}
 	ProjectUpdated      = "yanta/project/updated"       // payload: {id, name, alias}
