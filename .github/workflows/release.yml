@@ -51,8 +51,7 @@ jobs:
       
       - if: matrix.platform == 'linux'
         run: |
-          wails build -platform linux/amd64 -clean -tags webkit2_41 \
-            -ldflags "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
+          wails build -platform linux/amd64 -clean -tags webkit2_41 -ldflags "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
           mkdir -p pkg/yanta
           cp build/bin/yanta pkg/yanta/
           cp yanta.desktop pkg/yanta/
@@ -60,16 +59,14 @@ jobs:
           cd pkg && tar czf ../yanta-linux.tar.gz yanta/
       
       - if: matrix.platform == 'windows'
+        shell: bash
         run: |
-          wails build -platform windows/amd64 -clean -o yanta-portable.exe -webview2 download \
-            -ldflags "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
-          wails build -platform windows/amd64 -o yanta-installer.exe -nsis -webview2 download \
-            -ldflags "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
+          wails build -platform windows/amd64 -clean -o yanta-portable.exe -webview2 download -ldflags "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
+          wails build -platform windows/amd64 -o yanta-installer.exe -nsis -webview2 download -ldflags "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
       
       - if: matrix.platform == 'macos'
         run: |
-          wails build -platform darwin/universal -clean \
-            -ldflags "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
+          wails build -platform darwin/universal -clean -ldflags "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
           cd build/bin && tar czf ../../yanta-macos.tar.gz yanta.app
       
       - uses: actions/upload-artifact@v4
