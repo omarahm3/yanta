@@ -64,7 +64,6 @@ func main() {
 		os.Exit(0)
 	}()
 
-	// Check if app should start hidden
 	startHidden := config.GetStartHidden()
 	logger.Infof("start_hidden config: %v", startHidden)
 
@@ -73,7 +72,7 @@ func main() {
 		Width:       1024,
 		Height:      768,
 		Frameless:   true,
-		StartHidden: startHidden, // Respect user setting (defaults to false)
+		StartHidden: startHidden,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

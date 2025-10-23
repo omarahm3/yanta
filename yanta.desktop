@@ -11,3 +11,7 @@ Categories=Utility;TextEditor;Office;
 Keywords=notes;markdown;editor;writing;
 StartupWMClass=yanta
 StartupNotify=true
+# Wayland support - let the application detect the session type
+X-GNOME-UsesNotifications=true
+# Support both X11 and Wayland
+Actions=

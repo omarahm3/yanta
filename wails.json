@@ -17,5 +17,11 @@
     "copyright": "Copyright © 2024-2025 Omar Ahmed",
     "comments": "Yet Another Note Taking App - A lightning-fast note-taking app for developers, inspired by Neovim"
   },
-  "build:flags": "-devtools"
+  "build:flags": "-devtools",
+  "linux": {
+    "icon": "build/appicon.png",
+    "windowIsTranslucent": false,
+    "webviewIsTransparent": false,
+    "ProgramName": "yanta"
+  }
 }

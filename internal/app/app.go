@@ -147,8 +147,11 @@ func (a *App) OnStartup(ctx context.Context) {
 		a.Bindings.OnStartup(ctx)
 	}
 
-	// Register global hotkey Ctrl+Shift+Y to restore window
-	a.registerRestoreHotkey()
+	if !isWayland() {
+		a.registerRestoreHotkey()
+	} else {
+		logger.Info("skipping global hotkey registration on Wayland (not supported)")
+	}
 }
 
 func (a *App) OnBeforeClose(ctx context.Context) bool {
@@ -183,16 +186,11 @@ func (a *App) OnShutdown(ctx context.Context) {
 
 	logger.Info("application shutdown initiated")
 
-	if a.restoreHotkey != nil {
-		logger.Debug("unregistering global hotkey...")
-		if err := a.restoreHotkey.Unregister(); err != nil {
-			logger.Errorf("failed to unregister hotkey: %v", err)
-		}
-	}
-
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
+
+		// Close database first (critical for data integrity)
 		if a.DB != nil {
 			logger.Debug("closing database connection...")
 			if err := db.CloseDB(a.DB); err != nil {
@@ -202,13 +200,36 @@ func (a *App) OnShutdown(ctx context.Context) {
 			}
 			a.DB = nil
 		}
+
+		if a.restoreHotkey != nil {
+			logger.Debug("unregistering global hotkey...")
+			hotkeyDone := make(chan struct{})
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						logger.Errorf("panic during hotkey unregister: %v", r)
+					}
+					close(hotkeyDone)
+				}()
+				if err := a.restoreHotkey.Unregister(); err != nil {
+					logger.Errorf("failed to unregister hotkey: %v", err)
+				}
+			}()
+
+			select {
+			case <-hotkeyDone:
+				logger.Debug("hotkey unregistered successfully")
+			case <-time.After(500 * time.Millisecond):
+				logger.Warn("hotkey unregister timeout, continuing shutdown anyway")
+			}
+		}
 	}()
 
 	select {
 	case <-done:
-		logger.Info("application shutdown completed")
-	case <-time.After(5 * time.Second):
-		logger.Warn("shutdown timeout reached, forcing exit")
+		logger.Info("application shutdown completed successfully")
+	case <-time.After(2 * time.Second):
+		logger.Warn("shutdown timeout reached (2s), forcing cleanup completion")
 	}
 }
 
@@ -267,6 +288,15 @@ func (a *App) writeCrashReport(location string, panicValue any) {
 	fmt.Fprintf(f, "%s\n", buf[:n])
 
 	logger.Infof("crash report written to: %s", crashPath)
+}
+
+func isWayland() bool {
+	if runtime.GOOS != "linux" {
+		return false
+	}
+
+	sessionType := os.Getenv("XDG_SESSION_TYPE")
+	return strings.ToLower(sessionType) == "wayland"
 }
 
 func seedDemoDocuments(v *vault.Vault, docStore *document.Store, idx *indexer.Indexer) error {
@@ -339,10 +369,10 @@ func convertSeedBlock(sb db.SeedBlock) document.BlockNoteBlock {
 	}
 
 	if sb.Content != nil {
-		if contentSlice, ok := sb.Content.([]interface{}); ok {
+		if contentSlice, ok := sb.Content.([]any); ok {
 			block.Content = make([]document.BlockNoteContent, len(contentSlice))
 			for i, c := range contentSlice {
-				if contentMap, ok := c.(map[string]interface{}); ok {
+				if contentMap, ok := c.(map[string]any); ok {
 					bnc := document.BlockNoteContent{}
 					if t, ok := contentMap["type"].(string); ok {
 						bnc.Type = t
