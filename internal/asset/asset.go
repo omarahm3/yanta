@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -129,4 +130,23 @@ func DetectMIME(ext string) string {
 	}
 
 	return "application/octet-stream"
+}
+
+func detectImageExt(data []byte) string {
+	if len(data) == 0 {
+		return ""
+	}
+	c := http.DetectContentType(data)
+	switch c {
+	case "image/png":
+		return ".png"
+	case "image/jpeg":
+		return ".jpg"
+	case "image/gif":
+		return ".gif"
+	case "image/webp":
+		return ".webp"
+	default:
+		return ""
+	}
 }

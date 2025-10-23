@@ -4,6 +4,8 @@ import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import { useCreateBlockNote } from "@blocknote/react";
+import { uploadFile } from "../../utils/assetUpload";
+import { useProjectContext } from "../../contexts";
 import "../../styles/blocknote-dark.css";
 import { cn } from "../../lib/utils";
 import { BlockNoteBlock } from "../../types/Document";
@@ -49,7 +51,26 @@ const EditorInner: React.FC<EditorInnerProps> = ({
   className,
   editable,
 }) => {
-  const editor = useCreateBlockNote({ initialContent: blocks });
+  const { currentProject } = useProjectContext();
+
+  const uploadFileFn = React.useCallback(
+    async (file: File) => {
+      const alias = currentProject?.alias ?? "";
+      if (!alias) throw new Error("No project selected");
+      return await uploadFile(file, alias);
+    },
+    [currentProject]
+  );
+
+  const editor = useCreateBlockNote({
+    initialContent: blocks,
+    uploadFile: uploadFileFn,
+    domAttributes: {
+      editor: {
+        class: "bn-editor",
+      },
+    },
+  });
   const [isReady, setIsReady] = React.useState(false);
 
   useEffect(() => {
@@ -69,10 +90,32 @@ const EditorInner: React.FC<EditorInnerProps> = ({
     }
   }, [editor, editable, isReady]);
 
+  const convertedBlocksRef = React.useRef<Set<string>>(new Set());
+
   useEffect(() => {
     if (!editor || !onChange) return;
     const unsubscribe = editor.onChange(() => {
       const currentBlocks = editor.document;
+
+      currentBlocks.forEach((block: Block) => {
+        if (
+          block.type === "file" &&
+          block.props?.url &&
+          !convertedBlocksRef.current.has(block.id)
+        ) {
+          const url = block.props.url as string;
+          if (url.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
+            convertedBlocksRef.current.add(block.id);
+            editor.updateBlock(block.id, {
+              type: "image",
+              props: {
+                url: url,
+              },
+            });
+          }
+        }
+      });
+
       onChange(currentBlocks);
       if (onTitleChange) {
         const title = extractTitleFromBlocks(currentBlocks as BlockNoteBlock[]);

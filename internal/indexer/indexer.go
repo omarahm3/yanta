@@ -145,6 +145,38 @@ func (idx *Indexer) IndexDocument(ctx context.Context, docPath string) error {
 		}
 	}
 
+	// Reset asset links for this document, then re-add from parsed content
+	if err := idx.assetStore.UnlinkAllFromDocumentTx(ctx, tx, docPath); err != nil {
+		return fmt.Errorf("unlinking document assets: %w", err)
+	}
+	if len(content.Assets) > 0 {
+		for _, as := range content.Assets {
+			url := as.Path
+			// Expected form: /assets/{projectAlias}/{hash}{ext} or wails://assets/... (both contain "/assets/")
+			i := strings.Index(url, "/assets/")
+			if i == -1 {
+				continue
+			}
+			tail := url[i+len("/assets/"):]
+			parts := strings.SplitN(tail, "/", 2)
+			if len(parts) != 2 {
+				continue
+			}
+			file := parts[1]
+			dot := strings.LastIndex(file, ".")
+			if dot <= 0 {
+				continue
+			}
+			hash := file[:dot]
+			if err := asset.ValidateHash(hash); err != nil {
+				continue
+			}
+			if err := idx.assetStore.LinkToDocumentTx(ctx, tx, hash, docPath); err != nil {
+				return fmt.Errorf("linking asset to document: %w", err)
+			}
+		}
+	}
+
 	if err = tx.Commit(); err != nil {
 		return fmt.Errorf("committing transaction: %w", err)
 	}

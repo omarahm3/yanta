@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"yanta/internal/asset"
 	"yanta/internal/commandline"
 	"yanta/internal/document"
 	"yanta/internal/events"
@@ -19,6 +20,7 @@ type Bindings struct {
 	Tags             *tag.Service
 	Search           *search.Service
 	System           *system.Service
+	Assets           *asset.Service
 	ProjectCommands  *commandline.ProjectCommands
 	GlobalCommands   *commandline.GlobalCommands
 	DocumentCommands *commandline.DocumentCommands
@@ -33,6 +35,7 @@ func (b *Bindings) OnStartup(ctx context.Context) {
 	b.Tags.SetContext(ctx)
 	b.Search.SetContext(ctx)
 	b.System.SetContext(ctx)
+	b.Assets.SetContext(ctx)
 	b.ProjectCommands.SetContext(ctx)
 	b.GlobalCommands.SetContext(ctx)
 	b.DocumentCommands.SetContext(ctx)
@@ -49,6 +52,7 @@ func (b *Bindings) Bind() []any {
 		b.Tags,
 		b.Search,
 		b.System,
+		b.Assets,
 		b.ProjectCommands,
 		b.GlobalCommands,
 		b.DocumentCommands,
