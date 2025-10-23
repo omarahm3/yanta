@@ -56,7 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           count: getCount(project.id),
           active: false,
           onClick: () => onProjectSelect(project.id),
-        })
+        }),
       ),
     },
     {
@@ -69,7 +69,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             label: filter.displayName,
             count: filter.entryCount,
             onClick: () => onFilterSelect(filter.id),
-          })
+          }),
         ),
         ...categoryFilters.map(
           (filter): SidebarItem => ({
@@ -77,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             label: filter.displayName,
             count: filter.entryCount,
             onClick: () => onFilterSelect(filter.id),
-          })
+          }),
         ),
       ],
     },
@@ -90,10 +90,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           label: project.alias || project.name,
           count: getCount(project.id),
           onClick: () => onProjectSelect(project.id),
-        })
+        }),
       ),
     },
   ];
 
-  return <UISidebar title="YANTA" sections={sections} />;
+  return <UISidebar sections={sections} />;
 };

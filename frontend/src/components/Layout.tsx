@@ -115,36 +115,36 @@ export const Layout: React.FC<LayoutProps> = ({
   useHotkeys(
     showCommandLine
       ? [
-          {
-            key: "shift+;",
-            handler: () => {
-              if (commandInputRef.current) {
-                commandInputRef.current.focus();
-              }
-            },
-            allowInInput: false,
-            description: "Focus command line",
+        {
+          key: "shift+;",
+          handler: () => {
+            if (commandInputRef.current) {
+              commandInputRef.current.focus();
+            }
           },
-          {
-            key: "Escape",
-            handler: (event: KeyboardEvent) => {
-              if (document.activeElement === commandInputRef.current) {
-                event.preventDefault();
-                event.stopPropagation();
-                commandInputRef.current?.blur();
-                if (onCommandChange) {
-                  onCommandChange("");
-                }
-                return true;
+          allowInInput: false,
+          description: "Focus command line",
+        },
+        {
+          key: "Escape",
+          handler: (event: KeyboardEvent) => {
+            if (document.activeElement === commandInputRef.current) {
+              event.preventDefault();
+              event.stopPropagation();
+              commandInputRef.current?.blur();
+              if (onCommandChange) {
+                onCommandChange("");
               }
-              return false;
-            },
-            allowInInput: true,
-            priority: 100,
-            description: "Exit command line",
-            capture: true,
+              return true;
+            }
+            return false;
           },
-        ]
+          allowInInput: true,
+          priority: 100,
+          description: "Exit command line",
+          capture: true,
+        },
+      ]
       : [],
   );
 
@@ -160,7 +160,7 @@ export const Layout: React.FC<LayoutProps> = ({
           {sidebarContent ? (
             <>{sidebarContent}</>
           ) : (
-            <UISidebar title={sidebarTitle} sections={sidebarSections || []} />
+            <UISidebar sections={sidebarSections || []} />
           )}
         </>
       )}

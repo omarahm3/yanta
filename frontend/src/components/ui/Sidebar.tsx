@@ -1,6 +1,7 @@
 import React from "react";
 import { cn } from "../../lib/utils";
 import { List, ListItem } from "./List";
+import logoImage from "../../assets/images/logo-universal.png";
 
 export interface SidebarSection {
   id: string;
@@ -17,29 +18,25 @@ export interface SidebarItem {
 }
 
 export interface SidebarProps {
-  title?: string;
   sections: SidebarSection[];
   className?: string;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
-  title,
-  sections,
-  className,
-}) => {
+export const Sidebar: React.FC<SidebarProps> = ({ sections, className }) => {
   return (
     <aside
       className={cn(
         "w-48 bg-surface border-r border-border p-5 overflow-y-auto",
-        className
+        className,
       )}
     >
-      {title && (
-        <div className="text-text-bright text-base font-semibold mb-8">
-          {title}
-        </div>
-      )}
-
+      <div className="mb-8 flex items-center justify-center">
+        <img
+          src={logoImage}
+          alt="YANTA"
+          className="h-12 w-auto object-contain"
+        />
+      </div>
       {sections.map((section) => (
         <div key={section.id} className="mb-8">
           <div className="text-text-dim text-xs uppercase tracking-wider mb-2">
