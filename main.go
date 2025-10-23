@@ -5,15 +5,19 @@ import (
 	"embed"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 	"yanta/internal/app"
+	"yanta/internal/asset"
 	"yanta/internal/config"
 	"yanta/internal/db"
 	"yanta/internal/logger"
+	"yanta/internal/vault"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -65,13 +69,62 @@ func main() {
 	logger.Infof("start_hidden config: %v", startHidden)
 
 	err = wails.Run(&options.App{
-		Title:        "YANTA",
-		Width:        1024,
-		Height:       768,
-		Frameless:    true,
-		StartHidden:  startHidden, // Respect user setting (defaults to false)
+		Title:       "YANTA",
+		Width:       1024,
+		Height:      768,
+		Frameless:   true,
+		StartHidden: startHidden, // Respect user setting (defaults to false)
 		AssetServer: &assetserver.Options{
 			Assets: assets,
+			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodGet {
+					w.WriteHeader(http.StatusMethodNotAllowed)
+					return
+				}
+
+				if !strings.HasPrefix(r.URL.Path, "/assets/") {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+				// We can't access app internals here; instead, re-open the vault on demand.
+				// Minimal duplication: use internal packages.
+				// WARNING: We avoid heavy logic here; path parsing & streaming only.
+				parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/assets/"), "/")
+				if len(parts) < 2 {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+				projectAlias := parts[0]
+				file := parts[1]
+				dot := strings.LastIndex(file, ".")
+				if dot <= 0 {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+				hash := file[:dot]
+				ext := file[dot:]
+				if err := asset.ValidateHash(hash); err != nil {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+				if err := asset.ValidateExtension(ext); err != nil {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+				v, verr := vault.New(vault.Config{})
+				if verr != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				data, rerr := asset.ReadAsset(v, projectAlias, hash, ext)
+				if rerr != nil {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+				w.Header().Set("Content-Type", asset.DetectMIME(ext))
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write(data)
+			}),
 		},
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup:        a.OnStartup,

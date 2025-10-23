@@ -1,6 +1,8 @@
-import { useState, useCallback } from 'react';
-import { BlockNoteBlock } from '../types/Document';
-import { DocumentServiceWrapper } from '../services/DocumentService';
+import { useState, useCallback } from "react";
+import { BlockNoteBlock } from "../types/Document";
+import { DocumentServiceWrapper } from "../services/DocumentService";
+import { LinkToDocument, CleanupOrphans } from "../../wailsjs/go/asset/Service";
+import { extractAssetHashes } from "../utils/assetExtractor";
 
 interface SaveDocumentParams {
   title: string;
@@ -16,33 +18,66 @@ export const useDocumentSaver = (
 ) => {
   const [isSaving, setIsSaving] = useState(false);
 
-  const save = useCallback(async (params: SaveDocumentParams) => {
-    setIsSaving(true);
-    try {
-      const savedPath = await DocumentServiceWrapper.save({
-        path: params.documentPath || '',
-        projectAlias: params.projectAlias,
-        title: params.title || 'Untitled',
-        blocks: params.blocks,
-        tags: params.tags,
-      });
+  const save = useCallback(
+    async (params: SaveDocumentParams) => {
+      setIsSaving(true);
+      try {
+        const normalizedBlocks = params.blocks.map((block) => {
+          if (block.type === "file" && block.props?.url) {
+            const url = block.props.url as string;
+            if (url.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
+              return {
+                ...block,
+                type: "image",
+                props: {
+                  url: url,
+                },
+              };
+            }
+          }
+          return block;
+        });
 
-      const message = params.documentPath
-        ? 'Document updated successfully'
-        : `Document created: ${savedPath}`;
+        const savedPath = await DocumentServiceWrapper.save({
+          path: params.documentPath || "",
+          projectAlias: params.projectAlias,
+          title: params.title || "Untitled",
+          blocks: normalizedBlocks,
+          tags: params.tags,
+        });
 
-      onSuccess(message);
-      return savedPath;
-    } catch (err) {
-      const errorMessage = err instanceof Error
-        ? err.message
-        : 'Failed to save document';
-      onError(errorMessage);
-      throw err;
-    } finally {
-      setIsSaving(false);
-    }
-  }, [onSuccess, onError]);
+        const assetHashes = extractAssetHashes(normalizedBlocks);
+        for (const hash of assetHashes) {
+          try {
+            await LinkToDocument(savedPath, hash);
+          } catch (err) {
+            console.warn(`Failed to link asset ${hash} to document:`, err);
+          }
+        }
+
+        try {
+          await CleanupOrphans(params.projectAlias);
+        } catch (err) {
+          console.warn("Failed to cleanup orphaned assets:", err);
+        }
+
+        const message = params.documentPath
+          ? "Document updated successfully"
+          : `Document created: ${savedPath}`;
+
+        onSuccess(message);
+        return savedPath;
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to save document";
+        onError(errorMessage);
+        throw err;
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [onSuccess, onError]
+  );
 
   return {
     save,

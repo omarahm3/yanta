@@ -12,7 +12,7 @@ import (
 )
 
 type Config struct {
-	LogLevel        string `toml:"log_level"`
+	LogLevel         string `toml:"log_level"`
 	KeepInBackground bool   `toml:"keep_in_background"`
 	StartHidden      bool   `toml:"start_hidden"`
 }
@@ -27,7 +27,7 @@ func Init() error {
 	var initErr error
 	instanceOnce.Do(func() {
 		cfg := &Config{
-			LogLevel:        "info",
+			LogLevel:         "info",
 			KeepInBackground: false,
 			StartHidden:      false,
 		}
@@ -42,7 +42,7 @@ func Init() error {
 			if _, err := toml.DecodeFile(configPath, cfg); err != nil {
 				initErr = fmt.Errorf("failed to decode config: %w", err)
 				instance = &Config{
-					LogLevel:        "info",
+					LogLevel:         "info",
 					KeepInBackground: false,
 					StartHidden:      false,
 				}

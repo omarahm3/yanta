@@ -96,6 +96,8 @@ func New(cfg Config) (*App, error) {
 	systemService := system.NewService(a.DB)
 	systemService.SetDBPath(a.DBPath)
 
+	assetService := asset.NewService(asset.ServiceConfig{DB: a.DB, Store: assetStore, Vault: v})
+
 	logger.Debugf("services created")
 
 	if err := seedDemoDocuments(v, documentStore, idx); err != nil {
@@ -114,6 +116,7 @@ func New(cfg Config) (*App, error) {
 		Tags:             tagService,
 		Search:           searchService,
 		System:           systemService,
+		Assets:           assetService,
 		ProjectCommands:  projectCommands,
 		GlobalCommands:   globalCommands,
 		DocumentCommands: documentCommands,

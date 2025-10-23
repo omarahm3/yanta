@@ -1,15 +1,30 @@
+export namespace asset {
+	
+	export class AssetInfo {
+	    Hash: string;
+	    Ext: string;
+	    Bytes: number;
+	    MIME: string;
+	    AlreadyExist: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new AssetInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Hash = source["Hash"];
+	        this.Ext = source["Ext"];
+	        this.Bytes = source["Bytes"];
+	        this.MIME = source["MIME"];
+	        this.AlreadyExist = source["AlreadyExist"];
+	    }
+	}
+
+}
+
 export namespace commandline {
 	
-	export enum DocumentCommand {
-	    New = "new",
-	    Doc = "doc",
-	    Archive = "archive",
-	    Unarchive = "unarchive",
-	    Delete = "delete",
-	    Tag = "tag",
-	    Untag = "untag",
-	    Tags = "tags",
-	}
 	export enum ProjectCommand {
 	    New = "new",
 	    Archive = "archive",
@@ -19,6 +34,16 @@ export namespace commandline {
 	}
 	export enum GlobalCommand {
 	    Switch = "switch",
+	}
+	export enum DocumentCommand {
+	    New = "new",
+	    Doc = "doc",
+	    Archive = "archive",
+	    Unarchive = "unarchive",
+	    Delete = "delete",
+	    Tag = "tag",
+	    Untag = "untag",
+	    Tags = "tags",
 	}
 	export class DocumentResultData {
 	    documentPath?: string;

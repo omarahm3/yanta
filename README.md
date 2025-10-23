@@ -44,6 +44,17 @@ Get the latest version: **[Releases](https://github.com/mrgeek/yanta/releases)**
 **macOS:** Universal binary for Intel and Apple Silicon
 **Linux:** Single executable binary
 
+### Linux Wayland Support
+
+Yanta runs on Linux with Wayland via the XWayland compatibility layer. If you experience display issues on Wayland:
+
+```bash
+# Force X11 session when launching
+unset WAYLAND_DISPLAY && ./yanta
+```
+
+Native Wayland support is tracked in [Wails issue #1420](https://github.com/wailsapp/wails/issues/1420).
+
 ## Quick Start
 
 Launch Yanta. Your vault is created automatically at `~/.yanta/vault/`.
