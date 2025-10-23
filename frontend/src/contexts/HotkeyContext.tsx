@@ -6,8 +6,9 @@ import React, {
   useCallback,
   ReactNode,
   useRef,
+  useMemo,
 } from "react";
-import { useHotkeys } from "@mantine/hooks";
+import { useHotkeys, type HotkeyItem } from "@mantine/hooks";
 import {
   HotkeyConfig,
   RegisteredHotkey,
@@ -29,6 +30,74 @@ const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(
   window.HTMLTextAreaElement.prototype,
   "value",
 )?.set;
+
+const SPECIAL_KEY_SET = new Set(["?", ":", "shift+;", "shift+/"]);
+
+const isMacPlatform = () =>
+  typeof navigator !== "undefined" &&
+  /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+
+const createHotkeyMatcher = (combo: string) => {
+  const parts = combo
+    .split("+")
+    .map((part) => part.trim().toLowerCase())
+    .filter(Boolean);
+
+  let requireKey: string | null = null;
+  let requireCtrl = false;
+  let requireMeta = false;
+  let requireAlt = false;
+  let requireShift = false;
+
+  parts.forEach((part) => {
+    switch (part) {
+      case "mod":
+        if (isMacPlatform()) {
+          requireMeta = true;
+        } else {
+          requireCtrl = true;
+        }
+        break;
+      case "ctrl":
+      case "control":
+        requireCtrl = true;
+        break;
+      case "cmd":
+      case "command":
+      case "meta":
+        requireMeta = true;
+        break;
+      case "alt":
+      case "option":
+        requireAlt = true;
+        break;
+      case "shift":
+        requireShift = true;
+        break;
+      default:
+        requireKey = part;
+        break;
+    }
+  });
+
+  return (event: KeyboardEvent) => {
+    const key =
+      event.key.length === 1
+        ? event.key.toLowerCase()
+        : event.key.toLowerCase();
+
+    if (requireKey && key !== requireKey) {
+      return false;
+    }
+
+    if (event.ctrlKey !== requireCtrl) return false;
+    if (event.metaKey !== requireMeta) return false;
+    if (event.altKey !== requireAlt) return false;
+    if (event.shiftKey !== requireShift) return false;
+
+    return true;
+  };
+};
 
 export const HotkeyProvider: React.FC<HotkeyProviderProps> = ({ children }) => {
   const [hotkeys, setHotkeys] = useState<Map<string, RegisteredHotkey>>(
@@ -66,54 +135,108 @@ export const HotkeyProvider: React.FC<HotkeyProviderProps> = ({ children }) => {
     return Array.from(hotkeys.values());
   }, [hotkeys]);
 
-  const specialCharHotkeys = Array.from(hotkeys.values()).filter(
-    (h) =>
-      h.key === "?" ||
-      h.key === ":" ||
-      h.key === "shift+;" ||
-      h.key === "shift+/",
-  );
+  const {
+    bubbleHotkeyEntries,
+    captureHotkeysWithMatchers,
+    specialCharHotkeys,
+  } = useMemo(() => {
+    const captureMap = new Map<string, RegisteredHotkey[]>();
+    const bubbleMap = new Map<string, RegisteredHotkey[]>();
+    const special: RegisteredHotkey[] = [];
 
-  const hotkeysByKey = new Map<string, RegisteredHotkey[]>();
-  Array.from(hotkeys.values())
-    .filter((h) => !specialCharHotkeys.includes(h))
-    .forEach((hotkey) => {
-      const existing = hotkeysByKey.get(hotkey.key) || [];
-      existing.push(hotkey);
-      hotkeysByKey.set(hotkey.key, existing);
+    hotkeys.forEach((hotkey) => {
+      if (SPECIAL_KEY_SET.has(hotkey.key)) {
+        special.push(hotkey);
+        return;
+      }
+
+      const targetMap = hotkey.capture ? captureMap : bubbleMap;
+      const list = targetMap.get(hotkey.key) ?? [];
+      list.push(hotkey);
+      targetMap.set(hotkey.key, list);
     });
 
-  const mantineCompatibleHotkeys = Array.from(hotkeysByKey.entries()).map(
-    ([key, handlers]) => {
-      const wrappedHandler = (event: KeyboardEvent) => {
-        const activeElement = document.activeElement;
-        const inInputField =
-          activeElement?.tagName === "INPUT" ||
-          activeElement?.tagName === "TEXTAREA" ||
-          activeElement?.getAttribute("contenteditable") === "true";
+    const mapToEntries = (map: Map<string, RegisteredHotkey[]>): HotkeyItem[] =>
+      Array.from(map.entries()).map(([key, handlers]) => {
+        const wrappedHandler = (event: KeyboardEvent) => {
+          const activeElement = document.activeElement;
+          const inInputField =
+            activeElement?.tagName === "INPUT" ||
+            activeElement?.tagName === "TEXTAREA" ||
+            activeElement?.getAttribute("contenteditable") === "true";
 
-        const sortedHandlers = [...handlers].sort(
-          (a, b) => (b.priority || 0) - (a.priority || 0),
-        );
+          const sortedHandlers = [...handlers].sort(
+            (a, b) => (b.priority || 0) - (a.priority || 0),
+          );
 
-        for (const hotkey of sortedHandlers) {
-          if (inInputField && !hotkey.allowInInput) {
-            continue;
+          for (const handler of sortedHandlers) {
+            if (inInputField && !handler.allowInInput) {
+              continue;
+            }
+
+            const result = handler.handler(event);
+            if (result === false) {
+              continue;
+            }
+            break;
           }
+        };
 
-          const result = hotkey.handler(event);
-          if (result === false) {
-            continue;
-          }
-          break;
+        return [key, wrappedHandler] as HotkeyItem;
+      });
+
+    const captureHotkeysWithMatchers = Array.from(captureMap.entries())
+      .flatMap(([key, handlers]) =>
+        handlers.map((hotkey) => ({
+          hotkey,
+          matcher: createHotkeyMatcher(key),
+        })),
+      )
+      .sort((a, b) => (b.hotkey.priority || 0) - (a.hotkey.priority || 0));
+
+    return {
+      bubbleHotkeyEntries: mapToEntries(bubbleMap),
+      captureHotkeysWithMatchers,
+      specialCharHotkeys: special,
+    };
+  }, [hotkeys]);
+
+  useHotkeys(bubbleHotkeyEntries);
+
+  useEffect(() => {
+    if (captureHotkeysWithMatchers.length === 0) {
+      return;
+    }
+
+    const handleCapture = (event: KeyboardEvent) => {
+      const activeElement = document.activeElement;
+      const inInputField =
+        activeElement?.tagName === "INPUT" ||
+        activeElement?.tagName === "TEXTAREA" ||
+        activeElement?.getAttribute("contenteditable") === "true";
+
+      for (const { hotkey, matcher } of captureHotkeysWithMatchers) {
+        if (!matcher(event)) {
+          continue;
         }
-      };
 
-      return [key, wrappedHandler] as [string, (e: KeyboardEvent) => void];
-    },
-  );
+        if (inInputField && !hotkey.allowInInput) {
+          continue;
+        }
 
-  useHotkeys(mantineCompatibleHotkeys);
+        const result = hotkey.handler(event);
+        if (result === false) {
+          continue;
+        }
+        break;
+      }
+    };
+
+    window.addEventListener("keydown", handleCapture, true);
+    return () => {
+      window.removeEventListener("keydown", handleCapture, true);
+    };
+  }, [captureHotkeysWithMatchers]);
 
   useEffect(() => {
     const handleSpecialChars = (event: KeyboardEvent) => {
@@ -124,6 +247,10 @@ export const HotkeyProvider: React.FC<HotkeyProviderProps> = ({ children }) => {
         activeElement?.getAttribute("contenteditable") === "true";
 
       for (const hotkey of specialCharHotkeys) {
+        if (hotkey.capture) {
+          continue;
+        }
+
         const matches =
           (hotkey.key === "?" && event.key === "?") ||
           (hotkey.key === ":" && event.key === ":") ||

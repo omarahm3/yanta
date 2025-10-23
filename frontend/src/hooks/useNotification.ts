@@ -6,12 +6,12 @@ export type NotificationType = "success" | "error" | "info" | "warning";
 export interface NotificationOptions {
   duration?: number;
   position?:
-    | "top-right"
-    | "top-center"
-    | "top-left"
-    | "bottom-right"
-    | "bottom-center"
-    | "bottom-left";
+  | "top-right"
+  | "top-center"
+  | "top-left"
+  | "bottom-right"
+  | "bottom-center"
+  | "bottom-left";
   id?: string;
 }
 
@@ -20,9 +20,9 @@ export const useNotification = () => {
     (
       message: string,
       type: NotificationType = "info",
-      options: NotificationOptions = {}
+      options: NotificationOptions = {},
     ) => {
-      const { duration = 4000, position = "top-right", id } = options;
+      const { duration = 4000, position = "bottom-right", id } = options;
 
       const mantineOptions = {
         message,
@@ -60,35 +60,35 @@ export const useNotification = () => {
           });
       }
     },
-    []
+    [],
   );
 
   const success = useCallback(
     (message: string, options?: NotificationOptions) => {
       return showNotification(message, "success", options);
     },
-    [showNotification]
+    [showNotification],
   );
 
   const error = useCallback(
     (message: string, options?: NotificationOptions) => {
       return showNotification(message, "error", options);
     },
-    [showNotification]
+    [showNotification],
   );
 
   const info = useCallback(
     (message: string, options?: NotificationOptions) => {
       return showNotification(message, "info", options);
     },
-    [showNotification]
+    [showNotification],
   );
 
   const warning = useCallback(
     (message: string, options?: NotificationOptions) => {
       return showNotification(message, "warning", options);
     },
-    [showNotification]
+    [showNotification],
   );
 
   const dismiss = useCallback((notificationId?: string) => {

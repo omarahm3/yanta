@@ -52,7 +52,9 @@ jobs:
             libwebkit2gtk-4.1-dev \
             build-essential \
             pkg-config \
-            libayatana-appindicator3-dev
+            libayatana-appindicator3-dev \
+            libx11-dev \
+            xvfb
 
       - uses: actions/setup-go@v5
         with:
@@ -77,7 +79,7 @@ jobs:
           LD_FLAGS: "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
         run: |
           set -euo pipefail
-          wails build -platform ${{ matrix.wails_platform }} -clean ${{ matrix.tags }} -ldflags "${LD_FLAGS}"
+          xvfb-run -a wails build -platform ${{ matrix.wails_platform }} -clean ${{ matrix.tags }} -ldflags "${LD_FLAGS}"
           mkdir -p pkg/yanta
           cp build/bin/yanta pkg/yanta/
           cp yanta.desktop pkg/yanta/
@@ -98,19 +100,14 @@ jobs:
         if: matrix.name == 'windows'
         run: |
           set -euo pipefail
+          ls -al build/bin
           PORTABLE=build/bin/yanta.exe
           if [ ! -f "$PORTABLE" ]; then
             echo 'Portable binary not found in build/bin' >&2
             exit 1
           fi
           cp "$PORTABLE" yanta-windows-portable.exe
-          INSTALLER=""
-          for file in build/bin/*-installer.exe; do
-            if [ -f "$file" ]; then
-              INSTALLER="$file"
-              break
-            fi
-          done
+          INSTALLER=$(find build/bin -maxdepth 1 -type f -iname '*installer*.exe' -print -quit)
           if [ -z "$INSTALLER" ]; then
             echo 'Could not locate the NSIS installer output in build/bin' >&2
             exit 1

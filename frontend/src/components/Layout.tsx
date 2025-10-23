@@ -127,8 +127,10 @@ export const Layout: React.FC<LayoutProps> = ({
           },
           {
             key: "Escape",
-            handler: () => {
+            handler: (event: KeyboardEvent) => {
               if (document.activeElement === commandInputRef.current) {
+                event.preventDefault();
+                event.stopPropagation();
                 commandInputRef.current?.blur();
                 if (onCommandChange) {
                   onCommandChange("");
@@ -140,23 +142,25 @@ export const Layout: React.FC<LayoutProps> = ({
             allowInInput: true,
             priority: 100,
             description: "Exit command line",
+            capture: true,
           },
         ]
       : [],
   );
 
   return (
-    <div className="flex h-[calc(100vh-2rem)] overflow-hidden font-mono text-sm leading-relaxed bg-bg text-text">
+    <div
+      data-testid="layout-root"
+      data-sidebar-visible={sidebarVisible ? "true" : "false"}
+      className="flex h-[calc(100vh-2rem)] overflow-hidden font-mono text-sm leading-relaxed bg-bg text-text"
+    >
       {/* Sidebar */}
       {sidebarVisible && (
         <>
           {sidebarContent ? (
             <>{sidebarContent}</>
           ) : (
-            <UISidebar
-              title={sidebarTitle}
-              sections={sidebarSections || []}
-            />
+            <UISidebar title={sidebarTitle} sections={sidebarSections || []} />
           )}
         </>
       )}
@@ -167,7 +171,9 @@ export const Layout: React.FC<LayoutProps> = ({
         <HeaderBar
           breadcrumb={
             breadcrumb ||
-            (currentPage === "settings" ? "Settings" : currentProject?.name || "No Project")
+            (currentPage === "settings"
+              ? "Settings"
+              : currentProject?.name || "No Project")
           }
           currentPage={currentPage}
           shortcuts={headerShortcuts}

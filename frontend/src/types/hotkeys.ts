@@ -4,6 +4,7 @@ export interface HotkeyConfig {
   allowInInput?: boolean;
   description?: string;
   priority?: number;
+  capture?: boolean;
 }
 
 export interface RegisteredHotkey extends HotkeyConfig {

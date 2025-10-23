@@ -199,11 +199,14 @@ export const Document: React.FC<DocumentProps> = ({
   useHotkeys([
     {
       key: "mod+s",
-      handler: () => {
-        autoSave.saveNow();
+      handler: (event: KeyboardEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void autoSave.saveNow();
       },
       allowInInput: true,
       description: "Save document",
+      capture: true,
     },
     {
       key: "Escape",
@@ -235,7 +238,7 @@ export const Document: React.FC<DocumentProps> = ({
     onNavigate,
   });
 
-  console.log('[Document] Render state:', {
+  console.log("[Document] Render state:", {
     documentPath,
     initialTitle,
     isEditMode,
@@ -246,12 +249,12 @@ export const Document: React.FC<DocumentProps> = ({
   });
 
   if (isLoading) {
-    console.log('[Document] Rendering DocumentLoadingState');
+    console.log("[Document] Rendering DocumentLoadingState");
     return <DocumentLoadingState sidebarSections={sidebarSections} />;
   }
 
   if (loadError && isEditMode) {
-    console.log('[Document] Rendering DocumentErrorState');
+    console.log("[Document] Rendering DocumentErrorState");
     return (
       <DocumentErrorState
         sidebarSections={sidebarSections}
@@ -260,7 +263,7 @@ export const Document: React.FC<DocumentProps> = ({
     );
   }
 
-  console.log('[Document] Rendering DocumentContent');
+  console.log("[Document] Rendering DocumentContent");
   return (
     <DocumentContent
       sidebarSections={sidebarSections}
