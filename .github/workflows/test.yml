@@ -49,6 +49,18 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      - name: Install X11 build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libx11-dev \
+            libxtst-dev \
+            libxinerama-dev \
+            libxcursor-dev \
+            libxrandr-dev \
+            libxi-dev \
+            libgtk-3-dev
+
       - name: Run Go tests
         run: go test -v -race -coverprofile=coverage.out ./...
 
