@@ -42,7 +42,7 @@ Get the latest version: **[Releases](https://github.com/mrgeek/yanta/releases)**
 
 **Windows:** Choose installer or portable executable
 **macOS:** Universal binary for Intel and Apple Silicon
-**Linux:** Single executable binary
+**Linux:** Pacman package (`yanta-<version>-1-x86_64.pkg.tar.gz`) installable via `sudo pacman -U` or any Pacman-compatible helper
 
 ### Linux Wayland Support
 

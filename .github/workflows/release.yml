@@ -84,20 +84,17 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Build Linux tarball
+      - name: Build Linux artifacts
+        id: linux_artifacts
         if: matrix.name == 'linux'
         env:
           LD_FLAGS: "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
         run: |
           set -euo pipefail
+          VERSION=${{ steps.build_info.outputs.version }}
+          PKGREL=1
           xvfb-run -a wails build -platform ${{ matrix.wails_platform }} -clean ${{ matrix.tags }} -ldflags "${LD_FLAGS}"
-          mkdir -p pkg/yanta
-          cp build/bin/yanta pkg/yanta/
-          cp yanta.desktop pkg/yanta/
-          cp build/appicon.png pkg/yanta/yanta.png
-          pushd pkg >/dev/null
-          tar czf ../yanta-linux.tar.gz yanta
-          popd >/dev/null
+          scripts/build_linux_artifacts.sh "$VERSION" "$PKGREL"
 
       - name: Build Windows executables
         if: matrix.name == 'windows'
@@ -136,12 +133,14 @@ jobs:
           tar czf ../../yanta-macos.tar.gz yanta.app
           popd >/dev/null
 
-      - name: Upload Linux artifact
+      - name: Upload Linux artifacts
         if: matrix.name == 'linux'
         uses: actions/upload-artifact@v4
         with:
           name: linux
-          path: yanta-linux.tar.gz
+          path: |
+            ${{ steps.linux_artifacts.outputs.linux_tar }}
+            ${{ steps.linux_artifacts.outputs.arch_pkg }}
           if-no-files-found: error
 
       - name: Upload Windows artifacts
@@ -180,22 +179,13 @@ jobs:
         run: |
           set -euo pipefail
           VERSION=${GITHUB_REF#refs/tags/v}
-          tar xzf linux/yanta-linux.tar.gz
-          mkdir -p deb/DEBIAN deb/usr/bin deb/usr/share/applications deb/usr/share/pixmaps
-          cp yanta/yanta deb/usr/bin/
-          chmod 755 deb/usr/bin/yanta
-          cp yanta/yanta.desktop deb/usr/share/applications/
-          cp yanta/yanta.png deb/usr/share/pixmaps/
-          cat > deb/DEBIAN/control <<CTRL
-          Package: yanta
-          Version: ${VERSION}
-          Architecture: amd64
-          Maintainer: Omar Ahmed <me@mrg.sh>
-          Depends: libgtk-3-0, libwebkit2gtk-4.1-0
-          Description: Note-taking app
-          CTRL
-          dpkg-deb --build --root-owner-group deb
-          mv deb.deb yanta_${VERSION}_amd64.deb
+          TAR_PATH=$(find linux -type f -name 'yanta-linux.tar.gz' -print -quit)
+          if [ -z "$TAR_PATH" ]; then
+            echo "Could not locate linux tarball in downloaded artifacts" >&2
+            exit 1
+          fi
+          DEB_PATH=$(scripts/build_deb_from_tar.sh "$TAR_PATH" "$VERSION")
+          cp "$DEB_PATH" "yanta_${VERSION}_amd64.deb"
           echo "PACKAGE_VERSION=${VERSION}" >> "$GITHUB_ENV"
 
       - name: Upload Debian artifact
@@ -223,7 +213,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/linux/yanta-linux.tar.gz
+            artifacts/linux/**/yanta-linux.tar.gz
+            artifacts/linux/**/yanta-*-x86_64.pkg.tar.gz
             artifacts/windows/yanta-windows-portable.exe
             artifacts/windows/yanta-windows-installer.exe
             artifacts/macos/yanta-macos.tar.gz
