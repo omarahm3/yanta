@@ -69,7 +69,23 @@ sed \
 
 ARCH_PKG_REL="${OUT_DIR_REL}/yanta-${PKGVER}-x86_64.pkg.tar.gz"
 ARCH_PKG="${REPO_ROOT}/${ARCH_PKG_REL}"
-tar -C "$ARCH_STAGE" -czf "$ARCH_PKG" .
+ARCH_PKG_TAR="${WORK_ROOT}/archpkg.tar"
+
+(
+  cd "$ARCH_STAGE"
+  tar \
+    --owner=0 \
+    --group=0 \
+    --numeric-owner \
+    --format=ustar \
+    -cf "$ARCH_PKG_TAR" \
+    .PKGINFO \
+    .BUILDINFO \
+    usr
+)
+
+gzip -n -f "$ARCH_PKG_TAR"
+mv "${ARCH_PKG_TAR}.gz" "$ARCH_PKG"
 
 echo "Produced Linux tarball: $LINUX_TAR"
 echo "Produced Arch package: $ARCH_PKG"

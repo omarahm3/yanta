@@ -32,12 +32,12 @@ sed "s/@VERSION@/$VERSION/" "${REPO_ROOT}/packaging/debian/control.tpl" > "$DEB_
 
 mkdir -p "$DIST_DIR"
 DEB_PATH="$DIST_DIR/yanta_${VERSION}_amd64.deb"
-dpkg-deb --build --root-owner-group "$DEB_ROOT" "$DEB_PATH"
+dpkg-deb --build --root-owner-group "$DEB_ROOT" "$DEB_PATH" >&2
 
-echo "Produced Debian package: $DEB_PATH"
+echo "Produced Debian package: $DEB_PATH" >&2
 
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
   echo "deb=$DEB_PATH" >> "$GITHUB_OUTPUT"
 fi
 
-echo "$DEB_PATH"
+printf '%s\n' "$DEB_PATH"
