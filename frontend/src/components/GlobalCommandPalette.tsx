@@ -10,6 +10,7 @@ import {
   RiArrowRightLine,
   RiArchiveLine,
   RiInboxUnarchiveLine,
+  RiBugLine,
 } from "react-icons/ri";
 
 interface GlobalCommandPaletteProps {
@@ -92,6 +93,17 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
       },
     });
 
+    commands.push({
+      id: "nav-test",
+      icon: <RiBugLine className="text-lg" />,
+      text: "Open Development Test",
+      hint: "Debug tools",
+      action: () => {
+        onNavigate("test");
+        onClose();
+      },
+    });
+
     if (currentPage === "dashboard" && onToggleArchived && currentProject) {
       commands.push({
         id: "toggle-archived",
@@ -142,7 +154,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
     <CommandPalette
       isOpen={isOpen}
       onClose={onClose}
-      onCommandSelect={() => {}}
+      onCommandSelect={() => { }}
       commands={commandOptions}
       placeholder="Type a command or search..."
     />

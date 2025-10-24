@@ -10,6 +10,7 @@ import "../../styles/blocknote-dark.css";
 import { cn } from "../../lib/utils";
 import { BlockNoteBlock } from "../../types/Document";
 import { extractTitleFromBlocks } from "../../utils/documentUtils";
+import { Environment } from "../../../wailsjs/runtime/runtime";
 
 export interface RichEditorProps {
   initialContent?: string;
@@ -72,6 +73,57 @@ const EditorInner: React.FC<EditorInnerProps> = ({
     },
   });
   const [isReady, setIsReady] = React.useState(false);
+
+  useEffect(() => {
+    if (!editor) return;
+
+    let cancelled = false;
+
+    const ensureImageAccept = async () => {
+      try {
+        const env = await Environment();
+        if (cancelled) return;
+
+        const platform = env?.platform?.toLowerCase?.() ?? "";
+        if (platform !== "linux") {
+          return;
+        }
+
+        const imageSpec = editor.schema.blockSpecs?.image;
+        if (!imageSpec || !imageSpec.implementation) {
+          return;
+        }
+
+        const meta = imageSpec.implementation.meta ?? {};
+        const acceptList = Array.isArray(meta.fileBlockAccept)
+          ? meta.fileBlockAccept.filter(
+              (entry) => typeof entry === "string" && entry.trim().length > 0
+            )
+          : [];
+
+        if (
+          acceptList.length === 0 ||
+          acceptList.every((entry) => entry === "*/*")
+        ) {
+          imageSpec.implementation.meta = {
+            ...meta,
+            fileBlockAccept: ["image/*"],
+          };
+        }
+      } catch (err) {
+        console.warn(
+          "[RichEditor] Failed to apply Linux image accept workaround",
+          err
+        );
+      }
+    };
+
+    void ensureImageAccept();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editor]);
 
   useEffect(() => {
     if (editor) {

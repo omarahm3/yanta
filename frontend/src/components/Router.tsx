@@ -4,7 +4,17 @@ import { LoadingSpinner } from "./ui";
 
 const PageLoader = () => <LoadingSpinner message="Loading..." />;
 
-type Page = "dashboard" | "document" | "projects" | "settings" | "search";
+const Test = React.lazy(() =>
+  import("../pages/Test").then((m) => ({ default: m.Test })),
+);
+
+type Page =
+  | "dashboard"
+  | "document"
+  | "projects"
+  | "settings"
+  | "search"
+  | "test";
 
 type NavigationState = Record<string, string | number | boolean | undefined>;
 
@@ -55,6 +65,15 @@ export const Router: React.FC<RouterProps> = ({
 
   const page = currentPage as Page;
 
+  const knownPages = new Set<Page>([
+    "dashboard",
+    "document",
+    "projects",
+    "settings",
+    "search",
+    "test",
+  ]);
+
   return (
     <Suspense fallback={<PageLoader />}>
       {page === "dashboard" && <Dashboard {...dashboardPropsWithNav} />}
@@ -62,9 +81,8 @@ export const Router: React.FC<RouterProps> = ({
       {page === "projects" && <Projects {...projectsProps} />}
       {page === "settings" && <Settings {...settingsProps} />}
       {page === "search" && <Search {...searchProps} />}
-      {!["dashboard", "document", "projects", "settings", "search"].includes(page) && (
-        <Dashboard {...dashboardPropsWithNav} />
-      )}
+      {page === "test" && <Test onNavigate={handleNavigation} />}
+      {!knownPages.has(page) && <Dashboard {...dashboardPropsWithNav} />}
     </Suspense>
   );
 };
