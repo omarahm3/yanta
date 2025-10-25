@@ -1,14 +1,14 @@
 <div align="center">
   <img src="build/appicon.png" alt="Yanta Logo" width="180" height="180">
 
-  # Yanta
+# Yanta
 
-  **Yet Another Note Taking App**
+**Yet Another Note Taking App**
 
-  A fast, keyboard-driven note-taking app built for developers.
+A fast, keyboard-driven note-taking app built for developers.
 
-  [![Release](https://img.shields.io/github/v/release/mrgeek/yanta?style=flat-square)](https://github.com/mrgeek/yanta/releases)
-  [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue?style=flat-square)](https://github.com/mrgeek/yanta/releases)
+[![Release](https://img.shields.io/github/v/release/omarahm3/yanta?style=flat-square)](https://github.com/omarahm3/yanta/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue?style=flat-square)](https://github.com/omarahm3/yanta/releases)
 
 </div>
 
@@ -38,7 +38,7 @@ Your notes are stored as plain JSON files. No database lock-in. No proprietary f
 
 ## Download
 
-Get the latest version: **[Releases](https://github.com/mrgeek/yanta/releases)**
+Get the latest version: **[Releases](https://github.com/omarahm3/yanta/releases)**
 
 **Windows:** Choose installer or portable executable
 **macOS:** Universal binary for Intel and Apple Silicon
@@ -65,12 +65,12 @@ That's it.
 
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| `:` | Open command line |
-| `Ctrl+K` | Command palette |
-| `Ctrl+B` | Toggle sidebar |
-| `?` | Show help |
+| Shortcut | Action            |
+| -------- | ----------------- |
+| `:`      | Open command line |
+| `Ctrl+K` | Command palette   |
+| `Ctrl+B` | Toggle sidebar    |
+| `?`      | Show help         |
 
 ## Configuration
 
@@ -101,7 +101,7 @@ The `vault/` directory is perfect for Git. Version control your notes like code.
 Built with Go, Wails, React, and SQLite. See [GUIDELINES.md](GUIDELINES.md) for architecture and contribution details.
 
 ```bash
-git clone https://github.com/mrgeek/yanta.git
+git clone https://github.com/omarahm3/yanta.git
 cd yanta
 wails dev
 ```
