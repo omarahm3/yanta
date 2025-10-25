@@ -13,4 +13,5 @@ node_modules
 frontend/dist
 .termdbms
 .serena
+AGENTS.md
 CLAUDE.md

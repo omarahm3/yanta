@@ -11,6 +11,7 @@ import { cn } from "../../lib/utils";
 import { BlockNoteBlock } from "../../types/Document";
 import { extractTitleFromBlocks } from "../../utils/documentUtils";
 import { Environment } from "../../../wailsjs/runtime/runtime";
+import { registerClipboardImagePlugin } from "../../utils/clipboard";
 
 export interface RichEditorProps {
   initialContent?: string;
@@ -53,6 +54,7 @@ const EditorInner: React.FC<EditorInnerProps> = ({
   editable,
 }) => {
   const { currentProject } = useProjectContext();
+  const [isLinux, setIsLinux] = React.useState(false);
 
   const uploadFileFn = React.useCallback(
     async (file: File) => {
@@ -60,7 +62,7 @@ const EditorInner: React.FC<EditorInnerProps> = ({
       if (!alias) throw new Error("No project selected");
       return await uploadFile(file, alias);
     },
-    [currentProject]
+    [currentProject],
   );
 
   const editor = useCreateBlockNote({
@@ -85,7 +87,9 @@ const EditorInner: React.FC<EditorInnerProps> = ({
         if (cancelled) return;
 
         const platform = env?.platform?.toLowerCase?.() ?? "";
-        if (platform !== "linux") {
+        const isLinuxPlatform = platform.includes("linux");
+        setIsLinux(isLinuxPlatform);
+        if (!isLinuxPlatform) {
           return;
         }
 
@@ -97,8 +101,8 @@ const EditorInner: React.FC<EditorInnerProps> = ({
         const meta = imageSpec.implementation.meta ?? {};
         const acceptList = Array.isArray(meta.fileBlockAccept)
           ? meta.fileBlockAccept.filter(
-              (entry) => typeof entry === "string" && entry.trim().length > 0
-            )
+            (entry) => typeof entry === "string" && entry.trim().length > 0,
+          )
           : [];
 
         if (
@@ -113,7 +117,7 @@ const EditorInner: React.FC<EditorInnerProps> = ({
       } catch (err) {
         console.warn(
           "[RichEditor] Failed to apply Linux image accept workaround",
-          err
+          err,
         );
       }
     };
@@ -180,6 +184,19 @@ const EditorInner: React.FC<EditorInnerProps> = ({
   useEffect(() => {
     if (editor) editor.isEditable = editable;
   }, [editor, editable]);
+
+  useEffect(() => {
+    if (!editor || !isReady || !isLinux) {
+      return;
+    }
+
+    const unregister = registerClipboardImagePlugin(editor, {
+      shouldHandlePaste: () => editable,
+      uploadFile: uploadFileFn,
+    });
+
+    return unregister;
+  }, [editor, uploadFileFn, editable, isReady, isLinux]);
 
   if (!editor || !isReady) {
     return <div className={cn("h-full w-full", className)} />;

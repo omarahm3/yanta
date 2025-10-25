@@ -3,14 +3,19 @@ import { LogFromFrontend } from "../../wailsjs/go/system/Service";
 type LogLevel = "debug" | "info" | "warn" | "error";
 
 export class BackendLogger {
-  private static formatArgs(args: any[]): { message: string; data: Record<string, any> } {
-    const message = args.map(arg =>
-      typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
-    ).join(' ');
+  private static formatArgs(args: any[]): {
+    message: string;
+    data: Record<string, any>;
+  } {
+    const message = args
+      .map((arg) =>
+        typeof arg === "object" ? JSON.stringify(arg) : String(arg),
+      )
+      .join(" ");
 
     const data: Record<string, any> = {};
     args.forEach((arg, index) => {
-      if (typeof arg === 'object' && arg !== null) {
+      if (typeof arg === "object" && arg !== null) {
         Object.assign(data, arg);
       }
     });
@@ -25,7 +30,7 @@ export class BackendLogger {
       await LogFromFrontend(level, message, data);
     } catch (error) {
       // Silently fail if backend logging fails
-      console.error('[BackendLogger] Failed to send log to backend:', error);
+      console.error("[BackendLogger] Failed to send log to backend:", error);
     }
   }
 
@@ -54,23 +59,30 @@ export class BackendLogger {
 const originalLog = console.log;
 const originalError = console.error;
 const originalWarn = console.warn;
+const originalInfo = console.info;
 
 export function enableBackendLogging() {
   console.log = (...args) => {
     originalLog(...args);
-    const { message, data } = BackendLogger['formatArgs'](args);
-    LogFromFrontend("info", message, data).catch(() => {});
+    const { message, data } = BackendLogger["formatArgs"](args);
+    LogFromFrontend("info", message, data).catch(() => { });
+  };
+
+  console.info = (...args) => {
+    originalInfo(...args);
+    const { message, data } = BackendLogger["formatArgs"](args);
+    LogFromFrontend("info", message, data).catch(() => { });
   };
 
   console.error = (...args) => {
     originalError(...args);
-    const { message, data } = BackendLogger['formatArgs'](args);
-    LogFromFrontend("error", message, data).catch(() => {});
+    const { message, data } = BackendLogger["formatArgs"](args);
+    LogFromFrontend("error", message, data).catch(() => { });
   };
 
   console.warn = (...args) => {
     originalWarn(...args);
-    const { message, data } = BackendLogger['formatArgs'](args);
-    LogFromFrontend("warn", message, data).catch(() => {});
+    const { message, data } = BackendLogger["formatArgs"](args);
+    LogFromFrontend("warn", message, data).catch(() => { });
   };
 }

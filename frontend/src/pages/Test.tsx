@@ -26,6 +26,12 @@ import {
   ResolveFilePaths,
 } from "../../wailsjs/runtime/runtime";
 import { cn } from "../lib/utils";
+import {
+  ClipboardImageSource,
+  ensureFileHasName,
+  extractImagesFromClipboardEvent,
+  registerClipboardImagePlugin,
+} from "../utils/clipboard";
 
 interface TestProps {
   onNavigate?: (page: string) => void;
@@ -47,6 +53,7 @@ const describeFile = (file: File, resolvedPath?: string): ResolvedFileInfo => ({
   lastModified: file.lastModified,
   path: resolvedPath,
 });
+
 
 type BlockNoteDiagnostics = {
   events: string[];
@@ -83,6 +90,28 @@ const useBlockNoteTestEditor = () => {
     uploadFile: upload,
   });
   const [accept, setAccept] = React.useState<string>("(pending)");
+
+  React.useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    return registerClipboardImagePlugin(editor, {
+      shouldHandlePaste: () => true,
+      uploadFile: upload,
+      onInsert: ({ url, blockId, editor: editorInstance }) => {
+        console.info("[Test] Plugin inserted pasted image", { url });
+        try {
+          editorInstance.updateBlock(blockId, {
+            type: "image",
+            props: { url },
+          });
+        } catch (error) {
+          console.warn("[Test] Failed to convert file block to image", error);
+        }
+      },
+    });
+  }, [editor, upload]);
 
   React.useEffect(() => {
     if (!editor) return;
@@ -352,7 +381,8 @@ export const Test: React.FC<TestProps> = () => {
   const [clipboardDebug, setClipboardDebug] = React.useState<{
     types: string[];
     itemTypes: string[];
-  }>({ types: [], itemTypes: [] });
+    source: ClipboardImageSource | "none";
+  }>({ types: [], itemTypes: [], source: "none" });
 
   const objectUrlRef = React.useRef<string>();
   const { editor: baselineBlockNoteEditor, diagnostics: baselineDiagnostics } =
@@ -433,36 +463,35 @@ export const Test: React.FC<TestProps> = () => {
   const handlePaste = React.useCallback(
     async (event: React.ClipboardEvent<HTMLDivElement>) => {
       const { clipboardData } = event;
-      if (!clipboardData) {
-        return;
-      }
-
-      const types = Array.from(clipboardData.types || []);
-      const itemTypes = Array.from(clipboardData.items || []).map(
+      const types = Array.from(clipboardData?.types || []);
+      const itemTypes = Array.from(clipboardData?.items || []).map(
         (entry) => entry.type || entry.kind || "unknown",
       );
+
+      const extraction = await extractImagesFromClipboardEvent(
+        event.nativeEvent,
+      );
+
       setClipboardDebug({
         types,
         itemTypes,
+        source: extraction.source,
       });
 
-      const item = Array.from(clipboardData.items).find((entry) =>
-        entry.type.startsWith("image/"),
+      if (extraction.files.length === 0) {
+        setError("Clipboard paste does not contain an image payload.");
+        return;
+      }
+
+      const namedFiles = extraction.files.map(ensureFileHasName);
+      const firstFile = namedFiles[0];
+
+      await updateFromFile(firstFile);
+      setStatus(
+        extraction.source === "async-clipboard"
+          ? "Image pasted using async clipboard fallback."
+          : "Image pasted via DataTransfer.",
       );
-
-      if (!item) {
-        setError("Clipboard paste does not contain an image.");
-        return;
-      }
-
-      const file = item.getAsFile();
-      if (!file) {
-        setError("Unable to read clipboard image payload.");
-        return;
-      }
-
-      await updateFromFile(file);
-      setStatus("Image pasted from clipboard.");
     },
     [updateFromFile],
   );
@@ -557,6 +586,14 @@ export const Test: React.FC<TestProps> = () => {
                   {clipboardDebug.itemTypes.length
                     ? clipboardDebug.itemTypes.join(", ")
                     : "—"}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between rounded bg-bg-dark px-3 py-2">
+                <dt className="font-medium text-text-dim">Image source</dt>
+                <dd>
+                  {clipboardDebug.source === "none"
+                    ? "—"
+                    : clipboardDebug.source}
                 </dd>
               </div>
             </dl>
@@ -734,7 +771,7 @@ export const Test: React.FC<TestProps> = () => {
                 setError(undefined);
                 setStatus("Cleared.");
                 resetPreview();
-                setClipboardDebug({ types: [], itemTypes: [] });
+                setClipboardDebug({ types: [], itemTypes: [], source: "none" });
                 baselineDiagnostics.reset();
                 overrideDiagnostics.reset();
               }}
