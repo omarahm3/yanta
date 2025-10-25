@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -94,10 +95,17 @@ func SetLogLevel(level string) error {
 }
 
 func GetKeepInBackground() bool {
+	if runtime.GOOS == "linux" {
+		return false
+	}
 	return Get().KeepInBackground
 }
 
 func SetKeepInBackground(keep bool) error {
+	if runtime.GOOS == "linux" {
+		return fmt.Errorf("keep_in_background is not supported on Linux")
+	}
+
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -115,11 +123,18 @@ func SetKeepInBackground(keep bool) error {
 }
 
 func GetStartHidden() bool {
+	if runtime.GOOS == "linux" {
+		return false
+	}
 	cfg := Get()
 	return cfg.KeepInBackground && cfg.StartHidden
 }
 
 func SetStartHidden(hidden bool) error {
+	if runtime.GOOS == "linux" {
+		return fmt.Errorf("start_hidden is not supported on Linux")
+	}
+
 	mu.Lock()
 	defer mu.Unlock()
 

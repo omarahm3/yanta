@@ -182,10 +182,9 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
   const [needsRestart, setNeedsRestart] = useState(false);
   const [keepInBackground, setKeepInBackground] = useState(false);
   const [startHidden, setStartHidden] = useState(false);
-  const { success, error} = useNotification();
+  const { success, error } = useNotification();
   const { setPageContext } = useHelp();
 
-  // Refs for each section
   const generalRef = useRef<HTMLDivElement>(null);
   const shortcutsRef = useRef<HTMLDivElement>(null);
   const loggingRef = useRef<HTMLDivElement>(null);
@@ -205,13 +204,13 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
     GetKeepInBackground()
       .then((value) => setKeepInBackground(value))
       .catch((err) =>
-        console.error("Failed to fetch keep in background setting:", err),
+        console.error("Failed to fetch keep in background setting:", err)
       );
 
     GetStartHidden()
       .then((value) => setStartHidden(value))
       .catch((err) =>
-        console.error("Failed to fetch start hidden setting:", err),
+        console.error("Failed to fetch start hidden setting:", err)
       );
   }, []);
 
@@ -239,7 +238,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
       }));
       success(enabled ? "Git sync enabled" : "Git sync disabled");
     },
-    [success],
+    [success]
   );
 
   const handleExportToggle = useCallback(
@@ -250,7 +249,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
       }));
       success("Export settings updated");
     },
-    [success],
+    [success]
   );
 
   const handleLogLevelChange = useCallback(
@@ -266,7 +265,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
         error(`Failed to set log level: ${err}`);
       }
     },
-    [success, error],
+    [success, error]
   );
 
   const handleKeepInBackgroundToggle = useCallback(
@@ -281,13 +280,13 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
         success(
           enabled
             ? "Window will hide to background when closed"
-            : "Window will quit when closed",
+            : "Window will quit when closed"
         );
       } catch (err) {
         error(`Failed to update setting: ${err}`);
       }
     },
-    [success, error],
+    [success, error]
   );
 
   const handleStartHiddenToggle = useCallback(
@@ -298,13 +297,13 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
         success(
           enabled
             ? "App will start hidden in background"
-            : "App will start with window visible",
+            : "App will start with window visible"
         );
       } catch (err) {
         error(`Failed to update setting: ${err}`);
       }
     },
-    [success, error],
+    [success, error]
   );
 
   const settingsItems = [
@@ -328,12 +327,12 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
       : []),
     ...(FEATURES.EXPORT
       ? [
-        {
-          id: "export",
-          label: "export",
-          onClick: () => scrollToSection("export"),
-        },
-      ]
+          {
+            id: "export",
+            label: "export",
+            onClick: () => scrollToSection("export"),
+          },
+        ]
       : []),
     { id: "about", label: "about", onClick: () => scrollToSection("about") },
   ];
@@ -357,14 +356,14 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
       headerShortcuts={[{ key: "?", label: "help" }]}
       showCommandLine={false}
     >
-      <div className="overflow-y-auto h-full p-5">
+      <div className="h-full p-5 overflow-y-auto">
         <div className="max-w-4xl mx-auto">
           {needsRestart && (
-            <div className="mb-6 p-4 bg-yellow-900/30 border border-yellow-700 rounded">
-              <div className="text-yellow-400 font-medium mb-1">
+            <div className="p-4 mb-6 border border-yellow-700 rounded bg-yellow-900/30">
+              <div className="mb-1 font-medium text-yellow-400">
                 Restart Required
               </div>
-              <div className="text-yellow-300 text-sm">
+              <div className="text-sm text-yellow-300">
                 Please restart the application for the log level changes to take
                 effect.
               </div>
@@ -387,11 +386,18 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
                       When enabled, closing the window will hide YANTA instead
                       of quitting. Press Ctrl+Shift+Y anywhere to restore the
                       window.
+                      {systemInfo?.app.platform.includes("linux") && (
+                        <span className="text-yellow-400">
+                          {" "}
+                          (Not available on Linux)
+                        </span>
+                      )}
                     </div>
                   </div>
                   <Toggle
                     checked={keepInBackground}
                     onChange={handleKeepInBackgroundToggle}
+                    disabled={systemInfo?.app.platform.includes("linux")}
                   />
                 </div>
 
@@ -404,12 +410,21 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
                       When enabled, YANTA will start hidden. Press Ctrl+Shift+Y
                       to show it. Requires "Keep running in background" to be
                       enabled.
+                      {systemInfo?.app.platform.includes("linux") && (
+                        <span className="text-yellow-400">
+                          {" "}
+                          (Not available on Linux)
+                        </span>
+                      )}
                     </div>
                   </div>
                   <Toggle
                     checked={startHidden}
                     onChange={handleStartHiddenToggle}
-                    disabled={!keepInBackground}
+                    disabled={
+                      !keepInBackground ||
+                      systemInfo?.app.platform.includes("linux")
+                    }
                   />
                 </div>
               </div>
