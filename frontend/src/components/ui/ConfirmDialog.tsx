@@ -32,6 +32,11 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 }) => {
   const [inputValue, setInputValue] = React.useState("");
   const [isChecked, setIsChecked] = React.useState(false);
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+  const cancelButtonRef = React.useRef<HTMLButtonElement>(null);
+  const confirmButtonRef = React.useRef<HTMLButtonElement>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const checkboxRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -48,12 +53,66 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         event.preventDefault();
         event.stopPropagation();
         onCancel();
+        return;
+      }
+
+      if (event.key === "Tab") {
+        const container = dialogRef.current;
+        if (!container) return;
+        if (!container.contains(event.target as Node)) {
+          cancelButtonRef.current?.focus();
+        }
+
+        const focusableElements = [
+          cancelButtonRef.current,
+          confirmButtonRef.current && !confirmButtonRef.current.disabled
+            ? confirmButtonRef.current
+            : null,
+          inputRef.current,
+          checkboxRef.current,
+        ].filter((el): el is HTMLElement => Boolean(el));
+
+        if (focusableElements.length === 0) {
+          return;
+        }
+
+        event.preventDefault();
+        const activeElement = document.activeElement as HTMLElement | null;
+        let currentIndex = focusableElements.findIndex(
+          (el) => el === activeElement,
+        );
+
+        if (currentIndex === -1) {
+          const targetIndex = event.shiftKey
+            ? focusableElements.length - 1
+            : 0;
+          focusableElements[targetIndex]?.focus();
+          return;
+        }
+
+        const direction = event.shiftKey ? -1 : 1;
+        let nextIndex = currentIndex + direction;
+        if (nextIndex < 0) {
+          nextIndex = focusableElements.length - 1;
+        } else if (nextIndex >= focusableElements.length) {
+          nextIndex = 0;
+        }
+        focusableElements[nextIndex]?.focus();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onCancel]);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    // Delay focus to ensure buttons are mounted
+    const focusTimeout = window.setTimeout(() => {
+      cancelButtonRef.current?.focus();
+    }, 0);
+    return () => window.clearTimeout(focusTimeout);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -71,13 +130,23 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
       onClick={onCancel}
+      role="presentation"
     >
       <div
+        ref={dialogRef}
         className="relative w-full max-w-md mx-4 bg-surface border-2 border-border rounded-lg shadow-2xl"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-dialog-title"
       >
         <div className="px-6 py-4 border-b border-border">
-          <h2 className="text-lg font-bold tracking-wide text-text">{title}</h2>
+          <h2
+            id="confirm-dialog-title"
+            className="text-lg font-bold tracking-wide text-text"
+          >
+            {title}
+          </h2>
         </div>
 
         <div className="px-6 py-4 space-y-4">
@@ -92,9 +161,9 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
+                ref={inputRef}
                 className="w-full px-3 py-2 text-sm border rounded bg-bg border-border text-text focus:outline-none focus:border-accent"
                 placeholder={expectedInput}
-                autoFocus
               />
             </div>
           )}
@@ -105,6 +174,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 type="checkbox"
                 checked={isChecked}
                 onChange={(e) => setIsChecked(e.target.checked)}
+                ref={checkboxRef}
                 className="w-4 h-4 border rounded cursor-pointer border-border bg-bg accent-accent"
               />
               <span className="text-sm text-text-dim">{checkboxLabel}</span>
@@ -115,6 +185,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
           <button
             onClick={onCancel}
+            ref={cancelButtonRef}
             className="px-4 py-2 text-sm font-medium border rounded transition-colors bg-transparent border-border text-text hover:bg-bg"
           >
             {cancelText}
@@ -122,6 +193,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           <button
             onClick={handleConfirm}
             disabled={!canConfirm}
+            ref={confirmButtonRef}
             className={cn(
               "px-4 py-2 text-sm font-medium rounded transition-colors",
               danger

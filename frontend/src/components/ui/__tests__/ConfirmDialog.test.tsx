@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ConfirmDialog } from "../ConfirmDialog";
 
 describe("ConfirmDialog", () => {
@@ -28,6 +28,41 @@ describe("ConfirmDialog", () => {
     );
     expect(screen.getByText("Test Title")).toBeInTheDocument();
     expect(screen.getByText("Test message")).toBeInTheDocument();
+  });
+
+  it("focuses cancel button by default", async () => {
+    render(
+      <ConfirmDialog
+        isOpen={true}
+        title="Test"
+        message="Test message"
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />
+    );
+
+    const cancelButton = screen.getByText("Cancel");
+    await waitFor(() => expect(cancelButton).toHaveFocus());
+  });
+
+  it("moves focus to confirm button on tab", async () => {
+    render(
+      <ConfirmDialog
+        isOpen={true}
+        title="Test"
+        message="Test message"
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />
+    );
+
+    const cancelButton = screen.getByText("Cancel");
+    const confirmButton = screen.getByText("Confirm");
+
+    await waitFor(() => expect(cancelButton).toHaveFocus());
+    fireEvent.keyDown(cancelButton, { key: "Tab" });
+
+    await waitFor(() => expect(confirmButton).toHaveFocus());
   });
 
   it("calls onConfirm when confirm button is clicked", () => {
