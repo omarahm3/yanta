@@ -3,6 +3,7 @@ import { SaveState } from "../../hooks/useAutoSave";
 
 interface DocumentEditorActionsProps {
   isEditMode: boolean;
+  isArchived?: boolean;
   saveState: SaveState;
   lastSaved: Date | null;
   hasUnsavedChanges: boolean;
@@ -23,6 +24,7 @@ const formatTimeSince = (date: Date): string => {
 
 export const DocumentEditorActions: React.FC<DocumentEditorActionsProps> = ({
   isEditMode,
+  isArchived = false,
   saveState,
   lastSaved,
   hasUnsavedChanges,
@@ -31,6 +33,7 @@ export const DocumentEditorActions: React.FC<DocumentEditorActionsProps> = ({
   onSaveNow,
 }) => {
   const getSaveStatusText = () => {
+    if (isArchived) return "Archived document (read-only)";
     if (saveState === "saving") return "Saving...";
     if (saveState === "error" && saveError)
       return `Error: ${saveError.message}`;
@@ -42,6 +45,7 @@ export const DocumentEditorActions: React.FC<DocumentEditorActionsProps> = ({
   };
 
   const getStatusColor = () => {
+    if (isArchived) return "text-accent";
     if (saveState === "saving") return "text-accent";
     if (saveState === "error") return "text-red";
     if (saveState === "saved") return "text-green";
@@ -60,7 +64,7 @@ export const DocumentEditorActions: React.FC<DocumentEditorActionsProps> = ({
         >
           {isEditMode ? "Close" : "Cancel"}
         </button>
-        {onSaveNow && hasUnsavedChanges && (
+        {onSaveNow && !isArchived && hasUnsavedChanges && (
           <button
             onClick={onSaveNow}
             disabled={saveState === "saving"}

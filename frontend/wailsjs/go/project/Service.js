@@ -30,6 +30,10 @@ export function GetDocumentCount(arg1) {
   return window['go']['project']['Service']['GetDocumentCount'](arg1);
 }
 
+export function HardDelete(arg1) {
+  return window['go']['project']['Service']['HardDelete'](arg1);
+}
+
 export function ListActive() {
   return window['go']['project']['Service']['ListActive']();
 }

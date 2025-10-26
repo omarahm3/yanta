@@ -4,9 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"yanta/internal/testutil"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"yanta/internal/testutil"
 )
 
 func setupServiceTest(t *testing.T) (*Service, func()) {
@@ -190,4 +191,33 @@ func TestService_LastDocumentDates(t *testing.T) {
 	dates, err := service.GetAllLastDocumentDates()
 	require.NoError(t, err, "GetAllLastDocumentDates() failed")
 	assert.NotNil(t, dates, "Expected non-nil dates map")
+}
+
+func TestService_HardDelete(t *testing.T) {
+	service, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	id, _ := service.Create("To Hard Delete", "hard", "", "")
+
+	err := service.HardDelete(id)
+	require.NoError(t, err, "HardDelete() failed")
+
+	_, err = service.Get(id)
+	assert.Error(t, err, "Expected error getting hard deleted project")
+}
+
+func TestService_HardDelete_EmptyID(t *testing.T) {
+	service, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	err := service.HardDelete("")
+	assert.Error(t, err, "Expected error for empty ID")
+}
+
+func TestService_HardDelete_NonExistent(t *testing.T) {
+	service, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	err := service.HardDelete("non-existent-id")
+	assert.Error(t, err, "Expected error for non-existent project")
 }

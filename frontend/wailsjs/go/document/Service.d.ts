@@ -5,6 +5,12 @@ import {context} from '../models';
 
 export function Get(arg1:string):Promise<document.DocumentWithTags>;
 
+export function HardDelete(arg1:string):Promise<void>;
+
+export function HardDeleteBatch(arg1:Array<string>):Promise<void>;
+
+export function HardDeleteByProject(arg1:string):Promise<void>;
+
 export function ListByProject(arg1:string,arg2:boolean,arg3:number,arg4:number):Promise<Array<document.Document>>;
 
 export function Restore(arg1:string):Promise<void>;

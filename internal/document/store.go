@@ -70,6 +70,14 @@ func (s *Store) GetByPathTx(ctx context.Context, tx *sql.Tx, path string) (*Docu
 	return s.getByPath(ctx, tx, path)
 }
 
+func (s *Store) GetByPathIncludingDeleted(ctx context.Context, path string) (*Document, error) {
+	return s.getByPathIncludingDeleted(ctx, s.db, path)
+}
+
+func (s *Store) GetByPathIncludingDeletedTx(ctx context.Context, tx *sql.Tx, path string) (*Document, error) {
+	return s.getByPathIncludingDeleted(ctx, tx, path)
+}
+
 func (s *Store) Get(ctx context.Context, filters *GetFilters) ([]*Document, error) {
 	return s.get(ctx, s.db, filters)
 }
@@ -230,6 +238,40 @@ func (s *Store) getByPath(ctx context.Context, q queryer, path string) (*Documen
 		SELECT path, project_alias, title, mtime_ns, size_bytes, has_code, has_images, has_links, created_at, updated_at, COALESCE(deleted_at, '')
 		FROM doc
 		WHERE path = ? AND deleted_at IS NULL;
+	`
+
+	var hasCodeInt, hasImagesInt, hasLinksInt int
+	err := q.QueryRowContext(ctx, query, path).Scan(
+		&d.Path,
+		&d.ProjectAlias,
+		&d.Title,
+		&d.ModificationTime,
+		&d.Size,
+		&hasCodeInt,
+		&hasImagesInt,
+		&hasLinksInt,
+		&d.CreatedAt,
+		&d.UpdatedAt,
+		&d.DeletedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get document: %w", err)
+	}
+
+	d.HasCode = intToBool(hasCodeInt)
+	d.HasImages = intToBool(hasImagesInt)
+	d.HasLinks = intToBool(hasLinksInt)
+
+	return d, nil
+}
+
+func (s *Store) getByPathIncludingDeleted(ctx context.Context, q queryer, path string) (*Document, error) {
+	d := new(Document)
+
+	query := `
+		SELECT path, project_alias, title, mtime_ns, size_bytes, has_code, has_images, has_links, created_at, updated_at, COALESCE(deleted_at, '')
+		FROM doc
+		WHERE path = ?;
 	`
 
 	var hasCodeInt, hasImagesInt, hasLinksInt int

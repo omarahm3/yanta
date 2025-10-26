@@ -104,7 +104,7 @@ func New(cfg Config) (*App, error) {
 		logger.Warnf("failed to seed demo documents: %v", err)
 	}
 
-	projectCommands := commandline.NewProjectCommands(projectService, documentService)
+	projectCommands := commandline.NewProjectCommands(projectService, documentService, v)
 	globalCommands := commandline.NewGlobalCommands(projectService)
 	documentCommands := commandline.NewDocumentCommands(documentService, tagService)
 

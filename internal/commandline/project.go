@@ -44,17 +44,23 @@ type ProjectResult struct {
 	Context CommandContext    `json:"context"`
 }
 
+type VaultService interface {
+	DeleteProjectDir(projectAlias string) error
+}
+
 type ProjectCommands struct {
 	projectService  *project.Service
 	documentService *document.Service
+	vault           VaultService
 	parser          *Parser
 	ctx             context.Context
 }
 
-func NewProjectCommands(projectService *project.Service, documentService *document.Service) *ProjectCommands {
+func NewProjectCommands(projectService *project.Service, documentService *document.Service, vault VaultService) *ProjectCommands {
 	pc := &ProjectCommands{
 		projectService:  projectService,
 		documentService: documentService,
+		vault:           vault,
 		parser:          New(ContextProject),
 		ctx:             context.Background(),
 	}
@@ -103,6 +109,10 @@ func (pc *ProjectCommands) registerCommands() {
 	pc.parser.MustRegister(
 		formatCommand(string(ProjectCommandRename), `\s+(@\w+)\s+(.+)$`),
 		pc.handleRename,
+	)
+	pc.parser.MustRegister(
+		formatCommand(string(ProjectCommandDelete), `\s+(@\w+)\s+--force\s+--hard$`),
+		pc.handleDeleteForceHard,
 	)
 	pc.parser.MustRegister(
 		formatCommand(string(ProjectCommandDelete), `\s+(@\w+)\s+--force$`),
@@ -455,6 +465,67 @@ func (pc *ProjectCommands) handleDeleteForce(
 	if entryCount > 0 {
 		message += fmt.Sprintf(" (and %d entries)", entryCount)
 	}
+
+	return &Result{
+		Success: true,
+		Message: message,
+		Data:    proj,
+	}, nil
+}
+
+func (pc *ProjectCommands) handleDeleteForceHard(
+	matches []string,
+	fullCommand string,
+) (*Result, error) {
+	alias := matches[1]
+
+	activeProjects, err := pc.projectService.ListActive()
+	if err != nil {
+		return nil, err
+	}
+
+	var proj *project.Project
+	for _, p := range activeProjects {
+		if p.Alias == alias {
+			proj = p
+			break
+		}
+	}
+
+	if proj == nil {
+		archivedProjects, err := pc.projectService.ListArchived()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, p := range archivedProjects {
+			if p.Alias == alias {
+				proj = p
+				break
+			}
+		}
+	}
+
+	if proj == nil {
+		return &Result{
+			Success: false,
+			Message: fmt.Sprintf("project not found: %s", alias),
+		}, nil
+	}
+
+	if err := pc.documentService.HardDeleteByProject(proj.Alias); err != nil {
+		return nil, err
+	}
+
+	if err := pc.projectService.HardDelete(proj.ID); err != nil {
+		return nil, err
+	}
+
+	if err := pc.vault.DeleteProjectDir(proj.Alias); err != nil {
+		return nil, err
+	}
+
+	message := fmt.Sprintf("permanently deleted project: %s (with all documents and files)", proj.Name)
 
 	return &Result{
 		Success: true,

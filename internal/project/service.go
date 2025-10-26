@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"yanta/internal/events"
 	"yanta/internal/logger"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type Service struct {
@@ -267,6 +268,49 @@ func (s *Service) Delete(id string) error {
 		"id":       id,
 		"docCount": docCount,
 	}).Info("project deleted")
+
+	return nil
+}
+
+func (s *Service) HardDelete(id string) error {
+	if strings.TrimSpace(id) == "" {
+		return errors.New("id is required")
+	}
+
+	proj, err := s.Get(id)
+	if err != nil {
+		logger.WithField("id", id).WithError(err).Error("failed to get project for hard deletion")
+		return fmt.Errorf("getting project: %w", err)
+	}
+
+	tx, err := s.db.BeginTx(s.ctx, nil)
+	if err != nil {
+		return fmt.Errorf("beginning transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err := s.store.HardDeleteTx(s.ctx, tx, id); err != nil {
+		logger.WithField("id", id).WithError(err).Error("failed to hard delete project")
+		return fmt.Errorf("hard deleting project: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing transaction: %w", err)
+	}
+
+	s.cache.Invalidate(id)
+	s.cache.InvalidateDocumentCount(id)
+	s.cache.InvalidateLastDocumentDate(id)
+
+	s.emitEvent(events.ProjectDeleted, map[string]any{
+		"id":   id,
+		"hard": true,
+	})
+
+	logger.WithFields(map[string]any{
+		"id":    id,
+		"alias": proj.Alias,
+	}).Info("project hard deleted")
 
 	return nil
 }

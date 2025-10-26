@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { ExtendedProject, HelpCommand, extendProject } from "../types";
 import { Table, TableColumn, TableRow } from "../components/ui";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { Layout } from "../components/Layout";
 import { useSidebarSections } from "../hooks/useSidebarSections";
 import { useHotkeys, useHelp } from "../hooks";
@@ -33,11 +34,16 @@ const helpCommands: HelpCommand[] = [
   },
   {
     command: `${ProjectCommand.Delete} [alias]`,
-    description: "Delete a project (safe delete - warns if has entries)",
+    description: "Delete a project (safe - warns if has entries)",
   },
   {
     command: `${ProjectCommand.Delete} [alias] --force`,
-    description: "Force delete a project and all its entries",
+    description: "Soft delete project and all entries (can be restored)",
+  },
+  {
+    command: `${ProjectCommand.Delete} [alias] --force --hard`,
+    description:
+      "PERMANENT deletion - removes ALL files from vault (⚠️ cannot be undone)",
   },
 ];
 
@@ -55,9 +61,24 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
     isLoading,
   } = useProjectContext();
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
-    currentProject?.id || "",
+    currentProject?.id || ""
   );
   const [commandInput, setCommandInput] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    danger?: boolean;
+    inputPrompt?: string;
+    expectedInput?: string;
+    showCheckbox?: boolean;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
   const { success, error } = useNotification();
   const { setPageContext } = useHelp();
   const commandInputRef = useRef<HTMLInputElement>(null);
@@ -130,8 +151,8 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
             project.status === "current"
               ? "text-green"
               : project.status === "active"
-                ? "text-green"
-                : "text-text-dim"
+              ? "text-green"
+              : "text-text-dim"
           }`}
         >
           {project.status}
@@ -148,7 +169,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
         setCurrentProject(project);
       }
     },
-    [projects, setCurrentProject],
+    [projects, setCurrentProject]
   );
 
   const handleRowDoubleClick = useCallback(
@@ -159,11 +180,55 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
         success(`Switched to ${project.name}`);
       }
     },
-    [projects, setCurrentProject, success],
+    [projects, setCurrentProject, success]
   );
 
   const handleCommandSubmit = useCallback(
     async (command: string) => {
+      const trimmedCmd = command.trim();
+
+      if (trimmedCmd.includes("--force --hard")) {
+        const match = trimmedCmd.match(/delete\s+(@\w+)\s+--force\s+--hard/);
+        if (match) {
+          const alias = match[1];
+          const project = [...projects, ...archivedProjects].find(
+            (p) => p.alias === alias
+          );
+
+          if (project) {
+            setConfirmDialog({
+              isOpen: true,
+              title: "Permanently Delete Project",
+              message: `This will PERMANENTLY delete project "${project.name}" and ALL its documents from the vault. All files will be removed and CANNOT be recovered!`,
+              inputPrompt: `Type the project alias to confirm:`,
+              expectedInput: alias,
+              onConfirm: async () => {
+                try {
+                  const result = await Parse(command);
+                  if (!result.success && result.message) {
+                    error(result.message);
+                  } else if (result.success) {
+                    await loadProjects();
+                    success(result.message || "Project permanently deleted", {
+                      duration: 6000,
+                    });
+                  }
+                } catch (err) {
+                  error(err instanceof Error ? err.message : "Command failed");
+                } finally {
+                  setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+                  setCommandInput("");
+                  commandInputRef.current?.blur();
+                }
+              },
+              danger: true,
+              showCheckbox: true,
+            });
+            return;
+          }
+        }
+      }
+
       try {
         const result = await Parse(command);
 
@@ -173,12 +238,9 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
           success(result.message, { duration: 6000 });
         }
 
-        // If the command was successful and returned project data, handle it
         if (result.success && result.data?.project) {
-          // Reload projects to reflect the changes
           await loadProjects();
 
-          // If a project was created or set, select it
           if (result.data.project.id) {
             setSelectedProjectId(result.data.project.id);
           }
@@ -190,7 +252,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
         error(err instanceof Error ? err.message : "Command failed");
       }
     },
-    [loadProjects, error, success],
+    [projects, archivedProjects, loadProjects, error, success]
   );
 
   const selectNext = useCallback(() => {
@@ -199,7 +261,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
       ...archivedProjectsRef.current,
     ];
     const currentIndex = allProjects.findIndex(
-      (p) => p.id === selectedProjectIdRef.current,
+      (p) => p.id === selectedProjectIdRef.current
     );
     if (currentIndex < allProjects.length - 1) {
       const nextProject = allProjects[currentIndex + 1];
@@ -213,7 +275,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
       ...archivedProjectsRef.current,
     ];
     const currentIndex = allProjects.findIndex(
-      (p) => p.id === selectedProjectIdRef.current,
+      (p) => p.id === selectedProjectIdRef.current
     );
     if (currentIndex > 0) {
       const prevProject = allProjects[currentIndex - 1];
@@ -227,7 +289,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
       ...archivedProjectsRef.current,
     ];
     const project = allProjects.find(
-      (p) => p.id === selectedProjectIdRef.current,
+      (p) => p.id === selectedProjectIdRef.current
     );
     if (project) {
       setCurrentProject(project);
@@ -283,7 +345,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
       key: "mod+A",
       handler: () => {
         const selected = projectsRef.current.find(
-          (p) => p.id === selectedProjectIdRef.current,
+          (p) => p.id === selectedProjectIdRef.current
         );
         if (selected) {
           setCommandInput(`archive `);
@@ -301,7 +363,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
       key: "mod+U",
       handler: () => {
         const selected = projectsRef.current.find(
-          (p) => p.id === selectedProjectIdRef.current,
+          (p) => p.id === selectedProjectIdRef.current
         );
         if (selected) {
           setCommandInput(`unarchive `);
@@ -319,7 +381,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
       key: "mod+R",
       handler: () => {
         const selected = projectsRef.current.find(
-          (p) => p.id === selectedProjectIdRef.current,
+          (p) => p.id === selectedProjectIdRef.current
         );
         if (selected) {
           setCommandInput(`rename ${selected.alias} `);
@@ -337,7 +399,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
       key: "mod+D",
       handler: () => {
         const selected = projectsRef.current.find(
-          (p) => p.id === selectedProjectIdRef.current,
+          (p) => p.id === selectedProjectIdRef.current
         );
         if (selected) {
           setCommandInput(`delete ${selected.alias}`);
@@ -359,55 +421,69 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
   });
 
   return (
-    <Layout
-      sidebarSections={sidebarSections}
-      currentPage="projects"
-      showCommandLine={true}
-      commandContext="project"
-      commandPlaceholder="type command or press / for help"
-      commandValue={commandInput}
-      onCommandChange={setCommandInput}
-      onCommandSubmit={handleCommandSubmit}
-      commandInputRef={commandInputRef}
-    >
-      <div className="p-5">
-        {/* Active Projects */}
-        <div className="mb-4 text-xs font-semibold tracking-wider uppercase text-text-dim">
-          ACTIVE PROJECTS
-        </div>
-
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="text-text-dim">Loading projects...</div>
+    <>
+      <Layout
+        sidebarSections={sidebarSections}
+        currentPage="projects"
+        showCommandLine={true}
+        commandContext="project"
+        commandPlaceholder="type command or press / for help"
+        commandValue={commandInput}
+        onCommandChange={setCommandInput}
+        onCommandSubmit={handleCommandSubmit}
+        commandInputRef={commandInputRef}
+      >
+        <div className="p-5">
+          <div className="mb-4 text-xs font-semibold tracking-wider uppercase text-text-dim">
+            ACTIVE PROJECTS
           </div>
-        ) : (
-          <Table
-            columns={tableColumns}
-            rows={formatTableRows(activeProjectDetails)}
-            selectedRowId={selectedProjectId}
-            onRowSelect={handleRowSelect}
-            onRowDoubleClick={handleRowDoubleClick}
-            className="max-w-4xl"
-          />
-        )}
 
-        {archivedProjectDetails.length > 0 && (
-          <>
-            <div className="mt-8 mb-4 text-xs font-semibold tracking-wider uppercase text-text-dim">
-              ARCHIVED PROJECTS
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-text-dim">Loading projects...</div>
             </div>
-
+          ) : (
             <Table
               columns={tableColumns}
-              rows={formatTableRows(archivedProjectDetails)}
+              rows={formatTableRows(activeProjectDetails)}
               selectedRowId={selectedProjectId}
               onRowSelect={handleRowSelect}
               onRowDoubleClick={handleRowDoubleClick}
-              className="max-w-4xl opacity-60"
+              className="max-w-4xl"
             />
-          </>
-        )}
-      </div>
-    </Layout>
+          )}
+
+          {archivedProjectDetails.length > 0 && (
+            <>
+              <div className="mt-8 mb-4 text-xs font-semibold tracking-wider uppercase text-text-dim">
+                ARCHIVED PROJECTS
+              </div>
+
+              <Table
+                columns={tableColumns}
+                rows={formatTableRows(archivedProjectDetails)}
+                selectedRowId={selectedProjectId}
+                onRowSelect={handleRowSelect}
+                onRowDoubleClick={handleRowDoubleClick}
+                className="max-w-4xl opacity-60"
+              />
+            </>
+          )}
+        </div>
+      </Layout>
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() =>
+          setConfirmDialog((prev) => ({ ...prev, isOpen: false }))
+        }
+        danger={confirmDialog.danger}
+        inputPrompt={confirmDialog.inputPrompt}
+        expectedInput={confirmDialog.expectedInput}
+        showCheckbox={confirmDialog.showCheckbox}
+      />
+    </>
   );
 };

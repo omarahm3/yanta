@@ -25,6 +25,7 @@ import { GetDocumentTags } from "../../wailsjs/go/tag/Service";
 import { EventsOn } from "../../wailsjs/runtime/runtime";
 import { HelpCommand } from "../types";
 import { BlockNoteEditor } from "@blocknote/core";
+import { DocumentServiceWrapper } from "../services/DocumentService";
 
 const helpCommands: HelpCommand[] = [
   {
@@ -80,7 +81,7 @@ export const Document: React.FC<DocumentProps> = ({
     initializeForm,
   } = useDocumentForm(initialFormData);
 
-  const { isLoading, loadError, shouldAutoSave, resetAutoSave } =
+  const { data, isLoading, loadError, shouldAutoSave, resetAutoSave } =
     useDocumentInitialization({
       documentPath,
       initialTitle,
@@ -92,6 +93,20 @@ export const Document: React.FC<DocumentProps> = ({
   const [commandInput, setCommandInput] = useState("");
   const commandInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<BlockNoteEditor | null>(null);
+  const [hasRestored, setHasRestored] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const isArchived = Boolean(data?.deletedAt) && !hasRestored;
+
+  useEffect(() => {
+    setHasRestored(false);
+    setIsRestoring(false);
+  }, [documentPath]);
+
+  useEffect(() => {
+    if (!data?.deletedAt) {
+      setHasRestored(false);
+    }
+  }, [data?.deletedAt, documentPath]);
 
   const handleEditorReadyWithRef = useCallback(
     (editor: BlockNoteEditor) => {
@@ -107,12 +122,12 @@ export const Document: React.FC<DocumentProps> = ({
 
   const { autoSave } = useDocumentPersistence({
     formData,
-    hasChanges,
+    hasChanges: isArchived ? false : hasChanges,
     currentProject,
     documentPath,
     isEditMode,
     isLoading,
-    shouldAutoSave,
+    shouldAutoSave: !isArchived && shouldAutoSave,
     resetChanges,
     onAutoSaveComplete: resetAutoSave,
     onNavigate,
@@ -132,13 +147,29 @@ export const Document: React.FC<DocumentProps> = ({
 
   const handleCommandSubmit = useCallback(
     async (command: string) => {
+      const trimmedCommand = command.trim();
       if (!documentPath) {
         error("No document open");
         return;
       }
+      const withoutPrefix = trimmedCommand.startsWith(":")
+        ? trimmedCommand.slice(1).trimStart()
+        : trimmedCommand;
+      if (!withoutPrefix) {
+        error("Empty command");
+        return;
+      }
+      const normalizedCommand = withoutPrefix.toLowerCase();
+      const isUnarchiveCommand =
+        normalizedCommand === "unarchive" ||
+        normalizedCommand.startsWith("unarchive ");
+      if (isArchived && !isUnarchiveCommand) {
+        error("Restore the document before running commands.");
+        return;
+      }
 
       try {
-        const result = await ParseWithDocument(command, documentPath);
+        const result = await ParseWithDocument(withoutPrefix, documentPath);
 
         if (!result.success) {
           if (result.message) error(result.message);
@@ -155,6 +186,10 @@ export const Document: React.FC<DocumentProps> = ({
           "current tags": () => {
             success(result.message);
           },
+          "document unarchived": () => {
+            setHasRestored(true);
+            success("Document unarchived");
+          },
         };
 
         const action = actions[result.message];
@@ -170,8 +205,26 @@ export const Document: React.FC<DocumentProps> = ({
         commandInputRef.current?.blur();
       }
     },
-    [documentPath],
+    [documentPath, error, isArchived, success],
   );
+
+  const handleRestore = useCallback(async () => {
+    if (!documentPath || isRestoring) {
+      return;
+    }
+    setIsRestoring(true);
+    try {
+      await DocumentServiceWrapper.restore(documentPath);
+      setHasRestored(true);
+      success("Document restored");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to restore document";
+      error(message);
+    } finally {
+      setIsRestoring(false);
+    }
+  }, [documentPath, error, isRestoring, success]);
 
   useEffect(() => {
     const refreshTags = async () => {
@@ -202,6 +255,10 @@ export const Document: React.FC<DocumentProps> = ({
       handler: (event: KeyboardEvent) => {
         event.preventDefault();
         event.stopPropagation();
+        if (isArchived) {
+          error("Restore the document before editing.");
+          return;
+        }
         void autoSave.saveNow();
       },
       allowInInput: true,
@@ -246,6 +303,7 @@ export const Document: React.FC<DocumentProps> = ({
     loadError: loadError || null,
     hasFormData: !!formData,
     formDataBlocksCount: formData?.blocks?.length || 0,
+    isArchived,
   });
 
   if (isLoading) {
@@ -271,6 +329,8 @@ export const Document: React.FC<DocumentProps> = ({
       formData={formData}
       isEditMode={isEditMode}
       isLoading={isLoading}
+      isArchived={isArchived}
+      isRestoring={isRestoring}
       autoSave={autoSave}
       commandInput={commandInput}
       onCommandChange={setCommandInput}
@@ -280,6 +340,7 @@ export const Document: React.FC<DocumentProps> = ({
       onTagRemove={removeTag}
       onEditorReady={handleEditorReadyWithRef}
       onCancel={handleCancel}
+      onRestore={isArchived ? handleRestore : undefined}
     />
   );
 };

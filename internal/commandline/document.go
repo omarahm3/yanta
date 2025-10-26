@@ -48,6 +48,8 @@ type DocumentResult struct {
 type DocumentService interface {
 	SoftDelete(path string) error
 	Restore(path string) error
+	HardDelete(path string) error
+	HardDeleteBatch(paths []string) error
 }
 
 type TagService interface {
@@ -125,7 +127,8 @@ func (dc *DocumentCommands) registerCommands() {
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandNew), `(?:\s+(.+))?$`), dc.handleNew)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandDoc), `\s+(.+)$`), dc.handleDoc)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandArchive), `\s+(.+)$`), dc.handleArchive)
-	dc.parser.MustRegister(formatCommand(string(DocumentCommandUnarchive), `\s+(.+)$`), dc.handleUnarchive)
+	dc.parser.MustRegister(formatCommand(string(DocumentCommandUnarchive), `(?:\s+(.+))?$`), dc.handleUnarchive)
+	dc.parser.MustRegister(formatCommand(string(DocumentCommandDelete), `\s+(.+)\s+--hard$`), dc.handleDeleteHard)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandDelete), `\s+(.+)$`), dc.handleDelete)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandTag), `\s+(.+)$`), dc.handleTag)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandUntag), `\s+(.+)$`), dc.handleUntag)
@@ -198,12 +201,20 @@ func (dc *DocumentCommands) handleArchive(matches []string, fullCommand string) 
 }
 
 func (dc *DocumentCommands) handleUnarchive(matches []string, fullCommand string) (*Result, error) {
-	path := strings.TrimSpace(matches[1])
+	path := ""
+	if len(matches) > 1 {
+		path = strings.TrimSpace(matches[1])
+	}
+
 	if path == "" {
-		return &Result{
-			Success: false,
-			Message: "usage: unarchive <path>",
-		}, nil
+		if dc.currentPath != "" {
+			path = dc.currentPath
+		} else {
+			return &Result{
+				Success: false,
+				Message: "no document open - use in document editor",
+			}, nil
+		}
 	}
 
 	if err := dc.docSvc.Restore(path); err != nil {
@@ -238,6 +249,62 @@ func (dc *DocumentCommands) handleDelete(matches []string, fullCommand string) (
 	return &Result{
 		Success: true,
 		Message: "document deleted",
+	}, nil
+}
+
+func (dc *DocumentCommands) handleDeleteHard(matches []string, fullCommand string) (*Result, error) {
+	pathsInput := strings.TrimSpace(matches[1])
+	if pathsInput == "" {
+		return &Result{
+			Success: false,
+			Message: "usage: delete <path> --hard or delete <path1>,<path2>,... --hard",
+		}, nil
+	}
+
+	var paths []string
+	if strings.Contains(pathsInput, ",") {
+		parts := strings.Split(pathsInput, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				paths = append(paths, trimmed)
+			}
+		}
+	} else {
+		paths = []string{pathsInput}
+	}
+
+	if len(paths) == 0 {
+		return &Result{
+			Success: false,
+			Message: "no valid paths provided",
+		}, nil
+	}
+
+	if len(paths) == 1 {
+		if err := dc.docSvc.HardDelete(paths[0]); err != nil {
+			return &Result{
+				Success: false,
+				Message: fmt.Sprintf("failed to permanently delete document: %v", err),
+			}, nil
+		}
+		return &Result{
+			Success: true,
+			Message: "document permanently deleted",
+		}, nil
+	}
+
+	if err := dc.docSvc.HardDeleteBatch(paths); err != nil {
+		return &Result{
+			Success: false,
+			Message: fmt.Sprintf("failed to permanently delete documents: %v", err),
+		}, nil
+	}
+
+	successMsg := fmt.Sprintf("%d documents permanently deleted", len(paths))
+	return &Result{
+		Success: true,
+		Message: successMsg,
 	}, nil
 }
 

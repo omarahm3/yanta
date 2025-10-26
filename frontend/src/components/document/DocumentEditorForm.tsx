@@ -2,7 +2,9 @@ import React, { useCallback, useMemo, lazy, Suspense } from "react";
 import { BlockNoteBlock } from "../../types/Document";
 import { Block, BlockNoteEditor } from "@blocknote/core";
 
-const RichEditor = lazy(() => import("../editor/RichEditor").then(m => ({ default: m.RichEditor })));
+const RichEditor = lazy(() =>
+  import("../editor/RichEditor").then((m) => ({ default: m.RichEditor })),
+);
 
 const EditorLoader = () => <div className="h-full w-full" />;
 
@@ -11,6 +13,7 @@ interface DocumentEditorFormProps {
   tags: string[];
   isEditMode: boolean;
   isLoading: boolean;
+  isReadOnly?: boolean;
   onTitleChange: (title: string) => void;
   onBlocksChange: (blocks: BlockNoteBlock[]) => void;
   onTagRemove: (tag: string) => void;
@@ -22,6 +25,7 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
   tags,
   isEditMode,
   isLoading,
+  isReadOnly = false,
   onTitleChange,
   onBlocksChange,
   onTagRemove,
@@ -29,19 +33,35 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 }) => {
   const handleTagKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLButtonElement>, tag: string) => {
+      if (isReadOnly) {
+        return;
+      }
       if (e.key === "Backspace" || e.key === "Delete") {
         e.preventDefault();
         onTagRemove(tag);
       }
     },
-    [onTagRemove],
+    [onTagRemove, isReadOnly],
   );
 
   const handleBlocksChange = useCallback(
     (newBlocks: Block[]) => {
+      if (isReadOnly) {
+        return;
+      }
       onBlocksChange(newBlocks as BlockNoteBlock[]);
     },
-    [onBlocksChange],
+    [onBlocksChange, isReadOnly],
+  );
+
+  const handleTitleChange = useCallback(
+    (title: string) => {
+      if (isReadOnly) {
+        return;
+      }
+      onTitleChange(title);
+    },
+    [isReadOnly, onTitleChange],
   );
 
   const blocksJson = useMemo(
@@ -59,9 +79,9 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
               isEditMode ? "edit:" + (blocksJson ? "loaded" : "pending") : "new"
             }
             onChange={handleBlocksChange}
-            onTitleChange={onTitleChange}
+            onTitleChange={handleTitleChange}
             onReady={onEditorReady}
-            editable={!isLoading}
+            editable={!isLoading && !isReadOnly}
             isLoading={isLoading && isEditMode}
             className="h-full"
           />
@@ -74,9 +94,11 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
               <button
                 key={tag}
                 onKeyDown={(e) => handleTagKeyDown(e, tag)}
-                onClick={() => onTagRemove(tag)}
+                onClick={() => {
+                  if (!isReadOnly) onTagRemove(tag);
+                }}
                 className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded bg-surface text-text-dim transition-colors hover:bg-accent hover:text-text focus:outline-none focus:ring-2 focus:ring-accent"
-                disabled={isLoading}
+                disabled={isLoading || isReadOnly}
                 title="Click or press Delete/Backspace to remove"
               >
                 {tag}

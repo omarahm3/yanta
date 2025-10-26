@@ -17,6 +17,8 @@ export function GetCache():Promise<project.Cache>;
 
 export function GetDocumentCount(arg1:string):Promise<number>;
 
+export function HardDelete(arg1:string):Promise<void>;
+
 export function ListActive():Promise<Array<project.Project>>;
 
 export function ListArchived():Promise<Array<project.Project>>;

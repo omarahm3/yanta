@@ -17,6 +17,7 @@ interface DocumentContentProps {
   };
   isEditMode: boolean;
   isLoading: boolean;
+  isArchived?: boolean;
   autoSave: {
     saveState: SaveState;
     lastSaved: Date | null;
@@ -32,6 +33,8 @@ interface DocumentContentProps {
   onTagRemove: (tag: string) => void;
   onEditorReady: (editor: BlockNoteEditor) => void;
   onCancel: () => void;
+  onRestore?: () => void;
+  isRestoring?: boolean;
 }
 
 export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
@@ -41,6 +44,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
     formData,
     isEditMode,
     isLoading,
+    isArchived = false,
     autoSave,
     commandInput,
     onCommandChange,
@@ -50,6 +54,8 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
     onTagRemove,
     onEditorReady,
     onCancel,
+    onRestore,
+    isRestoring = false,
   }) => (
     <Layout
       sidebarSections={sidebarSections}
@@ -62,11 +68,30 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
       onCommandSubmit={onCommandSubmit}
     >
       <div className="flex flex-col w-full h-full">
+        {isArchived && (
+          <div className="flex flex-wrap items-center gap-3 border-b border-accent/30 bg-accent/10 px-6 py-3 text-xs uppercase tracking-widest text-accent">
+            <span className="font-semibold">Archived Document</span>
+            <span className="text-text-dim normal-case">
+              Restore to resume editing.
+            </span>
+            {onRestore && (
+              <button
+                type="button"
+                onClick={onRestore}
+                disabled={isRestoring}
+                className="ml-auto rounded border border-accent bg-accent px-3 py-1 text-xs font-semibold uppercase tracking-widest text-bg transition-colors hover:bg-accent/90 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isRestoring ? "Restoring..." : "Restore"}
+              </button>
+            )}
+          </div>
+        )}
         <DocumentEditorForm
           blocks={formData.blocks}
           tags={formData.tags}
           isEditMode={isEditMode}
           isLoading={isLoading}
+          isReadOnly={isArchived}
           onTitleChange={onTitleChange}
           onBlocksChange={onBlocksChange}
           onTagRemove={onTagRemove}
@@ -79,8 +104,9 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
           lastSaved={autoSave.lastSaved}
           hasUnsavedChanges={autoSave.hasUnsavedChanges}
           saveError={autoSave.saveError}
+          isArchived={isArchived}
           onCancel={onCancel}
-          onSaveNow={autoSave.saveNow}
+          onSaveNow={!isArchived ? autoSave.saveNow : undefined}
         />
       </div>
     </Layout>

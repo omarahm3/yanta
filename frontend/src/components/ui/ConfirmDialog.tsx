@@ -10,6 +10,10 @@ export interface ConfirmDialogProps {
   onConfirm: () => void;
   onCancel: () => void;
   danger?: boolean;
+  inputPrompt?: string;
+  expectedInput?: string;
+  showCheckbox?: boolean;
+  checkboxLabel?: string;
 }
 
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
@@ -21,8 +25,47 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onConfirm,
   onCancel,
   danger = false,
+  inputPrompt,
+  expectedInput,
+  showCheckbox = false,
+  checkboxLabel = "I understand this action cannot be undone",
 }) => {
+  const [inputValue, setInputValue] = React.useState("");
+  const [isChecked, setIsChecked] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setInputValue("");
+      setIsChecked(false);
+    }
+  }, [isOpen]);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        onCancel();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onCancel]);
+
   if (!isOpen) return null;
+
+  const isInputValid = !expectedInput || inputValue === expectedInput;
+  const isCheckboxValid = !showCheckbox || isChecked;
+  const canConfirm = isInputValid && isCheckboxValid;
+
+  const handleConfirm = () => {
+    if (canConfirm) {
+      onConfirm();
+    }
+  };
 
   return (
     <div
@@ -34,13 +77,39 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b border-border">
-          <h2 className="text-lg font-bold tracking-wide text-text">
-            {title}
-          </h2>
+          <h2 className="text-lg font-bold tracking-wide text-text">{title}</h2>
         </div>
 
-        <div className="px-6 py-4">
+        <div className="px-6 py-4 space-y-4">
           <p className="text-sm text-text-dim">{message}</p>
+
+          {inputPrompt && expectedInput && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text">
+                {inputPrompt}
+              </label>
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                className="w-full px-3 py-2 text-sm border rounded bg-bg border-border text-text focus:outline-none focus:border-accent"
+                placeholder={expectedInput}
+                autoFocus
+              />
+            </div>
+          )}
+
+          {showCheckbox && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isChecked}
+                onChange={(e) => setIsChecked(e.target.checked)}
+                className="w-4 h-4 border rounded cursor-pointer border-border bg-bg accent-accent"
+              />
+              <span className="text-sm text-text-dim">{checkboxLabel}</span>
+            </label>
+          )}
         </div>
 
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
@@ -51,12 +120,13 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             {cancelText}
           </button>
           <button
-            onClick={onConfirm}
+            onClick={handleConfirm}
+            disabled={!canConfirm}
             className={cn(
               "px-4 py-2 text-sm font-medium rounded transition-colors",
               danger
-                ? "bg-red text-bg hover:bg-red/80 border border-red"
-                : "bg-accent text-bg hover:bg-accent/80 border border-accent"
+                ? "bg-red text-bg hover:bg-red/80 border border-red disabled:opacity-50 disabled:cursor-not-allowed"
+                : "bg-accent text-bg hover:bg-accent/80 border border-accent disabled:opacity-50 disabled:cursor-not-allowed",
             )}
           >
             {confirmText}
