@@ -1,6 +1,7 @@
 import React from "react";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
+import { SoftDelete, Restore } from "../../wailsjs/go/document/Service";
 import { HotkeyProvider, useHotkeyContext } from "../contexts";
 import type { HotkeyContextValue } from "../types/hotkeys";
 
@@ -54,8 +55,18 @@ vi.mock("../contexts", async () => {
 
 vi.mock("../components/DocumentList", () => ({
   __esModule: true,
-  DocumentList: ({ selectedIndex }: { selectedIndex: number }) => (
-    <div data-testid="document-list" data-selected={selectedIndex} />
+  DocumentList: ({
+    highlightedIndex,
+    selectedDocuments,
+  }: {
+    highlightedIndex?: number;
+    selectedDocuments?: Set<string>;
+  }) => (
+    <div
+      data-testid="document-list"
+      data-highlighted={highlightedIndex ?? -1}
+      data-selected={Array.from(selectedDocuments ?? new Set()).join(",")}
+    />
   ),
 }));
 
@@ -67,6 +78,14 @@ vi.mock("../components/StatusBar", () => ({
 vi.mock("../../wailsjs/go/commandline/DocumentCommands", () => ({
   ParseWithContext: vi.fn(async () => ({ success: true })),
 }));
+
+vi.mock("../../wailsjs/go/document/Service", () => ({
+  SoftDelete: vi.fn(),
+  Restore: vi.fn(),
+}));
+
+const softDeleteMock = SoftDelete as unknown as ReturnType<typeof vi.fn>;
+const restoreMock = Restore as unknown as ReturnType<typeof vi.fn>;
 
 vi.mock("../../wailsjs/go/models", () => ({
   commandline: {
@@ -121,6 +140,8 @@ describe("Dashboard hotkeys", () => {
     setSelectedIndex.mockClear();
     mockSuccess.mockClear();
     mockError.mockClear();
+    softDeleteMock.mockClear();
+    restoreMock.mockClear();
     vi.useRealTimers();
   });
 
@@ -158,7 +179,6 @@ describe("Dashboard hotkeys", () => {
   it("toggles archived view with mod+shift+A", async () => {
     const ctx = await renderDashboard();
     const toggleHotkey = getHotkey(ctx, "mod+shift+A");
-    vi.useFakeTimers();
     await act(async () => {
       toggleHotkey.handler(
         new KeyboardEvent("keydown", {
@@ -168,9 +188,7 @@ describe("Dashboard hotkeys", () => {
         }),
       );
     });
-    vi.runAllTimers();
-    expect(mockSuccess).toHaveBeenLastCalledWith("Showing archived documents");
-    vi.useRealTimers();
+    expect(mockSuccess).not.toHaveBeenCalled();
   });
 
   it("moves selection down with j", async () => {
@@ -205,27 +223,58 @@ describe("Dashboard hotkeys", () => {
     });
   });
 
-  it("prepares archive/unarchive commands", async () => {
+  it("archives selected documents with mod+A", async () => {
     const ctx = await renderDashboard();
+    const spaceHotkey = getHotkey(ctx, "Space");
     const archiveHotkey = getHotkey(ctx, "mod+A");
-    const unarchiveHotkey = getHotkey(ctx, "mod+U");
 
-    const input = screen.getByTestId("command-input") as HTMLInputElement;
-    vi.useFakeTimers();
+    await act(async () => {
+      spaceHotkey.handler(new KeyboardEvent("keydown", { key: " " }));
+    });
+
     await act(async () => {
       archiveHotkey.handler(
         new KeyboardEvent("keydown", { key: "a", ctrlKey: true }),
       );
     });
+
+    await waitFor(() =>
+      expect(softDeleteMock).toHaveBeenCalledWith("proj/doc1"),
+    );
+    expect(mockSuccess).toHaveBeenLastCalledWith("Document archived");
+  });
+
+  it("restores selected documents with mod+U when archived view is shown", async () => {
+    const ctx = await renderDashboard();
+    const toggleHotkey = getHotkey(ctx, "mod+shift+A");
+    vi.useFakeTimers();
+    await act(async () => {
+      toggleHotkey.handler(
+        new KeyboardEvent("keydown", {
+          key: "A",
+          ctrlKey: true,
+          shiftKey: true,
+        }),
+      );
+    });
     vi.runAllTimers();
-    expect(input.value).toBe("archive ");
+    vi.useRealTimers();
+    mockSuccess.mockClear();
+
+    const spaceHotkey = getHotkey(ctx, "Space");
+    const restoreHotkey = getHotkey(ctx, "mod+U");
 
     await act(async () => {
-      unarchiveHotkey.handler(
+      spaceHotkey.handler(new KeyboardEvent("keydown", { key: " " }));
+    });
+
+    await act(async () => {
+      restoreHotkey.handler(
         new KeyboardEvent("keydown", { key: "u", ctrlKey: true }),
       );
     });
-    expect(input.value).toBe("unarchive ");
-    vi.useRealTimers();
+
+    await waitFor(() => expect(restoreMock).toHaveBeenCalledWith("proj/doc1"));
+    expect(mockSuccess).toHaveBeenLastCalledWith("Document restored");
   });
 });

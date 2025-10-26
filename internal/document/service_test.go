@@ -242,6 +242,26 @@ func TestService_Get(t *testing.T) {
 	assert.Equal(t, "heading", doc.File.Blocks[0].Type)
 }
 
+func TestService_Get_IncludesArchived(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	req := SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "Archived Doc",
+		Blocks:       []BlockNoteBlock{},
+	}
+
+	path, _ := service.Save(req)
+	err := service.SoftDelete(path)
+	require.NoError(t, err, "SoftDelete() failed")
+
+	doc, err := service.Get(path)
+	require.NoError(t, err, "Get() should return archived documents")
+	assert.Equal(t, path, doc.Path)
+	assert.NotEmpty(t, doc.DeletedAt, "archived document should expose deleted timestamp")
+}
+
 func TestService_Get_EmptyPath(t *testing.T) {
 	service, _, cleanup := setupServiceTest(t)
 	defer cleanup()
@@ -377,4 +397,171 @@ func TestService_SetContext(t *testing.T) {
 	service.SetContext(ctx)
 
 	assert.Equal(t, ctx, service.ctx, "Context not set correctly")
+}
+
+func TestService_HardDelete(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	req := SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "To Hard Delete",
+		Blocks:       []BlockNoteBlock{},
+	}
+
+	path, err := service.Save(req)
+	require.NoError(t, err, "Save() failed")
+
+	err = service.HardDelete(path)
+	require.NoError(t, err, "HardDelete() failed")
+
+	_, err = service.Get(path)
+	assert.Error(t, err, "Expected error getting hard deleted document")
+
+	exists, _ := service.fm.FileExists(path)
+	assert.False(t, exists, "Document file should not exist after hard delete")
+}
+
+func TestService_HardDelete_EmptyPath(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	err := service.HardDelete("")
+	assert.Error(t, err, "Expected error for empty path")
+}
+
+func TestService_HardDelete_RemovesFromVault(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	req := SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "Vault Test",
+		Blocks:       []BlockNoteBlock{},
+	}
+
+	path, _ := service.Save(req)
+
+	exists, _ := service.fm.FileExists(path)
+	require.True(t, exists, "File should exist before deletion")
+
+	err := service.HardDelete(path)
+	require.NoError(t, err, "HardDelete() failed")
+
+	exists, _ = service.fm.FileExists(path)
+	assert.False(t, exists, "File should not exist after hard delete")
+}
+
+func TestService_HardDeleteBatch(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	var paths []string
+	for i := 1; i <= 3; i++ {
+		req := SaveRequest{
+			ProjectAlias: "@test",
+			Title:        "Batch Delete " + string(rune('0'+i)),
+			Blocks:       []BlockNoteBlock{},
+		}
+		path, err := service.Save(req)
+		require.NoError(t, err)
+		paths = append(paths, path)
+	}
+
+	err := service.HardDeleteBatch(paths)
+	require.NoError(t, err, "HardDeleteBatch() failed")
+
+	for _, path := range paths {
+		_, err := service.Get(path)
+		assert.Error(t, err, "Expected error getting hard deleted document")
+	}
+}
+
+func TestService_HardDeleteBatch_EmptyPaths(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	err := service.HardDeleteBatch([]string{})
+	assert.Error(t, err, "Expected error for empty paths")
+}
+
+func TestService_HardDeleteBatch_PartialFailure(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	req := SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "Valid Document",
+		Blocks:       []BlockNoteBlock{},
+	}
+	validPath, _ := service.Save(req)
+
+	paths := []string{
+		validPath,
+		"projects/@test/invalid-doc.json",
+	}
+
+	err := service.HardDeleteBatch(paths)
+	assert.Error(t, err, "Expected error for batch with invalid path")
+
+	_, err = service.Get(validPath)
+	assert.NoError(t, err, "Valid document should still exist after failed batch")
+}
+
+func TestService_HardDeleteByProject(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	for i := 1; i <= 3; i++ {
+		req := SaveRequest{
+			ProjectAlias: "@test",
+			Title:        "Project Doc " + string(rune('0'+i)),
+			Blocks:       []BlockNoteBlock{},
+		}
+		_, err := service.Save(req)
+		require.NoError(t, err)
+	}
+
+	err := service.HardDeleteByProject("@test")
+	require.NoError(t, err, "HardDeleteByProject() failed")
+
+	result, err := service.ListByProject("@test", false, 100, 0)
+	require.NoError(t, err)
+	assert.Empty(t, result, "All documents should be hard deleted")
+}
+
+func TestService_HardDeleteByProject_IncludesSoftDeleted(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	var paths []string
+	for i := 1; i <= 3; i++ {
+		req := SaveRequest{
+			ProjectAlias: "@test",
+			Title:        "Mixed Doc " + string(rune('0'+i)),
+			Blocks:       []BlockNoteBlock{},
+		}
+		path, err := service.Save(req)
+		require.NoError(t, err)
+		paths = append(paths, path)
+	}
+
+	err := service.SoftDelete(paths[0])
+	require.NoError(t, err, "SoftDelete() failed")
+
+	err = service.HardDeleteByProject("@test")
+	require.NoError(t, err, "HardDeleteByProject() failed")
+
+	for _, path := range paths {
+		_, err := service.Get(path)
+		assert.Error(t, err, "All documents (active and soft-deleted) should be hard deleted")
+	}
+}
+
+func TestService_HardDeleteByProject_EmptyAlias(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	err := service.HardDeleteByProject("")
+	assert.Error(t, err, "Expected error for empty project alias")
 }

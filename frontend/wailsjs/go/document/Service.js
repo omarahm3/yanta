@@ -6,6 +6,18 @@ export function Get(arg1) {
   return window['go']['document']['Service']['Get'](arg1);
 }
 
+export function HardDelete(arg1) {
+  return window['go']['document']['Service']['HardDelete'](arg1);
+}
+
+export function HardDeleteBatch(arg1) {
+  return window['go']['document']['Service']['HardDeleteBatch'](arg1);
+}
+
+export function HardDeleteByProject(arg1) {
+  return window['go']['document']['Service']['HardDeleteByProject'](arg1);
+}
+
 export function ListByProject(arg1, arg2, arg3, arg4) {
   return window['go']['document']['Service']['ListByProject'](arg1, arg2, arg3, arg4);
 }

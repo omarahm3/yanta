@@ -195,8 +195,17 @@ func (s *Service) Get(path string) (*DocumentWithTags, error) {
 	logger.WithField("path", path).Debug("fetching document metadata from database")
 	doc, err := s.store.GetByPath(s.ctx, path)
 	if err != nil {
-		logger.WithError(err).WithField("path", path).Error("failed to get document metadata")
-		return nil, fmt.Errorf("getting document metadata: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.WithField("path", path).Info("document not found in active records, attempting to include archived")
+			doc, err = s.store.GetByPathIncludingDeleted(s.ctx, path)
+			if err != nil {
+				logger.WithError(err).WithField("path", path).Error("failed to get document metadata (including archived)")
+				return nil, fmt.Errorf("getting document metadata: %w", err)
+			}
+		} else {
+			logger.WithError(err).WithField("path", path).Error("failed to get document metadata")
+			return nil, fmt.Errorf("getting document metadata: %w", err)
+		}
 	}
 	logger.WithFields(map[string]any{
 		"path":  path,
@@ -387,6 +396,156 @@ func (s *Service) SoftDeleteByProject(projectAlias string) error {
 	}
 
 	logger.WithField("projectAlias", projectAlias).Info("documents soft deleted by project")
+
+	return nil
+}
+
+func (s *Service) HardDelete(path string) error {
+	if strings.TrimSpace(path) == "" {
+		return errors.New("path is required")
+	}
+
+	doc, err := s.store.GetByPath(s.ctx, path)
+	if err != nil {
+		logger.WithError(err).WithField("path", path).Error("failed to get document for hard deletion")
+		return fmt.Errorf("getting document: %w", err)
+	}
+
+	if err := s.fm.DeleteFile(path); err != nil {
+		logger.WithError(err).WithField("path", path).Error("failed to delete document file from vault")
+		return fmt.Errorf("deleting document file: %w", err)
+	}
+
+	if err := s.store.HardDelete(s.ctx, path); err != nil {
+		logger.WithError(err).WithField("path", path).Error("failed to hard delete document from database")
+		return fmt.Errorf("hard deleting document from database: %w", err)
+	}
+
+	if err := s.indexer.RemoveDocument(s.ctx, path); err != nil {
+		logger.WithError(err).WithField("path", path).Warn("failed to remove from index")
+	}
+
+	deletedProjectID := doc.ProjectAlias
+	if proj, err := s.projectCache.GetByAlias(doc.ProjectAlias); err == nil && proj != nil {
+		deletedProjectID = proj.ID
+	}
+
+	s.emitEvent(events.EntryDeleted, map[string]any{
+		"path":      path,
+		"projectId": deletedProjectID,
+		"hard":      true,
+	})
+	s.emitDocumentCountChange(doc.ProjectAlias)
+
+	logger.WithFields(map[string]any{
+		"path":    path,
+		"project": doc.ProjectAlias,
+	}).Info("document hard deleted")
+
+	return nil
+}
+
+func (s *Service) HardDeleteBatch(paths []string) error {
+	if len(paths) == 0 {
+		return errors.New("paths list cannot be empty")
+	}
+
+	tx, err := s.db.BeginTx(s.ctx, nil)
+	if err != nil {
+		return fmt.Errorf("beginning transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	deletedDocs := make(map[string]*Document)
+	for _, path := range paths {
+		if strings.TrimSpace(path) == "" {
+			return fmt.Errorf("invalid empty path in batch")
+		}
+
+		doc, err := s.store.GetByPathIncludingDeletedTx(s.ctx, tx, path)
+		if err != nil {
+			logger.WithError(err).WithField("path", path).Error("failed to get document for batch hard deletion")
+			return fmt.Errorf("getting document %s: %w", path, err)
+		}
+		deletedDocs[path] = doc
+	}
+
+	for _, path := range paths {
+		if err := s.store.HardDeleteTx(s.ctx, tx, path); err != nil {
+			logger.WithError(err).WithField("path", path).Error("failed to hard delete document from database in batch")
+			return fmt.Errorf("hard deleting document %s from database: %w", path, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing transaction: %w", err)
+	}
+
+	for _, path := range paths {
+		if err := s.fm.DeleteFile(path); err != nil {
+			logger.WithError(err).WithField("path", path).Warn("failed to delete document file from vault in batch")
+		}
+
+		if err := s.indexer.RemoveDocument(s.ctx, path); err != nil {
+			logger.WithError(err).WithField("path", path).Warn("failed to remove from index in batch")
+		}
+
+		if doc, ok := deletedDocs[path]; ok {
+			deletedProjectID := doc.ProjectAlias
+			if proj, err := s.projectCache.GetByAlias(doc.ProjectAlias); err == nil && proj != nil {
+				deletedProjectID = proj.ID
+			}
+
+			s.emitEvent(events.EntryDeleted, map[string]any{
+				"path":      path,
+				"projectId": deletedProjectID,
+				"hard":      true,
+			})
+			s.emitDocumentCountChange(doc.ProjectAlias)
+		}
+	}
+
+	logger.WithField("count", len(paths)).Info("documents hard deleted in batch")
+
+	return nil
+}
+
+func (s *Service) HardDeleteByProject(projectAlias string) error {
+	projectAlias = strings.TrimSpace(projectAlias)
+	if err := project.ValidateAlias(projectAlias); err != nil {
+		return fmt.Errorf("invalid project_alias: %w", err)
+	}
+
+	filters := &GetFilters{
+		ProjectAlias:   &projectAlias,
+		IncludeDeleted: true,
+	}
+
+	docs, err := s.store.Get(s.ctx, filters)
+	if err != nil {
+		logger.WithError(err).WithField("projectAlias", projectAlias).Error("failed to get documents for hard deletion by project")
+		return fmt.Errorf("getting documents by project: %w", err)
+	}
+
+	if len(docs) == 0 {
+		logger.WithField("projectAlias", projectAlias).Info("no documents to hard delete for project")
+		return nil
+	}
+
+	var paths []string
+	for _, doc := range docs {
+		paths = append(paths, doc.Path)
+	}
+
+	if err := s.HardDeleteBatch(paths); err != nil {
+		logger.WithError(err).WithField("projectAlias", projectAlias).Error("failed to hard delete documents by project")
+		return fmt.Errorf("hard deleting documents by project: %w", err)
+	}
+
+	logger.WithFields(map[string]any{
+		"projectAlias": projectAlias,
+		"count":        len(paths),
+	}).Info("all documents hard deleted for project")
 
 	return nil
 }
