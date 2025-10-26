@@ -8,7 +8,7 @@ import { BlockNoteEditor } from "@blocknote/core";
 import { SaveState } from "../../hooks/useAutoSave";
 import { Project } from "../../types/Project";
 
-interface DocumentContentProps {
+export interface DocumentContentProps {
   sidebarSections: SidebarSection[];
   currentProject: Project | undefined;
   formData: {

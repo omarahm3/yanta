@@ -56,6 +56,13 @@ frontend/src/
 └── utils/        # Utility functions
 ```
 
+#### Page Composition Pattern
+
+- Keep files inside `pages/` focused on high-level composition. Heavy data wiring, command parsing, and hotkey registration belong in colocated hooks (for example, `pages/document/useDocumentController.ts` and `pages/dashboard/useDashboardCommandHandler.ts`).
+- Controller hooks should return the props required by presentational components so page components mainly choose between loading, error, or content renders.
+- Command-heavy flows expose dedicated handlers through these hooks to keep side effects isolated, simplify testing, and prevent monolithic component files.
+- UI components in `components/` remain presentational and continue to consume frontend types supplied by controller hooks—never import Wails models directly.
+
 ## Critical Rules
 
 ### 1. Type Safety - NEVER use `any`
