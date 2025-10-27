@@ -1,7 +1,7 @@
 import React from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
-import { HotkeyProvider, useHotkeyContext } from "../contexts";
+import { HotkeyProvider, DialogProvider, useHotkeyContext } from "../contexts";
 import type { HotkeyContextValue } from "../types/hotkeys";
 
 const mockSuccess = vi.fn();
@@ -97,10 +97,12 @@ describe("Projects hotkeys", () => {
   const renderProjects = async () => {
     let ctx: HotkeyContextValue | null = null;
     render(
+      <DialogProvider>
       <HotkeyProvider>
         <HotkeyProbe onReady={(value) => (ctx = value)} />
         <Projects />
-      </HotkeyProvider>,
+      </HotkeyProvider>
+    </DialogProvider>,
     );
     await waitFor(() => expect(ctx).not.toBeNull());
     return ctx!;

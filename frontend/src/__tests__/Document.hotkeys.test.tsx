@@ -1,7 +1,7 @@
 import { act, render, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import React from "react";
-import { HotkeyProvider, useHotkeyContext } from "../contexts";
+import { HotkeyProvider, useHotkeyContext, DialogProvider } from "../contexts";
 import type { HotkeyContextValue } from "../types/hotkeys";
 
 const mockSaveNow = vi.fn(async () => {});
@@ -90,9 +90,8 @@ vi.mock("../hooks/useHelp", () => ({
 }));
 
 vi.mock("../contexts", async () => {
-  const actual = await vi.importActual<typeof import("../contexts")>(
-    "../contexts",
-  );
+  const actual =
+    await vi.importActual<typeof import("../contexts")>("../contexts");
   return {
     ...actual,
     useProjectContext: () => ({
@@ -129,10 +128,12 @@ const renderDocument = async () => {
   let context: HotkeyContextValue | null = null;
 
   render(
-    <HotkeyProvider>
-      <HotkeyProbe onReady={(ctx) => (context = ctx)} />
-      <Document onNavigate={vi.fn()} initialTitle="Sample" />
-    </HotkeyProvider>,
+    <DialogProvider>
+      <HotkeyProvider>
+        <HotkeyProbe onReady={(ctx) => (context = ctx)} />
+        <Document onNavigate={vi.fn()} initialTitle="Sample" />
+      </HotkeyProvider>
+    </DialogProvider>,
   );
 
   await waitFor(() => {
@@ -153,9 +154,7 @@ describe("Document hotkeys", () => {
   it("saves immediately on mod+s", async () => {
     const ctx = await renderDocument();
 
-    const hotkey = ctx
-      .getRegisteredHotkeys()
-      .find((h) => h.key === "mod+s");
+    const hotkey = ctx.getRegisteredHotkeys().find((h) => h.key === "mod+s");
     expect(hotkey).toBeDefined();
 
     await act(async () => {
@@ -170,9 +169,7 @@ describe("Document hotkeys", () => {
   it("handles escape key", async () => {
     const ctx = await renderDocument();
 
-    const hotkey = ctx
-      .getRegisteredHotkeys()
-      .find((h) => h.key === "Escape");
+    const hotkey = ctx.getRegisteredHotkeys().find((h) => h.key === "Escape");
     expect(hotkey).toBeDefined();
 
     await act(async () => {
@@ -187,9 +184,7 @@ describe("Document hotkeys", () => {
   it("handles mod+C to unfocus editor", async () => {
     const ctx = await renderDocument();
 
-    const hotkey = ctx
-      .getRegisteredHotkeys()
-      .find((h) => h.key === "mod+C");
+    const hotkey = ctx.getRegisteredHotkeys().find((h) => h.key === "mod+C");
     expect(hotkey).toBeDefined();
 
     await act(async () => {
@@ -204,9 +199,7 @@ describe("Document hotkeys", () => {
   it("focuses editor on Enter", async () => {
     const ctx = await renderDocument();
 
-    const hotkey = ctx
-      .getRegisteredHotkeys()
-      .find((h) => h.key === "Enter");
+    const hotkey = ctx.getRegisteredHotkeys().find((h) => h.key === "Enter");
     expect(hotkey).toBeDefined();
 
     await act(async () => {

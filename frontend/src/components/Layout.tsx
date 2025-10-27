@@ -7,23 +7,16 @@ import { useNotification } from "../hooks/useNotification";
 import { useProjectContext } from "../contexts";
 
 export interface LayoutProps {
-  // Sidebar configuration
   sidebarTitle?: string;
   sidebarSections?: SidebarSection[];
   sidebarContent?: ReactNode;
-
-  // Header configuration
   breadcrumb?: string;
   currentPage: string;
   headerShortcuts?: Array<{
     key: string;
     label: string;
   }>;
-
-  // Content
   children: ReactNode;
-
-  // Command line configuration
   showCommandLine?: boolean;
   commandContext?: string;
   commandPlaceholder?: string;
@@ -115,36 +108,37 @@ export const Layout: React.FC<LayoutProps> = ({
   useHotkeys(
     showCommandLine
       ? [
-        {
-          key: "shift+;",
-          handler: () => {
-            if (commandInputRef.current) {
-              commandInputRef.current.focus();
-            }
-          },
-          allowInInput: false,
-          description: "Focus command line",
-        },
-        {
-          key: "Escape",
-          handler: (event: KeyboardEvent) => {
-            if (document.activeElement === commandInputRef.current) {
-              event.preventDefault();
-              event.stopPropagation();
-              commandInputRef.current?.blur();
-              if (onCommandChange) {
-                onCommandChange("");
+          {
+            key: "shift+;",
+            handler: () => {
+              if (commandInputRef.current) {
+                commandInputRef.current.focus();
               }
-              return true;
-            }
-            return false;
+            },
+            allowInInput: false,
+            description: "Focus command line",
           },
-          allowInInput: true,
-          priority: 100,
-          description: "Exit command line",
-          capture: true,
-        },
-      ]
+          {
+            key: "Escape",
+            handler: (event: KeyboardEvent) => {
+              const target = event.target as HTMLElement;
+              if (target === commandInputRef.current) {
+                event.preventDefault();
+                event.stopPropagation();
+                commandInputRef.current?.blur();
+                if (onCommandChange) {
+                  onCommandChange("");
+                }
+                return true;
+              }
+              return false;
+            },
+            allowInInput: true,
+            priority: 100,
+            description: "Exit command line",
+            capture: true,
+          },
+        ]
       : [],
   );
 
@@ -154,7 +148,6 @@ export const Layout: React.FC<LayoutProps> = ({
       data-sidebar-visible={sidebarVisible ? "true" : "false"}
       className="flex h-[calc(100vh-2rem)] overflow-hidden font-mono text-sm leading-relaxed bg-bg text-text"
     >
-      {/* Sidebar */}
       {sidebarVisible && (
         <>
           {sidebarContent ? (
@@ -165,9 +158,7 @@ export const Layout: React.FC<LayoutProps> = ({
         </>
       )}
 
-      {/* Main Area */}
       <div className="flex flex-col flex-1 overflow-hidden">
-        {/* Header */}
         <HeaderBar
           breadcrumb={
             breadcrumb ||
@@ -179,10 +170,8 @@ export const Layout: React.FC<LayoutProps> = ({
           shortcuts={headerShortcuts}
         />
 
-        {/* Content */}
         <div className="flex-1 overflow-hidden">{children}</div>
 
-        {/* Command Line */}
         {showCommandLine && onCommandChange && (
           <CommandLine
             ref={commandInputRef}

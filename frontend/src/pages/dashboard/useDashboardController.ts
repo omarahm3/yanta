@@ -34,13 +34,14 @@ const helpCommands = [
     description: "Soft delete a document (can be restored)",
   },
   {
-    command: `${DocumentCommand.Delete} <index> --hard`,
+    command: `${DocumentCommand.Delete} <index> --force --hard`,
     description:
-      "PERMANENT deletion - removes from vault (⚠️ cannot be undone)",
+      "PERMANENT deletion - removes from vault (requires --force and cannot be undone)",
   },
   {
-    command: `${DocumentCommand.Delete} <index1>,<index2>,... --hard`,
-    description: "Permanently delete multiple (e.g., 'delete 1,3,5 --hard')",
+    command: `${DocumentCommand.Delete} <index1>,<index2>,... --force --hard`,
+    description:
+      "Permanently delete multiple (e.g., 'delete 1,3,5 --force --hard')",
   },
 ];
 
@@ -140,9 +141,7 @@ export function useDashboardController({
   }, [currentProject, loadDocuments, showArchived]);
 
   useEffect(() => {
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
+    commandInputRef.current?.blur();
   }, []);
 
   const clearSelection = useCallback(() => {
@@ -223,7 +222,14 @@ export function useDashboardController({
         error(err instanceof Error ? err.message : "Failed to archive");
       }
     },
-    [clearSelection, currentProject, loadDocuments, showArchived, success, error],
+    [
+      clearSelection,
+      currentProject,
+      loadDocuments,
+      showArchived,
+      success,
+      error,
+    ],
   );
 
   const handleArchiveSelectedDocuments = useCallback(async () => {
@@ -259,7 +265,15 @@ export function useDashboardController({
     } catch (err) {
       error(err instanceof Error ? err.message : "Failed to restore");
     }
-  }, [selectedDocuments, currentProject, loadDocuments, showArchived, clearSelection, success, error]);
+  }, [
+    selectedDocuments,
+    currentProject,
+    loadDocuments,
+    showArchived,
+    clearSelection,
+    success,
+    error,
+  ]);
 
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
     isOpen: false,
@@ -290,6 +304,7 @@ export function useDashboardController({
         }
 
         if (hard) {
+          commandInputRef.current?.blur();
           setConfirmDialog({
             isOpen: true,
             title: "Permanently Delete Document",
@@ -297,7 +312,7 @@ export function useDashboardController({
             onConfirm: async () => {
               try {
                 const result = await ParseWithContext(
-                  `delete ${doc.path} --hard`,
+                  `delete ${doc.path} --force --hard`,
                   currentProject?.alias || "",
                 );
                 if (!result.success) {
@@ -323,6 +338,7 @@ export function useDashboardController({
             showCheckbox: true,
           });
         } else {
+          commandInputRef.current?.blur();
           setConfirmDialog({
             isOpen: true,
             title: "Delete Document",
@@ -345,6 +361,7 @@ export function useDashboardController({
         }
       } else {
         if (hard) {
+          commandInputRef.current?.blur();
           setConfirmDialog({
             isOpen: true,
             title: "Permanently Delete Multiple Documents",
@@ -353,7 +370,7 @@ export function useDashboardController({
               try {
                 const pathsString = selectedPaths.join(",");
                 const result = await ParseWithContext(
-                  `delete ${pathsString} --hard`,
+                  `delete ${pathsString} --force --hard`,
                   currentProject?.alias || "",
                 );
                 if (!result.success) {
@@ -379,6 +396,7 @@ export function useDashboardController({
             showCheckbox: true,
           });
         } else {
+          commandInputRef.current?.blur();
           setConfirmDialog({
             isOpen: true,
             title: "Delete Multiple Documents",
@@ -449,6 +467,38 @@ export function useDashboardController({
     error,
     setCommandInput,
     commandInputRef,
+    onConfirmationRequired: (data) => {
+      commandInputRef.current?.blur();
+      setConfirmDialog({
+        isOpen: true,
+        title: data.title,
+        message: data.message,
+        danger: data.danger,
+        inputPrompt: data.inputPrompt,
+        expectedInput: data.expectedInput,
+        showCheckbox: data.showCheckbox,
+        onConfirm: async () => {
+          try {
+            if (!currentProject) return;
+            const result = await ParseWithContext(
+              data.confirmationCommand,
+              currentProject.alias,
+            );
+            if (result.success) {
+              await loadDocuments(currentProject.alias);
+              if (result.message) success(result.message);
+            } else {
+              if (result.message) error(result.message);
+            }
+          } catch (err) {
+            error(err instanceof Error ? err.message : "Command failed");
+          } finally {
+            setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+            setTimeout(() => commandInputRef.current?.focus(), 0);
+          }
+        },
+      });
+    },
   });
 
   const hotkeys: HotkeyConfig[] = useMemo(

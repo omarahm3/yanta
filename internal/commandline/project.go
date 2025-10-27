@@ -34,7 +34,11 @@ var AllProjectCommands = []struct {
 }
 
 type ProjectResultData struct {
-	Project *project.Project `json:"project,omitempty"`
+	Project              *project.Project `json:"project,omitempty"`
+	Alias                string           `json:"alias,omitempty"`
+	Flags                []string         `json:"flags,omitempty"`
+	RequiresConfirmation bool             `json:"requiresConfirmation,omitempty"`
+	ConfirmationCommand  string           `json:"confirmationCommand,omitempty"`
 }
 
 type ProjectResult struct {
@@ -86,10 +90,13 @@ func (pc *ProjectCommands) Parse(cmd string) (*ProjectResult, error) {
 	}
 
 	if result.Data != nil {
-		if p, ok := result.Data.(*project.Project); ok {
-			projectResult.Data = ProjectResultData{
-				Project: p,
-			}
+		switch data := result.Data.(type) {
+		case ProjectResultData:
+			projectResult.Data = data
+		case *ProjectResultData:
+			projectResult.Data = *data
+		case *project.Project:
+			projectResult.Data = ProjectResultData{Project: data, Alias: data.Alias}
 		}
 	}
 
@@ -98,6 +105,10 @@ func (pc *ProjectCommands) Parse(cmd string) (*ProjectResult, error) {
 
 func (pc *ProjectCommands) registerCommands() {
 	pc.parser.MustRegister(formatCommand(string(ProjectCommandNew), `\s+(.+)$`), pc.handleNew)
+	pc.parser.MustRegister(
+		formatCommand(string(ProjectCommandArchive), `\s+(@\w+)\s+--force$`),
+		pc.handleArchiveForce,
+	)
 	pc.parser.MustRegister(
 		formatCommand(string(ProjectCommandArchive), `\s+(@\w+)$`),
 		pc.handleArchive,
@@ -111,12 +122,16 @@ func (pc *ProjectCommands) registerCommands() {
 		pc.handleRename,
 	)
 	pc.parser.MustRegister(
-		formatCommand(string(ProjectCommandDelete), `\s+(@\w+)\s+--force\s+--hard$`),
-		pc.handleDeleteForceHard,
+		formatCommand(string(ProjectCommandDelete), `\s+(@\w+)(?:\s+--(force|hard))+$`),
+		pc.handleDeleteWithFlags,
 	)
 	pc.parser.MustRegister(
 		formatCommand(string(ProjectCommandDelete), `\s+(@\w+)\s+--force$`),
 		pc.handleDeleteForce,
+	)
+	pc.parser.MustRegister(
+		formatCommand(string(ProjectCommandDelete), `\s+(@\w+)\s+--hard$`),
+		pc.handleDeleteHard,
 	)
 	pc.parser.MustRegister(
 		formatCommand(string(ProjectCommandDelete), `\s+(@\w+)$`),
@@ -213,11 +228,59 @@ func (pc *ProjectCommands) handleNew(matches []string, fullCommand string) (*Res
 	return &Result{
 		Success: true,
 		Message: fmt.Sprintf("created project: %s", createdProject.Name),
-		Data:    createdProject,
+		Data: ProjectResultData{
+			Project: createdProject,
+			Alias:   createdProject.Alias,
+		},
 	}, nil
 }
 
 func (pc *ProjectCommands) handleArchive(matches []string, fullCommand string) (*Result, error) {
+	alias := matches[1]
+
+	projects, err := pc.projectService.ListActive()
+	if err != nil {
+		return nil, err
+	}
+
+	var proj *project.Project
+	for _, p := range projects {
+		if p.Alias == alias {
+			proj = p
+			break
+		}
+	}
+
+	if proj == nil {
+		return &Result{
+			Success: false,
+			Message: fmt.Sprintf("project not found: %s", alias),
+		}, nil
+	}
+
+	entryCount, err := pc.projectService.GetDocumentCount(proj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	message := fmt.Sprintf("Confirm archiving project '%s'", proj.Name)
+	if entryCount > 0 {
+		message += fmt.Sprintf(" (will archive %d entries)", entryCount)
+	}
+
+	return &Result{
+		Success: true,
+		Message: message,
+		Data: ProjectResultData{
+			Project:              proj,
+			Alias:                alias,
+			RequiresConfirmation: true,
+			ConfirmationCommand:  fmt.Sprintf("archive %s --force", alias),
+		},
+	}, nil
+}
+
+func (pc *ProjectCommands) handleArchiveForce(matches []string, fullCommand string) (*Result, error) {
 	alias := matches[1]
 
 	projects, err := pc.projectService.ListActive()
@@ -255,7 +318,11 @@ func (pc *ProjectCommands) handleArchive(matches []string, fullCommand string) (
 	return &Result{
 		Success: true,
 		Message: fmt.Sprintf("archived project: %s", proj.Name),
-		Data:    proj,
+		Data: ProjectResultData{
+			Project: proj,
+			Alias:   alias,
+			Flags:   []string{"--force"},
+		},
 	}, nil
 }
 
@@ -297,7 +364,10 @@ func (pc *ProjectCommands) handleUnarchive(matches []string, fullCommand string)
 	return &Result{
 		Success: true,
 		Message: fmt.Sprintf("restored project: %s", proj.Name),
-		Data:    proj,
+		Data: ProjectResultData{
+			Project: proj,
+			Alias:   alias,
+		},
 	}, nil
 }
 
@@ -335,38 +405,19 @@ func (pc *ProjectCommands) handleRename(matches []string, fullCommand string) (*
 	return &Result{
 		Success: true,
 		Message: fmt.Sprintf("renamed project to: %s", proj.Name),
-		Data:    proj,
+		Data: ProjectResultData{
+			Project: proj,
+			Alias:   alias,
+		},
 	}, nil
 }
 
 func (pc *ProjectCommands) handleDelete(matches []string, fullCommand string) (*Result, error) {
 	alias := matches[1]
 
-	activeProjects, err := pc.projectService.ListActive()
+	proj, alreadyDeleted, err := pc.findProjectByAlias(alias)
 	if err != nil {
 		return nil, err
-	}
-
-	var proj *project.Project
-	for _, p := range activeProjects {
-		if p.Alias == alias {
-			proj = p
-			break
-		}
-	}
-
-	if proj == nil {
-		archivedProjects, err := pc.projectService.ListArchived()
-		if err != nil {
-			return nil, err
-		}
-
-		for _, p := range archivedProjects {
-			if p.Alias == alias {
-				proj = p
-				break
-			}
-		}
 	}
 
 	if proj == nil {
@@ -376,33 +427,37 @@ func (pc *ProjectCommands) handleDelete(matches []string, fullCommand string) (*
 		}, nil
 	}
 
+	if alreadyDeleted {
+		return &Result{
+			Success: true,
+			Message: fmt.Sprintf("project already deleted: %s", proj.Name),
+			Data: ProjectResultData{
+				Project: proj,
+				Alias:   alias,
+			},
+		}, nil
+	}
+
 	entryCount, err := pc.projectService.GetDocumentCount(proj.ID)
 	if err != nil {
 		return nil, err
 	}
 
+	message := fmt.Sprintf("Confirm deleting project '%s'", proj.Name)
 	if entryCount > 0 {
-		return &Result{
-			Success: false,
-			Message: fmt.Sprintf(
-				"project '%s' has %d entries. use 'delete %s --force' to delete the project and all its entries.",
-				proj.Name,
-				entryCount,
-				alias,
-			),
-			Data: proj,
-		}, nil
-	}
-
-	err = pc.projectService.Delete(proj.ID)
-	if err != nil {
-		return nil, err
+		message += fmt.Sprintf(" (soft delete %d entries)", entryCount)
 	}
 
 	return &Result{
 		Success: true,
-		Message: fmt.Sprintf("deleted project: %s", proj.Name),
-		Data:    proj,
+		Message: message,
+		Data: ProjectResultData{
+			Project:              proj,
+			Alias:                alias,
+			Flags:                []string{},
+			RequiresConfirmation: true,
+			ConfirmationCommand:  fmt.Sprintf("delete %s --force", alias),
+		},
 	}, nil
 }
 
@@ -412,98 +467,9 @@ func (pc *ProjectCommands) handleDeleteForce(
 ) (*Result, error) {
 	alias := matches[1]
 
-	activeProjects, err := pc.projectService.ListActive()
+	proj, alreadyDeleted, err := pc.findProjectByAlias(alias)
 	if err != nil {
 		return nil, err
-	}
-
-	var proj *project.Project
-	for _, p := range activeProjects {
-		if p.Alias == alias {
-			proj = p
-			break
-		}
-	}
-
-	if proj == nil {
-		archivedProjects, err := pc.projectService.ListArchived()
-		if err != nil {
-			return nil, err
-		}
-
-		for _, p := range archivedProjects {
-			if p.Alias == alias {
-				proj = p
-				break
-			}
-		}
-	}
-
-	if proj == nil {
-		return &Result{
-			Success: false,
-			Message: fmt.Sprintf("Project not found: %s", alias),
-		}, nil
-	}
-
-	entryCount, err := pc.projectService.GetDocumentCount(proj.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	if entryCount > 0 {
-		if err := pc.documentService.SoftDeleteByProject(proj.Alias); err != nil {
-			return nil, err
-		}
-	}
-
-	if err := pc.projectService.Delete(proj.ID); err != nil {
-		return nil, err
-	}
-
-	message := fmt.Sprintf("force deleted project: %s", proj.Name)
-	if entryCount > 0 {
-		message += fmt.Sprintf(" (and %d entries)", entryCount)
-	}
-
-	return &Result{
-		Success: true,
-		Message: message,
-		Data:    proj,
-	}, nil
-}
-
-func (pc *ProjectCommands) handleDeleteForceHard(
-	matches []string,
-	fullCommand string,
-) (*Result, error) {
-	alias := matches[1]
-
-	activeProjects, err := pc.projectService.ListActive()
-	if err != nil {
-		return nil, err
-	}
-
-	var proj *project.Project
-	for _, p := range activeProjects {
-		if p.Alias == alias {
-			proj = p
-			break
-		}
-	}
-
-	if proj == nil {
-		archivedProjects, err := pc.projectService.ListArchived()
-		if err != nil {
-			return nil, err
-		}
-
-		for _, p := range archivedProjects {
-			if p.Alias == alias {
-				proj = p
-				break
-			}
-		}
 	}
 
 	if proj == nil {
@@ -513,24 +479,169 @@ func (pc *ProjectCommands) handleDeleteForceHard(
 		}, nil
 	}
 
-	if err := pc.documentService.HardDeleteByProject(proj.Alias); err != nil {
+	if alreadyDeleted {
+		return &Result{
+			Success: true,
+			Message: fmt.Sprintf("project already deleted: %s", proj.Name),
+			Data: ProjectResultData{
+				Project: proj,
+				Alias:   alias,
+				Flags:   []string{"--force"},
+			},
+		}, nil
+	}
+
+	entryCount, err := pc.softDeleteProject(proj)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := pc.projectService.HardDelete(proj.ID); err != nil {
-		return nil, err
+	message := fmt.Sprintf("force deleted project: %s", proj.Name)
+	if entryCount > 0 {
+		message += fmt.Sprintf(" (soft deleted %d entries)", entryCount)
 	}
-
-	if err := pc.vault.DeleteProjectDir(proj.Alias); err != nil {
-		return nil, err
-	}
-
-	message := fmt.Sprintf("permanently deleted project: %s (with all documents and files)", proj.Name)
 
 	return &Result{
 		Success: true,
 		Message: message,
-		Data:    proj,
+		Data: ProjectResultData{
+			Project: proj,
+			Alias:   alias,
+			Flags:   []string{"--force"},
+		},
+	}, nil
+}
+
+func (pc *ProjectCommands) handleDeleteWithFlags(
+	matches []string,
+	fullCommand string,
+) (*Result, error) {
+	alias := matches[1]
+	hasForce := strings.Contains(fullCommand, "--force")
+	hasHard := strings.Contains(fullCommand, "--hard")
+
+	proj, alreadyDeleted, err := pc.findProjectByAlias(alias)
+	if err != nil {
+		return nil, err
+	}
+
+	if proj == nil {
+		return &Result{
+			Success: false,
+			Message: fmt.Sprintf("project not found: %s", alias),
+		}, nil
+	}
+
+	if alreadyDeleted {
+		message := fmt.Sprintf("project already deleted: %s", proj.Name)
+		flags := []string{}
+		if hasForce {
+			flags = append(flags, "--force")
+		}
+		if hasHard {
+			flags = append(flags, "--hard")
+		}
+		return &Result{
+			Success: true,
+			Message: message,
+			Data: ProjectResultData{
+				Project: proj,
+				Alias:   alias,
+				Flags:   flags,
+			},
+		}, nil
+	}
+
+	if hasHard {
+		if err := pc.documentService.HardDeleteByProject(proj.Alias); err != nil {
+			return nil, err
+		}
+
+		if err := pc.projectService.HardDelete(proj.ID); err != nil {
+			return nil, err
+		}
+
+		if err := pc.vault.DeleteProjectDir(proj.Alias); err != nil {
+			return nil, err
+		}
+
+		message := fmt.Sprintf("permanently deleted project: %s (with all documents and files)", proj.Name)
+		flags := []string{}
+		if hasForce {
+			flags = append(flags, "--force")
+		}
+		flags = append(flags, "--hard")
+
+		return &Result{
+			Success: true,
+			Message: message,
+			Data: ProjectResultData{
+				Project: proj,
+				Alias:   alias,
+				Flags:   flags,
+			},
+		}, nil
+	}
+
+	entryCount, err := pc.softDeleteProject(proj)
+	if err != nil {
+		return nil, err
+	}
+
+	message := fmt.Sprintf("force deleted project: %s", proj.Name)
+	if entryCount > 0 {
+		message += fmt.Sprintf(" (soft deleted %d entries)", entryCount)
+	}
+
+	return &Result{
+		Success: true,
+		Message: message,
+		Data: ProjectResultData{
+			Project: proj,
+			Alias:   alias,
+			Flags:   []string{"--force"},
+		},
+	}, nil
+}
+
+func (pc *ProjectCommands) handleDeleteHard(
+	matches []string,
+	fullCommand string,
+) (*Result, error) {
+	alias := matches[1]
+
+	proj, _, err := pc.findProjectByAlias(alias)
+	if err != nil {
+		return nil, err
+	}
+
+	if proj == nil {
+		return &Result{
+			Success: false,
+			Message: fmt.Sprintf("project not found: %s", alias),
+		}, nil
+	}
+
+	entryCount, err := pc.projectService.GetDocumentCount(proj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	message := fmt.Sprintf("Confirm permanently deleting project '%s'", proj.Name)
+	if entryCount > 0 {
+		message += fmt.Sprintf(" (hard delete %d entries and all files)", entryCount)
+	}
+
+	return &Result{
+		Success: true,
+		Message: message,
+		Data: ProjectResultData{
+			Project:              proj,
+			Alias:                alias,
+			Flags:                []string{"--hard"},
+			RequiresConfirmation: true,
+			ConfirmationCommand:  fmt.Sprintf("delete %s --force --hard", alias),
+		},
 	}, nil
 }
 
@@ -540,4 +651,47 @@ func (pc *ProjectCommands) handleHelp(matches []string, fullCommand string) (*Re
 		Message: "help",
 		Data:    "help",
 	}, nil
+}
+
+func (pc *ProjectCommands) findProjectByAlias(alias string) (*project.Project, bool, error) {
+	activeProjects, err := pc.projectService.ListActive()
+	if err != nil {
+		return nil, false, err
+	}
+
+	for _, p := range activeProjects {
+		if p.Alias == alias {
+			return p, false, nil
+		}
+	}
+
+	archivedProjects, err := pc.projectService.ListArchived()
+	if err != nil {
+		return nil, false, err
+	}
+
+	for _, p := range archivedProjects {
+		if p.Alias == alias {
+			return p, true, nil
+		}
+	}
+
+	return nil, false, nil
+}
+
+func (pc *ProjectCommands) softDeleteProject(proj *project.Project) (int, error) {
+	entryCount, err := pc.projectService.GetDocumentCount(proj.ID)
+	if err != nil {
+		return 0, err
+	}
+
+	if err := pc.documentService.SoftDeleteByProject(proj.Alias); err != nil {
+		return 0, err
+	}
+
+	if err := pc.projectService.SoftDelete(proj.ID); err != nil {
+		return 0, err
+	}
+
+	return entryCount, nil
 }

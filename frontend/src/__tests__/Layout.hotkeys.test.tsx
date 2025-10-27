@@ -7,7 +7,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { vi } from "vitest";
-import { HotkeyProvider, useHotkeyContext } from "../contexts";
+import { HotkeyProvider, DialogProvider, useHotkeyContext } from "../contexts";
 import type { HotkeyContextValue } from "../types/hotkeys";
 
 const executeGlobalCommand = vi.fn();
@@ -78,6 +78,7 @@ describe("Layout hotkeys", () => {
     const commandInputRef = useRef<HTMLInputElement>(null);
 
     return (
+      <DialogProvider>
       <HotkeyProvider>
         <HotkeyProbe onReady={onContext} />
         <Layout
@@ -94,6 +95,7 @@ describe("Layout hotkeys", () => {
           <div data-testid="content">content</div>
         </Layout>
       </HotkeyProvider>
+    </DialogProvider>
     );
   };
 

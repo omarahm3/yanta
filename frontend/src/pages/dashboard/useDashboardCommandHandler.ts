@@ -8,7 +8,10 @@ interface DashboardCommandHandlerOptions {
   documents: Document[];
   selectedDocuments: Set<string>;
   currentProject: Project | null | undefined;
-  loadDocuments: (projectAlias: string, includeArchived?: boolean) => Promise<void>;
+  loadDocuments: (
+    projectAlias: string,
+    includeArchived?: boolean,
+  ) => Promise<void>;
   onNavigate?: (
     page: string,
     state?: Record<string, string | number | boolean | undefined>,
@@ -17,6 +20,15 @@ interface DashboardCommandHandlerOptions {
   error: (message: string) => void;
   setCommandInput: (value: string) => void;
   commandInputRef: RefObject<HTMLInputElement>;
+  onConfirmationRequired?: (data: {
+    title: string;
+    message: string;
+    confirmationCommand: string;
+    danger?: boolean;
+    inputPrompt?: string;
+    expectedInput?: string;
+    showCheckbox?: boolean;
+  }) => void;
 }
 
 export const useDashboardCommandHandler = ({
@@ -29,6 +41,7 @@ export const useDashboardCommandHandler = ({
   error,
   setCommandInput,
   commandInputRef,
+  onConfirmationRequired,
 }: DashboardCommandHandlerOptions) => {
   const handleCommandSubmit = useCallback(
     async (command: string) => {
@@ -63,6 +76,54 @@ export const useDashboardCommandHandler = ({
 
         if (!result.success) {
           if (result.message) error(result.message);
+          return;
+        }
+
+        if (
+          result.data?.requiresConfirmation &&
+          result.data.confirmationCommand &&
+          onConfirmationRequired
+        ) {
+          const isHard = result.data.flags?.includes("--hard") ?? false;
+          const isArchive = withoutPrefix.startsWith("archive ");
+          const isDelete = withoutPrefix.startsWith("delete ");
+
+          let title = "Confirm Action";
+          let message = result.message || "Confirm this action?";
+          let danger = false;
+          let inputPrompt: string | undefined = undefined;
+          let expectedInput: string | undefined = undefined;
+          let showCheckbox = false;
+
+          if (isArchive) {
+            title = "Archive Document";
+            message = result.message;
+            danger = false;
+          } else if (isDelete) {
+            if (isHard) {
+              title = "Permanently Delete Document";
+              message =
+                result.message ||
+                "This will PERMANENTLY delete the document. This action CANNOT be undone!";
+              showCheckbox = true;
+              danger = true;
+            } else {
+              title = "Delete Document";
+              message = result.message;
+              danger = false;
+            }
+          }
+
+          commandInputRef.current?.blur();
+          onConfirmationRequired({
+            title,
+            message,
+            confirmationCommand: result.data.confirmationCommand,
+            danger,
+            inputPrompt,
+            expectedInput,
+            showCheckbox,
+          });
           return;
         }
 

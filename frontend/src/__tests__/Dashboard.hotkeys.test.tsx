@@ -2,7 +2,7 @@ import React from "react";
 import { act, render, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import { SoftDelete, Restore } from "../../wailsjs/go/document/Service";
-import { HotkeyProvider, useHotkeyContext } from "../contexts";
+import { HotkeyProvider, useHotkeyContext, DialogProvider } from "../contexts";
 import type { HotkeyContextValue } from "../types/hotkeys";
 
 const onNavigate = vi.fn();
@@ -148,10 +148,15 @@ describe("Dashboard hotkeys", () => {
   const Wrapper: React.FC<{ onContext: (ctx: HotkeyContextValue) => void }> = ({
     onContext,
   }) => (
-    <HotkeyProvider>
-      <HotkeyProbe onReady={onContext} />
-      <Dashboard onNavigate={onNavigate} onRegisterToggleArchived={() => {}} />
-    </HotkeyProvider>
+    <DialogProvider>
+      <HotkeyProvider>
+        <HotkeyProbe onReady={onContext} />
+        <Dashboard
+          onNavigate={onNavigate}
+          onRegisterToggleArchived={() => {}}
+        />
+      </HotkeyProvider>
+    </DialogProvider>
   );
 
   const renderDashboard = async () => {

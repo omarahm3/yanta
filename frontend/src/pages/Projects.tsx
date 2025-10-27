@@ -61,7 +61,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
     isLoading,
   } = useProjectContext();
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
-    currentProject?.id || ""
+    currentProject?.id || "",
   );
   const [commandInput, setCommandInput] = useState("");
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -151,8 +151,8 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
             project.status === "current"
               ? "text-green"
               : project.status === "active"
-              ? "text-green"
-              : "text-text-dim"
+                ? "text-green"
+                : "text-text-dim"
           }`}
         >
           {project.status}
@@ -169,7 +169,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
         setCurrentProject(project);
       }
     },
-    [projects, setCurrentProject]
+    [projects, setCurrentProject],
   );
 
   const handleRowDoubleClick = useCallback(
@@ -180,79 +180,151 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
         success(`Switched to ${project.name}`);
       }
     },
-    [projects, setCurrentProject, success]
+    [projects, setCurrentProject, success],
   );
 
   const handleCommandSubmit = useCallback(
     async (command: string) => {
-      const trimmedCmd = command.trim();
+      const normalized = command.startsWith(":")
+        ? command.slice(1).trimStart()
+        : command;
 
-      if (trimmedCmd.includes("--force --hard")) {
-        const match = trimmedCmd.match(/delete\s+(@\w+)\s+--force\s+--hard/);
-        if (match) {
-          const alias = match[1];
-          const project = [...projects, ...archivedProjects].find(
-            (p) => p.alias === alias
-          );
+      const allProjects = [...projects, ...archivedProjects];
 
-          if (project) {
-            setConfirmDialog({
-              isOpen: true,
-              title: "Permanently Delete Project",
-              message: `This will PERMANENTLY delete project "${project.name}" and ALL its documents from the vault. All files will be removed and CANNOT be recovered!`,
-              inputPrompt: `Type the project alias to confirm:`,
-              expectedInput: alias,
-              onConfirm: async () => {
-                try {
-                  const result = await Parse(command);
-                  if (!result.success && result.message) {
-                    error(result.message);
-                  } else if (result.success) {
-                    await loadProjects();
-                    success(result.message || "Project permanently deleted", {
-                      duration: 6000,
-                    });
-                  }
-                } catch (err) {
-                  error(err instanceof Error ? err.message : "Command failed");
-                } finally {
-                  setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
-                  setCommandInput("");
-                  commandInputRef.current?.blur();
-                }
-              },
-              danger: true,
-              showCheckbox: true,
-            });
-            return;
+      const applyResult = async (
+        result: commandline.ProjectResult | undefined,
+      ) => {
+        if (!result) return;
+
+        if (!result.success) {
+          if (result.message) {
+            error(result.message);
           }
+          return;
         }
-      }
 
-      try {
-        const result = await Parse(command);
+        await loadProjects();
+        if (result.data?.project?.id) {
+          setSelectedProjectId(result.data.project.id);
+        }
 
-        if (!result.success && result.message) {
-          error(result.message);
-        } else if (result.success && result.message) {
+        if (result.message) {
           success(result.message, { duration: 6000 });
-        }
-
-        if (result.success && result.data?.project) {
-          await loadProjects();
-
-          if (result.data.project.id) {
-            setSelectedProjectId(result.data.project.id);
-          }
         }
 
         setCommandInput("");
         commandInputRef.current?.blur();
+      };
+
+      const hardForceMatch = normalized.match(
+        /^delete\s+(@[\w-]+)\s+--force\s+--hard$/,
+      );
+      if (hardForceMatch) {
+        const alias = hardForceMatch[1];
+        const project = allProjects.find((p) => p.alias === alias);
+        if (project) {
+          commandInputRef.current?.blur();
+          setConfirmDialog({
+            isOpen: true,
+            title: "Permanently Delete Project",
+            message: `This will PERMANENTLY delete project "${project.name}" and ALL its documents from the vault. All files will be removed and CANNOT be recovered!`,
+            inputPrompt: `Type the project alias to confirm:`,
+            expectedInput: alias,
+            onConfirm: () => {
+              void (async () => {
+                const result = await Parse(normalized);
+                await applyResult(result);
+                setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+                setTimeout(() => commandInputRef.current?.focus(), 0);
+              })();
+            },
+            danger: true,
+            showCheckbox: true,
+          });
+          return;
+        }
+      }
+
+      try {
+        const preview = await Parse(normalized);
+
+        if (!preview.success) {
+          if (preview.message) {
+            error(preview.message);
+          }
+          return;
+        }
+
+        const data = preview.data;
+        const alias = data?.alias || data?.project?.alias;
+
+        if (data?.requiresConfirmation && data.confirmationCommand && alias) {
+          const project = allProjects.find((p) => p.alias === alias);
+          const projectName = project ? project.name : alias;
+          const isHard = data.flags?.includes("--hard") ?? false;
+          const confirmationCommand = data.confirmationCommand!;
+          const isArchive = normalized.startsWith("archive ");
+          const isDelete = normalized.startsWith("delete ");
+
+          let title = "Confirm Action";
+          let message = preview.message || "Confirm this action?";
+          let danger = false;
+          let inputPrompt: string | undefined = undefined;
+          let expectedInput: string | undefined = undefined;
+          let showCheckbox = false;
+
+          if (isArchive) {
+            title = "Archive Project";
+            message =
+              preview.message ||
+              `This will archive project "${projectName}". You can restore it later.`;
+            danger = false;
+          } else if (isDelete) {
+            if (isHard) {
+              title = "Permanently Delete Project";
+              message =
+                preview.message ||
+                `This will PERMANENTLY delete project "${projectName}" and ALL its documents from the vault. All files will be removed and CANNOT be recovered!`;
+              inputPrompt = `Type the project alias to confirm:`;
+              expectedInput = alias;
+              showCheckbox = true;
+              danger = true;
+            } else {
+              title = "Delete Project";
+              message =
+                preview.message ||
+                `This will delete project "${projectName}" and archive all of its documents. You can restore them later.`;
+              danger = false;
+            }
+          }
+
+          commandInputRef.current?.blur();
+          setConfirmDialog({
+            isOpen: true,
+            title,
+            message,
+            inputPrompt,
+            expectedInput,
+            showCheckbox,
+            danger,
+            onConfirm: () => {
+              void (async () => {
+                const result = await Parse(confirmationCommand);
+                await applyResult(result);
+                setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+                setTimeout(() => commandInputRef.current?.focus(), 0);
+              })();
+            },
+          });
+          return;
+        }
+
+        await applyResult(preview);
       } catch (err) {
         error(err instanceof Error ? err.message : "Command failed");
       }
     },
-    [projects, archivedProjects, loadProjects, error, success]
+    [projects, archivedProjects, loadProjects, error, success],
   );
 
   const selectNext = useCallback(() => {
@@ -261,7 +333,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
       ...archivedProjectsRef.current,
     ];
     const currentIndex = allProjects.findIndex(
-      (p) => p.id === selectedProjectIdRef.current
+      (p) => p.id === selectedProjectIdRef.current,
     );
     if (currentIndex < allProjects.length - 1) {
       const nextProject = allProjects[currentIndex + 1];
@@ -275,7 +347,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
       ...archivedProjectsRef.current,
     ];
     const currentIndex = allProjects.findIndex(
-      (p) => p.id === selectedProjectIdRef.current
+      (p) => p.id === selectedProjectIdRef.current,
     );
     if (currentIndex > 0) {
       const prevProject = allProjects[currentIndex - 1];
@@ -289,7 +361,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
       ...archivedProjectsRef.current,
     ];
     const project = allProjects.find(
-      (p) => p.id === selectedProjectIdRef.current
+      (p) => p.id === selectedProjectIdRef.current,
     );
     if (project) {
       setCurrentProject(project);
@@ -345,7 +417,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
       key: "mod+A",
       handler: () => {
         const selected = projectsRef.current.find(
-          (p) => p.id === selectedProjectIdRef.current
+          (p) => p.id === selectedProjectIdRef.current,
         );
         if (selected) {
           setCommandInput(`archive `);
@@ -363,7 +435,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
       key: "mod+U",
       handler: () => {
         const selected = projectsRef.current.find(
-          (p) => p.id === selectedProjectIdRef.current
+          (p) => p.id === selectedProjectIdRef.current,
         );
         if (selected) {
           setCommandInput(`unarchive `);
@@ -381,7 +453,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
       key: "mod+R",
       handler: () => {
         const selected = projectsRef.current.find(
-          (p) => p.id === selectedProjectIdRef.current
+          (p) => p.id === selectedProjectIdRef.current,
         );
         if (selected) {
           setCommandInput(`rename ${selected.alias} `);
@@ -399,7 +471,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
       key: "mod+D",
       handler: () => {
         const selected = projectsRef.current.find(
-          (p) => p.id === selectedProjectIdRef.current
+          (p) => p.id === selectedProjectIdRef.current,
         );
         if (selected) {
           setCommandInput(`delete ${selected.alias}`);
@@ -476,9 +548,10 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
         title={confirmDialog.title}
         message={confirmDialog.message}
         onConfirm={confirmDialog.onConfirm}
-        onCancel={() =>
-          setConfirmDialog((prev) => ({ ...prev, isOpen: false }))
-        }
+        onCancel={() => {
+          setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+          setTimeout(() => commandInputRef.current?.focus(), 0);
+        }}
         danger={confirmDialog.danger}
         inputPrompt={confirmDialog.inputPrompt}
         expectedInput={confirmDialog.expectedInput}

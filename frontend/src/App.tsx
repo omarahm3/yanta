@@ -9,6 +9,7 @@ import {
   DocumentProvider,
   DocumentCountProvider,
   HelpProvider,
+  DialogProvider,
 } from "./contexts";
 import { MantineProvider } from "@mantine/core";
 import { Notifications, notifications } from "@mantine/notifications";
@@ -95,7 +96,6 @@ const GlobalCommandHotkey = () => {
 };
 
 function App() {
-  // Global error handlers for debugging
   React.useEffect(() => {
     const handleError = (event: ErrorEvent) => {
       console.error("[App] Uncaught error:", {
@@ -168,21 +168,23 @@ function App() {
         defaultRadius: "md",
       }}
     >
-      <HotkeyProvider>
-        <HelpProvider>
-          <ProjectProvider>
-            <DocumentCountProvider>
-              <DocumentProvider>
-                <TitleBar />
-                <HelpHotkey />
-                <GlobalCommandHotkey />
-                <Notifications />
-                <HelpModal />
-              </DocumentProvider>
-            </DocumentCountProvider>
-          </ProjectProvider>
-        </HelpProvider>
-      </HotkeyProvider>
+      <DialogProvider>
+        <HotkeyProvider>
+          <HelpProvider>
+            <ProjectProvider>
+              <DocumentCountProvider>
+                <DocumentProvider>
+                  <TitleBar />
+                  <HelpHotkey />
+                  <GlobalCommandHotkey />
+                  <Notifications />
+                  <HelpModal />
+                </DocumentProvider>
+              </DocumentCountProvider>
+            </ProjectProvider>
+          </HelpProvider>
+        </HotkeyProvider>
+      </DialogProvider>
     </MantineProvider>
   );
 }

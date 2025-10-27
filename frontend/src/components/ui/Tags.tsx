@@ -1,12 +1,9 @@
 import React from "react";
 import { cn } from "../../lib/utils";
 
-/**
- * UITag - Tag for display in UI (simpler than backend Tag model)
- */
 export interface Tag {
   id: string;
-  label: string; // Display text (e.g., "#react", "#bug")
+  label: string;
   type?: "feature" | "bug" | "learn" | "default";
   onClick?: () => void;
 }

@@ -25,6 +25,13 @@ export namespace asset {
 
 export namespace commandline {
 	
+	export enum ProjectCommand {
+	    New = "new",
+	    Archive = "archive",
+	    Unarchive = "unarchive",
+	    Rename = "rename",
+	    Delete = "delete",
+	}
 	export enum GlobalCommand {
 	    Switch = "switch",
 	}
@@ -38,16 +45,12 @@ export namespace commandline {
 	    Untag = "untag",
 	    Tags = "tags",
 	}
-	export enum ProjectCommand {
-	    New = "new",
-	    Archive = "archive",
-	    Unarchive = "unarchive",
-	    Rename = "rename",
-	    Delete = "delete",
-	}
 	export class DocumentResultData {
 	    documentPath?: string;
 	    title?: string;
+	    flags?: string[];
+	    requiresConfirmation?: boolean;
+	    confirmationCommand?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new DocumentResultData(source);
@@ -57,6 +60,9 @@ export namespace commandline {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.documentPath = source["documentPath"];
 	        this.title = source["title"];
+	        this.flags = source["flags"];
+	        this.requiresConfirmation = source["requiresConfirmation"];
+	        this.confirmationCommand = source["confirmationCommand"];
 	    }
 	}
 	export class DocumentResult {
@@ -165,6 +171,10 @@ export namespace commandline {
 	
 	export class ProjectResultData {
 	    project?: project.Project;
+	    alias?: string;
+	    flags?: string[];
+	    requiresConfirmation?: boolean;
+	    confirmationCommand?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new ProjectResultData(source);
@@ -173,6 +183,10 @@ export namespace commandline {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.project = this.convertValues(source["project"], project.Project);
+	        this.alias = source["alias"];
+	        this.flags = source["flags"];
+	        this.requiresConfirmation = source["requiresConfirmation"];
+	        this.confirmationCommand = source["confirmationCommand"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

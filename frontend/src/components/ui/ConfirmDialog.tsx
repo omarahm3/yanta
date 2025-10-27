@@ -1,5 +1,6 @@
 import React from "react";
 import { cn } from "../../lib/utils";
+import { useDialog } from "../../contexts/DialogContext";
 
 export interface ConfirmDialogProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   showCheckbox = false,
   checkboxLabel = "I understand this action cannot be undone",
 }) => {
+  const { openDialog, closeDialog } = useDialog();
   const [inputValue, setInputValue] = React.useState("");
   const [isChecked, setIsChecked] = React.useState(false);
   const dialogRef = React.useRef<HTMLDivElement>(null);
@@ -42,8 +44,11 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     if (isOpen) {
       setInputValue("");
       setIsChecked(false);
+      openDialog();
+    } else {
+      closeDialog();
     }
-  }, [isOpen]);
+  }, [isOpen, openDialog, closeDialog]);
 
   React.useEffect(() => {
     if (!isOpen) return;
@@ -82,15 +87,11 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         }
 
         event.preventDefault();
-        const activeElement = document.activeElement as HTMLElement | null;
-        let currentIndex = focusableElements.findIndex(
-          (el) => el === activeElement,
-        );
+        const target = event.target as HTMLElement;
+        let currentIndex = focusableElements.findIndex((el) => el === target);
 
         if (currentIndex === -1) {
-          const targetIndex = event.shiftKey
-            ? focusableElements.length - 1
-            : 0;
+          const targetIndex = event.shiftKey ? focusableElements.length - 1 : 0;
           focusableElements[targetIndex]?.focus();
           return;
         }
@@ -110,13 +111,16 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onCancel]);
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!isOpen) return;
-    // Delay focus to ensure buttons are mounted
-    const focusTimeout = window.setTimeout(() => {
-      cancelButtonRef.current?.focus();
-    }, 0);
-    return () => window.clearTimeout(focusTimeout);
+
+    if (inputRef.current) {
+      inputRef.current.focus();
+    } else if (checkboxRef.current) {
+      checkboxRef.current.focus();
+    } else if (cancelButtonRef.current) {
+      cancelButtonRef.current.focus();
+    }
   }, [isOpen]);
 
   if (!isOpen) return null;

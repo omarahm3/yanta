@@ -34,8 +34,11 @@ var AllDocumentCommands = []struct {
 }
 
 type DocumentResultData struct {
-	DocumentPath string `json:"documentPath,omitempty"`
-	Title        string `json:"title,omitempty"`
+	DocumentPath         string   `json:"documentPath,omitempty"`
+	Title                string   `json:"title,omitempty"`
+	Flags                []string `json:"flags,omitempty"`
+	RequiresConfirmation bool     `json:"requiresConfirmation,omitempty"`
+	ConfirmationCommand  string   `json:"confirmationCommand,omitempty"`
 }
 
 type DocumentResult struct {
@@ -126,9 +129,11 @@ func (dc *DocumentCommands) Parse(cmd string) (*DocumentResult, error) {
 func (dc *DocumentCommands) registerCommands() {
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandNew), `(?:\s+(.+))?$`), dc.handleNew)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandDoc), `\s+(.+)$`), dc.handleDoc)
+	dc.parser.MustRegister(formatCommand(string(DocumentCommandArchive), `\s+(.+)\s+--force$`), dc.handleArchiveForce)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandArchive), `\s+(.+)$`), dc.handleArchive)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandUnarchive), `(?:\s+(.+))?$`), dc.handleUnarchive)
-	dc.parser.MustRegister(formatCommand(string(DocumentCommandDelete), `\s+(.+)\s+--hard$`), dc.handleDeleteHard)
+	dc.parser.MustRegister(formatCommand(string(DocumentCommandDelete), `\s+(.+?)(?:\s+--(force|hard))+$`), dc.handleDeleteWithFlags)
+	dc.parser.MustRegister(formatCommand(string(DocumentCommandDelete), `\s+(.+)\s+--force$`), dc.handleDeleteForce)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandDelete), `\s+(.+)$`), dc.handleDelete)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandTag), `\s+(.+)$`), dc.handleTag)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandUntag), `\s+(.+)$`), dc.handleUntag)
@@ -179,24 +184,98 @@ func (dc *DocumentCommands) handleHelp(matches []string, fullCommand string) (*R
 }
 
 func (dc *DocumentCommands) handleArchive(matches []string, fullCommand string) (*Result, error) {
-	path := strings.TrimSpace(matches[1])
-	if path == "" {
+	pathsInput := strings.TrimSpace(matches[1])
+	if pathsInput == "" {
 		return &Result{
 			Success: false,
 			Message: "usage: archive <path>",
 		}, nil
 	}
 
-	if err := dc.docSvc.SoftDelete(path); err != nil {
+	var paths []string
+	if strings.Contains(pathsInput, ",") {
+		parts := strings.Split(pathsInput, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				paths = append(paths, trimmed)
+			}
+		}
+	} else {
+		paths = []string{pathsInput}
+	}
+
+	if len(paths) == 0 {
 		return &Result{
 			Success: false,
-			Message: fmt.Sprintf("failed to archive document: %v", err),
+			Message: "no valid paths provided",
 		}, nil
+	}
+
+	message := "Confirm archiving "
+	if len(paths) == 1 {
+		message += "document"
+	} else {
+		message += fmt.Sprintf("%d documents", len(paths))
 	}
 
 	return &Result{
 		Success: true,
-		Message: "document archived",
+		Message: message,
+		Data: DocumentResultData{
+			DocumentPath:         pathsInput,
+			RequiresConfirmation: true,
+			ConfirmationCommand:  fmt.Sprintf("archive %s --force", pathsInput),
+		},
+	}, nil
+}
+
+func (dc *DocumentCommands) handleArchiveForce(matches []string, fullCommand string) (*Result, error) {
+	pathsInput := strings.TrimSpace(matches[1])
+	if pathsInput == "" {
+		return &Result{
+			Success: false,
+			Message: "usage: archive <path> --force",
+		}, nil
+	}
+
+	var paths []string
+	if strings.Contains(pathsInput, ",") {
+		parts := strings.Split(pathsInput, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				paths = append(paths, trimmed)
+			}
+		}
+	} else {
+		paths = []string{pathsInput}
+	}
+
+	if len(paths) == 0 {
+		return &Result{
+			Success: false,
+			Message: "no valid paths provided",
+		}, nil
+	}
+
+	for _, path := range paths {
+		if err := dc.docSvc.SoftDelete(path); err != nil {
+			return &Result{
+				Success: false,
+				Message: fmt.Sprintf("failed to archive document %s: %v", path, err),
+			}, nil
+		}
+	}
+
+	message := "document archived"
+	if len(paths) > 1 {
+		message = fmt.Sprintf("%d documents archived", len(paths))
+	}
+
+	return &Result{
+		Success: true,
+		Message: message,
 	}, nil
 }
 
@@ -231,33 +310,11 @@ func (dc *DocumentCommands) handleUnarchive(matches []string, fullCommand string
 }
 
 func (dc *DocumentCommands) handleDelete(matches []string, fullCommand string) (*Result, error) {
-	path := strings.TrimSpace(matches[1])
-	if path == "" {
-		return &Result{
-			Success: false,
-			Message: "usage: delete <path>",
-		}, nil
-	}
-
-	if err := dc.docSvc.SoftDelete(path); err != nil {
-		return &Result{
-			Success: false,
-			Message: fmt.Sprintf("failed to delete document: %v", err),
-		}, nil
-	}
-
-	return &Result{
-		Success: true,
-		Message: "document deleted",
-	}, nil
-}
-
-func (dc *DocumentCommands) handleDeleteHard(matches []string, fullCommand string) (*Result, error) {
 	pathsInput := strings.TrimSpace(matches[1])
 	if pathsInput == "" {
 		return &Result{
 			Success: false,
-			Message: "usage: delete <path> --hard or delete <path1>,<path2>,... --hard",
+			Message: "usage: delete <path>",
 		}, nil
 	}
 
@@ -281,27 +338,158 @@ func (dc *DocumentCommands) handleDeleteHard(matches []string, fullCommand strin
 		}, nil
 	}
 
+	message := "Confirm deleting "
 	if len(paths) == 1 {
-		if err := dc.docSvc.HardDelete(paths[0]); err != nil {
+		message += "document"
+	} else {
+		message += fmt.Sprintf("%d documents", len(paths))
+	}
+
+	return &Result{
+		Success: true,
+		Message: message,
+		Data: DocumentResultData{
+			DocumentPath:         pathsInput,
+			RequiresConfirmation: true,
+			ConfirmationCommand:  fmt.Sprintf("delete %s --force", pathsInput),
+		},
+	}, nil
+}
+
+func (dc *DocumentCommands) handleDeleteForce(matches []string, fullCommand string) (*Result, error) {
+	pathsInput := strings.TrimSpace(matches[1])
+	if pathsInput == "" {
+		return &Result{
+			Success: false,
+			Message: "usage: delete <path> --force",
+		}, nil
+	}
+
+	var paths []string
+	if strings.Contains(pathsInput, ",") {
+		parts := strings.Split(pathsInput, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				paths = append(paths, trimmed)
+			}
+		}
+	} else {
+		paths = []string{pathsInput}
+	}
+
+	if len(paths) == 0 {
+		return &Result{
+			Success: false,
+			Message: "no valid paths provided",
+		}, nil
+	}
+
+	for _, path := range paths {
+		if err := dc.docSvc.SoftDelete(path); err != nil {
 			return &Result{
 				Success: false,
-				Message: fmt.Sprintf("failed to permanently delete document: %v", err),
+				Message: fmt.Sprintf("failed to delete document %s: %v", path, err),
+			}, nil
+		}
+	}
+
+	message := "document deleted"
+	if len(paths) > 1 {
+		message = fmt.Sprintf("%d documents deleted", len(paths))
+	}
+
+	return &Result{
+		Success: true,
+		Message: message,
+		Data: DocumentResultData{
+			Flags: []string{"--force"},
+		},
+	}, nil
+}
+
+func (dc *DocumentCommands) handleDeleteWithFlags(matches []string, fullCommand string) (*Result, error) {
+	pathsInput := strings.TrimSpace(matches[1])
+	if pathsInput == "" {
+		return &Result{
+			Success: false,
+			Message: "usage: delete <path> [--force] [--hard]",
+		}, nil
+	}
+
+	hasHard := strings.Contains(fullCommand, "--hard")
+
+	var paths []string
+	if strings.Contains(pathsInput, ",") {
+		parts := strings.Split(pathsInput, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				paths = append(paths, trimmed)
+			}
+		}
+	} else {
+		paths = []string{pathsInput}
+	}
+
+	if len(paths) == 0 {
+		return &Result{
+			Success: false,
+			Message: "no valid paths provided",
+		}, nil
+	}
+
+	if hasHard {
+		if len(paths) == 1 {
+			if err := dc.docSvc.HardDelete(paths[0]); err != nil {
+				return &Result{
+					Success: false,
+					Message: fmt.Sprintf("failed to permanently delete document: %v", err),
+				}, nil
+			}
+			return &Result{
+				Success: true,
+				Message: "document permanently deleted",
+			}, nil
+		}
+
+		if err := dc.docSvc.HardDeleteBatch(paths); err != nil {
+			return &Result{
+				Success: false,
+				Message: fmt.Sprintf("failed to permanently delete documents: %v", err),
+			}, nil
+		}
+
+		successMsg := fmt.Sprintf("%d documents permanently deleted", len(paths))
+		return &Result{
+			Success: true,
+			Message: successMsg,
+		}, nil
+	}
+
+	if len(paths) == 1 {
+		if err := dc.docSvc.SoftDelete(paths[0]); err != nil {
+			return &Result{
+				Success: false,
+				Message: fmt.Sprintf("failed to delete document: %v", err),
 			}, nil
 		}
 		return &Result{
 			Success: true,
-			Message: "document permanently deleted",
+			Message: "document deleted",
 		}, nil
 	}
 
-	if err := dc.docSvc.HardDeleteBatch(paths); err != nil {
-		return &Result{
-			Success: false,
-			Message: fmt.Sprintf("failed to permanently delete documents: %v", err),
-		}, nil
+	for _, path := range paths {
+		if err := dc.docSvc.SoftDelete(path); err != nil {
+			return &Result{
+				Success: false,
+				Message: fmt.Sprintf("failed to delete document %s: %v", path, err),
+			}, nil
+		}
 	}
 
-	successMsg := fmt.Sprintf("%d documents permanently deleted", len(paths))
+	successMsg := fmt.Sprintf("%d documents deleted", len(paths))
 	return &Result{
 		Success: true,
 		Message: successMsg,

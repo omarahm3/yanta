@@ -14,6 +14,7 @@ import {
   RegisteredHotkey,
   HotkeyContextValue,
 } from "../types/hotkeys";
+import { useDialog } from "./DialogContext";
 
 const HotkeyContext = createContext<HotkeyContextValue | null>(null);
 
@@ -100,6 +101,7 @@ const createHotkeyMatcher = (combo: string) => {
 };
 
 export const HotkeyProvider: React.FC<HotkeyProviderProps> = ({ children }) => {
+  const { isDialogOpen } = useDialog();
   const [hotkeys, setHotkeys] = useState<Map<string, RegisteredHotkey>>(
     new Map(),
   );
@@ -159,11 +161,17 @@ export const HotkeyProvider: React.FC<HotkeyProviderProps> = ({ children }) => {
     const mapToEntries = (map: Map<string, RegisteredHotkey[]>): HotkeyItem[] =>
       Array.from(map.entries()).map(([key, handlers]) => {
         const wrappedHandler = (event: KeyboardEvent) => {
-          const activeElement = document.activeElement;
+          const target = event.target as HTMLElement | null;
           const inInputField =
-            activeElement?.tagName === "INPUT" ||
-            activeElement?.tagName === "TEXTAREA" ||
-            activeElement?.getAttribute("contenteditable") === "true";
+            target?.tagName === "INPUT" ||
+            target?.tagName === "TEXTAREA" ||
+            (target &&
+              target.getAttribute &&
+              target.getAttribute("contenteditable") === "true");
+
+          if (isDialogOpen) {
+            return;
+          }
 
           const sortedHandlers = [...handlers].sort(
             (a, b) => (b.priority || 0) - (a.priority || 0),
@@ -199,9 +207,9 @@ export const HotkeyProvider: React.FC<HotkeyProviderProps> = ({ children }) => {
       captureHotkeysWithMatchers,
       specialCharHotkeys: special,
     };
-  }, [hotkeys]);
+  }, [hotkeys, isDialogOpen]);
 
-  useHotkeys(bubbleHotkeyEntries);
+  useHotkeys(isDialogOpen ? [] : bubbleHotkeyEntries);
 
   useEffect(() => {
     if (captureHotkeysWithMatchers.length === 0) {
@@ -209,11 +217,17 @@ export const HotkeyProvider: React.FC<HotkeyProviderProps> = ({ children }) => {
     }
 
     const handleCapture = (event: KeyboardEvent) => {
-      const activeElement = document.activeElement;
+      const target = event.target as HTMLElement | null;
       const inInputField =
-        activeElement?.tagName === "INPUT" ||
-        activeElement?.tagName === "TEXTAREA" ||
-        activeElement?.getAttribute("contenteditable") === "true";
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        (target &&
+          target.getAttribute &&
+          target.getAttribute("contenteditable") === "true");
+
+      if (isDialogOpen) {
+        return;
+      }
 
       for (const { hotkey, matcher } of captureHotkeysWithMatchers) {
         if (!matcher(event)) {
@@ -236,15 +250,21 @@ export const HotkeyProvider: React.FC<HotkeyProviderProps> = ({ children }) => {
     return () => {
       window.removeEventListener("keydown", handleCapture, true);
     };
-  }, [captureHotkeysWithMatchers]);
+  }, [captureHotkeysWithMatchers, isDialogOpen]);
 
   useEffect(() => {
     const handleSpecialChars = (event: KeyboardEvent) => {
-      const activeElement = document.activeElement;
+      const target = event.target as HTMLElement | null;
       const inInputField =
-        activeElement?.tagName === "INPUT" ||
-        activeElement?.tagName === "TEXTAREA" ||
-        activeElement?.getAttribute("contenteditable") === "true";
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        (target &&
+          target.getAttribute &&
+          target.getAttribute("contenteditable") === "true");
+
+      if (isDialogOpen) {
+        return;
+      }
 
       for (const hotkey of specialCharHotkeys) {
         if (hotkey.capture) {
@@ -271,40 +291,55 @@ export const HotkeyProvider: React.FC<HotkeyProviderProps> = ({ children }) => {
 
     document.addEventListener("keydown", handleSpecialChars);
     return () => document.removeEventListener("keydown", handleSpecialChars);
-  }, [specialCharHotkeys]);
+  }, [specialCharHotkeys, isDialogOpen]);
 
   useEffect(() => {
     const handleSpaceKey = (event: KeyboardEvent) => {
-      const activeElement = document.activeElement;
+      const target = event.target as HTMLElement | null;
       const inInputField =
-        activeElement?.tagName === "INPUT" ||
-        activeElement?.tagName === "TEXTAREA" ||
-        activeElement?.getAttribute("contenteditable") === "true";
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        (target &&
+          target.getAttribute &&
+          target.getAttribute("contenteditable") === "true");
 
-      if (event.key === " " && !inInputField) {
+      const isInteractiveElement =
+        target?.tagName === "BUTTON" ||
+        target?.tagName === "A" ||
+        target?.getAttribute?.("role") === "button" ||
+        target?.getAttribute?.("role") === "checkbox";
+
+      if (isDialogOpen) {
+        return;
+      }
+
+      if (event.key === " " && !inInputField && !isInteractiveElement) {
         event.preventDefault();
       }
     };
 
     document.addEventListener("keydown", handleSpaceKey);
     return () => document.removeEventListener("keydown", handleSpaceKey);
-  }, []);
+  }, [isDialogOpen]);
 
   useEffect(() => {
     const handleCtrlW = (event: KeyboardEvent) => {
-      const activeElement = document.activeElement;
+      const target = event.target as HTMLElement;
       const inInputField =
-        activeElement?.tagName === "INPUT" ||
-        activeElement?.tagName === "TEXTAREA";
+        target?.tagName === "INPUT" || target?.tagName === "TEXTAREA";
+
+      if (isDialogOpen) {
+        return;
+      }
 
       if (inInputField && event.ctrlKey && event.key === "w") {
         event.preventDefault();
-        const target = event.target as HTMLInputElement | HTMLTextAreaElement;
-        const cursorPos = target.selectionStart || 0;
+        const inputTarget = target as HTMLInputElement | HTMLTextAreaElement;
+        const cursorPos = inputTarget.selectionStart || 0;
 
         if (cursorPos === 0) return;
 
-        const value = target.value;
+        const value = inputTarget.value;
         const textBeforeCursor = value.substring(0, cursorPos);
         const wordMatch = textBeforeCursor.match(/\S+\s*$/);
 
@@ -316,17 +351,20 @@ export const HotkeyProvider: React.FC<HotkeyProviderProps> = ({ children }) => {
               textBeforeCursor.length - deleteLength,
             ) + value.substring(cursorPos);
 
-          if (target instanceof HTMLInputElement && nativeInputValueSetter) {
-            nativeInputValueSetter.call(target, newValue);
+          if (
+            inputTarget instanceof HTMLInputElement &&
+            nativeInputValueSetter
+          ) {
+            nativeInputValueSetter.call(inputTarget, newValue);
           } else if (
-            target instanceof HTMLTextAreaElement &&
+            inputTarget instanceof HTMLTextAreaElement &&
             nativeTextAreaValueSetter
           ) {
-            nativeTextAreaValueSetter.call(target, newValue);
+            nativeTextAreaValueSetter.call(inputTarget, newValue);
           }
 
-          target.dispatchEvent(new Event("input", { bubbles: true }));
-          target.setSelectionRange(
+          inputTarget.dispatchEvent(new Event("input", { bubbles: true }));
+          inputTarget.setSelectionRange(
             textBeforeCursor.length - deleteLength,
             textBeforeCursor.length - deleteLength,
           );
@@ -336,7 +374,7 @@ export const HotkeyProvider: React.FC<HotkeyProviderProps> = ({ children }) => {
 
     document.addEventListener("keydown", handleCtrlW);
     return () => document.removeEventListener("keydown", handleCtrlW);
-  }, []);
+  }, [isDialogOpen]);
 
   const value: HotkeyContextValue = {
     register,

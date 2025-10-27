@@ -12,13 +12,8 @@ export function preprocessCommand(
   documents: Document[],
   selectedPaths: string[] = [],
 ): string {
-  const trimmed = command.trim();
-  if (trimmed.length === 0) {
-    return command;
-  }
-
   const pathCommandSet = new Set(["archive", "unarchive", "delete"]);
-  const tokens = trimmed.split(/\s+/);
+  const tokens = command.split(/\s+/);
   const rawCommand = tokens[0] ?? "";
   const commandLower = rawCommand.toLowerCase();
 
@@ -32,15 +27,14 @@ export function preprocessCommand(
     if (nonFlagArgs.length === 0) {
       const flags = args.filter((arg) => arg.startsWith("-"));
       const joinedPaths = selectedPaths.join(",");
-      const rebuilt = [rawCommand, joinedPaths, ...flags].join(" ").trim();
-      return rebuilt;
+      return [rawCommand, joinedPaths, ...flags].join(" ").trim();
     }
   }
 
   const singleNumberPattern = /^([\w-]+)\s+(\d+)(\s+.*)?$/;
   const multiNumberPattern = /^([\w-]+)\s+([\d,\s]+)(\s+.*)?$/;
 
-  const singleMatch = trimmed.match(singleNumberPattern);
+  const singleMatch = command.match(singleNumberPattern);
   if (singleMatch) {
     const [, cmd, numStr, flags = ""] = singleMatch;
 
@@ -59,10 +53,10 @@ export function preprocessCommand(
       return command;
     }
 
-    return `${cmd} ${doc.path}${flags}`;
+    return `${cmd} ${doc.path}${flags}`.trim();
   }
 
-  const multiMatch = trimmed.match(multiNumberPattern);
+  const multiMatch = command.match(multiNumberPattern);
   if (multiMatch) {
     const [, cmd, numsStr, flags = ""] = multiMatch;
 
@@ -89,7 +83,7 @@ export function preprocessCommand(
       return command;
     }
 
-    return `${cmd} ${paths.join(",")}${flags}`;
+    return `${cmd} ${paths.join(",")}${flags}`.trim();
   }
 
   return command;
