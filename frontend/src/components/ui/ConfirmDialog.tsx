@@ -63,14 +63,19 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           cancelButtonRef.current?.focus();
         }
 
-        const focusableElements = [
-          cancelButtonRef.current,
-          confirmButtonRef.current && !confirmButtonRef.current.disabled
-            ? confirmButtonRef.current
-            : null,
-          inputRef.current,
-          checkboxRef.current,
-        ].filter((el): el is HTMLElement => Boolean(el));
+        const focusableElements: HTMLElement[] = [];
+        if (cancelButtonRef.current) {
+          focusableElements.push(cancelButtonRef.current);
+        }
+        if (confirmButtonRef.current && !confirmButtonRef.current.disabled) {
+          focusableElements.push(confirmButtonRef.current);
+        }
+        if (inputRef.current) {
+          focusableElements.push(inputRef.current);
+        }
+        if (checkboxRef.current) {
+          focusableElements.push(checkboxRef.current);
+        }
 
         if (focusableElements.length === 0) {
           return;
