@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+	"yanta/internal/git"
 	"yanta/internal/testutil"
 )
 
@@ -26,7 +27,7 @@ func TestService_Upload_Success(t *testing.T) {
 	s := NewStore(db)
 	v := &testVault{root: t.TempDir()}
 
-	svc := NewService(ServiceConfig{DB: db, Store: s, Vault: v})
+	svc := NewService(ServiceConfig{DB: db, Store: s, Vault: v, SyncManager: git.NewMockSyncManager()})
 
 	data := []byte("fakepngdata")
 	info, err := svc.Upload("@proj", data, "image.png")
@@ -51,7 +52,7 @@ func TestService_BuildURL(t *testing.T) {
 	db := testutil.SetupTestDB(t)
 	defer testutil.CleanupTestDB(t, db)
 
-	svc := NewService(ServiceConfig{DB: db, Store: NewStore(db), Vault: &testVault{root: t.TempDir()}})
+	svc := NewService(ServiceConfig{DB: db, Store: NewStore(db), Vault: &testVault{root: t.TempDir()}, SyncManager: git.NewMockSyncManager()})
 	url, err := svc.BuildURL("@p", "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", ".jpg")
 	if err != nil {
 		t.Fatalf("BuildURL error: %v", err)
@@ -67,7 +68,7 @@ func TestService_Upload_TooLarge(t *testing.T) {
 
 	s := NewStore(db)
 	v := &testVault{root: t.TempDir()}
-	svc := NewService(ServiceConfig{DB: db, Store: s, Vault: v})
+	svc := NewService(ServiceConfig{DB: db, Store: s, Vault: v, SyncManager: git.NewMockSyncManager()})
 
 	// 10MB + 1 byte
 	big := make([]byte, 10*1024*1024+1)
@@ -93,9 +94,10 @@ func TestService_LinkToDocument(t *testing.T) {
 	vault := &mockVault{rootPath: tempDir}
 	store := NewStore(db)
 	service := NewService(ServiceConfig{
-		DB:    db,
-		Store: store,
-		Vault: vault,
+		DB:          db,
+		Store:       store,
+		Vault:       vault,
+		SyncManager: git.NewMockSyncManager(),
 	})
 
 	ctx := context.Background()
@@ -147,9 +149,10 @@ func TestService_LinkToDocument_ValidationErrors(t *testing.T) {
 	vault := &mockVault{rootPath: tempDir}
 	store := NewStore(db)
 	service := NewService(ServiceConfig{
-		DB:    db,
-		Store: store,
-		Vault: vault,
+		DB:          db,
+		Store:       store,
+		Vault:       vault,
+		SyncManager: git.NewMockSyncManager(),
 	})
 
 	validHash := ComputeHash([]byte("test"))
@@ -198,9 +201,10 @@ func TestService_LinkToDocument_ValidationErrors(t *testing.T) {
 
 func TestService_LinkToDocument_NilStore(t *testing.T) {
 	service := NewService(ServiceConfig{
-		DB:    nil,
-		Store: nil,
-		Vault: nil,
+		DB:          nil,
+		Store:       nil,
+		Vault:       nil,
+		SyncManager: git.NewMockSyncManager(),
 	})
 
 	err := service.LinkToDocument("projects/@test/doc.json", ComputeHash([]byte("test")))
@@ -217,9 +221,10 @@ func TestService_UnlinkFromDocument(t *testing.T) {
 	vault := &mockVault{rootPath: tempDir}
 	store := NewStore(db)
 	service := NewService(ServiceConfig{
-		DB:    db,
-		Store: store,
-		Vault: vault,
+		DB:          db,
+		Store:       store,
+		Vault:       vault,
+		SyncManager: git.NewMockSyncManager(),
 	})
 
 	ctx := context.Background()
@@ -272,9 +277,10 @@ func TestService_UnlinkFromDocument_ValidationErrors(t *testing.T) {
 	vault := &mockVault{rootPath: tempDir}
 	store := NewStore(db)
 	service := NewService(ServiceConfig{
-		DB:    db,
-		Store: store,
-		Vault: vault,
+		DB:          db,
+		Store:       store,
+		Vault:       vault,
+		SyncManager: git.NewMockSyncManager(),
 	})
 
 	validHash := ComputeHash([]byte("test"))
@@ -336,9 +342,10 @@ func TestService_UnlinkAllFromDocument(t *testing.T) {
 	vault := &mockVault{rootPath: tempDir}
 	store := NewStore(db)
 	service := NewService(ServiceConfig{
-		DB:    db,
-		Store: store,
-		Vault: vault,
+		DB:          db,
+		Store:       store,
+		Vault:       vault,
+		SyncManager: git.NewMockSyncManager(),
 	})
 
 	ctx := context.Background()
@@ -415,9 +422,10 @@ func TestService_UnlinkAllFromDocument_ValidationErrors(t *testing.T) {
 	vault := &mockVault{rootPath: tempDir}
 	store := NewStore(db)
 	service := NewService(ServiceConfig{
-		DB:    db,
-		Store: store,
-		Vault: vault,
+		DB:          db,
+		Store:       store,
+		Vault:       vault,
+		SyncManager: git.NewMockSyncManager(),
 	})
 
 	tests := []struct {
@@ -468,9 +476,10 @@ func TestService_LinkToDocument_PreservesOtherLinks(t *testing.T) {
 	vault := &mockVault{rootPath: tempDir}
 	store := NewStore(db)
 	service := NewService(ServiceConfig{
-		DB:    db,
-		Store: store,
-		Vault: vault,
+		DB:          db,
+		Store:       store,
+		Vault:       vault,
+		SyncManager: git.NewMockSyncManager(),
 	})
 
 	ctx := context.Background()

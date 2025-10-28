@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"yanta/internal/document"
+	"yanta/internal/git"
 	"yanta/internal/project"
 	"yanta/internal/testutil"
 	"yanta/internal/vault"
@@ -42,7 +43,7 @@ func setupProjectCommandTest(t *testing.T) projectCommandTestEnv {
 	docService := document.NewService(db, docStore, v, idx, projectCache)
 
 	// Use nil for syncManager in tests - sync is not needed for these tests
-	cmds := NewProjectCommands(projectService, docService, v, nil)
+	cmds := NewProjectCommands(projectService, docService, v, git.NewMockSyncManager())
 
 	cleanup := func() {
 		testutil.CleanupTestDB(t, db)

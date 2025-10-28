@@ -11,6 +11,7 @@ import (
 
 	"yanta/internal/asset"
 	"yanta/internal/document"
+	"yanta/internal/git"
 	"yanta/internal/link"
 	"yanta/internal/search"
 	"yanta/internal/tag"
@@ -83,7 +84,7 @@ func TestIndexer_IndexDocument(t *testing.T) {
 	assetStore := asset.NewStore(db)
 
 	// Create indexer
-	idx := New(db, v, docStore, ftsStore, tagStore, linkStore, assetStore)
+	idx := New(db, v, docStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager())
 
 	// Create test document
 	docPath := createTestDocument(t, v, "@test-project", "Test Document", []string{"test", "indexer"})
@@ -162,7 +163,7 @@ func TestIndexer_ReindexDocument(t *testing.T) {
 	linkStore := link.NewStore(db)
 	assetStore := asset.NewStore(db)
 
-	idx := New(db, v, docStore, ftsStore, tagStore, linkStore, assetStore)
+	idx := New(db, v, docStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager())
 
 	// Create and index document
 	docPath := createTestDocument(t, v, "@test-project", "Original Title", []string{"tag1"})
@@ -249,7 +250,7 @@ func TestIndexer_RemoveDocument(t *testing.T) {
 	linkStore := link.NewStore(db)
 	assetStore := asset.NewStore(db)
 
-	idx := New(db, v, docStore, ftsStore, tagStore, linkStore, assetStore)
+	idx := New(db, v, docStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager())
 
 	// Create and index document
 	docPath := createTestDocument(t, v, "@test-project", "To Be Removed", []string{"test"})
@@ -293,7 +294,7 @@ func TestIndexer_RemoveDocumentCompletely(t *testing.T) {
 	linkStore := link.NewStore(db)
 	assetStore := asset.NewStore(db)
 
-	idx := New(db, v, docStore, ftsStore, tagStore, linkStore, assetStore)
+	idx := New(db, v, docStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager())
 
 	// Create and index document
 	docPath := createTestDocument(t, v, "@test-project", "To Be Removed", []string{"test"})
@@ -357,7 +358,7 @@ func TestIndexer_ClearIndex(t *testing.T) {
 	linkStore := link.NewStore(db)
 	assetStore := asset.NewStore(db)
 
-	idx := New(db, v, docStore, ftsStore, tagStore, linkStore, assetStore)
+	idx := New(db, v, docStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager())
 
 	// Create and index multiple documents
 	ctx := context.Background()

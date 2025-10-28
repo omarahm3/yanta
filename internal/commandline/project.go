@@ -568,9 +568,7 @@ func (pc *ProjectCommands) handleDeleteWithFlags(
 			return nil, err
 		}
 
-		if pc.syncManager != nil {
-			pc.syncManager.NotifyChange(fmt.Sprintf("deleted project %s", proj.Alias))
-		}
+		pc.syncManager.NotifyChange(fmt.Sprintf("deleted project %s", proj.Alias))
 
 		message := fmt.Sprintf("permanently deleted project: %s (with all documents and files)", proj.Name)
 		flags := []string{}
