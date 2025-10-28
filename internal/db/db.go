@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"yanta/internal/logger"
+	"yanta/internal/paths"
 
 	_ "modernc.org/sqlite"
 )
@@ -20,8 +21,7 @@ var (
 )
 
 func DefaultPath() string {
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".yanta", defaultFile)
+	return paths.GetDatabasePath()
 }
 
 func OpenDB(path string) (*sql.DB, error) {

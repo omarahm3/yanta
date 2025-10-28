@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"yanta/internal/paths"
 )
 
 type Vault struct {
@@ -16,12 +17,7 @@ type Config struct {
 }
 
 func DefaultRootPath() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("getting user home directory: %w", err)
-	}
-
-	return filepath.Join(home, ".yanta", "vault"), nil
+	return paths.GetVaultPath(), nil
 }
 
 func New(cfg Config) (*Vault, error) {

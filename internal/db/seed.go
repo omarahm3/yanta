@@ -74,9 +74,9 @@ type SeedDocument struct {
 }
 
 type SeedBlock struct {
-	Type    string                 `json:"type"`
-	Content interface{}            `json:"content,omitempty"`
-	Props   map[string]interface{} `json:"props,omitempty"`
+	Type    string         `json:"type"`
+	Content any            `json:"content,omitempty"`
+	Props   map[string]any `json:"props,omitempty"`
 }
 
 func GetDemoDocuments() []SeedDocument {
@@ -88,11 +88,11 @@ func GetDemoDocuments() []SeedDocument {
 			Content: []SeedBlock{
 				{
 					Type: "heading",
-					Props: map[string]interface{}{
+					Props: map[string]any{
 						"level": float64(1),
 					},
-					Content: []interface{}{
-						map[string]interface{}{
+					Content: []any{
+						map[string]any{
 							"type": "text",
 							"text": "Project Kickoff Notes",
 						},
@@ -100,8 +100,8 @@ func GetDemoDocuments() []SeedDocument {
 				},
 				{
 					Type: "paragraph",
-					Content: []interface{}{
-						map[string]interface{}{
+					Content: []any{
+						map[string]any{
 							"type": "text",
 							"text": "Discussed project goals and timelines with the team.",
 						},
@@ -109,8 +109,8 @@ func GetDemoDocuments() []SeedDocument {
 				},
 				{
 					Type: "bulletListItem",
-					Content: []interface{}{
-						map[string]interface{}{
+					Content: []any{
+						map[string]any{
 							"type": "text",
 							"text": "Milestone 1: Requirements gathering",
 						},
@@ -118,8 +118,8 @@ func GetDemoDocuments() []SeedDocument {
 				},
 				{
 					Type: "bulletListItem",
-					Content: []interface{}{
-						map[string]interface{}{
+					Content: []any{
+						map[string]any{
 							"type": "text",
 							"text": "Milestone 2: Implementation phase",
 						},
@@ -134,11 +134,11 @@ func GetDemoDocuments() []SeedDocument {
 			Content: []SeedBlock{
 				{
 					Type: "heading",
-					Props: map[string]interface{}{
+					Props: map[string]any{
 						"level": float64(1),
 					},
-					Content: []interface{}{
-						map[string]interface{}{
+					Content: []any{
+						map[string]any{
 							"type": "text",
 							"text": "Books to Read",
 						},
@@ -146,8 +146,8 @@ func GetDemoDocuments() []SeedDocument {
 				},
 				{
 					Type: "paragraph",
-					Content: []interface{}{
-						map[string]interface{}{
+					Content: []any{
+						map[string]any{
 							"type": "text",
 							"text": "My current reading list for this quarter:",
 						},
@@ -155,8 +155,8 @@ func GetDemoDocuments() []SeedDocument {
 				},
 				{
 					Type: "numberedListItem",
-					Content: []interface{}{
-						map[string]interface{}{
+					Content: []any{
+						map[string]any{
 							"type": "text",
 							"text": "Clean Architecture - Robert Martin",
 						},
@@ -164,8 +164,8 @@ func GetDemoDocuments() []SeedDocument {
 				},
 				{
 					Type: "numberedListItem",
-					Content: []interface{}{
-						map[string]interface{}{
+					Content: []any{
+						map[string]any{
 							"type": "text",
 							"text": "Designing Data-Intensive Applications - Martin Kleppmann",
 						},
@@ -180,11 +180,11 @@ func GetDemoDocuments() []SeedDocument {
 			Content: []SeedBlock{
 				{
 					Type: "heading",
-					Props: map[string]interface{}{
+					Props: map[string]any{
 						"level": float64(1),
 					},
-					Content: []interface{}{
-						map[string]interface{}{
+					Content: []any{
+						map[string]any{
 							"type": "text",
 							"text": "Go Best Practices",
 						},
@@ -192,8 +192,8 @@ func GetDemoDocuments() []SeedDocument {
 				},
 				{
 					Type: "paragraph",
-					Content: []interface{}{
-						map[string]interface{}{
+					Content: []any{
+						map[string]any{
 							"type": "text",
 							"text": "Key principles for writing idiomatic Go code:",
 						},
@@ -201,8 +201,8 @@ func GetDemoDocuments() []SeedDocument {
 				},
 				{
 					Type: "bulletListItem",
-					Content: []interface{}{
-						map[string]interface{}{
+					Content: []any{
+						map[string]any{
 							"type": "text",
 							"text": "Accept interfaces, return structs",
 						},
@@ -210,8 +210,8 @@ func GetDemoDocuments() []SeedDocument {
 				},
 				{
 					Type: "bulletListItem",
-					Content: []interface{}{
-						map[string]interface{}{
+					Content: []any{
+						map[string]any{
 							"type": "text",
 							"text": "Handle errors explicitly",
 						},
@@ -219,11 +219,11 @@ func GetDemoDocuments() []SeedDocument {
 				},
 				{
 					Type: "codeBlock",
-					Props: map[string]interface{}{
+					Props: map[string]any{
 						"language": "go",
 					},
-					Content: []interface{}{
-						map[string]interface{}{
+					Content: []any{
+						map[string]any{
 							"type": "text",
 							"text": "if err := doSomething(); err != nil {\n    return fmt.Errorf(\"operation failed: %w\", err)\n}",
 						},
@@ -235,10 +235,10 @@ func GetDemoDocuments() []SeedDocument {
 }
 
 func (sd *SeedDocument) ToBlockNoteJSON() ([]byte, error) {
-	blocks := make([]map[string]interface{}, len(sd.Content))
+	blocks := make([]map[string]any, len(sd.Content))
 
 	for i, block := range sd.Content {
-		blockMap := map[string]interface{}{
+		blockMap := map[string]any{
 			"id":   uuid.New().String(),
 			"type": block.Type,
 		}
@@ -250,7 +250,7 @@ func (sd *SeedDocument) ToBlockNoteJSON() ([]byte, error) {
 		if block.Props != nil {
 			blockMap["props"] = block.Props
 		} else {
-			blockMap["props"] = map[string]interface{}{}
+			blockMap["props"] = map[string]any{}
 		}
 
 		blocks[i] = blockMap

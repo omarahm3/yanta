@@ -106,7 +106,7 @@ func TestFileWriter_WriteFile(t *testing.T) {
 		{
 			ID:      "block1",
 			Type:    "heading",
-			Props:   map[string]interface{}{"level": 1},
+			Props:   map[string]any{"level": 1},
 			Content: []BlockNoteContent{{Type: "text", Text: "Title"}},
 		},
 	}

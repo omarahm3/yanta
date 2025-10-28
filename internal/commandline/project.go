@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 	"yanta/internal/document"
+	"yanta/internal/git"
 	"yanta/internal/project"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -56,15 +57,17 @@ type ProjectCommands struct {
 	projectService  *project.Service
 	documentService *document.Service
 	vault           VaultService
+	syncManager     *git.SyncManager
 	parser          *Parser
 	ctx             context.Context
 }
 
-func NewProjectCommands(projectService *project.Service, documentService *document.Service, vault VaultService) *ProjectCommands {
+func NewProjectCommands(projectService *project.Service, documentService *document.Service, vault VaultService, syncManager *git.SyncManager) *ProjectCommands {
 	pc := &ProjectCommands{
 		projectService:  projectService,
 		documentService: documentService,
 		vault:           vault,
+		syncManager:     syncManager,
 		parser:          New(ContextProject),
 		ctx:             context.Background(),
 	}
@@ -563,6 +566,10 @@ func (pc *ProjectCommands) handleDeleteWithFlags(
 
 		if err := pc.vault.DeleteProjectDir(proj.Alias); err != nil {
 			return nil, err
+		}
+
+		if pc.syncManager != nil {
+			pc.syncManager.NotifyChange(fmt.Sprintf("deleted project %s", proj.Alias))
 		}
 
 		message := fmt.Sprintf("permanently deleted project: %s (with all documents and files)", proj.Name)

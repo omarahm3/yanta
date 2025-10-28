@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"time"
 	"yanta/internal/config"
+	"yanta/internal/git"
 	"yanta/internal/logger"
+	"yanta/internal/migration"
 
 	"github.com/sirupsen/logrus"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
@@ -208,4 +211,137 @@ func (s *Service) SetStartHidden(hidden bool) error {
 
 	logger.Infof("start_hidden setting changed to %v", hidden)
 	return nil
+}
+
+func (s *Service) CheckGitInstalled() (bool, error) {
+	gitService := git.NewService()
+	return gitService.CheckInstalled()
+}
+
+func (s *Service) GetCurrentDataDirectory() string {
+	return config.GetDataDirectory()
+}
+
+func (s *Service) OpenDirectoryDialog() (string, error) {
+	if s.ctx == nil {
+		return "", fmt.Errorf("context not set")
+	}
+
+	selection, err := wailsRuntime.OpenDirectoryDialog(s.ctx, wailsRuntime.OpenDialogOptions{
+		Title: "Select Git Directory",
+	})
+	if err != nil {
+		logger.Errorf("failed to open directory dialog: %v", err)
+		return "", err
+	}
+
+	return selection, nil
+}
+
+func (s *Service) ValidateMigrationTarget(targetPath string) error {
+	gitService := git.NewService()
+	migrationService := migration.NewService(s.db, gitService)
+	return migrationService.ValidateTargetDirectory(targetPath)
+}
+
+func (s *Service) MigrateToGitDirectory(targetPath, remoteURL string) error {
+	logger.Infof("starting migration to %s", targetPath)
+
+	gitService := git.NewService()
+	migrationService := migration.NewService(s.db, gitService)
+
+	if err := migrationService.MigrateData(targetPath, remoteURL); err != nil {
+		logger.Errorf("migration failed: %v", err)
+		return err
+	}
+
+	logger.Info("migration completed successfully - app will exit")
+
+	go func() {
+		time.Sleep(2 * time.Second)
+		if s.ctx != nil {
+			logger.Info("triggering app exit after migration")
+			wailsRuntime.Quit(s.ctx)
+		}
+	}()
+
+	return nil
+}
+
+func (s *Service) GetGitSyncConfig() config.GitSyncConfig {
+	return config.GetGitSyncConfig()
+}
+
+func (s *Service) SetGitSyncConfig(cfg config.GitSyncConfig) error {
+	return config.SetGitSyncConfig(cfg)
+}
+
+func (s *Service) SyncNow() error {
+	gitCfg := config.GetGitSyncConfig()
+	if !gitCfg.Enabled {
+		return fmt.Errorf("git sync is not enabled. Enable it in Settings")
+	}
+
+	dataDir := config.GetDataDirectory()
+	gitService := git.NewService()
+
+	logger.Infof("starting manual git sync in: %s", dataDir)
+
+	isRepo, err := gitService.IsRepository(dataDir)
+	if err != nil {
+		return fmt.Errorf("failed to check git repository:\n%w\n\nDirectory: %s", err, dataDir)
+	}
+	if !isRepo {
+		return fmt.Errorf("not a git repository\n\nDirectory: %s\nHint: Migrate your data to a git directory first (Settings → Git Sync)", dataDir)
+	}
+
+	logger.Debug("staging changes with git add -A")
+	if err := gitService.AddAll(dataDir); err != nil {
+		return fmt.Errorf("failed to stage changes:\n%w\n\nDirectory: %s", err, dataDir)
+	}
+
+	logger.Debug("committing changes")
+	commitMsg := fmt.Sprintf("sync: manual sync at %s", time.Now().Format("2006-01-02 15:04:05"))
+	if err := gitService.Commit(dataDir, commitMsg); err != nil {
+		if err.Error() == "nothing to commit" {
+			logger.Info("no changes to sync")
+			return nil
+		}
+		return fmt.Errorf("failed to commit changes:\n%w\n\nDirectory: %s", err, dataDir)
+	}
+
+	if gitCfg.AutoPush && gitCfg.RemoteURL != "" {
+		logger.Infof("pushing to remote: %s", gitCfg.RemoteURL)
+		if err := gitService.Push(dataDir, "origin", "master"); err != nil {
+			return fmt.Errorf("failed to push to remote:\n%w\n\nRemote: %s\nBranch: master\nHint: Check network connection and authentication", err, gitCfg.RemoteURL)
+		}
+	}
+
+	logger.Info("sync completed successfully")
+	return nil
+}
+
+func (s *Service) GetGitStatus() (map[string]any, error) {
+	gitCfg := config.GetGitSyncConfig()
+	if !gitCfg.Enabled {
+		return map[string]any{
+			"enabled": false,
+		}, nil
+	}
+
+	dataDir := config.GetDataDirectory()
+	gitService := git.NewService()
+
+	status, err := gitService.GetStatus(dataDir)
+	if err != nil {
+		return nil, fmt.Errorf("getting git status: %w", err)
+	}
+
+	return map[string]any{
+		"enabled":   true,
+		"clean":     status.Clean,
+		"modified":  status.Modified,
+		"untracked": status.Untracked,
+		"staged":    status.Staged,
+	}, nil
 }

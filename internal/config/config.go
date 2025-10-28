@@ -12,10 +12,20 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type GitSyncConfig struct {
+	Enabled        bool   `toml:"enabled"`
+	RepositoryPath string `toml:"repository_path"`
+	RemoteURL      string `toml:"remote_url"`
+	AutoCommit     bool   `toml:"auto_commit"`
+	AutoPush       bool   `toml:"auto_push"`
+}
+
 type Config struct {
-	LogLevel         string `toml:"log_level"`
-	KeepInBackground bool   `toml:"keep_in_background"`
-	StartHidden      bool   `toml:"start_hidden"`
+	LogLevel         string        `toml:"log_level"`
+	KeepInBackground bool          `toml:"keep_in_background"`
+	StartHidden      bool          `toml:"start_hidden"`
+	DataDirectory    string        `toml:"data_directory"`
+	GitSync          GitSyncConfig `toml:"git_sync"`
 }
 
 var (
@@ -180,4 +190,49 @@ func save(cfg *Config) error {
 	}
 
 	return nil
+}
+
+func GetDataDirectory() string {
+	cfg := Get()
+	if cfg.DataDirectory != "" {
+		return cfg.DataDirectory
+	}
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".yanta")
+}
+
+func SetDataDirectory(dir string) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if instance == nil {
+		instance = &Config{}
+	}
+
+	instance.DataDirectory = dir
+	return save(instance)
+}
+
+func GetGitSyncConfig() GitSyncConfig {
+	cfg := Get()
+	return cfg.GitSync
+}
+
+func SetGitSyncConfig(gitCfg GitSyncConfig) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if instance == nil {
+		instance = &Config{}
+	}
+
+	instance.GitSync = gitCfg
+	return save(instance)
+}
+
+func ResetForTesting() {
+	mu.Lock()
+	defer mu.Unlock()
+	instance = nil
+	instanceOnce = sync.Once{}
 }

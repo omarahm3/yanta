@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"yanta/internal/config"
+	"yanta/internal/paths"
 
 	"github.com/sirupsen/logrus"
 )
@@ -24,13 +25,10 @@ type Config struct {
 }
 
 func DefaultConfig() *Config {
-	home, _ := os.UserHomeDir()
-	logDir := filepath.Join(home, ".yanta", "logs")
-
 	return &Config{
 		Level:      "info",
 		LogFile:    "yanta.log",
-		LogDir:     logDir,
+		LogDir:     paths.GetLogsPath(),
 		MaxSize:    10 * 1024 * 1024,
 		MaxBackups: 3,
 		MaxAge:     28,

@@ -16,9 +16,9 @@ func NewStore(db *sql.DB) *Store {
 }
 
 type queryer interface {
-	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
-	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 
 func (s *Store) AddLinks(ctx context.Context, docPath string, links []*Link) error {
@@ -57,7 +57,7 @@ func (s *Store) addLinks(ctx context.Context, q queryer, docPath string, links [
 	}
 
 	placeholders := make([]string, len(links))
-	args := make([]interface{}, 0, len(links)*3)
+	args := make([]any, 0, len(links)*3)
 
 	for i, link := range links {
 		placeholders[i] = "(?, ?, ?)"
@@ -114,7 +114,7 @@ func (s *Store) removeLinks(ctx context.Context, q queryer, docPath string, urls
 	}
 
 	placeholders := make([]string, len(urls))
-	args := make([]interface{}, 0, len(urls)+1)
+	args := make([]any, 0, len(urls)+1)
 	args = append(args, docPath)
 
 	for i, url := range urls {

@@ -14,6 +14,7 @@ import (
 	"yanta/internal/db"
 	"yanta/internal/document"
 	"yanta/internal/events"
+	"yanta/internal/git"
 	"yanta/internal/indexer"
 	"yanta/internal/link"
 	"yanta/internal/logger"
@@ -39,6 +40,7 @@ type App struct {
 	DBPath string
 
 	restoreHotkey *hotkey.Hotkey
+	syncManager   *git.SyncManager
 }
 
 type Config struct {
@@ -78,6 +80,9 @@ func New(cfg Config) (*App, error) {
 		return nil, err
 	}
 
+	syncManager := git.NewSyncManager()
+	a.syncManager = syncManager
+
 	projectStore := project.NewStore(a.DB)
 	documentStore := document.NewStore(a.DB)
 	tagStore := tag.NewStore(a.DB)
@@ -85,7 +90,7 @@ func New(cfg Config) (*App, error) {
 	assetStore := asset.NewStore(a.DB)
 	ftsStore := search.NewStore(a.DB)
 
-	idx := indexer.New(a.DB, v, documentStore, ftsStore, tagStore, linkStore, assetStore)
+	idx := indexer.New(a.DB, v, documentStore, ftsStore, tagStore, linkStore, assetStore, syncManager)
 
 	projectCache := project.NewCache(projectStore)
 	projectService := project.NewService(a.DB, projectStore, projectCache)
@@ -96,7 +101,12 @@ func New(cfg Config) (*App, error) {
 	systemService := system.NewService(a.DB)
 	systemService.SetDBPath(a.DBPath)
 
-	assetService := asset.NewService(asset.ServiceConfig{DB: a.DB, Store: assetStore, Vault: v})
+	assetService := asset.NewService(asset.ServiceConfig{
+		DB:          a.DB,
+		Store:       assetStore,
+		Vault:       v,
+		SyncManager: syncManager,
+	})
 
 	logger.Debugf("services created")
 
@@ -104,8 +114,8 @@ func New(cfg Config) (*App, error) {
 		logger.Warnf("failed to seed demo documents: %v", err)
 	}
 
-	projectCommands := commandline.NewProjectCommands(projectService, documentService, v)
-	globalCommands := commandline.NewGlobalCommands(projectService)
+	projectCommands := commandline.NewProjectCommands(projectService, documentService, v, syncManager)
+	globalCommands := commandline.NewGlobalCommands(projectService, systemService)
 	documentCommands := commandline.NewDocumentCommands(documentService, tagService)
 
 	logger.Debugf("command handlers created")
@@ -190,7 +200,12 @@ func (a *App) OnShutdown(ctx context.Context) {
 	go func() {
 		defer close(done)
 
-		// Close database first (critical for data integrity)
+		if a.syncManager != nil {
+			logger.Debug("shutting down sync manager...")
+			a.syncManager.Shutdown()
+			logger.Debug("sync manager shut down")
+		}
+
 		if a.DB != nil {
 			logger.Debug("closing database connection...")
 			if err := db.CloseDB(a.DB); err != nil {

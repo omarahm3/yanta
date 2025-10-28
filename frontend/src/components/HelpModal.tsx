@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useHelp } from "../hooks/useHelp";
 import { useHotkeyContext } from "../contexts/HotkeyContext";
+import { GLOBAL_COMMANDS } from "../constants/globalCommands";
 
 const formatHotkeyDisplay = (key: string): string => {
   return key
@@ -46,11 +47,14 @@ export const HelpModal: React.FC = () => {
 
   if (!isOpen) return null;
 
-  const allHotkeys = pageName === "SETTINGS"
-    ? []
-    : getRegisteredHotkeys()
-        .filter((h) => h.description && h.description !== "Toggle help")
-        .sort((a, b) => (a.description ?? "").localeCompare(b.description ?? ""));
+  const allHotkeys =
+    pageName === "SETTINGS"
+      ? []
+      : getRegisteredHotkeys()
+          .filter((h) => h.description && h.description !== "Toggle help")
+          .sort((a, b) =>
+            (a.description ?? "").localeCompare(b.description ?? ""),
+          );
 
   return (
     <div
@@ -77,6 +81,29 @@ export const HelpModal: React.FC = () => {
 
         <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 xl:gap-8">
+            <div>
+              <h3 className="mb-4 sm:mb-6 text-sm font-bold tracking-wider text-text-dim uppercase">
+                GLOBAL COMMANDS
+              </h3>
+              <div className="space-y-3 sm:space-y-4">
+                {GLOBAL_COMMANDS.map((cmd, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-start gap-3 sm:gap-4 font-mono text-sm group"
+                  >
+                    <div className="flex-shrink-0">
+                      <code className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-bg border border-green/20 rounded-md text-green font-medium transition-all duration-200 group-hover:border-green/40 group-hover:bg-green/5 text-xs sm:text-sm">
+                        :{cmd.command}
+                      </code>
+                    </div>
+                    <div className="flex-1 pt-0.5 sm:pt-1 text-text leading-relaxed text-xs sm:text-sm">
+                      {cmd.description}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {pageCommands.length > 0 && (
               <div>
                 <h3 className="mb-4 sm:mb-6 text-sm font-bold tracking-wider text-text-dim uppercase">
@@ -145,7 +172,7 @@ export const HelpModal: React.FC = () => {
                 </div>
               ) : (
                 <div className="text-text-dim">
-                  No help available for this page.
+                  No page-specific commands or shortcuts available.
                 </div>
               )}
             </div>

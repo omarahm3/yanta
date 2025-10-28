@@ -34,6 +34,7 @@ export namespace commandline {
 	}
 	export enum GlobalCommand {
 	    Switch = "switch",
+	    Sync = "sync",
 	}
 	export enum DocumentCommand {
 	    New = "new",
@@ -242,6 +243,31 @@ export namespace commandline {
 		    }
 		    return a;
 		}
+	}
+
+}
+
+export namespace config {
+	
+	export class GitSyncConfig {
+	    Enabled: boolean;
+	    RepositoryPath: string;
+	    RemoteURL: string;
+	    AutoCommit: boolean;
+	    AutoPush: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new GitSyncConfig(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Enabled = source["Enabled"];
+	        this.RepositoryPath = source["RepositoryPath"];
+	        this.RemoteURL = source["RemoteURL"];
+	        this.AutoCommit = source["AutoCommit"];
+	        this.AutoPush = source["AutoPush"];
+	    }
 	}
 
 }

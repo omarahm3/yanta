@@ -41,7 +41,8 @@ func setupProjectCommandTest(t *testing.T) projectCommandTestEnv {
 	idx := noopIndexer{}
 	docService := document.NewService(db, docStore, v, idx, projectCache)
 
-	cmds := NewProjectCommands(projectService, docService, v)
+	// Use nil for syncManager in tests - sync is not needed for these tests
+	cmds := NewProjectCommands(projectService, docService, v, nil)
 
 	cleanup := func() {
 		testutil.CleanupTestDB(t, db)

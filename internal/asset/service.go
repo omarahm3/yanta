@@ -7,28 +7,30 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"yanta/internal/git"
 )
 
-// Service provides high-level asset operations for the frontend.
 type Service struct {
-	db    *sql.DB
-	store *Store
-	vault VaultProvider
-
-	ctx context.Context
+	db          *sql.DB
+	store       *Store
+	vault       VaultProvider
+	syncManager *git.SyncManager
+	ctx         context.Context
 }
 
 type ServiceConfig struct {
-	DB    *sql.DB
-	Store *Store
-	Vault VaultProvider
+	DB          *sql.DB
+	Store       *Store
+	Vault       VaultProvider
+	SyncManager *git.SyncManager
 }
 
 func NewService(cfg ServiceConfig) *Service {
 	return &Service{
-		db:    cfg.DB,
-		store: cfg.Store,
-		vault: cfg.Vault,
+		db:          cfg.DB,
+		store:       cfg.Store,
+		vault:       cfg.Vault,
+		syncManager: cfg.SyncManager,
 	}
 }
 
@@ -36,7 +38,6 @@ func (s *Service) SetContext(ctx context.Context) {
 	s.ctx = ctx
 }
 
-// Upload validates and stores an image asset (max 10MB).
 func (s *Service) Upload(projectAlias string, data []byte, filename string) (*AssetInfo, error) {
 	if s.vault == nil || s.store == nil || s.db == nil {
 		return nil, fmt.Errorf("service not initialised correctly")
@@ -81,10 +82,11 @@ func (s *Service) Upload(projectAlias string, data []byte, filename string) (*As
 		return nil, err
 	}
 
+	s.syncManager.NotifyChange(fmt.Sprintf("uploaded asset %s%s", info.Hash, info.Ext))
+
 	return info, nil
 }
 
-// BuildURL constructs the asset URL for the frontend editor.
 func (s *Service) BuildURL(projectAlias, hash, ext string) (string, error) {
 	if err := ValidateHash(hash); err != nil {
 		return "", err
@@ -98,7 +100,6 @@ func (s *Service) BuildURL(projectAlias, hash, ext string) (string, error) {
 	return "/assets/" + projectAlias + "/" + hash + ext, nil
 }
 
-// LinkToDocument associates an asset with a document for garbage collection tracking.
 func (s *Service) LinkToDocument(docPath, hash string) error {
 	if s.store == nil {
 		return fmt.Errorf("service not initialised correctly")
@@ -115,7 +116,6 @@ func (s *Service) LinkToDocument(docPath, hash string) error {
 	return s.store.LinkToDocument(s.ctxOrBG(), hash, docPath)
 }
 
-// UnlinkFromDocument removes the asset-document association.
 func (s *Service) UnlinkFromDocument(docPath, hash string) error {
 	if s.store == nil {
 		return fmt.Errorf("service not initialised correctly")
@@ -132,7 +132,6 @@ func (s *Service) UnlinkFromDocument(docPath, hash string) error {
 	return s.store.UnlinkFromDocument(s.ctxOrBG(), hash, docPath)
 }
 
-// UnlinkAllFromDocument removes all asset associations when a document is deleted.
 func (s *Service) UnlinkAllFromDocument(docPath string) error {
 	if s.store == nil {
 		return fmt.Errorf("service not initialised correctly")
@@ -169,6 +168,10 @@ func (s *Service) CleanupOrphans(projectAlias string) (int, error) {
 		if projectAlias != "" && s.vault != nil {
 			_ = DeleteAsset(s.vault, projectAlias, a.Hash, a.Ext)
 		}
+	}
+
+	if deleted > 0 {
+		s.syncManager.NotifyChange(fmt.Sprintf("cleaned up %d orphaned assets", deleted))
 	}
 
 	return deleted, nil

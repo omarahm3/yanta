@@ -221,7 +221,7 @@ func TestDocumentFile_Validate(t *testing.T) {
 					{
 						ID:      "block1",
 						Type:    "heading",
-						Props:   map[string]interface{}{"level": 1},
+						Props:   map[string]any{"level": 1},
 						Content: []BlockNoteContent{{Type: "text", Text: "Title"}},
 					},
 					{
@@ -331,7 +331,7 @@ func TestDocumentFile_ToJSON_FromJSON(t *testing.T) {
 			{
 				ID:   "block1",
 				Type: "heading",
-				Props: map[string]interface{}{
+				Props: map[string]any{
 					"level": float64(1),
 				},
 				Content: []BlockNoteContent{
@@ -344,7 +344,7 @@ func TestDocumentFile_ToJSON_FromJSON(t *testing.T) {
 				Type: "paragraph",
 				Content: []BlockNoteContent{
 					{Type: "text", Text: "Paragraph text with "},
-					{Type: "text", Text: "bold", Styles: map[string]interface{}{"bold": true}},
+					{Type: "text", Text: "bold", Styles: map[string]any{"bold": true}},
 				},
 				Children: []BlockNoteBlock{},
 			},
@@ -356,7 +356,7 @@ func TestDocumentFile_ToJSON_FromJSON(t *testing.T) {
 		t.Fatalf("ToJSON() error = %v", err)
 	}
 
-	var raw map[string]interface{}
+	var raw map[string]any
 	if err := json.Unmarshal(jsonData, &raw); err != nil {
 		t.Fatalf("Generated JSON is invalid: %v", err)
 	}

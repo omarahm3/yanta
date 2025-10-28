@@ -255,27 +255,6 @@ export function useDocumentController({
     };
   }, [documentPath, setTags]);
 
-  useEffect(() => {
-    console.log("[Document] Render state:", {
-      documentPath,
-      initialTitle,
-      isEditMode,
-      isLoading,
-      loadError: loadError || null,
-      hasFormData: !!formData,
-      formDataBlocksCount: formData?.blocks?.length || 0,
-      isArchived,
-    });
-  }, [
-    documentPath,
-    initialTitle,
-    isEditMode,
-    isLoading,
-    loadError,
-    formData,
-    isArchived,
-  ]);
-
   const sidebarSections = useSidebarSections({
     currentPage: "document",
     onNavigate,

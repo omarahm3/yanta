@@ -9,6 +9,7 @@ import (
 
 	"yanta/internal/asset"
 	"yanta/internal/document"
+	"yanta/internal/git"
 	"yanta/internal/link"
 	"yanta/internal/search"
 	"yanta/internal/tag"
@@ -16,14 +17,15 @@ import (
 )
 
 type Indexer struct {
-	db         *sql.DB
-	vault      *vault.Vault
-	docStore   *document.Store
-	ftsStore   *search.Store
-	tagStore   *tag.Store
-	linkStore  *link.Store
-	assetStore *asset.Store
-	parser     *document.Parser
+	db          *sql.DB
+	vault       *vault.Vault
+	docStore    *document.Store
+	ftsStore    *search.Store
+	tagStore    *tag.Store
+	linkStore   *link.Store
+	assetStore  *asset.Store
+	parser      *document.Parser
+	syncManager *git.SyncManager
 }
 
 func New(
@@ -34,16 +36,18 @@ func New(
 	tagStore *tag.Store,
 	linkStore *link.Store,
 	assetStore *asset.Store,
+	syncManager *git.SyncManager,
 ) *Indexer {
 	return &Indexer{
-		db:         db,
-		vault:      v,
-		docStore:   docStore,
-		ftsStore:   ftsStore,
-		tagStore:   tagStore,
-		linkStore:  linkStore,
-		assetStore: assetStore,
-		parser:     document.NewParser(),
+		db:          db,
+		vault:       v,
+		docStore:    docStore,
+		ftsStore:    ftsStore,
+		tagStore:    tagStore,
+		linkStore:   linkStore,
+		assetStore:  assetStore,
+		parser:      document.NewParser(),
+		syncManager: syncManager,
 	}
 }
 
@@ -181,6 +185,8 @@ func (idx *Indexer) IndexDocument(ctx context.Context, docPath string) error {
 		return fmt.Errorf("committing transaction: %w", err)
 	}
 
+	idx.syncManager.NotifyChange(fmt.Sprintf("indexed %s", docPath))
+
 	return nil
 }
 
@@ -203,6 +209,8 @@ func (idx *Indexer) RemoveDocument(ctx context.Context, docPath string) error {
 	if err = tx.Commit(); err != nil {
 		return fmt.Errorf("committing transaction: %w", err)
 	}
+
+	idx.syncManager.NotifyChange(fmt.Sprintf("removed %s", docPath))
 
 	return nil
 }
@@ -227,6 +235,8 @@ func (idx *Indexer) RemoveDocumentCompletely(ctx context.Context, docPath string
 	if err = tx.Commit(); err != nil {
 		return fmt.Errorf("committing transaction: %w", err)
 	}
+
+	idx.syncManager.NotifyChange(fmt.Sprintf("removed %s completely", docPath))
 
 	return nil
 }

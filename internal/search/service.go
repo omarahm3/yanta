@@ -84,7 +84,7 @@ func (s *Service) Query(q string, limit, offset int) ([]Result, error) {
 	}
 
 	var sqlBuilder string
-	var args []interface{}
+	var args []any
 	var whereClauses []string
 
 	if hasFTSTerms {

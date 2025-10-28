@@ -1,5 +1,6 @@
 export { Button } from "./Button";
 export { Input } from "./Input";
+export { Select, type SelectOption } from "./Select";
 export { List, ListItem } from "./List";
 export { Modal } from "./Modal";
 export { CommandPalette, type CommandOption } from "./CommandPalette";

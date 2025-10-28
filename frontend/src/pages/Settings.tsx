@@ -1,31 +1,13 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
-import { SettingsState, SystemInfo, systemInfoFromModel } from "../types";
-import {
-  SettingsSection,
-  Toggle,
-  Input,
-  Button,
-  ShortcutsTable,
-  Shortcut,
-} from "../components/ui";
+import React, { useRef, useCallback } from "react";
+import { ShortcutsTable, Shortcut } from "../components/ui";
 import { Layout } from "../components/Layout";
 import { useSidebarSections } from "../hooks/useSidebarSections";
-import { useNotification } from "../hooks/useNotification";
 import { useHelp } from "../hooks/useHelp";
-import {
-  GetSystemInfo,
-  SetLogLevel,
-  GetKeepInBackground,
-  SetKeepInBackground,
-  GetStartHidden,
-  SetStartHidden,
-} from "../../wailsjs/go/system/Service";
-
-// Feature flags
-const FEATURES = {
-  GIT_SYNC: false,
-  EXPORT: false,
-};
+import { useSettingsController } from "./settings/useSettingsController";
+import { GeneralSection } from "./settings/GeneralSection";
+import { LoggingSection } from "./settings/LoggingSection";
+import { GitSyncSection } from "./settings/GitSyncSection";
+import { AboutSection } from "./settings/AboutSection";
 
 const actualShortcuts: Shortcut[] = [
   {
@@ -161,58 +143,18 @@ interface SettingsProps {
 }
 
 export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
-  const [settings, setSettings] = useState<SettingsState>({
-    gitSync: {
-      enabled: false,
-      repositoryPath: "",
-      remoteUrl: "",
-      syncFrequency: "daily",
-    },
-    export: {
-      defaultFormat: "md",
-      includeTimestamps: true,
-      includeProjectContext: true,
-      includeSyntaxHighlighting: false,
-    },
-    shortcuts: {},
-  });
-
-  const [shortcuts] = useState<Shortcut[]>(actualShortcuts);
-  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
-  const [needsRestart, setNeedsRestart] = useState(false);
-  const [keepInBackground, setKeepInBackground] = useState(false);
-  const [startHidden, setStartHidden] = useState(false);
-  const { success, error } = useNotification();
+  const controller = useSettingsController();
   const { setPageContext } = useHelp();
 
   const generalRef = useRef<HTMLDivElement>(null);
   const shortcutsRef = useRef<HTMLDivElement>(null);
   const loggingRef = useRef<HTMLDivElement>(null);
   const syncRef = useRef<HTMLDivElement>(null);
-  const exportRef = useRef<HTMLDivElement>(null);
   const aboutRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     setPageContext([], "Settings");
   }, [setPageContext]);
-
-  useEffect(() => {
-    GetSystemInfo()
-      .then((model) => setSystemInfo(systemInfoFromModel(model)))
-      .catch((err) => console.error("Failed to fetch system info:", err));
-
-    GetKeepInBackground()
-      .then((value) => setKeepInBackground(value))
-      .catch((err) =>
-        console.error("Failed to fetch keep in background setting:", err)
-      );
-
-    GetStartHidden()
-      .then((value) => setStartHidden(value))
-      .catch((err) =>
-        console.error("Failed to fetch start hidden setting:", err)
-      );
-  }, []);
 
   const scrollToSection = useCallback((sectionId: string) => {
     const refMap: Record<string, React.RefObject<HTMLDivElement>> = {
@@ -220,7 +162,6 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
       shortcuts: shortcutsRef,
       logging: loggingRef,
       sync: syncRef,
-      export: exportRef,
       about: aboutRef,
     };
 
@@ -229,82 +170,6 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
       ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, []);
-
-  const handleGitSyncToggle = useCallback(
-    (enabled: boolean) => {
-      setSettings((prev) => ({
-        ...prev,
-        gitSync: { ...prev.gitSync, enabled },
-      }));
-      success(enabled ? "Git sync enabled" : "Git sync disabled");
-    },
-    [success]
-  );
-
-  const handleExportToggle = useCallback(
-    (key: keyof SettingsState["export"], value: boolean) => {
-      setSettings((prev) => ({
-        ...prev,
-        export: { ...prev.export, [key]: value },
-      }));
-      success("Export settings updated");
-    },
-    [success]
-  );
-
-  const handleLogLevelChange = useCallback(
-    async (level: string) => {
-      try {
-        await SetLogLevel(level);
-        setNeedsRestart(true);
-        success(`Log level set to ${level}. Please restart the application.`);
-
-        const model = await GetSystemInfo();
-        setSystemInfo(systemInfoFromModel(model));
-      } catch (err) {
-        error(`Failed to set log level: ${err}`);
-      }
-    },
-    [success, error]
-  );
-
-  const handleKeepInBackgroundToggle = useCallback(
-    async (enabled: boolean) => {
-      try {
-        await SetKeepInBackground(enabled);
-        setKeepInBackground(enabled);
-        // If disabling keep_in_background, also disable start_hidden
-        if (!enabled) {
-          setStartHidden(false);
-        }
-        success(
-          enabled
-            ? "Window will hide to background when closed"
-            : "Window will quit when closed"
-        );
-      } catch (err) {
-        error(`Failed to update setting: ${err}`);
-      }
-    },
-    [success, error]
-  );
-
-  const handleStartHiddenToggle = useCallback(
-    async (enabled: boolean) => {
-      try {
-        await SetStartHidden(enabled);
-        setStartHidden(enabled);
-        success(
-          enabled
-            ? "App will start hidden in background"
-            : "App will start with window visible"
-        );
-      } catch (err) {
-        error(`Failed to update setting: ${err}`);
-      }
-    },
-    [success, error]
-  );
 
   const settingsItems = [
     {
@@ -322,19 +187,16 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
       label: "logging",
       onClick: () => scrollToSection("logging"),
     },
-    ...(FEATURES.GIT_SYNC
-      ? [{ id: "sync", label: "sync", onClick: () => scrollToSection("sync") }]
-      : []),
-    ...(FEATURES.EXPORT
-      ? [
-          {
-            id: "export",
-            label: "export",
-            onClick: () => scrollToSection("export"),
-          },
-        ]
-      : []),
-    { id: "about", label: "about", onClick: () => scrollToSection("about") },
+    {
+      id: "sync",
+      label: "sync",
+      onClick: () => scrollToSection("sync"),
+    },
+    {
+      id: "about",
+      label: "about",
+      onClick: () => scrollToSection("about"),
+    },
   ];
 
   const sidebarSections = useSidebarSections({
@@ -358,7 +220,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
     >
       <div className="h-full p-5 overflow-y-auto">
         <div className="max-w-4xl mx-auto">
-          {needsRestart && (
+          {controller.needsRestart && (
             <div className="p-4 mb-6 border border-yellow-700 rounded bg-yellow-900/30">
               <div className="mb-1 font-medium text-yellow-400">
                 Restart Required
@@ -370,380 +232,61 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
             </div>
           )}
 
-          {/* General Settings */}
-          <div ref={generalRef}>
-            <SettingsSection
-              title="General"
-              subtitle="Application behavior settings"
-            >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm text-text">
-                      Keep running in background when closed
-                    </div>
-                    <div className="text-xs text-text-dim">
-                      When enabled, closing the window will hide YANTA instead
-                      of quitting. Press Ctrl+Shift+Y anywhere to restore the
-                      window.
-                      {systemInfo?.app.platform.includes("linux") && (
-                        <span className="text-yellow-400">
-                          {" "}
-                          (Not available on Linux)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <Toggle
-                    checked={keepInBackground}
-                    onChange={handleKeepInBackgroundToggle}
-                    disabled={systemInfo?.app.platform.includes("linux")}
-                  />
-                </div>
+          <GeneralSection
+            ref={generalRef}
+            systemInfo={controller.systemInfo}
+            keepInBackground={controller.keepInBackground}
+            startHidden={controller.startHidden}
+            onKeepInBackgroundToggle={
+              controller.handlers.handleKeepInBackgroundToggle
+            }
+            onStartHiddenToggle={controller.handlers.handleStartHiddenToggle}
+          />
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm text-text">
-                      Start hidden in background
-                    </div>
-                    <div className="text-xs text-text-dim">
-                      When enabled, YANTA will start hidden. Press Ctrl+Shift+Y
-                      to show it. Requires "Keep running in background" to be
-                      enabled.
-                      {systemInfo?.app.platform.includes("linux") && (
-                        <span className="text-yellow-400">
-                          {" "}
-                          (Not available on Linux)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <Toggle
-                    checked={startHidden}
-                    onChange={handleStartHiddenToggle}
-                    disabled={
-                      !keepInBackground ||
-                      systemInfo?.app.platform.includes("linux")
-                    }
-                  />
-                </div>
-              </div>
-            </SettingsSection>
-          </div>
-
-          {/* Keyboard Shortcuts */}
           <div ref={shortcutsRef}>
-            <SettingsSection
-              title="Keyboard Shortcuts"
-              subtitle="All available keyboard shortcuts in Yanta"
-            >
-              <ShortcutsTable shortcuts={shortcuts} />
-            </SettingsSection>
-          </div>
-
-          {/* Logging Settings */}
-          <div ref={loggingRef}>
-            <SettingsSection
-              title="Logging"
-              subtitle="Configure application logging level"
-            >
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="block text-xs tracking-wider uppercase text-text-dim">
-                    Log Level
-                  </label>
-                  <select
-                    className="w-full px-3 py-2 text-sm border rounded bg-bg border-border text-text focus:outline-none focus:border-accent"
-                    value={systemInfo?.app.logLevel || "info"}
-                    onChange={(e) => handleLogLevelChange(e.target.value)}
-                  >
-                    <option value="debug">Debug</option>
-                    <option value="info">Info</option>
-                    <option value="warn">Warning</option>
-                    <option value="error">Error</option>
-                  </select>
-                  <div className="text-xs text-text-dim">
-                    Current level:{" "}
-                    <span className="font-mono text-accent">
-                      {systemInfo?.app.logLevel || "info"}
-                    </span>
-                  </div>
-                </div>
+            <div className="mt-8">
+              <div className="mb-6">
+                <h2 className="text-base font-medium text-text-bright">
+                  Keyboard Shortcuts
+                </h2>
+                <p className="text-sm text-text-dim">
+                  All available keyboard shortcuts in Yanta
+                </p>
               </div>
-            </SettingsSection>
+              <ShortcutsTable shortcuts={actualShortcuts} />
+            </div>
           </div>
 
-          {/* Git Sync Settings */}
-          {FEATURES.GIT_SYNC && (
-            <div ref={syncRef}>
-              <SettingsSection
-                title="Git Sync"
-                subtitle="Sync your entries with a Git repository"
-              >
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-sm text-text">Enable Git Sync</div>
-                      <div className="text-xs text-text-dim">
-                        Automatically sync entries to a Git repository
-                      </div>
-                    </div>
-                    <Toggle
-                      checked={settings.gitSync.enabled}
-                      onChange={handleGitSyncToggle}
-                    />
-                  </div>
+          <LoggingSection
+            ref={loggingRef}
+            systemInfo={controller.systemInfo}
+            logLevelOptions={controller.logLevelOptions}
+            onLogLevelChange={controller.handlers.handleLogLevelChange}
+          />
 
-                  <div className="space-y-2">
-                    <label className="block text-xs tracking-wider uppercase text-text-dim">
-                      Repository Path
-                    </label>
-                    <div className="flex gap-2">
-                      <Input
-                        variant="default"
-                        placeholder="/Users/username/Documents/yanta-backup"
-                        value={settings.gitSync.repositoryPath}
-                        onChange={(e) =>
-                          setSettings((prev) => ({
-                            ...prev,
-                            gitSync: {
-                              ...prev.gitSync,
-                              repositoryPath: e.target.value,
-                            },
-                          }))
-                        }
-                      />
-                      <Button variant="secondary" size="sm">
-                        Browse
-                      </Button>
-                    </div>
-                  </div>
+          <GitSyncSection
+            ref={syncRef}
+            gitInstalled={controller.gitInstalled}
+            currentDataDir={controller.currentDataDir}
+            migrationTarget={controller.migrationTarget}
+            setMigrationTarget={controller.setMigrationTarget}
+            isMigrating={controller.isMigrating}
+            migrationProgress={controller.migrationProgress}
+            gitSyncEnabled={controller.gitSync.enabled}
+            remoteUrl={controller.gitSync.remoteUrl}
+            syncFrequency={controller.gitSync.syncFrequency}
+            syncFrequencyOptions={controller.syncFrequencyOptions}
+            onGitSyncToggle={controller.handlers.handleGitSyncToggle}
+            onRemoteUrlChange={controller.handlers.handleRemoteUrlChange}
+            onSyncFrequencyChange={
+              controller.handlers.handleSyncFrequencyChange
+            }
+            onPickDirectory={controller.handlers.handlePickDirectory}
+            onMigration={controller.handlers.handleMigration}
+            onSyncNow={controller.handlers.handleSyncNow}
+          />
 
-                  <div className="space-y-2">
-                    <label className="block text-xs tracking-wider uppercase text-text-dim">
-                      Remote URL
-                    </label>
-                    <Input
-                      variant="default"
-                      placeholder="git@github.com:username/yanta-backup.git"
-                      value={settings.gitSync.remoteUrl}
-                      onChange={(e) =>
-                        setSettings((prev) => ({
-                          ...prev,
-                          gitSync: {
-                            ...prev.gitSync,
-                            remoteUrl: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-xs tracking-wider uppercase text-text-dim">
-                      Sync Frequency
-                    </label>
-                    <select
-                      className="w-full px-3 py-2 text-sm border rounded bg-bg border-border text-text focus:outline-none focus:border-accent"
-                      value={settings.gitSync.syncFrequency}
-                      onChange={(e) =>
-                        setSettings((prev) => ({
-                          ...prev,
-                          gitSync: {
-                            ...prev.gitSync,
-                            syncFrequency: e.target.value as any,
-                          },
-                        }))
-                      }
-                    >
-                      <option value="realtime">
-                        Real-time (on every save)
-                      </option>
-                      <option value="hourly">Every hour</option>
-                      <option value="daily">Daily</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="manual">Manual only</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Button variant="primary" size="sm">
-                      Test Connection
-                    </Button>
-                    <Button variant="secondary" size="sm">
-                      Sync Now
-                    </Button>
-                    <span className="text-xs text-text-dim">
-                      Not configured
-                    </span>
-                  </div>
-
-                  <div className="text-xs text-text-dim">Last sync: Never</div>
-                </div>
-              </SettingsSection>
-            </div>
-          )}
-
-          {/* Export Settings */}
-          {FEATURES.EXPORT && (
-            <div ref={exportRef}>
-              <SettingsSection
-                title="Export Options"
-                subtitle="Configure default export formats"
-              >
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="block text-xs tracking-wider uppercase text-text-dim">
-                      Default Export Format
-                    </label>
-                    <select
-                      className="w-full px-3 py-2 text-sm border rounded bg-bg border-border text-text focus:outline-none focus:border-accent"
-                      value={settings.export.defaultFormat}
-                      onChange={(e) =>
-                        setSettings((prev) => ({
-                          ...prev,
-                          export: {
-                            ...prev.export,
-                            defaultFormat: e.target.value as any,
-                          },
-                        }))
-                      }
-                    >
-                      <option value="md">Markdown (.md)</option>
-                      <option value="json">JSON (.json)</option>
-                      <option value="html">HTML (.html)</option>
-                      <option value="txt">Plain Text (.txt)</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-text">
-                      Include timestamps in exports
-                    </div>
-                    <Toggle
-                      checked={settings.export.includeTimestamps}
-                      onChange={(checked) =>
-                        handleExportToggle("includeTimestamps", checked)
-                      }
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-text">
-                      Include project context
-                    </div>
-                    <Toggle
-                      checked={settings.export.includeProjectContext}
-                      onChange={(checked) =>
-                        handleExportToggle("includeProjectContext", checked)
-                      }
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-text">
-                      Export code blocks with syntax highlighting
-                    </div>
-                    <Toggle
-                      checked={settings.export.includeSyntaxHighlighting}
-                      onChange={(checked) =>
-                        handleExportToggle("includeSyntaxHighlighting", checked)
-                      }
-                    />
-                  </div>
-                </div>
-              </SettingsSection>
-            </div>
-          )}
-
-          {/* Version Info */}
-          <div ref={aboutRef}>
-            <SettingsSection
-              title="About Yanta"
-              subtitle="Version and system information"
-            >
-              {systemInfo ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="mb-1 text-xs tracking-wider uppercase text-text-dim">
-                      Version
-                    </div>
-                    <div className="font-mono text-sm text-text">
-                      {systemInfo.app.version}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="mb-1 text-xs tracking-wider uppercase text-text-dim">
-                      Build Commit
-                    </div>
-                    <div className="font-mono text-sm text-cyan">
-                      {systemInfo.app.buildCommit || "N/A"}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="mb-1 text-xs tracking-wider uppercase text-text-dim">
-                      Build Date
-                    </div>
-                    <div className="font-mono text-sm text-text">
-                      {systemInfo.app.buildDate || "N/A"}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="mb-1 text-xs tracking-wider uppercase text-text-dim">
-                      Platform
-                    </div>
-                    <div className="font-mono text-sm text-text">
-                      {systemInfo.app.platform}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="mb-1 text-xs tracking-wider uppercase text-text-dim">
-                      Go Version
-                    </div>
-                    <div className="font-mono text-sm text-text">
-                      {systemInfo.app.goVersion}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="mb-1 text-xs tracking-wider uppercase text-text-dim">
-                      Documents
-                    </div>
-                    <div className="font-mono text-sm text-text">
-                      {systemInfo.database.entriesCount}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="mb-1 text-xs tracking-wider uppercase text-text-dim">
-                      Projects
-                    </div>
-                    <div className="font-mono text-sm text-text">
-                      {systemInfo.database.projectsCount}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="mb-1 text-xs tracking-wider uppercase text-text-dim">
-                      Tags
-                    </div>
-                    <div className="font-mono text-sm text-text">
-                      {systemInfo.database.tagsCount}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="mb-1 text-xs tracking-wider uppercase text-text-dim">
-                      Storage Used
-                    </div>
-                    <div className="font-mono text-sm text-text">
-                      {systemInfo.database.storageUsed}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-sm text-text-dim">
-                  Loading system information...
-                </div>
-              )}
-            </SettingsSection>
-          </div>
+          <AboutSection ref={aboutRef} systemInfo={controller.systemInfo} />
         </div>
       </div>
     </Layout>
