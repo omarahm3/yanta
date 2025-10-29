@@ -1,15 +1,19 @@
 import React from "react";
+import {
+  RiCircleLine,
+  RiCheckLine,
+  RiCloseLine,
+  RiLoader4Line,
+  RiRecordCircleFill,
+} from "react-icons/ri";
 import { SaveState } from "../../hooks/useAutoSave";
 
 interface DocumentEditorActionsProps {
-  isEditMode: boolean;
   isArchived?: boolean;
   saveState: SaveState;
   lastSaved: Date | null;
   hasUnsavedChanges: boolean;
   saveError: Error | null;
-  onCancel: () => void;
-  onSaveNow?: () => void;
 }
 
 const formatTimeSince = (date: Date): string => {
@@ -23,56 +27,69 @@ const formatTimeSince = (date: Date): string => {
 };
 
 export const DocumentEditorActions: React.FC<DocumentEditorActionsProps> = ({
-  isEditMode,
   isArchived = false,
   saveState,
   lastSaved,
   hasUnsavedChanges,
   saveError,
-  onCancel,
-  onSaveNow,
 }) => {
-  const getSaveStatusText = () => {
-    if (isArchived) return "Archived document (read-only)";
-    if (saveState === "saving") return "Saving...";
-    if (saveState === "error" && saveError)
-      return `Error: ${saveError.message}`;
-    if (saveState === "saved" && lastSaved)
-      return `Saved ${formatTimeSince(lastSaved)}`;
-    if (hasUnsavedChanges) return "Unsaved changes";
-    if (isEditMode && lastSaved) return `Saved ${formatTimeSince(lastSaved)}`;
-    return "Ready";
+  const getStatusIndicator = () => {
+    if (isArchived) {
+      return {
+        icon: RiCircleLine,
+        text: "Read-only",
+        color: "text-accent",
+        iconClass: "",
+      };
+    }
+    if (saveState === "saving") {
+      return {
+        icon: RiLoader4Line,
+        text: "Saving",
+        color: "text-accent",
+        iconClass: "animate-spin",
+      };
+    }
+    if (saveState === "error" && saveError) {
+      return {
+        icon: RiCloseLine,
+        text: saveError.message,
+        color: "text-red",
+        iconClass: "",
+      };
+    }
+    if (hasUnsavedChanges) {
+      return {
+        icon: RiRecordCircleFill,
+        text: "Unsaved",
+        color: "text-yellow",
+        iconClass: "",
+      };
+    }
+    if (lastSaved) {
+      return {
+        icon: RiCheckLine,
+        text: formatTimeSince(lastSaved),
+        color: "text-green",
+        iconClass: "",
+      };
+    }
+    return {
+      icon: RiCircleLine,
+      text: "Ready",
+      color: "text-text-dim",
+      iconClass: "",
+    };
   };
 
-  const getStatusColor = () => {
-    if (isArchived) return "text-accent";
-    if (saveState === "saving") return "text-accent";
-    if (saveState === "error") return "text-red";
-    if (saveState === "saved") return "text-green";
-    return "text-text-dim";
-  };
+  const status = getStatusIndicator();
+  const IconComponent = status.icon;
 
   return (
-    <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-bg">
-      <div className={`text-sm ${getStatusColor()}`}>{getSaveStatusText()}</div>
-
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium transition-colors text-text-dim hover:text-text"
-          disabled={saveState === "saving"}
-        >
-          {isEditMode ? "Close" : "Cancel"}
-        </button>
-        {onSaveNow && !isArchived && hasUnsavedChanges && (
-          <button
-            onClick={onSaveNow}
-            disabled={saveState === "saving"}
-            className="px-6 py-2 text-sm font-medium transition-colors rounded bg-accent text-bg hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {saveState === "saving" ? "Saving..." : "Save Now"}
-          </button>
-        )}
+    <div className="flex items-center justify-center px-4 py-2 border-t border-border/50 bg-bg">
+      <div className={`flex items-center gap-2 text-xs ${status.color}`}>
+        <IconComponent className={status.iconClass} />
+        <span>{status.text}</span>
       </div>
     </div>
   );

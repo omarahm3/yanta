@@ -276,7 +276,6 @@ export function useDocumentController({
     onBlocksChange: setBlocks,
     onTagRemove: removeTag,
     onEditorReady: handleEditorReadyWithRef,
-    onCancel: handleCancel,
     onRestore: isArchived ? handleRestore : undefined,
   };
 

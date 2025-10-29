@@ -68,7 +68,6 @@ vi.mock("../hooks/useDocumentPersistence", () => ({
       lastSaved: null,
       saveError: null,
     },
-    handleSave: vi.fn(),
   }),
 }));
 
@@ -151,7 +150,7 @@ describe("Document hotkeys", () => {
     mockEditorFocus.mockClear();
   });
 
-  it("saves immediately on mod+s", async () => {
+  it("triggers auto-save immediately on mod+s", async () => {
     const ctx = await renderDocument();
 
     const hotkey = ctx.getRegisteredHotkeys().find((h) => h.key === "mod+s");

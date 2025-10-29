@@ -32,7 +32,6 @@ export interface DocumentContentProps {
   onBlocksChange: (blocks: BlockNoteBlock[]) => void;
   onTagRemove: (tag: string) => void;
   onEditorReady: (editor: BlockNoteEditor) => void;
-  onCancel: () => void;
   onRestore?: () => void;
   isRestoring?: boolean;
 }
@@ -53,7 +52,6 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
     onBlocksChange,
     onTagRemove,
     onEditorReady,
-    onCancel,
     onRestore,
     isRestoring = false,
   }) => (
@@ -99,14 +97,11 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
         />
 
         <DocumentEditorActions
-          isEditMode={isEditMode}
           saveState={autoSave.saveState}
           lastSaved={autoSave.lastSaved}
           hasUnsavedChanges={autoSave.hasUnsavedChanges}
           saveError={autoSave.saveError}
           isArchived={isArchived}
-          onCancel={onCancel}
-          onSaveNow={!isArchived ? autoSave.saveNow : undefined}
         />
       </div>
     </Layout>

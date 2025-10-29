@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { useNotification } from "./useNotification";
-import { useDocumentSaver } from "./useDocumentSaver";
+import { useAutoDocumentSaver } from "./useDocumentSaver";
 import { useAutoSave } from "./useAutoSave";
 import { BlockNoteBlock } from "../types/Document";
 
@@ -20,7 +19,10 @@ interface UseDocumentPersistenceProps {
   shouldAutoSave: boolean;
   resetChanges: () => void;
   onAutoSaveComplete: () => void;
-  onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
+  onNavigate?: (
+    page: string,
+    state?: Record<string, string | number | boolean | undefined>,
+  ) => void;
 }
 
 export const useDocumentPersistence = ({
@@ -34,8 +36,6 @@ export const useDocumentPersistence = ({
   onAutoSaveComplete,
   onNavigate,
 }: UseDocumentPersistenceProps) => {
-  const { success, error } = useNotification();
-
   const latestFormRef = useRef(formData);
   const currentDocumentPathRef = useRef(documentPath);
   const isSavingRef = useRef(false);
@@ -48,21 +48,10 @@ export const useDocumentPersistence = ({
     currentDocumentPathRef.current = documentPath;
   }, [documentPath]);
 
-  const { save } = useDocumentSaver(
-    (successMsg) => {
-      success(successMsg);
-      resetChanges();
-    },
-    (errorMsg) => error(errorMsg),
-  );
+  const { save } = useAutoDocumentSaver();
 
   const handleSave = useCallback(async () => {
-    if (isSavingRef.current) {
-      return;
-    }
-
-    if (!currentProject) {
-      error("No project selected");
+    if (isSavingRef.current || !currentProject) {
       return;
     }
 
@@ -81,16 +70,22 @@ export const useDocumentPersistence = ({
         projectAlias: currentProject.alias,
       });
 
+      if (savedPath) {
+        resetChanges();
+      }
+
       if (isNewDocument && savedPath) {
         currentDocumentPathRef.current = savedPath;
         if (onNavigate) {
           onNavigate("document", { documentPath: savedPath });
         }
       }
+    } catch (err) {
+      console.error("Save failed:", err);
     } finally {
       isSavingRef.current = false;
     }
-  }, [currentProject, save, error, onNavigate]);
+  }, [currentProject, save, onNavigate, resetChanges]);
 
   useEffect(() => {
     if (shouldAutoSave && currentProject && !isLoading) {
@@ -105,7 +100,7 @@ export const useDocumentPersistence = ({
     onAutoSaveComplete,
   ]);
 
-  const autoSave = useAutoSave({
+  const autoSaveHook = useAutoSave({
     value: formData,
     onSave: handleSave,
     delay: 2000,
@@ -114,7 +109,6 @@ export const useDocumentPersistence = ({
   });
 
   return {
-    handleSave,
-    autoSave,
+    autoSave: autoSaveHook,
   };
 };

@@ -12,6 +12,7 @@ export default {
         "text-bright": "#f0f6fc",
         accent: "#58a6ff",
         green: "#3fb950",
+        yellow: "#d29922",
         purple: "#a371f7",
         orange: "#fb8500",
         red: "#f85149",

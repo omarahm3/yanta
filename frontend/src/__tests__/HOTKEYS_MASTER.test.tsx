@@ -20,12 +20,33 @@ describe("Hotkey coverage", () => {
       },
       dashboard: {
         component: "Dashboard.tsx",
-        hotkeys: ["mod+N", "mod+shift+A", "j", "k", "ArrowDown", "ArrowUp", "Enter", "mod+A", "mod+U"],
+        hotkeys: [
+          "mod+N",
+          "mod+shift+A",
+          "j",
+          "k",
+          "ArrowDown",
+          "ArrowUp",
+          "Enter",
+          "mod+A",
+          "mod+U",
+        ],
         testFile: "Dashboard.hotkeys.test.tsx",
       },
       projects: {
         component: "Projects.tsx",
-        hotkeys: ["j", "k", "ArrowDown", "ArrowUp", "Enter", "mod+N", "mod+A", "mod+U", "mod+R", "mod+D"],
+        hotkeys: [
+          "j",
+          "k",
+          "ArrowDown",
+          "ArrowUp",
+          "Enter",
+          "mod+N",
+          "mod+A",
+          "mod+U",
+          "mod+R",
+          "mod+D",
+        ],
         testFile: "Projects.hotkeys.test.tsx",
       },
       search: {
@@ -35,7 +56,14 @@ describe("Hotkey coverage", () => {
       },
       commandPalette: {
         component: "CommandPalette.tsx",
-        hotkeys: ["Escape", "Ctrl+N", "Ctrl+P", "ArrowDown", "ArrowUp", "Enter"],
+        hotkeys: [
+          "Escape",
+          "Ctrl+N",
+          "Ctrl+P",
+          "ArrowDown",
+          "ArrowUp",
+          "Enter",
+        ],
         testFile: "CommandPalette.hotkeys.test.tsx",
       },
       helpModal: {
@@ -52,9 +80,11 @@ describe("Hotkey coverage", () => {
 
     const totalHotkeys = Object.values(coverage).reduce(
       (sum, data) => sum + data.hotkeys.length,
-      0
+      0,
     );
-    console.log(`\nTotal: ${totalHotkeys} hotkeys tested across ${Object.keys(coverage).length} components\n`);
+    console.log(
+      `\nTotal: ${totalHotkeys} hotkeys tested across ${Object.keys(coverage).length} components\n`,
+    );
 
     expect(Object.keys(coverage)).toHaveLength(8);
     expect(totalHotkeys).toBe(43);

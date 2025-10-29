@@ -4,7 +4,7 @@ export { useSidebarSections } from "./useSidebarSections";
 export { useHotkey, useHotkeys } from "./useHotkey";
 export { useGlobalCommand } from "./useGlobalCommand";
 export { useDocumentForm } from "./useDocumentForm";
-export { useDocumentSaver } from "./useDocumentSaver";
+export { useAutoDocumentSaver } from "./useDocumentSaver";
 export { useDocumentLoader } from "./useDocumentLoader";
 export { useAutoSave } from "./useAutoSave";
 export type { SaveState } from "./useAutoSave";

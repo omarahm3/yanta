@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from "react";
 
-export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+export type SaveState = "idle" | "saving" | "saved" | "error";
 
 interface AutoSaveConfig<T> {
   value: T;
@@ -28,7 +28,7 @@ export const useAutoSave = <T>({
   enabled = true,
   saveOnBlur = true,
 }: AutoSaveConfig<T>): AutoSaveReturn => {
-  const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [saveState, setSaveState] = useState<SaveState>("idle");
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [saveError, setSaveError] = useState<Error | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -42,6 +42,11 @@ export const useAutoSave = <T>({
   const hasUserMadeChangesRef = useRef(false);
   const savedStateTimeoutRef = useRef<number | null>(null);
   const retryTimeoutRef = useRef<number | null>(null);
+  const onSaveRef = useRef(onSave);
+
+  useEffect(() => {
+    onSaveRef.current = onSave;
+  }, [onSave]);
 
   const performSave = useCallback(async (retryCount = 0): Promise<void> => {
     if (isSavingRef.current) {
@@ -49,14 +54,14 @@ export const useAutoSave = <T>({
     }
 
     isSavingRef.current = true;
-    setSaveState('saving');
+    setSaveState("saving");
     setSaveError(null);
 
     try {
-      await onSave();
+      await onSaveRef.current();
       lastSavedValueRef.current = lastValueRef.current;
       setLastSaved(new Date());
-      setSaveState('saved');
+      setSaveState("saved");
       setHasUnsavedChanges(false);
       retryCountRef.current = 0;
 
@@ -64,11 +69,11 @@ export const useAutoSave = <T>({
         clearTimeout(savedStateTimeoutRef.current);
       }
       savedStateTimeoutRef.current = window.setTimeout(() => {
-        setSaveState('idle');
+        setSaveState("idle");
         savedStateTimeoutRef.current = null;
       }, 3000);
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Save failed');
+      const error = err instanceof Error ? err : new Error("Save failed");
 
       if (retryCount < MAX_RETRIES) {
         retryCountRef.current = retryCount + 1;
@@ -83,13 +88,13 @@ export const useAutoSave = <T>({
         }, retryDelay);
       } else {
         setSaveError(error);
-        setSaveState('error');
+        setSaveState("error");
         retryCountRef.current = 0;
       }
     } finally {
       isSavingRef.current = false;
     }
-  }, [onSave]);
+  }, []);
 
   const saveNow = useCallback(async () => {
     if (timeoutRef.current) {
@@ -102,8 +107,10 @@ export const useAutoSave = <T>({
   useEffect(() => {
     lastValueRef.current = value;
 
-    const valueChanged = JSON.stringify(value) !== JSON.stringify(lastSavedValueRef.current);
-    const changedFromInitial = JSON.stringify(value) !== JSON.stringify(initialValueRef.current);
+    const valueChanged =
+      JSON.stringify(value) !== JSON.stringify(lastSavedValueRef.current);
+    const changedFromInitial =
+      JSON.stringify(value) !== JSON.stringify(initialValueRef.current);
 
     if (changedFromInitial && !hasUserMadeChangesRef.current) {
       hasUserMadeChangesRef.current = true;
@@ -115,12 +122,18 @@ export const useAutoSave = <T>({
       return;
     }
 
+    if (isSavingRef.current) {
+      return;
+    }
+
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
 
     timeoutRef.current = window.setTimeout(() => {
-      performSave();
+      if (!isSavingRef.current) {
+        performSave();
+      }
       timeoutRef.current = null;
     }, delay);
 
@@ -143,8 +156,8 @@ export const useAutoSave = <T>({
       }
     };
 
-    window.addEventListener('blur', handleBlur);
-    return () => window.removeEventListener('blur', handleBlur);
+    window.addEventListener("blur", handleBlur);
+    return () => window.removeEventListener("blur", handleBlur);
   }, [saveOnBlur, enabled, hasUnsavedChanges, saveNow]);
 
   useEffect(() => {
@@ -156,12 +169,12 @@ export const useAutoSave = <T>({
       if (hasUnsavedChanges) {
         saveNow();
         e.preventDefault();
-        e.returnValue = '';
+        e.returnValue = "";
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [enabled, hasUnsavedChanges, saveNow]);
 
   useEffect(() => {
