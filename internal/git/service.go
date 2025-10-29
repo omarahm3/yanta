@@ -47,6 +47,7 @@ func (s *Service) IsRepository(path string) (bool, error) {
 func (s *Service) Init(path string) error {
 	cmd := exec.Command("git", "init")
 	cmd.Dir = path
+	hideConsoleWindow(cmd)
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -79,6 +80,7 @@ func (s *Service) AddAll(path string) error {
 
 	cmd := exec.CommandContext(ctx, "git", "add", "-A")
 	cmd.Dir = path
+	hideConsoleWindow(cmd)
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -101,6 +103,7 @@ func (s *Service) Commit(path, message string) error {
 
 	cmd := exec.CommandContext(ctx, "git", "commit", "-m", message)
 	cmd.Dir = path
+	hideConsoleWindow(cmd)
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -123,6 +126,7 @@ func (s *Service) Commit(path, message string) error {
 func (s *Service) SetRemote(path, name, url string) error {
 	cmd := exec.Command("git", "remote", "add", name, url)
 	cmd.Dir = path
+	hideConsoleWindow(cmd)
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -132,6 +136,7 @@ func (s *Service) SetRemote(path, name, url string) error {
 		if strings.Contains(errMsg, "already exists") {
 			cmd = exec.Command("git", "remote", "set-url", name, url)
 			cmd.Dir = path
+			hideConsoleWindow(cmd)
 			cmd.Stderr = &stderr
 			if err := cmd.Run(); err != nil {
 				return fmt.Errorf("git remote set-url failed: %w: %s", err, stderr.String())
@@ -150,6 +155,7 @@ func (s *Service) Push(path, remote, branch string) error {
 
 	cmd := exec.CommandContext(ctx, "git", "push", remote, branch)
 	cmd.Dir = path
+	hideConsoleWindow(cmd)
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -172,6 +178,7 @@ func (s *Service) GetStatus(path string) (*Status, error) {
 
 	cmd := exec.CommandContext(ctx, "git", "status", "--porcelain")
 	cmd.Dir = path
+	hideConsoleWindow(cmd)
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

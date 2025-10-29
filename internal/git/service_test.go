@@ -231,16 +231,19 @@ func configureGitUser(t *testing.T, repoPath string) {
 	t.Helper()
 	cmd := exec.Command("git", "config", "user.email", "test@example.com")
 	cmd.Dir = repoPath
+	hideConsoleWindow(cmd)
 	require.NoError(t, cmd.Run())
 
 	cmd = exec.Command("git", "config", "user.name", "Test User")
 	cmd.Dir = repoPath
+	hideConsoleWindow(cmd)
 	require.NoError(t, cmd.Run())
 }
 
 func getGitStatus(repoPath string) (string, error) {
 	cmd := exec.Command("git", "status", "--porcelain")
 	cmd.Dir = repoPath
+	hideConsoleWindow(cmd)
 	output, err := cmd.CombinedOutput()
 	return string(output), err
 }
