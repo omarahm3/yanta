@@ -19,10 +19,12 @@ interface GitSyncSectionProps {
   gitSyncEnabled: boolean;
   remoteUrl: string;
   syncFrequency: string;
+  autoPush: boolean;
   syncFrequencyOptions: SelectOption[];
   onGitSyncToggle: (enabled: boolean) => void;
   onRemoteUrlChange: (url: string) => void;
   onSyncFrequencyChange: (frequency: string) => void;
+  onAutoPushToggle: (enabled: boolean) => void;
   onPickDirectory: () => void;
   onMigration: () => void;
   onSyncNow: () => void;
@@ -43,10 +45,12 @@ export const GitSyncSection = React.forwardRef<
       gitSyncEnabled,
       remoteUrl,
       syncFrequency,
+      autoPush,
       syncFrequencyOptions,
       onGitSyncToggle,
       onRemoteUrlChange,
       onSyncFrequencyChange,
+      onAutoPushToggle,
       onPickDirectory,
       onMigration,
       onSyncNow,
@@ -162,6 +166,20 @@ export const GitSyncSection = React.forwardRef<
                   />
                 </div>
 
+                <div className="flex items-center justify-between pt-2">
+                  <div>
+                    <div className="text-sm text-text">Auto-push to remote</div>
+                    <div className="text-xs text-text-dim">
+                      Push commits to remote repository automatically
+                    </div>
+                  </div>
+                  <Toggle
+                    checked={autoPush}
+                    onChange={onAutoPushToggle}
+                    disabled={!gitInstalled}
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Button
                     variant="primary"
@@ -171,9 +189,6 @@ export const GitSyncSection = React.forwardRef<
                   >
                     Sync Now
                   </Button>
-                  <div className="text-xs text-text-dim">
-                    Tip: Use :sync in command palette for quick access
-                  </div>
                 </div>
               </>
             )}
