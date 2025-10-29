@@ -17,12 +17,10 @@ interface GitSyncSectionProps {
   isMigrating: boolean;
   migrationProgress: string;
   gitSyncEnabled: boolean;
-  remoteUrl: string;
   syncFrequency: string;
   autoPush: boolean;
   syncFrequencyOptions: SelectOption[];
   onGitSyncToggle: (enabled: boolean) => void;
-  onRemoteUrlChange: (url: string) => void;
   onSyncFrequencyChange: (frequency: string) => void;
   onAutoPushToggle: (enabled: boolean) => void;
   onPickDirectory: () => void;
@@ -43,12 +41,10 @@ export const GitSyncSection = React.forwardRef<
       isMigrating,
       migrationProgress,
       gitSyncEnabled,
-      remoteUrl,
       syncFrequency,
       autoPush,
       syncFrequencyOptions,
       onGitSyncToggle,
-      onRemoteUrlChange,
       onSyncFrequencyChange,
       onAutoPushToggle,
       onPickDirectory,
@@ -142,19 +138,6 @@ export const GitSyncSection = React.forwardRef<
 
             {gitSyncEnabled && (
               <>
-                <div className="space-y-2">
-                  <label className="block text-xs tracking-wider uppercase text-text-dim">
-                    Remote URL (Optional)
-                  </label>
-                  <Input
-                    variant="default"
-                    placeholder="git@github.com:username/repo.git"
-                    value={remoteUrl}
-                    onChange={(e) => onRemoteUrlChange(e.target.value)}
-                    className="w-full"
-                  />
-                </div>
-
                 <div className="space-y-2">
                   <label className="block text-xs tracking-wider uppercase text-text-dim">
                     Commit Mode

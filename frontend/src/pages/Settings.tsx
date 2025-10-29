@@ -318,12 +318,10 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
             isMigrating={controller.isMigrating}
             migrationProgress={controller.migrationProgress}
             gitSyncEnabled={controller.gitSync.enabled}
-            remoteUrl={controller.gitSync.remoteUrl}
             syncFrequency={controller.gitSync.syncFrequency}
             autoPush={controller.gitSync.autoPush}
             syncFrequencyOptions={controller.syncFrequencyOptions}
             onGitSyncToggle={controller.handlers.handleGitSyncToggle}
-            onRemoteUrlChange={controller.handlers.handleRemoteUrlChange}
             onSyncFrequencyChange={
               controller.handlers.handleSyncFrequencyChange
             }

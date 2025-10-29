@@ -252,7 +252,6 @@ export namespace config {
 	export class GitSyncConfig {
 	    Enabled: boolean;
 	    RepositoryPath: string;
-	    RemoteURL: string;
 	    AutoCommit: boolean;
 	    AutoPush: boolean;
 	
@@ -264,7 +263,6 @@ export namespace config {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.Enabled = source["Enabled"];
 	        this.RepositoryPath = source["RepositoryPath"];
-	        this.RemoteURL = source["RemoteURL"];
 	        this.AutoCommit = source["AutoCommit"];
 	        this.AutoPush = source["AutoPush"];
 	    }

@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"yanta/internal/config"
-	"yanta/internal/db"
 	"yanta/internal/logger"
 )
 
@@ -18,7 +17,6 @@ type GitService interface {
 	CreateGitIgnore(path string, patterns []string) error
 	AddAll(path string) error
 	Commit(path, message string) error
-	SetRemote(path, name, url string) error
 }
 
 type Service struct {
@@ -69,20 +67,15 @@ func (s *Service) ValidateTargetDirectory(targetPath string) error {
 		return fmt.Errorf("target path is not a directory")
 	}
 
-	vaultPath := filepath.Join(absPath, "vault")
-	dbPath := filepath.Join(absPath, "yanta.db")
-
-	if _, err := os.Stat(vaultPath); err == nil {
-		return fmt.Errorf("target directory contains YANTA data (vault directory exists)")
-	}
-	if _, err := os.Stat(dbPath); err == nil {
-		return fmt.Errorf("target directory contains YANTA data (database exists)")
+	targetVaultPath := filepath.Join(absPath, "vault")
+	if _, err := os.Stat(targetVaultPath); err == nil {
+		logger.Info("target has existing vault - will use vault files from target directory")
 	}
 
 	return nil
 }
 
-func (s *Service) MigrateData(targetPath, remoteURL string) error {
+func (s *Service) MigrateData(targetPath string) error {
 	logger.Infof("starting data migration to %s", targetPath)
 
 	absTarget, err := filepath.Abs(targetPath)
@@ -100,12 +93,26 @@ func (s *Service) MigrateData(targetPath, remoteURL string) error {
 	}
 
 	currentDataDir := config.GetDataDirectory()
-	logger.Infof("current data directory: %s", currentDataDir)
+	currentAbs, err := filepath.Abs(currentDataDir)
+	if err != nil {
+		return fmt.Errorf("resolving current data directory: %w", err)
+	}
+	logger.Infof("current data directory: %s", currentAbs)
 
-	if err := os.MkdirAll(absTarget, 0755); err != nil {
-		return fmt.Errorf("creating target directory: %w", err)
+	// Determine migration scenario
+	currentVaultPath := filepath.Join(currentAbs, "vault")
+	hasCurrentData := false
+	if _, err := os.Stat(currentVaultPath); err == nil {
+		hasCurrentData = true
 	}
 
+	targetVaultPath := filepath.Join(absTarget, "vault")
+	hasTargetVault := false
+	if _, err := os.Stat(targetVaultPath); err == nil {
+		hasTargetVault = true
+	}
+
+	// Close database before any operations
 	if s.database != nil {
 		logger.Info("closing database connection")
 		if err := s.database.Close(); err != nil {
@@ -113,46 +120,102 @@ func (s *Service) MigrateData(targetPath, remoteURL string) error {
 		}
 	}
 
-	vaultSrc := filepath.Join(currentDataDir, "vault")
-	vaultDst := filepath.Join(absTarget, "vault")
-	logger.Infof("copying vault: %s -> %s", vaultSrc, vaultDst)
-	if err := s.copyDirectory(vaultSrc, vaultDst); err != nil {
-		s.rollback(absTarget, currentDataDir)
-		return fmt.Errorf("copying vault data: %w", err)
+	if err := os.MkdirAll(absTarget, 0755); err != nil {
+		return fmt.Errorf("creating target directory: %w", err)
 	}
 
-	dbSrc := filepath.Join(currentDataDir, "yanta.db")
-	dbDst := filepath.Join(absTarget, "yanta.db")
-	logger.Infof("copying database: %s -> %s", dbSrc, dbDst)
-	if err := s.copyFile(dbSrc, dbDst); err != nil {
-		s.rollback(absTarget, currentDataDir)
-		return fmt.Errorf("copying database: %w", err)
+	if hasCurrentData {
+		return s.migrateExistingData(currentAbs, absTarget)
 	}
 
-	logger.Info("verifying data integrity")
-	if err := s.verifyIntegrity(vaultSrc, vaultDst); err != nil {
-		s.rollback(absTarget, currentDataDir)
-		return fmt.Errorf("integrity verification failed: %w", err)
+	if hasTargetVault {
+		return s.initializeWithExistingVault(absTarget)
 	}
 
-	logger.Info("verifying database can be opened")
-	testDB, err := db.OpenDB(dbDst)
+	return s.initializeFreshVault(absTarget)
+}
+
+func (s *Service) migrateExistingData(currentDataDir, targetPath string) error {
+	logger.Info("migrating existing data to new location")
+
+	targetVaultPath := filepath.Join(targetPath, "vault")
+	targetHasVault := false
+	if _, err := os.Stat(targetVaultPath); err == nil {
+		targetHasVault = true
+		logger.Info("target already has vault - will use existing vault files")
+	}
+
+	if !targetHasVault {
+		vaultSrc := filepath.Join(currentDataDir, "vault")
+		if _, err := os.Stat(vaultSrc); err == nil {
+			logger.Infof("copying vault: %s -> %s", vaultSrc, targetVaultPath)
+			if err := s.copyDirectory(vaultSrc, targetVaultPath); err != nil {
+				s.rollback(targetPath, currentDataDir)
+				return fmt.Errorf("copying vault data: %w", err)
+			}
+
+			logger.Info("verifying vault integrity")
+			if err := s.verifyIntegrity(vaultSrc, targetVaultPath); err != nil {
+				s.rollback(targetPath, currentDataDir)
+				return fmt.Errorf("integrity verification failed: %w", err)
+			}
+		} else {
+			logger.Info("current directory has no vault - will create empty vault structure")
+		}
+	}
+
+	targetDBPath := filepath.Join(targetPath, "yanta.db")
+	if _, err := os.Stat(targetDBPath); err == nil {
+		logger.Info("removing existing database from target - will rebuild from vault files")
+		if err := os.Remove(targetDBPath); err != nil {
+			logger.Warnf("failed to remove existing database: %v", err)
+		}
+	}
+
+	return s.setupGitRepository(targetPath, currentDataDir)
+}
+
+func (s *Service) initializeWithExistingVault(targetPath string) error {
+	logger.Info("initializing YANTA with existing vault files")
+
+	dbPath := filepath.Join(targetPath, "yanta.db")
+	if _, err := os.Stat(dbPath); err == nil {
+		logger.Info("removing existing database - will rebuild from vault files")
+		if err := os.Remove(dbPath); err != nil {
+			return fmt.Errorf("removing existing database: %w", err)
+		}
+	}
+
+	return s.setupGitRepository(targetPath, "")
+}
+
+func (s *Service) initializeFreshVault(targetPath string) error {
+	logger.Info("initializing fresh YANTA vault")
+
+	vaultPath := filepath.Join(targetPath, "vault")
+	projectsPath := filepath.Join(vaultPath, "projects")
+	if err := os.MkdirAll(projectsPath, 0755); err != nil {
+		return fmt.Errorf("creating vault structure: %w", err)
+	}
+
+	return s.setupGitRepository(targetPath, "")
+}
+
+func (s *Service) setupGitRepository(targetPath, originalDataDir string) error {
+	isRepo, err := s.gitService.IsRepository(targetPath)
 	if err != nil {
-		s.rollback(absTarget, currentDataDir)
-		return fmt.Errorf("cannot open migrated database: %w", err)
-	}
-	testDB.Close()
-
-	isRepo, err := s.gitService.IsRepository(absTarget)
-	if err != nil {
-		s.rollback(absTarget, currentDataDir)
+		if originalDataDir != "" {
+			s.rollback(targetPath, originalDataDir)
+		}
 		return fmt.Errorf("checking git repository: %w", err)
 	}
 
 	if !isRepo {
 		logger.Info("initializing git repository")
-		if err := s.gitService.Init(absTarget); err != nil {
-			s.rollback(absTarget, currentDataDir)
+		if err := s.gitService.Init(targetPath); err != nil {
+			if originalDataDir != "" {
+				s.rollback(targetPath, originalDataDir)
+			}
 			return fmt.Errorf("git init failed: %w", err)
 		}
 	}
@@ -165,33 +228,38 @@ func (s *Service) MigrateData(targetPath, remoteURL string) error {
 		"# Logs",
 		"*.log",
 	}
-	if err := s.gitService.CreateGitIgnore(absTarget, patterns); err != nil {
-		s.rollback(absTarget, currentDataDir)
+	if err := s.gitService.CreateGitIgnore(targetPath, patterns); err != nil {
+		if originalDataDir != "" {
+			s.rollback(targetPath, originalDataDir)
+		}
 		return fmt.Errorf("creating .gitignore: %w", err)
 	}
 
 	logger.Info("staging files for initial commit")
-	if err := s.gitService.AddAll(absTarget); err != nil {
-		s.rollback(absTarget, currentDataDir)
+	if err := s.gitService.AddAll(targetPath); err != nil {
+		if originalDataDir != "" {
+			s.rollback(targetPath, originalDataDir)
+		}
 		return fmt.Errorf("git add failed: %w", err)
 	}
 
 	logger.Info("creating initial commit")
-	if err := s.gitService.Commit(absTarget, "chore: init YANTA directory"); err != nil {
-		s.rollback(absTarget, currentDataDir)
-		return fmt.Errorf("git commit failed: %w", err)
-	}
-
-	if remoteURL != "" {
-		logger.Infof("setting git remote: %s", remoteURL)
-		if err := s.gitService.SetRemote(absTarget, "origin", remoteURL); err != nil {
-			logger.Warnf("failed to set remote (non-fatal): %v", err)
+	commitMsg := "chore: init YANTA directory"
+	if err := s.gitService.Commit(targetPath, commitMsg); err != nil {
+		// If nothing to commit, that's okay
+		if err.Error() != "nothing to commit" {
+			if originalDataDir != "" {
+				s.rollback(targetPath, originalDataDir)
+			}
+			return fmt.Errorf("git commit failed: %w", err)
 		}
 	}
 
 	logger.Info("updating configuration")
-	if err := config.SetDataDirectory(absTarget); err != nil {
-		s.rollback(absTarget, currentDataDir)
+	if err := config.SetDataDirectory(targetPath); err != nil {
+		if originalDataDir != "" {
+			s.rollback(targetPath, originalDataDir)
+		}
 		return fmt.Errorf("updating config: %w", err)
 	}
 

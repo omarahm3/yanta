@@ -23,7 +23,6 @@ import { useNotification } from "../../hooks/useNotification";
 interface GitSyncSettings {
   enabled: boolean;
   repositoryPath: string;
-  remoteUrl: string;
   syncFrequency: string;
   autoPush: boolean;
 }
@@ -41,7 +40,6 @@ export const useSettingsController = () => {
   const [gitSync, setGitSync] = useState<GitSyncSettings>({
     enabled: false,
     repositoryPath: "",
-    remoteUrl: "",
     syncFrequency: "daily",
     autoPush: true,
   });
@@ -83,7 +81,6 @@ export const useSettingsController = () => {
         setGitSync({
           enabled: config.Enabled,
           repositoryPath: config.RepositoryPath,
-          remoteUrl: config.RemoteURL,
           syncFrequency: config.AutoCommit ? "realtime" : "manual",
           autoPush: config.AutoPush !== undefined ? config.AutoPush : true,
         });
@@ -150,7 +147,6 @@ export const useSettingsController = () => {
         const config = {
           Enabled: enabled,
           RepositoryPath: gitSync.repositoryPath,
-          RemoteURL: gitSync.remoteUrl,
           AutoCommit: gitSync.syncFrequency === "realtime",
           AutoPush: gitSync.autoPush,
         };
@@ -170,7 +166,6 @@ export const useSettingsController = () => {
         const config = {
           Enabled: gitSync.enabled,
           RepositoryPath: gitSync.repositoryPath,
-          RemoteURL: gitSync.remoteUrl,
           AutoCommit: frequency === "realtime",
           AutoPush: gitSync.autoPush,
         };
@@ -184,32 +179,12 @@ export const useSettingsController = () => {
     [gitSync, success, error],
   );
 
-  const handleRemoteUrlChange = useCallback(
-    async (url: string) => {
-      try {
-        const config = {
-          Enabled: gitSync.enabled,
-          RepositoryPath: gitSync.repositoryPath,
-          RemoteURL: url,
-          AutoCommit: gitSync.syncFrequency === "realtime",
-          AutoPush: gitSync.autoPush,
-        };
-        await SetGitSyncConfig(config);
-        setGitSync((prev) => ({ ...prev, remoteUrl: url }));
-      } catch (err) {
-        error(`Failed to update remote URL: ${err}`);
-      }
-    },
-    [gitSync, error],
-  );
-
   const handleAutoPushToggle = useCallback(
     async (enabled: boolean) => {
       try {
         const config = {
           Enabled: gitSync.enabled,
           RepositoryPath: gitSync.repositoryPath,
-          RemoteURL: gitSync.remoteUrl,
           AutoCommit: gitSync.syncFrequency === "realtime",
           AutoPush: enabled,
         };
@@ -247,7 +222,7 @@ export const useSettingsController = () => {
       await ValidateMigrationTarget(migrationTarget);
 
       setMigrationProgress("Migrating data...");
-      await MigrateToGitDirectory(migrationTarget, gitSync.remoteUrl);
+      await MigrateToGitDirectory(migrationTarget);
 
       setMigrationProgress("Migration complete! App will exit in 2 seconds...");
       success(
@@ -258,7 +233,7 @@ export const useSettingsController = () => {
       setIsMigrating(false);
       setMigrationProgress("");
     }
-  }, [migrationTarget, gitSync.remoteUrl, success, error]);
+  }, [migrationTarget, success, error]);
 
   const handleSyncNow = useCallback(async () => {
     try {
@@ -301,7 +276,6 @@ export const useSettingsController = () => {
       handleStartHiddenToggle,
       handleGitSyncToggle,
       handleSyncFrequencyChange,
-      handleRemoteUrlChange,
       handleAutoPushToggle,
       handlePickDirectory,
       handleMigration,

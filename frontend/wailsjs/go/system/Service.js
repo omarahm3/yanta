@@ -34,8 +34,8 @@ export function LogFromFrontend(arg1, arg2, arg3) {
   return window['go']['system']['Service']['LogFromFrontend'](arg1, arg2, arg3);
 }
 
-export function MigrateToGitDirectory(arg1, arg2) {
-  return window['go']['system']['Service']['MigrateToGitDirectory'](arg1, arg2);
+export function MigrateToGitDirectory(arg1) {
+  return window['go']['system']['Service']['MigrateToGitDirectory'](arg1);
 }
 
 export function OpenDirectoryDialog() {

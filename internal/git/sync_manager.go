@@ -108,18 +108,12 @@ func (sm *SyncManager) performSync(reasons []string) {
 	}).Info("auto-sync: committed successfully")
 
 	gitCfg := config.GetGitSyncConfig()
-	if gitCfg.AutoPush && gitCfg.RemoteURL != "" {
-		logger.WithField("remote", gitCfg.RemoteURL).Debug("auto-sync: pushing to remote")
+	if gitCfg.AutoPush {
+		logger.Debug("auto-sync: pushing to remote")
 		if err := sm.gitService.Push(dataDir, "origin", "master"); err != nil {
-			logger.WithFields(map[string]any{
-				"remote": gitCfg.RemoteURL,
-				"error":  err,
-			}).Warn("auto-sync: push failed (commit was successful locally)")
+			logger.WithField("error", err).Warn("auto-sync: push failed (commit was successful locally)")
 		} else {
-			logger.WithFields(map[string]any{
-				"remote": gitCfg.RemoteURL,
-				"time":   time.Now().Format("15:04:05"),
-			}).Info("auto-sync: pushed to remote successfully")
+			logger.WithField("time", time.Now().Format("15:04:05")).Info("auto-sync: pushed to remote successfully")
 		}
 	}
 }

@@ -147,7 +147,6 @@ func TestSyncManager_AutoPush(t *testing.T) {
 		Enabled:    true,
 		AutoCommit: true,
 		AutoPush:   true,
-		RemoteURL:  "https://github.com/test/repo.git",
 	})
 	defer cleanup()
 

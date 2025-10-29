@@ -15,7 +15,6 @@ import (
 type GitSyncConfig struct {
 	Enabled        bool   `toml:"enabled"`
 	RepositoryPath string `toml:"repository_path"`
-	RemoteURL      string `toml:"remote_url"`
 	AutoCommit     bool   `toml:"auto_commit"`
 	AutoPush       bool   `toml:"auto_push"`
 }

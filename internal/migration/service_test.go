@@ -27,20 +27,35 @@ func TestValidateTargetDirectory(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("directory with YANTA data is rejected", func(t *testing.T) {
-		tempDir := t.TempDir()
-
-		vaultDir := filepath.Join(tempDir, "vault")
-		err := os.MkdirAll(vaultDir, 0755)
+	t.Run("directory with existing vault is accepted", func(t *testing.T) {
+		// Migration to ANY directory is allowed!
+		// Target can have vault (will use it) or not (will copy/create)
+		targetDir := t.TempDir()
+		targetVaultDir := filepath.Join(targetDir, "vault")
+		err := os.MkdirAll(targetVaultDir, 0755)
 		require.NoError(t, err)
 
-		dbPath := filepath.Join(tempDir, "yanta.db")
-		_, err = os.Create(dbPath)
+		// Should be VALID - we allow migration to directories with existing vault
+		err = service.ValidateTargetDirectory(targetDir)
+		assert.NoError(t, err)
+	})
+
+	t.Run("directory with existing database is accepted", func(t *testing.T) {
+		// Database will be removed and rebuilt from vault
+		targetDir := t.TempDir()
+
+		// Create vault and database in target
+		targetVaultDir := filepath.Join(targetDir, "vault")
+		err := os.MkdirAll(targetVaultDir, 0755)
 		require.NoError(t, err)
 
-		err = service.ValidateTargetDirectory(tempDir)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "contains YANTA data")
+		targetDBPath := filepath.Join(targetDir, "yanta.db")
+		_, err = os.Create(targetDBPath)
+		require.NoError(t, err)
+
+		// Should be VALID - database will be rebuilt
+		err = service.ValidateTargetDirectory(targetDir)
+		assert.NoError(t, err)
 	})
 
 	t.Run("directory with other files is valid", func(t *testing.T) {
@@ -185,17 +200,22 @@ func TestMigrateData(t *testing.T) {
 
 		service := NewService(nil, gitService)
 
-		err = service.MigrateData(newDataDir, "")
+		err = service.MigrateData(newDataDir)
 		require.NoError(t, err)
 
+		// Verify vault was copied
 		assert.DirExists(t, filepath.Join(newDataDir, "vault"))
 		assert.DirExists(t, filepath.Join(newDataDir, "vault", "projects", "@test"))
 		assert.FileExists(t, filepath.Join(newDataDir, "vault", "projects", "@test", "doc-test-123.json"))
-		assert.FileExists(t, filepath.Join(newDataDir, "yanta.db"))
 
+		// Database should NOT exist - it will be rebuilt from vault on app restart
+		assert.NoFileExists(t, filepath.Join(newDataDir, "yanta.db"))
+
+		// Verify config updated
 		cfg := config.Get()
 		assert.Equal(t, newDataDir, cfg.DataDirectory)
 
+		// Verify git operations
 		assert.True(t, gitService.initCalled)
 		assert.True(t, gitService.createGitIgnoreCalled)
 		assert.True(t, gitService.commitCalled)
@@ -237,7 +257,6 @@ type mockGitService struct {
 	initCalled            bool
 	createGitIgnoreCalled bool
 	commitCalled          bool
-	setRemoteCalled       bool
 }
 
 func (m *mockGitService) CheckInstalled() (bool, error) {
@@ -264,10 +283,5 @@ func (m *mockGitService) AddAll(path string) error {
 
 func (m *mockGitService) Commit(path, message string) error {
 	m.commitCalled = true
-	return nil
-}
-
-func (m *mockGitService) SetRemote(path, name, url string) error {
-	m.setRemoteCalled = true
 	return nil
 }

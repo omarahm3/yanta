@@ -27,7 +27,6 @@ func TestConfig_GitSync(t *testing.T) {
 		assert.NotNil(t, cfg)
 		assert.False(t, cfg.GitSync.Enabled)
 		assert.Empty(t, cfg.GitSync.RepositoryPath)
-		assert.Empty(t, cfg.GitSync.RemoteURL)
 		assert.False(t, cfg.GitSync.AutoCommit)
 		assert.False(t, cfg.GitSync.AutoPush)
 	})
@@ -36,7 +35,6 @@ func TestConfig_GitSync(t *testing.T) {
 		gitCfg := GitSyncConfig{
 			Enabled:        true,
 			RepositoryPath: "/path/to/repo",
-			RemoteURL:      "https://github.com/user/repo.git",
 			AutoCommit:     true,
 			AutoPush:       false,
 		}
@@ -47,7 +45,6 @@ func TestConfig_GitSync(t *testing.T) {
 		cfg := GetGitSyncConfig()
 		assert.True(t, cfg.Enabled)
 		assert.Equal(t, "/path/to/repo", cfg.RepositoryPath)
-		assert.Equal(t, "https://github.com/user/repo.git", cfg.RemoteURL)
 		assert.True(t, cfg.AutoCommit)
 		assert.False(t, cfg.AutoPush)
 	})

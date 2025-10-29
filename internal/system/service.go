@@ -249,13 +249,13 @@ func (s *Service) ValidateMigrationTarget(targetPath string) error {
 	return migrationService.ValidateTargetDirectory(targetPath)
 }
 
-func (s *Service) MigrateToGitDirectory(targetPath, remoteURL string) error {
+func (s *Service) MigrateToGitDirectory(targetPath string) error {
 	logger.Infof("starting migration to %s", targetPath)
 
 	gitService := git.NewService()
 	migrationService := migration.NewService(s.db, gitService)
 
-	if err := migrationService.MigrateData(targetPath, remoteURL); err != nil {
+	if err := migrationService.MigrateData(targetPath); err != nil {
 		logger.Errorf("migration failed: %v", err)
 		return err
 	}
@@ -319,10 +319,10 @@ func (s *Service) SyncNow() error {
 		return fmt.Errorf("failed to commit changes:\n%w\n\nDirectory: %s", err, dataDir)
 	}
 
-	if gitCfg.AutoPush && gitCfg.RemoteURL != "" {
-		logger.Infof("pushing to remote: %s", gitCfg.RemoteURL)
+	if gitCfg.AutoPush {
+		logger.Info("pushing to remote")
 		if err := gitService.Push(dataDir, "origin", "master"); err != nil {
-			return fmt.Errorf("failed to push to remote:\n%w\n\nRemote: %s\nBranch: master\nHint: Check network connection and authentication", err, gitCfg.RemoteURL)
+			return fmt.Errorf("failed to push to remote:\n%w\n\nBranch: master\nHint: Check network connection and authentication", err)
 		}
 	}
 

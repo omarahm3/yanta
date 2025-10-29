@@ -20,7 +20,7 @@ export function GetSystemInfo():Promise<system.SystemInfo>;
 
 export function LogFromFrontend(arg1:string,arg2:string,arg3:Record<string, any>):Promise<void>;
 
-export function MigrateToGitDirectory(arg1:string,arg2:string):Promise<void>;
+export function MigrateToGitDirectory(arg1:string):Promise<void>;
 
 export function OpenDirectoryDialog():Promise<string>;
 
