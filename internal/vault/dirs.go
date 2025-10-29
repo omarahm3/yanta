@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"yanta/internal/project"
 )
 
 func (v *Vault) EnsureProjectDir(projectAlias string) error {
-	if err := project.ValidateAlias(projectAlias); err != nil {
+	if err := validateProjectAlias(projectAlias); err != nil {
 		return err
 	}
 
@@ -27,7 +26,7 @@ func (v *Vault) EnsureProjectDir(projectAlias string) error {
 }
 
 func (v *Vault) ProjectExists(projectAlias string) (bool, error) {
-	if err := project.ValidateAlias(projectAlias); err != nil {
+	if err := validateProjectAlias(projectAlias); err != nil {
 		return false, err
 	}
 
@@ -70,7 +69,7 @@ func (v *Vault) ListProjects() ([]string, error) {
 }
 
 func (v *Vault) DeleteProjectDir(projectAlias string) error {
-	if err := project.ValidateAlias(projectAlias); err != nil {
+	if err := validateProjectAlias(projectAlias); err != nil {
 		return err
 	}
 
@@ -92,10 +91,10 @@ func (v *Vault) DeleteProjectDir(projectAlias string) error {
 }
 
 func (v *Vault) RenameProject(oldAlias, newAlias string) error {
-	if err := project.ValidateAlias(oldAlias); err != nil {
+	if err := validateProjectAlias(oldAlias); err != nil {
 		return fmt.Errorf("invalid old alias: %w", err)
 	}
-	if err := project.ValidateAlias(newAlias); err != nil {
+	if err := validateProjectAlias(newAlias); err != nil {
 		return fmt.Errorf("invalid new alias: %w", err)
 	}
 

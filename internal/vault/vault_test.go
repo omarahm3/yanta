@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"yanta/internal/project"
 )
 
 func TestNew(t *testing.T) {
@@ -229,9 +228,9 @@ func TestValidateProjectAlias(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := project.ValidateAlias(tt.alias)
+			err := validateProjectAlias(tt.alias)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("project.ValidateAlias() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("validateProjectAlias() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

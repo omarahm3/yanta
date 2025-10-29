@@ -5,33 +5,41 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"yanta/internal/asset"
 	"yanta/internal/document"
 	"yanta/internal/git"
 	"yanta/internal/link"
+	"yanta/internal/project"
 	"yanta/internal/search"
+	"yanta/internal/strutil"
 	"yanta/internal/tag"
 	"yanta/internal/vault"
+
+	"github.com/google/uuid"
 )
 
 type Indexer struct {
-	db          *sql.DB
-	vault       *vault.Vault
-	docStore    *document.Store
-	ftsStore    *search.Store
-	tagStore    *tag.Store
-	linkStore   *link.Store
-	assetStore  *asset.Store
-	parser      *document.Parser
-	syncManager *git.SyncManager
+	db           *sql.DB
+	vault        *vault.Vault
+	docStore     *document.Store
+	projectStore *project.Store
+	ftsStore     *search.Store
+	tagStore     *tag.Store
+	linkStore    *link.Store
+	assetStore   *asset.Store
+	parser       *document.Parser
+	syncManager  *git.SyncManager
 }
 
 func New(
 	db *sql.DB,
 	v *vault.Vault,
 	docStore *document.Store,
+	projectStore *project.Store,
 	ftsStore *search.Store,
 	tagStore *tag.Store,
 	linkStore *link.Store,
@@ -39,16 +47,163 @@ func New(
 	syncManager *git.SyncManager,
 ) *Indexer {
 	return &Indexer{
-		db:          db,
-		vault:       v,
-		docStore:    docStore,
-		ftsStore:    ftsStore,
-		tagStore:    tagStore,
-		linkStore:   linkStore,
-		assetStore:  assetStore,
-		parser:      document.NewParser(),
-		syncManager: syncManager,
+		db:           db,
+		vault:        v,
+		docStore:     docStore,
+		projectStore: projectStore,
+		ftsStore:     ftsStore,
+		tagStore:     tagStore,
+		linkStore:    linkStore,
+		assetStore:   assetStore,
+		parser:       document.NewParser(),
+		syncManager:  syncManager,
 	}
+}
+
+func (idx *Indexer) ScanAndIndexProjects(ctx context.Context) error {
+	projectsPath := filepath.Join(idx.vault.RootPath(), "projects")
+
+	entries, err := os.ReadDir(projectsPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("reading projects directory: %w", err)
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		projectAlias := entry.Name()
+
+		if !strings.HasPrefix(projectAlias, "@") {
+			continue
+		}
+
+		if idx.vault.ProjectMetadataExists(projectAlias) {
+			metadata, err := idx.vault.ReadProjectMetadata(projectAlias)
+			if err != nil {
+				return fmt.Errorf("reading metadata for %s: %w", projectAlias, err)
+			}
+
+			existing, err := idx.projectStore.GetByAlias(ctx, projectAlias)
+			if err == nil {
+				if existing.Name != metadata.Name || existing.StartDate != metadata.StartDate || existing.EndDate != metadata.EndDate {
+					existing.Name = metadata.Name
+					existing.StartDate = metadata.StartDate
+					existing.EndDate = metadata.EndDate
+					existing.UpdatedAt = time.Now().Format(time.RFC3339)
+					if _, err := idx.projectStore.Update(ctx, existing); err != nil {
+						return fmt.Errorf("updating project %s: %w", projectAlias, err)
+					}
+				}
+			} else {
+				p := &project.Project{
+					ID:        uuid.New().String(),
+					Name:      metadata.Name,
+					Alias:     metadata.Alias,
+					StartDate: metadata.StartDate,
+					EndDate:   metadata.EndDate,
+					CreatedAt: metadata.CreatedAt,
+					UpdatedAt: metadata.UpdatedAt,
+					DeletedAt: "",
+				}
+				if _, err := idx.projectStore.Create(ctx, p); err != nil {
+					return fmt.Errorf("creating project %s: %w", projectAlias, err)
+				}
+			}
+		} else {
+			_, err := idx.projectStore.GetByAlias(ctx, projectAlias)
+			if err != nil {
+				aliasWithoutAt := strings.TrimPrefix(projectAlias, "@")
+				name := strings.ReplaceAll(aliasWithoutAt, "-", " ")
+				name = strutil.ToTitle(name)
+
+				p := &project.Project{
+					ID:        uuid.New().String(),
+					Name:      name,
+					Alias:     projectAlias,
+					StartDate: "",
+					EndDate:   "",
+					CreatedAt: time.Now().Format(time.RFC3339),
+					UpdatedAt: time.Now().Format(time.RFC3339),
+					DeletedAt: "",
+				}
+				if _, err := idx.projectStore.Create(ctx, p); err != nil {
+					return fmt.Errorf("creating project %s: %w", projectAlias, err)
+				}
+
+				metadata := &vault.ProjectMetadata{
+					Alias:     p.Alias,
+					Name:      p.Name,
+					StartDate: p.StartDate,
+					EndDate:   p.EndDate,
+					CreatedAt: p.CreatedAt,
+					UpdatedAt: p.UpdatedAt,
+				}
+				if err := idx.vault.WriteProjectMetadata(metadata); err != nil {
+					return fmt.Errorf("writing metadata for %s: %w", projectAlias, err)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (idx *Indexer) ScanAndIndexVault(ctx context.Context) error {
+	if err := idx.ScanAndIndexProjects(ctx); err != nil {
+		return fmt.Errorf("scanning projects: %w", err)
+	}
+
+	projectsPath := filepath.Join(idx.vault.RootPath(), "projects")
+
+	entries, err := os.ReadDir(projectsPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("reading projects directory: %w", err)
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		projectAlias := entry.Name()
+
+		if !strings.HasPrefix(projectAlias, "@") {
+			continue
+		}
+
+		projectPath := filepath.Join(projectsPath, projectAlias)
+
+		docEntries, err := os.ReadDir(projectPath)
+		if err != nil {
+			continue
+		}
+
+		for _, docEntry := range docEntries {
+			if docEntry.IsDir() || !strings.HasSuffix(docEntry.Name(), ".json") {
+				continue
+			}
+
+			if docEntry.Name() == vault.ProjectMetadataFileName {
+				continue
+			}
+
+			relativePath := filepath.Join("projects", projectAlias, docEntry.Name())
+
+			if err := idx.IndexDocument(ctx, relativePath); err != nil {
+				return fmt.Errorf("indexing %s: %w", relativePath, err)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (idx *Indexer) IndexDocument(ctx context.Context, docPath string) error {

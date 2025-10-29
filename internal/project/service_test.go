@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"yanta/internal/testutil"
+	"yanta/internal/vault"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,7 +15,12 @@ func setupServiceTest(t *testing.T) (*Service, func()) {
 	database := testutil.SetupTestDB(t)
 	store := NewStore(database)
 	cache := NewCache(store)
-	service := NewService(database, store, cache)
+
+	tempDir := t.TempDir()
+	v, err := vault.New(vault.Config{RootPath: tempDir})
+	require.NoError(t, err, "Failed to create vault")
+
+	service := NewService(database, store, cache, v)
 
 	cleanup := func() {
 		testutil.CleanupTestDB(t, database)

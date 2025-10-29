@@ -9,6 +9,7 @@ import (
 
 	"yanta/internal/events"
 	"yanta/internal/logger"
+	"yanta/internal/vault"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -17,14 +18,16 @@ type Service struct {
 	db    *sql.DB
 	store *Store
 	cache *Cache
+	vault *vault.Vault
 	ctx   context.Context
 }
 
-func NewService(db *sql.DB, store *Store, cache *Cache) *Service {
+func NewService(db *sql.DB, store *Store, cache *Cache, v *vault.Vault) *Service {
 	return &Service{
 		db:    db,
 		store: store,
 		cache: cache,
+		vault: v,
 		ctx:   context.Background(),
 	}
 }
@@ -66,6 +69,18 @@ func (s *Service) Create(name, alias, startDate, endDate string) (string, error)
 		return "", fmt.Errorf("storing project: %w", err)
 	}
 
+	metadata := &vault.ProjectMetadata{
+		Alias:     p.Alias,
+		Name:      p.Name,
+		StartDate: p.StartDate,
+		EndDate:   p.EndDate,
+		CreatedAt: p.CreatedAt,
+		UpdatedAt: p.UpdatedAt,
+	}
+	if err := s.vault.WriteProjectMetadata(metadata); err != nil {
+		logger.WithField("alias", p.Alias).WithError(err).Warn("failed to write project metadata file")
+	}
+
 	s.cache.Set(p)
 
 	s.emitEvent(events.ProjectCreated, map[string]any{
@@ -99,6 +114,18 @@ func (s *Service) Update(p *Project) error {
 	p, err := s.store.Update(s.ctx, p)
 	if err != nil {
 		return fmt.Errorf("updating project: %w", err)
+	}
+
+	metadata := &vault.ProjectMetadata{
+		Alias:     p.Alias,
+		Name:      p.Name,
+		StartDate: p.StartDate,
+		EndDate:   p.EndDate,
+		CreatedAt: p.CreatedAt,
+		UpdatedAt: p.UpdatedAt,
+	}
+	if err := s.vault.WriteProjectMetadata(metadata); err != nil {
+		logger.WithField("alias", p.Alias).WithError(err).Warn("failed to update project metadata file")
 	}
 
 	s.cache.Invalidate(p.ID)

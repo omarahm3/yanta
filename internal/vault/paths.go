@@ -3,9 +3,11 @@ package vault
 import (
 	"fmt"
 	"path"
+	"regexp"
 	"strings"
-	"yanta/internal/project"
 )
+
+var aliasContentPattern = regexp.MustCompile(`^[a-z0-9-]+$`)
 
 func ValidateDocumentPath(docPath string) error {
 	if docPath == "" {
@@ -55,8 +57,25 @@ func SanitizeProjectAlias(alias string) string {
 	return "@" + alias
 }
 
+func validateProjectAlias(alias string) error {
+	if !strings.HasPrefix(alias, "@") {
+		return fmt.Errorf("alias must start with @")
+	}
+
+	aliasContent := alias[1:]
+	if len(aliasContent) < 2 || len(aliasContent) > 32 {
+		return fmt.Errorf("alias must be 2-32 characters (excluding @ prefix), got %d", len(aliasContent))
+	}
+
+	if !aliasContentPattern.MatchString(aliasContent) {
+		return fmt.Errorf("alias must contain only lowercase letters, numbers, and hyphens after @")
+	}
+
+	return nil
+}
+
 func GenerateDocumentPath(projectAlias, documentID string) (string, error) {
-	if err := project.ValidateAlias(projectAlias); err != nil {
+	if err := validateProjectAlias(projectAlias); err != nil {
 		return "", fmt.Errorf("invalid project alias: %w", err)
 	}
 

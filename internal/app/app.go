@@ -90,10 +90,10 @@ func New(cfg Config) (*App, error) {
 	assetStore := asset.NewStore(a.DB)
 	ftsStore := search.NewStore(a.DB)
 
-	idx := indexer.New(a.DB, v, documentStore, ftsStore, tagStore, linkStore, assetStore, syncManager)
+	idx := indexer.New(a.DB, v, documentStore, projectStore, ftsStore, tagStore, linkStore, assetStore, syncManager)
 
 	projectCache := project.NewCache(projectStore)
-	projectService := project.NewService(a.DB, projectStore, projectCache)
+	projectService := project.NewService(a.DB, projectStore, projectCache, v)
 	documentService := document.NewService(a.DB, documentStore, v, idx, projectCache)
 	documentFileManager := document.NewFileManager(v)
 	tagService := tag.NewService(a.DB, tagStore, documentFileManager)
@@ -112,6 +112,11 @@ func New(cfg Config) (*App, error) {
 
 	if err := seedDemoDocuments(v, documentStore, idx); err != nil {
 		logger.Warnf("failed to seed demo documents: %v", err)
+	}
+
+	logger.Info("scanning vault for existing documents...")
+	if err := idx.ScanAndIndexVault(context.Background()); err != nil {
+		logger.Errorf("failed to scan and index vault: %v", err)
 	}
 
 	projectCommands := commandline.NewProjectCommands(projectService, documentService, v, syncManager)

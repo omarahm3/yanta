@@ -14,6 +14,7 @@ import (
 	"yanta/internal/git"
 	"yanta/internal/indexer"
 	"yanta/internal/link"
+	"yanta/internal/project"
 	"yanta/internal/search"
 	"yanta/internal/tag"
 	"yanta/internal/vault"
@@ -55,12 +56,13 @@ func setupTestEnv(t *testing.T) *testEnv {
 	require.NoError(t, err)
 
 	docStore := document.NewStore(database)
+	projectStore := project.NewStore(database)
 	ftsStore := search.NewStore(database)
 	tagStore := tag.NewStore(database)
 	linkStore := link.NewStore(database)
 	assetStore := asset.NewStore(database)
 
-	idx := indexer.New(database, v, docStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager())
+	idx := indexer.New(database, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager())
 
 	watcher, err := indexer.NewWatcher(v, idx,
 		indexer.WithDebounceWindow(100*time.Millisecond))

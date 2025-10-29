@@ -30,19 +30,20 @@ func setupProjectCommandTest(t *testing.T) projectCommandTestEnv {
 	t.Helper()
 
 	db := testutil.SetupTestDB(t)
-	projectStore := project.NewStore(db)
-	projectCache := project.NewCache(projectStore)
-	projectService := project.NewService(db, projectStore, projectCache)
 
-	docStore := document.NewStore(db)
 	tempDir := t.TempDir()
 	v, err := vault.New(vault.Config{RootPath: tempDir})
 	require.NoError(t, err)
 
+	projectStore := project.NewStore(db)
+	projectCache := project.NewCache(projectStore)
+	projectService := project.NewService(db, projectStore, projectCache, v)
+
+	docStore := document.NewStore(db)
+
 	idx := noopIndexer{}
 	docService := document.NewService(db, docStore, v, idx, projectCache)
 
-	// Use nil for syncManager in tests - sync is not needed for these tests
 	cmds := NewProjectCommands(projectService, docService, v, git.NewMockSyncManager())
 
 	cleanup := func() {

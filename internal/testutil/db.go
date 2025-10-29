@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 	"yanta/internal/db"
 
 	_ "modernc.org/sqlite"
@@ -25,7 +26,10 @@ func SetupTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 
 	// Create a temporary file for the test database
-	tmpfile, err := os.CreateTemp("", fmt.Sprintf("yanta-test-%s-*.db", t.Name()))
+	// Replace slashes in test name to avoid path separator issues in subtests
+	testName := t.Name()
+	testName = fmt.Sprintf("%s-%s", testName[:min(len(testName), 10)], fmt.Sprintf("%d", time.Now().UnixNano()))
+	tmpfile, err := os.CreateTemp("", fmt.Sprintf("yanta-test-%s-*.db", testName))
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
