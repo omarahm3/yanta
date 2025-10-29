@@ -130,6 +130,7 @@ func New(cfg Config) (*App, error) {
 		ProjectCommands:  projectCommands,
 		GlobalCommands:   globalCommands,
 		DocumentCommands: documentCommands,
+		shutdownHandler:  a.OnShutdown,
 	}
 
 	logger.Debugf("bindings created")

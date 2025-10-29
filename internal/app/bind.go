@@ -25,7 +25,8 @@ type Bindings struct {
 	GlobalCommands   *commandline.GlobalCommands
 	DocumentCommands *commandline.DocumentCommands
 
-	ctx context.Context
+	ctx             context.Context
+	shutdownHandler func(context.Context)
 }
 
 func (b *Bindings) OnStartup(ctx context.Context) {
@@ -39,6 +40,10 @@ func (b *Bindings) OnStartup(ctx context.Context) {
 	b.ProjectCommands.SetContext(ctx)
 	b.GlobalCommands.SetContext(ctx)
 	b.DocumentCommands.SetContext(ctx)
+
+	if b.shutdownHandler != nil {
+		b.System.SetShutdownHandler(b.shutdownHandler)
+	}
 }
 
 func (b *Bindings) OnShutdown(ctx context.Context) {

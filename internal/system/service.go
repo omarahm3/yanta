@@ -23,9 +23,10 @@ var (
 )
 
 type Service struct {
-	db     *sql.DB
-	dbPath string
-	ctx    context.Context
+	db              *sql.DB
+	dbPath          string
+	ctx             context.Context
+	shutdownHandler func(context.Context)
 }
 
 func NewService(db *sql.DB) *Service {
@@ -41,6 +42,10 @@ func (s *Service) SetDBPath(path string) {
 
 func (s *Service) SetContext(ctx context.Context) {
 	s.ctx = ctx
+}
+
+func (s *Service) SetShutdownHandler(handler func(context.Context)) {
+	s.shutdownHandler = handler
 }
 
 type AppInfo struct {
@@ -259,10 +264,14 @@ func (s *Service) MigrateToGitDirectory(targetPath, remoteURL string) error {
 
 	go func() {
 		time.Sleep(2 * time.Second)
-		if s.ctx != nil {
-			logger.Info("triggering app exit after migration")
-			wailsRuntime.Quit(s.ctx)
+
+		if s.shutdownHandler != nil {
+			logger.Info("calling shutdown handler for cleanup")
+			s.shutdownHandler(context.Background())
 		}
+
+		logger.Info("forcing app exit after migration (ignoring background mode)")
+		os.Exit(0)
 	}()
 
 	return nil

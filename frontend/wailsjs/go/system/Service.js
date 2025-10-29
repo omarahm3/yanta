@@ -62,6 +62,10 @@ export function SetLogLevel(arg1) {
   return window['go']['system']['Service']['SetLogLevel'](arg1);
 }
 
+export function SetShutdownHandler(arg1) {
+  return window['go']['system']['Service']['SetShutdownHandler'](arg1);
+}
+
 export function SetStartHidden(arg1) {
   return window['go']['system']['Service']['SetStartHidden'](arg1);
 }

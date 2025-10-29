@@ -34,6 +34,8 @@ export function SetKeepInBackground(arg1:boolean):Promise<void>;
 
 export function SetLogLevel(arg1:string):Promise<void>;
 
+export function SetShutdownHandler(arg1:any):Promise<void>;
+
 export function SetStartHidden(arg1:boolean):Promise<void>;
 
 export function ShowWindow():Promise<void>;
