@@ -71,6 +71,11 @@ describe("Hotkey coverage", () => {
         hotkeys: ["Escape", "?"],
         testFile: "HelpModal.hotkeys.test.tsx",
       },
+      settings: {
+        component: "Settings.tsx",
+        hotkeys: ["j", "k"],
+        testFile: "Settings.hotkeys.test.tsx",
+      },
     };
 
     console.log("\n=== HOTKEY COVERAGE ===\n");
@@ -86,7 +91,7 @@ describe("Hotkey coverage", () => {
       `\nTotal: ${totalHotkeys} hotkeys tested across ${Object.keys(coverage).length} components\n`,
     );
 
-    expect(Object.keys(coverage)).toHaveLength(8);
-    expect(totalHotkeys).toBe(43);
+    expect(Object.keys(coverage)).toHaveLength(9);
+    expect(totalHotkeys).toBe(45);
   });
 });
