@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Combobox,
   ComboboxButton,
@@ -8,6 +8,7 @@ import {
   Transition,
   TransitionChild,
 } from "@headlessui/react";
+import Fuse from "fuse.js";
 import { cn } from "../../lib/utils";
 
 export interface CommandOption {
@@ -38,9 +39,22 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const optionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const filteredCommands = commands.filter((command) =>
-    command.text.toLowerCase().includes(query.toLowerCase()),
+  const fuse = useMemo(
+    () =>
+      new Fuse(commands, {
+        keys: ["text", "hint"],
+        threshold: 0.4,
+        includeScore: true,
+        minMatchCharLength: 1,
+        ignoreLocation: true,
+      }),
+    [commands],
   );
+
+  const filteredCommands = useMemo(() => {
+    if (!query.trim()) return commands;
+    return fuse.search(query).map((result) => result.item);
+  }, [query, fuse, commands]);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
