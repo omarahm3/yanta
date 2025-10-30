@@ -1,9 +1,10 @@
 import React, { useEffect } from "react";
-import { BlockNoteEditor, Block, PartialBlock } from "@blocknote/core";
 import "@blocknote/core/fonts/inter.css";
-import { BlockNoteView } from "@blocknote/mantine";
-import "@blocknote/mantine/style.css";
+import type { BlockNoteEditor } from "@blocknote/core";
+import { Block, PartialBlock } from "@blocknote/core";
+import { BlockNoteView } from "@blocknote/shadcn";
 import { useCreateBlockNote } from "@blocknote/react";
+import "@blocknote/shadcn/style.css";
 import { uploadFile } from "../../utils/assetUpload";
 import { useProjectContext } from "../../contexts";
 import "../../styles/blocknote-dark.css";

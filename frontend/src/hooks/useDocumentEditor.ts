@@ -1,5 +1,5 @@
 import { useCallback, useRef } from "react";
-import { BlockNoteEditor } from "@blocknote/core";
+import type { BlockNoteEditor } from "@blocknote/core";
 
 export const useDocumentEditor = () => {
   const editorRef = useRef<BlockNoteEditor | null>(null);

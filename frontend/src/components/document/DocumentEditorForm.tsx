@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, lazy, Suspense } from "react";
 import { BlockNoteBlock } from "../../types/Document";
-import { Block, BlockNoteEditor } from "@blocknote/core";
+import type { BlockNoteEditor } from "@blocknote/core";
+import { Block } from "@blocknote/core";
 
 const RichEditor = lazy(() =>
   import("../editor/RichEditor").then((m) => ({ default: m.RichEditor })),

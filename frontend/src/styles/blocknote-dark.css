@@ -5,8 +5,8 @@
    ============================================================================ */
 
 .bn-container {
-  background: var(--bg, #0d1117) !important;
-  color: var(--text, #c9d1d9) !important;
+  background: var(--color-bg, #0d1117) !important;
+  color: var(--color-text, #c9d1d9) !important;
   height: 100% !important;
   display: flex !important;
   flex-direction: column !important;
@@ -14,7 +14,7 @@
 
 .bn-editor {
   background: transparent !important;
-  color: var(--text, #c9d1d9) !important;
+  color: var(--color-text, #c9d1d9) !important;
   flex: 1 !important;
   overflow-y: auto !important;
 }

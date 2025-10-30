@@ -89,7 +89,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
           borderClass,
         );
         const indexClasses = cn(
-          "text-sm font-mono flex-shrink-0 pt-1",
+          "text-sm font-mono shrink-0 pt-1",
           isSelected
             ? "text-green font-bold"
             : isHighlighted

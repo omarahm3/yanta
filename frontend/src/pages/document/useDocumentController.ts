@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BlockNoteEditor } from "@blocknote/core";
+import type { BlockNoteEditor } from "@blocknote/core";
 import { useHelp } from "../../hooks";
 import { useNotification } from "../../hooks/useNotification";
 import { useDocumentEscapeHandling } from "../../hooks/useDocumentEscapeHandling";

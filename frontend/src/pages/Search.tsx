@@ -289,7 +289,7 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
     >
       <div className="flex flex-col h-full">
         {/* Search Header */}
-        <div className="p-4 border-b bg-surface border-border flex-shrink-0">
+        <div className="p-4 border-b bg-surface border-border shrink-0">
         <div className="flex items-center gap-3 mb-3">
           <span className="text-base text-accent">/</span>
           <Input
@@ -331,7 +331,7 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
         </div>
 
         {/* Search Info Bar */}
-        <div className="flex items-center justify-between px-5 py-2 text-xs border-b bg-bg border-border text-text-dim flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-2 text-xs border-b bg-bg border-border text-text-dim shrink-0">
         <div className="flex gap-4">
           {isLoading ? (
             <span className="text-yellow">Searching...</span>

@@ -4,7 +4,7 @@ import { SidebarSection } from "../ui";
 import { DocumentEditorForm } from "./DocumentEditorForm";
 import { DocumentEditorActions } from "./DocumentEditorActions";
 import { BlockNoteBlock } from "../../types/Document";
-import { BlockNoteEditor } from "@blocknote/core";
+import type { BlockNoteEditor } from "@blocknote/core";
 import { SaveState } from "../../hooks/useAutoSave";
 import { Project } from "../../types/Project";
 

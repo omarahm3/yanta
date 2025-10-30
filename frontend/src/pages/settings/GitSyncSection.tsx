@@ -62,7 +62,7 @@ export const GitSyncSection = React.forwardRef<
           <div className="space-y-4">
             {!gitInstalled && (
               <div className="flex items-start gap-2 text-xs text-text-dim">
-                <RiAlertLine className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                <RiAlertLine className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
                 <span>
                   Git not found in PATH. Install Git to enable sync
                   functionality.

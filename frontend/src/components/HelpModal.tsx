@@ -91,7 +91,7 @@ export const HelpModal: React.FC = () => {
                     key={idx}
                     className="flex items-start gap-3 sm:gap-4 font-mono text-sm group"
                   >
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                       <code className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-bg border border-green/20 rounded-md text-green font-medium transition-all duration-200 group-hover:border-green/40 group-hover:bg-green/5 text-xs sm:text-sm">
                         :{cmd.command}
                       </code>
@@ -115,7 +115,7 @@ export const HelpModal: React.FC = () => {
                       key={idx}
                       className="flex items-start gap-3 sm:gap-4 font-mono text-sm group"
                     >
-                      <div className="flex-shrink-0">
+                      <div className="shrink-0">
                         <code className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-bg border border-accent/20 rounded-md text-accent font-medium transition-all duration-200 group-hover:border-accent/40 group-hover:bg-accent/5 text-xs sm:text-sm">
                           {cmd.command}
                         </code>
@@ -140,7 +140,7 @@ export const HelpModal: React.FC = () => {
                       key={hotkey.id}
                       className="flex items-start gap-3 sm:gap-4 font-mono text-sm group"
                     >
-                      <div className="flex-shrink-0">
+                      <div className="shrink-0">
                         <code className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-bg border border-purple/20 rounded-md text-purple font-medium transition-all duration-200 group-hover:border-purple/40 group-hover:bg-purple/5 text-xs sm:text-sm">
                           {formatHotkeyDisplay(hotkey.key)}
                         </code>
