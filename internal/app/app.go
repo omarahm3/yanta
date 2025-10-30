@@ -163,6 +163,9 @@ func (a *App) OnStartup(ctx context.Context) {
 		a.Bindings.OnStartup(ctx)
 	}
 
+	sessionType := os.Getenv("XDG_SESSION_TYPE")
+	logger.Debugf("XDG_SESSION_TYPE: %s", sessionType)
+
 	if !isWayland() {
 		a.registerRestoreHotkey()
 	} else {
@@ -179,6 +182,7 @@ func (a *App) OnBeforeClose(ctx context.Context) bool {
 	}
 
 	keepInBackground := a.Bindings.System.GetKeepInBackground()
+	logger.Debugf("keepInBackground setting: %v", keepInBackground)
 
 	if keepInBackground {
 		logger.Debug("hiding window to background")
@@ -189,6 +193,7 @@ func (a *App) OnBeforeClose(ctx context.Context) bool {
 		return true
 	}
 
+	logger.Debug("allowing window close")
 	return false
 }
 
@@ -252,6 +257,9 @@ func (a *App) OnShutdown(ctx context.Context) {
 	case <-time.After(2 * time.Second):
 		logger.Warn("shutdown timeout reached (2s), forcing cleanup completion")
 	}
+
+	logger.Debug("calling os.Exit(0) to ensure clean termination")
+	os.Exit(0)
 }
 
 func (a *App) registerRestoreHotkey() {
