@@ -44,7 +44,7 @@ export default defineConfig({
           "vendor-blocknote": [
             "@blocknote/core",
             "@blocknote/react",
-            "@blocknote/mantine",
+            "@blocknote/shadcn",
           ],
 
           // Headless UI (modal/dialog system)

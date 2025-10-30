@@ -4,10 +4,7 @@ import { Button } from "../components/ui";
 import {
   BlockNoteView as MantineBlockNoteView,
   components as mantineComponents,
-  applyBlockNoteCSSVariablesFromTheme,
-  removeBlockNoteCSSVariables,
-  type Theme as BlockNoteTheme,
-} from "@blocknote/mantine";
+} from "@blocknote/shadcn";
 import {
   useCreateBlockNote,
   ComponentsContext,
@@ -18,7 +15,7 @@ import {
   type ComponentProps as BlockNoteComponentProps,
 } from "@blocknote/react";
 import "@blocknote/core/fonts/inter.css";
-import "@blocknote/mantine/style.css";
+import "@blocknote/shadcn/style.css";
 import { MantineContext, MantineProvider } from "@mantine/core";
 import { mergeCSSClasses } from "@blocknote/core";
 import {
@@ -53,7 +50,6 @@ const describeFile = (file: File, resolvedPath?: string): ResolvedFileInfo => ({
   lastModified: file.lastModified,
   path: resolvedPath,
 });
-
 
 type BlockNoteDiagnostics = {
   events: string[];
@@ -293,14 +289,7 @@ const useFileInputDebug = (
 
 type BlockNoteViewWithComponentsProps = {
   componentsOverride: BlockNoteComponents;
-  theme?:
-  | "light"
-  | "dark"
-  | BlockNoteTheme
-  | {
-    light: BlockNoteTheme;
-    dark: BlockNoteTheme;
-  };
+  theme?: "light" | "dark";
   className?: string;
   editor: any;
   [key: string]: any;
@@ -308,53 +297,17 @@ type BlockNoteViewWithComponentsProps = {
 
 const BlockNoteViewWithComponents: React.FC<
   BlockNoteViewWithComponentsProps
-> = ({ componentsOverride, className, theme, ...rest }) => {
-  const existingContext = useBlockNoteContextInternal();
-  const systemColorScheme = usePrefersColorScheme();
-  const defaultColorScheme =
-    existingContext?.colorSchemePreference || systemColorScheme;
-
-  const ref = React.useCallback(
-    (node: HTMLDivElement | null) => {
-      if (!node) {
-        return;
-      }
-
-      removeBlockNoteCSSVariables(node);
-
-      if (typeof theme === "object") {
-        if ("light" in theme && "dark" in theme) {
-          applyBlockNoteCSSVariablesFromTheme(
-            theme[defaultColorScheme === "dark" ? "dark" : "light"],
-            node,
-          );
-          return;
-        }
-
-        applyBlockNoteCSSVariablesFromTheme(theme, node);
-        return;
-      }
-    },
-    [defaultColorScheme, theme],
-  );
+> = ({ componentsOverride, className, theme = "dark", ...rest }) => {
 
   const mantineContext = React.useContext(MantineContext);
-
-  const finalTheme =
-    typeof theme === "string"
-      ? theme
-      : defaultColorScheme !== "no-preference"
-        ? defaultColorScheme
-        : "light";
 
   const view = (
     <ComponentsContext.Provider value={componentsOverride}>
       <BlockNoteViewRaw
-        data-mantine-color-scheme={finalTheme}
+        data-mantine-color-scheme={theme}
         className={mergeCSSClasses("bn-mantine", className || "")}
-        theme={typeof theme === "object" ? undefined : theme}
+        theme={theme}
         {...rest}
-        ref={ref}
       />
     </ComponentsContext.Provider>
   );

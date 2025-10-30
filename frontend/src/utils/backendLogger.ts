@@ -81,8 +81,22 @@ export function enableBackendLogging() {
   };
 
   console.warn = (...args) => {
+    const message = args[0]?.toString() || "";
+
+    // Suppress known library warnings
+    if (
+      message.includes("Function components cannot be given refs") &&
+      message.includes("ForwardRef")
+    ) {
+      // Known issue with @blocknote/shadcn and Radix UI components
+      // See: https://github.com/radix-ui/primitives/discussions/1957
+      return;
+    }
+
     originalWarn(...args);
-    const { message, data } = BackendLogger["formatArgs"](args);
-    LogFromFrontend("warn", message, data).catch(() => { });
+    const formattedData = BackendLogger["formatArgs"](args);
+    LogFromFrontend("warn", formattedData.message, formattedData.data).catch(
+      () => { },
+    );
   };
 }
