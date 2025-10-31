@@ -1,10 +1,11 @@
 import React, { useEffect } from "react";
 import "@blocknote/core/fonts/inter.css";
 import type { BlockNoteEditor } from "@blocknote/core";
-import { Block, PartialBlock } from "@blocknote/core";
+import { Block, PartialBlock, BlockNoteSchema, createCodeBlockSpec } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/shadcn";
 import { useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/shadcn/style.css";
+import { codeBlockOptions } from "@blocknote/code-block";
 import { uploadFile } from "../../utils/assetUpload";
 import { useProjectContext } from "../../contexts";
 import "../../styles/blocknote-dark.css";
@@ -66,7 +67,18 @@ const EditorInner: React.FC<EditorInnerProps> = ({
     [currentProject],
   );
 
+  const schema = React.useMemo(
+    () =>
+      BlockNoteSchema.create().extend({
+        blockSpecs: {
+          codeBlock: createCodeBlockSpec(codeBlockOptions),
+        },
+      }),
+    []
+  );
+
   const editor = useCreateBlockNote({
+    schema,
     initialContent: blocks,
     uploadFile: uploadFileFn,
     domAttributes: {
