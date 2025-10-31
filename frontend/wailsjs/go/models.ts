@@ -25,6 +25,11 @@ export namespace asset {
 
 export namespace commandline {
 	
+	export enum GlobalCommand {
+	    Switch = "switch",
+	    Sync = "sync",
+	    Quit = "quit",
+	}
 	export enum DocumentCommand {
 	    New = "new",
 	    Doc = "doc",
@@ -41,11 +46,6 @@ export namespace commandline {
 	    Unarchive = "unarchive",
 	    Rename = "rename",
 	    Delete = "delete",
-	}
-	export enum GlobalCommand {
-	    Switch = "switch",
-	    Sync = "sync",
-	    Quit = "quit",
 	}
 	export class DocumentResultData {
 	    documentPath?: string;

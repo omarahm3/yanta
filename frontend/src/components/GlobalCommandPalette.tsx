@@ -1,6 +1,9 @@
-import React, { useMemo } from "react";
-import { CommandPalette, CommandOption } from "./ui";
+import React, { useMemo, useState } from "react";
+import { CommandPalette, CommandOption, GitErrorDialog } from "./ui";
 import { useProjectContext } from "../contexts/ProjectContext";
+import { useNotification } from "../hooks/useNotification";
+import { SyncNow, GitPush, GitPull } from "../../wailsjs/go/system/Service";
+import { parseGitError, ParsedGitError } from "../utils/gitErrorParser";
 import {
   RiDashboardLine,
   RiFolderLine,
@@ -11,6 +14,9 @@ import {
   RiArchiveLine,
   RiInboxUnarchiveLine,
   RiBugLine,
+  RiGitCommitLine,
+  RiUploadCloudLine,
+  RiDownloadCloudLine,
 } from "react-icons/ri";
 
 interface GlobalCommandPaletteProps {
@@ -34,6 +40,20 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
   showArchived,
 }) => {
   const { projects, currentProject, setCurrentProject } = useProjectContext();
+  const notification = useNotification();
+  const [gitError, setGitError] = useState<ParsedGitError | null>(null);
+  const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
+
+  const showGitError = (error: unknown) => {
+    const parsed = parseGitError(error);
+    setGitError(parsed);
+    setIsErrorDialogOpen(true);
+  };
+
+  const closeErrorDialog = () => {
+    setIsErrorDialogOpen(false);
+    setTimeout(() => setGitError(null), 300);
+  };
 
   const commandOptions: CommandOption[] = useMemo(() => {
     const commands: CommandOption[] = [];
@@ -104,6 +124,54 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
       },
     });
 
+    commands.push({
+      id: "git-sync",
+      icon: <RiGitCommitLine className="text-lg" />,
+      text: "Git Sync",
+      hint: "Commit + push (if enabled)",
+      action: async () => {
+        onClose();
+        try {
+          await SyncNow();
+          notification.success("Sync completed successfully");
+        } catch (err) {
+          showGitError(err);
+        }
+      },
+    });
+
+    commands.push({
+      id: "git-push",
+      icon: <RiUploadCloudLine className="text-lg" />,
+      text: "Git Push",
+      hint: "Push to remote",
+      action: async () => {
+        onClose();
+        try {
+          await GitPush();
+          notification.success("Pushed to remote successfully");
+        } catch (err) {
+          showGitError(err);
+        }
+      },
+    });
+
+    commands.push({
+      id: "git-pull",
+      icon: <RiDownloadCloudLine className="text-lg" />,
+      text: "Git Pull",
+      hint: "Pull from remote (merge)",
+      action: async () => {
+        onClose();
+        try {
+          await GitPull();
+          notification.success("Pulled from remote successfully");
+        } catch (err) {
+          showGitError(err);
+        }
+      },
+    });
+
     if (currentPage === "dashboard" && onToggleArchived && currentProject) {
       commands.push({
         id: "toggle-archived",
@@ -148,15 +216,23 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
     currentPage,
     onToggleArchived,
     showArchived,
+    notification,
   ]);
 
   return (
-    <CommandPalette
-      isOpen={isOpen}
-      onClose={onClose}
-      onCommandSelect={() => { }}
-      commands={commandOptions}
-      placeholder="Type a command or search..."
-    />
+    <>
+      <CommandPalette
+        isOpen={isOpen}
+        onClose={onClose}
+        onCommandSelect={() => { }}
+        commands={commandOptions}
+        placeholder="Type a command or search..."
+      />
+      <GitErrorDialog
+        isOpen={isErrorDialogOpen}
+        onClose={closeErrorDialog}
+        error={gitError}
+      />
+    </>
   );
 };

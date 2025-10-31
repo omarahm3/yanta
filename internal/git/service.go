@@ -172,6 +172,47 @@ func (s *Service) Push(path, remote, branch string) error {
 	return nil
 }
 
+func (s *Service) Pull(path, remote, branch string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "git", "pull", remote, branch)
+	cmd.Dir = path
+	hideConsoleWindow(cmd)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return fmt.Errorf("git pull timed out after 30s\n\nThis usually means:\n- Network connectivity issues\n- Authentication required (SSH key or credentials)\n- Remote repository is unreachable\n\nCheck your git configuration and network connection")
+		}
+		output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
+
+		if strings.Contains(output, "CONFLICT") {
+			return fmt.Errorf("MERGE_CONFLICT:\nMerge conflicts detected. Please resolve conflicts manually:\n\n%s\n\nSteps to resolve:\n1. Check conflicted files with 'git status'\n2. Edit files to resolve conflicts (look for <<<<<<<, =======, >>>>>>>)\n3. Stage resolved files with 'git add <file>'\n4. Commit with 'git commit'", output)
+		}
+
+		if strings.Contains(output, "divergent branches") || strings.Contains(output, "have diverged") {
+			return fmt.Errorf("DIVERGED_BRANCHES:\nLocal and remote branches have diverged.\n\n%s\n\nYou need to:\n1. Review remote changes\n2. Either merge or rebase\n3. Then push your changes", output)
+		}
+
+		if strings.Contains(output, "refusing to merge unrelated histories") {
+			return fmt.Errorf("UNRELATED_HISTORIES:\nRepositories have unrelated commit histories.\n\n%s\n\nUse 'git pull --allow-unrelated-histories' if you're sure you want to merge.", output)
+		}
+
+		return fmt.Errorf("git pull failed (exit status %d):\n%s", cmd.ProcessState.ExitCode(), output)
+	}
+
+	output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
+	if strings.Contains(output, "Already up to date") || strings.Contains(output, "Already up-to-date") {
+		return nil
+	}
+
+	return nil
+}
+
 func (s *Service) GetStatus(path string) (*Status, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

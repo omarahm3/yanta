@@ -27,3 +27,4 @@ export {
 } from "./MetadataSidebar";
 export { RelatedEntries, type RelatedEntry } from "./RelatedEntries";
 export { LoadingSpinner } from "./LoadingSpinner";
+export { GitErrorDialog } from "./GitErrorDialog";

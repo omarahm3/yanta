@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 	"yanta/internal/config"
 	"yanta/internal/git"
@@ -353,6 +354,69 @@ func (s *Service) GetGitStatus() (map[string]any, error) {
 		"untracked": status.Untracked,
 		"staged":    status.Staged,
 	}, nil
+}
+
+func (s *Service) GitPush() error {
+	gitCfg := config.GetGitSyncConfig()
+	if !gitCfg.Enabled {
+		return fmt.Errorf("GIT_NOT_ENABLED:\nGit sync is not enabled.\n\nGo to Settings → Git Sync and enable it first.")
+	}
+
+	dataDir := config.GetDataDirectory()
+	gitService := git.NewService()
+
+	logger.Infof("starting manual git push in: %s", dataDir)
+
+	isRepo, err := gitService.IsRepository(dataDir)
+	if err != nil {
+		return fmt.Errorf("REPO_CHECK_FAILED:\nFailed to check git repository: %v\n\nDirectory: %s", err, dataDir)
+	}
+	if !isRepo {
+		return fmt.Errorf("NOT_A_REPO:\nNot a git repository.\n\nDirectory: %s\n\nMigrate your data to a git directory first (Settings → Git Sync)", dataDir)
+	}
+
+	logger.Info("pushing to remote")
+	if err := gitService.Push(dataDir, "origin", "master"); err != nil {
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "rejected") && strings.Contains(errMsg, "non-fast-forward") {
+			return fmt.Errorf("PUSH_REJECTED:\n%v\n\n⚠️ Your local commits are behind the remote.\n\nYou need to pull first:\n1. Run 'Git Pull' to fetch and merge remote changes\n2. Resolve any conflicts if they occur\n3. Then push again", err)
+		}
+		if strings.Contains(errMsg, "failed to push") || strings.Contains(errMsg, "Connection") {
+			return fmt.Errorf("PUSH_FAILED:\n%v\n\nBranch: master\n\nPossible causes:\n- Network connectivity issues\n- Authentication problems (check SSH keys or credentials)\n- Remote repository doesn't exist or is unreachable", err)
+		}
+		return err
+	}
+
+	logger.Info("push completed successfully")
+	return nil
+}
+
+func (s *Service) GitPull() error {
+	gitCfg := config.GetGitSyncConfig()
+	if !gitCfg.Enabled {
+		return fmt.Errorf("GIT_NOT_ENABLED:\nGit sync is not enabled.\n\nGo to Settings → Git Sync and enable it first.")
+	}
+
+	dataDir := config.GetDataDirectory()
+	gitService := git.NewService()
+
+	logger.Infof("starting manual git pull in: %s", dataDir)
+
+	isRepo, err := gitService.IsRepository(dataDir)
+	if err != nil {
+		return fmt.Errorf("REPO_CHECK_FAILED:\nFailed to check git repository: %v\n\nDirectory: %s", err, dataDir)
+	}
+	if !isRepo {
+		return fmt.Errorf("NOT_A_REPO:\nNot a git repository.\n\nDirectory: %s\n\nMigrate your data to a git directory first (Settings → Git Sync)", dataDir)
+	}
+
+	logger.Info("pulling from remote")
+	if err := gitService.Pull(dataDir, "origin", "master"); err != nil {
+		return err
+	}
+
+	logger.Info("pull completed successfully")
+	return nil
 }
 
 func (s *Service) Quit() {

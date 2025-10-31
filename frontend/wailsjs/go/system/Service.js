@@ -30,6 +30,14 @@ export function GetSystemInfo() {
   return window['go']['system']['Service']['GetSystemInfo']();
 }
 
+export function GitPull() {
+  return window['go']['system']['Service']['GitPull']();
+}
+
+export function GitPush() {
+  return window['go']['system']['Service']['GitPush']();
+}
+
 export function LogFromFrontend(arg1, arg2, arg3) {
   return window['go']['system']['Service']['LogFromFrontend'](arg1, arg2, arg3);
 }

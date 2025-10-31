@@ -18,6 +18,10 @@ export function GetStartHidden():Promise<boolean>;
 
 export function GetSystemInfo():Promise<system.SystemInfo>;
 
+export function GitPull():Promise<void>;
+
+export function GitPush():Promise<void>;
+
 export function LogFromFrontend(arg1:string,arg2:string,arg3:Record<string, any>):Promise<void>;
 
 export function MigrateToGitDirectory(arg1:string):Promise<void>;
