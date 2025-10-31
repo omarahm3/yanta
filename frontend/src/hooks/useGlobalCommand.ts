@@ -4,7 +4,7 @@ import { projectFromModel } from "../types";
 import * as GlobalCommands from "../../wailsjs/go/commandline/GlobalCommands";
 import { commandline } from "../../wailsjs/go/models";
 
-const GLOBAL_COMMANDS = ["switch", "sync"];
+const GLOBAL_COMMANDS = ["switch", "sync", "quit"];
 
 export const useGlobalCommand = () => {
   const { setCurrentProject, loadProjects } = useProjectContext();

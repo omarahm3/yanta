@@ -24,6 +24,8 @@ export function MigrateToGitDirectory(arg1:string):Promise<void>;
 
 export function OpenDirectoryDialog():Promise<string>;
 
+export function Quit():Promise<void>;
+
 export function SetContext(arg1:context.Context):Promise<void>;
 
 export function SetDBPath(arg1:string):Promise<void>;

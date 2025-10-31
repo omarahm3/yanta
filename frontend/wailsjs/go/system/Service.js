@@ -42,6 +42,10 @@ export function OpenDirectoryDialog() {
   return window['go']['system']['Service']['OpenDirectoryDialog']();
 }
 
+export function Quit() {
+  return window['go']['system']['Service']['Quit']();
+}
+
 export function SetContext(arg1) {
   return window['go']['system']['Service']['SetContext'](arg1);
 }

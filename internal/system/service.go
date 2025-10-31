@@ -354,3 +354,13 @@ func (s *Service) GetGitStatus() (map[string]any, error) {
 		"staged":    status.Staged,
 	}, nil
 }
+
+func (s *Service) Quit() {
+	if s.ctx == nil {
+		logger.Warn("Quit called but context is nil")
+		return
+	}
+
+	logger.Info("Quit requested from frontend")
+	wailsRuntime.Quit(s.ctx)
+}

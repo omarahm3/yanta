@@ -13,6 +13,7 @@ type GlobalCommand string
 const (
 	GlobalCommandSwitch GlobalCommand = "switch"
 	GlobalCommandSync   GlobalCommand = "sync"
+	GlobalCommandQuit   GlobalCommand = "quit"
 )
 
 var AllGlobalCommands = []struct {
@@ -21,6 +22,7 @@ var AllGlobalCommands = []struct {
 }{
 	{GlobalCommandSwitch, "Switch"},
 	{GlobalCommandSync, "Sync"},
+	{GlobalCommandQuit, "Quit"},
 }
 
 type GlobalResultData struct {
@@ -87,6 +89,7 @@ func (gc *GlobalCommands) Parse(cmd string) (*GlobalResult, error) {
 func (gc *GlobalCommands) registerCommands() {
 	gc.parser.MustRegister(formatCommand(string(GlobalCommandSwitch), `\s+(@?[a-zA-Z0-9_-]+)$`), gc.handleSwitch)
 	gc.parser.MustRegister(formatCommand(string(GlobalCommandSync), `$`), gc.handleSync)
+	gc.parser.MustRegister(formatCommand(string(GlobalCommandQuit), `$`), gc.handleQuit)
 }
 
 func (gc *GlobalCommands) handleSwitch(matches []string, fullCommand string) (*Result, error) {
@@ -177,6 +180,15 @@ func (gc *GlobalCommands) handleSync(matches []string, fullCommand string) (*Res
 	return &Result{
 		Success: true,
 		Message: "Sync completed successfully",
+		Context: ContextGlobal,
+	}, nil
+}
+
+func (gc *GlobalCommands) handleQuit(matches []string, fullCommand string) (*Result, error) {
+	gc.systemService.Quit()
+	return &Result{
+		Success: true,
+		Message: "Quitting application...",
 		Context: ContextGlobal,
 	}, nil
 }
