@@ -1,0 +1,2 @@
+# RTL CSS requires !important to override BlockNote default styles
+noImportantStyles

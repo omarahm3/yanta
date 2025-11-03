@@ -10,7 +10,11 @@
     "test": "vitest",
     "test:hotkeys": "vitest run src/__tests__ --test-timeout=5000",
     "test:hotkeys:watch": "vitest src/__tests__ --test-timeout=5000",
-    "test:coverage": "vitest run --coverage src/__tests__"
+    "test:coverage": "vitest run --coverage src/__tests__",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "format:check": "biome format ."
   },
   "dependencies": {
     "@blocknote/code-block": "^0.41.1",

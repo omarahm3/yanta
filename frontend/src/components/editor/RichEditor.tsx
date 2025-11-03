@@ -1,7 +1,13 @@
 import React, { useEffect } from "react";
 import "@blocknote/core/fonts/inter.css";
 import type { BlockNoteEditor } from "@blocknote/core";
-import { Block, PartialBlock, BlockNoteSchema, createCodeBlockSpec } from "@blocknote/core";
+import {
+  Block,
+  PartialBlock,
+  BlockNoteSchema,
+  createCodeBlockSpec,
+  createBlockNoteExtension,
+} from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/shadcn";
 import { useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/shadcn/style.css";
@@ -9,11 +15,13 @@ import { codeBlockOptions } from "@blocknote/code-block";
 import { uploadFile } from "../../utils/assetUpload";
 import { useProjectContext } from "../../contexts";
 import "../../styles/blocknote-dark.css";
+import "../../extensions/rtl/rtl.css";
 import { cn } from "../../lib/utils";
 import { BlockNoteBlock } from "../../types/Document";
 import { extractTitleFromBlocks } from "../../utils/documentUtils";
 import { Environment } from "../../../wailsjs/runtime/runtime";
 import { registerClipboardImagePlugin } from "../../utils/clipboard";
+import { RTLExtension } from "../../extensions/rtl";
 
 export interface RichEditorProps {
   initialContent?: string;
@@ -74,7 +82,7 @@ const EditorInner: React.FC<EditorInnerProps> = ({
           codeBlock: createCodeBlockSpec(codeBlockOptions),
         },
       }),
-    []
+    [],
   );
 
   const editor = useCreateBlockNote({
@@ -86,6 +94,12 @@ const EditorInner: React.FC<EditorInnerProps> = ({
         class: "bn-editor",
       },
     },
+    extensions: [
+      createBlockNoteExtension({
+        key: "rtl",
+        tiptapExtensions: [RTLExtension],
+      }),
+    ],
   });
   const [isReady, setIsReady] = React.useState(false);
 
