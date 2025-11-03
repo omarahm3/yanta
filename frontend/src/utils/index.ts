@@ -3,13 +3,13 @@
  */
 
 export {
-  blocksToJson,
-  blocksFromJson,
-  extractTitle,
-  createSimpleBlock,
-  isEmptyContent,
-  extractHashtags,
-  removeHashtags,
+	blocksFromJson,
+	blocksToJson,
+	createSimpleBlock,
+	extractHashtags,
+	extractTitle,
+	isEmptyContent,
+	removeHashtags,
 } from "./blocknote";
 
 export { getProjectAliasColor } from "./colorUtils";

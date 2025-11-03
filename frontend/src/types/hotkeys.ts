@@ -1,18 +1,18 @@
 export interface HotkeyConfig {
-  key: string;
-  handler: (event: KeyboardEvent) => void | boolean;
-  allowInInput?: boolean;
-  description?: string;
-  priority?: number;
-  capture?: boolean;
+	key: string;
+	handler: (event: KeyboardEvent) => void | boolean;
+	allowInInput?: boolean;
+	description?: string;
+	priority?: number;
+	capture?: boolean;
 }
 
 export interface RegisteredHotkey extends HotkeyConfig {
-  id: string;
+	id: string;
 }
 
 export interface HotkeyContextValue {
-  register: (config: HotkeyConfig) => string;
-  unregister: (id: string) => void;
-  getRegisteredHotkeys: () => RegisteredHotkey[];
+	register: (config: HotkeyConfig) => string;
+	unregister: (id: string) => void;
+	getRegisteredHotkeys: () => RegisteredHotkey[];
 }

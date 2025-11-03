@@ -1,5 +1,5 @@
-export { DocumentEditorForm } from "./DocumentEditorForm";
-export { DocumentEditorActions } from "./DocumentEditorActions";
-export { DocumentLoadingState } from "./DocumentLoadingState";
-export { DocumentErrorState } from "./DocumentErrorState";
 export { DocumentContent } from "./DocumentContent";
+export { DocumentEditorActions } from "./DocumentEditorActions";
+export { DocumentEditorForm } from "./DocumentEditorForm";
+export { DocumentErrorState } from "./DocumentErrorState";
+export { DocumentLoadingState } from "./DocumentLoadingState";

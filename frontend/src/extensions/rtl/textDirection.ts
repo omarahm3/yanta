@@ -12,9 +12,7 @@ const RTL_RANGES = [
 ];
 
 function isRTLChar(charCode: number): boolean {
-	return RTL_RANGES.some(
-		([start, end]) => charCode >= start && charCode <= end,
-	);
+	return RTL_RANGES.some(([start, end]) => charCode >= start && charCode <= end);
 }
 
 export function detectTextDirection(text: string): "ltr" | "rtl" | null {
