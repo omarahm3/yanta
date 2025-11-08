@@ -22,12 +22,17 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"golang.design/x/hotkey/mainthread"
 )
 
 //go:embed all:frontend/dist
 var assets embed.FS
 
 func main() {
+	mainthread.Init(run)
+}
+
+func run() {
 	if err := config.Init(); err != nil {
 		writeStartupError(fmt.Sprintf("Failed to initialize config: %v", err))
 		log.Fatalf("failed to initialize config: %v", err)

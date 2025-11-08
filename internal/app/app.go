@@ -27,7 +27,6 @@ import (
 	"github.com/google/uuid"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.design/x/hotkey"
-	"golang.design/x/hotkey/mainthread"
 )
 
 type App struct {
@@ -166,10 +165,10 @@ func (a *App) OnStartup(ctx context.Context) {
 	sessionType := os.Getenv("XDG_SESSION_TYPE")
 	logger.Debugf("XDG_SESSION_TYPE: %s", sessionType)
 
-	if !isWayland() {
-		a.registerRestoreHotkey()
-	} else {
+	if isWayland() {
 		logger.Info("skipping global hotkey registration on Wayland (not supported)")
+	} else {
+		a.registerRestoreHotkey()
 	}
 }
 
@@ -263,16 +262,16 @@ func (a *App) OnShutdown(ctx context.Context) {
 }
 
 func (a *App) registerRestoreHotkey() {
-	go mainthread.Init(func() {
-		hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyY)
-		if err := hk.Register(); err != nil {
-			logger.Errorf("failed to register global hotkey Ctrl+Shift+Y: %v", err)
-			return
-		}
+	hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyY)
+	if err := hk.Register(); err != nil {
+		logger.Errorf("failed to register global hotkey Ctrl+Shift+Y: %v", err)
+		return
+	}
 
-		a.restoreHotkey = hk
-		logger.Info("registered global hotkey Ctrl+Shift+Y to restore window")
+	a.restoreHotkey = hk
+	logger.Info("registered global hotkey Ctrl+Shift+Y to restore window")
 
+	go func() {
 		for range hk.Keydown() {
 			logger.Debug("Ctrl+Shift+Y pressed, restoring window...")
 			if a.ctx != nil {
@@ -281,7 +280,7 @@ func (a *App) registerRestoreHotkey() {
 				logger.Debug("window restored")
 			}
 		}
-	})
+	}()
 }
 
 func (a *App) writeCrashReport(location string, panicValue any) {
