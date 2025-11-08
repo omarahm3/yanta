@@ -76,8 +76,11 @@ func (p *Parser) extractTextFromContent(inlineContent []BlockNoteContent) string
 				parts = append(parts, item.Text)
 			}
 		case "link":
-			if item.Content != "" {
-				parts = append(parts, item.Content)
+			if len(item.Content) > 0 {
+				nestedText := p.extractTextFromContent(item.Content)
+				if nestedText != "" {
+					parts = append(parts, nestedText)
+				}
 			}
 		}
 	}

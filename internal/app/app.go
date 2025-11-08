@@ -20,11 +20,11 @@ import (
 	"yanta/internal/logger"
 	"yanta/internal/project"
 	"yanta/internal/search"
+	"yanta/internal/seed"
 	"yanta/internal/system"
 	"yanta/internal/tag"
 	"yanta/internal/vault"
 
-	"github.com/google/uuid"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.design/x/hotkey"
 	"golang.design/x/hotkey/mainthread"
@@ -343,13 +343,12 @@ func seedDemoDocuments(v *vault.Vault, docStore *document.Store, idx *indexer.In
 
 	logger.Info("seeding demo documents...")
 
-	demoDocuments := db.GetDemoDocuments()
+	demoDocuments := seed.GetDemoDocuments()
 	fileWriter := document.NewFileWriter(v)
 
 	for _, seedDoc := range demoDocuments {
-		blocks := make([]document.BlockNoteBlock, len(seedDoc.Content))
-		for i, sb := range seedDoc.Content {
-			blocks[i] = convertSeedBlock(sb)
+		if err := document.ValidateBlockNoteStructure(seedDoc.Blocks); err != nil {
+			return fmt.Errorf("seed document '%s' has invalid BlockNote structure: %w", seedDoc.Title, err)
 		}
 
 		now := time.Now()
@@ -362,7 +361,7 @@ func seedDemoDocuments(v *vault.Vault, docStore *document.Store, idx *indexer.In
 				Created: now,
 				Updated: now,
 			},
-			Blocks: blocks,
+			Blocks: seedDoc.Blocks,
 		}
 
 		timestamp := now.UnixMicro()
@@ -385,41 +384,4 @@ func seedDemoDocuments(v *vault.Vault, docStore *document.Store, idx *indexer.In
 
 	logger.Info("demo documents seeded successfully")
 	return nil
-}
-
-func convertSeedBlock(sb db.SeedBlock) document.BlockNoteBlock {
-	block := document.BlockNoteBlock{
-		ID:   uuid.New().String(),
-		Type: sb.Type,
-	}
-
-	if sb.Props != nil {
-		block.Props = sb.Props
-	}
-
-	if sb.Content != nil {
-		if contentSlice, ok := sb.Content.([]any); ok {
-			block.Content = make([]document.BlockNoteContent, len(contentSlice))
-			for i, c := range contentSlice {
-				if contentMap, ok := c.(map[string]any); ok {
-					bnc := document.BlockNoteContent{}
-					if t, ok := contentMap["type"].(string); ok {
-						bnc.Type = t
-					}
-					if text, ok := contentMap["text"].(string); ok {
-						bnc.Text = text
-					}
-					if styles, ok := contentMap["styles"].(map[string]any); ok {
-						bnc.Styles = styles
-					}
-					if href, ok := contentMap["href"].(string); ok {
-						bnc.Href = href
-					}
-					block.Content[i] = bnc
-				}
-			}
-		}
-	}
-
-	return block
 }
