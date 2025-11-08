@@ -164,9 +164,11 @@ func TestParser_ParseLinks(t *testing.T) {
 				Content: []BlockNoteContent{
 					{Type: "text", Text: "Check out "},
 					{
-						Type:    "link",
-						Content: "GitHub",
-						Href:    "https://github.com/example/repo",
+						Type: "link",
+						Content: []BlockNoteContent{
+							{Type: "text", Text: "GitHub"},
+						},
+						Href: "https://github.com/example/repo",
 					},
 					{Type: "text", Text: " for more."},
 				},
@@ -883,7 +885,9 @@ func TestParser_ComplexDocument(t *testing.T) {
 				Type: "paragraph",
 				Content: []BlockNoteContent{
 					{Type: "text", Text: "This paragraph has a "},
-					{Type: "link", Content: "link", Href: "https://example.com"},
+					{Type: "link", Content: []BlockNoteContent{
+						{Type: "text", Text: "link"},
+					}, Href: "https://example.com"},
 					{Type: "text", Text: "."},
 				},
 			},

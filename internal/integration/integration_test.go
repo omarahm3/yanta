@@ -34,8 +34,14 @@ func TestIntegration_FullDocumentLifecycle(t *testing.T) {
 			ID:   "block-2",
 			Type: "paragraph",
 			Content: []document.BlockNoteContent{
-				{Type: "text", Text: "This document tests the full pipeline. "},
-				{Type: "link", Text: "Example Link", Href: "https://example.com"},
+				{Type: "text", Text: "This document tests the full pipeline. ", Styles: map[string]any{}},
+				{
+					Type: "link",
+					Href: "https://example.com",
+					Content: []document.BlockNoteContent{
+						{Type: "text", Text: "Example Link", Styles: map[string]any{}},
+					},
+				},
 			},
 		},
 	}

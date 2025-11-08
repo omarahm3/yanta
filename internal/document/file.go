@@ -31,11 +31,11 @@ type BlockNoteBlock struct {
 }
 
 type BlockNoteContent struct {
-	Type    string         `json:"type"`
-	Text    string         `json:"text,omitempty"`
-	Styles  map[string]any `json:"styles,omitempty"`
-	Href    string         `json:"href,omitempty"`
-	Content string         `json:"content,omitempty"`
+	Type    string             `json:"type"`
+	Text    string             `json:"text,omitempty"`
+	Styles  map[string]any     `json:"styles,omitempty"`
+	Href    string             `json:"href,omitempty"`
+	Content []BlockNoteContent `json:"content,omitempty"`
 }
 
 func (df *DocumentFile) Validate() error {
