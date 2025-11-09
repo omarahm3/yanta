@@ -60,7 +60,7 @@ func Init(config *Config) error {
 	})
 	Log.SetReportCaller(true)
 
-	var writers []io.Writer
+	writers := []io.Writer{os.Stdout}
 
 	if config.LogFile != "" {
 		if err := os.MkdirAll(config.LogDir, 0755); err != nil {
@@ -79,10 +79,6 @@ func Init(config *Config) error {
 		}
 
 		writers = append(writers, logFile)
-	}
-
-	if len(writers) == 0 {
-		writers = append(writers, os.Stdout)
 	}
 
 	Log.SetOutput(io.MultiWriter(writers...))
