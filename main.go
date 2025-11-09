@@ -72,7 +72,7 @@ func run() {
 	startHidden := config.GetStartHidden()
 	logger.Infof("start_hidden config: %v", startHidden)
 
-	err = wails.Run(&options.App{
+	appOptions := &options.App{
 		Title:       "YANTA",
 		Width:       1024,
 		Height:      768,
@@ -137,6 +137,10 @@ func run() {
 		Bind:             a.Bindings.Bind(),
 		EnumBind:         a.Bindings.BindEnums(),
 		Logger:           logger.NewWailsLogger(),
+	}
+
+	mainthread.Call(func() {
+		err = wails.Run(appOptions)
 	})
 
 	if err != nil {
