@@ -166,10 +166,13 @@ func (a *App) OnStartup(ctx context.Context) {
 	sessionType := os.Getenv("XDG_SESSION_TYPE")
 	logger.Debugf("XDG_SESSION_TYPE: %s", sessionType)
 
-	if !isWayland() {
+	switch runtime.GOOS {
+	case "darwin":
+		logger.Info("skipping global hotkey registration on macOS (disabled)")
+	case "linux":
+		logger.Info("skipping global hotkey registration on Linux (disabled)")
+	default:
 		a.registerRestoreHotkey()
-	} else {
-		logger.Info("skipping global hotkey registration on Wayland (not supported)")
 	}
 }
 
@@ -317,15 +320,6 @@ func (a *App) writeCrashReport(location string, panicValue any) {
 	fmt.Fprintf(f, "%s\n", buf[:n])
 
 	logger.Infof("crash report written to: %s", crashPath)
-}
-
-func isWayland() bool {
-	if runtime.GOOS != "linux" {
-		return false
-	}
-
-	sessionType := os.Getenv("XDG_SESSION_TYPE")
-	return strings.ToLower(sessionType) == "wayland"
 }
 
 func seedDemoDocuments(v *vault.Vault, docStore *document.Store, idx *indexer.Indexer) error {
