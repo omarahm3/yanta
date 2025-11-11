@@ -128,6 +128,16 @@ export function useDocumentController({
 		onNavigate,
 	});
 
+	useEffect(() => {
+		return () => {
+			if (autoSave.hasUnsavedChanges && !isArchived && currentProject) {
+				autoSave.saveNow().catch((err) => {
+					console.error("[Document] Failed to save on unmount:", err);
+				});
+			}
+		};
+	}, [autoSave, isArchived, currentProject]);
+
 	const handleCancel = useCallback(() => {
 		if (autoSave.hasUnsavedChanges && !isEditMode) {
 			return;
