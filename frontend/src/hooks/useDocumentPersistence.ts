@@ -54,6 +54,8 @@ export const useDocumentPersistence = ({
 
 		isSavingRef.current = true;
 
+		console.log("> saving document", JSON.stringify(latestFormRef.current.blocks));
+
 		try {
 			const currentFormData = latestFormRef.current;
 			const currentPath = currentDocumentPathRef.current;
@@ -79,6 +81,9 @@ export const useDocumentPersistence = ({
 			}
 		} catch (err) {
 			console.error("Save failed:", err);
+			// Re-throw the error so useAutoSave can handle it and show error status
+			// This is safe because useAutoSave has its own try-catch that prevents crashes
+			throw err;
 		} finally {
 			isSavingRef.current = false;
 		}
