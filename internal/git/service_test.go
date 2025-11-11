@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -169,7 +170,11 @@ func TestSetRemote(t *testing.T) {
 		remotes, err := getGitRemotes(tempDir)
 		require.NoError(t, err)
 		assert.Contains(t, remotes, "origin")
-		assert.Contains(t, remotes, "https://github.com/user/repo.git")
+		// Git may rewrite URLs based on global config (e.g., https -> ssh)
+		// Check that the remote exists with either the original URL or a rewritten one
+		hasOriginal := strings.Contains(remotes, "https://github.com/user/repo.git")
+		hasRewritten := strings.Contains(remotes, "ssh://git@github.com/user/repo.git")
+		assert.True(t, hasOriginal || hasRewritten, "Remote should contain either HTTPS or SSH URL, got: %s", remotes)
 	})
 }
 
