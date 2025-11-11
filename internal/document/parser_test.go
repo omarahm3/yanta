@@ -1,6 +1,7 @@
 package document
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 )
@@ -23,9 +24,9 @@ func TestParser_ParseHeading(t *testing.T) {
 				Props: map[string]any{
 					"level": 1,
 				},
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "First Heading"},
-				},
+				}),
 			},
 			{
 				ID:   "h2",
@@ -33,9 +34,9 @@ func TestParser_ParseHeading(t *testing.T) {
 				Props: map[string]any{
 					"level": 2,
 				},
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "Second Heading"},
-				},
+				}),
 			},
 		},
 	}
@@ -75,11 +76,11 @@ func TestParser_ParseParagraph(t *testing.T) {
 			{
 				ID:   "p1",
 				Type: "paragraph",
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "This is "},
 					{Type: "text", Text: "bold", Styles: map[string]any{"bold": true}},
 					{Type: "text", Text: " text."},
-				},
+				}),
 			},
 		},
 	}
@@ -121,9 +122,9 @@ func TestParser_ParseCodeBlock(t *testing.T) {
 				Props: map[string]any{
 					"language": "go",
 				},
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: codeText},
-				},
+				}),
 			},
 		},
 	}
@@ -161,7 +162,7 @@ func TestParser_ParseLinks(t *testing.T) {
 			{
 				ID:   "p1",
 				Type: "paragraph",
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "Check out "},
 					{
 						Type: "link",
@@ -171,7 +172,7 @@ func TestParser_ParseLinks(t *testing.T) {
 						Href: "https://github.com/example/repo",
 					},
 					{Type: "text", Text: " for more."},
-				},
+				}),
 			},
 		},
 	}
@@ -272,16 +273,16 @@ func TestParser_ParseListItem(t *testing.T) {
 			{
 				ID:   "li1",
 				Type: "bulletListItem",
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "First item"},
-				},
+				}),
 				Children: []BlockNoteBlock{
 					{
 						ID:   "li2",
 						Type: "bulletListItem",
-						Content: []BlockNoteContent{
+						Content: mustMarshalContent([]BlockNoteContent{
 							{Type: "text", Text: "Nested item"},
-						},
+						}),
 					},
 				},
 			},
@@ -326,9 +327,9 @@ func TestParser_FallbackTitle(t *testing.T) {
 				Props: map[string]any{
 					"level": 1,
 				},
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "Document Title From H1"},
-				},
+				}),
 			},
 		},
 	}
@@ -394,9 +395,9 @@ func TestParser_FTSOutput(t *testing.T) {
 				Props: map[string]any{
 					"level": 1,
 				},
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "Heading One"},
-				},
+				}),
 			},
 			{
 				ID:   "h2",
@@ -404,23 +405,23 @@ func TestParser_FTSOutput(t *testing.T) {
 				Props: map[string]any{
 					"level": 2,
 				},
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "Heading Two"},
-				},
+				}),
 			},
 			{
 				ID:   "p1",
 				Type: "paragraph",
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "Body paragraph one."},
-				},
+				}),
 			},
 			{
 				ID:   "p2",
 				Type: "paragraph",
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "Body paragraph two."},
-				},
+				}),
 			},
 		},
 	}
@@ -461,9 +462,9 @@ func TestParser_ParseQuote(t *testing.T) {
 			{
 				ID:   "quote1",
 				Type: "quote",
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "This is a quote."},
-				},
+				}),
 			},
 		},
 	}
@@ -544,22 +545,40 @@ func TestParser_ParseTable(t *testing.T) {
 			{
 				ID:   "table1",
 				Type: "table",
-				Props: map[string]any{
-					"content": []any{
-						map[string]any{
-							"cells": []any{
-								map[string]any{"text": "Header 1"},
-								map[string]any{"text": "Header 2"},
-							},
+				Content: json.RawMessage(`{
+					"type": "tableContent",
+					"columnWidths": [null, null],
+					"rows": [
+						{
+							"cells": [
+								{
+									"type": "tableCell",
+									"content": [{"type": "text", "text": "Header 1", "styles": {}}],
+									"props": {}
+								},
+								{
+									"type": "tableCell",
+									"content": [{"type": "text", "text": "Header 2", "styles": {}}],
+									"props": {}
+								}
+							]
 						},
-						map[string]any{
-							"cells": []any{
-								map[string]any{"text": "Cell 1"},
-								map[string]any{"text": "Cell 2"},
-							},
-						},
-					},
-				},
+						{
+							"cells": [
+								{
+									"type": "tableCell",
+									"content": [{"type": "text", "text": "Cell 1", "styles": {}}],
+									"props": {}
+								},
+								{
+									"type": "tableCell",
+									"content": [{"type": "text", "text": "Cell 2", "styles": {}}],
+									"props": {}
+								}
+							]
+						}
+					]
+				}`),
 			},
 		},
 	}
@@ -594,16 +613,16 @@ func TestParser_ParseNumberedList(t *testing.T) {
 			{
 				ID:   "li1",
 				Type: "numberedListItem",
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "First numbered item"},
-				},
+				}),
 			},
 			{
 				ID:   "li2",
 				Type: "numberedListItem",
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "Second numbered item"},
-				},
+				}),
 			},
 		},
 	}
@@ -641,9 +660,9 @@ func TestParser_ParseCheckList(t *testing.T) {
 			{
 				ID:   "check1",
 				Type: "checkListItem",
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "Task to complete"},
-				},
+				}),
 			},
 		},
 	}
@@ -677,9 +696,9 @@ func TestParser_UnknownBlockType(t *testing.T) {
 			{
 				ID:   "unknown1",
 				Type: "unknownBlockType",
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "Some content"},
-				},
+				}),
 			},
 		},
 	}
@@ -876,20 +895,20 @@ func TestParser_ComplexDocument(t *testing.T) {
 				Props: map[string]any{
 					"level": 1,
 				},
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "Main Heading"},
-				},
+				}),
 			},
 			{
 				ID:   "p1",
 				Type: "paragraph",
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "This paragraph has a "},
 					{Type: "link", Content: []BlockNoteContent{
 						{Type: "text", Text: "link"},
 					}, Href: "https://example.com"},
 					{Type: "text", Text: "."},
-				},
+				}),
 			},
 			{
 				ID:   "code1",
@@ -897,9 +916,9 @@ func TestParser_ComplexDocument(t *testing.T) {
 				Props: map[string]any{
 					"language": "python",
 				},
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "print('hello')"},
-				},
+				}),
 			},
 			{
 				ID:   "img1",
@@ -912,9 +931,9 @@ func TestParser_ComplexDocument(t *testing.T) {
 			{
 				ID:   "list1",
 				Type: "bulletListItem",
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "List item"},
-				},
+				}),
 			},
 		},
 	}
@@ -968,16 +987,16 @@ func TestParser_FTSCodeFormat(t *testing.T) {
 			{
 				ID:   "code1",
 				Type: "codeBlock",
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "first block"},
-				},
+				}),
 			},
 			{
 				ID:   "code2",
 				Type: "codeBlock",
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "second block"},
-				},
+				}),
 			},
 		},
 	}

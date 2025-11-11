@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"encoding/json"
 	"testing"
 
 	"yanta/internal/document"
@@ -10,6 +11,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func mustMarshalContent(content []document.BlockNoteContent) json.RawMessage {
+	data, err := json.Marshal(content)
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
+
 
 // TestDocumentSaveWithLinks validates that when a user saves a document with links,
 // those links are properly extracted and stored in the doc_link table.
@@ -36,7 +46,7 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 					ID:    uuid.New().String(),
 					Type:  "paragraph",
 					Props: map[string]any{},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "Check out ",
@@ -58,13 +68,13 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 							Text:   " for more info.",
 							Styles: map[string]any{},
 						},
-					},
+					}),
 				},
 				{
 					ID:    uuid.New().String(),
 					Type:  "paragraph",
 					Props: map[string]any{},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "Also see ",
@@ -81,7 +91,7 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 								},
 							},
 						},
-					},
+					}),
 				},
 			},
 		})
@@ -112,7 +122,7 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 					ID:    uuid.New().String(),
 					Type:  "paragraph",
 					Props: map[string]any{},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "Original link: ",
@@ -129,7 +139,7 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 								},
 							},
 						},
-					},
+					}),
 				},
 			},
 		})
@@ -150,7 +160,7 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 					ID:    uuid.New().String(),
 					Type:  "paragraph",
 					Props: map[string]any{},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "New links: ",
@@ -183,7 +193,7 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 								},
 							},
 						},
-					},
+					}),
 				},
 			},
 		})
@@ -209,13 +219,13 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 					ID:    uuid.New().String(),
 					Type:  "paragraph",
 					Props: map[string]any{},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "Just plain text, no links here.",
 							Styles: map[string]any{},
 						},
-					},
+					}),
 				},
 			},
 		})
@@ -240,7 +250,7 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 					ID:    uuid.New().String(),
 					Type:  "paragraph",
 					Props: map[string]any{},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type: "link",
 							Href: "https://to-be-removed.com",
@@ -252,7 +262,7 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 								},
 							},
 						},
-					},
+					}),
 				},
 			},
 		})
@@ -272,13 +282,13 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 					ID:    uuid.New().String(),
 					Type:  "paragraph",
 					Props: map[string]any{},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "All links removed, just text now.",
 							Styles: map[string]any{},
 						},
-					},
+					}),
 				},
 			},
 		})
@@ -303,7 +313,7 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 					ID:    uuid.New().String(),
 					Type:  "paragraph",
 					Props: map[string]any{},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "Visit ",
@@ -340,7 +350,7 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 								{Type: "text", Text: "site3", Styles: map[string]any{}},
 							},
 						},
-					},
+					}),
 				},
 			},
 		})

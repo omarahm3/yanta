@@ -23,17 +23,17 @@ type DocumentMeta struct {
 }
 
 type BlockNoteBlock struct {
-	ID       string             `json:"id"`
-	Type     string             `json:"type"`
-	Props    map[string]any     `json:"props,omitempty"`
-	Content  []BlockNoteContent `json:"content,omitempty"`
-	Children []BlockNoteBlock   `json:"children,omitempty"`
+	ID       string           `json:"id"`
+	Type     string           `json:"type"`
+	Props    map[string]any   `json:"props,omitempty"`
+	Content  json.RawMessage  `json:"content,omitempty"`
+	Children []BlockNoteBlock `json:"children,omitempty"`
 }
 
 type BlockNoteContent struct {
 	Type    string             `json:"type"`
 	Text    string             `json:"text,omitempty"`
-	Styles  map[string]any     `json:"styles,omitempty"`
+	Styles  map[string]any     `json:"styles"`
 	Href    string             `json:"href,omitempty"`
 	Content []BlockNoteContent `json:"content,omitempty"`
 }

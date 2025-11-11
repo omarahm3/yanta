@@ -1,6 +1,7 @@
 package document
 
 import (
+	"encoding/json"
 	"strings"
 )
 
@@ -109,21 +110,34 @@ func (p *Parser) parseQuote(block BlockNoteBlock, content *ExtractedContent) {
 	content.Links = append(content.Links, links...)
 }
 
-func (p *Parser) parseTable(block BlockNoteBlock, content *ExtractedContent) {
-	var tableText []string
+type tableContent struct {
+	Type         string `json:"type"`
+	ColumnWidths []any  `json:"columnWidths"`
+	Rows         []struct {
+		Cells []struct {
+			Type    string             `json:"type"`
+			Content []BlockNoteContent `json:"content"`
+			Props   map[string]any     `json:"props"`
+		} `json:"cells"`
+	} `json:"rows"`
+}
 
-	if props, ok := block.Props["content"].([]any); ok {
-		for _, row := range props {
-			if rowMap, ok := row.(map[string]any); ok {
-				if cells, ok := rowMap["cells"].([]any); ok {
-					for _, cell := range cells {
-						if cellMap, ok := cell.(map[string]any); ok {
-							if text, ok := cellMap["text"].(string); ok && text != "" {
-								tableText = append(tableText, text)
-							}
-						}
-					}
-				}
+func (p *Parser) parseTable(block BlockNoteBlock, content *ExtractedContent) {
+	if len(block.Content) == 0 {
+		return
+	}
+
+	var table tableContent
+	if err := json.Unmarshal(block.Content, &table); err != nil {
+		return
+	}
+
+	var tableText []string
+	for _, row := range table.Rows {
+		for _, cell := range row.Cells {
+			text := p.extractTextFromContentSlice(cell.Content)
+			if text != "" {
+				tableText = append(tableText, text)
 			}
 		}
 	}

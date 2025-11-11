@@ -1,10 +1,19 @@
 package seed
 
 import (
+	"encoding/json"
 	"yanta/internal/document"
 
 	"github.com/google/uuid"
 )
+
+func mustMarshalContent(content []document.BlockNoteContent) json.RawMessage {
+	data, err := json.Marshal(content)
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
 
 type Document struct {
 	ProjectAlias string
@@ -26,19 +35,19 @@ func GetDemoDocuments() []Document {
 					Props: map[string]any{
 						"level": 1,
 					},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "Project Kickoff Notes",
 							Styles: map[string]any{},
 						},
-					},
+					}),
 				},
 				{
 					ID:    uuid.New().String(),
 					Type:  "paragraph",
 					Props: map[string]any{},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "Discussed project goals and timelines with the team. Check out our ",
@@ -60,31 +69,31 @@ func GetDemoDocuments() []Document {
 							Text:   " for more details.",
 							Styles: map[string]any{},
 						},
-					},
+					}),
 				},
 				{
 					ID:    uuid.New().String(),
 					Type:  "bulletListItem",
 					Props: map[string]any{},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "Milestone 1: Requirements gathering",
 							Styles: map[string]any{},
 						},
-					},
+					}),
 				},
 				{
 					ID:    uuid.New().String(),
 					Type:  "bulletListItem",
 					Props: map[string]any{},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "Milestone 2: Implementation phase",
 							Styles: map[string]any{},
 						},
-					},
+					}),
 				},
 			},
 		},
@@ -99,19 +108,19 @@ func GetDemoDocuments() []Document {
 					Props: map[string]any{
 						"level": 1,
 					},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "Books to Read",
 							Styles: map[string]any{},
 						},
-					},
+					}),
 				},
 				{
 					ID:    uuid.New().String(),
 					Type:  "paragraph",
 					Props: map[string]any{},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "My current reading list for this quarter. Find reviews on ",
@@ -133,31 +142,31 @@ func GetDemoDocuments() []Document {
 							Text:   ":",
 							Styles: map[string]any{},
 						},
-					},
+					}),
 				},
 				{
 					ID:    uuid.New().String(),
 					Type:  "numberedListItem",
 					Props: map[string]any{},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "Clean Architecture - Robert Martin",
 							Styles: map[string]any{},
 						},
-					},
+					}),
 				},
 				{
 					ID:    uuid.New().String(),
 					Type:  "numberedListItem",
 					Props: map[string]any{},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "Designing Data-Intensive Applications - Martin Kleppmann",
 							Styles: map[string]any{},
 						},
-					},
+					}),
 				},
 			},
 		},
@@ -172,19 +181,19 @@ func GetDemoDocuments() []Document {
 					Props: map[string]any{
 						"level": 1,
 					},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "Go Best Practices",
 							Styles: map[string]any{},
 						},
-					},
+					}),
 				},
 				{
 					ID:    uuid.New().String(),
 					Type:  "paragraph",
 					Props: map[string]any{},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "Key principles for writing idiomatic Go code. Learn more from ",
@@ -206,31 +215,31 @@ func GetDemoDocuments() []Document {
 							Text:   ":",
 							Styles: map[string]any{},
 						},
-					},
+					}),
 				},
 				{
 					ID:    uuid.New().String(),
 					Type:  "bulletListItem",
 					Props: map[string]any{},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "Accept interfaces, return structs",
 							Styles: map[string]any{},
 						},
-					},
+					}),
 				},
 				{
 					ID:    uuid.New().String(),
 					Type:  "bulletListItem",
 					Props: map[string]any{},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "Handle errors explicitly",
 							Styles: map[string]any{},
 						},
-					},
+					}),
 				},
 				{
 					ID:   uuid.New().String(),
@@ -238,13 +247,13 @@ func GetDemoDocuments() []Document {
 					Props: map[string]any{
 						"language": "go",
 					},
-					Content: []document.BlockNoteContent{
+					Content: mustMarshalContent([]document.BlockNoteContent{
 						{
 							Type:   "text",
 							Text:   "if err := doSomething(); err != nil {\n    return fmt.Errorf(\"operation failed: %w\", err)\n}",
 							Styles: map[string]any{},
 						},
-					},
+					}),
 				},
 			},
 		},

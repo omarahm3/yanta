@@ -55,226 +55,231 @@ type EditorInnerProps = {
 	editable: boolean;
 };
 
-const EditorInner: React.FC<EditorInnerProps> = ({
-	blocks,
-	onChange,
-	onTitleChange,
-	onReady,
-	className,
-	editable,
-}) => {
-	const { currentProject } = useProjectContext();
-	const [isLinux, setIsLinux] = React.useState(false);
+const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
+	({ blocks, onChange, onTitleChange, onReady, className, editable }, ref) => {
+		const { currentProject } = useProjectContext();
+		const [isLinux, setIsLinux] = React.useState(false);
 
-	const uploadFileFn = React.useCallback(
-		async (file: File) => {
-			const alias = currentProject?.alias ?? "";
-			if (!alias) throw new Error("No project selected");
-			return await uploadFile(file, alias);
-		},
-		[currentProject],
-	);
-
-	const schema = React.useMemo(
-		() =>
-			BlockNoteSchema.create().extend({
-				blockSpecs: {
-					codeBlock: createCodeBlockSpec(codeBlockOptions),
-				},
-			}),
-		[],
-	);
-
-	const editor = useCreateBlockNote({
-		schema,
-		initialContent: blocks,
-		uploadFile: uploadFileFn,
-		domAttributes: {
-			editor: {
-				class: "bn-editor",
+		const uploadFileFn = React.useCallback(
+			async (file: File) => {
+				const alias = currentProject?.alias ?? "";
+				if (!alias) throw new Error("No project selected");
+				return await uploadFile(file, alias);
 			},
-		},
-		extensions: [
-			createBlockNoteExtension({
-				key: "rtl",
-				tiptapExtensions: [RTLExtension],
-			}),
-		],
-	});
-	const [isReady, setIsReady] = React.useState(false);
+			[currentProject],
+		);
 
-	useEffect(() => {
-		if (!editor) return;
+		const schema = React.useMemo(
+			() =>
+				BlockNoteSchema.create().extend({
+					blockSpecs: {
+						codeBlock: createCodeBlockSpec(codeBlockOptions),
+					},
+				}),
+			[],
+		);
 
-		let cancelled = false;
+		const editor = useCreateBlockNote({
+			schema,
+			initialContent: blocks,
+			uploadFile: uploadFileFn,
+			domAttributes: {
+				editor: {
+					class: "bn-editor",
+				},
+			},
+			extensions: [
+				createBlockNoteExtension({
+					key: "rtl",
+					tiptapExtensions: [RTLExtension],
+				}),
+			],
+		});
+		const [isReady, setIsReady] = React.useState(false);
 
-		const ensureImageAccept = async () => {
-			try {
-				const env = await Environment();
-				if (cancelled) return;
+		useEffect(() => {
+			if (!editor) return;
 
-				const platform = env?.platform?.toLowerCase?.() ?? "";
-				const isLinuxPlatform = platform.includes("linux");
-				setIsLinux(isLinuxPlatform);
-				if (!isLinuxPlatform) {
-					return;
-				}
+			let cancelled = false;
 
-				const imageSpec = editor.schema.blockSpecs?.image;
-				if (!imageSpec || !imageSpec.implementation) {
-					return;
-				}
+			const ensureImageAccept = async () => {
+				try {
+					const env = await Environment();
+					if (cancelled) return;
 
-				const meta = imageSpec.implementation.meta ?? {};
-				const acceptList = Array.isArray(meta.fileBlockAccept)
-					? meta.fileBlockAccept.filter((entry) => typeof entry === "string" && entry.trim().length > 0)
-					: [];
-
-				if (acceptList.length === 0 || acceptList.every((entry) => entry === "*/*")) {
-					imageSpec.implementation.meta = {
-						...meta,
-						fileBlockAccept: ["image/*"],
-					};
-				}
-			} catch (err) {
-				console.warn("[RichEditor] Failed to apply Linux image accept workaround", err);
-			}
-		};
-
-		void ensureImageAccept();
-
-		return () => {
-			cancelled = true;
-		};
-	}, [editor]);
-
-	useEffect(() => {
-		if (editor) {
-			setTimeout(() => {
-				setIsReady(true);
-				if (onReady) onReady(editor);
-			}, 50);
-		}
-	}, [editor, onReady]);
-
-	useEffect(() => {
-		if (editor && editable && isReady) {
-			setTimeout(() => {
-				editor.focus();
-			}, 0);
-		}
-	}, [editor, editable, isReady]);
-
-	const convertedBlocksRef = React.useRef<Set<string>>(new Set());
-
-	useEffect(() => {
-		if (!editor || !onChange) return;
-		const unsubscribe = editor.onChange(() => {
-			const currentBlocks = editor.document;
-
-			currentBlocks.forEach((block: Block) => {
-				if (block.type === "file" && block.props?.url && !convertedBlocksRef.current.has(block.id)) {
-					const url = block.props.url as string;
-					if (url.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
-						convertedBlocksRef.current.add(block.id);
-						editor.updateBlock(block.id, {
-							type: "image",
-							props: {
-								url: url,
-							},
-						});
+					const platform = env?.platform?.toLowerCase?.() ?? "";
+					const isLinuxPlatform = platform.includes("linux");
+					setIsLinux(isLinuxPlatform);
+					if (!isLinuxPlatform) {
+						return;
 					}
+
+					const imageSpec = editor.schema.blockSpecs?.image;
+					if (!imageSpec || !imageSpec.implementation) {
+						return;
+					}
+
+					const meta = imageSpec.implementation.meta ?? {};
+					const acceptList = Array.isArray(meta.fileBlockAccept)
+						? meta.fileBlockAccept.filter((entry) => typeof entry === "string" && entry.trim().length > 0)
+						: [];
+
+					if (acceptList.length === 0 || acceptList.every((entry) => entry === "*/*")) {
+						imageSpec.implementation.meta = {
+							...meta,
+							fileBlockAccept: ["image/*"],
+						};
+					}
+				} catch (err) {
+					console.warn("[RichEditor] Failed to apply Linux image accept workaround", err);
+				}
+			};
+
+			void ensureImageAccept();
+
+			return () => {
+				cancelled = true;
+			};
+		}, [editor]);
+
+		useEffect(() => {
+			if (editor) {
+				setTimeout(() => {
+					setIsReady(true);
+					if (onReady) onReady(editor);
+				}, 50);
+			}
+		}, [editor, onReady]);
+
+		useEffect(() => {
+			if (editor && editable && isReady) {
+				setTimeout(() => {
+					editor.focus();
+				}, 0);
+			}
+		}, [editor, editable, isReady]);
+
+		const convertedBlocksRef = React.useRef<Set<string>>(new Set());
+
+		useEffect(() => {
+			if (!editor || !onChange) return;
+			const unsubscribe = editor.onChange(() => {
+				const currentBlocks = editor.document;
+
+				currentBlocks.forEach((block: Block) => {
+					if (block.type === "file" && block.props?.url && !convertedBlocksRef.current.has(block.id)) {
+						const url = block.props.url as string;
+						if (url.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
+							convertedBlocksRef.current.add(block.id);
+							editor.updateBlock(block.id, {
+								type: "image",
+								props: {
+									url: url,
+								},
+							});
+						}
+					}
+				});
+
+				onChange(currentBlocks);
+				if (onTitleChange) {
+					const title = extractTitleFromBlocks(currentBlocks as BlockNoteBlock[]);
+					onTitleChange(title);
 				}
 			});
+			return unsubscribe;
+		}, [editor, onChange, onTitleChange]);
 
-			onChange(currentBlocks);
-			if (onTitleChange) {
-				const title = extractTitleFromBlocks(currentBlocks as BlockNoteBlock[]);
-				onTitleChange(title);
+		useEffect(() => {
+			if (editor) editor.isEditable = editable;
+		}, [editor, editable]);
+
+		useEffect(() => {
+			if (!editor || !isReady || !isLinux) {
+				return;
 			}
-		});
-		return unsubscribe;
-	}, [editor, onChange, onTitleChange]);
 
-	useEffect(() => {
-		if (editor) editor.isEditable = editable;
-	}, [editor, editable]);
+			const unregister = registerClipboardImagePlugin(editor, {
+				shouldHandlePaste: () => editable,
+				uploadFile: uploadFileFn,
+			});
 
-	useEffect(() => {
-		if (!editor || !isReady || !isLinux) {
-			return;
+			return unregister;
+		}, [editor, uploadFileFn, editable, isReady, isLinux]);
+
+		if (!editor || !isReady) {
+			return <div ref={ref} className={cn("h-full w-full", className)} />;
 		}
 
-		const unregister = registerClipboardImagePlugin(editor, {
-			shouldHandlePaste: () => editable,
-			uploadFile: uploadFileFn,
-		});
-
-		return unregister;
-	}, [editor, uploadFileFn, editable, isReady, isLinux]);
-
-	if (!editor || !isReady) {
-		return <div className={cn("h-full w-full", className)} />;
-	}
-
-	return (
-		<div className={cn("rich-editor flex-1 overflow-y-auto h-full", className)}>
-			<BlockNoteView editor={editor} theme="dark" />
-		</div>
-	);
-};
-
-export const RichEditor: React.FC<RichEditorProps> = ({
-	initialContent,
-	onChange,
-	onTitleChange,
-	onReady,
-	className,
-	editable = true,
-	isLoading = false,
-	docKey,
-}) => {
-	const parsed = React.useMemo(() => {
-		if (isLoading) return { ready: false as const, blocks: [] as PartialBlock[] };
-		if (!initialContent || initialContent.trim() === "") {
-			return { ready: true as const, blocks: [createDefaultInitialBlock()] };
-		}
-		try {
-			const parsed = JSON.parse(initialContent);
-			const blocks: PartialBlock[] = Array.isArray(parsed) ? (parsed as PartialBlock[]) : [];
-			if (blocks.length === 0 || blocks[0].type !== "heading" || blocks[0].props?.level !== 1) {
-				return {
-					ready: true as const,
-					blocks: [createDefaultInitialBlock(), ...blocks],
-				};
-			}
-			return { ready: true as const, blocks };
-		} catch (e) {
-			console.error("Failed to parse initial content:", e);
-			return { ready: true as const, blocks: [createDefaultInitialBlock()] };
-		}
-	}, [initialContent, isLoading]);
-
-	if (!parsed.ready) {
 		return (
-			<div className={cn("flex items-center justify-center h-full", className)}>
-				<div className="text-text-dim">Loading document...</div>
+			<div ref={ref} className={cn("rich-editor flex-1 overflow-y-auto h-full", className)}>
+				<BlockNoteView editor={editor} theme="dark" />
 			</div>
 		);
-	}
+	},
+);
 
-	const contentKey =
-		docKey ?? (initialContent && initialContent.trim() !== "" ? "__content__" : "__empty__");
+EditorInner.displayName = "EditorInner";
 
-	return (
-		<EditorInner
-			key={contentKey}
-			blocks={parsed.blocks}
-			onChange={onChange}
-			onTitleChange={onTitleChange}
-			onReady={onReady}
-			className={className}
-			editable={editable}
-		/>
-	);
-};
+export const RichEditor = React.forwardRef<HTMLDivElement, RichEditorProps>(
+	(
+		{
+			initialContent,
+			onChange,
+			onTitleChange,
+			onReady,
+			className,
+			editable = true,
+			isLoading = false,
+			docKey,
+		},
+		ref,
+	) => {
+		const parsed = React.useMemo(() => {
+			if (isLoading) return { ready: false as const, blocks: [] as PartialBlock[] };
+			if (!initialContent || initialContent.trim() === "") {
+				return { ready: true as const, blocks: [createDefaultInitialBlock()] };
+			}
+			try {
+				const parsed = JSON.parse(initialContent);
+				const blocks: PartialBlock[] = Array.isArray(parsed) ? (parsed as PartialBlock[]) : [];
+				if (blocks.length === 0 || blocks[0].type !== "heading" || blocks[0].props?.level !== 1) {
+					return {
+						ready: true as const,
+						blocks: [createDefaultInitialBlock(), ...blocks],
+					};
+				}
+				return { ready: true as const, blocks };
+			} catch (e) {
+				console.error("Failed to parse initial content:", e);
+				return { ready: true as const, blocks: [createDefaultInitialBlock()] };
+			}
+		}, [initialContent, isLoading]);
+
+		if (!parsed.ready) {
+			return (
+				<div ref={ref} className={cn("flex items-center justify-center h-full", className)}>
+					<div className="text-text-dim">Loading document...</div>
+				</div>
+			);
+		}
+
+		const contentKey =
+			docKey ?? (initialContent && initialContent.trim() !== "" ? "__content__" : "__empty__");
+
+		return (
+			<EditorInner
+				ref={ref}
+				key={contentKey}
+				blocks={parsed.blocks}
+				onChange={onChange}
+				onTitleChange={onTitleChange}
+				onReady={onReady}
+				className={className}
+				editable={editable}
+			/>
+		);
+	},
+);
+
+RichEditor.displayName = "RichEditor";

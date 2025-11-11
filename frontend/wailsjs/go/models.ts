@@ -273,49 +273,11 @@ export namespace config {
 
 export namespace document {
 	
-	export class BlockNoteContent {
-	    type: string;
-	    text?: string;
-	    styles?: Record<string, any>;
-	    href?: string;
-	    content?: BlockNoteContent[];
-	
-	    static createFrom(source: any = {}) {
-	        return new BlockNoteContent(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.type = source["type"];
-	        this.text = source["text"];
-	        this.styles = source["styles"];
-	        this.href = source["href"];
-	        this.content = this.convertValues(source["content"], BlockNoteContent);
-	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
-	}
 	export class BlockNoteBlock {
 	    id: string;
 	    type: string;
 	    props?: Record<string, any>;
-	    content?: BlockNoteContent[];
+	    content?: number[];
 	    children?: BlockNoteBlock[];
 	
 	    static createFrom(source: any = {}) {
@@ -327,7 +289,7 @@ export namespace document {
 	        this.id = source["id"];
 	        this.type = source["type"];
 	        this.props = source["props"];
-	        this.content = this.convertValues(source["content"], BlockNoteContent);
+	        this.content = source["content"];
 	        this.children = this.convertValues(source["children"], BlockNoteBlock);
 	    }
 	
@@ -349,7 +311,6 @@ export namespace document {
 		    return a;
 		}
 	}
-	
 	export class Document {
 	    path: string;
 	    project_alias: string;

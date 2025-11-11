@@ -1,20 +1,40 @@
 package document
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 func ValidateBlockNoteStructure(blocks []BlockNoteBlock) error {
 	for i, block := range blocks {
 		if err := validateBlock(block, 0); err != nil {
 			return fmt.Errorf("block %d invalid: %w", i, err)
 		}
-		if err := validateContent(block.Content); err != nil {
+		if err := validateContent(block.Content, block.Type); err != nil {
 			return fmt.Errorf("block %d content invalid: %w", i, err)
 		}
 	}
 	return nil
 }
 
-func validateContent(content []BlockNoteContent) error {
+func validateContent(rawContent json.RawMessage, blockType string) error {
+	if len(rawContent) == 0 {
+		return nil
+	}
+
+	if blockType == "table" {
+		return nil
+	}
+
+	var content []BlockNoteContent
+	if err := json.Unmarshal(rawContent, &content); err != nil {
+		return fmt.Errorf("failed to unmarshal content: %w", err)
+	}
+
+	return validateContentSlice(content)
+}
+
+func validateContentSlice(content []BlockNoteContent) error {
 	for i, item := range content {
 		if item.Type == "" {
 			return fmt.Errorf("content[%d]: type is required", i)
@@ -27,7 +47,7 @@ func validateContent(content []BlockNoteContent) error {
 			if len(item.Content) == 0 {
 				return fmt.Errorf("content[%d]: link must have nested content array", i)
 			}
-			if err := validateContent(item.Content); err != nil {
+			if err := validateContentSlice(item.Content); err != nil {
 				return fmt.Errorf("content[%d] nested: %w", i, err)
 			}
 		}

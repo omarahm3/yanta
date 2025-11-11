@@ -3,6 +3,7 @@ package indexer
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
@@ -21,6 +22,14 @@ import (
 	"yanta/internal/testutil"
 	"yanta/internal/vault"
 )
+
+func mustMarshalContent(content []document.BlockNoteContent) json.RawMessage {
+	data, err := json.Marshal(content)
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
 
 func setupTestEnv(t *testing.T) (*sql.DB, *vault.Vault) {
 	db := testutil.SetupTestDB(t)
@@ -48,17 +57,17 @@ func createTestDocument(t *testing.T, v *vault.Vault, projectAlias, title string
 			ID:    "block-1",
 			Type:  "heading",
 			Props: map[string]any{"level": float64(1)},
-			Content: []document.BlockNoteContent{
+			Content: mustMarshalContent([]document.BlockNoteContent{
 				{Type: "text", Text: title},
-			},
+			}),
 		},
 		{
 			ID:   "block-2",
 			Type: "paragraph",
-			Content: []document.BlockNoteContent{
+			Content: mustMarshalContent([]document.BlockNoteContent{
 				{Type: "text", Text: "This is a test document with some content. "},
 				{Type: "link", Text: "GitHub", Href: "https://github.com"},
-			},
+			}),
 		},
 	}
 
@@ -190,7 +199,10 @@ func TestIndexer_ReindexDocument(t *testing.T) {
 	docFile.Meta.Title = "Updated Title"
 	docFile.Meta.Tags = []string{"tag2"}
 	// Also update the heading block content to match the new title
-	docFile.Blocks[0].Content[0].Text = "Updated Title"
+	var content []document.BlockNoteContent
+	json.Unmarshal(docFile.Blocks[0].Content, &content)
+	content[0].Text = "Updated Title"
+	docFile.Blocks[0].Content = mustMarshalContent(content)
 	docFile.UpdateTimestamp()
 
 	writer := document.NewFileWriter(v)
@@ -633,7 +645,10 @@ func TestIndexer_ScanAndIndexVault(t *testing.T) {
 
 		docFile.Meta.Title = "Updated"
 		docFile.Meta.Tags = []string{"new"}
-		docFile.Blocks[0].Content[0].Text = "Updated"
+		var content []document.BlockNoteContent
+		json.Unmarshal(docFile.Blocks[0].Content, &content)
+		content[0].Text = "Updated"
+		docFile.Blocks[0].Content = mustMarshalContent(content)
 		docFile.UpdateTimestamp()
 
 		writer := document.NewFileWriter(v)
@@ -703,7 +718,7 @@ func TestIndexer_ScanAndIndexVault(t *testing.T) {
 			{
 				ID:      "block-1",
 				Type:    "paragraph",
-				Content: []document.BlockNoteContent{{Type: "text", Text: "This should not be indexed"}},
+				Content: mustMarshalContent([]document.BlockNoteContent{{Type: "text", Text: "This should not be indexed"}}),
 			},
 		}
 		docFile.Meta.Project = "invalid-project" // Override to invalid alias

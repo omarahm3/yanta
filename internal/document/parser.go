@@ -1,6 +1,7 @@
 package document
 
 import (
+	"encoding/json"
 	"net/url"
 	"strings"
 )
@@ -66,9 +67,17 @@ func (p *Parser) parseBlock(block BlockNoteBlock, content *ExtractedContent) {
 	}
 }
 
-func (p *Parser) extractTextFromContent(inlineContent []BlockNoteContent) string {
-	var parts []string
+func (p *Parser) extractTextFromContent(rawContent json.RawMessage) string {
+	if len(rawContent) == 0 {
+		return ""
+	}
 
+	var inlineContent []BlockNoteContent
+	if err := json.Unmarshal(rawContent, &inlineContent); err != nil {
+		return ""
+	}
+
+	var parts []string
 	for _, item := range inlineContent {
 		switch item.Type {
 		case "text":
@@ -77,7 +86,7 @@ func (p *Parser) extractTextFromContent(inlineContent []BlockNoteContent) string
 			}
 		case "link":
 			if len(item.Content) > 0 {
-				nestedText := p.extractTextFromContent(item.Content)
+				nestedText := p.extractTextFromContentSlice(item.Content)
 				if nestedText != "" {
 					parts = append(parts, nestedText)
 				}
@@ -88,9 +97,37 @@ func (p *Parser) extractTextFromContent(inlineContent []BlockNoteContent) string
 	return strings.Join(parts, "")
 }
 
-func (p *Parser) extractLinksFromContent(inlineContent []BlockNoteContent) []Link {
-	var links []Link
+func (p *Parser) extractTextFromContentSlice(inlineContent []BlockNoteContent) string {
+	var parts []string
+	for _, item := range inlineContent {
+		switch item.Type {
+		case "text":
+			if item.Text != "" {
+				parts = append(parts, item.Text)
+			}
+		case "link":
+			if len(item.Content) > 0 {
+				nestedText := p.extractTextFromContentSlice(item.Content)
+				if nestedText != "" {
+					parts = append(parts, nestedText)
+				}
+			}
+		}
+	}
+	return strings.Join(parts, "")
+}
 
+func (p *Parser) extractLinksFromContent(rawContent json.RawMessage) []Link {
+	if len(rawContent) == 0 {
+		return nil
+	}
+
+	var inlineContent []BlockNoteContent
+	if err := json.Unmarshal(rawContent, &inlineContent); err != nil {
+		return nil
+	}
+
+	var links []Link
 	for _, item := range inlineContent {
 		if item.Type == "link" && item.Href != "" {
 			link := Link{

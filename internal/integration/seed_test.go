@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"encoding/json"
 	"testing"
 	"yanta/internal/document"
 	"yanta/internal/seed"
@@ -40,30 +41,38 @@ func TestSeedDocuments_BlockNoteCompatibility(t *testing.T) {
 					t.Errorf("Block %d missing Type", i)
 				}
 
-				for j, content := range block.Content {
-					if content.Type == "" {
-						t.Errorf("Block %d, Content %d missing Type", i, j)
+				if len(block.Content) > 0 {
+					var contents []document.BlockNoteContent
+					if err := json.Unmarshal(block.Content, &contents); err != nil {
+						t.Errorf("Block %d: failed to unmarshal Content: %v", i, err)
+						continue
 					}
 
-					if content.Type == "link" {
-						if content.Href == "" {
-							t.Errorf("Block %d, Content %d: link missing href", i, j)
+					for j, content := range contents {
+						if content.Type == "" {
+							t.Errorf("Block %d, Content %d missing Type", i, j)
 						}
-						if len(content.Content) == 0 {
-							t.Errorf("Block %d, Content %d: link missing nested content", i, j)
-						}
-						for k, nested := range content.Content {
-							if nested.Type == "" {
-								t.Errorf("Block %d, Content %d, Nested %d missing Type", i, j, k)
-							}
-							if nested.Type == "text" && nested.Styles == nil {
-								t.Errorf("Block %d, Content %d, Nested %d: text missing styles", i, j, k)
-							}
-						}
-					}
 
-					if content.Type == "text" && content.Styles == nil {
-						t.Errorf("Block %d, Content %d: text missing styles", i, j)
+						if content.Type == "link" {
+							if content.Href == "" {
+								t.Errorf("Block %d, Content %d: link missing href", i, j)
+							}
+							if len(content.Content) == 0 {
+								t.Errorf("Block %d, Content %d: link missing nested content", i, j)
+							}
+							for k, nested := range content.Content {
+								if nested.Type == "" {
+									t.Errorf("Block %d, Content %d, Nested %d missing Type", i, j, k)
+								}
+								if nested.Type == "text" && nested.Styles == nil {
+									t.Errorf("Block %d, Content %d, Nested %d: text missing styles", i, j, k)
+								}
+							}
+						}
+
+						if content.Type == "text" && content.Styles == nil {
+							t.Errorf("Block %d, Content %d: text missing styles", i, j)
+						}
 					}
 				}
 			}
@@ -79,7 +88,14 @@ func TestSeedDocuments_HasLinks(t *testing.T) {
 	linkCount := 0
 	for _, doc := range docs {
 		for _, block := range doc.Blocks {
-			for _, content := range block.Content {
+			if len(block.Content) == 0 {
+				continue
+			}
+			var contents []document.BlockNoteContent
+			if err := json.Unmarshal(block.Content, &contents); err != nil {
+				continue
+			}
+			for _, content := range contents {
 				if content.Type == "link" {
 					linkCount++
 					t.Logf("Found link in '%s': %s", doc.Title, content.Href)

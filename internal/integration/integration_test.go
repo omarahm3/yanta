@@ -13,6 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+
+
 func TestIntegration_FullDocumentLifecycle(t *testing.T) {
 	env := setupTestEnv(t)
 	defer env.cleanup()
@@ -26,14 +28,14 @@ func TestIntegration_FullDocumentLifecycle(t *testing.T) {
 			ID:    "block-1",
 			Type:  "heading",
 			Props: map[string]any{"level": float64(1)},
-			Content: []document.BlockNoteContent{
+			Content: mustMarshalContent([]document.BlockNoteContent{
 				{Type: "text", Text: "Integration Test"},
-			},
+			}),
 		},
 		{
 			ID:   "block-2",
 			Type: "paragraph",
-			Content: []document.BlockNoteContent{
+			Content: mustMarshalContent([]document.BlockNoteContent{
 				{Type: "text", Text: "This document tests the full pipeline. ", Styles: map[string]any{}},
 				{
 					Type: "link",
@@ -42,7 +44,7 @@ func TestIntegration_FullDocumentLifecycle(t *testing.T) {
 						{Type: "text", Text: "Example Link", Styles: map[string]any{}},
 					},
 				},
-			},
+			}),
 		},
 	}
 
@@ -242,42 +244,42 @@ func TestIntegration_ComplexDocument(t *testing.T) {
 			ID:    "heading-1",
 			Type:  "heading",
 			Props: map[string]any{"level": float64(1)},
-			Content: []document.BlockNoteContent{
+			Content: mustMarshalContent([]document.BlockNoteContent{
 				{Type: "text", Text: "Main Heading"},
-			},
+			}),
 		},
 		{
 			ID:   "para-1",
 			Type: "paragraph",
-			Content: []document.BlockNoteContent{
+			Content: mustMarshalContent([]document.BlockNoteContent{
 				{Type: "text", Text: "Paragraph with "},
 				{Type: "link", Text: "GitHub", Href: "https://github.com"},
 				{Type: "text", Text: " and "},
 				{Type: "link", Text: "Google", Href: "https://google.com"},
-			},
+			}),
 		},
 		{
 			ID:    "code-1",
 			Type:  "codeBlock",
 			Props: map[string]any{"language": "go"},
-			Content: []document.BlockNoteContent{
+			Content: mustMarshalContent([]document.BlockNoteContent{
 				{Type: "text", Text: "func main() {\n\tfmt.Println(\"Hello\")\n}"},
-			},
+			}),
 		},
 		{
 			ID:    "heading-2",
 			Type:  "heading",
 			Props: map[string]any{"level": float64(2)},
-			Content: []document.BlockNoteContent{
+			Content: mustMarshalContent([]document.BlockNoteContent{
 				{Type: "text", Text: "Subheading"},
-			},
+			}),
 		},
 		{
 			ID:   "para-2",
 			Type: "paragraph",
-			Content: []document.BlockNoteContent{
+			Content: mustMarshalContent([]document.BlockNoteContent{
 				{Type: "text", Text: "More content here"},
-			},
+			}),
 		},
 	}
 
