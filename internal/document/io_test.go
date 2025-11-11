@@ -13,6 +13,7 @@ import (
 	"yanta/internal/vault"
 )
 
+
 func setupTestVault(t *testing.T) *vault.Vault {
 	t.Helper()
 	tempDir := t.TempDir()
@@ -107,7 +108,7 @@ func TestFileWriter_WriteFile(t *testing.T) {
 			ID:      "block1",
 			Type:    "heading",
 			Props:   map[string]any{"level": 1},
-			Content: []BlockNoteContent{{Type: "text", Text: "Title"}},
+			Content: mustMarshalContent([]BlockNoteContent{{Type: "text", Text: "Title"}}),
 		},
 	}
 

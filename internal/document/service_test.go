@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+
 type mockIndexer struct {
 	indexedPaths   []string
 	reindexedPaths []string
@@ -121,9 +122,9 @@ func TestService_Save_Create(t *testing.T) {
 			{
 				ID:   "block1",
 				Type: "paragraph",
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "Hello World"},
-				},
+				}),
 			},
 		},
 		Tags: []string{"test", "sample"},
@@ -151,7 +152,7 @@ func TestService_Save_Update(t *testing.T) {
 		ProjectAlias: "@test",
 		Title:        "Original Title",
 		Blocks: []BlockNoteBlock{
-			{ID: "block1", Type: "paragraph", Content: []BlockNoteContent{{Type: "text", Text: "Original"}}},
+			{ID: "block1", Type: "paragraph", Content: mustMarshalContent([]BlockNoteContent{{Type: "text", Text: "Original"}})},
 		},
 		Tags: []string{"original"},
 	}
@@ -164,7 +165,7 @@ func TestService_Save_Update(t *testing.T) {
 		ProjectAlias: "@test",
 		Title:        "Updated Title",
 		Blocks: []BlockNoteBlock{
-			{ID: "block1", Type: "paragraph", Content: []BlockNoteContent{{Type: "text", Text: "Updated"}}},
+			{ID: "block1", Type: "paragraph", Content: mustMarshalContent([]BlockNoteContent{{Type: "text", Text: "Updated"}})},
 		},
 		Tags: []string{"updated"},
 	}
@@ -223,9 +224,9 @@ func TestService_Get(t *testing.T) {
 				Props: map[string]any{
 					"level": 1,
 				},
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "Heading"},
-				},
+				}),
 			},
 		},
 		Tags: []string{"test"},

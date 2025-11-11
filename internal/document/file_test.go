@@ -6,6 +6,14 @@ import (
 	"testing"
 	"time"
 )
+func mustMarshalContent(content []BlockNoteContent) json.RawMessage {
+	data, err := json.Marshal(content)
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
+
 
 func TestDocumentMeta_Validate(t *testing.T) {
 	tests := []struct {
@@ -222,12 +230,12 @@ func TestDocumentFile_Validate(t *testing.T) {
 						ID:      "block1",
 						Type:    "heading",
 						Props:   map[string]any{"level": 1},
-						Content: []BlockNoteContent{{Type: "text", Text: "Title"}},
+						Content: mustMarshalContent([]BlockNoteContent{{Type: "text", Text: "Title"}}),
 					},
 					{
 						ID:      "block2",
 						Type:    "paragraph",
-						Content: []BlockNoteContent{{Type: "text", Text: "Content"}},
+						Content: mustMarshalContent([]BlockNoteContent{{Type: "text", Text: "Content"}}),
 					},
 				},
 			},
@@ -334,18 +342,18 @@ func TestDocumentFile_ToJSON_FromJSON(t *testing.T) {
 				Props: map[string]any{
 					"level": float64(1),
 				},
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "Test Title"},
-				},
+				}),
 				Children: []BlockNoteBlock{},
 			},
 			{
 				ID:   "block2",
 				Type: "paragraph",
-				Content: []BlockNoteContent{
+				Content: mustMarshalContent([]BlockNoteContent{
 					{Type: "text", Text: "Paragraph text with "},
 					{Type: "text", Text: "bold", Styles: map[string]any{"bold": true}},
-				},
+				}),
 				Children: []BlockNoteBlock{},
 			},
 		},
