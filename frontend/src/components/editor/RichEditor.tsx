@@ -16,7 +16,7 @@ import { useProjectContext } from "../../contexts";
 import { uploadFile } from "../../utils/assetUpload";
 import "../../styles/blocknote-dark.css";
 import "../../extensions/rtl/rtl.css";
-import { Environment } from "../../../wailsjs/runtime/runtime";
+import { BrowserOpenURL, Environment } from "../../../wailsjs/runtime/runtime";
 import { RTLExtension } from "../../extensions/rtl";
 import { cn } from "../../lib/utils";
 import type { BlockNoteBlock } from "../../types/Document";
@@ -59,6 +59,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 	({ blocks, onChange, onTitleChange, onReady, className, editable }, ref) => {
 		const { currentProject } = useProjectContext();
 		const [isLinux, setIsLinux] = React.useState(false);
+		const [container, setContainer] = React.useState<HTMLDivElement | null>(null);
 
 		const uploadFileFn = React.useCallback(
 			async (file: File) => {
@@ -207,12 +208,89 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 			return unregister;
 		}, [editor, uploadFileFn, editable, isReady, isLinux]);
 
+		const mergedRef = React.useCallback(
+			(node: HTMLDivElement | null) => {
+				setContainer(node);
+				if (typeof ref === "function") {
+					ref(node);
+				} else if (ref) {
+					(ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+				}
+			},
+			[ref],
+		);
+
+		const openLinkExternally = React.useCallback((url: string) => {
+			try {
+				BrowserOpenURL(url);
+			} catch (_err) {
+				window.open(url, "_blank", "noopener,noreferrer");
+			}
+		}, []);
+
+		useEffect(() => {
+			if (!container) {
+				return;
+			}
+
+			const allowedProtocols = new Set(["http:", "https:", "mailto:", "tel:"]);
+
+			const handleClick = (event: MouseEvent) => {
+				if (event.defaultPrevented) {
+					return;
+				}
+				if (event.type === "click" && event.button !== 0) {
+					return;
+				}
+				if (event.type === "auxclick" && event.button !== 1) {
+					return;
+				}
+
+				const target = event.target as HTMLElement | null;
+				if (!target) {
+					return;
+				}
+				const anchor = target.closest("a[href]") as HTMLAnchorElement | null;
+				if (!anchor || !container.contains(anchor)) {
+					return;
+				}
+
+				const href = anchor.getAttribute("href");
+				if (!href) {
+					return;
+				}
+
+				let resolvedUrl: URL;
+				try {
+					resolvedUrl = new URL(anchor.href);
+				} catch {
+					return;
+				}
+
+				if (!allowedProtocols.has(resolvedUrl.protocol)) {
+					return;
+				}
+
+				event.preventDefault();
+				event.stopPropagation();
+				openLinkExternally(resolvedUrl.href);
+			};
+
+			container.addEventListener("click", handleClick);
+			container.addEventListener("auxclick", handleClick);
+
+			return () => {
+				container.removeEventListener("click", handleClick);
+				container.removeEventListener("auxclick", handleClick);
+			};
+		}, [container, openLinkExternally]);
+
 		if (!editor || !isReady) {
-			return <div ref={ref} className={cn("h-full w-full", className)} />;
+			return <div ref={mergedRef} className={cn("h-full w-full", className)} />;
 		}
 
 		return (
-			<div ref={ref} className={cn("rich-editor flex-1 overflow-y-auto h-full", className)}>
+			<div ref={mergedRef} className={cn("rich-editor flex-1 overflow-y-auto h-full", className)}>
 				<BlockNoteView editor={editor} theme="dark" />
 			</div>
 		);
