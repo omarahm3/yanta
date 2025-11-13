@@ -15,7 +15,10 @@ export const GeneralSection = React.forwardRef<HTMLDivElement, GeneralSectionPro
 		{ systemInfo, keepInBackground, startHidden, onKeepInBackgroundToggle, onStartHiddenToggle },
 		ref,
 	) => {
-		const isLinux = systemInfo?.app.platform.includes("linux");
+		const platform = systemInfo?.app?.platform ?? "";
+		const isLinux = platform.includes("linux");
+		const isMac = platform.includes("darwin");
+		const backgroundUnavailable = isLinux || isMac;
 
 		return (
 			<div ref={ref}>
@@ -27,10 +30,16 @@ export const GeneralSection = React.forwardRef<HTMLDivElement, GeneralSectionPro
 								<div className="text-xs text-text-dim">
 									When enabled, closing the window will hide YANTA instead of quitting. Press Ctrl+Shift+Y
 									anywhere to restore the window.
-									{isLinux && <span className="text-yellow-400"> (Not available on Linux)</span>}
+									{backgroundUnavailable && (
+										<span className="text-yellow-400"> (Not available on Linux or macOS)</span>
+									)}
 								</div>
 							</div>
-							<Toggle checked={keepInBackground} onChange={onKeepInBackgroundToggle} disabled={isLinux} />
+							<Toggle
+								checked={keepInBackground}
+								onChange={onKeepInBackgroundToggle}
+								disabled={backgroundUnavailable}
+							/>
 						</div>
 
 						<div className="flex items-center justify-between">
@@ -39,13 +48,15 @@ export const GeneralSection = React.forwardRef<HTMLDivElement, GeneralSectionPro
 								<div className="text-xs text-text-dim">
 									When enabled, YANTA will start hidden. Press Ctrl+Shift+Y to show it. Requires "Keep
 									running in background" to be enabled.
-									{isLinux && <span className="text-yellow-400"> (Not available on Linux)</span>}
+									{backgroundUnavailable && (
+										<span className="text-yellow-400"> (Not available on Linux or macOS)</span>
+									)}
 								</div>
 							</div>
 							<Toggle
 								checked={startHidden}
 								onChange={onStartHiddenToggle}
-								disabled={!keepInBackground || isLinux}
+								disabled={!keepInBackground || backgroundUnavailable}
 							/>
 						</div>
 					</div>
