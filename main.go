@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -22,6 +23,9 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/linux"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
+	"github.com/wailsapp/wails/v2/pkg/options/windows"
 )
 
 //go:embed all:frontend/dist
@@ -67,11 +71,14 @@ func main() {
 	startHidden := config.GetStartHidden()
 	logger.Infof("start_hidden config: %v", startHidden)
 
+	frameless := runtime.GOOS == "linux"
+	logger.Infof("platform: %s, frameless: %v", runtime.GOOS, frameless)
+
 	err = wails.Run(&options.App{
 		Title:       "YANTA",
 		Width:       1024,
 		Height:      768,
-		Frameless:   true,
+		Frameless:   frameless,
 		StartHidden: startHidden,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
@@ -132,6 +139,9 @@ func main() {
 		Bind:             a.Bindings.Bind(),
 		EnumBind:         a.Bindings.BindEnums(),
 		Logger:           logger.NewWailsLogger(),
+		Windows:          getWindowsOptions(),
+		Mac:              getMacOptions(),
+		Linux:            getLinuxOptions(),
 	})
 
 	if err != nil {
@@ -154,4 +164,49 @@ func writeStartupError(message string) {
 	}
 	defer f.Close()
 	fmt.Fprintf(f, "[%s] %s\n", time.Now().Format("2006-01-02 15:04:05"), message)
+}
+
+func getWindowsOptions() *windows.Options {
+	return &windows.Options{
+		Theme: windows.SystemDefault,
+
+		CustomTheme: &windows.ThemeSettings{
+			DarkModeTitleBar:           windows.RGB(27, 38, 54),
+			DarkModeTitleBarInactive:   windows.RGB(20, 29, 42),
+			DarkModeTitleText:          windows.RGB(220, 220, 220),
+			DarkModeTitleTextInactive:  windows.RGB(140, 140, 140),
+			DarkModeBorder:             windows.RGB(40, 50, 65),
+			DarkModeBorderInactive:     windows.RGB(30, 40, 50),
+			LightModeTitleBar:          windows.RGB(245, 245, 245),
+			LightModeTitleBarInactive:  windows.RGB(235, 235, 235),
+			LightModeTitleText:         windows.RGB(30, 30, 30),
+			LightModeTitleTextInactive: windows.RGB(120, 120, 120),
+			LightModeBorder:            windows.RGB(210, 210, 210),
+			LightModeBorderInactive:    windows.RGB(230, 230, 230),
+		},
+
+		BackdropType:         windows.Mica,
+		WebviewIsTransparent: false,
+		WindowIsTranslucent:  false,
+	}
+}
+
+func getMacOptions() *mac.Options {
+	return &mac.Options{
+		TitleBar: &mac.TitleBar{
+			TitlebarAppearsTransparent: true,
+			HideTitle:                  true,
+			FullSizeContent:            true,
+			HideToolbarSeparator:       true,
+		},
+
+		Appearance: mac.NSAppearanceNameDarkAqua,
+
+		WebviewIsTransparent: false,
+		WindowIsTranslucent:  false,
+	}
+}
+
+func getLinuxOptions() *linux.Options {
+	return &linux.Options{}
 }

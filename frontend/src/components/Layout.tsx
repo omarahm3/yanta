@@ -1,6 +1,6 @@
 import type React from "react";
 import { type ReactNode, useCallback, useRef, useState } from "react";
-import { useProjectContext } from "../contexts";
+import { useProjectContext, useTitleBarContext } from "../contexts";
 import { useGlobalCommand, useHotkeys } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
 import { CommandLine } from "./commandline";
@@ -48,6 +48,7 @@ export const Layout: React.FC<LayoutProps> = ({
 	const { success, error } = useNotification();
 	const [sidebarVisible, setSidebarVisible] = useState(true);
 	const { currentProject } = useProjectContext();
+	const { heightInRem } = useTitleBarContext();
 
 	const handleCommandSubmit = useCallback(
 		async (command: string) => {
@@ -139,7 +140,8 @@ export const Layout: React.FC<LayoutProps> = ({
 		<div
 			data-testid="layout-root"
 			data-sidebar-visible={sidebarVisible ? "true" : "false"}
-			className="flex h-[calc(100vh-2rem)] overflow-hidden font-mono text-sm leading-relaxed bg-bg text-text"
+			className="flex overflow-hidden font-mono text-sm leading-relaxed bg-bg text-text"
+			style={{ height: `calc(100vh - ${heightInRem}rem)` }}
 		>
 			{sidebarVisible && (
 				<>{sidebarContent ? <>{sidebarContent}</> : <UISidebar sections={sidebarSections || []} />}</>

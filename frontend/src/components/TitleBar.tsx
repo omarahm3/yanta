@@ -1,7 +1,26 @@
 import type React from "react";
-import { Quit, WindowMinimise, WindowToggleMaximise } from "../../wailsjs/runtime/runtime";
+import { useEffect, useState } from "react";
+import {
+	Environment,
+	Quit,
+	WindowMinimise,
+	WindowToggleMaximise,
+} from "../../wailsjs/runtime/runtime";
+import { RiSubtractLine, RiCheckboxBlankLine, RiCloseLine } from "react-icons/ri";
+import { useTitleBarContext } from "../contexts";
 
 export const TitleBar: React.FC = () => {
+	const [isLinux, setIsLinux] = useState(true);
+	const { setHeight } = useTitleBarContext();
+
+	useEffect(() => {
+		Environment().then((env) => {
+			const linux = env.platform === "linux";
+			setIsLinux(linux);
+			setHeight(linux ? 2 : 0);
+		});
+	}, [setHeight]);
+
 	const handleMinimize = () => {
 		WindowMinimise();
 	};
@@ -13,6 +32,10 @@ export const TitleBar: React.FC = () => {
 	const handleClose = () => {
 		Quit();
 	};
+
+	if (!isLinux) {
+		return null;
+	}
 
 	return (
 		<div
@@ -32,9 +55,7 @@ export const TitleBar: React.FC = () => {
 					className="flex items-center justify-center w-8 h-6 text-text-dim transition-colors rounded hover:bg-border hover:text-text"
 					title="Minimize"
 				>
-					<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path d="M2 6H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-					</svg>
+					<RiSubtractLine className="text-sm" />
 				</button>
 
 				<button
@@ -42,17 +63,7 @@ export const TitleBar: React.FC = () => {
 					className="flex items-center justify-center w-8 h-6 text-text-dim transition-colors rounded hover:bg-border hover:text-text"
 					title="Maximize"
 				>
-					<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<rect
-							x="2.5"
-							y="2.5"
-							width="7"
-							height="7"
-							stroke="currentColor"
-							strokeWidth="1.5"
-							fill="none"
-						/>
-					</svg>
+					<RiCheckboxBlankLine className="text-sm" />
 				</button>
 
 				<button
@@ -60,14 +71,7 @@ export const TitleBar: React.FC = () => {
 					className="flex items-center justify-center w-8 h-6 text-text-dim transition-colors rounded hover:bg-red hover:text-bg"
 					title="Close"
 				>
-					<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path
-							d="M2.5 2.5L9.5 9.5M9.5 2.5L2.5 9.5"
-							stroke="currentColor"
-							strokeWidth="1.5"
-							strokeLinecap="round"
-						/>
-					</svg>
+					<RiCloseLine className="text-sm" />
 				</button>
 			</div>
 		</div>

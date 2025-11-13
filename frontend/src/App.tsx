@@ -13,6 +13,7 @@ import {
 	HelpProvider,
 	HotkeyProvider,
 	ProjectProvider,
+	TitleBarProvider,
 } from "./contexts";
 import { useHotkey } from "./hooks";
 import { useHelp } from "./hooks/useHelp";
@@ -161,23 +162,25 @@ function App() {
 				defaultRadius: "md",
 			}}
 		>
-			<DialogProvider>
-				<HotkeyProvider>
-					<HelpProvider>
-						<ProjectProvider>
-							<DocumentCountProvider>
-								<DocumentProvider>
-									<TitleBar />
-									<HelpHotkey />
-									<GlobalCommandHotkey />
-									<Notifications />
-									<HelpModal />
-								</DocumentProvider>
-							</DocumentCountProvider>
-						</ProjectProvider>
-					</HelpProvider>
-				</HotkeyProvider>
-			</DialogProvider>
+			<TitleBarProvider>
+				<DialogProvider>
+					<HotkeyProvider>
+						<HelpProvider>
+							<ProjectProvider>
+								<DocumentCountProvider>
+									<DocumentProvider>
+										<TitleBar />
+										<HelpHotkey />
+										<GlobalCommandHotkey />
+										<Notifications />
+										<HelpModal />
+									</DocumentProvider>
+								</DocumentCountProvider>
+							</ProjectProvider>
+						</HelpProvider>
+					</HotkeyProvider>
+				</DialogProvider>
+			</TitleBarProvider>
 		</MantineProvider>
 	);
 }
