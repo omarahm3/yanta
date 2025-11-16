@@ -12,7 +12,7 @@ require (
 	github.com/pressly/goose/v3 v3.25.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.11.0
-	github.com/wailsapp/wails/v2 v2.10.2
+	github.com/wailsapp/wails/v2 v2.11.0
 	golang.design/x/hotkey v0.4.1
 	modernc.org/sqlite v1.39.0
 )
@@ -45,7 +45,7 @@ require (
 	github.com/tkrajina/go-reflector v0.5.8 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
-	github.com/wailsapp/go-webview2 v1.0.19 // indirect
+	github.com/wailsapp/go-webview2 v1.0.22 // indirect
 	github.com/wailsapp/mimetype v1.4.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.design/x/mainthread v0.3.0 // indirect

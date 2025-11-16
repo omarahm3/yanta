@@ -23,6 +23,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 				"bg-surface border-b border-border px-5 py-3 flex items-center justify-between",
 				className,
 			)}
+			style={{ "--wails-draggable": "drag" } as React.CSSProperties}
 		>
 			<div className="text-text-dim text-sm">
 				{breadcrumb} / <span className="text-text-bright font-semibold">{currentPage}</span>

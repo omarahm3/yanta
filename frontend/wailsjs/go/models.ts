@@ -25,13 +25,6 @@ export namespace asset {
 
 export namespace commandline {
 	
-	export enum ProjectCommand {
-	    New = "new",
-	    Archive = "archive",
-	    Unarchive = "unarchive",
-	    Rename = "rename",
-	    Delete = "delete",
-	}
 	export enum GlobalCommand {
 	    Switch = "switch",
 	    Sync = "sync",
@@ -46,6 +39,13 @@ export namespace commandline {
 	    Tag = "tag",
 	    Untag = "untag",
 	    Tags = "tags",
+	}
+	export enum ProjectCommand {
+	    New = "new",
+	    Archive = "archive",
+	    Unarchive = "unarchive",
+	    Rename = "rename",
+	    Delete = "delete",
 	}
 	export class DocumentResultData {
 	    documentPath?: string;

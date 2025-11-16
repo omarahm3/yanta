@@ -193,12 +193,7 @@ func getWindowsOptions() *windows.Options {
 
 func getMacOptions() *mac.Options {
 	return &mac.Options{
-		TitleBar: &mac.TitleBar{
-			TitlebarAppearsTransparent: true,
-			HideTitle:                  true,
-			FullSizeContent:            true,
-			HideToolbarSeparator:       true,
-		},
+		TitleBar: mac.TitleBarHiddenInset(),
 
 		Appearance: mac.NSAppearanceNameDarkAqua,
 
