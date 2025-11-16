@@ -4,7 +4,11 @@ import {config} from '../models';
 import {system} from '../models';
 import {context} from '../models';
 
+export function BackgroundQuit():Promise<void>;
+
 export function CheckGitInstalled():Promise<boolean>;
+
+export function ForceQuit():Promise<void>;
 
 export function GetCurrentDataDirectory():Promise<string>;
 

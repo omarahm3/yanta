@@ -428,3 +428,32 @@ func (s *Service) Quit() {
 	logger.Info("Quit requested from frontend")
 	wailsRuntime.Quit(s.ctx)
 }
+
+func (s *Service) BackgroundQuit() {
+	if s.ctx == nil {
+		logger.Warn("BackgroundQuit called but context is nil")
+		return
+	}
+
+	keepInBackground := config.GetKeepInBackground()
+	logger.Infof("BackgroundQuit requested (keepInBackground=%v)", keepInBackground)
+
+	if keepInBackground {
+		logger.Info("Hiding window (background mode enabled)")
+		wailsRuntime.WindowHide(s.ctx)
+		wailsRuntime.EventsEmit(s.ctx, "WindowHidden")
+	} else {
+		logger.Info("Quitting application (background mode disabled)")
+		wailsRuntime.Quit(s.ctx)
+	}
+}
+
+func (s *Service) ForceQuit() {
+	if s.ctx == nil {
+		logger.Warn("ForceQuit called but context is nil")
+		return
+	}
+
+	logger.Info("ForceQuit requested - quitting application regardless of background setting")
+	wailsRuntime.Quit(s.ctx)
+}

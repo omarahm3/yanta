@@ -17,6 +17,7 @@ import {
 } from "./contexts";
 import { useHotkey } from "./hooks";
 import { useHelp } from "./hooks/useHelp";
+import { BackgroundQuit, ForceQuit } from "../wailsjs/go/system/Service";
 
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
@@ -31,6 +32,30 @@ const HelpHotkey = () => {
 		handler: openHelp,
 		allowInInput: false,
 		description: "Toggle help",
+	});
+
+	return null;
+};
+
+const QuitHotkeys = () => {
+	useHotkey({
+		key: "ctrl+q",
+		handler: (e) => {
+			e.preventDefault();
+			BackgroundQuit();
+		},
+		allowInInput: true,
+		description: "Quit (background if enabled)",
+	});
+
+	useHotkey({
+		key: "ctrl+shift+q",
+		handler: (e) => {
+			e.preventDefault();
+			ForceQuit();
+		},
+		allowInInput: true,
+		description: "Force quit application",
 	});
 
 	return null;
@@ -171,6 +196,7 @@ function App() {
 									<DocumentProvider>
 										<TitleBar />
 										<HelpHotkey />
+										<QuitHotkeys />
 										<GlobalCommandHotkey />
 										<Notifications />
 										<HelpModal />
