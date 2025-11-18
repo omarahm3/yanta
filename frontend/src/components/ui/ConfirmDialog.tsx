@@ -88,7 +88,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
 				event.preventDefault();
 				const target = event.target as HTMLElement;
-				const currentIndex = focusableElements.findIndex((el) => el === target);
+				const currentIndex = focusableElements.indexOf(target);
 
 				if (currentIndex === -1) {
 					const targetIndex = event.shiftKey ? focusableElements.length - 1 : 0;
@@ -188,6 +188,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
 				<div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
 					<button
+						type="button"
 						onClick={onCancel}
 						ref={cancelButtonRef}
 						className="px-4 py-2 text-sm font-medium border rounded transition-colors bg-transparent border-border text-text hover:bg-bg"
@@ -195,6 +196,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 						{cancelText}
 					</button>
 					<button
+						type="button"
 						onClick={handleConfirm}
 						disabled={!canConfirm}
 						ref={confirmButtonRef}

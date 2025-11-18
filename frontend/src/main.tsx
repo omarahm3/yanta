@@ -3,9 +3,20 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { enableBackendLogging } from "./utils/backendLogger";
 
+interface YantaDebug {
+	jsLoaded?: number;
+	[key: string]: unknown;
+}
+
+declare global {
+	interface Window {
+		__YANTA_DEBUG__?: YantaDebug;
+	}
+}
+
 if (typeof window !== "undefined") {
-	(window as any).__YANTA_DEBUG__ = (window as any).__YANTA_DEBUG__ || {};
-	(window as any).__YANTA_DEBUG__.jsLoaded = Date.now();
+	window.__YANTA_DEBUG__ = window.__YANTA_DEBUG__ || {};
+	window.__YANTA_DEBUG__.jsLoaded = Date.now();
 }
 
 enableBackendLogging();

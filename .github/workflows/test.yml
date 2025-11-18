@@ -22,7 +22,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: "1.24"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -41,6 +41,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
+      - name: Install Wails v3
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
@@ -49,7 +52,7 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      - name: Install X11 build deps
+      - name: Install Linux dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -59,7 +62,17 @@ jobs:
             libxcursor-dev \
             libxrandr-dev \
             libxi-dev \
-            libgtk-3-dev
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            pkg-config \
+            xvfb
+
+      - name: Test Wails v3 bindings generation
+        run: wails3 generate bindings
+
+      - name: Test Wails v3 headless build
+        run: xvfb-run -a wails3 build -platform linux/amd64 -clean
 
       - name: Run Go tests
         run: go test -v -race -coverprofile=coverage.out ./...

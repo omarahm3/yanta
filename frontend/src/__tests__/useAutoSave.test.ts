@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAutoSave } from "../hooks/useAutoSave";
 
@@ -45,9 +45,8 @@ describe("useAutoSave", () => {
 			});
 
 			// Should only save once with the final value
-			await waitFor(() => {
-				expect(onSave).toHaveBeenCalledTimes(1);
-			});
+			await vi.runOnlyPendingTimersAsync();
+			expect(onSave).toHaveBeenCalledTimes(1);
 		});
 
 		it("should not start new save while already saving", async () => {
@@ -84,12 +83,15 @@ describe("useAutoSave", () => {
 
 			// Complete the first save
 			await act(async () => {
-				saveResolver!();
+				saveResolver?.();
 			});
 
-			await waitFor(() => {
-				expect(result.current.saveState).toBe("saved");
+			// Wait for promise resolution and state update
+			await act(async () => {
+				await Promise.resolve();
 			});
+
+			expect(result.current.saveState).toBe("saved");
 		});
 
 		it("should reset debounce timer on each change", async () => {
@@ -120,9 +122,8 @@ describe("useAutoSave", () => {
 			});
 
 			// Now it should save
-			await waitFor(() => {
-				expect(onSave).toHaveBeenCalledTimes(1);
-			});
+			await vi.runOnlyPendingTimersAsync();
+			expect(onSave).toHaveBeenCalledTimes(1);
 		});
 	});
 
@@ -146,9 +147,8 @@ describe("useAutoSave", () => {
 				vi.advanceTimersByTime(2000);
 			});
 
-			await waitFor(() => {
-				expect(result.current.hasUnsavedChanges).toBe(false);
-			});
+			await vi.runOnlyPendingTimersAsync();
+			expect(result.current.hasUnsavedChanges).toBe(false);
 		});
 
 		it("should transition through save states correctly", async () => {
@@ -177,9 +177,12 @@ describe("useAutoSave", () => {
 				vi.advanceTimersByTime(100);
 			});
 
-			await waitFor(() => {
-				expect(result.current.saveState).toBe("saved");
+			// Wait for promise resolution and state update
+			await act(async () => {
+				await Promise.resolve();
 			});
+
+			expect(result.current.saveState).toBe("saved");
 
 			// Should return to idle after 3 seconds
 			await act(async () => {
@@ -285,9 +288,8 @@ describe("useAutoSave", () => {
 			});
 
 			// Should have saved now
-			await waitFor(() => {
-				expect(onSave).toHaveBeenCalledTimes(1);
-			});
+			await vi.runOnlyPendingTimersAsync();
+			expect(onSave).toHaveBeenCalledTimes(1);
 		});
 	});
 
@@ -328,11 +330,14 @@ describe("useAutoSave", () => {
 				vi.advanceTimersByTime(2000);
 			});
 
-			// Should succeed on third attempt
-			await waitFor(() => {
-				expect(onSave).toHaveBeenCalledTimes(3);
-				expect(result.current.saveState).toBe("saved");
+			// Wait for promise resolution and state update
+			await act(async () => {
+				await Promise.resolve();
 			});
+
+			// Should succeed on third attempt
+			expect(onSave).toHaveBeenCalledTimes(3);
+			expect(result.current.saveState).toBe("saved");
 		});
 
 		it("should give up after max retries", async () => {
@@ -358,11 +363,10 @@ describe("useAutoSave", () => {
 				});
 			}
 
-			await waitFor(() => {
-				expect(onSave).toHaveBeenCalledTimes(4); // 1 initial + 3 retries
-				expect(result.current.saveState).toBe("error");
-				expect(result.current.saveError).toEqual(new Error("Save failed"));
-			});
+			await vi.runOnlyPendingTimersAsync();
+			expect(onSave).toHaveBeenCalledTimes(4); // 1 initial + 3 retries
+			expect(result.current.saveState).toBe("error");
+			expect(result.current.saveError).toEqual(new Error("Save failed"));
 		});
 	});
 

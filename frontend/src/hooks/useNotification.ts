@@ -47,7 +47,6 @@ export const useNotification = () => {
 						color: "orange",
 						title: "Warning",
 					});
-				case "info":
 				default:
 					return notifications.show({
 						...mantineOptions,

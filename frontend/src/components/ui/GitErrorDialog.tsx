@@ -63,6 +63,7 @@ export const GitErrorDialog: React.FC<GitErrorDialogProps> = ({ isOpen, onClose,
 										</Dialog.Title>
 									</div>
 									<button
+										type="button"
 										onClick={onClose}
 										className="text-text-dim hover:text-text-bright transition-colors"
 									>
@@ -81,6 +82,7 @@ export const GitErrorDialog: React.FC<GitErrorDialogProps> = ({ isOpen, onClose,
 								{/* Footer */}
 								<div className="px-6 py-4 border-t border-border flex justify-end">
 									<button
+										type="button"
 										onClick={onClose}
 										className={cn(
 											"px-4 py-2 rounded-md font-medium transition-colors",

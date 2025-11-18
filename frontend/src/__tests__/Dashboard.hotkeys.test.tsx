@@ -1,7 +1,7 @@
 import { act, render, waitFor } from "@testing-library/react";
 import React from "react";
 import { vi } from "vitest";
-import { Restore, SoftDelete } from "../../wailsjs/go/document/Service";
+import { Restore, SoftDelete } from "../../bindings/yanta/internal/document/service";
 import { DialogProvider, HotkeyProvider, useHotkeyContext } from "../contexts";
 import type { HotkeyContextValue } from "../types/hotkeys";
 
@@ -74,11 +74,11 @@ vi.mock("../components/StatusBar", () => ({
 	StatusBar: () => <div data-testid="status-bar" />, // minimal stub
 }));
 
-vi.mock("../../wailsjs/go/commandline/DocumentCommands", () => ({
+vi.mock("../../bindings/yanta/internal/commandline/documentcommands", () => ({
 	ParseWithContext: vi.fn(async () => ({ success: true })),
 }));
 
-vi.mock("../../wailsjs/go/document/Service", () => ({
+vi.mock("../../bindings/yanta/internal/document/service", () => ({
 	SoftDelete: vi.fn(),
 	Restore: vi.fn(),
 }));
@@ -99,7 +99,17 @@ vi.mock("../../wailsjs/go/models", () => ({
 }));
 
 vi.mock("../components/Layout", () => {
-	const Layout = ({ children, commandInputRef, commandValue, onCommandChange }: any) => (
+	const Layout = ({
+		children,
+		commandInputRef,
+		commandValue,
+		onCommandChange,
+	}: {
+		children: React.ReactNode;
+		commandInputRef?: React.RefObject<HTMLInputElement>;
+		commandValue?: string;
+		onCommandChange?: (value: string) => void;
+	}) => (
 		<div>
 			<input
 				data-testid="command-input"
@@ -148,14 +158,17 @@ describe("Dashboard hotkeys", () => {
 
 	const renderDashboard = async () => {
 		let ctx: HotkeyContextValue | null = null;
+		// biome-ignore lint/suspicious/noAssignInExpressions: Test callback pattern
 		render(<Wrapper onContext={(value) => (ctx = value)} />);
 		await waitFor(() => expect(ctx).not.toBeNull());
+		// biome-ignore lint/style/noNonNullAssertion: Test utility function ensures non-null
 		return ctx!;
 	};
 
 	const getHotkey = (ctx: HotkeyContextValue, key: string) => {
 		const hotkey = ctx.getRegisteredHotkeys().find((h) => h.key === key);
 		expect(hotkey).toBeDefined();
+		// biome-ignore lint/style/noNonNullAssertion: Test utility function ensures non-null
 		return hotkey!;
 	};
 

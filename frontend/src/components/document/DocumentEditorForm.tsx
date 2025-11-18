@@ -73,7 +73,7 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 				<Suspense fallback={<EditorLoader />}>
 					<RichEditor
 						initialContent={blocksJson}
-						docKey={isEditMode ? "edit:" + (blocksJson ? "loaded" : "pending") : "new"}
+						docKey={isEditMode ? `edit:${blocksJson ? "loaded" : "pending"}` : "new"}
 						onChange={handleBlocksChange}
 						onTitleChange={handleTitleChange}
 						onReady={onEditorReady}
@@ -88,6 +88,7 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 					<div className="flex flex-wrap gap-2">
 						{tags.map((tag) => (
 							<button
+								type="button"
 								key={tag}
 								onKeyDown={(e) => handleTagKeyDown(e, tag)}
 								onClick={() => {

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
 	"yanta/internal/git"
 	"yanta/internal/testutil"
 )
@@ -17,7 +18,7 @@ func (v *testVault) AssetsPath(projectAlias string) string {
 }
 
 func (v *testVault) EnsureProjectDir(projectAlias string) error {
-	return os.MkdirAll(v.AssetsPath(projectAlias), 0755)
+	return os.MkdirAll(v.AssetsPath(projectAlias), 0o755)
 }
 
 func TestService_Upload_Success(t *testing.T) {
@@ -27,10 +28,12 @@ func TestService_Upload_Success(t *testing.T) {
 	s := NewStore(db)
 	v := &testVault{root: t.TempDir()}
 
-	svc := NewService(ServiceConfig{DB: db, Store: s, Vault: v, SyncManager: git.NewMockSyncManager()})
+	svc := NewService(
+		ServiceConfig{DB: db, Store: s, Vault: v, SyncManager: git.NewMockSyncManager()},
+	)
 
 	data := []byte("fakepngdata")
-	info, err := svc.Upload("@proj", data, "image.png")
+	info, err := svc.Upload(context.Background(), "@proj", data, "image.png")
 	if err != nil {
 		t.Fatalf("Upload failed: %v", err)
 	}
@@ -52,8 +55,20 @@ func TestService_BuildURL(t *testing.T) {
 	db := testutil.SetupTestDB(t)
 	defer testutil.CleanupTestDB(t, db)
 
-	svc := NewService(ServiceConfig{DB: db, Store: NewStore(db), Vault: &testVault{root: t.TempDir()}, SyncManager: git.NewMockSyncManager()})
-	url, err := svc.BuildURL("@p", "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", ".jpg")
+	svc := NewService(
+		ServiceConfig{
+			DB:          db,
+			Store:       NewStore(db),
+			Vault:       &testVault{root: t.TempDir()},
+			SyncManager: git.NewMockSyncManager(),
+		},
+	)
+	url, err := svc.BuildURL(
+		context.Background(),
+		"@p",
+		"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+		".jpg",
+	)
 	if err != nil {
 		t.Fatalf("BuildURL error: %v", err)
 	}
@@ -68,7 +83,9 @@ func TestService_Upload_TooLarge(t *testing.T) {
 
 	s := NewStore(db)
 	v := &testVault{root: t.TempDir()}
-	svc := NewService(ServiceConfig{DB: db, Store: s, Vault: v, SyncManager: git.NewMockSyncManager()})
+	svc := NewService(
+		ServiceConfig{DB: db, Store: s, Vault: v, SyncManager: git.NewMockSyncManager()},
+	)
 
 	// 10MB + 1 byte
 	big := make([]byte, 10*1024*1024+1)
@@ -76,7 +93,7 @@ func TestService_Upload_TooLarge(t *testing.T) {
 		big[i] = byte(i % 251)
 	}
 
-	if _, err := svc.Upload("@proj", big, "big.png"); err == nil {
+	if _, err := svc.Upload(context.Background(), "@proj", big, "big.png"); err == nil {
 		t.Fatalf("expected error for too large file")
 	}
 }
@@ -122,7 +139,7 @@ func TestService_LinkToDocument(t *testing.T) {
 		t.Fatalf("Failed to create asset: %v", err)
 	}
 
-	err = service.LinkToDocument("projects/@test/doc-123.json", asset.Hash)
+	err = service.LinkToDocument(context.Background(), "projects/@test/doc-123.json", asset.Hash)
 	if err != nil {
 		t.Fatalf("LinkToDocument() failed: %v", err)
 	}
@@ -191,7 +208,7 @@ func TestService_LinkToDocument_ValidationErrors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := service.LinkToDocument(tt.docPath, tt.hash)
+			err := service.LinkToDocument(context.Background(), tt.docPath, tt.hash)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LinkToDocument() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -207,7 +224,11 @@ func TestService_LinkToDocument_NilStore(t *testing.T) {
 		SyncManager: git.NewMockSyncManager(),
 	})
 
-	err := service.LinkToDocument("projects/@test/doc.json", ComputeHash([]byte("test")))
+	err := service.LinkToDocument(
+		context.Background(),
+		"projects/@test/doc.json",
+		ComputeHash([]byte("test")),
+	)
 	if err == nil {
 		t.Error("LinkToDocument() should fail with nil store")
 	}
@@ -249,12 +270,16 @@ func TestService_UnlinkFromDocument(t *testing.T) {
 		t.Fatalf("Failed to create asset: %v", err)
 	}
 
-	err = service.LinkToDocument("projects/@test/doc-123.json", asset.Hash)
+	err = service.LinkToDocument(context.Background(), "projects/@test/doc-123.json", asset.Hash)
 	if err != nil {
 		t.Fatalf("LinkToDocument() failed: %v", err)
 	}
 
-	err = service.UnlinkFromDocument("projects/@test/doc-123.json", asset.Hash)
+	err = service.UnlinkFromDocument(
+		context.Background(),
+		"projects/@test/doc-123.json",
+		asset.Hash,
+	)
 	if err != nil {
 		t.Fatalf("UnlinkFromDocument() failed: %v", err)
 	}
@@ -313,7 +338,7 @@ func TestService_UnlinkFromDocument_ValidationErrors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := service.UnlinkFromDocument(tt.docPath, tt.hash)
+			err := service.UnlinkFromDocument(context.Background(), tt.docPath, tt.hash)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UnlinkFromDocument() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -328,7 +353,11 @@ func TestService_UnlinkFromDocument_NilStore(t *testing.T) {
 		Vault: nil,
 	})
 
-	err := service.UnlinkFromDocument("projects/@test/doc.json", ComputeHash([]byte("test")))
+	err := service.UnlinkFromDocument(
+		context.Background(),
+		"projects/@test/doc.json",
+		ComputeHash([]byte("test")),
+	)
 	if err == nil {
 		t.Error("UnlinkFromDocument() should fail with nil store")
 	}
@@ -382,11 +411,11 @@ func TestService_UnlinkAllFromDocument(t *testing.T) {
 		t.Fatalf("Failed to create asset2: %v", err)
 	}
 
-	err = service.LinkToDocument("projects/@test/doc-123.json", asset1.Hash)
+	err = service.LinkToDocument(context.Background(), "projects/@test/doc-123.json", asset1.Hash)
 	if err != nil {
 		t.Fatalf("Failed to link asset1: %v", err)
 	}
-	err = service.LinkToDocument("projects/@test/doc-123.json", asset2.Hash)
+	err = service.LinkToDocument(context.Background(), "projects/@test/doc-123.json", asset2.Hash)
 	if err != nil {
 		t.Fatalf("Failed to link asset2: %v", err)
 	}
@@ -399,7 +428,7 @@ func TestService_UnlinkAllFromDocument(t *testing.T) {
 		t.Fatalf("Expected 2 assets before unlink, got %d", len(beforeAssets))
 	}
 
-	err = service.UnlinkAllFromDocument("projects/@test/doc-123.json")
+	err = service.UnlinkAllFromDocument(context.Background(), "projects/@test/doc-123.json")
 	if err != nil {
 		t.Fatalf("UnlinkAllFromDocument() failed: %v", err)
 	}
@@ -447,7 +476,7 @@ func TestService_UnlinkAllFromDocument_ValidationErrors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := service.UnlinkAllFromDocument(tt.docPath)
+			err := service.UnlinkAllFromDocument(context.Background(), tt.docPath)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UnlinkAllFromDocument() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -462,7 +491,7 @@ func TestService_UnlinkAllFromDocument_NilStore(t *testing.T) {
 		Vault: nil,
 	})
 
-	err := service.UnlinkAllFromDocument("projects/@test/doc.json")
+	err := service.UnlinkAllFromDocument(context.Background(), "projects/@test/doc.json")
 	if err == nil {
 		t.Error("UnlinkAllFromDocument() should fail with nil store")
 	}
@@ -517,12 +546,12 @@ func TestService_LinkToDocument_PreservesOtherLinks(t *testing.T) {
 		t.Fatalf("Failed to create asset: %v", err)
 	}
 
-	err = service.LinkToDocument("projects/@test/doc-1.json", asset.Hash)
+	err = service.LinkToDocument(context.Background(), "projects/@test/doc-1.json", asset.Hash)
 	if err != nil {
 		t.Fatalf("Failed to link to doc-1: %v", err)
 	}
 
-	err = service.LinkToDocument("projects/@test/doc-2.json", asset.Hash)
+	err = service.LinkToDocument(context.Background(), "projects/@test/doc-2.json", asset.Hash)
 	if err != nil {
 		t.Fatalf("Failed to link to doc-2: %v", err)
 	}
@@ -543,7 +572,7 @@ func TestService_LinkToDocument_PreservesOtherLinks(t *testing.T) {
 		t.Fatalf("Expected 1 asset for doc-2, got %d", len(doc2Assets))
 	}
 
-	err = service.UnlinkFromDocument("projects/@test/doc-1.json", asset.Hash)
+	err = service.UnlinkFromDocument(context.Background(), "projects/@test/doc-1.json", asset.Hash)
 	if err != nil {
 		t.Fatalf("Failed to unlink from doc-1: %v", err)
 	}

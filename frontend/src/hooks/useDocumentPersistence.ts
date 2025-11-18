@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { BlockNoteBlock } from "../types/Document";
+import type { Project } from "../types/Project";
 import { useAutoSave } from "./useAutoSave";
 import { useAutoDocumentSaver } from "./useDocumentSaver";
 
@@ -12,7 +13,7 @@ interface DocumentFormData {
 interface UseDocumentPersistenceProps {
 	formData: DocumentFormData;
 	hasChanges: boolean;
-	currentProject: any;
+	currentProject: Project | null | undefined;
 	documentPath?: string;
 	isEditMode: boolean;
 	isLoading: boolean;
@@ -92,7 +93,9 @@ export const useDocumentPersistence = ({
 	useEffect(() => {
 		if (shouldAutoSave && currentProject && !isLoading) {
 			onAutoSaveComplete();
-			handleSave();
+			handleSave().catch((err) => {
+				console.error("Auto-save failed:", err);
+			});
 		}
 	}, [shouldAutoSave, currentProject, isLoading, handleSave, onAutoSaveComplete]);
 

@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import * as GlobalCommands from "../../wailsjs/go/commandline/GlobalCommands";
-import type { commandline } from "../../wailsjs/go/models";
+import * as GlobalCommands from "../../bindings/yanta/internal/commandline/globalcommands";
+import type * as commandlineModels from "../../bindings/yanta/internal/commandline/models";
 import { useProjectContext } from "../contexts";
 import { projectFromModel } from "../types";
 
@@ -16,7 +16,7 @@ export const useGlobalCommand = () => {
 			handled: boolean;
 			success?: boolean;
 			message?: string;
-			result?: commandline.GlobalResult;
+			result?: commandlineModels.GlobalResult;
 		}> => {
 			const trimmedCommand = command.trim().toLowerCase();
 
@@ -29,6 +29,14 @@ export const useGlobalCommand = () => {
 			try {
 				const result = await GlobalCommands.Parse(command);
 
+				if (!result) {
+					return {
+						handled: true,
+						success: false,
+						message: "Command returned null",
+					};
+				}
+
 				if (result.success && result.data?.project) {
 					const project = projectFromModel(result.data.project);
 					setCurrentProject(project);
@@ -39,7 +47,7 @@ export const useGlobalCommand = () => {
 					handled: true,
 					success: result.success,
 					message: result.message,
-					result,
+					result: result || undefined,
 				};
 			} catch (err) {
 				console.error("Global command execution error:", err);

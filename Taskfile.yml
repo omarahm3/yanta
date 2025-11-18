@@ -1,0 +1,64 @@
+version: '3'
+
+includes:
+  common: ./build/Taskfile.yml
+  linux: ./build/linux/Taskfile.yml
+
+vars:
+  APP_NAME: "yanta"
+  DEV_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
+  WAILS_PLATFORM: '{{.PLATFORM | default .WAILS_PLATFORM}}'
+  WAILS_FLAGS: '{{.FLAGS | default ""}}'
+
+tasks:
+  install-tools:
+    summary: Install required development toolchain (wails3 CLI + frontend deps)
+    cmds:
+      - go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+      - cd frontend && npm ci
+
+  bindings:
+    summary: Generate TypeScript bindings using wails3
+    deps:
+      - task: common:generate:bindings
+
+  build:
+    summary: Build the application with wails3 (uses current OS target)
+    deps:
+      - bindings
+    cmds:
+      - task: common:wails:build
+        vars:
+          PLATFORM: '{{.WAILS_PLATFORM}}'
+          EXTRA_FLAGS: '{{.WAILS_FLAGS}}'
+
+  build:linux:
+    summary: Cross-build for Linux and produce tar/pkg artifacts
+    cmds:
+      - task: linux:package
+        vars:
+          VERSION: '{{.VERSION | default "dev"}}'
+          PKGREL: '{{.PKGREL | default "1"}}'
+
+  run:
+    summary: Run the last built binary (builds first if needed)
+    deps:
+      - build
+    cmds:
+      - ./build/bin/{{.APP_NAME}}
+
+  dev:
+    summary: Launch Wails dev mode with live reload
+    cmds:
+      - wails3 dev -config ./build/config.yml -port {{.DEV_PORT}}
+
+  package:
+    summary: Build release artifacts for the current platform
+    deps:
+      - bindings
+    cmds:
+      - task: common:wails:build
+        vars:
+          PLATFORM: '{{.WAILS_PLATFORM}}'
+          EXTRA_FLAGS: '{{default "-clean" .WAILS_FLAGS}}'
+

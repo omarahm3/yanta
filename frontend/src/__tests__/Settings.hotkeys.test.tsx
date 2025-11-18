@@ -1,7 +1,7 @@
 import { render, waitFor } from "@testing-library/react";
 import React from "react";
 import { vi } from "vitest";
-import { DialogProvider, HotkeyProvider, useHotkeyContext } from "../contexts";
+import { DialogProvider, HotkeyProvider, TitleBarProvider, useHotkeyContext } from "../contexts";
 import { Settings } from "../pages/Settings";
 import type { HotkeyContextValue } from "../types/hotkeys";
 
@@ -49,6 +49,20 @@ vi.mock("../pages/settings/useSettingsController", () => ({
 	}),
 }));
 
+vi.mock("../contexts", async () => {
+	const actual = await vi.importActual<typeof import("../contexts")>("../contexts");
+	return {
+		...actual,
+		useProjectContext: () => ({
+			currentProject: { name: "Test Project" },
+		}),
+	};
+});
+
+vi.mock("../../wailsjs/runtime/runtime", () => ({
+	EventsOn: vi.fn(() => () => {}),
+}));
+
 const HotkeyProbe: React.FC<{ onReady: (ctx: HotkeyContextValue) => void }> = ({ onReady }) => {
 	const ctx = useHotkeyContext();
 	React.useEffect(() => {
@@ -63,8 +77,11 @@ const renderSettings = async () => {
 	const result = render(
 		<DialogProvider>
 			<HotkeyProvider>
-				<HotkeyProbe onReady={(ctx) => (context = ctx)} />
-				<Settings onNavigate={vi.fn()} />
+				<TitleBarProvider>
+					{/* biome-ignore lint/suspicious/noAssignInExpressions: Test callback pattern */}
+					<HotkeyProbe onReady={(ctx) => (context = ctx)} />
+					<Settings onNavigate={vi.fn()} />
+				</TitleBarProvider>
 			</HotkeyProvider>
 		</DialogProvider>,
 	);
@@ -73,6 +90,7 @@ const renderSettings = async () => {
 		expect(context).not.toBeNull();
 	});
 
+	// biome-ignore lint/style/noNonNullAssertion: Test utility function ensures non-null
 	return { context: context!, ...result };
 };
 

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 )
+
 func mustMarshalContent(content []BlockNoteContent) json.RawMessage {
 	data, err := json.Marshal(content)
 	if err != nil {
@@ -13,7 +14,6 @@ func mustMarshalContent(content []BlockNoteContent) json.RawMessage {
 	}
 	return data
 }
-
 
 func TestDocumentMeta_Validate(t *testing.T) {
 	tests := []struct {

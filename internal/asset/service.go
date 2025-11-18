@@ -15,7 +15,6 @@ type Service struct {
 	store       *Store
 	vault       VaultProvider
 	syncManager *git.SyncManager
-	ctx         context.Context
 }
 
 type ServiceConfig struct {
@@ -34,11 +33,7 @@ func NewService(cfg ServiceConfig) *Service {
 	}
 }
 
-func (s *Service) SetContext(ctx context.Context) {
-	s.ctx = ctx
-}
-
-func (s *Service) Upload(projectAlias string, data []byte, filename string) (*AssetInfo, error) {
+func (s *Service) Upload(ctx context.Context, projectAlias string, data []byte, filename string) (*AssetInfo, error) {
 	if s.vault == nil || s.store == nil || s.db == nil {
 		return nil, fmt.Errorf("service not initialised correctly")
 	}
@@ -78,7 +73,7 @@ func (s *Service) Upload(projectAlias string, data []byte, filename string) (*As
 		CreatedAt: time.Now(),
 	}
 
-	if _, err := s.store.Upsert(s.ctxOrBG(), a); err != nil {
+	if _, err := s.store.Upsert(ctx, a); err != nil {
 		return nil, err
 	}
 
@@ -87,7 +82,7 @@ func (s *Service) Upload(projectAlias string, data []byte, filename string) (*As
 	return info, nil
 }
 
-func (s *Service) BuildURL(projectAlias, hash, ext string) (string, error) {
+func (s *Service) BuildURL(ctx context.Context, projectAlias, hash, ext string) (string, error) {
 	if err := ValidateHash(hash); err != nil {
 		return "", err
 	}
@@ -100,7 +95,7 @@ func (s *Service) BuildURL(projectAlias, hash, ext string) (string, error) {
 	return "/assets/" + projectAlias + "/" + hash + ext, nil
 }
 
-func (s *Service) LinkToDocument(docPath, hash string) error {
+func (s *Service) LinkToDocument(ctx context.Context, docPath, hash string) error {
 	if s.store == nil {
 		return fmt.Errorf("service not initialised correctly")
 	}
@@ -113,10 +108,10 @@ func (s *Service) LinkToDocument(docPath, hash string) error {
 		return fmt.Errorf("invalid hash: %w", err)
 	}
 
-	return s.store.LinkToDocument(s.ctxOrBG(), hash, docPath)
+	return s.store.LinkToDocument(ctx, hash, docPath)
 }
 
-func (s *Service) UnlinkFromDocument(docPath, hash string) error {
+func (s *Service) UnlinkFromDocument(ctx context.Context, docPath, hash string) error {
 	if s.store == nil {
 		return fmt.Errorf("service not initialised correctly")
 	}
@@ -129,10 +124,10 @@ func (s *Service) UnlinkFromDocument(docPath, hash string) error {
 		return fmt.Errorf("invalid hash: %w", err)
 	}
 
-	return s.store.UnlinkFromDocument(s.ctxOrBG(), hash, docPath)
+	return s.store.UnlinkFromDocument(ctx, hash, docPath)
 }
 
-func (s *Service) UnlinkAllFromDocument(docPath string) error {
+func (s *Service) UnlinkAllFromDocument(ctx context.Context, docPath string) error {
 	if s.store == nil {
 		return fmt.Errorf("service not initialised correctly")
 	}
@@ -141,15 +136,15 @@ func (s *Service) UnlinkAllFromDocument(docPath string) error {
 		return fmt.Errorf("document path is required")
 	}
 
-	return s.store.UnlinkAllFromDocument(s.ctxOrBG(), docPath)
+	return s.store.UnlinkAllFromDocument(ctx, docPath)
 }
 
-func (s *Service) CleanupOrphans(projectAlias string) (int, error) {
+func (s *Service) CleanupOrphans(ctx context.Context, projectAlias string) (int, error) {
 	if s.store == nil {
 		return 0, fmt.Errorf("service not initialised correctly")
 	}
 
-	orphans, err := s.store.GetOrphanedAssets(s.ctxOrBG())
+	orphans, err := s.store.GetOrphanedAssets(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("getting orphaned assets: %w", err)
 	}
@@ -160,7 +155,7 @@ func (s *Service) CleanupOrphans(projectAlias string) (int, error) {
 
 	deleted := 0
 	for _, a := range orphans {
-		if err := s.store.Delete(s.ctxOrBG(), a.Hash); err != nil {
+		if err := s.store.Delete(ctx, a.Hash); err != nil {
 			continue
 		}
 		deleted++
@@ -175,11 +170,4 @@ func (s *Service) CleanupOrphans(projectAlias string) (int, error) {
 	}
 
 	return deleted, nil
-}
-
-func (s *Service) ctxOrBG() context.Context {
-	if s.ctx != nil {
-		return s.ctx
-	}
-	return context.Background()
 }

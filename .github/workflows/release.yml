@@ -58,7 +58,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: "1.24"
 
       - uses: actions/setup-node@v4
         with:
@@ -77,8 +77,8 @@ jobs:
             "$nsisPath\Bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           }
 
-      - name: Install Wails
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.10.2
+      - name: Install Wails v3
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
 
       - name: Install frontend dependencies
         working-directory: frontend
@@ -93,7 +93,7 @@ jobs:
           set -euo pipefail
           VERSION=${{ steps.build_info.outputs.version }}
           PKGREL=1
-          xvfb-run -a wails build -platform ${{ matrix.wails_platform }} -clean ${{ matrix.tags }} -ldflags "${LD_FLAGS}"
+          xvfb-run -a wails3 build -platform ${{ matrix.wails_platform }} -clean ${{ matrix.tags }} -ldflags "${LD_FLAGS}"
           scripts/build_linux_artifacts.sh "$VERSION" "$PKGREL"
 
       - name: Build Windows executables
@@ -102,7 +102,7 @@ jobs:
           LD_FLAGS: "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
         run: |
           set -euo pipefail
-          wails build -platform ${{ matrix.wails_platform }} -clean -nsis -webview2 download -ldflags "${LD_FLAGS}"
+          wails3 build -platform ${{ matrix.wails_platform }} -clean -nsis -webview2 download -ldflags "${LD_FLAGS}"
 
       - name: Prepare Windows artifacts
         if: matrix.name == 'windows'
@@ -128,7 +128,7 @@ jobs:
           LD_FLAGS: "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
         run: |
           set -euo pipefail
-          wails build -platform ${{ matrix.wails_platform }} -clean -ldflags "${LD_FLAGS}"
+          wails3 build -platform ${{ matrix.wails_platform }} -clean -ldflags "${LD_FLAGS}"
           pushd build/bin >/dev/null
           tar czf ../../yanta-macos.tar.gz yanta.app
           popd >/dev/null

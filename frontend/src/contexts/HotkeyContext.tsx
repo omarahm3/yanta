@@ -152,7 +152,7 @@ export const HotkeyProvider: React.FC<HotkeyProviderProps> = ({ children }) => {
 					const inInputField =
 						target?.tagName === "INPUT" ||
 						target?.tagName === "TEXTAREA" ||
-						(target && target.getAttribute && target.getAttribute("contenteditable") === "true");
+						(target?.getAttribute && target.getAttribute("contenteditable") === "true");
 
 					if (isDialogOpen) {
 						return;
@@ -204,7 +204,7 @@ export const HotkeyProvider: React.FC<HotkeyProviderProps> = ({ children }) => {
 			const inInputField =
 				target?.tagName === "INPUT" ||
 				target?.tagName === "TEXTAREA" ||
-				(target && target.getAttribute && target.getAttribute("contenteditable") === "true");
+				(target?.getAttribute && target.getAttribute("contenteditable") === "true");
 
 			if (isDialogOpen) {
 				return;
@@ -239,7 +239,7 @@ export const HotkeyProvider: React.FC<HotkeyProviderProps> = ({ children }) => {
 			const inInputField =
 				target?.tagName === "INPUT" ||
 				target?.tagName === "TEXTAREA" ||
-				(target && target.getAttribute && target.getAttribute("contenteditable") === "true");
+				(target?.getAttribute && target.getAttribute("contenteditable") === "true");
 
 			if (isDialogOpen) {
 				return;
@@ -278,7 +278,7 @@ export const HotkeyProvider: React.FC<HotkeyProviderProps> = ({ children }) => {
 			const inInputField =
 				target?.tagName === "INPUT" ||
 				target?.tagName === "TEXTAREA" ||
-				(target && target.getAttribute && target.getAttribute("contenteditable") === "true");
+				(target?.getAttribute && target.getAttribute("contenteditable") === "true");
 
 			const isInteractiveElement =
 				target?.tagName === "BUTTON" ||

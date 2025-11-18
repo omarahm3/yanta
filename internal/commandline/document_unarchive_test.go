@@ -1,6 +1,7 @@
 package commandline
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,26 +13,50 @@ type mockDocumentService struct {
 	restoreErr       error
 }
 
-func (m *mockDocumentService) SoftDelete(path string) error { return nil }
+func (m *mockDocumentService) SoftDelete(ctx context.Context, path string) error { return nil }
 
-func (m *mockDocumentService) Restore(path string) error {
+func (m *mockDocumentService) Restore(ctx context.Context, path string) error {
 	m.lastRestoredPath = path
 	return m.restoreErr
 }
 
-func (m *mockDocumentService) HardDelete(path string) error { return nil }
+func (m *mockDocumentService) HardDelete(ctx context.Context, path string) error { return nil }
 
-func (m *mockDocumentService) HardDeleteBatch(paths []string) error { return nil }
+func (m *mockDocumentService) HardDeleteBatch(
+	ctx context.Context,
+	paths []string,
+) error {
+	return nil
+}
 
 type noopTagService struct{}
 
-func (n *noopTagService) AddTagsToDocument(string, []string) error { return nil }
+func (n *noopTagService) AddTagsToDocument(
+	ctx context.Context,
+	docPath string,
+	tagNames []string,
+) error {
+	return nil
+}
 
-func (n *noopTagService) RemoveTagsFromDocument(string, []string) error { return nil }
+func (n *noopTagService) RemoveTagsFromDocument(
+	ctx context.Context,
+	docPath string,
+	tagNames []string,
+) error {
+	return nil
+}
 
-func (n *noopTagService) RemoveAllDocumentTags(string) error { return nil }
+func (n *noopTagService) RemoveAllDocumentTags(
+	ctx context.Context,
+	docPath string,
+) error {
+	return nil
+}
 
-func (n *noopTagService) GetDocumentTags(string) ([]string, error) { return []string{}, nil }
+func (n *noopTagService) GetDocumentTags(ctx context.Context, docPath string) ([]string, error) {
+	return []string{}, nil
+}
 
 func TestDocumentCommands_UnarchiveUsesCurrentDocument(t *testing.T) {
 	docSvc := &mockDocumentService{}

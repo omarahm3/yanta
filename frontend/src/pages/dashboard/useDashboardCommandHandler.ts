@@ -1,5 +1,5 @@
 import { type RefObject, useCallback } from "react";
-import { ParseWithContext } from "../../../wailsjs/go/commandline/DocumentCommands";
+import { ParseWithContext } from "../../../bindings/yanta/internal/commandline/documentcommands";
 import type { Document } from "../../types/Document";
 import type { Project } from "../../types/Project";
 import { preprocessCommand } from "../../utils/commandPreprocessor";
@@ -60,6 +60,11 @@ export const useDashboardCommandHandler = ({
 
 				const preprocessedCommand = preprocessCommand(withoutPrefix, documents, selectedPathsInOrder);
 				const result = await ParseWithContext(preprocessedCommand, currentProject.alias);
+
+				if (!result) {
+					error("Command returned null");
+					return;
+				}
 
 				if (!result.success) {
 					if (result.message) error(result.message);
@@ -169,6 +174,7 @@ export const useDashboardCommandHandler = ({
 			success,
 			setCommandInput,
 			commandInputRef,
+			onConfirmationRequired,
 		],
 	);
 

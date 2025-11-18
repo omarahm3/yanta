@@ -16,6 +16,7 @@ export const DocumentErrorState: React.FC<DocumentErrorStateProps> = React.memo(
 					Document could not be loaded. It may have been deleted or doesn't exist.
 				</div>
 				<button
+					type="button"
 					onClick={() => onNavigate?.("dashboard")}
 					className="px-6 py-2 mt-4 font-medium transition-colors rounded bg-accent text-bg hover:bg-accent/90"
 				>

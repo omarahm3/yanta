@@ -15,5 +15,5 @@ export const extractTitleFromBlocks = (blocks: BlockNoteBlock[]): string => {
 
 	if (!text) return "Untitled";
 
-	return text.length > 200 ? text.substring(0, 200) + "..." : text;
+	return text.length > 200 ? `${text.substring(0, 200)}...` : text;
 };

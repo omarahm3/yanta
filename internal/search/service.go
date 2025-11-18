@@ -8,33 +8,27 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"yanta/internal/events"
 	"yanta/internal/logger"
 )
 
 type Service struct {
-	db  *sql.DB
-	ctx context.Context
+	db       *sql.DB
+	eventBus *events.EventBus
 }
 
-func NewService(db *sql.DB) *Service {
+func NewService(db *sql.DB, eventBus *events.EventBus) *Service {
 	return &Service{
-		db:  db,
-		ctx: context.Background(),
+		db:       db,
+		eventBus: eventBus,
 	}
-}
-
-func (s *Service) SetContext(ctx context.Context) {
-	s.ctx = ctx
 }
 
 func (s *Service) emitEvent(eventName string, payload any) {
-	if s.ctx == context.Background() {
-		return
+	if s.eventBus != nil {
+		s.eventBus.Emit(eventName, payload)
 	}
-	runtime.EventsEmit(s.ctx, eventName, payload)
 }
 
 type Result struct {
@@ -44,7 +38,7 @@ type Result struct {
 	Updated string `json:"updated"`
 }
 
-func (s *Service) Query(q string, limit, offset int) ([]Result, error) {
+func (s *Service) Query(ctx context.Context, q string, limit, offset int) ([]Result, error) {
 	logger.WithFields(logrus.Fields{
 		"query":  q,
 		"limit":  limit,
@@ -113,7 +107,10 @@ SELECT d.path, d.title,
 			placeholders[i] = "?"
 			args = append(args, alias)
 		}
-		whereClauses = append(whereClauses, fmt.Sprintf("d.project_alias IN (%s)", strings.Join(placeholders, ", ")))
+		whereClauses = append(
+			whereClauses,
+			fmt.Sprintf("d.project_alias IN (%s)", strings.Join(placeholders, ", ")),
+		)
 	}
 
 	if len(tags) > 0 {
@@ -125,7 +122,10 @@ SELECT d.path, d.title,
 			placeholders[i] = "?"
 			args = append(args, tag)
 		}
-		whereClauses = append(whereClauses, fmt.Sprintf("dt.tag IN (%s)", strings.Join(placeholders, ", ")))
+		whereClauses = append(
+			whereClauses,
+			fmt.Sprintf("dt.tag IN (%s)", strings.Join(placeholders, ", ")),
+		)
 	}
 
 	sqlBuilder += `
@@ -140,7 +140,7 @@ SELECT d.path, d.title,
 		"args": args,
 	}).Debug("executing search SQL")
 
-	rows, err := s.db.QueryContext(s.ctx, sqlBuilder, args...)
+	rows, err := s.db.QueryContext(ctx, sqlBuilder, args...)
 	if err != nil {
 		logger.WithError(err).WithFields(logrus.Fields{
 			"match": match,

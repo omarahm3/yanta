@@ -14,7 +14,7 @@ import {
 	RiSettings3Line,
 	RiUploadCloudLine,
 } from "react-icons/ri";
-import { GitPull, GitPush, SyncNow } from "../../wailsjs/go/system/Service";
+import { GitPull, GitPush, SyncNow } from "../../bindings/yanta/internal/system/service";
 import { useProjectContext } from "../contexts/ProjectContext";
 import { useNotification } from "../hooks/useNotification";
 import { type ParsedGitError, parseGitError } from "../utils/gitErrorParser";
@@ -213,6 +213,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 		onToggleArchived,
 		showArchived,
 		notification,
+		showGitError,
 	]);
 
 	return (

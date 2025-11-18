@@ -125,6 +125,7 @@ export const MetadataSidebar: React.FC<MetadataSidebarProps> = ({
 				<div className="flex flex-col gap-2">
 					{actions.map((action) => (
 						<button
+							type="button"
 							key={action.id}
 							className={cn(
 								"px-3 py-1.5 bg-bg border border-border rounded text-xs cursor-pointer transition-all text-left",

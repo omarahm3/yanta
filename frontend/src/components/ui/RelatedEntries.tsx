@@ -22,6 +22,7 @@ export const RelatedEntries: React.FC<RelatedEntriesProps> = ({ entries, classNa
 			<div className="flex flex-col gap-2">
 				{entries.map((entry) => (
 					<button
+						type="button"
 						key={entry.id}
 						className="p-2.5 bg-surface border border-border rounded cursor-pointer transition-all text-left hover:border-accent hover:transform hover:translate-x-1"
 						onClick={entry.onClick}

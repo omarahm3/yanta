@@ -1,0 +1,35 @@
+version: '3'
+
+includes:
+  common: ../Taskfile.yml
+
+vars:
+  APP_NAME: "yanta"
+
+tasks:
+  build:
+    summary: Build Linux binary with wails3 (linux/amd64 target)
+    deps:
+      - task: common:generate:bindings
+      - task: common:wails:build
+        vars:
+          PLATFORM: 'linux/amd64'
+          EXTRA_FLAGS: '{{.WAILS_FLAGS | default ""}}'
+
+  package:
+    summary: Build Linux artifacts (tarball + Arch pkg)
+    deps:
+      - task: build
+    vars:
+      VERSION: '{{.VERSION | default "dev"}}'
+      PKGREL: '{{.PKGREL | default "1"}}'
+    cmds:
+      - |
+        scripts/build_linux_artifacts.sh "{{.VERSION}}" "{{.PKGREL}}"
+
+  run:
+    summary: Run the Linux build output
+    deps:
+      - build
+    cmds:
+      - ./build/bin/{{.APP_NAME}}

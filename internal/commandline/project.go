@@ -6,11 +6,11 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
 	"yanta/internal/document"
+	"yanta/internal/events"
 	"yanta/internal/git"
 	"yanta/internal/project"
-
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type ProjectCommand string
@@ -22,17 +22,6 @@ const (
 	ProjectCommandRename    ProjectCommand = "rename"
 	ProjectCommandDelete    ProjectCommand = "delete"
 )
-
-var AllProjectCommands = []struct {
-	Value  ProjectCommand
-	TSName string
-}{
-	{ProjectCommandNew, "New"},
-	{ProjectCommandArchive, "Archive"},
-	{ProjectCommandUnarchive, "Unarchive"},
-	{ProjectCommandRename, "Rename"},
-	{ProjectCommandDelete, "Delete"},
-}
 
 type ProjectResultData struct {
 	Project              *project.Project `json:"project,omitempty"`
@@ -59,25 +48,37 @@ type ProjectCommands struct {
 	vault           VaultService
 	syncManager     *git.SyncManager
 	parser          *Parser
-	ctx             context.Context
+	eventBus        *events.EventBus
 }
 
-func NewProjectCommands(projectService *project.Service, documentService *document.Service, vault VaultService, syncManager *git.SyncManager) *ProjectCommands {
+func NewProjectCommands(
+	projectService *project.Service,
+	documentService *document.Service,
+	vault VaultService,
+	syncManager *git.SyncManager,
+	eventBus *events.EventBus,
+) *ProjectCommands {
 	pc := &ProjectCommands{
 		projectService:  projectService,
 		documentService: documentService,
 		vault:           vault,
 		syncManager:     syncManager,
 		parser:          New(ContextProject),
-		ctx:             context.Background(),
+		eventBus:        eventBus,
 	}
 
 	pc.registerCommands()
 	return pc
 }
 
-func (pc *ProjectCommands) SetContext(ctx context.Context) {
-	pc.ctx = ctx
+func (pc *ProjectCommands) GetAllCommands() []ProjectCommand {
+	return []ProjectCommand{
+		ProjectCommandNew,
+		ProjectCommandArchive,
+		ProjectCommandUnarchive,
+		ProjectCommandRename,
+		ProjectCommandDelete,
+	}
 }
 
 func (pc *ProjectCommands) Parse(cmd string) (*ProjectResult, error) {
@@ -206,7 +207,7 @@ func (pc *ProjectCommands) handleNew(matches []string, fullCommand string) (*Res
 		startDate = time.Now().Format("2006-01-02")
 	}
 
-	projectID, err := pc.projectService.Create(
+	projectID, err := pc.projectService.Create(context.Background(),
 		strings.TrimSpace(name),
 		strings.TrimSpace(alias),
 		startDate,
@@ -216,13 +217,13 @@ func (pc *ProjectCommands) handleNew(matches []string, fullCommand string) (*Res
 		return nil, err
 	}
 
-	createdProject, err := pc.projectService.Get(projectID)
+	createdProject, err := pc.projectService.Get(context.Background(), projectID)
 	if err != nil {
 		return nil, err
 	}
 
-	if pc.ctx != nil && pc.ctx != context.Background() {
-		runtime.EventsEmit(pc.ctx, "yanta/project/changed", map[string]any{
+	if pc.eventBus != nil {
+		pc.eventBus.Emit("yanta/project/changed", map[string]any{
 			"id": createdProject.ID,
 			"op": "create",
 		})
@@ -241,7 +242,7 @@ func (pc *ProjectCommands) handleNew(matches []string, fullCommand string) (*Res
 func (pc *ProjectCommands) handleArchive(matches []string, fullCommand string) (*Result, error) {
 	alias := matches[1]
 
-	projects, err := pc.projectService.ListActive()
+	projects, err := pc.projectService.ListActive(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +262,7 @@ func (pc *ProjectCommands) handleArchive(matches []string, fullCommand string) (
 		}, nil
 	}
 
-	entryCount, err := pc.projectService.GetDocumentCount(proj.ID)
+	entryCount, err := pc.projectService.GetDocumentCount(context.Background(), proj.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -283,10 +284,13 @@ func (pc *ProjectCommands) handleArchive(matches []string, fullCommand string) (
 	}, nil
 }
 
-func (pc *ProjectCommands) handleArchiveForce(matches []string, fullCommand string) (*Result, error) {
+func (pc *ProjectCommands) handleArchiveForce(
+	matches []string,
+	fullCommand string,
+) (*Result, error) {
 	alias := matches[1]
 
-	projects, err := pc.projectService.ListActive()
+	projects, err := pc.projectService.ListActive(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -306,13 +310,13 @@ func (pc *ProjectCommands) handleArchiveForce(matches []string, fullCommand stri
 		}, nil
 	}
 
-	err = pc.projectService.SoftDelete(proj.ID)
+	err = pc.projectService.SoftDelete(context.Background(), proj.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	if pc.ctx != nil && pc.ctx != context.Background() {
-		runtime.EventsEmit(pc.ctx, "yanta/project/changed", map[string]any{
+	if pc.eventBus != nil {
+		pc.eventBus.Emit("yanta/project/changed", map[string]any{
 			"id": proj.ID,
 			"op": "delete",
 		})
@@ -332,7 +336,7 @@ func (pc *ProjectCommands) handleArchiveForce(matches []string, fullCommand stri
 func (pc *ProjectCommands) handleUnarchive(matches []string, fullCommand string) (*Result, error) {
 	alias := matches[1]
 
-	projects, err := pc.projectService.ListArchived()
+	projects, err := pc.projectService.ListArchived(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -352,13 +356,13 @@ func (pc *ProjectCommands) handleUnarchive(matches []string, fullCommand string)
 		}, nil
 	}
 
-	err = pc.projectService.Restore(proj.ID)
+	err = pc.projectService.Restore(context.Background(), proj.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	if pc.ctx != nil && pc.ctx != context.Background() {
-		runtime.EventsEmit(pc.ctx, "yanta/project/changed", map[string]any{
+	if pc.eventBus != nil {
+		pc.eventBus.Emit("yanta/project/changed", map[string]any{
 			"id": proj.ID,
 			"op": "restore",
 		})
@@ -378,7 +382,7 @@ func (pc *ProjectCommands) handleRename(matches []string, fullCommand string) (*
 	alias := matches[1]
 	newName := matches[2]
 
-	projects, err := pc.projectService.ListActive()
+	projects, err := pc.projectService.ListActive(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -400,7 +404,7 @@ func (pc *ProjectCommands) handleRename(matches []string, fullCommand string) (*
 
 	proj.Name = strings.TrimSpace(newName)
 
-	err = pc.projectService.Update(proj)
+	err = pc.projectService.Update(context.Background(), proj)
 	if err != nil {
 		return nil, err
 	}
@@ -441,7 +445,7 @@ func (pc *ProjectCommands) handleDelete(matches []string, fullCommand string) (*
 		}, nil
 	}
 
-	entryCount, err := pc.projectService.GetDocumentCount(proj.ID)
+	entryCount, err := pc.projectService.GetDocumentCount(context.Background(), proj.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -556,11 +560,11 @@ func (pc *ProjectCommands) handleDeleteWithFlags(
 	}
 
 	if hasHard {
-		if err := pc.documentService.HardDeleteByProject(proj.Alias); err != nil {
+		if err := pc.documentService.HardDeleteByProject(context.Background(), proj.Alias); err != nil {
 			return nil, err
 		}
 
-		if err := pc.projectService.HardDelete(proj.ID); err != nil {
+		if err := pc.projectService.HardDelete(context.Background(), proj.ID); err != nil {
 			return nil, err
 		}
 
@@ -570,7 +574,10 @@ func (pc *ProjectCommands) handleDeleteWithFlags(
 
 		pc.syncManager.NotifyChange(fmt.Sprintf("deleted project %s", proj.Alias))
 
-		message := fmt.Sprintf("permanently deleted project: %s (with all documents and files)", proj.Name)
+		message := fmt.Sprintf(
+			"permanently deleted project: %s (with all documents and files)",
+			proj.Name,
+		)
 		flags := []string{}
 		if hasForce {
 			flags = append(flags, "--force")
@@ -627,7 +634,7 @@ func (pc *ProjectCommands) handleDeleteHard(
 		}, nil
 	}
 
-	entryCount, err := pc.projectService.GetDocumentCount(proj.ID)
+	entryCount, err := pc.projectService.GetDocumentCount(context.Background(), proj.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -659,7 +666,7 @@ func (pc *ProjectCommands) handleHelp(matches []string, fullCommand string) (*Re
 }
 
 func (pc *ProjectCommands) findProjectByAlias(alias string) (*project.Project, bool, error) {
-	activeProjects, err := pc.projectService.ListActive()
+	activeProjects, err := pc.projectService.ListActive(context.Background())
 	if err != nil {
 		return nil, false, err
 	}
@@ -670,7 +677,7 @@ func (pc *ProjectCommands) findProjectByAlias(alias string) (*project.Project, b
 		}
 	}
 
-	archivedProjects, err := pc.projectService.ListArchived()
+	archivedProjects, err := pc.projectService.ListArchived(context.Background())
 	if err != nil {
 		return nil, false, err
 	}
@@ -685,16 +692,16 @@ func (pc *ProjectCommands) findProjectByAlias(alias string) (*project.Project, b
 }
 
 func (pc *ProjectCommands) softDeleteProject(proj *project.Project) (int, error) {
-	entryCount, err := pc.projectService.GetDocumentCount(proj.ID)
+	entryCount, err := pc.projectService.GetDocumentCount(context.Background(), proj.ID)
 	if err != nil {
 		return 0, err
 	}
 
-	if err := pc.documentService.SoftDeleteByProject(proj.Alias); err != nil {
+	if err := pc.documentService.SoftDeleteByProject(context.Background(), proj.Alias); err != nil {
 		return 0, err
 	}
 
-	if err := pc.projectService.SoftDelete(proj.ID); err != nil {
+	if err := pc.projectService.SoftDelete(context.Background(), proj.ID); err != nil {
 		return 0, err
 	}
 

@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"yanta/internal/document"
 	"yanta/internal/events"
@@ -14,40 +13,40 @@ import (
 )
 
 type Service struct {
-	db    *sql.DB
-	store *Store
-	fm    *document.FileManager
-	ctx   context.Context
+	db       *sql.DB
+	store    *Store
+	fm       *document.FileManager
+	eventBus *events.EventBus
 }
 
-func NewService(db *sql.DB, store *Store, fm *document.FileManager) *Service {
+func NewService(
+	db *sql.DB,
+	store *Store,
+	fm *document.FileManager,
+	eventBus *events.EventBus,
+) *Service {
 	return &Service{
-		db:    db,
-		store: store,
-		fm:    fm,
-		ctx:   context.Background(),
+		db:       db,
+		store:    store,
+		fm:       fm,
+		eventBus: eventBus,
 	}
-}
-
-func (s *Service) SetContext(ctx context.Context) {
-	s.ctx = ctx
 }
 
 func (s *Service) emitEvent(eventName string, payload any) {
-	if s.ctx == context.Background() {
-		return
+	if s.eventBus != nil {
+		s.eventBus.Emit(eventName, payload)
 	}
-	runtime.EventsEmit(s.ctx, eventName, payload)
 }
 
-func (s *Service) Create(name string) (string, error) {
+func (s *Service) Create(ctx context.Context, name string) (string, error) {
 	tag, err := New(name)
 	if err != nil {
 		logger.WithError(err).WithField("name", name).Error("failed to validate tag")
 		return "", fmt.Errorf("validating tag: %w", err)
 	}
 
-	created, err := s.store.Create(s.ctx, tag)
+	created, err := s.store.Create(ctx, tag)
 	if err != nil {
 		logger.WithError(err).WithField("name", name).Error("failed to create tag")
 		return "", fmt.Errorf("creating tag: %w", err)
@@ -62,10 +61,10 @@ func (s *Service) Create(name string) (string, error) {
 	return created.Name, nil
 }
 
-func (s *Service) GetByName(name string) (*Tag, error) {
+func (s *Service) GetByName(ctx context.Context, name string) (*Tag, error) {
 	normalized := Normalize(name)
 
-	tag, err := s.store.GetByName(s.ctx, normalized)
+	tag, err := s.store.GetByName(ctx, normalized)
 	if err != nil {
 		logger.WithError(err).WithField("name", normalized).Error("failed to get tag")
 		return nil, fmt.Errorf("getting tag: %w", err)
@@ -74,12 +73,12 @@ func (s *Service) GetByName(name string) (*Tag, error) {
 	return tag, nil
 }
 
-func (s *Service) ListActive() ([]*Tag, error) {
+func (s *Service) ListActive(ctx context.Context) ([]*Tag, error) {
 	filters := &GetFilters{
 		IncludeDeleted: false,
 	}
 
-	tags, err := s.store.Get(s.ctx, filters)
+	tags, err := s.store.Get(ctx, filters)
 	if err != nil {
 		logger.WithError(err).Error("failed to list active tags")
 		return nil, fmt.Errorf("listing active tags: %w", err)
@@ -88,10 +87,10 @@ func (s *Service) ListActive() ([]*Tag, error) {
 	return tags, nil
 }
 
-func (s *Service) SoftDelete(name string) error {
+func (s *Service) SoftDelete(ctx context.Context, name string) error {
 	normalized := Normalize(name)
 
-	if err := s.store.SoftDelete(s.ctx, normalized); err != nil {
+	if err := s.store.SoftDelete(ctx, normalized); err != nil {
 		logger.WithError(err).WithField("name", normalized).Error("failed to soft delete tag")
 		return fmt.Errorf("soft deleting tag: %w", err)
 	}
@@ -102,10 +101,10 @@ func (s *Service) SoftDelete(name string) error {
 	return nil
 }
 
-func (s *Service) Restore(name string) error {
+func (s *Service) Restore(ctx context.Context, name string) error {
 	normalized := Normalize(name)
 
-	if err := s.store.Restore(s.ctx, normalized); err != nil {
+	if err := s.store.Restore(ctx, normalized); err != nil {
 		logger.WithError(err).WithField("name", normalized).Error("failed to restore tag")
 		return fmt.Errorf("restoring tag: %w", err)
 	}
@@ -116,10 +115,10 @@ func (s *Service) Restore(name string) error {
 	return nil
 }
 
-func (s *Service) Delete(name string) error {
+func (s *Service) Delete(ctx context.Context, name string) error {
 	normalized := Normalize(name)
 
-	if err := s.store.HardDelete(s.ctx, normalized); err != nil {
+	if err := s.store.HardDelete(ctx, normalized); err != nil {
 		logger.WithError(err).WithField("name", normalized).Error("failed to delete tag")
 		return fmt.Errorf("deleting tag: %w", err)
 	}
@@ -130,7 +129,7 @@ func (s *Service) Delete(name string) error {
 	return nil
 }
 
-func (s *Service) AddTagsToDocument(docPath string, tagNames []string) error {
+func (s *Service) AddTagsToDocument(ctx context.Context, docPath string, tagNames []string) error {
 	if docPath == "" {
 		return fmt.Errorf("document path is required")
 	}
@@ -151,7 +150,7 @@ func (s *Service) AddTagsToDocument(docPath string, tagNames []string) error {
 		return fmt.Errorf("updating document file: %w", err)
 	}
 
-	if err := s.store.AddTagsToDocument(s.ctx, docPath, tagNames); err != nil {
+	if err := s.store.AddTagsToDocument(ctx, docPath, tagNames); err != nil {
 		logger.WithError(err).WithFields(logrus.Fields{
 			"docPath": docPath,
 			"tags":    tagNames,
@@ -172,7 +171,11 @@ func (s *Service) AddTagsToDocument(docPath string, tagNames []string) error {
 	return nil
 }
 
-func (s *Service) RemoveTagsFromDocument(docPath string, tagNames []string) error {
+func (s *Service) RemoveTagsFromDocument(
+	ctx context.Context,
+	docPath string,
+	tagNames []string,
+) error {
 	if docPath == "" {
 		return fmt.Errorf("document path is required")
 	}
@@ -204,7 +207,7 @@ func (s *Service) RemoveTagsFromDocument(docPath string, tagNames []string) erro
 		return fmt.Errorf("updating document file: %w", err)
 	}
 
-	if err := s.store.RemoveTagsFromDocument(s.ctx, docPath, tagNames); err != nil {
+	if err := s.store.RemoveTagsFromDocument(ctx, docPath, tagNames); err != nil {
 		logger.WithError(err).WithFields(logrus.Fields{
 			"docPath": docPath,
 			"tags":    tagNames,
@@ -225,7 +228,7 @@ func (s *Service) RemoveTagsFromDocument(docPath string, tagNames []string) erro
 	return nil
 }
 
-func (s *Service) RemoveAllDocumentTags(docPath string) error {
+func (s *Service) RemoveAllDocumentTags(ctx context.Context, docPath string) error {
 	if docPath == "" {
 		return fmt.Errorf("document path is required")
 	}
@@ -239,7 +242,7 @@ func (s *Service) RemoveAllDocumentTags(docPath string) error {
 		return fmt.Errorf("updating document file: %w", err)
 	}
 
-	if err := s.store.RemoveAllDocumentTags(s.ctx, docPath); err != nil {
+	if err := s.store.RemoveAllDocumentTags(ctx, docPath); err != nil {
 		logger.WithError(err).WithField("docPath", docPath).Error("failed to update tag index")
 		return fmt.Errorf("updating tag index: %w", err)
 	}
@@ -254,12 +257,12 @@ func (s *Service) RemoveAllDocumentTags(docPath string) error {
 	return nil
 }
 
-func (s *Service) GetDocumentTags(docPath string) ([]string, error) {
+func (s *Service) GetDocumentTags(ctx context.Context, docPath string) ([]string, error) {
 	if docPath == "" {
 		return nil, fmt.Errorf("document path is required")
 	}
 
-	tags, err := s.store.GetDocumentTags(s.ctx, docPath)
+	tags, err := s.store.GetDocumentTags(ctx, docPath)
 	if err != nil {
 		logger.WithError(err).WithField("docPath", docPath).Error("failed to get document tags")
 		return nil, fmt.Errorf("getting document tags: %w", err)

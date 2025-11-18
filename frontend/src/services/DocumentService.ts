@@ -1,5 +1,11 @@
-import { Get, ListByProject, Restore, Save, SoftDelete } from "../../wailsjs/go/document/Service";
-import { document } from "../../wailsjs/go/models";
+import * as documentModels from "../../bindings/yanta/internal/document/models";
+import {
+	Get,
+	ListByProject,
+	Restore,
+	Save,
+	SoftDelete,
+} from "../../bindings/yanta/internal/document/service";
 import {
 	type Document,
 	type DocumentWithTags,
@@ -10,11 +16,11 @@ import {
 
 export class DocumentServiceWrapper {
 	static async save(request: SaveDocumentRequest): Promise<string> {
-		const backendRequest = new document.SaveRequest({
+		const backendRequest = new documentModels.SaveRequest({
 			Path: request.path || "",
 			ProjectAlias: request.projectAlias,
 			Title: request.title,
-			Blocks: request.blocks,
+			Blocks: request.blocks as unknown as documentModels.BlockNoteBlock[],
 			Tags: request.tags,
 		});
 
@@ -22,34 +28,8 @@ export class DocumentServiceWrapper {
 	}
 
 	static async get(path: string): Promise<DocumentWithTags> {
-		console.log("[DocumentService] get() called with path:", path);
-		try {
-			console.log("[DocumentService] Calling Wails Get() function...");
-			const model = await Get(path);
-			console.log("[DocumentService] Wails Get() returned model:", {
-				path: model?.path,
-				title: model?.title,
-				hasFile: !!model?.File,
-				blocksCount: model?.File?.blocks?.length || 0,
-				tagsCount: model?.Tags?.length || 0,
-				rawModel: model,
-			});
-
-			console.log("[DocumentService] Transforming model to DocumentWithTags...");
-			const result = documentWithTagsFromModel(model);
-			console.log("[DocumentService] Transformation complete:", {
-				path: result.path,
-				title: result.title,
-				blocksCount: result.blocks?.length || 0,
-				tagsCount: result.tags?.length || 0,
-				result,
-			});
-
-			return result;
-		} catch (error) {
-			console.error("[DocumentService] Error in get():", error);
-			throw error;
-		}
+		const model = await Get(path);
+		return documentWithTagsFromModel(model);
 	}
 
 	static async listByProject(

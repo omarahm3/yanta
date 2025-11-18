@@ -1,6 +1,7 @@
 package commandline
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -11,40 +12,54 @@ type mockDocServiceForArchive struct {
 	hardDeletedPaths []string
 }
 
-func (m *mockDocServiceForArchive) SoftDelete(path string) error {
+func (m *mockDocServiceForArchive) SoftDelete(ctx context.Context, path string) error {
 	m.softDeletedPaths = append(m.softDeletedPaths, path)
 	return nil
 }
 
-func (m *mockDocServiceForArchive) Restore(path string) error {
+func (m *mockDocServiceForArchive) Restore(ctx context.Context, path string) error {
 	return nil
 }
 
-func (m *mockDocServiceForArchive) HardDelete(path string) error {
+func (m *mockDocServiceForArchive) HardDelete(ctx context.Context, path string) error {
 	m.hardDeletedPaths = append(m.hardDeletedPaths, path)
 	return nil
 }
 
-func (m *mockDocServiceForArchive) HardDeleteBatch(paths []string) error {
+func (m *mockDocServiceForArchive) HardDeleteBatch(ctx context.Context, paths []string) error {
 	m.hardDeletedPaths = append(m.hardDeletedPaths, paths...)
 	return nil
 }
 
 type mockTagServiceForArchive struct{}
 
-func (m *mockTagServiceForArchive) AddTagsToDocument(docPath string, tagNames []string) error {
+func (m *mockTagServiceForArchive) AddTagsToDocument(
+	ctx context.Context,
+	docPath string,
+	tagNames []string,
+) error {
 	return nil
 }
 
-func (m *mockTagServiceForArchive) RemoveTagsFromDocument(docPath string, tagNames []string) error {
+func (m *mockTagServiceForArchive) RemoveTagsFromDocument(
+	ctx context.Context,
+	docPath string,
+	tagNames []string,
+) error {
 	return nil
 }
 
-func (m *mockTagServiceForArchive) RemoveAllDocumentTags(docPath string) error {
+func (m *mockTagServiceForArchive) RemoveAllDocumentTags(
+	ctx context.Context,
+	docPath string,
+) error {
 	return nil
 }
 
-func (m *mockTagServiceForArchive) GetDocumentTags(docPath string) ([]string, error) {
+func (m *mockTagServiceForArchive) GetDocumentTags(
+	ctx context.Context,
+	docPath string,
+) ([]string, error) {
 	return []string{}, nil
 }
 

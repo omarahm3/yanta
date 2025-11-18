@@ -1,5 +1,4 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
-import React from "react";
 import { vi } from "vitest";
 import type { HotkeyContextValue } from "../types/hotkeys";
 
@@ -25,7 +24,11 @@ vi.mock("../components", async () => {
 	const actual = await vi.importActual<typeof import("../components")>("../components");
 	return {
 		...actual,
-		GlobalCommandPalette: (props: any) => {
+		GlobalCommandPalette: (props: {
+			isOpen: boolean;
+			onClose: () => void;
+			onNavigate: (page: string) => void;
+		}) => {
 			commandPaletteRender(props);
 			return <div data-testid="command-palette" data-open={props.isOpen} />;
 		},
@@ -100,7 +103,7 @@ describe("App hotkeys", () => {
 		expect(hotkey).toBeDefined();
 
 		await act(async () => {
-			hotkey!.handler(new KeyboardEvent("keydown", { key: "?", shiftKey: true }));
+			hotkey?.handler(new KeyboardEvent("keydown", { key: "?", shiftKey: true }));
 		});
 
 		expect(openHelp).toHaveBeenCalledTimes(1);
@@ -120,7 +123,7 @@ describe("App hotkeys", () => {
 		expect(hotkey).toBeDefined();
 
 		await act(async () => {
-			hotkey!.handler(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }));
+			hotkey?.handler(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }));
 		});
 
 		expect(palette).toHaveAttribute("data-open", "true");

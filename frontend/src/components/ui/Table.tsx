@@ -10,7 +10,7 @@ export interface TableColumn {
 
 export interface TableRow {
 	id: string;
-	[key: string]: any;
+	[key: string]: React.ReactNode;
 }
 
 export interface TableProps {
@@ -70,7 +70,6 @@ export const Table: React.FC<TableProps> = ({
 							selectedRowId === row.id && "bg-surface border-l-2 border-accent",
 						)}
 						style={{ gridTemplateColumns }}
-						tabIndex={0}
 						onClick={() => onRowSelect?.(row)}
 						onDoubleClick={() => onRowDoubleClick?.(row)}
 					>

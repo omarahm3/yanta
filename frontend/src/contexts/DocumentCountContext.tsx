@@ -1,7 +1,7 @@
+import { Events } from "@wailsio/runtime";
 import type React from "react";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
-import { GetAllDocumentCounts } from "../../wailsjs/go/project/Service";
-import { EventsOn } from "../../wailsjs/runtime/runtime";
+import { GetAllDocumentCounts } from "../../bindings/yanta/internal/project/service";
 
 interface DocumentCountContextValue {
 	counts: Map<string, number>;
@@ -58,25 +58,43 @@ export const DocumentCountProvider: React.FC<DocumentCountProviderProps> = ({ ch
 
 	useEffect(() => {
 		const unsubscribers = [
-			EventsOn("yanta/entry/created", (data: { projectId: string }) => {
-				const currentCount = counts.get(data.projectId) ?? 0;
-				refreshCount(data.projectId, currentCount + 1);
+			Events.On("yanta/entry/created", (ev) => {
+				const data = ev.data as { projectId: string };
+				setCounts((prev) => {
+					const next = new Map(prev);
+					const currentCount = prev.get(data.projectId) ?? 0;
+					next.set(data.projectId, currentCount + 1);
+					return next;
+				});
 			}),
-			EventsOn("yanta/entry/deleted", (data: { projectId: string }) => {
-				const currentCount = counts.get(data.projectId) ?? 0;
-				refreshCount(data.projectId, Math.max(0, currentCount - 1));
+			Events.On("yanta/entry/deleted", (ev) => {
+				const data = ev.data as { projectId: string };
+				setCounts((prev) => {
+					const next = new Map(prev);
+					const currentCount = prev.get(data.projectId) ?? 0;
+					next.set(data.projectId, Math.max(0, currentCount - 1));
+					return next;
+				});
 			}),
-			EventsOn("yanta/entry/restored", (data: { projectId: string }) => {
-				const currentCount = counts.get(data.projectId) ?? 0;
-				refreshCount(data.projectId, currentCount + 1);
+			Events.On("yanta/entry/restored", (ev) => {
+				const data = ev.data as { projectId: string };
+				setCounts((prev) => {
+					const next = new Map(prev);
+					const currentCount = prev.get(data.projectId) ?? 0;
+					next.set(data.projectId, currentCount + 1);
+					return next;
+				});
 			}),
-			EventsOn("yanta/project/entry-count", (data: { projectId: string; count: number }) => {
+			Events.On("yanta/project/entry-count", (ev) => {
+				const data = ev.data as { projectId: string; count: number };
 				refreshCount(data.projectId, data.count);
 			}),
-			EventsOn("yanta/project/created", (data: { id: string }) => {
+			Events.On("yanta/project/created", (ev) => {
+				const data = ev.data as { id: string };
 				refreshCount(data.id, 0);
 			}),
-			EventsOn("yanta/project/deleted", (data: { id: string }) => {
+			Events.On("yanta/project/deleted", (ev) => {
+				const data = ev.data as { id: string };
 				setCounts((prev) => {
 					const next = new Map(prev);
 					next.delete(data.id);
@@ -90,7 +108,7 @@ export const DocumentCountProvider: React.FC<DocumentCountProviderProps> = ({ ch
 				if (unsub) unsub();
 			});
 		};
-	}, [counts, refreshCount]);
+	}, [refreshCount]);
 
 	const value: DocumentCountContextValue = {
 		counts,

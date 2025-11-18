@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { CleanupOrphans, LinkToDocument } from "../../wailsjs/go/asset/Service";
+import { CleanupOrphans, LinkToDocument } from "../../bindings/yanta/internal/asset/service";
 import { DocumentServiceWrapper } from "../services/DocumentService";
 import type { BlockNoteBlock } from "../types/Document";
 import { extractAssetHashes } from "../utils/assetExtractor";
@@ -58,8 +58,6 @@ export const useAutoDocumentSaver = () => {
 			}
 
 			return savedPath;
-		} catch (err) {
-			throw err;
 		} finally {
 			setIsSaving(false);
 		}

@@ -9,6 +9,11 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
+	"golang.design/x/hotkey"
+	"golang.design/x/hotkey/mainthread"
+
 	"yanta/internal/asset"
 	"yanta/internal/commandline"
 	"yanta/internal/db"
@@ -24,10 +29,6 @@ import (
 	"yanta/internal/system"
 	"yanta/internal/tag"
 	"yanta/internal/vault"
-
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
-	"golang.design/x/hotkey"
-	"golang.design/x/hotkey/mainthread"
 )
 
 type App struct {
@@ -41,6 +42,10 @@ type App struct {
 
 	restoreHotkey *hotkey.Hotkey
 	syncManager   *git.SyncManager
+	eventBus      *events.EventBus
+
+	wailsApp   *application.App
+	mainWindow *application.WebviewWindow
 }
 
 type Config struct {
@@ -80,6 +85,9 @@ func New(cfg Config) (*App, error) {
 		return nil, err
 	}
 
+	eventBus := events.NewEventBus()
+	a.eventBus = eventBus
+
 	syncManager := git.NewSyncManager()
 	a.syncManager = syncManager
 
@@ -90,15 +98,25 @@ func New(cfg Config) (*App, error) {
 	assetStore := asset.NewStore(a.DB)
 	ftsStore := search.NewStore(a.DB)
 
-	idx := indexer.New(a.DB, v, documentStore, projectStore, ftsStore, tagStore, linkStore, assetStore, syncManager)
+	idx := indexer.New(
+		a.DB,
+		v,
+		documentStore,
+		projectStore,
+		ftsStore,
+		tagStore,
+		linkStore,
+		assetStore,
+		syncManager,
+	)
 
 	projectCache := project.NewCache(projectStore)
-	projectService := project.NewService(a.DB, projectStore, projectCache, v)
-	documentService := document.NewService(a.DB, documentStore, v, idx, projectCache)
+	projectService := project.NewService(a.DB, projectStore, projectCache, v, eventBus)
+	documentService := document.NewService(a.DB, documentStore, v, idx, projectCache, eventBus)
 	documentFileManager := document.NewFileManager(v)
-	tagService := tag.NewService(a.DB, tagStore, documentFileManager)
-	searchService := search.NewService(a.DB)
-	systemService := system.NewService(a.DB)
+	tagService := tag.NewService(a.DB, tagStore, documentFileManager, eventBus)
+	searchService := search.NewService(a.DB, eventBus)
+	systemService := system.NewService(a.DB, eventBus)
 	systemService.SetDBPath(a.DBPath)
 
 	assetService := asset.NewService(asset.ServiceConfig{
@@ -119,7 +137,13 @@ func New(cfg Config) (*App, error) {
 		logger.Errorf("failed to scan and index vault: %v", err)
 	}
 
-	projectCommands := commandline.NewProjectCommands(projectService, documentService, v, syncManager)
+	projectCommands := commandline.NewProjectCommands(
+		projectService,
+		documentService,
+		v,
+		syncManager,
+		eventBus,
+	)
 	globalCommands := commandline.NewGlobalCommands(projectService, systemService)
 	documentCommands := commandline.NewDocumentCommands(documentService, tagService)
 
@@ -135,6 +159,7 @@ func New(cfg Config) (*App, error) {
 		ProjectCommands:  projectCommands,
 		GlobalCommands:   globalCommands,
 		DocumentCommands: documentCommands,
+		EventBus:         eventBus,
 		shutdownHandler:  a.OnShutdown,
 	}
 
@@ -143,24 +168,54 @@ func New(cfg Config) (*App, error) {
 	return a, nil
 }
 
-func (a *App) OnStartup(ctx context.Context) {
+func (a *App) SetWailsApp(app *application.App) {
+	a.wailsApp = app
+
+	if a.eventBus != nil && a.mainWindow != nil {
+		a.eventBus.Connect(app, a.mainWindow)
+	}
+}
+
+func (a *App) SetMainWindow(window *application.WebviewWindow) {
+	a.mainWindow = window
+
+	if a.eventBus != nil && a.wailsApp != nil {
+		a.eventBus.Connect(a.wailsApp, window)
+	}
+}
+
+func (a *App) Startup(ctx context.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Errorf("PANIC during OnStartup: %v", r)
-			a.writeCrashReport("OnStartup", r)
+			logger.Errorf("PANIC during Startup: %v", r)
+			a.writeCrashReport("Startup", r)
 		}
 	}()
 
 	a.ctx = ctx
 	logger.Info("application started and ready")
 
-	wailsRuntime.EventsEmit(a.ctx, events.AppReady, map[string]any{
-		"dbPath":  a.DBPath,
-		"version": BuildVersion,
-	})
+	if a.wailsApp != nil {
+		a.wailsApp.Event.Emit(events.AppReady, map[string]any{
+			"dbPath":  a.DBPath,
+			"version": BuildVersion,
+		})
+	}
 
 	if a.Bindings != nil {
-		a.Bindings.OnStartup(ctx)
+		a.Bindings.OnStartup()
+	}
+
+	if a.wailsApp != nil {
+		a.wailsApp.Event.On("app:quit", func(event *application.CustomEvent) {
+			logger.Info("Received app:quit event")
+			a.wailsApp.Quit()
+		})
+
+		a.wailsApp.Event.On("app:force-quit", func(event *application.CustomEvent) {
+			logger.Info("Received app:force-quit event")
+			a.wailsApp.Quit()
+		})
 	}
 
 	sessionType := os.Getenv("XDG_SESSION_TYPE")
@@ -176,23 +231,27 @@ func (a *App) OnStartup(ctx context.Context) {
 	}
 }
 
-func (a *App) OnBeforeClose(ctx context.Context) bool {
-	logger.Debug("OnBeforeClose called")
+func (a *App) BeforeClose() bool {
+	logger.Debug("BeforeClose called")
 
-	if ctx == nil || a.Bindings == nil || a.Bindings.System == nil {
+	if a.Bindings == nil || a.Bindings.System == nil {
 		logger.Debug("app not fully initialized, allowing close")
 		return false
 	}
 
-	keepInBackground := a.Bindings.System.GetKeepInBackground()
+	keepInBackground := a.Bindings.System.GetKeepInBackground(context.Background())
 	logger.Debugf("keepInBackground setting: %v", keepInBackground)
 
 	if keepInBackground {
 		logger.Debug("hiding window to background")
-		wailsRuntime.WindowHide(ctx)
-		wailsRuntime.EventsEmit(ctx, events.WindowHidden, map[string]any{
-			"reason": "keep_in_background",
-		})
+		if a.mainWindow != nil {
+			a.mainWindow.Hide()
+		}
+		if a.wailsApp != nil {
+			a.wailsApp.Event.Emit(events.WindowHidden, map[string]any{
+				"reason": "keep_in_background",
+			})
+		}
 		return true
 	}
 
@@ -200,11 +259,15 @@ func (a *App) OnBeforeClose(ctx context.Context) bool {
 	return false
 }
 
-func (a *App) OnShutdown(ctx context.Context) {
+func (a *App) OnShutdown() {
+	a.Shutdown()
+}
+
+func (a *App) Shutdown() {
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Errorf("PANIC during OnShutdown: %v", r)
-			a.writeCrashReport("OnShutdown", r)
+			logger.Errorf("PANIC during Shutdown: %v", r)
+			a.writeCrashReport("Shutdown", r)
 		}
 	}()
 
@@ -266,9 +329,17 @@ func (a *App) OnShutdown(ctx context.Context) {
 }
 
 func (a *App) registerRestoreHotkey() {
-	go mainthread.Init(func() {
-		hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyY)
-		if err := hk.Register(); err != nil {
+	go func() {
+		// Required for Windows hotkey registration
+		var hk *hotkey.Hotkey
+		var err error
+
+		mainthread.Call(func() {
+			hk = hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyY)
+			err = hk.Register()
+		})
+
+		if err != nil {
 			logger.Errorf("failed to register global hotkey Ctrl+Shift+Y: %v", err)
 			return
 		}
@@ -278,13 +349,13 @@ func (a *App) registerRestoreHotkey() {
 
 		for range hk.Keydown() {
 			logger.Debug("Ctrl+Shift+Y pressed, restoring window...")
-			if a.ctx != nil {
-				wailsRuntime.WindowShow(a.ctx)
-				wailsRuntime.WindowUnminimise(a.ctx)
+			if a.mainWindow != nil {
+				a.mainWindow.Show()
+				a.mainWindow.Restore()
 				logger.Debug("window restored")
 			}
 		}
-	})
+	}()
 }
 
 func (a *App) writeCrashReport(location string, panicValue any) {
@@ -294,13 +365,13 @@ func (a *App) writeCrashReport(location string, panicValue any) {
 	var crashPath string
 	if home, err := os.UserHomeDir(); err == nil {
 		crashDir := filepath.Join(home, ".yanta", "crashes")
-		os.MkdirAll(crashDir, 0755)
+		os.MkdirAll(crashDir, 0o755)
 		crashPath = filepath.Join(crashDir, crashFile)
 	} else {
 		crashPath = crashFile
 	}
 
-	f, err := os.OpenFile(crashPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	f, err := os.OpenFile(crashPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
 	if err != nil {
 		logger.Errorf("failed to create crash report: %v", err)
 		return
@@ -342,7 +413,11 @@ func seedDemoDocuments(v *vault.Vault, docStore *document.Store, idx *indexer.In
 
 	for _, seedDoc := range demoDocuments {
 		if err := document.ValidateBlockNoteStructure(seedDoc.Blocks); err != nil {
-			return fmt.Errorf("seed document '%s' has invalid BlockNote structure: %w", seedDoc.Title, err)
+			return fmt.Errorf(
+				"seed document '%s' has invalid BlockNote structure: %w",
+				seedDoc.Title,
+				err,
+			)
 		}
 
 		now := time.Now()

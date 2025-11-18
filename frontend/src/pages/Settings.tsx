@@ -161,40 +161,37 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 		setPageContext([], "Settings");
 	}, [setPageContext]);
 
-	const scrollToSection = useCallback(
-		(sectionId: string) => {
-			const refMap: Record<string, React.RefObject<HTMLDivElement>> = {
-				general: generalRef,
-				shortcuts: shortcutsRef,
-				logging: loggingRef,
-				sync: syncRef,
-				about: aboutRef,
-			};
+	const scrollToSection = useCallback((sectionId: string) => {
+		const refMap: Record<string, React.RefObject<HTMLDivElement>> = {
+			general: generalRef,
+			shortcuts: shortcutsRef,
+			logging: loggingRef,
+			sync: syncRef,
+			about: aboutRef,
+		};
 
-			const ref = refMap[sectionId];
-			if (ref?.current) {
-				ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
-			}
+		const ref = refMap[sectionId];
+		if (ref?.current) {
+			ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+		}
 
-			const index = sectionIds.indexOf(sectionId);
-			if (index !== -1) {
-				setCurrentSectionIndex(index);
-			}
-		},
-		[sectionIds],
-	);
+		const index = sectionIds.indexOf(sectionId);
+		if (index !== -1) {
+			setCurrentSectionIndex(index);
+		}
+	}, []);
 
 	const handleNextSection = useCallback(() => {
 		const nextIndex = Math.min(currentSectionIndex + 1, sectionIds.length - 1);
 		setCurrentSectionIndex(nextIndex);
 		scrollToSection(sectionIds[nextIndex]);
-	}, [currentSectionIndex, sectionIds, scrollToSection]);
+	}, [currentSectionIndex, scrollToSection]);
 
 	const handlePreviousSection = useCallback(() => {
 		const prevIndex = Math.max(currentSectionIndex - 1, 0);
 		setCurrentSectionIndex(prevIndex);
 		scrollToSection(sectionIds[prevIndex]);
-	}, [currentSectionIndex, sectionIds, scrollToSection]);
+	}, [currentSectionIndex, scrollToSection]);
 
 	const hotkeys = React.useMemo(
 		() => [

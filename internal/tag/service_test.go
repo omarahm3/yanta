@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"yanta/internal/document"
+	"yanta/internal/events"
 	"yanta/internal/project"
 	"yanta/internal/testutil"
 	"yanta/internal/vault"
@@ -26,7 +27,7 @@ type mockProjectCache struct {
 	projects map[string]*project.Project
 }
 
-func (m *mockProjectCache) GetByAlias(alias string) (*project.Project, error) {
+func (m *mockProjectCache) GetByAlias(ctx context.Context, alias string) (*project.Project, error) {
 	if p, ok := m.projects[alias]; ok {
 		return p, nil
 	}
@@ -85,7 +86,7 @@ func setupServiceTest(t *testing.T) (*Service, func()) {
 	require.NoError(t, err, "Failed to create vault")
 
 	fm := document.NewFileManager(v)
-	service := NewService(database, store, fm)
+	service := NewService(database, store, fm, events.NewEventBus())
 
 	cleanup := func() {
 		testutil.CleanupTestDB(t, database)
@@ -98,11 +99,11 @@ func TestService_Create(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	name, err := service.Create("Frontend")
+	name, err := service.Create(context.Background(), "Frontend")
 	require.NoError(t, err, "Create() failed")
 	require.Equal(t, "frontend", name, "Expected normalized name")
 
-	tag, err := service.GetByName(name)
+	tag, err := service.GetByName(context.Background(), name)
 	require.NoError(t, err, "GetByName() failed")
 	assert.Equal(t, "frontend", tag.Name)
 }
@@ -111,7 +112,7 @@ func TestService_Create_EmptyName(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	_, err := service.Create("")
+	_, err := service.Create(context.Background(), "")
 	assert.Error(t, err, "Expected error for empty name")
 }
 
@@ -120,7 +121,7 @@ func TestService_Create_InvalidCharacters(t *testing.T) {
 	defer cleanup()
 
 	// Normalize removes invalid characters, so "tag with @#$%" becomes "tag-with" (valid)
-	name, err := service.Create("tag with @#$%")
+	name, err := service.Create(context.Background(), "tag with @#$%")
 	require.NoError(t, err, "Normalize should remove invalid characters")
 	assert.Equal(t, "tag-with", name, "Should normalize to valid tag name")
 }
@@ -131,7 +132,7 @@ func TestService_Create_TooLong(t *testing.T) {
 
 	// Tag names must be 1-64 characters after normalization
 	longName := strings.Repeat("a", 65)
-	_, err := service.Create(longName)
+	_, err := service.Create(context.Background(), longName)
 	assert.Error(t, err, "Expected error for tag name too long")
 }
 
@@ -139,9 +140,9 @@ func TestService_GetByName(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	service.Create("Backend")
+	service.Create(context.Background(), "Backend")
 
-	tag, err := service.GetByName("backend")
+	tag, err := service.GetByName(context.Background(), "backend")
 	require.NoError(t, err, "GetByName() failed")
 	assert.Equal(t, "backend", tag.Name)
 }
@@ -150,7 +151,7 @@ func TestService_GetByName_NotFound(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	_, err := service.GetByName("nonexistent")
+	_, err := service.GetByName(context.Background(), "nonexistent")
 	assert.Error(t, err, "Expected error for non-existent tag")
 }
 
@@ -158,9 +159,9 @@ func TestService_GetByName_CaseInsensitive(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	service.Create("UI-Design")
+	service.Create(context.Background(), "UI-Design")
 
-	tag, err := service.GetByName("UI-DESIGN")
+	tag, err := service.GetByName(context.Background(), "UI-DESIGN")
 	require.NoError(t, err, "GetByName() should be case insensitive")
 	assert.Equal(t, "ui-design", tag.Name)
 }
@@ -169,12 +170,12 @@ func TestService_ListActive(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	service.Create("Active1")
-	service.Create("Active2")
-	deletedName, _ := service.Create("ToDelete")
-	service.SoftDelete(deletedName)
+	service.Create(context.Background(), "Active1")
+	service.Create(context.Background(), "Active2")
+	deletedName, _ := service.Create(context.Background(), "ToDelete")
+	service.SoftDelete(context.Background(), deletedName)
 
-	tags, err := service.ListActive()
+	tags, err := service.ListActive(context.Background())
 	require.NoError(t, err, "ListActive() failed")
 	assert.Equal(t, 2, len(tags), "Expected 2 active tags")
 
@@ -192,12 +193,12 @@ func TestService_SoftDelete(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	name, _ := service.Create("ToDelete")
+	name, _ := service.Create(context.Background(), "ToDelete")
 
-	err := service.SoftDelete(name)
+	err := service.SoftDelete(context.Background(), name)
 	require.NoError(t, err, "SoftDelete() failed")
 
-	tags, _ := service.ListActive()
+	tags, _ := service.ListActive(context.Background())
 	for _, tag := range tags {
 		assert.NotEqual(t, name, tag.Name, "Deleted tag found in active list")
 	}
@@ -207,7 +208,7 @@ func TestService_SoftDelete_NotFound(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	err := service.SoftDelete("nonexistent")
+	err := service.SoftDelete(context.Background(), "nonexistent")
 	assert.Error(t, err, "Expected error for non-existent tag")
 }
 
@@ -215,10 +216,10 @@ func TestService_SoftDelete_AlreadyDeleted(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	name, _ := service.Create("ToDelete")
-	service.SoftDelete(name)
+	name, _ := service.Create(context.Background(), "ToDelete")
+	service.SoftDelete(context.Background(), name)
 
-	err := service.SoftDelete(name)
+	err := service.SoftDelete(context.Background(), name)
 	assert.Error(t, err, "Expected error for already deleted tag")
 }
 
@@ -226,13 +227,13 @@ func TestService_Restore(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	name, _ := service.Create("ToRestore")
-	service.SoftDelete(name)
+	name, _ := service.Create(context.Background(), "ToRestore")
+	service.SoftDelete(context.Background(), name)
 
-	err := service.Restore(name)
+	err := service.Restore(context.Background(), name)
 	require.NoError(t, err, "Restore() failed")
 
-	tags, _ := service.ListActive()
+	tags, _ := service.ListActive(context.Background())
 	found := false
 	for _, tag := range tags {
 		if tag.Name == name {
@@ -246,7 +247,7 @@ func TestService_Restore_NotFound(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	err := service.Restore("nonexistent")
+	err := service.Restore(context.Background(), "nonexistent")
 	assert.Error(t, err, "Expected error for non-existent tag")
 }
 
@@ -254,9 +255,9 @@ func TestService_Restore_NotDeleted(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	name, _ := service.Create("Active")
+	name, _ := service.Create(context.Background(), "Active")
 
-	err := service.Restore(name)
+	err := service.Restore(context.Background(), name)
 	assert.Error(t, err, "Expected error for non-deleted tag")
 }
 
@@ -264,12 +265,12 @@ func TestService_Delete(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	name, _ := service.Create("ToHardDelete")
+	name, _ := service.Create(context.Background(), "ToHardDelete")
 
-	err := service.Delete(name)
+	err := service.Delete(context.Background(), name)
 	require.NoError(t, err, "Delete() failed")
 
-	_, err = service.GetByName(name)
+	_, err = service.GetByName(context.Background(), name)
 	assert.Error(t, err, "Expected error getting hard deleted tag")
 }
 
@@ -277,18 +278,8 @@ func TestService_Delete_NotFound(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	err := service.Delete("nonexistent")
+	err := service.Delete(context.Background(), "nonexistent")
 	assert.Error(t, err, "Expected error for non-existent tag")
-}
-
-func TestService_SetContext(t *testing.T) {
-	service, cleanup := setupServiceTest(t)
-	defer cleanup()
-
-	ctx := context.WithValue(context.Background(), "test", "value")
-	service.SetContext(ctx)
-
-	assert.Equal(t, ctx, service.ctx, "Context not set correctly")
 }
 
 func TestService_Normalization(t *testing.T) {
@@ -309,7 +300,7 @@ func TestService_Normalization(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			name, err := service.Create(tt.input)
+			name, err := service.Create(context.Background(), tt.input)
 			require.NoError(t, err, "Create() failed for %s", tt.input)
 			assert.Equal(t, tt.expected, name, "Normalization failed for %s", tt.input)
 		})
@@ -350,12 +341,12 @@ func TestService_AddTagsToDocument_UpdatesJSONFile(t *testing.T) {
 		},
 	}
 
-	docService := document.NewService(database, docStore, v, idx, projectCache)
+	docService := document.NewService(database, docStore, v, idx, projectCache, events.NewEventBus())
 
-	tagService := NewService(database, tagStore, fm)
+	tagService := NewService(database, tagStore, fm, events.NewEventBus())
 
 	// Create a test document
-	docPath, err := docService.Save(document.SaveRequest{
+	docPath, err := docService.Save(context.Background(), document.SaveRequest{
 		ProjectAlias: "@test",
 		Title:        "Test Document",
 		Blocks:       []document.BlockNoteBlock{},
@@ -364,11 +355,11 @@ func TestService_AddTagsToDocument_UpdatesJSONFile(t *testing.T) {
 	require.NoError(t, err, "Failed to create test document")
 
 	// Add initial tag to database
-	err = tagService.AddTagsToDocument(docPath, []string{"initial"})
+	err = tagService.AddTagsToDocument(context.Background(), docPath, []string{"initial"})
 	require.NoError(t, err, "Failed to add initial tag")
 
 	// Add more tags via TagService
-	err = tagService.AddTagsToDocument(docPath, []string{"web", "react"})
+	err = tagService.AddTagsToDocument(context.Background(), docPath, []string{"web", "react"})
 	require.NoError(t, err, "Failed to add tags")
 
 	// Read document from disk to verify tags were updated in JSON file
@@ -418,12 +409,12 @@ func TestService_RemoveTagsFromDocument_UpdatesJSONFile(t *testing.T) {
 		},
 	}
 
-	docService := document.NewService(database, docStore, v, idx, projectCache)
+	docService := document.NewService(database, docStore, v, idx, projectCache, events.NewEventBus())
 
-	tagService := NewService(database, tagStore, fm)
+	tagService := NewService(database, tagStore, fm, events.NewEventBus())
 
 	// Create a test document
-	docPath, err := docService.Save(document.SaveRequest{
+	docPath, err := docService.Save(context.Background(), document.SaveRequest{
 		ProjectAlias: "@test",
 		Title:        "Test Document",
 		Blocks:       []document.BlockNoteBlock{},
@@ -432,11 +423,11 @@ func TestService_RemoveTagsFromDocument_UpdatesJSONFile(t *testing.T) {
 	require.NoError(t, err, "Failed to create test document")
 
 	// Add tags to database
-	err = tagService.AddTagsToDocument(docPath, []string{"web", "react", "golang"})
+	err = tagService.AddTagsToDocument(context.Background(), docPath, []string{"web", "react", "golang"})
 	require.NoError(t, err, "Failed to add tags")
 
 	// Remove tags via TagService
-	err = tagService.RemoveTagsFromDocument(docPath, []string{"react", "golang"})
+	err = tagService.RemoveTagsFromDocument(context.Background(), docPath, []string{"react", "golang"})
 	require.NoError(t, err, "Failed to remove tags")
 
 	// Read document from disk to verify tags were updated in JSON file
@@ -482,12 +473,12 @@ func TestService_RemoveAllDocumentTags_UpdatesJSONFile(t *testing.T) {
 		},
 	}
 
-	docService := document.NewService(database, docStore, v, idx, projectCache)
+	docService := document.NewService(database, docStore, v, idx, projectCache, events.NewEventBus())
 
-	tagService := NewService(database, tagStore, fm)
+	tagService := NewService(database, tagStore, fm, events.NewEventBus())
 
 	// Create a test document
-	docPath, err := docService.Save(document.SaveRequest{
+	docPath, err := docService.Save(context.Background(), document.SaveRequest{
 		ProjectAlias: "@test",
 		Title:        "Test Document",
 		Blocks:       []document.BlockNoteBlock{},
@@ -496,11 +487,11 @@ func TestService_RemoveAllDocumentTags_UpdatesJSONFile(t *testing.T) {
 	require.NoError(t, err, "Failed to create test document")
 
 	// Add tags to database
-	err = tagService.AddTagsToDocument(docPath, []string{"web", "react", "golang"})
+	err = tagService.AddTagsToDocument(context.Background(), docPath, []string{"web", "react", "golang"})
 	require.NoError(t, err, "Failed to add tags")
 
 	// Remove all tags via TagService
-	err = tagService.RemoveAllDocumentTags(docPath)
+	err = tagService.RemoveAllDocumentTags(context.Background(), docPath)
 	require.NoError(t, err, "Failed to remove all tags")
 
 	// Read document from disk to verify tags were cleared in JSON file

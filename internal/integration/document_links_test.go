@@ -1,10 +1,12 @@
 package integration
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
 	"yanta/internal/document"
+	"yanta/internal/events"
 	"yanta/internal/project"
 
 	"github.com/google/uuid"
@@ -20,7 +22,6 @@ func mustMarshalContent(content []document.BlockNoteContent) json.RawMessage {
 	return data
 }
 
-
 // TestDocumentSaveWithLinks validates that when a user saves a document with links,
 // those links are properly extracted and stored in the doc_link table.
 // This is a critical test to prevent regression of the bug where documents with links
@@ -33,11 +34,11 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 	ensureProjectDir(t, env, projectAlias)
 
 	projectCache := project.NewCache(project.NewStore(env.db))
-	docService := document.NewService(env.db, env.docStore, env.vault, env.indexer, projectCache)
+	docService := document.NewService(env.db, env.docStore, env.vault, env.indexer, projectCache, events.NewEventBus())
 	// Don't set context to avoid event emission in tests
 
 	t.Run("save new document with links", func(t *testing.T) {
-		docPath, err := docService.Save(document.SaveRequest{
+		docPath, err := docService.Save(context.Background(), document.SaveRequest{
 			ProjectAlias: projectAlias,
 			Title:        "Document with Links",
 			Tags:         []string{"test", "links"},
@@ -113,7 +114,7 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 	})
 
 	t.Run("edit document and update links", func(t *testing.T) {
-		docPath, err := docService.Save(document.SaveRequest{
+		docPath, err := docService.Save(context.Background(), document.SaveRequest{
 			ProjectAlias: projectAlias,
 			Title:        "Document to Edit",
 			Tags:         []string{"editing"},
@@ -150,7 +151,7 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 		require.Len(t, links, 1, "Should have 1 link initially")
 		assert.Equal(t, "https://original.com", links[0].URL)
 
-		_, err = docService.Save(document.SaveRequest{
+		_, err = docService.Save(context.Background(), document.SaveRequest{
 			Path:         docPath,
 			ProjectAlias: projectAlias,
 			Title:        "Document to Edit - Updated",
@@ -210,7 +211,7 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 	})
 
 	t.Run("save document without links", func(t *testing.T) {
-		docPath, err := docService.Save(document.SaveRequest{
+		docPath, err := docService.Save(context.Background(), document.SaveRequest{
 			ProjectAlias: projectAlias,
 			Title:        "Document without Links",
 			Tags:         []string{"no-links"},
@@ -241,7 +242,7 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 	})
 
 	t.Run("remove all links from document", func(t *testing.T) {
-		docPath, err := docService.Save(document.SaveRequest{
+		docPath, err := docService.Save(context.Background(), document.SaveRequest{
 			ProjectAlias: projectAlias,
 			Title:        "Document with Links to Remove",
 			Tags:         []string{"removal-test"},
@@ -272,7 +273,7 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, links, 1, "Should have 1 link initially")
 
-		_, err = docService.Save(document.SaveRequest{
+		_, err = docService.Save(context.Background(), document.SaveRequest{
 			Path:         docPath,
 			ProjectAlias: projectAlias,
 			Title:        "Document with Links to Remove - No Links",
@@ -304,7 +305,7 @@ func TestDocumentSaveWithLinks(t *testing.T) {
 	})
 
 	t.Run("document with multiple links in same paragraph", func(t *testing.T) {
-		docPath, err := docService.Save(document.SaveRequest{
+		docPath, err := docService.Save(context.Background(), document.SaveRequest{
 			ProjectAlias: projectAlias,
 			Title:        "Multiple Links Test",
 			Tags:         []string{"multiple-links"},

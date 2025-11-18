@@ -7,31 +7,32 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"runtime"
+	runtimePkg "runtime"
 	"strings"
-	"syscall"
 	"time"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
+	"golang.design/x/hotkey/mainthread"
+
 	"yanta/internal/app"
 	"yanta/internal/asset"
 	"yanta/internal/config"
 	"yanta/internal/db"
 	"yanta/internal/logger"
 	"yanta/internal/vault"
-
-	"github.com/wailsapp/wails/v2"
-	"github.com/wailsapp/wails/v2/pkg/options"
-	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
-	"github.com/wailsapp/wails/v2/pkg/options/linux"
-	"github.com/wailsapp/wails/v2/pkg/options/mac"
-	"github.com/wailsapp/wails/v2/pkg/options/windows"
 )
 
 //go:embed all:frontend/dist
 var assets embed.FS
 
 func main() {
+	// Required for global hotkeys on Windows
+	mainthread.Init(run)
+}
+
+func run() {
 	if err := config.Init(); err != nil {
 		writeStartupError(fmt.Sprintf("Failed to initialize config: %v", err))
 		log.Fatalf("failed to initialize config: %v", err)
@@ -52,98 +53,90 @@ func main() {
 
 	logger.Debug("application container created")
 
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
-
-	go func() {
-		sig := <-sigChan
-		logger.Infof("received signal %v, shutting down gracefully...", sig)
-
-		if a.DB != nil {
-			logger.Info("checkpointing database before exit...")
-			a.OnShutdown(context.Background())
-		}
-
-		logger.Info("shutdown complete, exiting")
-		os.Exit(0)
-	}()
-
 	startHidden := config.GetStartHidden()
 	logger.Infof("start_hidden config: %v", startHidden)
 
-	frameless := runtime.GOOS == "linux"
-	logger.Infof("platform: %s, frameless: %v", runtime.GOOS, frameless)
+	frameless := runtimePkg.GOOS == "linux"
+	logger.Infof("platform: %s, frameless: %v", runtimePkg.GOOS, frameless)
 
-	err = wails.Run(&options.App{
-		Title:       "YANTA",
-		Width:       1024,
-		Height:      768,
-		Frameless:   frameless,
-		StartHidden: startHidden,
-		AssetServer: &assetserver.Options{
-			Assets: assets,
-			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Method != http.MethodGet {
-					w.WriteHeader(http.StatusMethodNotAllowed)
-					return
-				}
+	customAssetHandler := createCustomAssetHandler()
 
-				if !strings.HasPrefix(r.URL.Path, "/assets/") {
-					w.WriteHeader(http.StatusNotFound)
-					return
-				}
-				// We can't access app internals here; instead, re-open the vault on demand.
-				// Minimal duplication: use internal packages.
-				// WARNING: We avoid heavy logic here; path parsing & streaming only.
-				parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/assets/"), "/")
-				if len(parts) < 2 {
-					w.WriteHeader(http.StatusNotFound)
-					return
-				}
-				projectAlias := parts[0]
-				file := parts[1]
-				dot := strings.LastIndex(file, ".")
-				if dot <= 0 {
-					w.WriteHeader(http.StatusNotFound)
-					return
-				}
-				hash := file[:dot]
-				ext := file[dot:]
-				if err := asset.ValidateHash(hash); err != nil {
-					w.WriteHeader(http.StatusNotFound)
-					return
-				}
-				if err := asset.ValidateExtension(ext); err != nil {
-					w.WriteHeader(http.StatusNotFound)
-					return
-				}
-				v, verr := vault.New(vault.Config{})
-				if verr != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-				data, rerr := asset.ReadAsset(v, projectAlias, hash, ext)
-				if rerr != nil {
-					w.WriteHeader(http.StatusNotFound)
-					return
-				}
-				w.Header().Set("Content-Type", asset.DetectMIME(ext))
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write(data)
-			}),
+	wailsApp := application.New(application.Options{
+		Name:        "YANTA",
+		Description: "Your Advanced Note Taking Application",
+		Services: []application.Service{
+			application.NewService(a.Bindings.Projects),
+			application.NewService(a.Bindings.Documents),
+			application.NewService(a.Bindings.Tags),
+			application.NewService(a.Bindings.Search),
+			application.NewService(a.Bindings.System),
+			application.NewService(a.Bindings.Assets),
+			application.NewService(a.Bindings.ProjectCommands),
+			application.NewService(a.Bindings.GlobalCommands),
+			application.NewService(a.Bindings.DocumentCommands),
 		},
-		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
-		OnStartup:        a.OnStartup,
-		OnBeforeClose:    a.OnBeforeClose,
-		OnShutdown:       a.OnShutdown,
-		Bind:             a.Bindings.Bind(),
-		EnumBind:         a.Bindings.BindEnums(),
-		Logger:           logger.NewWailsLogger(),
-		Windows:          getWindowsOptions(),
-		Mac:              getMacOptions(),
-		Linux:            getLinuxOptions(),
+		Assets: application.AssetOptions{
+			Handler: application.AssetFileServerFS(assets),
+			Middleware: application.ChainMiddleware(
+				customAssetHandler,
+			),
+		},
+		Mac: application.MacOptions{
+			ApplicationShouldTerminateAfterLastWindowClosed: true,
+		},
 	})
 
+	a.SetWailsApp(wailsApp)
+
+	window := wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
+		Title:            "YANTA",
+		Width:            1024,
+		Height:           768,
+		Hidden:           startHidden,
+		Frameless:        frameless,
+		URL:              "/",
+		BackgroundColour: application.NewRGBA(27, 38, 54, 255),
+		Mac: application.MacWindow{
+			TitleBar:                application.MacTitleBarHiddenInset,
+			Appearance:              application.NSAppearanceNameDarkAqua,
+			InvisibleTitleBarHeight: 50,
+		},
+		Windows: application.WindowsWindow{
+			Theme:        application.SystemDefault,
+			CustomTheme:  getWindowsCustomTheme(),
+			BackdropType: application.Mica,
+		},
+		Linux: application.LinuxWindow{
+			WindowIsTranslucent: false,
+		},
+	})
+
+	a.SetMainWindow(window)
+
+	wailsApp.Event.OnApplicationEvent(
+		events.Common.ApplicationStarted,
+		func(event *application.ApplicationEvent) {
+			logger.Debug("ApplicationStarted event fired, calling app.Startup()")
+			a.Startup(context.Background())
+		},
+	)
+
+	wailsApp.OnShutdown(func() {
+		logger.Debug("OnShutdown called")
+		a.Shutdown()
+	})
+
+	window.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		logger.Debug("WindowClosing event fired")
+		if a.BeforeClose() {
+			logger.Debug("Window close prevented, hiding to background")
+			e.Cancel()
+		} else {
+			logger.Debug("Window close allowed, application will exit")
+		}
+	})
+
+	err = wailsApp.Run()
 	if err != nil {
 		writeStartupError(fmt.Sprintf("Failed to run Wails application: %v", err))
 		logger.Errorf("failed to run Wails application: %v", err)
@@ -158,7 +151,7 @@ func writeStartupError(message string) {
 		return
 	}
 	errorFile := filepath.Join(home, ".yanta", "startup-error.log")
-	f, err := os.OpenFile(errorFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	f, err := os.OpenFile(errorFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
 	if err != nil {
 		return
 	}
@@ -166,42 +159,85 @@ func writeStartupError(message string) {
 	fmt.Fprintf(f, "[%s] %s\n", time.Now().Format("2006-01-02 15:04:05"), message)
 }
 
-func getWindowsOptions() *windows.Options {
-	return &windows.Options{
-		Theme: windows.SystemDefault,
-
-		CustomTheme: &windows.ThemeSettings{
-			DarkModeTitleBar:           windows.RGB(27, 38, 54),
-			DarkModeTitleBarInactive:   windows.RGB(20, 29, 42),
-			DarkModeTitleText:          windows.RGB(220, 220, 220),
-			DarkModeTitleTextInactive:  windows.RGB(140, 140, 140),
-			DarkModeBorder:             windows.RGB(40, 50, 65),
-			DarkModeBorderInactive:     windows.RGB(30, 40, 50),
-			LightModeTitleBar:          windows.RGB(245, 245, 245),
-			LightModeTitleBarInactive:  windows.RGB(235, 235, 235),
-			LightModeTitleText:         windows.RGB(30, 30, 30),
-			LightModeTitleTextInactive: windows.RGB(120, 120, 120),
-			LightModeBorder:            windows.RGB(210, 210, 210),
-			LightModeBorderInactive:    windows.RGB(230, 230, 230),
+func getWindowsCustomTheme() application.ThemeSettings {
+	return application.ThemeSettings{
+		DarkModeActive: &application.WindowTheme{
+			TitleBarColour:  application.NewRGBPtr(27, 38, 54),
+			TitleTextColour: application.NewRGBPtr(220, 220, 220),
+			BorderColour:    application.NewRGBPtr(40, 50, 65),
 		},
-
-		BackdropType:         windows.Mica,
-		WebviewIsTransparent: false,
-		WindowIsTranslucent:  false,
+		DarkModeInactive: &application.WindowTheme{
+			TitleBarColour:  application.NewRGBPtr(20, 29, 42),
+			TitleTextColour: application.NewRGBPtr(140, 140, 140),
+			BorderColour:    application.NewRGBPtr(30, 40, 50),
+		},
+		LightModeActive: &application.WindowTheme{
+			TitleBarColour:  application.NewRGBPtr(245, 245, 245),
+			TitleTextColour: application.NewRGBPtr(30, 30, 30),
+			BorderColour:    application.NewRGBPtr(210, 210, 210),
+		},
+		LightModeInactive: &application.WindowTheme{
+			TitleBarColour:  application.NewRGBPtr(235, 235, 235),
+			TitleTextColour: application.NewRGBPtr(120, 120, 120),
+			BorderColour:    application.NewRGBPtr(230, 230, 230),
+		},
 	}
 }
 
-func getMacOptions() *mac.Options {
-	return &mac.Options{
-		TitleBar: mac.TitleBarHiddenInset(),
+func createCustomAssetHandler() application.Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !strings.HasPrefix(r.URL.Path, "/assets/") {
+				next.ServeHTTP(w, r)
+				return
+			}
 
-		Appearance: mac.NSAppearanceNameDarkAqua,
+			if r.Method != http.MethodGet {
+				w.WriteHeader(http.StatusMethodNotAllowed)
+				return
+			}
 
-		WebviewIsTransparent: false,
-		WindowIsTranslucent:  false,
+			parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/assets/"), "/")
+			if len(parts) < 2 {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+
+			projectAlias := parts[0]
+			file := parts[1]
+			dot := strings.LastIndex(file, ".")
+			if dot <= 0 {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+
+			hash := file[:dot]
+			ext := file[dot:]
+
+			if err := asset.ValidateHash(hash); err != nil {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			if err := asset.ValidateExtension(ext); err != nil {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+
+			v, verr := vault.New(vault.Config{})
+			if verr != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			data, rerr := asset.ReadAsset(v, projectAlias, hash, ext)
+			if rerr != nil {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+
+			w.Header().Set("Content-Type", asset.DetectMIME(ext))
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(data)
+		})
 	}
-}
-
-func getLinuxOptions() *linux.Options {
-	return &linux.Options{}
 }

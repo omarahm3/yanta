@@ -1,6 +1,6 @@
+import { Events } from "@wailsio/runtime";
 import type React from "react";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { EventsOn } from "../../wailsjs/runtime/runtime";
 import { DocumentServiceWrapper } from "../services/DocumentService";
 import type { Document } from "../types/Document";
 
@@ -77,15 +77,19 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 	}, [documents.length, selectedIndex]);
 
 	useEffect(() => {
-		const unsubscribeCreated = EventsOn("document:created", () => {
+		const unsubscribeCreated = Events.On("yanta/entry/created", () => {
 			void refreshDocuments();
 		});
 
-		const unsubscribeUpdated = EventsOn("document:updated", () => {
+		const unsubscribeUpdated = Events.On("yanta/entry/updated", () => {
 			void refreshDocuments();
 		});
 
-		const unsubscribeDeleted = EventsOn("document:deleted", () => {
+		const unsubscribeDeleted = Events.On("yanta/entry/deleted", () => {
+			void refreshDocuments();
+		});
+
+		const unsubscribeRestored = Events.On("yanta/entry/restored", () => {
 			void refreshDocuments();
 		});
 
@@ -93,6 +97,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 			unsubscribeCreated();
 			unsubscribeUpdated();
 			unsubscribeDeleted();
+			unsubscribeRestored();
 		};
 	}, [refreshDocuments]);
 

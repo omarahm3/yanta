@@ -11,28 +11,22 @@ type Cache struct {
 	documentCounts sync.Map
 	lastDocDates   sync.Map
 	store          *Store
-	ctx            context.Context
 }
 
 func NewCache(store *Store) *Cache {
 	return &Cache{
 		store: store,
-		ctx:   context.Background(),
 	}
 }
 
-func (c *Cache) SetContext(ctx context.Context) {
-	c.ctx = ctx
-}
-
-func (c *Cache) GetByID(id string) (*Project, error) {
+func (c *Cache) GetByID(ctx context.Context, id string) (*Project, error) {
 	if cached, ok := c.cache.Load(id); ok {
 		if project, ok := cached.(*Project); ok {
 			return project, nil
 		}
 	}
 
-	project, err := c.store.GetByID(c.ctx, id)
+	project, err := c.store.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +35,7 @@ func (c *Cache) GetByID(id string) (*Project, error) {
 	return project, nil
 }
 
-func (c *Cache) GetByAlias(alias string) (*Project, error) {
+func (c *Cache) GetByAlias(ctx context.Context, alias string) (*Project, error) {
 	var foundProject *Project
 	c.cache.Range(func(key, value any) bool {
 		if proj, ok := value.(*Project); ok && proj.Alias == alias {
@@ -55,7 +49,7 @@ func (c *Cache) GetByAlias(alias string) (*Project, error) {
 		return foundProject, nil
 	}
 
-	project, err := c.store.GetByAlias(c.ctx, alias)
+	project, err := c.store.GetByAlias(ctx, alias)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +77,7 @@ func (c *Cache) Clear() {
 	})
 }
 
-func (c *Cache) Get(ids []string) (map[string]*Project, error) {
+func (c *Cache) Get(ctx context.Context, ids []string) (map[string]*Project, error) {
 	result := make(map[string]*Project, len(ids))
 	var missingIDs []string
 
@@ -98,7 +92,7 @@ func (c *Cache) Get(ids []string) (map[string]*Project, error) {
 	}
 
 	for _, id := range missingIDs {
-		project, err := c.store.GetByID(c.ctx, id)
+		project, err := c.store.GetByID(ctx, id)
 		if err != nil {
 			return nil, err
 		}
@@ -109,9 +103,9 @@ func (c *Cache) Get(ids []string) (map[string]*Project, error) {
 	return result, nil
 }
 
-func (c *Cache) WarmUp(ids []string) error {
+func (c *Cache) WarmUp(ctx context.Context, ids []string) error {
 	for _, id := range ids {
-		_, err := c.GetByID(id)
+		_, err := c.GetByID(ctx, id)
 		if err != nil {
 			return fmt.Errorf("warming up project cache: %w", err)
 		}

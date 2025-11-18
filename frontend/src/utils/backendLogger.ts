@@ -1,18 +1,20 @@
-import { LogFromFrontend } from "../../wailsjs/go/system/Service";
+import { LogFromFrontend } from "../../bindings/yanta/internal/system/service";
 
 type LogLevel = "debug" | "info" | "warn" | "error";
 
+type LogValue = string | number | boolean | null | undefined | Error | Record<string, unknown>;
+
 export class BackendLogger {
-	private static formatArgs(args: any[]): {
+	static formatArgs(args: LogValue[]): {
 		message: string;
-		data: Record<string, any>;
+		data: Record<string, unknown>;
 	} {
 		const message = args
 			.map((arg) => (typeof arg === "object" ? JSON.stringify(arg) : String(arg)))
 			.join(" ");
 
-		const data: Record<string, any> = {};
-		args.forEach((arg, index) => {
+		const data: Record<string, unknown> = {};
+		args.forEach((arg) => {
 			if (typeof arg === "object" && arg !== null) {
 				Object.assign(data, arg);
 			}
@@ -21,7 +23,7 @@ export class BackendLogger {
 		return { message, data };
 	}
 
-	private static async log(level: LogLevel, ...args: any[]) {
+	private static async log(level: LogLevel, ...args: LogValue[]) {
 		const { message, data } = BackendLogger.formatArgs(args);
 
 		try {
@@ -32,22 +34,22 @@ export class BackendLogger {
 		}
 	}
 
-	static debug(...args: any[]) {
-		console.log(...args); // Also log to console
+	static debug(...args: LogValue[]) {
+		console.log(...args);
 		BackendLogger.log("debug", ...args);
 	}
 
-	static info(...args: any[]) {
+	static info(...args: LogValue[]) {
 		console.log(...args);
 		BackendLogger.log("info", ...args);
 	}
 
-	static warn(...args: any[]) {
+	static warn(...args: LogValue[]) {
 		console.warn(...args);
 		BackendLogger.log("warn", ...args);
 	}
 
-	static error(...args: any[]) {
+	static error(...args: LogValue[]) {
 		console.error(...args);
 		BackendLogger.log("error", ...args);
 	}
@@ -60,21 +62,11 @@ const originalWarn = console.warn;
 const originalInfo = console.info;
 
 export function enableBackendLogging() {
-	console.log = (...args) => {
-		originalLog(...args);
-		const { message, data } = BackendLogger["formatArgs"](args);
-		LogFromFrontend("info", message, data).catch(() => {});
-	};
-
-	console.info = (...args) => {
-		originalInfo(...args);
-		const { message, data } = BackendLogger["formatArgs"](args);
-		LogFromFrontend("info", message, data).catch(() => {});
-	};
-
+	// Only intercept errors and warnings to avoid spamming backend with verbose logs
+	// Regular console.log/info remain local and don't trigger RPC calls
 	console.error = (...args) => {
 		originalError(...args);
-		const { message, data } = BackendLogger["formatArgs"](args);
+		const { message, data } = BackendLogger.formatArgs(args);
 		LogFromFrontend("error", message, data).catch(() => {});
 	};
 
@@ -92,7 +84,7 @@ export function enableBackendLogging() {
 		}
 
 		originalWarn(...args);
-		const formattedData = BackendLogger["formatArgs"](args);
+		const formattedData = BackendLogger.formatArgs(args);
 		LogFromFrontend("warn", formattedData.message, formattedData.data).catch(() => {});
 	};
 }

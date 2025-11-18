@@ -1,0 +1,38 @@
+version: '3'
+
+tasks:
+  ensure:wails:
+    summary: Ensure the wails3 CLI is installed
+    internal: true
+    cmds:
+      - |
+        if ! command -v wails3 >/dev/null 2>&1; then
+          echo "wails3 CLI not found. Install it with 'go install github.com/wailsapp/wails/v3/cmd/wails3@latest'." >&2
+          exit 1
+        fi
+
+  generate:bindings:
+    summary: Generate TypeScript bindings from Go services
+    deps:
+      - ensure:wails
+    cmds:
+      - wails3 generate bindings -clean=true
+
+  wails:build:
+    summary: Run wails3 build with optional platform/flags
+    deps:
+      - ensure:wails
+    vars:
+      PLATFORM: '{{.PLATFORM | default ""}}'
+      EXTRA_FLAGS: '{{.EXTRA_FLAGS | default ""}}'
+    cmds:
+      - |
+        set -euo pipefail
+        ARGS="-clean"
+        if [ -n "{{.PLATFORM}}" ]; then
+          ARGS="$ARGS -platform {{.PLATFORM}}"
+        fi
+        if [ -n "{{.EXTRA_FLAGS}}" ]; then
+          ARGS="$ARGS {{.EXTRA_FLAGS}}"
+        fi
+        wails3 build $ARGS

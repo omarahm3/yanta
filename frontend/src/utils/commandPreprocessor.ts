@@ -61,7 +61,7 @@ export function preprocessCommand(
 			.filter((s) => s.length > 0)
 			.map((s) => parseInt(s, 10));
 
-		if (numbers.some((n) => isNaN(n) || n < 1 || n > documents.length)) {
+		if (numbers.some((n) => Number.isNaN(n) || n < 1 || n > documents.length)) {
 			return command;
 		}
 

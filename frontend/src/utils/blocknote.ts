@@ -45,9 +45,22 @@ export function extractTitle(blocks: Block[]): string {
 	return "";
 }
 
-function extractTextFromContent(content: any[]): string {
+interface TextContent {
+	type: "text";
+	text?: string;
+}
+
+function extractTextFromContent(content: unknown[]): string {
 	return content
-		.filter((item) => item.type === "text" && item.text)
+		.filter(
+			(item): item is TextContent =>
+				typeof item === "object" &&
+				item !== null &&
+				"type" in item &&
+				item.type === "text" &&
+				"text" in item &&
+				typeof item.text === "string",
+		)
 		.map((item) => item.text)
 		.join("")
 		.trim();
