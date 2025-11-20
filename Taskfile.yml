@@ -254,7 +254,9 @@ tasks:
         esac
 
         COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-        if VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
+        if [[ -n "${YANTA_VERSION:-}" ]]; then
+          VERSION="${YANTA_VERSION}"
+        elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
           VERSION="${VERSION_TAG#v}"
         else
           VERSION="dev-${COMMIT}"
@@ -333,16 +335,18 @@ tasks:
       - |
         set -euo pipefail
         TAR="{{.DIST_DIR}}/yanta-linux.tar.gz"
-        if [ ! -f "$TAR" ]; then
-          echo "Linux tarball not found at $TAR. Run 'task release:linux' first." >&2
-          exit 1
-        fi
-        if git describe --tags --abbrev=0 >/dev/null 2>&1; then
-          VERSION=$(git describe --tags --abbrev=0 | sed 's/^v//')
-        else
-          COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-          VERSION="dev-${COMMIT}"
-        fi
+            if [ ! -f "$TAR" ]; then
+              echo "Linux tarball not found at $TAR. Run 'task release:linux' first." >&2
+              exit 1
+            fi
+            if [ -n "${YANTA_VERSION:-}" ]; then
+              VERSION="${YANTA_VERSION}"
+            elif git describe --tags --abbrev=0 >/dev/null 2>&1; then
+              VERSION=$(git describe --tags --abbrev=0 | sed 's/^v//')
+            else
+              COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+              VERSION="dev-${COMMIT}"
+            fi
         scripts/build_deb_from_tar.sh "$TAR" "$VERSION"
 
   release:windows:
