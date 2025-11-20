@@ -339,7 +339,9 @@ tasks:
           echo "Linux tarball not found at $TAR. Run 'task release:linux' first." >&2
           exit 1
         fi
-        if git describe --tags --abbrev=0 >/dev/null 2>&1; then
+        if [[ -n "${YANTA_VERSION:-}" ]]; then
+          VERSION="${YANTA_VERSION}"
+        elif git describe --tags --abbrev=0 >/dev/null 2>&1; then
           VERSION=$(git describe --tags --abbrev=0 | sed 's/^v//')
         else
           COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -365,7 +367,7 @@ tasks:
         fi
         cp "$PORTABLE" "$DIST/yanta-windows-portable.exe"
 
-        INSTALLER=$(find build/bin -maxdepth 1 -type f -iname '*installer*.exe' -print -quit)
+        INSTALLER=$(ls build/bin/*installer*.exe 2>/dev/null | head -1)
         if [ -z "$INSTALLER" ]; then
           echo 'Could not locate the NSIS installer output in build/bin' >&2
           exit 1
