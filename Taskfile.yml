@@ -1,29 +1,62 @@
 version: '3'
 
+# Yanta - Task Build System
+# Clean, DRY architecture with separate concerns
+#
+# Main user-facing commands:
+#   task install-tools  - Install all required tools
+#   task build          - Build for current platform
+#   task test           - Run all tests
+#   task release:all    - Build all release artifacts
+#   task dev            - Start development mode
+
 includes:
-  common: ./build/Taskfile.yml
-  linux: ./build/linux/Taskfile.yml
+  # Core build functionality
+  build: ./build/Taskfile.yml
+  # Common utilities (DRY)
+  common: ./build/common/Taskfile.yml
+  # Platform configurations
+  platform: ./build/platform/Taskfile.yml
+  # Test suite
+  test: ./build/test/Taskfile.yml
+  # Release management
+  release: ./build/release/Taskfile.yml
 
 vars:
   APP_NAME: "yanta"
   DEV_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
-  WAILS_PLATFORM: '{{.PLATFORM | default .WAILS_PLATFORM}}'
-  WAILS_FLAGS: '{{.FLAGS | default ""}}'
   DIST_DIR: '{{.DIST_DIR | default "build/dist"}}'
+  BIN_DIR: 'build/bin'
 
 tasks:
+  # ============================================================================
+  # Development & Installation
+  # ============================================================================
+
   install-tools:
-    summary: Install required development toolchain (wails3 CLI + frontend deps)
+    summary: Install all required development tools (wails3 CLI + frontend deps)
     cmds:
+      - task: common:log:section
+        vars:
+          MSG: "Installing Development Tools"
       - go install github.com/wailsapp/wails/v3/cmd/wails3@latest
       - task: frontend:install
         vars:
           FORCE_CI_INSTALL: "1"
+      - task: common:log:success
+        vars:
+          MSG: "All tools installed successfully"
 
-  bindings:
-    summary: Generate TypeScript bindings using wails3
+  dev:
+    summary: Launch Wails development mode with live reload
     deps:
-      - task: common:generate:bindings
+      - build:ensure:wails
+    cmds:
+      - wails3 dev -config ./build/config.yml -port {{.DEV_PORT}}
+
+  # ============================================================================
+  # Frontend Tasks
+  # ============================================================================
 
   frontend:install:
     summary: Install frontend dependencies
@@ -32,11 +65,11 @@ tasks:
       FORCE_CI_INSTALL: '{{.FORCE_CI_INSTALL | default "0"}}'
     cmds:
       - |
-          if [ "{{.FORCE_CI_INSTALL}}" = "1" ] || [ "${CI:-}" = "true" ]; then
-            npm ci
-          else
-            npm install
-          fi
+        if [ "{{.FORCE_CI_INSTALL}}" = "1" ] || [ "${CI:-}" = "true" ]; then
+          npm ci
+        else
+          npm install
+        fi
 
   frontend:build:
     summary: Build the frontend bundle
@@ -48,52 +81,85 @@ tasks:
       - npm run build
 
   frontend:typecheck:
-    summary: Run frontend type checking
-    deps:
-      - frontend:install
-      - bindings
-    dir: frontend
+    summary: Run frontend TypeScript type checking
     cmds:
-      - npx tsc --noEmit
+      - task: test:frontend:typecheck
+
+  frontend:dev:
+    summary: Run frontend dev server
+    cmds:
+      - task: build:dev:frontend
+
+  # ============================================================================
+  # Bindings
+  # ============================================================================
+
+  bindings:
+    summary: Generate TypeScript bindings from Go services
+    cmds:
+      - task: build:generate:bindings
+
+  # ============================================================================
+  # Build Commands (Platform-specific)
+  # ============================================================================
 
   build:
-    summary: Build the application (override TARGET=win|ubuntu|arch|osx)
+    summary: Build application for current platform (auto-detect) or specified TARGET
     vars:
       TARGET: '{{.TARGET | default "local"}}'
       DEBUG: '{{.DEBUG | default "0"}}'
+    deps:
+      - bindings
+      - frontend:build
     cmds:
-      - task: internal:go-build
+      - task: build:go:build
         vars:
           TARGET: '{{.TARGET}}'
           DEBUG: '{{.DEBUG}}'
 
   build:win:
-    summary: Build Windows binaries
+    summary: Build for Windows (requires Windows or Linux with MinGW)
+    deps:
+      - bindings
+      - frontend:build
     cmds:
-      - task: build
+      - task: build:go:build
         vars:
           TARGET: win
 
   build:linux:
-    summary: Build Linux binaries
+    summary: Build for Linux/Ubuntu
+    deps:
+      - bindings
+      - frontend:build
     cmds:
-      - task: build
+      - task: build:go:build
         vars:
           TARGET: ubuntu
 
   build:arch:
-    summary: Cross-build for Linux and produce tar/pkg artifacts
+    summary: Build for Arch Linux (includes tarball + package generation)
+    deps:
+      - bindings
+      - frontend:build
     cmds:
-      - task: build
+      - task: build:go:build
         vars:
           TARGET: arch
 
   build:osx:
-    summary: Build macOS binaries
+    summary: Build for macOS
+    deps:
+      - bindings
+      - frontend:build
     cmds:
-      - task: build
+      - task: build:go:build
         vars:
           TARGET: osx
+
+  # ============================================================================
+  # Run & Package
+  # ============================================================================
 
   run:
     summary: Run the last built binary (builds first if needed)
@@ -102,332 +168,154 @@ tasks:
     cmds:
       - |
         if [ "$OS" = "Windows_NT" ]; then
-          ./build/bin/{{.APP_NAME}}.exe
+          ./{{.BIN_DIR}}/{{.APP_NAME}}.exe
         else
-          ./build/bin/{{.APP_NAME}}
+          ./{{.BIN_DIR}}/{{.APP_NAME}}
         fi
 
-  dev:
-    summary: Launch Wails dev mode with live reload
-    cmds:
-      - wails3 dev -config ./build/config.yml -port {{.DEV_PORT}}
-
   package:
-    summary: Build release artifacts for the host platform
+    summary: Build release artifacts for current platform
+    cmds:
+      - task: release:all
+
+  # ============================================================================
+  # Testing
+  # Note: Test tasks are available via the `test` namespace
+  # Examples:
+  #   task test:all           - Run all tests (backend + frontend + lint)
+  #   task test:backend       - Run backend tests with coverage
+  #   task test:frontend      - Run frontend typecheck
+  #   task test:lint          - Run all linters
+  #   task test:backend:coverage-html - Generate HTML coverage report
+  # ============================================================================
+
+  # Convenience aliases for common test commands
+  test:
+    summary: Run all tests (backend + frontend + lint)
+    cmds:
+      - task: test:all
+
+  lint:
+    summary: Run all linters (Go + frontend)
+    cmds:
+      - task: test:lint
+
+  # ============================================================================
+  # Release Management
+  # Note: Release tasks are available via the `release` namespace
+  # Examples: task release:linux, task release:ubuntu, task release:all
+  # ============================================================================
+
+  # ============================================================================
+  # Utilities
+  # ============================================================================
+
+  clean:
+    summary: Clean all build artifacts
+    cmds:
+      - rm -rf {{.BIN_DIR}}
+      - rm -rf {{.DIST_DIR}}
+      - rm -rf .gocache
+      - task: test:clean
+      - task: common:log:success
+        vars:
+          MSG: "All build artifacts cleaned"
+
+  version:
+    summary: Show current version
+    cmds:
+      - task: common:version:get
+
+  info:
+    summary: Show build information
+    vars:
+      VERSION:
+        sh: git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || git rev-parse --short HEAD 2>/dev/null | sed 's/^/dev-/' || echo "unknown"
+      COMMIT:
+        sh: git rev-parse --short HEAD 2>/dev/null || echo "unknown"
+      PLATFORM:
+        sh: uname -s 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo "unknown"
+    cmds:
+      - |
+        echo "Yanta Build System"
+        echo "=================="
+        echo ""
+        echo "App Name:     {{.APP_NAME}}"
+        echo "Version:      {{.VERSION}}"
+        echo "Commit:       {{.COMMIT}}"
+        echo "Platform:     {{.PLATFORM}}"
+        echo ""
+        echo "Directories:"
+        echo "  Binary:     {{.BIN_DIR}}"
+        echo "  Dist:       {{.DIST_DIR}}"
+        echo ""
+        echo "Use 'task --list' to see all available commands"
+
+  # ============================================================================
+  # CI-specific Commands
+  # ============================================================================
+
+  ci:test:
+    summary: Run tests in CI mode
+    cmds:
+      - task: test:ci
+
+  ci:build:
+    summary: Build for CI (current platform)
     cmds:
       - task: build
 
-  internal:go-build:
-    internal: true
-    deps:
-      - bindings
-      - frontend:build
-    vars:
-      TARGET: '{{.TARGET | default "local"}}'
-      DEBUG: '{{.DEBUG | default "0"}}'
+  ci:release:
+    summary: Build release artifacts for CI
+    cmds:
+      - task: release:all
+      - task: release:list
+
+  # ============================================================================
+  # Help
+  # ============================================================================
+
+  help:
+    summary: Show help information
+    silent: true
     cmds:
       - |
-        bash <<'EOF'
-        set -euo pipefail
+        cat <<'EOF'
+        Yanta Task Build System
+        ======================
 
-        GO_CACHE_DIR="${GO_CACHE_DIR:-.gocache}"
-        case "$GO_CACHE_DIR" in
-          /*) ;;
-          *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;;
-        esac
-        mkdir -p "$GO_CACHE_DIR"
-        export GOCACHE="$GO_CACHE_DIR"
+        Common Commands:
+          task install-tools      Install all required development tools
+          task dev                Start development mode with hot reload
+          task build              Build for current platform
+          task test               Run all tests
+          task release:all        Build all release artifacts
 
-        TARGET="{{.TARGET}}"
-        DEBUG="{{.DEBUG}}"
+        Build Commands:
+          task build:win          Build for Windows
+          task build:linux        Build for Linux/Ubuntu
+          task build:arch         Build for Arch Linux
+          task build:osx          Build for macOS
 
-        require_cmd() {
-          if ! command -v "$1" >/dev/null 2>&1; then
-            echo "Error: '$1' is not installed or not in PATH." >&2
-            exit 1
-          fi
-        }
+        Test Commands:
+          task test               Run all tests
+          task test:backend       Run backend tests
+          task test:frontend      Run frontend tests
+          task lint               Run linters
 
-        ensure_host() {
-          local required="$1"
-          local host
-          host=$(uname -s | tr '[:upper:]' '[:lower:]')
-          case "$required" in
-            darwin)
-              if [[ "$host" != "darwin" ]]; then
-                echo "This target must be built on macOS (current host: $host)" >&2
-                exit 1
-              fi
-              ;;
-            linux)
-              if [[ "$host" != "linux" ]]; then
-                echo "This target must be built on Linux (current host: $host)" >&2
-                exit 1
-              fi
-              ;;
-          esac
-        }
+        Release Commands:
+          task release:linux      Build Linux artifacts (tarball + Arch)
+          task release:ubuntu     Build Ubuntu/Debian .deb package
+          task release:windows    Build Windows artifacts (portable + installer)
+          task release:macos      Build macOS tarball
+          task release:list       List generated artifacts
+          task release:clean      Clean release artifacts
 
-        ensure_mingw() {
-          if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1 && command -v x86_64-w64-mingw32-g++ >/dev/null 2>&1; then
-            return
-          fi
+        Utility Commands:
+          task clean              Clean all build artifacts
+          task version            Show current version
+          task info               Show build information
+          task --list             List all available tasks
 
-          if command -v apt-get >/dev/null 2>&1; then
-            echo "Installing MinGW toolchain (mingw-w64)..."
-            sudo apt-get update
-            sudo apt-get install -y mingw-w64
-          else
-            echo "MinGW toolchain not found (x86_64-w64-mingw32-gcc). Install it manually." >&2
-            exit 1
-          fi
-        }
-
-        require_cmd go
-        require_cmd npm
-        require_cmd python3
-
-        HOST_UNAME=$(uname -s | tr '[:upper:]' '[:lower:]')
-
-        if [[ -z "$TARGET" || "$TARGET" == "local" ]]; then
-          case "$HOST_UNAME" in
-            linux)
-              TARGET="ubuntu"
-              ;;
-            darwin)
-              TARGET="osx"
-              ;;
-            *mingw*|*msys*|*cygwin*|windows)
-              TARGET="win"
-              ;;
-            *)
-              TARGET="ubuntu"
-              ;;
-          esac
-        fi
-
-        USE_WEBKIT41=false
-        POST_BUILD=""
-        GOOS_TARGET=""
-        GOARCH_TARGET="amd64"
-        CC_OVERRIDE=""
-        CXX_OVERRIDE=""
-        OUTPUT_SUFFIX=""
-
-        case "$TARGET" in
-          win|windows)
-            GOOS_TARGET="windows"
-            OUTPUT_SUFFIX=".exe"
-            if [[ "$HOST_UNAME" == "linux" ]]; then
-              echo "Building Windows target on Linux requires MinGW (x86_64-w64-mingw32) toolchain..."
-              ensure_mingw
-              require_cmd x86_64-w64-mingw32-gcc
-              require_cmd x86_64-w64-mingw32-g++
-              CC_OVERRIDE="x86_64-w64-mingw32-gcc"
-              CXX_OVERRIDE="x86_64-w64-mingw32-g++"
-            elif [[ "$HOST_UNAME" == *mingw* || "$HOST_UNAME" == *msys* || "$HOST_UNAME" == *cygwin* || "$HOST_UNAME" == "windows" ]]; then
-              GOOS_TARGET=""
-            else
-              echo "Windows builds must run on Windows or Linux (with MinGW installed)." >&2
-              exit 1
-            fi
-            ;;
-          ubuntu)
-            ensure_host linux
-            GOOS_TARGET="linux"
-            USE_WEBKIT41=true
-            ;;
-          arch)
-            ensure_host linux
-            GOOS_TARGET="linux"
-            USE_WEBKIT41=true
-            POST_BUILD="arch"
-            ;;
-          osx|mac|macos)
-            ensure_host darwin
-            GOOS_TARGET="darwin"
-            ;;
-          *)
-            echo "Unknown target: $TARGET" >&2
-            exit 1
-            ;;
-        esac
-
-        COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-        if [[ -n "${YANTA_VERSION:-}" ]]; then
-          VERSION="${YANTA_VERSION}"
-        elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
-          VERSION="${VERSION_TAG#v}"
-        else
-          VERSION="dev-${COMMIT}"
-        fi
-        DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-        LD_FLAGS="-X yanta/internal/system.BuildVersion=${VERSION} -X yanta/internal/system.BuildCommit=${COMMIT} -X yanta/internal/system.BuildDate=${DATE}"
-
-        echo "Compiling Go binary for target '${TARGET}'..."
-        mkdir -p build/bin
-        OUTPUT_PATH="build/bin/{{.APP_NAME}}${OUTPUT_SUFFIX}"
-
-        BUILD_ENV=()
-        if [[ -n "$GOOS_TARGET" ]]; then
-          BUILD_ENV+=(GOOS="$GOOS_TARGET")
-        fi
-        BUILD_ENV+=(GOARCH="$GOARCH_TARGET")
-        if [[ -n "$CC_OVERRIDE" ]]; then
-          BUILD_ENV+=(CC="$CC_OVERRIDE" CXX="$CXX_OVERRIDE" CGO_ENABLED=1)
-        fi
-
-        BUILD_TAGS=()
-        if $USE_WEBKIT41; then
-          BUILD_TAGS+=("-tags" "webkit2_41")
-        fi
-
-        if [[ "$DEBUG" == "1" ]]; then
-          export YANTA_DEBUG_BUILD=1
-        fi
-
-        env "${BUILD_ENV[@]}" go build ${BUILD_TAGS[@]+"${BUILD_TAGS[@]}"} -ldflags "$LD_FLAGS" -o "$OUTPUT_PATH" .
-
-        if [[ "$POST_BUILD" == "arch" ]]; then
-          echo "Packaging Linux artifacts (Arch + tarball)..."
-          scripts/build_linux_artifacts.sh "$VERSION" "1"
-          echo "Artifacts written to build/dist/"
-        fi
-
-        echo "Artifacts available under build/bin/"
+        For more details, run: task --list
         EOF
-
-  test:backend:
-    summary: Run Go unit tests with race detector and coverage
-    cmds:
-      - |
-        bash <<'EOF'
-        set -euo pipefail
-        GO_CACHE_DIR="${GO_CACHE_DIR:-.gocache}"
-        case "$GO_CACHE_DIR" in
-          /*) ;;
-          *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;;
-        esac
-        mkdir -p "$GO_CACHE_DIR"
-        GOCACHE="$GO_CACHE_DIR" go test -v -race -coverprofile=coverage.out ./...
-        EOF
-
-  release:linux:
-    summary: Build Linux release artifacts (tarball + Arch package)
-    deps:
-      - build:arch
-    cmds:
-      - |
-        set -euo pipefail
-        if [ ! -d "{{.DIST_DIR}}" ]; then
-          echo "Expected artifacts under {{.DIST_DIR}}, but directory is missing" >&2
-          exit 1
-        fi
-        ls -1 {{.DIST_DIR}}/yanta-linux.tar.gz {{.DIST_DIR}}/yanta-*-x86_64.pkg.tar.gz >/dev/null
-        echo "Linux artifacts ready under {{.DIST_DIR}}"
-
-  release:ubuntu:
-    summary: Build Ubuntu/Debian .deb package from the Linux tarball
-    deps:
-      - release:linux
-    cmds:
-      - |
-        set -euo pipefail
-        TAR="{{.DIST_DIR}}/yanta-linux.tar.gz"
-        if [ ! -f "$TAR" ]; then
-          echo "Linux tarball not found at $TAR. Run 'task release:linux' first." >&2
-          exit 1
-        fi
-        if [[ -n "${YANTA_VERSION:-}" ]]; then
-          VERSION="${YANTA_VERSION}"
-        elif git describe --tags --abbrev=0 >/dev/null 2>&1; then
-          VERSION=$(git describe --tags --abbrev=0 | sed 's/^v//')
-        else
-          COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-          VERSION="dev-${COMMIT}"
-        fi
-        echo "Building Debian package with version: $VERSION"
-        scripts/build_deb_from_tar.sh "$TAR" "$VERSION"
-        DEB_FILE="{{.DIST_DIR}}/yanta_${VERSION}_amd64.deb"
-        if [ ! -f "$DEB_FILE" ]; then
-          echo "ERROR: Expected Debian package not created at $DEB_FILE" >&2
-          exit 1
-        fi
-        echo "Successfully created Debian package: $DEB_FILE"
-
-  release:windows:
-    summary: Build Windows release artifacts (portable + installer)
-    deps:
-      - build:win
-    cmds:
-      - |
-        set -euo pipefail
-        DIST="{{.DIST_DIR}}"
-        rm -rf "$DIST"
-        mkdir -p "$DIST"
-
-        PORTABLE="build/bin/{{.APP_NAME}}.exe"
-        if [ ! -f "$PORTABLE" ]; then
-          echo "Portable binary not found at $PORTABLE" >&2
-          exit 1
-        fi
-        cp "$PORTABLE" "$DIST/yanta-windows-portable.exe"
-        echo "Copied portable exe: $DIST/yanta-windows-portable.exe"
-
-        echo "Looking for installer in build/bin..."
-        ls -la build/bin/ || true
-        INSTALLER=$(ls build/bin/*installer*.exe 2>/dev/null | head -1)
-        if [ -z "$INSTALLER" ]; then
-          echo 'Could not locate the NSIS installer output in build/bin' >&2
-          exit 1
-        fi
-        cp "$INSTALLER" "$DIST/yanta-windows-installer.exe"
-        echo "Copied installer exe: $DIST/yanta-windows-installer.exe"
-
-  release:macos:
-    summary: Build macOS release tarball
-    deps:
-      - build:osx
-    cmds:
-      - cmd: bash
-        args:
-          - -lc
-          - |
-            set -euo pipefail
-            DIST="{{.DIST_DIR}}"
-            rm -rf "$DIST"
-            mkdir -p "$DIST"
-            if [ ! -d "build/bin/yanta.app" ]; then
-              echo "ERROR: yanta.app not found in build/bin" >&2
-              ls -la build/bin/ || true
-              exit 1
-            fi
-            tar -C build/bin -czf "$DIST/yanta-macos.tar.gz" yanta.app
-            echo "Created macOS tarball: $DIST/yanta-macos.tar.gz"
-
-  release:all:
-    summary: Build release artifacts supported on the current host
-    cmds:
-      - task: release:all:linux
-      - task: release:all:windows
-      - task: release:all:mac
-
-  release:all:linux:
-    internal: true
-    platforms: [linux]
-    cmds:
-      - task: release:linux
-      - task: release:ubuntu
-
-  release:all:windows:
-    internal: true
-    platforms: [windows]
-    cmds:
-      - task: release:windows
-
-  release:all:mac:
-    internal: true
-    platforms: [darwin]
-    cmds:
-      - task: release:macos

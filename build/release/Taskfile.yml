@@ -1,0 +1,339 @@
+version: '3'
+
+# Release artifact generation for all platforms
+# Centralizes all release logic in one place
+
+includes:
+  common: ../common/Taskfile.yml
+  platform: ../platform/Taskfile.yml
+
+vars:
+  DIST_DIR: '{{.DIST_DIR | default "build/dist"}}'
+  APP_NAME: '{{.APP_NAME | default "yanta"}}'
+  BIN_DIR: 'build/bin'
+
+tasks:
+  # ============================================================================
+  # Linux Releases
+  # ============================================================================
+
+  linux:
+    summary: Build all Linux release artifacts (tarball + Arch package)
+    deps:
+      - platform:verify:linux
+    cmds:
+      - task: common:log:section
+        vars:
+          MSG: "Building Linux Release Artifacts"
+      - task: linux:build
+      - task: linux:verify
+      - task: common:log:success
+        vars:
+          MSG: "Linux artifacts ready under {{.DIST_DIR}}"
+
+  linux:build:
+    summary: Build Linux artifacts (internal)
+    internal: true
+    dir: ../..
+    cmds:
+      # Build for Arch (includes tarball generation)
+      - task: build
+        vars:
+          TARGET: arch
+
+  linux:verify:
+    summary: Verify Linux artifacts exist
+    internal: true
+    cmds:
+      - task: common:file:verify-dir
+        vars:
+          DIR: '{{.DIST_DIR}}'
+          MSG: "Distribution directory not found"
+      - task: common:file:verify
+        vars:
+          FILE: '{{.DIST_DIR}}/yanta-linux.tar.gz'
+          MSG: "Linux tarball not found"
+      - |
+        ls {{.DIST_DIR}}/yanta-*-x86_64.pkg.tar.gz >/dev/null 2>&1 || {
+          echo "ERROR: Arch package not found" >&2
+          exit 1
+        }
+
+  # ============================================================================
+  # Ubuntu/Debian Release
+  # ============================================================================
+
+  ubuntu:
+    summary: Build Ubuntu/Debian .deb package
+    deps:
+      - linux
+    cmds:
+      - task: common:log:section
+        vars:
+          MSG: "Building Debian Package"
+      - task: ubuntu:build
+      - task: ubuntu:verify
+      - task: common:log:success
+        vars:
+          MSG: "Debian package created successfully"
+
+  ubuntu:build:
+    summary: Build Debian package (internal)
+    internal: true
+    dir: ../..
+    cmds:
+      - |
+        set -euo pipefail
+        TAR="{{.DIST_DIR}}/yanta-linux.tar.gz"
+
+        # Get version using common utility
+        VERSION=$(task common:version:get)
+
+        echo "Building Debian package with version: $VERSION"
+        scripts/build_deb_from_tar.sh "$TAR" "$VERSION"
+
+  ubuntu:verify:
+    summary: Verify Debian package exists
+    internal: true
+    cmds:
+      - |
+        set -euo pipefail
+        VERSION=$(task common:version:get)
+        DEB_FILE="{{.DIST_DIR}}/yanta_${VERSION}_amd64.deb"
+
+        if [ ! -f "$DEB_FILE" ]; then
+          echo "ERROR: Expected Debian package not found: $DEB_FILE" >&2
+          exit 1
+        fi
+
+        echo "✓ Debian package verified: $DEB_FILE"
+
+  # ============================================================================
+  # Windows Release
+  # ============================================================================
+
+  windows:
+    summary: Build Windows release artifacts (portable + installer)
+    deps:
+      - platform:verify:windows
+    cmds:
+      - task: common:log:section
+        vars:
+          MSG: "Building Windows Release Artifacts"
+      - task: windows:build
+      - task: windows:package
+      - task: windows:verify
+      - task: common:log:success
+        vars:
+          MSG: "Windows artifacts ready under {{.DIST_DIR}}"
+
+  windows:build:
+    summary: Build Windows binary (internal)
+    internal: true
+    dir: ../..
+    cmds:
+      - task: build
+        vars:
+          TARGET: win
+
+  windows:package:
+    summary: Package Windows artifacts (internal)
+    internal: true
+    cmds:
+      - task: common:dir:clean
+        vars:
+          DIR: '{{.DIST_DIR}}'
+      - |
+        set -euo pipefail
+
+        # Copy portable exe
+        PORTABLE="{{.BIN_DIR}}/{{.APP_NAME}}.exe"
+        if [ ! -f "$PORTABLE" ]; then
+          echo "ERROR: Portable binary not found at $PORTABLE" >&2
+          exit 1
+        fi
+        cp "$PORTABLE" "{{.DIST_DIR}}/yanta-windows-portable.exe"
+        echo "✓ Copied portable exe"
+
+        # Find and copy installer
+        echo "Looking for installer in {{.BIN_DIR}}..."
+        INSTALLER=$(ls {{.BIN_DIR}}/*installer*.exe 2>/dev/null | head -1 || true)
+        if [ -z "$INSTALLER" ]; then
+          echo "ERROR: Could not locate NSIS installer output in {{.BIN_DIR}}" >&2
+          ls -la {{.BIN_DIR}}/ || true
+          exit 1
+        fi
+        cp "$INSTALLER" "{{.DIST_DIR}}/yanta-windows-installer.exe"
+        echo "✓ Copied installer exe"
+
+  windows:verify:
+    summary: Verify Windows artifacts exist
+    internal: true
+    cmds:
+      - task: common:file:verify
+        vars:
+          FILE: '{{.DIST_DIR}}/yanta-windows-portable.exe'
+          MSG: "Windows portable exe not found"
+      - task: common:file:verify
+        vars:
+          FILE: '{{.DIST_DIR}}/yanta-windows-installer.exe'
+          MSG: "Windows installer exe not found"
+
+  # ============================================================================
+  # macOS Release
+  # ============================================================================
+
+  macos:
+    summary: Build macOS release tarball
+    deps:
+      - platform:verify:macos
+    cmds:
+      - task: common:log:section
+        vars:
+          MSG: "Building macOS Release Artifacts"
+      - task: macos:build
+      - task: macos:package
+      - task: macos:verify
+      - task: common:log:success
+        vars:
+          MSG: "macOS artifacts ready under {{.DIST_DIR}}"
+
+  macos:build:
+    summary: Build macOS binary (internal)
+    internal: true
+    dir: ../..
+    cmds:
+      - task: build
+        vars:
+          TARGET: osx
+
+  macos:package:
+    summary: Package macOS app into tarball (internal)
+    internal: true
+    cmds:
+      - task: common:dir:clean
+        vars:
+          DIR: '{{.DIST_DIR}}'
+      - |
+        set -euo pipefail
+
+        if [ ! -d "{{.BIN_DIR}}/yanta.app" ]; then
+          echo "ERROR: yanta.app not found in {{.BIN_DIR}}" >&2
+          ls -la {{.BIN_DIR}}/ || true
+          exit 1
+        fi
+
+        tar -C {{.BIN_DIR}} -czf "{{.DIST_DIR}}/yanta-macos.tar.gz" yanta.app
+        echo "✓ Created macOS tarball"
+
+  macos:verify:
+    summary: Verify macOS artifacts exist
+    internal: true
+    cmds:
+      - task: common:file:verify
+        vars:
+          FILE: '{{.DIST_DIR}}/yanta-macos.tar.gz'
+          MSG: "macOS tarball not found"
+
+  # ============================================================================
+  # Platform-aware "all" releases
+  # ============================================================================
+
+  all:
+    summary: Build all release artifacts supported on current host
+    cmds:
+      - task: all:detect
+
+  all:detect:
+    summary: Detect platform and build appropriate releases
+    internal: true
+    cmds:
+      - |
+        PLATFORM=$(task common:platform:detect)
+
+        case "$PLATFORM" in
+          linux)
+            echo "Detected Linux - building Linux + Ubuntu releases"
+            task release:all:linux
+            ;;
+          darwin)
+            echo "Detected macOS - building macOS release"
+            task release:all:macos
+            ;;
+          windows)
+            echo "Detected Windows - building Windows release"
+            task release:all:windows
+            ;;
+          *)
+            echo "Unknown platform: $PLATFORM" >&2
+            exit 1
+            ;;
+        esac
+
+  all:linux:
+    summary: Build all Linux releases (Linux + Ubuntu)
+    platforms: [linux]
+    cmds:
+      - task: linux
+      - task: ubuntu
+
+  all:windows:
+    summary: Build all Windows releases
+    platforms: [windows]
+    cmds:
+      - task: windows
+
+  all:macos:
+    summary: Build all macOS releases
+    platforms: [darwin]
+    cmds:
+      - task: macos
+
+  # ============================================================================
+  # Release verification and listing
+  # ============================================================================
+
+  list:
+    summary: List all generated release artifacts
+    cmds:
+      - |
+        echo "Release artifacts in {{.DIST_DIR}}:"
+        echo ""
+        if [ -d "{{.DIST_DIR}}" ]; then
+          ls -lh {{.DIST_DIR}}/ 2>/dev/null || echo "No artifacts found"
+        else
+          echo "Distribution directory does not exist"
+        fi
+
+  verify:
+    summary: Verify all expected artifacts for current platform exist
+    cmds:
+      - |
+        PLATFORM=$(task common:platform:detect)
+
+        case "$PLATFORM" in
+          linux)
+            task release:linux:verify
+            task release:ubuntu:verify
+            ;;
+          darwin)
+            task release:macos:verify
+            ;;
+          windows)
+            task release:windows:verify
+            ;;
+        esac
+
+  # ============================================================================
+  # Clean release artifacts
+  # ============================================================================
+
+  clean:
+    summary: Clean all release artifacts
+    cmds:
+      - task: common:dir:clean
+        vars:
+          DIR: '{{.DIST_DIR}}'
+      - task: common:log:success
+        vars:
+          MSG: "Release artifacts cleaned"

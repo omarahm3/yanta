@@ -77,31 +77,19 @@ jobs:
         run: |
           task release:linux
           task release:ubuntu
-          echo "=== Verifying Linux artifacts ==="
-          ls -lh build/dist/
-          test -f build/dist/yanta-linux.tar.gz || { echo "ERROR: yanta-linux.tar.gz not found"; exit 1; }
-          ls build/dist/yanta-*-x86_64.pkg.tar.gz >/dev/null 2>&1 || { echo "ERROR: Arch package not found"; exit 1; }
-          ls build/dist/yanta_*_amd64.deb >/dev/null 2>&1 || { echo "ERROR: Debian package not found"; exit 1; }
-          echo "=== All Linux artifacts verified ==="
+          task release:list
 
       - name: Build Windows artifacts
         if: matrix.name == 'windows'
         run: |
           task release:windows
-          echo "=== Verifying Windows artifacts ==="
-          ls -lh build/dist/
-          test -f build/dist/yanta-windows-portable.exe || { echo "ERROR: Portable exe not found"; exit 1; }
-          test -f build/dist/yanta-windows-installer.exe || { echo "ERROR: Installer exe not found"; exit 1; }
-          echo "=== All Windows artifacts verified ==="
+          task release:list
 
       - name: Build macOS artifacts
         if: matrix.name == 'macos'
         run: |
           task release:macos
-          echo "=== Verifying macOS artifacts ==="
-          ls -lh build/dist/
-          test -f build/dist/yanta-macos.tar.gz || { echo "ERROR: macOS tarball not found"; exit 1; }
-          echo "=== All macOS artifacts verified ==="
+          task release:list
 
       - name: Upload Linux artifacts
         if: matrix.name == 'linux'

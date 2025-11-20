@@ -1,0 +1,231 @@
+version: '3'
+
+# Test suite - all testing tasks consolidated in one place
+# Backend tests, frontend tests, integration tests, etc.
+
+includes:
+  common: ../common/Taskfile.yml
+
+vars:
+  COVERAGE_OUT: 'coverage.out'
+  COVERAGE_HTML: 'coverage.html'
+
+tasks:
+  # ============================================================================
+  # Backend Tests
+  # ============================================================================
+
+  backend:
+    summary: Run Go backend tests with race detector and coverage
+    deps:
+      - common:ensure:go
+    cmds:
+      - task: backend:unit
+      - task: backend:coverage-report
+
+  backend:unit:
+    summary: Run backend unit tests
+    internal: true
+    deps:
+      - common:ensure:go
+    cmds:
+      - task: common:log:section
+        vars:
+          MSG: "Running Backend Unit Tests"
+      - |
+        GO_CACHE_DIR="{{.GO_CACHE_DIR | default ".gocache"}}"
+        case "$GO_CACHE_DIR" in
+          /*) ;;
+          *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;;
+        esac
+        mkdir -p "$GO_CACHE_DIR"
+        GOCACHE="$GO_CACHE_DIR" go test -v -race -coverprofile={{.COVERAGE_OUT}} -covermode=atomic ./...
+      - task: common:log:success
+        vars:
+          MSG: "Backend tests passed"
+
+  backend:coverage-report:
+    summary: Generate backend coverage report
+    internal: true
+    cmds:
+      - |
+        if [ -f "{{.COVERAGE_OUT}}" ]; then
+          echo ""
+          echo "Coverage Summary:"
+          go tool cover -func={{.COVERAGE_OUT}} | tail -1
+        fi
+
+  backend:coverage-html:
+    summary: Generate HTML coverage report
+    deps:
+      - backend:unit
+    cmds:
+      - go tool cover -html={{.COVERAGE_OUT}} -o {{.COVERAGE_HTML}}
+      - task: common:log:success
+        vars:
+          MSG: "HTML coverage report generated: {{.COVERAGE_HTML}}"
+
+  backend:bench:
+    summary: Run backend benchmarks
+    deps:
+      - common:ensure:go
+    cmds:
+      - task: common:log:section
+        vars:
+          MSG: "Running Backend Benchmarks"
+      - go test -bench=. -benchmem ./...
+
+  # ============================================================================
+  # Frontend Tests
+  # ============================================================================
+
+  frontend:
+    summary: Run all frontend tests (typecheck + unit tests)
+    dir: ../..
+    cmds:
+      - task: frontend:typecheck
+      - task: frontend:unit
+
+  frontend:typecheck:
+    summary: Run TypeScript type checking
+    dir: ../..
+    deps:
+      - common:ensure:npm
+    cmds:
+      - task: common:log:section
+        vars:
+          MSG: "Running Frontend Type Check"
+      - task: frontend:install
+      - task: bindings
+      - |
+        cd frontend
+        npx tsc --noEmit
+      - task: common:log:success
+        vars:
+          MSG: "Frontend type check passed"
+
+  frontend:unit:
+    summary: Run frontend unit tests (when implemented)
+    dir: ../..
+    cmds:
+      - task: common:log:info
+        vars:
+          MSG: "Frontend unit tests not yet implemented"
+      # TODO: Add when frontend tests are implemented
+      # - cd frontend && npm test
+
+  frontend:install:
+    summary: Install frontend dependencies
+    internal: true
+    dir: ../../frontend
+    vars:
+      FORCE_CI: '{{.FORCE_CI | default "0"}}'
+    cmds:
+      - |
+        if [ "{{.FORCE_CI}}" = "1" ] || [ "${CI:-}" = "true" ]; then
+          npm ci
+        else
+          npm install
+        fi
+
+  bindings:
+    summary: Generate TypeScript bindings
+    internal: true
+    dir: ../..
+    deps:
+      - common:ensure:wails
+    cmds:
+      - |
+        if [ "${SKIP_WAILS_BINDINGS:-0}" = "1" ]; then
+          echo "Skipping binding generation (SKIP_WAILS_BINDINGS=1)"
+        else
+          GO_CACHE_DIR="{{.GO_CACHE_DIR | default ".gocache"}}"
+          case "$GO_CACHE_DIR" in
+            /*) ;;
+            *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;;
+          esac
+          mkdir -p "$GO_CACHE_DIR"
+          GOCACHE="$GO_CACHE_DIR" GOFLAGS="" wails3 generate bindings -clean=true -ts
+        fi
+
+  # ============================================================================
+  # Linting
+  # ============================================================================
+
+  lint:
+    summary: Run all linters (Go + Frontend)
+    cmds:
+      - task: lint:go
+      - task: lint:frontend
+
+  lint:go:
+    summary: Run Go linters (if golangci-lint is installed)
+    deps:
+      - common:ensure:go
+    cmds:
+      - |
+        if command -v golangci-lint >/dev/null 2>&1; then
+          golangci-lint run ./...
+        else
+          echo "golangci-lint not installed, skipping Go lint"
+          echo "Install: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"
+        fi
+
+  lint:frontend:
+    summary: Run frontend linter (if configured)
+    dir: ../../frontend
+    cmds:
+      - |
+        if [ -f "package.json" ] && grep -q "\"lint\"" package.json; then
+          npm run lint
+        else
+          echo "Frontend lint script not configured, skipping"
+        fi
+
+  # ============================================================================
+  # Integration Tests
+  # ============================================================================
+
+  integration:
+    summary: Run integration tests (when implemented)
+    cmds:
+      - task: common:log:info
+        vars:
+          MSG: "Integration tests not yet implemented"
+      # TODO: Add integration tests here
+
+  # ============================================================================
+  # All Tests
+  # ============================================================================
+
+  all:
+    summary: Run all tests (backend + frontend + lint)
+    cmds:
+      - task: backend
+      - task: frontend
+      - task: lint
+      - task: common:log:success
+        vars:
+          MSG: "All tests passed!"
+
+  # ============================================================================
+  # CI-specific test suite
+  # ============================================================================
+
+  ci:
+    summary: Run tests in CI mode (all tests with extra checks)
+    cmds:
+      - task: all
+      - task: backend:coverage-report
+
+  # ============================================================================
+  # Clean test artifacts
+  # ============================================================================
+
+  clean:
+    summary: Clean test artifacts and coverage reports
+    cmds:
+      - rm -f {{.COVERAGE_OUT}} {{.COVERAGE_HTML}}
+      - task: common:log:success
+        vars:
+          MSG: "Test artifacts cleaned"

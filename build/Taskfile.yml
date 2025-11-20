@@ -1,15 +1,25 @@
 version: '3'
 
+# Core build tasks - frontend, backend, and Go compilation
+# Uses common utilities for DRY principles
+
+includes:
+  common: ./common/Taskfile.yml
+  platform: ./platform/Taskfile.yml
+
+vars:
+  APP_NAME: '{{.APP_NAME | default "yanta"}}'
+  BIN_DIR: 'build/bin'
+
 tasks:
+  # ============================================================================
+  # Wails & Bindings
+  # ============================================================================
+
   ensure:wails:
-    summary: Ensure the wails3 CLI is installed
-    internal: true
+    summary: Ensure wails3 CLI is installed
     cmds:
-      - |
-        if ! command -v wails3 >/dev/null 2>&1; then
-          echo "wails3 CLI not found. Install it with 'go install github.com/wailsapp/wails/v3/cmd/wails3@latest'." >&2
-          exit 1
-        fi
+      - task: common:ensure:wails
 
   generate:bindings:
     summary: Generate TypeScript bindings from Go services
@@ -17,26 +27,207 @@ tasks:
       - ensure:wails
     cmds:
       - |
-          if [ "${SKIP_WAILS_BINDINGS:-0}" = "1" ]; then
-            echo "Skipping binding generation (SKIP_WAILS_BINDINGS=1)"
-          else
-            GO_CACHE_DIR="${GO_CACHE_DIR:-.gocache}"
-            case "$GO_CACHE_DIR" in
-              /*) ;;
-              *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;;
-            esac
-            mkdir -p "$GO_CACHE_DIR"
-            GOCACHE="$GO_CACHE_DIR" GOFLAGS="" wails3 generate bindings -clean=true -ts
-          fi
+        if [ "${SKIP_WAILS_BINDINGS:-0}" = "1" ]; then
+          echo "Skipping binding generation (SKIP_WAILS_BINDINGS=1)"
+          exit 0
+        fi
+
+        GO_CACHE_DIR="${GO_CACHE_DIR:-.gocache}"
+        case "$GO_CACHE_DIR" in
+          /*) ;;
+          *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;;
+        esac
+        mkdir -p "$GO_CACHE_DIR"
+        GOCACHE="$GO_CACHE_DIR" GOFLAGS="" wails3 generate bindings -clean=true -ts
+
+  # ============================================================================
+  # Frontend Tasks
+  # ============================================================================
 
   dev:frontend:
-    summary: Run the frontend dev server (Vite)
-    dir: frontend
+    summary: Run frontend dev server (Vite)
+    dir: ../frontend
+    deps:
+      - common:ensure:npm
     cmds:
       - WAILS_VITE_PORT={{.WAILS_VITE_PORT | default "9245"}} npm run dev
 
+  # ============================================================================
+  # Go Build (Core Build Logic)
+  # ============================================================================
+
+  go:build:
+    summary: Build Go binary for specified target platform
+    internal: true
+    deps:
+      - common:ensure:go
+      - common:ensure:npm
+    vars:
+      TARGET: '{{.TARGET | default "local"}}'
+      DEBUG: '{{.DEBUG | default "0"}}'
+    cmds:
+      - |
+        set -euo pipefail
+
+        # Setup Go cache
+        GO_CACHE_DIR="${GO_CACHE_DIR:-.gocache}"
+        case "$GO_CACHE_DIR" in
+          /*) ;;
+          *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;;
+        esac
+        mkdir -p "$GO_CACHE_DIR"
+        export GOCACHE="$GO_CACHE_DIR"
+
+        TARGET="{{.TARGET}}"
+        DEBUG="{{.DEBUG}}"
+        HOST_UNAME=$(uname -s | tr '[:upper:]' '[:lower:]')
+
+        # Auto-detect target if "local"
+        if [[ -z "$TARGET" || "$TARGET" == "local" ]]; then
+          case "$HOST_UNAME" in
+            linux) TARGET="ubuntu" ;;
+            darwin) TARGET="osx" ;;
+            *mingw*|*msys*|*cygwin*|windows) TARGET="win" ;;
+            *) TARGET="ubuntu" ;;
+          esac
+        fi
+
+        # Platform-specific configuration
+        USE_WEBKIT41=false
+        POST_BUILD=""
+        GOOS_TARGET=""
+        GOARCH_TARGET="amd64"
+        CC_OVERRIDE=""
+        CXX_OVERRIDE=""
+        OUTPUT_SUFFIX=""
+
+        case "$TARGET" in
+          win|windows)
+            GOOS_TARGET="windows"
+            OUTPUT_SUFFIX=".exe"
+            if [[ "$HOST_UNAME" == "linux" ]]; then
+              echo "Building Windows target on Linux (MinGW cross-compile)..."
+              # Ensure MinGW is available
+              if ! command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
+                echo "ERROR: MinGW not found. Install: sudo apt-get install -y mingw-w64" >&2
+                exit 1
+              fi
+              CC_OVERRIDE="x86_64-w64-mingw32-gcc"
+              CXX_OVERRIDE="x86_64-w64-mingw32-g++"
+            elif [[ "$HOST_UNAME" == *mingw* || "$HOST_UNAME" == *msys* || "$HOST_UNAME" == *cygwin* || "$HOST_UNAME" == *windows* ]]; then
+              GOOS_TARGET=""
+            else
+              echo "ERROR: Windows builds must run on Windows or Linux (with MinGW)" >&2
+              exit 1
+            fi
+            ;;
+
+          ubuntu)
+            # Verify we're on Linux
+            if [[ "$HOST_UNAME" != "linux" ]]; then
+              echo "ERROR: Ubuntu target requires Linux host (current: $HOST_UNAME)" >&2
+              exit 1
+            fi
+            GOOS_TARGET="linux"
+            USE_WEBKIT41=true
+            ;;
+
+          arch)
+            # Verify we're on Linux
+            if [[ "$HOST_UNAME" != "linux" ]]; then
+              echo "ERROR: Arch target requires Linux host (current: $HOST_UNAME)" >&2
+              exit 1
+            fi
+            GOOS_TARGET="linux"
+            USE_WEBKIT41=true
+            POST_BUILD="arch"
+            ;;
+
+          osx|mac|macos)
+            # Verify we're on macOS
+            if [[ "$HOST_UNAME" != "darwin" ]]; then
+              echo "ERROR: macOS target requires macOS host (current: $HOST_UNAME)" >&2
+              exit 1
+            fi
+            GOOS_TARGET="darwin"
+            ;;
+
+          *)
+            echo "ERROR: Unknown target: $TARGET" >&2
+            echo "Valid targets: win, ubuntu, arch, osx" >&2
+            exit 1
+            ;;
+        esac
+
+        # Get version info using common utilities
+        COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+        if [[ -n "${YANTA_VERSION:-}" ]]; then
+          VERSION="${YANTA_VERSION}"
+        elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
+          VERSION="${VERSION_TAG#v}"
+        else
+          VERSION="dev-${COMMIT}"
+        fi
+        DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+        # Build LD flags
+        LD_FLAGS="-X yanta/internal/system.BuildVersion=${VERSION}"
+        LD_FLAGS="$LD_FLAGS -X yanta/internal/system.BuildCommit=${COMMIT}"
+        LD_FLAGS="$LD_FLAGS -X yanta/internal/system.BuildDate=${DATE}"
+
+        echo "========================================"
+        echo "Building: {{.APP_NAME}}"
+        echo "Target:   $TARGET"
+        echo "Version:  $VERSION"
+        echo "Commit:   $COMMIT"
+        echo "========================================"
+
+        # Setup output
+        mkdir -p {{.BIN_DIR}}
+        OUTPUT_PATH="{{.BIN_DIR}}/{{.APP_NAME}}${OUTPUT_SUFFIX}"
+
+        # Build environment variables
+        BUILD_ENV=()
+        if [[ -n "$GOOS_TARGET" ]]; then
+          BUILD_ENV+=(GOOS="$GOOS_TARGET")
+        fi
+        BUILD_ENV+=(GOARCH="$GOARCH_TARGET")
+        if [[ -n "$CC_OVERRIDE" ]]; then
+          BUILD_ENV+=(CC="$CC_OVERRIDE" CXX="$CXX_OVERRIDE" CGO_ENABLED=1)
+        fi
+
+        # Build tags
+        BUILD_TAGS=()
+        if $USE_WEBKIT41; then
+          BUILD_TAGS+=("-tags" "webkit2_41")
+        fi
+
+        # Debug mode
+        if [[ "$DEBUG" == "1" ]]; then
+          export YANTA_DEBUG_BUILD=1
+          echo "Debug mode enabled"
+        fi
+
+        # Execute build
+        echo "Compiling Go binary..."
+        env "${BUILD_ENV[@]}" go build ${BUILD_TAGS[@]+"${BUILD_TAGS[@]}"} -ldflags "$LD_FLAGS" -o "$OUTPUT_PATH" .
+
+        echo "✓ Build complete: $OUTPUT_PATH"
+
+        # Post-build artifact generation (for Arch Linux)
+        if [[ "$POST_BUILD" == "arch" ]]; then
+          echo ""
+          echo "Generating Linux artifacts (tarball + Arch package)..."
+          scripts/build_linux_artifacts.sh "$VERSION" "1"
+          echo "✓ Artifacts written to build/dist/"
+        fi
+
+  # ============================================================================
+  # Wails Build (alternative build method using wails3)
+  # ============================================================================
+
   wails:build:
-    summary: Run wails3 build with optional platform/flags
+    summary: Build using wails3 build command (alternative method)
     deps:
       - ensure:wails
     vars:

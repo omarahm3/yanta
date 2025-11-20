@@ -63,10 +63,10 @@ jobs:
       - name: Install Wails v3
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
 
-      - name: Build application via Task (headless Linux build)
+      - name: Build application
         run: task build:linux
 
-      - name: Run Go tests
+      - name: Run backend tests
         run: task test:backend
 
       - name: Upload coverage

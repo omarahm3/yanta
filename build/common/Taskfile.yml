@@ -1,0 +1,267 @@
+version: '3'
+
+# Common utilities and shared functions used across all Taskfiles
+# This file implements DRY principles by centralizing repeated logic
+
+vars:
+  GO_CACHE_DIR: '{{.GO_CACHE_DIR | default ".gocache"}}'
+
+tasks:
+  # ============================================================================
+  # Version Management (DRY - used in multiple places)
+  # ============================================================================
+
+  version:get:
+    summary: Get project version (YANTA_VERSION > git tag > dev-commit)
+    internal: true
+    silent: true
+    cmds:
+      - |
+        COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+        if [[ -n "${YANTA_VERSION:-}" ]]; then
+          echo "${YANTA_VERSION}"
+        elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
+          echo "${VERSION_TAG#v}"
+        else
+          echo "dev-${COMMIT}"
+        fi
+
+  version:commit:
+    summary: Get git commit hash
+    internal: true
+    silent: true
+    cmds:
+      - git rev-parse --short HEAD 2>/dev/null || echo "unknown"
+
+  version:date:
+    summary: Get build date in ISO 8601 format
+    internal: true
+    silent: true
+    cmds:
+      - date -u +"%Y-%m-%dT%H:%M:%SZ"
+
+  # ============================================================================
+  # Go Cache Management (DRY - used in build, test, bindings)
+  # ============================================================================
+
+  gocache:setup:
+    summary: Setup and export Go cache directory
+    internal: true
+    silent: true
+    cmds:
+      - |
+        GO_CACHE_DIR="{{.GO_CACHE_DIR}}"
+        case "$GO_CACHE_DIR" in
+          /*) ;;
+          *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;;
+        esac
+        mkdir -p "$GO_CACHE_DIR"
+        export GOCACHE="$GO_CACHE_DIR"
+        echo "$GO_CACHE_DIR"
+
+  # ============================================================================
+  # Tool Verification (DRY - check if required tools exist)
+  # ============================================================================
+
+  ensure:command:
+    summary: Ensure a command exists in PATH
+    internal: true
+    vars:
+      CMD: '{{.CMD}}'
+      MSG: '{{.MSG | default (printf "%s is not installed or not in PATH" .CMD)}}'
+    cmds:
+      - |
+        if ! command -v {{.CMD}} >/dev/null 2>&1; then
+          echo "Error: {{.MSG}}" >&2
+          exit 1
+        fi
+
+  ensure:wails:
+    summary: Ensure wails3 CLI is installed
+    internal: true
+    cmds:
+      - task: ensure:command
+        vars:
+          CMD: wails3
+          MSG: "wails3 CLI not found. Install it with 'go install github.com/wailsapp/wails/v3/cmd/wails3@latest'"
+
+  ensure:go:
+    summary: Ensure Go is installed
+    internal: true
+    cmds:
+      - task: ensure:command
+        vars:
+          CMD: go
+          MSG: "Go is not installed"
+
+  ensure:npm:
+    summary: Ensure npm is installed
+    internal: true
+    cmds:
+      - task: ensure:command
+        vars:
+          CMD: npm
+          MSG: "npm is not installed"
+
+  ensure:node:
+    summary: Ensure Node.js is installed
+    internal: true
+    cmds:
+      - task: ensure:command
+        vars:
+          CMD: node
+          MSG: "Node.js is not installed"
+
+  # ============================================================================
+  # Host Platform Detection
+  # ============================================================================
+
+  platform:detect:
+    summary: Detect the current host platform (linux|darwin|windows)
+    internal: true
+    silent: true
+    cmds:
+      - |
+        HOST_UNAME=$(uname -s 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo "unknown")
+        case "$HOST_UNAME" in
+          linux) echo "linux" ;;
+          darwin) echo "darwin" ;;
+          *mingw*|*msys*|*cygwin*|*windows*) echo "windows" ;;
+          *) echo "unknown" ;;
+        esac
+
+  platform:verify:
+    summary: Verify current platform matches required platform
+    internal: true
+    vars:
+      REQUIRED: '{{.REQUIRED}}'
+    cmds:
+      - |
+        HOST_UNAME=$(uname -s | tr '[:upper:]' '[:lower:]')
+        case "{{.REQUIRED}}" in
+          darwin)
+            if [[ "$HOST_UNAME" != "darwin" ]]; then
+              echo "This target must be built on macOS (current host: $HOST_UNAME)" >&2
+              exit 1
+            fi
+            ;;
+          linux)
+            if [[ "$HOST_UNAME" != "linux" ]]; then
+              echo "This target must be built on Linux (current host: $HOST_UNAME)" >&2
+              exit 1
+            fi
+            ;;
+          windows)
+            if [[ "$HOST_UNAME" != *"mingw"* ]] && [[ "$HOST_UNAME" != *"msys"* ]] && \
+               [[ "$HOST_UNAME" != *"cygwin"* ]] && [[ "$HOST_UNAME" != *"windows"* ]]; then
+              echo "This target must be built on Windows (current host: $HOST_UNAME)" >&2
+              exit 1
+            fi
+            ;;
+        esac
+
+  # ============================================================================
+  # Directory Management
+  # ============================================================================
+
+  dir:clean:
+    summary: Clean a directory
+    internal: true
+    vars:
+      DIR: '{{.DIR}}'
+    cmds:
+      - rm -rf {{.DIR}}
+      - mkdir -p {{.DIR}}
+
+  dir:ensure:
+    summary: Ensure a directory exists
+    internal: true
+    vars:
+      DIR: '{{.DIR}}'
+    cmds:
+      - mkdir -p {{.DIR}}
+
+  # ============================================================================
+  # File Verification
+  # ============================================================================
+
+  file:verify:
+    summary: Verify a file exists
+    internal: true
+    vars:
+      FILE: '{{.FILE}}'
+      MSG: '{{.MSG | default (printf "File not found: %s" .FILE)}}'
+    cmds:
+      - |
+        if [ ! -f "{{.FILE}}" ]; then
+          echo "ERROR: {{.MSG}}" >&2
+          exit 1
+        fi
+
+  file:verify-dir:
+    summary: Verify a directory exists
+    internal: true
+    vars:
+      DIR: '{{.DIR}}'
+      MSG: '{{.MSG | default (printf "Directory not found: %s" .DIR)}}'
+    cmds:
+      - |
+        if [ ! -d "{{.DIR}}" ]; then
+          echo "ERROR: {{.MSG}}" >&2
+          exit 1
+        fi
+
+  # ============================================================================
+  # CI Environment Detection
+  # ============================================================================
+
+  ci:is-ci:
+    summary: Check if running in CI environment
+    internal: true
+    silent: true
+    cmds:
+      - |
+        if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ]; then
+          echo "true"
+        else
+          echo "false"
+        fi
+
+  # ============================================================================
+  # Logging Utilities
+  # ============================================================================
+
+  log:info:
+    summary: Log an info message
+    internal: true
+    vars:
+      MSG: '{{.MSG}}'
+    cmds:
+      - echo "==> {{.MSG}}"
+
+  log:success:
+    summary: Log a success message
+    internal: true
+    vars:
+      MSG: '{{.MSG}}'
+    cmds:
+      - echo "✓ {{.MSG}}"
+
+  log:error:
+    summary: Log an error message
+    internal: true
+    vars:
+      MSG: '{{.MSG}}'
+    cmds:
+      - 'echo "ERROR: {{.MSG}}" >&2'
+
+  log:section:
+    summary: Log a section header
+    internal: true
+    vars:
+      MSG: '{{.MSG}}'
+    cmds:
+      - echo ""
+      - echo "========================================"
+      - echo "{{.MSG}}"
+      - echo "========================================"

@@ -1,0 +1,239 @@
+version: '3'
+
+# Platform-specific build configurations
+# Defines platform-specific variables and build settings
+
+includes:
+  common: ../common/Taskfile.yml
+
+tasks:
+  # ============================================================================
+  # Platform Configuration Getters
+  # ============================================================================
+
+  config:linux:ubuntu:
+    summary: Get build config for Ubuntu/Debian Linux
+    internal: true
+    silent: true
+    cmds:
+      - |
+        cat <<'EOF'
+        {
+          "goos": "linux",
+          "goarch": "amd64",
+          "use_webkit41": true,
+          "output_suffix": "",
+          "requires_host": "linux",
+          "cc": "",
+          "cxx": ""
+        }
+        EOF
+
+  config:linux:arch:
+    summary: Get build config for Arch Linux (includes artifact generation)
+    internal: true
+    silent: true
+    cmds:
+      - |
+        cat <<'EOF'
+        {
+          "goos": "linux",
+          "goarch": "amd64",
+          "use_webkit41": true,
+          "output_suffix": "",
+          "requires_host": "linux",
+          "post_build": "arch",
+          "cc": "",
+          "cxx": ""
+        }
+        EOF
+
+  config:windows:
+    summary: Get build config for Windows
+    internal: true
+    silent: true
+    cmds:
+      - |
+        HOST_UNAME=$(uname -s | tr '[:upper:]' '[:lower:]')
+        GOOS="windows"
+        CC=""
+        CXX=""
+        REQUIRES_HOST=""
+
+        if [[ "$HOST_UNAME" == "linux" ]]; then
+          # Cross-compile from Linux using MinGW
+          CC="x86_64-w64-mingw32-gcc"
+          CXX="x86_64-w64-mingw32-g++"
+          REQUIRES_HOST="linux-mingw"
+        elif [[ "$HOST_UNAME" == *mingw* || "$HOST_UNAME" == *msys* || "$HOST_UNAME" == *cygwin* || "$HOST_UNAME" == *windows* ]]; then
+          # Native Windows build
+          GOOS=""
+          REQUIRES_HOST="windows"
+        fi
+
+        cat <<EOF
+        {
+          "goos": "$GOOS",
+          "goarch": "amd64",
+          "use_webkit41": false,
+          "output_suffix": ".exe",
+          "requires_host": "$REQUIRES_HOST",
+          "cc": "$CC",
+          "cxx": "$CXX"
+        }
+        EOF
+
+  config:macos:
+    summary: Get build config for macOS
+    internal: true
+    silent: true
+    cmds:
+      - |
+        cat <<'EOF'
+        {
+          "goos": "darwin",
+          "goarch": "amd64",
+          "use_webkit41": false,
+          "output_suffix": "",
+          "requires_host": "darwin",
+          "cc": "",
+          "cxx": ""
+        }
+        EOF
+
+  # ============================================================================
+  # Platform Verification
+  # ============================================================================
+
+  verify:linux:
+    summary: Verify we're on Linux (for Linux builds)
+    internal: true
+    cmds:
+      - task: common:platform:verify
+        vars:
+          REQUIRED: linux
+
+  verify:macos:
+    summary: Verify we're on macOS (for macOS builds)
+    internal: true
+    cmds:
+      - task: common:platform:verify
+        vars:
+          REQUIRED: darwin
+
+  verify:windows:
+    summary: Verify we're on Windows or have MinGW (for Windows builds)
+    internal: true
+    cmds:
+      - |
+        HOST_UNAME=$(uname -s | tr '[:upper:]' '[:lower:]')
+        if [[ "$HOST_UNAME" == "linux" ]]; then
+          # Check for MinGW on Linux
+          if ! command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
+            echo "Windows cross-compilation on Linux requires MinGW (x86_64-w64-mingw32-gcc)" >&2
+            echo "Install: sudo apt-get install -y mingw-w64" >&2
+            exit 1
+          fi
+        elif [[ "$HOST_UNAME" != *mingw* && "$HOST_UNAME" != *msys* && "$HOST_UNAME" != *cygwin* && "$HOST_UNAME" != *windows* ]]; then
+          echo "Windows builds must run on Windows or Linux (with MinGW)" >&2
+          exit 1
+        fi
+
+  # ============================================================================
+  # MinGW Setup (for cross-compiling Windows on Linux)
+  # ============================================================================
+
+  ensure:mingw:
+    summary: Ensure MinGW is installed (for Windows cross-compile on Linux)
+    internal: true
+    cmds:
+      - |
+        if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1 && command -v x86_64-w64-mingw32-g++ >/dev/null 2>&1; then
+          echo "MinGW already installed"
+          exit 0
+        fi
+
+        if command -v apt-get >/dev/null 2>&1; then
+          echo "Installing MinGW toolchain (mingw-w64)..."
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64
+        else
+          echo "MinGW toolchain not found and apt-get not available" >&2
+          echo "Please install MinGW manually: x86_64-w64-mingw32-gcc, x86_64-w64-mingw32-g++" >&2
+          exit 1
+        fi
+
+  # ============================================================================
+  # Build Tag Generation
+  # ============================================================================
+
+  build-tags:linux:
+    summary: Get build tags for Linux
+    internal: true
+    silent: true
+    cmds:
+      - echo "-tags webkit2_41"
+
+  build-tags:windows:
+    summary: Get build tags for Windows
+    internal: true
+    silent: true
+    cmds:
+      - echo ""
+
+  build-tags:macos:
+    summary: Get build tags for macOS
+    internal: true
+    silent: true
+    cmds:
+      - echo ""
+
+  # ============================================================================
+  # Platform-specific Artifact Names
+  # ============================================================================
+
+  artifact-name:linux:tarball:
+    summary: Get Linux tarball artifact name
+    internal: true
+    silent: true
+    cmds:
+      - echo "yanta-linux.tar.gz"
+
+  artifact-name:linux:arch:
+    summary: Get Arch Linux package artifact name pattern
+    internal: true
+    silent: true
+    vars:
+      VERSION: '{{.VERSION | default "UNKNOWN"}}'
+    cmds:
+      - echo "yanta-{{.VERSION}}-1-x86_64.pkg.tar.gz"
+
+  artifact-name:linux:deb:
+    summary: Get Debian package artifact name
+    internal: true
+    silent: true
+    vars:
+      VERSION: '{{.VERSION | default "UNKNOWN"}}'
+    cmds:
+      - echo "yanta_{{.VERSION}}_amd64.deb"
+
+  artifact-name:windows:portable:
+    summary: Get Windows portable exe artifact name
+    internal: true
+    silent: true
+    cmds:
+      - echo "yanta-windows-portable.exe"
+
+  artifact-name:windows:installer:
+    summary: Get Windows installer artifact name
+    internal: true
+    silent: true
+    cmds:
+      - echo "yanta-windows-installer.exe"
+
+  artifact-name:macos:tarball:
+    summary: Get macOS tarball artifact name
+    internal: true
+    silent: true
+    cmds:
+      - echo "yanta-macos.tar.gz"
