@@ -1,5 +1,5 @@
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 interface LoadingSpinnerProps {
 	message?: string;
@@ -17,10 +17,13 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 		const timer = setInterval(() => {
 			const seconds = Math.floor((Date.now() - startTime) / 1000);
 
+			// Use console.log instead of console.warn to avoid spamming backend logs
+			// These are dev-only diagnostics and shouldn't trigger RPC calls
 			if (seconds === 3) {
-				console.warn("[LoadingSpinner] Still loading after 3 seconds");
+				console.log("[LoadingSpinner] Still loading after 3 seconds");
 			}
 			if (seconds === 10) {
+				// Keep this as error since 10+ seconds indicates a real problem
 				console.error("[LoadingSpinner] Still loading after 10 seconds - likely stuck!");
 			}
 		}, 1000);

@@ -8,7 +8,7 @@ import {
 	TransitionChild,
 } from "@headlessui/react";
 import Fuse from "fuse.js";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
 
 export interface CommandOption {
@@ -56,6 +56,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 		return fuse.search(query).map((result) => result.item);
 	}, [query, fuse, commands]);
 
+	const handleSelect = useCallback(
+		(command: CommandOption) => {
+			command.action();
+			onCommandSelect(command);
+			onClose();
+		},
+		[onCommandSelect, onClose],
+	);
+
 	useEffect(() => {
 		if (isOpen && inputRef.current) {
 			inputRef.current.focus();
@@ -66,7 +75,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
 	useEffect(() => {
 		setSelectedIndex(0);
-	}, [query]);
+	}, []);
 
 	useEffect(() => {
 		if (optionRefs.current[selectedIndex]) {
@@ -129,13 +138,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
 		document.addEventListener("keydown", handleKeyDown);
 		return () => document.removeEventListener("keydown", handleKeyDown);
-	}, [isOpen, onClose, selectedIndex, filteredCommands]);
-
-	const handleSelect = (command: CommandOption) => {
-		command.action();
-		onCommandSelect(command);
-		onClose();
-	};
+	}, [isOpen, onClose, selectedIndex, filteredCommands, handleSelect]);
 
 	if (!isOpen) return null;
 

@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"yanta/internal/document"
+	"yanta/internal/events"
 	"yanta/internal/git"
 	"yanta/internal/project"
 	"yanta/internal/testutil"
@@ -37,14 +38,20 @@ func setupProjectCommandTest(t *testing.T) projectCommandTestEnv {
 
 	projectStore := project.NewStore(db)
 	projectCache := project.NewCache(projectStore)
-	projectService := project.NewService(db, projectStore, projectCache, v)
+	projectService := project.NewService(db, projectStore, projectCache, v, events.NewEventBus())
 
 	docStore := document.NewStore(db)
 
 	idx := noopIndexer{}
-	docService := document.NewService(db, docStore, v, idx, projectCache)
+	docService := document.NewService(db, docStore, v, idx, projectCache, events.NewEventBus())
 
-	cmds := NewProjectCommands(projectService, docService, v, git.NewMockSyncManager())
+	cmds := NewProjectCommands(
+		projectService,
+		docService,
+		v,
+		git.NewMockSyncManager(),
+		events.NewEventBus(),
+	)
 
 	cleanup := func() {
 		testutil.CleanupTestDB(t, db)
@@ -62,7 +69,7 @@ func TestProjectCommands_DeleteForceSoftDeletesProject(t *testing.T) {
 	env := setupProjectCommandTest(t)
 	defer env.cleanup()
 
-	projectID, err := env.projectService.Create("Force Soft", "force", "", "")
+	projectID, err := env.projectService.Create(context.Background(), "Force Soft", "force", "", "")
 	require.NoError(t, err)
 
 	result, err := env.cmds.Parse("delete @force --force")
@@ -73,7 +80,7 @@ func TestProjectCommands_DeleteForceSoftDeletesProject(t *testing.T) {
 	require.Equal(t, []string{"--force"}, result.Data.Flags)
 
 	// ensure project can be restored, indicating soft deletion
-	err = env.projectService.Restore(projectID)
+	err = env.projectService.Restore(context.Background(), projectID)
 	require.NoError(t, err)
 }
 
@@ -81,7 +88,13 @@ func TestProjectCommands_DeleteForceSoftDeletesDocuments(t *testing.T) {
 	env := setupProjectCommandTest(t)
 	defer env.cleanup()
 
-	projectID, err := env.projectService.Create("Force Soft Docs", "forcedocs", "", "")
+	projectID, err := env.projectService.Create(
+		context.Background(),
+		"Force Soft Docs",
+		"forcedocs",
+		"",
+		"",
+	)
 	require.NoError(t, err)
 
 	// create one document entry for the project
@@ -97,11 +110,14 @@ func TestProjectCommands_DeleteForceSoftDeletesDocuments(t *testing.T) {
 	require.Equal(t, []string{"--force"}, result.Data.Flags)
 
 	// the project should be restorable (soft deleted)
-	err = env.projectService.Restore(projectID)
+	err = env.projectService.Restore(context.Background(), projectID)
 	require.NoError(t, err)
 
 	// the document should remain but marked as deleted
-	storedDoc, err := env.documentStore.GetByPathIncludingDeleted(context.Background(), "projects/@forcedocs/doc-1.json")
+	storedDoc, err := env.documentStore.GetByPathIncludingDeleted(
+		context.Background(),
+		"projects/@forcedocs/doc-1.json",
+	)
 	require.NoError(t, err)
 	require.NotEmpty(t, storedDoc.DeletedAt)
 }
@@ -110,7 +126,7 @@ func TestProjectCommands_DeleteSoftDeletesProject(t *testing.T) {
 	env := setupProjectCommandTest(t)
 	defer env.cleanup()
 
-	projectID, err := env.projectService.Create("Soft Delete", "soft", "", "")
+	projectID, err := env.projectService.Create(context.Background(), "Soft Delete", "soft", "", "")
 	require.NoError(t, err)
 
 	result, err := env.cmds.Parse("delete @soft")
@@ -121,14 +137,14 @@ func TestProjectCommands_DeleteSoftDeletesProject(t *testing.T) {
 	require.Equal(t, "delete @soft --force", result.Data.ConfirmationCommand)
 
 	// project should still be active since confirmation not issued
-	_, err = env.projectService.Get(projectID)
+	_, err = env.projectService.Get(context.Background(), projectID)
 	require.NoError(t, err)
 
 	confirmResult, err := env.cmds.Parse(result.Data.ConfirmationCommand)
 	require.NoError(t, err)
 	require.True(t, confirmResult.Success)
 
-	err = env.projectService.Restore(projectID)
+	err = env.projectService.Restore(context.Background(), projectID)
 	require.NoError(t, err)
 }
 
@@ -136,7 +152,13 @@ func TestProjectCommands_DeleteSoftDeletesDocuments(t *testing.T) {
 	env := setupProjectCommandTest(t)
 	defer env.cleanup()
 
-	projectID, err := env.projectService.Create("Soft Delete Docs", "softdocs", "", "")
+	projectID, err := env.projectService.Create(
+		context.Background(),
+		"Soft Delete Docs",
+		"softdocs",
+		"",
+		"",
+	)
 	require.NoError(t, err)
 
 	doc := document.New("projects/@softdocs/doc-1.json", "@softdocs", "Doc 1")
@@ -151,7 +173,10 @@ func TestProjectCommands_DeleteSoftDeletesDocuments(t *testing.T) {
 	require.Equal(t, "delete @softdocs --force", result.Data.ConfirmationCommand)
 
 	// documents should not be soft deleted yet
-	storedDocActive, err := env.documentStore.GetByPath(context.Background(), "projects/@softdocs/doc-1.json")
+	storedDocActive, err := env.documentStore.GetByPath(
+		context.Background(),
+		"projects/@softdocs/doc-1.json",
+	)
 	require.NoError(t, err)
 	require.Empty(t, storedDocActive.DeletedAt)
 
@@ -159,10 +184,13 @@ func TestProjectCommands_DeleteSoftDeletesDocuments(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, confirmResult.Success)
 
-	err = env.projectService.Restore(projectID)
+	err = env.projectService.Restore(context.Background(), projectID)
 	require.NoError(t, err)
 
-	storedDoc, err := env.documentStore.GetByPathIncludingDeleted(context.Background(), "projects/@softdocs/doc-1.json")
+	storedDoc, err := env.documentStore.GetByPathIncludingDeleted(
+		context.Background(),
+		"projects/@softdocs/doc-1.json",
+	)
 	require.NoError(t, err)
 	require.NotEmpty(t, storedDoc.DeletedAt)
 }

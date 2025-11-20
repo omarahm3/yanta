@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
 	"yanta/internal/project"
+	"yanta/internal/vault"
 )
 
 type Document struct {
@@ -74,11 +76,16 @@ func ValidatePath(path string) error {
 		return fmt.Errorf("path must not contain directory traversal (..)")
 	}
 
-	if !strings.HasPrefix(path, "projects/") {
+	normalized := vault.NormalizeDocumentPath(path)
+	if normalized == "" {
+		return fmt.Errorf("path is required")
+	}
+
+	if !strings.HasPrefix(normalized, "projects/") {
 		return fmt.Errorf("path must start with 'projects/'")
 	}
 
-	if !strings.HasSuffix(path, ".json") {
+	if !strings.HasSuffix(normalized, ".json") {
 		return fmt.Errorf("path must end with '.json'")
 	}
 

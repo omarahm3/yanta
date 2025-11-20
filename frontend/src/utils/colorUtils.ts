@@ -29,7 +29,7 @@ function hslToHex(h: number, s: number, l: number): string {
 		return p;
 	};
 
-	let r, g, b;
+	let r: number, g: number, b: number;
 
 	if (s === 0) {
 		r = g = b = l;
@@ -43,7 +43,7 @@ function hslToHex(h: number, s: number, l: number): string {
 
 	const toHex = (c: number) => {
 		const hex = Math.round(c * 255).toString(16);
-		return hex.length === 1 ? "0" + hex : hex;
+		return hex.length === 1 ? `0${hex}` : hex;
 	};
 
 	return `#${toHex(r)}${toHex(g)}${toHex(b)}`;

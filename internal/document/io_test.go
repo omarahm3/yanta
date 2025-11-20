@@ -13,7 +13,6 @@ import (
 	"yanta/internal/vault"
 )
 
-
 func setupTestVault(t *testing.T) *vault.Vault {
 	t.Helper()
 	tempDir := t.TempDir()

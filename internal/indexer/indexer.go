@@ -195,7 +195,11 @@ func (idx *Indexer) ScanAndIndexVault(ctx context.Context) error {
 				continue
 			}
 
-			relativePath := filepath.Join("projects", projectAlias, docEntry.Name())
+			relativePath := vault.NormalizeDocumentPath(filepath.Join("projects", projectAlias, docEntry.Name()))
+
+			if relativePath == "" {
+				continue
+			}
 
 			if err := idx.IndexDocument(ctx, relativePath); err != nil {
 				return fmt.Errorf("indexing %s: %w", relativePath, err)

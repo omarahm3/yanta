@@ -14,8 +14,7 @@ import {
 	SetStartHidden,
 	SyncNow,
 	ValidateMigrationTarget,
-} from "../../../wailsjs/go/system/Service";
-import { Quit } from "../../../wailsjs/runtime/runtime";
+} from "../../../bindings/yanta/internal/system/service";
 import type { SelectOption } from "../../components/ui";
 import { useNotification } from "../../hooks/useNotification";
 import { type SystemInfo, systemInfoFromModel } from "../../types";
@@ -48,7 +47,11 @@ export const useSettingsController = () => {
 
 	useEffect(() => {
 		GetSystemInfo()
-			.then((model) => setSystemInfo(systemInfoFromModel(model)))
+			.then((model) => {
+				if (model) {
+					setSystemInfo(systemInfoFromModel(model));
+				}
+			})
 			.catch((err) => console.error("Failed to fetch system info:", err));
 
 		GetKeepInBackground()
@@ -90,7 +93,9 @@ export const useSettingsController = () => {
 				success(`Log level set to ${level}. Please restart the application.`);
 
 				const model = await GetSystemInfo();
-				setSystemInfo(systemInfoFromModel(model));
+				if (model) {
+					setSystemInfo(systemInfoFromModel(model));
+				}
 			} catch (err) {
 				error(`Failed to set log level: ${err}`);
 			}

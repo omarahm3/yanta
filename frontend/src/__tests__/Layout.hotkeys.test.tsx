@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import React, { useRef, useState } from "react";
 import { vi } from "vitest";
-import { DialogProvider, HotkeyProvider, useHotkeyContext } from "../contexts";
+import { DialogProvider, HotkeyProvider, TitleBarProvider, useHotkeyContext } from "../contexts";
 import type { HotkeyContextValue } from "../types/hotkeys";
 
 const executeGlobalCommand = vi.fn();
@@ -69,20 +69,22 @@ describe("Layout hotkeys", () => {
 		return (
 			<DialogProvider>
 				<HotkeyProvider>
-					<HotkeyProbe onReady={onContext} />
-					<Layout
-						sidebarTitle="Test Sidebar"
-						currentPage="dashboard"
-						showCommandLine
-						commandContext="test"
-						commandPlaceholder="command"
-						commandValue={value}
-						onCommandChange={setValue}
-						onCommandSubmit={vi.fn()}
-						commandInputRef={commandInputRef}
-					>
-						<div data-testid="content">content</div>
-					</Layout>
+					<TitleBarProvider>
+						<HotkeyProbe onReady={onContext} />
+						<Layout
+							sidebarTitle="Test Sidebar"
+							currentPage="dashboard"
+							showCommandLine
+							commandContext="test"
+							commandPlaceholder="command"
+							commandValue={value}
+							onCommandChange={setValue}
+							onCommandSubmit={vi.fn()}
+							commandInputRef={commandInputRef}
+						>
+							<div data-testid="content">content</div>
+						</Layout>
+					</TitleBarProvider>
 				</HotkeyProvider>
 			</DialogProvider>
 		);
@@ -90,8 +92,10 @@ describe("Layout hotkeys", () => {
 
 	const setup = async () => {
 		let context: HotkeyContextValue | null = null;
+		// biome-ignore lint/suspicious/noAssignInExpressions: Test callback pattern
 		render(<Wrapper onContext={(ctx) => (context = ctx)} />);
 		await waitFor(() => expect(context).not.toBeNull());
+		// biome-ignore lint/style/noNonNullAssertion: Test utility function ensures non-null
 		return context!;
 	};
 
@@ -104,7 +108,7 @@ describe("Layout hotkeys", () => {
 		expect(hotkey).toBeDefined();
 
 		await act(async () => {
-			hotkey!.handler(new KeyboardEvent("keydown", { key: "b", ctrlKey: true, code: "KeyB" }));
+			hotkey?.handler(new KeyboardEvent("keydown", { key: "b", ctrlKey: true, code: "KeyB" }));
 		});
 
 		await waitFor(() => expect(root).toHaveAttribute("data-sidebar-visible", "false"));
@@ -113,7 +117,7 @@ describe("Layout hotkeys", () => {
 		expect(toggleSidebar).toBeDefined();
 
 		await act(async () => {
-			toggleSidebar!.handler(new KeyboardEvent("keydown", { key: "e", ctrlKey: true, code: "KeyE" }));
+			toggleSidebar?.handler(new KeyboardEvent("keydown", { key: "e", ctrlKey: true, code: "KeyE" }));
 		});
 
 		await waitFor(() => expect(root).toHaveAttribute("data-sidebar-visible", "true"));
@@ -127,7 +131,7 @@ describe("Layout hotkeys", () => {
 		expect(hotkey).toBeDefined();
 
 		await act(async () => {
-			hotkey!.handler(
+			hotkey?.handler(
 				new KeyboardEvent("keydown", {
 					key: ":",
 					shiftKey: true,
@@ -140,17 +144,16 @@ describe("Layout hotkeys", () => {
 	});
 
 	it("blurs command line and clears value on Escape", async () => {
-		const ctx = await setup();
+		const _ctx = await setup();
 		const commandInput = screen.getByPlaceholderText("command") as HTMLInputElement;
 
 		commandInput.focus();
 		fireEvent.change(commandInput, { target: { value: "something" } });
 
-		const hotkey = ctx.getRegisteredHotkeys().find((h) => h.key === "Escape");
-		expect(hotkey).toBeDefined();
-
+		// Dispatch the Escape key event directly on the input element
+		// so that event.target is set correctly for the handler
 		await act(async () => {
-			hotkey!.handler(new KeyboardEvent("keydown", { key: "Escape", code: "Escape" }));
+			fireEvent.keyDown(commandInput, { key: "Escape", code: "Escape" });
 		});
 
 		await waitFor(() => expect(commandInput).not.toHaveFocus());

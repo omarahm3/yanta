@@ -1,4 +1,4 @@
-import type { project } from "../../wailsjs/go/models";
+import * as projectModels from "../../bindings/yanta/internal/project/models";
 
 export interface Project {
 	id: string;
@@ -21,7 +21,7 @@ export interface ExtendedProject extends Project {
 
 export type ProjectType = "work" | "side" | "learn";
 
-export function projectFromModel(model: project.Project): Project {
+export function projectFromModel(model: projectModels.Project): Project {
 	return {
 		id: model.id,
 		name: model.name,
@@ -34,12 +34,12 @@ export function projectFromModel(model: project.Project): Project {
 	};
 }
 
-export function projectsFromModels(models: project.Project[]): Project[] {
-	return models.map(projectFromModel);
+export function projectsFromModels(models: (projectModels.Project | null)[]): Project[] {
+	return models.filter((m): m is projectModels.Project => m !== null).map(projectFromModel);
 }
 
-export function projectToModel(proj: Project): project.Project {
-	return {
+export function projectToModel(proj: Project): projectModels.Project {
+	return new projectModels.Project({
 		id: proj.id,
 		name: proj.name,
 		alias: proj.alias,
@@ -48,7 +48,7 @@ export function projectToModel(proj: Project): project.Project {
 		created_at: proj.createdAt,
 		updated_at: proj.updatedAt,
 		deleted_at: proj.deletedAt || "",
-	};
+	});
 }
 
 export function extendProject(project: Project, isArchived: boolean = false): ExtendedProject {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
 	"yanta/internal/project"
 	"yanta/internal/system"
 )
@@ -15,15 +16,6 @@ const (
 	GlobalCommandSync   GlobalCommand = "sync"
 	GlobalCommandQuit   GlobalCommand = "quit"
 )
-
-var AllGlobalCommands = []struct {
-	Value  GlobalCommand
-	TSName string
-}{
-	{GlobalCommandSwitch, "Switch"},
-	{GlobalCommandSync, "Sync"},
-	{GlobalCommandQuit, "Quit"},
-}
 
 type GlobalResultData struct {
 	Project *project.Project `json:"project,omitempty"`
@@ -40,27 +32,32 @@ type GlobalCommands struct {
 	projectService *project.Service
 	systemService  *system.Service
 	parser         *Parser
-	ctx            context.Context
 }
 
-func NewGlobalCommands(projectService *project.Service, systemService *system.Service) *GlobalCommands {
+func NewGlobalCommands(
+	projectService *project.Service,
+	systemService *system.Service,
+) *GlobalCommands {
 	gc := &GlobalCommands{
 		projectService: projectService,
 		systemService:  systemService,
 		parser:         New(ContextGlobal),
-		ctx:            context.Background(),
 	}
 
 	gc.registerCommands()
 	return gc
 }
 
-func (gc *GlobalCommands) SetContext(ctx context.Context) {
-	gc.ctx = ctx
-}
-
 func (gc *GlobalCommands) GetProjectCache() *project.Cache {
 	return gc.projectService.GetCache()
+}
+
+func (gc *GlobalCommands) GetAllCommands() []GlobalCommand {
+	return []GlobalCommand{
+		GlobalCommandSwitch,
+		GlobalCommandSync,
+		GlobalCommandQuit,
+	}
 }
 
 func (gc *GlobalCommands) Parse(cmd string) (*GlobalResult, error) {
@@ -87,7 +84,10 @@ func (gc *GlobalCommands) Parse(cmd string) (*GlobalResult, error) {
 }
 
 func (gc *GlobalCommands) registerCommands() {
-	gc.parser.MustRegister(formatCommand(string(GlobalCommandSwitch), `\s+(@?[a-zA-Z0-9_-]+)$`), gc.handleSwitch)
+	gc.parser.MustRegister(
+		formatCommand(string(GlobalCommandSwitch), `\s+(@?[a-zA-Z0-9_-]+)$`),
+		gc.handleSwitch,
+	)
 	gc.parser.MustRegister(formatCommand(string(GlobalCommandSync), `$`), gc.handleSync)
 	gc.parser.MustRegister(formatCommand(string(GlobalCommandQuit), `$`), gc.handleQuit)
 }
@@ -107,7 +107,7 @@ func (gc *GlobalCommands) handleSwitch(matches []string, fullCommand string) (*R
 		alias = "@" + alias
 	}
 
-	projects, err := gc.projectService.ListActive()
+	projects, err := gc.projectService.ListActive(context.Background())
 	if err != nil {
 		return &Result{
 			Success: false,
@@ -132,7 +132,11 @@ func (gc *GlobalCommands) handleSwitch(matches []string, fullCommand string) (*R
 
 		var message string
 		if len(availableAliases) > 0 {
-			message = fmt.Sprintf("project '%s' not found. available: %s", alias, strings.Join(availableAliases, ", "))
+			message = fmt.Sprintf(
+				"project '%s' not found. available: %s",
+				alias,
+				strings.Join(availableAliases, ", "),
+			)
 		} else {
 			message = fmt.Sprintf("project '%s' not found. no active projects available.", alias)
 		}
@@ -153,7 +157,7 @@ func (gc *GlobalCommands) handleSwitch(matches []string, fullCommand string) (*R
 }
 
 func (gc *GlobalCommands) handleSync(matches []string, fullCommand string) (*Result, error) {
-	err := gc.systemService.SyncNow()
+	err := gc.systemService.SyncNow(context.Background())
 	if err != nil {
 		errMsg := err.Error()
 		if strings.Contains(errMsg, "nothing to commit") {
@@ -185,7 +189,7 @@ func (gc *GlobalCommands) handleSync(matches []string, fullCommand string) (*Res
 }
 
 func (gc *GlobalCommands) handleQuit(matches []string, fullCommand string) (*Result, error) {
-	gc.systemService.Quit()
+	gc.systemService.Quit(context.Background())
 	return &Result{
 		Success: true,
 		Message: "Quitting application...",

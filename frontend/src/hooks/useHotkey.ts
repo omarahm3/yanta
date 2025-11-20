@@ -29,7 +29,15 @@ export const useHotkey = (config: HotkeyConfig) => {
 				unregister(hotkeyIdRef.current);
 			}
 		};
-	}, [config.key, config.allowInInput, config.capture, config.priority]);
+	}, [
+		config.key,
+		config.allowInInput,
+		config.capture,
+		config.priority,
+		config.description,
+		register,
+		unregister,
+	]);
 };
 
 export const useHotkeys = (configs: HotkeyConfig[]) => {
@@ -57,11 +65,6 @@ export const useHotkeys = (configs: HotkeyConfig[]) => {
 		return () => {
 			hotkeyIdsRef.current.forEach((id) => unregister(id));
 		};
-	}, [
-		configs.length,
-		configs.map((c) => c.key).join(","),
-		configs.map((c) => c.allowInInput ?? false).join(","),
-		configs.map((c) => c.capture ?? false).join(","),
-		configs.map((c) => c.priority ?? 0).join(","),
-	]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [configs, register, unregister]);
 };

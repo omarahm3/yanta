@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
 	"yanta/internal/logger"
 )
 
@@ -53,7 +54,12 @@ func (p *Parser) Register(pattern string, handler HandlerFunc) error {
 
 	regex, err := regexp.Compile(pattern)
 	if err != nil {
-		logger.Errorf("failed to compile regex pattern context=%s pattern=%s error=%v", p.context, pattern, err)
+		logger.Errorf(
+			"failed to compile regex pattern context=%s pattern=%s error=%v",
+			p.context,
+			pattern,
+			err,
+		)
 		return fmt.Errorf("invalid pattern: %w", err)
 	}
 
@@ -63,7 +69,12 @@ func (p *Parser) Register(pattern string, handler HandlerFunc) error {
 		Handler: handler,
 	})
 
-	logger.Debugf("command handler registered successfully context=%s pattern=%s handlerCount=%d", p.context, pattern, len(p.handlers))
+	logger.Debugf(
+		"command handler registered successfully context=%s pattern=%s handlerCount=%d",
+		p.context,
+		pattern,
+		len(p.handlers),
+	)
 	return nil
 }
 
@@ -71,11 +82,20 @@ func (p *Parser) MustRegister(pattern string, handler HandlerFunc) {
 	logger.Debugf("must register command handler context=%s pattern=%s", p.context, pattern)
 
 	if err := p.Register(pattern, handler); err != nil {
-		logger.Errorf("must register failed, panicking context=%s pattern=%s error=%v", p.context, pattern, err)
+		logger.Errorf(
+			"must register failed, panicking context=%s pattern=%s error=%v",
+			p.context,
+			pattern,
+			err,
+		)
 		panic(err)
 	}
 
-	logger.Debugf("command handler must registered successfully context=%s pattern=%s", p.context, pattern)
+	logger.Debugf(
+		"command handler must registered successfully context=%s pattern=%s",
+		p.context,
+		pattern,
+	)
 }
 
 func (p *Parser) Parse(command string) (*Result, error) {
@@ -92,15 +112,30 @@ func (p *Parser) Parse(command string) (*Result, error) {
 		}, nil
 	}
 
-	logger.Debugf("searching for matching handler context=%s handlerCount=%d", p.context, len(p.handlers))
+	logger.Debugf(
+		"searching for matching handler context=%s handlerCount=%d",
+		p.context,
+		len(p.handlers),
+	)
 	for i, h := range p.handlers {
 		matches := h.Pattern.FindStringSubmatch(trimmedCommand)
 		if matches != nil {
-			logger.Debugf("found matching handler context=%s handlerIndex=%d pattern=%s matches=%v", p.context, i, h.Pattern.String(), matches)
+			logger.Debugf(
+				"found matching handler context=%s handlerIndex=%d pattern=%s matches=%v",
+				p.context,
+				i,
+				h.Pattern.String(),
+				matches,
+			)
 
 			result, err := h.Handler(matches, trimmedCommand)
 			if err != nil {
-				logger.Errorf("handler execution failed context=%s handlerIndex=%d error=%v", p.context, i, err)
+				logger.Errorf(
+					"handler execution failed context=%s handlerIndex=%d error=%v",
+					p.context,
+					i,
+					err,
+				)
 				return &Result{
 					Success: false,
 					Message: err.Error(),
@@ -110,7 +145,12 @@ func (p *Parser) Parse(command string) (*Result, error) {
 
 			if result != nil {
 				result.Context = p.context
-				logger.Debugf("handler executed successfully context=%s success=%t message=%s", p.context, result.Success, result.Message)
+				logger.Debugf(
+					"handler executed successfully context=%s success=%t message=%s",
+					p.context,
+					result.Success,
+					result.Message,
+				)
 			} else {
 				logger.Warnf("handler returned nil result context=%s handlerIndex=%d", p.context, i)
 			}
@@ -122,7 +162,10 @@ func (p *Parser) Parse(command string) (*Result, error) {
 	logger.Warnf("no matching handler found context=%s command=%s", p.context, trimmedCommand)
 	return &Result{
 		Success: false,
-		Message: fmt.Sprintf("unknown command: %s. type 'help' for available commands.", trimmedCommand),
+		Message: fmt.Sprintf(
+			"unknown command: %s. type 'help' for available commands.",
+			trimmedCommand,
+		),
 		Context: p.context,
 	}, nil
 }

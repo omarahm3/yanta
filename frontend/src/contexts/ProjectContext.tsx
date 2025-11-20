@@ -1,7 +1,7 @@
+import { Events } from "@wailsio/runtime";
 import type React from "react";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
-import { ListActive, ListArchived } from "../../wailsjs/go/project/Service";
-import { EventsOn } from "../../wailsjs/runtime/runtime";
+import { ListActive, ListArchived } from "../../bindings/yanta/internal/project/service";
 import { type Project, projectsFromModels } from "../types";
 
 interface ProjectContextValue {
@@ -61,8 +61,8 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
 	}, [loadProjects]);
 
 	useEffect(() => {
-		const unsubscribe = EventsOn("yanta/project/changed", (data: { id: string; op: string }) => {
-			console.log("Project changed event received:", data);
+		const unsubscribe = Events.On("yanta/project/changed", (ev) => {
+			console.log("Project changed event received:", ev.data);
 			loadProjects();
 		});
 

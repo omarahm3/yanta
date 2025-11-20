@@ -19,20 +19,6 @@ const (
 	DocumentCommandTags      DocumentCommand = "tags"
 )
 
-var AllDocumentCommands = []struct {
-	Value  DocumentCommand
-	TSName string
-}{
-	{DocumentCommandNew, "New"},
-	{DocumentCommandDoc, "Doc"},
-	{DocumentCommandArchive, "Archive"},
-	{DocumentCommandUnarchive, "Unarchive"},
-	{DocumentCommandDelete, "Delete"},
-	{DocumentCommandTag, "Tag"},
-	{DocumentCommandUntag, "Untag"},
-	{DocumentCommandTags, "Tags"},
-}
-
 type DocumentResultData struct {
 	DocumentPath         string   `json:"documentPath,omitempty"`
 	Title                string   `json:"title,omitempty"`
@@ -49,22 +35,21 @@ type DocumentResult struct {
 }
 
 type DocumentService interface {
-	SoftDelete(path string) error
-	Restore(path string) error
-	HardDelete(path string) error
-	HardDeleteBatch(paths []string) error
+	SoftDelete(ctx context.Context, path string) error
+	Restore(ctx context.Context, path string) error
+	HardDelete(ctx context.Context, path string) error
+	HardDeleteBatch(ctx context.Context, paths []string) error
 }
 
 type TagService interface {
-	AddTagsToDocument(docPath string, tagNames []string) error
-	RemoveTagsFromDocument(docPath string, tagNames []string) error
-	RemoveAllDocumentTags(docPath string) error
-	GetDocumentTags(docPath string) ([]string, error)
+	AddTagsToDocument(ctx context.Context, docPath string, tagNames []string) error
+	RemoveTagsFromDocument(ctx context.Context, docPath string, tagNames []string) error
+	RemoveAllDocumentTags(ctx context.Context, docPath string) error
+	GetDocumentTags(ctx context.Context, docPath string) ([]string, error)
 }
 
 type DocumentCommands struct {
 	parser       *Parser
-	ctx          context.Context
 	docSvc       DocumentService
 	tagSvc       TagService
 	projectAlias string
@@ -74,7 +59,6 @@ type DocumentCommands struct {
 func NewDocumentCommands(docSvc DocumentService, tagSvc TagService) *DocumentCommands {
 	dc := &DocumentCommands{
 		parser: New(ContextEntry),
-		ctx:    context.Background(),
 		docSvc: docSvc,
 		tagSvc: tagSvc,
 	}
@@ -83,15 +67,27 @@ func NewDocumentCommands(docSvc DocumentService, tagSvc TagService) *DocumentCom
 	return dc
 }
 
-func (dc *DocumentCommands) SetContext(ctx context.Context) {
-	dc.ctx = ctx
-}
-
 func (dc *DocumentCommands) SetCurrentDocument(path string) {
 	dc.currentPath = path
 }
 
-func (dc *DocumentCommands) ParseWithContext(cmd string, projectAlias string) (*DocumentResult, error) {
+func (dc *DocumentCommands) GetAllCommands() []DocumentCommand {
+	return []DocumentCommand{
+		DocumentCommandNew,
+		DocumentCommandDoc,
+		DocumentCommandArchive,
+		DocumentCommandUnarchive,
+		DocumentCommandDelete,
+		DocumentCommandTag,
+		DocumentCommandUntag,
+		DocumentCommandTags,
+	}
+}
+
+func (dc *DocumentCommands) ParseWithContext(
+	cmd string,
+	projectAlias string,
+) (*DocumentResult, error) {
 	dc.projectAlias = projectAlias
 	defer func() { dc.projectAlias = "" }()
 
@@ -129,12 +125,30 @@ func (dc *DocumentCommands) Parse(cmd string) (*DocumentResult, error) {
 func (dc *DocumentCommands) registerCommands() {
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandNew), `(?:\s+(.+))?$`), dc.handleNew)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandDoc), `\s+(.+)$`), dc.handleDoc)
-	dc.parser.MustRegister(formatCommand(string(DocumentCommandArchive), `\s+(.+)\s+--force$`), dc.handleArchiveForce)
-	dc.parser.MustRegister(formatCommand(string(DocumentCommandArchive), `\s+(.+)$`), dc.handleArchive)
-	dc.parser.MustRegister(formatCommand(string(DocumentCommandUnarchive), `(?:\s+(.+))?$`), dc.handleUnarchive)
-	dc.parser.MustRegister(formatCommand(string(DocumentCommandDelete), `\s+(.+?)(?:\s+--(force|hard))+$`), dc.handleDeleteWithFlags)
-	dc.parser.MustRegister(formatCommand(string(DocumentCommandDelete), `\s+(.+)\s+--force$`), dc.handleDeleteForce)
-	dc.parser.MustRegister(formatCommand(string(DocumentCommandDelete), `\s+(.+)$`), dc.handleDelete)
+	dc.parser.MustRegister(
+		formatCommand(string(DocumentCommandArchive), `\s+(.+)\s+--force$`),
+		dc.handleArchiveForce,
+	)
+	dc.parser.MustRegister(
+		formatCommand(string(DocumentCommandArchive), `\s+(.+)$`),
+		dc.handleArchive,
+	)
+	dc.parser.MustRegister(
+		formatCommand(string(DocumentCommandUnarchive), `(?:\s+(.+))?$`),
+		dc.handleUnarchive,
+	)
+	dc.parser.MustRegister(
+		formatCommand(string(DocumentCommandDelete), `\s+(.+?)(?:\s+--(force|hard))+$`),
+		dc.handleDeleteWithFlags,
+	)
+	dc.parser.MustRegister(
+		formatCommand(string(DocumentCommandDelete), `\s+(.+)\s+--force$`),
+		dc.handleDeleteForce,
+	)
+	dc.parser.MustRegister(
+		formatCommand(string(DocumentCommandDelete), `\s+(.+)$`),
+		dc.handleDelete,
+	)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandTag), `\s+(.+)$`), dc.handleTag)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandUntag), `\s+(.+)$`), dc.handleUntag)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandTags), `$`), dc.handleTags)
@@ -230,7 +244,10 @@ func (dc *DocumentCommands) handleArchive(matches []string, fullCommand string) 
 	}, nil
 }
 
-func (dc *DocumentCommands) handleArchiveForce(matches []string, fullCommand string) (*Result, error) {
+func (dc *DocumentCommands) handleArchiveForce(
+	matches []string,
+	fullCommand string,
+) (*Result, error) {
 	pathsInput := strings.TrimSpace(matches[1])
 	if pathsInput == "" {
 		return &Result{
@@ -260,7 +277,7 @@ func (dc *DocumentCommands) handleArchiveForce(matches []string, fullCommand str
 	}
 
 	for _, path := range paths {
-		if err := dc.docSvc.SoftDelete(path); err != nil {
+		if err := dc.docSvc.SoftDelete(context.Background(), path); err != nil {
 			return &Result{
 				Success: false,
 				Message: fmt.Sprintf("failed to archive document %s: %v", path, err),
@@ -296,7 +313,7 @@ func (dc *DocumentCommands) handleUnarchive(matches []string, fullCommand string
 		}
 	}
 
-	if err := dc.docSvc.Restore(path); err != nil {
+	if err := dc.docSvc.Restore(context.Background(), path); err != nil {
 		return &Result{
 			Success: false,
 			Message: fmt.Sprintf("failed to unarchive document: %v", err),
@@ -356,7 +373,10 @@ func (dc *DocumentCommands) handleDelete(matches []string, fullCommand string) (
 	}, nil
 }
 
-func (dc *DocumentCommands) handleDeleteForce(matches []string, fullCommand string) (*Result, error) {
+func (dc *DocumentCommands) handleDeleteForce(
+	matches []string,
+	fullCommand string,
+) (*Result, error) {
 	pathsInput := strings.TrimSpace(matches[1])
 	if pathsInput == "" {
 		return &Result{
@@ -386,7 +406,7 @@ func (dc *DocumentCommands) handleDeleteForce(matches []string, fullCommand stri
 	}
 
 	for _, path := range paths {
-		if err := dc.docSvc.SoftDelete(path); err != nil {
+		if err := dc.docSvc.SoftDelete(context.Background(), path); err != nil {
 			return &Result{
 				Success: false,
 				Message: fmt.Sprintf("failed to delete document %s: %v", path, err),
@@ -408,7 +428,10 @@ func (dc *DocumentCommands) handleDeleteForce(matches []string, fullCommand stri
 	}, nil
 }
 
-func (dc *DocumentCommands) handleDeleteWithFlags(matches []string, fullCommand string) (*Result, error) {
+func (dc *DocumentCommands) handleDeleteWithFlags(
+	matches []string,
+	fullCommand string,
+) (*Result, error) {
 	pathsInput := strings.TrimSpace(matches[1])
 	if pathsInput == "" {
 		return &Result{
@@ -441,7 +464,7 @@ func (dc *DocumentCommands) handleDeleteWithFlags(matches []string, fullCommand 
 
 	if hasHard {
 		if len(paths) == 1 {
-			if err := dc.docSvc.HardDelete(paths[0]); err != nil {
+			if err := dc.docSvc.HardDelete(context.Background(), paths[0]); err != nil {
 				return &Result{
 					Success: false,
 					Message: fmt.Sprintf("failed to permanently delete document: %v", err),
@@ -453,7 +476,7 @@ func (dc *DocumentCommands) handleDeleteWithFlags(matches []string, fullCommand 
 			}, nil
 		}
 
-		if err := dc.docSvc.HardDeleteBatch(paths); err != nil {
+		if err := dc.docSvc.HardDeleteBatch(context.Background(), paths); err != nil {
 			return &Result{
 				Success: false,
 				Message: fmt.Sprintf("failed to permanently delete documents: %v", err),
@@ -468,7 +491,7 @@ func (dc *DocumentCommands) handleDeleteWithFlags(matches []string, fullCommand 
 	}
 
 	if len(paths) == 1 {
-		if err := dc.docSvc.SoftDelete(paths[0]); err != nil {
+		if err := dc.docSvc.SoftDelete(context.Background(), paths[0]); err != nil {
 			return &Result{
 				Success: false,
 				Message: fmt.Sprintf("failed to delete document: %v", err),
@@ -481,7 +504,7 @@ func (dc *DocumentCommands) handleDeleteWithFlags(matches []string, fullCommand 
 	}
 
 	for _, path := range paths {
-		if err := dc.docSvc.SoftDelete(path); err != nil {
+		if err := dc.docSvc.SoftDelete(context.Background(), path); err != nil {
 			return &Result{
 				Success: false,
 				Message: fmt.Sprintf("failed to delete document %s: %v", path, err),
@@ -533,7 +556,7 @@ func (dc *DocumentCommands) handleTag(matches []string, fullCommand string) (*Re
 		}, nil
 	}
 
-	if err := dc.tagSvc.AddTagsToDocument(dc.currentPath, tagNames); err != nil {
+	if err := dc.tagSvc.AddTagsToDocument(context.Background(), dc.currentPath, tagNames); err != nil {
 		return &Result{
 			Success: false,
 			Message: fmt.Sprintf("failed to add tags: %v", err),
@@ -564,7 +587,7 @@ func (dc *DocumentCommands) handleUntag(matches []string, fullCommand string) (*
 	}
 
 	if tagsInput == "*" || tagsInput == "all" {
-		if err := dc.tagSvc.RemoveAllDocumentTags(dc.currentPath); err != nil {
+		if err := dc.tagSvc.RemoveAllDocumentTags(context.Background(), dc.currentPath); err != nil {
 			return &Result{
 				Success: false,
 				Message: fmt.Sprintf("failed to remove all tags: %v", err),
@@ -598,7 +621,7 @@ func (dc *DocumentCommands) handleUntag(matches []string, fullCommand string) (*
 		}, nil
 	}
 
-	if err := dc.tagSvc.RemoveTagsFromDocument(dc.currentPath, tagNames); err != nil {
+	if err := dc.tagSvc.RemoveTagsFromDocument(context.Background(), dc.currentPath, tagNames); err != nil {
 		return &Result{
 			Success: false,
 			Message: fmt.Sprintf("failed to remove tags: %v", err),
@@ -620,7 +643,7 @@ func (dc *DocumentCommands) handleTags(matches []string, fullCommand string) (*R
 		}, nil
 	}
 
-	tags, err := dc.tagSvc.GetDocumentTags(dc.currentPath)
+	tags, err := dc.tagSvc.GetDocumentTags(context.Background(), dc.currentPath)
 	if err != nil {
 		return &Result{
 			Success: false,

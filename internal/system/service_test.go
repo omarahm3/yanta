@@ -1,10 +1,10 @@
 package system
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
+	"yanta/internal/events"
 	"yanta/internal/git"
 
 	"github.com/stretchr/testify/assert"
@@ -12,50 +12,50 @@ import (
 
 func TestSetShutdownHandler(t *testing.T) {
 	t.Run("sets shutdown handler successfully", func(t *testing.T) {
-		service := NewService(nil)
+		service := NewService(nil, events.NewEventBus())
 
 		called := false
-		handler := func(ctx context.Context) {
+		handler := func() {
 			called = true
 		}
 
 		service.SetShutdownHandler(handler)
 		assert.NotNil(t, service.shutdownHandler)
 
-		service.shutdownHandler(context.Background())
+		service.shutdownHandler()
 		assert.True(t, called, "shutdown handler should have been called")
 	})
 
 	t.Run("shutdown handler can be updated", func(t *testing.T) {
-		service := NewService(nil)
+		service := NewService(nil, events.NewEventBus())
 
 		firstCallCount := 0
-		firstHandler := func(ctx context.Context) {
+		firstHandler := func() {
 			firstCallCount++
 		}
 
 		secondCallCount := 0
-		secondHandler := func(ctx context.Context) {
+		secondHandler := func() {
 			secondCallCount++
 		}
 
 		service.SetShutdownHandler(firstHandler)
-		service.shutdownHandler(context.Background())
+		service.shutdownHandler()
 		assert.Equal(t, 1, firstCallCount)
 
 		service.SetShutdownHandler(secondHandler)
-		service.shutdownHandler(context.Background())
+		service.shutdownHandler()
 		assert.Equal(t, 1, firstCallCount, "first handler should not be called again")
 		assert.Equal(t, 1, secondCallCount, "second handler should be called")
 	})
 
 	t.Run("nil shutdown handler is safe", func(t *testing.T) {
-		service := NewService(nil)
+		service := NewService(nil, events.NewEventBus())
 		assert.Nil(t, service.shutdownHandler)
 
 		assert.NotPanics(t, func() {
 			if service.shutdownHandler != nil {
-				service.shutdownHandler(context.Background())
+				service.shutdownHandler()
 			}
 		})
 	})
@@ -63,32 +63,29 @@ func TestSetShutdownHandler(t *testing.T) {
 
 func TestMigrateToGitDirectory_ShutdownHandler(t *testing.T) {
 	t.Run("shutdown handler is called when set", func(t *testing.T) {
-		service := NewService(nil)
+		service := NewService(nil, events.NewEventBus())
 
 		shutdownCalled := false
-		var shutdownCtx context.Context
 
-		service.SetShutdownHandler(func(ctx context.Context) {
+		service.SetShutdownHandler(func() {
 			shutdownCalled = true
-			shutdownCtx = ctx
 		})
 
 		assert.NotNil(t, service.shutdownHandler)
 
-		service.shutdownHandler(context.Background())
+		service.shutdownHandler()
 
 		assert.True(t, shutdownCalled)
-		assert.NotNil(t, shutdownCtx)
 	})
 
 	t.Run("nil shutdown handler does not cause panic", func(t *testing.T) {
-		service := NewService(nil)
+		service := NewService(nil, events.NewEventBus())
 
 		assert.Nil(t, service.shutdownHandler)
 
 		assert.NotPanics(t, func() {
 			if service.shutdownHandler != nil {
-				service.shutdownHandler(context.Background())
+				service.shutdownHandler()
 			}
 		})
 	})

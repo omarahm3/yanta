@@ -1,8 +1,9 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { search, tag } from "../../wailsjs/go/models";
-import { Query } from "../../wailsjs/go/search/Service";
-import { ListActive as ListActiveTags } from "../../wailsjs/go/tag/Service";
+import type * as searchModels from "../../bindings/yanta/internal/search/models";
+import { Query } from "../../bindings/yanta/internal/search/service";
+import type * as tagModels from "../../bindings/yanta/internal/tag/models";
+import { ListActive as ListActiveTags } from "../../bindings/yanta/internal/tag/service";
 import { Layout } from "../components/Layout";
 import { Input } from "../components/ui";
 import { useProjectContext } from "../contexts";
@@ -36,7 +37,7 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 	const [searchError, setSearchError] = useState<string | null>(null);
 	const [queryTime, setQueryTime] = useState<number>(0);
 
-	const { success, error: notifyError, info } = useNotification();
+	const { error: notifyError } = useNotification();
 	const { projects, setCurrentProject } = useProjectContext();
 
 	const [availableTags, setAvailableTags] = useState<string[]>([]);
@@ -51,8 +52,11 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 	useEffect(() => {
 		const loadTags = async () => {
 			try {
-				const tagModels = await ListActiveTags();
-				const tagNames = tagModels.map((t: tag.Tag) => t.name).slice(0, 10);
+				const tags = await ListActiveTags();
+				const tagNames = tags
+					.filter((t): t is tagModels.Tag => t !== null)
+					.map((t) => t.name)
+					.slice(0, 10);
 				setAvailableTags(tagNames);
 			} catch (err) {
 				console.error("Failed to load tags:", err);
@@ -94,12 +98,14 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 
 				if (searchResults && Array.isArray(searchResults)) {
 					setResults(
-						searchResults.map((r: search.Result) => ({
-							path: r.id,
-							title: r.title,
-							snippet: r.snippet,
-							updated: r.updated,
-						})),
+						searchResults
+							.filter((r): r is searchModels.Result => r !== null)
+							.map((r) => ({
+								path: r.id,
+								title: r.title,
+								snippet: r.snippet,
+								updated: r.updated,
+							})),
 					);
 					setSelectedIndex(0);
 				} else {
@@ -279,7 +285,7 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 					<div className="flex items-center gap-3 mb-3">
 						<span className="text-base text-accent">/</span>
 						<Input
-							ref={searchInputRef as any}
+							ref={searchInputRef}
 							variant="default"
 							placeholder="Search entries... (try: project:alias, tag:name, title:text, -exclude, AND, OR)"
 							value={rawQuery}
@@ -370,7 +376,6 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 									<div
 										key={r.path}
 										data-result-item="true"
-										tabIndex={0}
 										className={`relative p-4 bg-surface border border-border rounded transition cursor-pointer ${
 											idx === selectedIndex ? "border-accent ring-1 ring-accent/30" : "hover:border-accent/50"
 										}`}

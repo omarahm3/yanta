@@ -1,5 +1,5 @@
 import type React from "react";
-import { type ReactNode, useCallback, useRef, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { useProjectContext, useTitleBarContext } from "../contexts";
 import { useGlobalCommand, useHotkeys } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
@@ -27,7 +27,7 @@ export interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({
-	sidebarTitle,
+	sidebarTitle: _sidebarTitle,
 	sidebarSections,
 	sidebarContent,
 	breadcrumb,
@@ -80,61 +80,70 @@ export const Layout: React.FC<LayoutProps> = ({
 		[executeGlobalCommand, onCommandSubmit, onCommandChange, success, error, commandInputRef],
 	);
 
-	useHotkeys([
-		{
-			key: "ctrl+b",
-			handler: () => {
-				setSidebarVisible((prev) => !prev);
+	const sidebarToggleHotkeys = useMemo(
+		() => [
+			{
+				key: "ctrl+b",
+				handler: () => {
+					setSidebarVisible((prev) => !prev);
+				},
+				allowInInput: false,
+				description: "Toggle sidebar",
 			},
-			allowInInput: false,
-			description: "Toggle sidebar",
-		},
-		{
-			key: "mod+e",
-			handler: () => {
-				setSidebarVisible((prev) => !prev);
+			{
+				key: "mod+e",
+				handler: () => {
+					setSidebarVisible((prev) => !prev);
+				},
+				allowInInput: false,
+				description: "Toggle sidebar",
 			},
-			allowInInput: false,
-			description: "Toggle sidebar",
-		},
-	]);
-
-	useHotkeys(
-		showCommandLine
-			? [
-					{
-						key: "shift+;",
-						handler: () => {
-							if (commandInputRef.current) {
-								commandInputRef.current.focus();
-							}
-						},
-						allowInInput: false,
-						description: "Focus command line",
-					},
-					{
-						key: "Escape",
-						handler: (event: KeyboardEvent) => {
-							const target = event.target as HTMLElement;
-							if (target === commandInputRef.current) {
-								event.preventDefault();
-								event.stopPropagation();
-								commandInputRef.current?.blur();
-								if (onCommandChange) {
-									onCommandChange("");
-								}
-								return true;
-							}
-							return false;
-						},
-						allowInInput: true,
-						priority: 100,
-						description: "Exit command line",
-						capture: true,
-					},
-				]
-			: [],
+		],
+		[],
 	);
+
+	useHotkeys(sidebarToggleHotkeys);
+
+	const commandLineHotkeys = useMemo(
+		() =>
+			showCommandLine
+				? [
+						{
+							key: "shift+;",
+							handler: () => {
+								if (commandInputRef.current) {
+									commandInputRef.current.focus();
+								}
+							},
+							allowInInput: false,
+							description: "Focus command line",
+						},
+						{
+							key: "Escape",
+							handler: (event: KeyboardEvent) => {
+								const target = event.target as HTMLElement;
+								if (target === commandInputRef.current) {
+									event.preventDefault();
+									event.stopPropagation();
+									commandInputRef.current?.blur();
+									if (onCommandChange) {
+										onCommandChange("");
+									}
+									return true;
+								}
+								return false;
+							},
+							allowInInput: true,
+							priority: 100,
+							description: "Exit command line",
+							capture: true,
+						},
+					]
+				: [],
+		[showCommandLine, commandInputRef, onCommandChange],
+	);
+
+	useHotkeys(commandLineHotkeys);
 
 	return (
 		<div
@@ -143,9 +152,8 @@ export const Layout: React.FC<LayoutProps> = ({
 			className="flex overflow-hidden font-mono text-sm leading-relaxed bg-bg text-text"
 			style={{ height: `calc(100vh - ${heightInRem}rem)` }}
 		>
-			{sidebarVisible && (
-				<>{sidebarContent ? <>{sidebarContent}</> : <UISidebar sections={sidebarSections || []} />}</>
-			)}
+			{sidebarVisible &&
+				(sidebarContent ? sidebarContent : <UISidebar sections={sidebarSections || []} />)}
 
 			<div className="flex flex-col flex-1 overflow-hidden">
 				<HeaderBar

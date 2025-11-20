@@ -151,8 +151,7 @@ export function formatGitErrorMessage(parsed: ParsedGitError): string {
 	let message = `${parsed.title}\n\n${parsed.message}`;
 
 	if (parsed.suggestions.length > 0) {
-		message +=
-			"\n\n📝 Suggestions:\n" + parsed.suggestions.map((s, i) => `${i + 1}. ${s}`).join("\n");
+		message += `\n\n📝 Suggestions:\n${parsed.suggestions.map((s, i) => `${i + 1}. ${s}`).join("\n")}`;
 	}
 
 	message += `\n\n🔧 Technical Details:\n${parsed.technicalDetails}`;

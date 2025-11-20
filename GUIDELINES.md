@@ -129,6 +129,65 @@ Backend (Go) → Wails Models → Converters → Frontend Types → UI
 - Step-by-step operations
 - Standard patterns
 
+## Development Environment
+
+### Required Toolchain
+
+The following versions are required for development and **must** match CI/CD:
+
+- **Go:** 1.24+ (toolchain: go1.24.10)
+- **Node.js:** 20.x
+- **Wails:** v3.0.0-alpha.40+ (`wails3` command)
+
+### Initial Setup
+
+**Quick start with Makefile:**
+
+```bash
+# Complete setup (installs tools, generates bindings)
+make setup
+
+# Or manually:
+make install-tools  # Install wails3 + npm dependencies
+make bindings       # Generate TypeScript bindings
+make build          # Build frontend + backend
+```
+
+**Manual installation:**
+
+```bash
+# Install Wails v3 CLI
+go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+
+# Install frontend dependencies
+cd frontend && npm ci
+
+# Generate TypeScript bindings from Go services
+wails3 generate bindings
+
+# Build frontend for development
+npm run build
+```
+
+### Pre-Commit Checklist
+
+Before committing code, ensure:
+
+1. **Bindings are up-to-date:** Run `wails3 generate bindings` after modifying Go services
+2. **Frontend builds:** Run `cd frontend && npm run build`
+3. **Tests pass:** Run `go test ./...`
+4. **No linting errors:** Frontend uses Biome for linting
+
+**Automated pre-commit hook:**
+
+```bash
+# Install git hook to auto-generate bindings
+make install-hooks
+
+# Or run pre-commit checks manually
+make pre-commit
+```
+
 ## Development Workflows
 
 ### Adding a Backend Feature
@@ -136,9 +195,114 @@ Backend (Go) → Wails Models → Converters → Frontend Types → UI
 1. **Create/modify domain types** in `internal/{domain}/{domain}.go`
 2. **Add database operations** in `internal/{domain}/store.go`
 3. **Add business logic** in `internal/{domain}/service.go` (if needed)
+   - Services receive `eventBus *events.EventBus` in constructor (for emitting events)
+   - Use `s.eventBus.Emit(eventName, payload)` to send events to frontend
 4. **Expose to frontend** in `internal/app/bindings.go`
-5. **Regenerate bindings**: `wails dev`
+5. **Regenerate bindings**: `wails3 generate bindings` (or `make bindings`)
 6. **Add frontend type converters** in `frontend/src/types/{Domain}.ts`
+
+### Wails v3 Service Pattern (EventBus)
+
+**Pattern**: Services use EventBus for emitting events (clean dependency injection).
+
+```go
+type Service struct {
+    db       *sql.DB
+    eventBus *events.EventBus
+}
+
+func NewService(db *sql.DB, eventBus *events.EventBus) *Service {
+    return &Service{
+        db:       db,
+        eventBus: eventBus,
+    }
+}
+
+func (s *Service) emitEvent(name string, data any) {
+    if s.eventBus != nil {
+        s.eventBus.Emit(name, data)
+    }
+}
+```
+
+**Why EventBus?**
+- Solves circular dependency (services need app, app needs services)
+- EventBus created before services, passed in constructor
+- Connected to Wails app after creation
+- Events emitted before connection are buffered
+
+**❌ Don't**: Use setter methods like `SetApp()` or `SetContext()` (v2 anti-pattern)
+**✅ Do**: Pass EventBus in service constructor (v3 clean DI)
+
+### Wails v3 Context Pattern
+
+**Pattern**: Accept `context.Context` as FIRST parameter of exported methods (v3 requirement).
+
+```go
+func (s *Service) GetProject(ctx context.Context, id string) (*Project, error) {
+    return s.store.Get(ctx, id)
+}
+
+func (s *Service) CreateDocument(ctx context.Context, req SaveRequest) error {
+    tx, err := s.db.BeginTx(ctx, nil)
+    if err != nil {
+        return err
+    }
+    defer tx.Rollback()
+
+    if err := s.store.CreateTx(ctx, tx, &doc); err != nil {
+        return err
+    }
+
+    return tx.Commit()
+}
+```
+
+**Why context.Context as parameter?**
+- Runtime provides context automatically when called from frontend
+- Enables cancellation from frontend (long-running operations)
+- Provides window information via `ctx.Value(application.WindowKey)`
+- Clean pattern - no stored state, just pass-through
+
+**❌ Don't**: Store context as field or use `SetContext()` method
+**✅ Do**: Accept `ctx context.Context` as first parameter in all exported methods
+
+### Wails v3 Enum Auto-Export
+
+**Pattern**: Go enums are automatically exported to TypeScript (no manual binding needed).
+
+```go
+type CommandContext string
+
+const (
+    ContextProject CommandContext = "project"
+    ContextEntry   CommandContext = "entry"
+    ContextGlobal  CommandContext = "global"
+)
+
+type Result struct {
+    Context CommandContext `json:"context"`
+}
+```
+
+**Auto-Generated TypeScript** (in `frontend/bindings/`):
+```typescript
+export const CommandContext = {
+    $zero: "",
+    ContextProject: "project",
+    ContextEntry: "entry",
+    ContextGlobal: "global",
+};
+```
+
+**How it works:**
+- Wails v3 automatically detects Go string-based enums
+- Exports them when used in service methods or struct fields
+- Generates TypeScript const objects with type safety
+- Includes `$zero` for the Go zero value
+
+**❌ Don't**: Use `BindEnums()` method (v2 anti-pattern, not needed in v3)
+**✅ Do**: Just use enums in your service methods - they're exported automatically
 
 ### Adding a Frontend Feature
 

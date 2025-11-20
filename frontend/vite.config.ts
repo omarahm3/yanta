@@ -16,6 +16,11 @@ export default defineConfig({
     }),
   ],
 
+  server: {
+    port: Number(process.env.WAILS_VITE_PORT) || 9245,
+    strictPort: true,
+  },
+
   build: {
     target: "es2020",
     minify: "terser",

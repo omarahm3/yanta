@@ -25,14 +25,14 @@ vi.mock("../contexts", async () => {
 	};
 });
 
-vi.mock("../../wailsjs/go/search/Service", () => ({
+vi.mock("../../bindings/yanta/internal/search/service", () => ({
 	Query: vi.fn(async () => [
 		{ id: "alpha/doc1", title: "Doc1", snippet: "Snippet 1", updated: "2025" },
 		{ id: "alpha/doc2", title: "Doc2", snippet: "Snippet 2", updated: "2025" },
 	]),
 }));
 
-vi.mock("../../wailsjs/go/tag/Service", () => ({
+vi.mock("../../bindings/yanta/internal/tag/service", () => ({
 	ListActive: vi.fn(async () => [{ name: "t1" }]),
 }));
 
@@ -40,7 +40,7 @@ vi.mock("../components/Layout", () => ({
 	Layout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
-import { Query } from "../../wailsjs/go/search/Service";
+import { Query } from "../../bindings/yanta/internal/search/service";
 
 describe("Search hotkeys", () => {
 	beforeEach(() => {

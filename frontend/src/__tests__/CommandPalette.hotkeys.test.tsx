@@ -1,5 +1,4 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import React from "react";
 import { vi } from "vitest";
 import { type CommandOption, CommandPalette } from "../components/ui/CommandPalette";
 
@@ -33,7 +32,7 @@ describe("CommandPalette hotkeys", () => {
 	beforeEach(() => {
 		onClose.mockClear();
 		onCommandSelect.mockClear();
-		mockCommands.forEach((cmd) => (cmd.action as any).mockClear());
+		mockCommands.forEach((cmd) => vi.mocked(cmd.action).mockClear());
 	});
 
 	it("closes with Escape", async () => {

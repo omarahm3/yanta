@@ -16,7 +16,7 @@ import { useProjectContext } from "../../contexts";
 import { uploadFile } from "../../utils/assetUpload";
 import "../../styles/blocknote-dark.css";
 import "../../extensions/rtl/rtl.css";
-import { BrowserOpenURL, Environment } from "../../../wailsjs/runtime/runtime";
+import { Browser, System } from "@wailsio/runtime";
 import { RTLExtension } from "../../extensions/rtl";
 import { cn } from "../../lib/utils";
 import type { BlockNoteBlock } from "../../types/Document";
@@ -105,11 +105,9 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 
 			const ensureImageAccept = async () => {
 				try {
-					const env = await Environment();
+					const isLinuxPlatform = System.IsLinux();
 					if (cancelled) return;
 
-					const platform = env?.platform?.toLowerCase?.() ?? "";
-					const isLinuxPlatform = platform.includes("linux");
 					setIsLinux(isLinuxPlatform);
 					if (!isLinuxPlatform) {
 						return;
@@ -220,9 +218,9 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 			[ref],
 		);
 
-		const openLinkExternally = React.useCallback((url: string) => {
+		const openLinkExternally = React.useCallback(async (url: string) => {
 			try {
-				BrowserOpenURL(url);
+				await Browser.OpenURL(url);
 			} catch (_err) {
 				window.open(url, "_blank", "noopener,noreferrer");
 			}

@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { TitleBar } from "../TitleBar";
 import { TitleBarProvider } from "../../contexts";
+import { TitleBar } from "../TitleBar";
 
 const mockEnvironment = vi.fn();
 const mockQuit = vi.fn();
@@ -15,10 +15,19 @@ const renderWithProvider = () =>
 		</TitleBarProvider>,
 	);
 
+interface MockWindow extends Window {
+	runtime: {
+		Environment: typeof mockEnvironment;
+		Quit: typeof mockQuit;
+		WindowMinimise: typeof mockWindowMinimise;
+		WindowToggleMaximise: typeof mockWindowToggleMaximise;
+	};
+}
+
 describe("TitleBar", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		(window as any).runtime = {
+		(window as unknown as MockWindow).runtime = {
 			Environment: mockEnvironment,
 			Quit: mockQuit,
 			WindowMinimise: mockWindowMinimise,

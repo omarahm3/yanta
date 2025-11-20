@@ -1,0 +1,52 @@
+version: '3'
+
+tasks:
+  ensure:wails:
+    summary: Ensure the wails3 CLI is installed
+    internal: true
+    cmds:
+      - |
+        if ! command -v wails3 >/dev/null 2>&1; then
+          echo "wails3 CLI not found. Install it with 'go install github.com/wailsapp/wails/v3/cmd/wails3@latest'." >&2
+          exit 1
+        fi
+
+  generate:bindings:
+    summary: Generate TypeScript bindings from Go services
+    deps:
+      - ensure:wails
+    cmds:
+      - |
+          if [ "${SKIP_WAILS_BINDINGS:-0}" = "1" ]; then
+            echo "Skipping binding generation (SKIP_WAILS_BINDINGS=1)"
+          else
+            GO_CACHE_DIR="${GO_CACHE_DIR:-.gocache}"
+            case "$GO_CACHE_DIR" in
+              /*) ;;
+              *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;;
+            esac
+            mkdir -p "$GO_CACHE_DIR"
+            GOCACHE="$GO_CACHE_DIR" GOFLAGS="" wails3 generate bindings -clean=true -ts
+          fi
+
+  dev:frontend:
+    summary: Run the frontend dev server (Vite)
+    dir: frontend
+    cmds:
+      - WAILS_VITE_PORT={{.WAILS_VITE_PORT | default "9245"}} npm run dev
+
+  wails:build:
+    summary: Run wails3 build with optional platform/flags
+    deps:
+      - ensure:wails
+    vars:
+      PLATFORM: '{{.PLATFORM | default ""}}'
+      EXTRA_FLAGS: '{{.EXTRA_FLAGS | default ""}}'
+    cmds:
+      - |
+        set -euo pipefail
+        if [ -n "{{.EXTRA_FLAGS}}" ]; then
+          wails3 build {{.EXTRA_FLAGS}}
+        else
+          wails3 build
+        fi

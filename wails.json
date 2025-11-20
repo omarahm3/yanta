@@ -14,7 +14,7 @@
     "companyName": "Omar Ahmed",
     "productName": "YANTA",
     "productVersion": "1.0.0",
-    "copyright": "Copyright © 2024-2025 Omar Ahmed",
+    "copyright": "Copyright (c) 2024-2025 Omar Ahmed",
     "comments": "Yet Another Note Taking App - A lightning-fast note-taking app for developers, inspired by Neovim"
   },
   "build:flags": "-devtools",

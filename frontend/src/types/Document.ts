@@ -1,4 +1,4 @@
-import type { document } from "../../wailsjs/go/models";
+import type * as documentModels from "../../bindings/yanta/internal/document/models";
 
 type BlockNoteStyleValue = boolean | string | number;
 
@@ -55,7 +55,7 @@ export interface SaveDocumentRequest {
 	tags: string[];
 }
 
-export function documentFromModel(model: document.Document): Document {
+export function documentFromModel(model: documentModels.Document): Document {
 	return {
 		path: model.path,
 		projectAlias: model.project_alias,
@@ -71,7 +71,12 @@ export function documentFromModel(model: document.Document): Document {
 	};
 }
 
-export function documentWithTagsFromModel(model: document.DocumentWithTags): DocumentWithTags {
+export function documentWithTagsFromModel(
+	model: documentModels.DocumentWithTags | null,
+): DocumentWithTags {
+	if (!model) {
+		throw new Error("Document model is null");
+	}
 	const blocks = model.File?.blocks || [];
 	const tags = model.Tags || [];
 
@@ -91,8 +96,8 @@ export function documentWithTagsFromModel(model: document.DocumentWithTags): Doc
 	};
 }
 
-export function documentsFromModels(models: document.Document[]): Document[] {
-	return models.map(documentFromModel);
+export function documentsFromModels(models: (documentModels.Document | null)[]): Document[] {
+	return models.filter((m): m is documentModels.Document => m !== null).map(documentFromModel);
 }
 
 export function documentToSaveRequest(

@@ -64,6 +64,7 @@ func (v *Vault) AssetsPath(projectAlias string) string {
 }
 
 func (v *Vault) DocumentPath(relativePath string) (string, error) {
+	relativePath = NormalizeDocumentPath(relativePath)
 	if err := ValidateDocumentPath(relativePath); err != nil {
 		return "", err
 	}
@@ -81,7 +82,7 @@ func (v *Vault) RelativePath(absolutePath string) (string, error) {
 		return "", fmt.Errorf("path escapes vault: %s", absolutePath)
 	}
 
-	return rel, nil
+	return filepath.ToSlash(rel), nil
 }
 
 func (v *Vault) ensureRootExists() error {

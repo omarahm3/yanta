@@ -13,8 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
-
 func TestIntegration_FullDocumentLifecycle(t *testing.T) {
 	env := setupTestEnv(t)
 	defer env.cleanup()

@@ -1,4 +1,4 @@
-import type { system } from "../../wailsjs/go/models";
+import type * as systemModels from "../../bindings/yanta/internal/system/models";
 
 export interface AppInfo {
 	version: string;
@@ -22,7 +22,7 @@ export interface SystemInfo {
 	database: DatabaseInfo;
 }
 
-export function systemInfoFromModel(model: system.SystemInfo): SystemInfo {
+export function systemInfoFromModel(model: systemModels.SystemInfo): SystemInfo {
 	return {
 		app: {
 			version: model.app.version,

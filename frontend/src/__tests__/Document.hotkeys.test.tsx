@@ -9,14 +9,19 @@ const mockHandleEscape = vi.fn();
 const mockHandleUnfocus = vi.fn();
 const mockEditorFocus = vi.fn();
 
-const mockEditor = {
+interface MockEditor {
+	isFocused: () => boolean;
+	focus: typeof mockEditorFocus;
+}
+
+const mockEditor: MockEditor = {
 	isFocused: () => false,
 	focus: mockEditorFocus,
-} as any;
+};
 
 vi.mock("../components/document", () => ({
 	__esModule: true,
-	DocumentContent: (props: any) => {
+	DocumentContent: (props: { onEditorReady?: (editor: MockEditor) => void }) => {
 		props.onEditorReady?.(mockEditor);
 		return <div data-testid="document-content" />;
 	},
@@ -63,7 +68,7 @@ vi.mock("../hooks/useDocumentPersistence", () => ({
 	useDocumentPersistence: () => ({
 		autoSave: {
 			saveNow: mockSaveNow,
-			hasUnsavedChanges: true,
+			hasUnsavedChanges: false,
 			saveState: "idle",
 			lastSaved: null,
 			saveError: null,
@@ -126,6 +131,7 @@ const renderDocument = async () => {
 	render(
 		<DialogProvider>
 			<HotkeyProvider>
+				{/* biome-ignore lint/suspicious/noAssignInExpressions: Test callback pattern */}
 				<HotkeyProbe onReady={(ctx) => (context = ctx)} />
 				<Document onNavigate={vi.fn()} initialTitle="Sample" />
 			</HotkeyProvider>
@@ -136,6 +142,7 @@ const renderDocument = async () => {
 		expect(context).not.toBeNull();
 	});
 
+	// biome-ignore lint/style/noNonNullAssertion: Test utility function ensures non-null
 	return context!;
 };
 
@@ -154,7 +161,7 @@ describe("Document hotkeys", () => {
 		expect(hotkey).toBeDefined();
 
 		await act(async () => {
-			hotkey!.handler(new KeyboardEvent("keydown", { key: "s", ctrlKey: true, code: "KeyS" }));
+			hotkey?.handler(new KeyboardEvent("keydown", { key: "s", ctrlKey: true, code: "KeyS" }));
 		});
 
 		await waitFor(() => expect(mockSaveNow).toHaveBeenCalledTimes(1));
@@ -167,7 +174,7 @@ describe("Document hotkeys", () => {
 		expect(hotkey).toBeDefined();
 
 		await act(async () => {
-			hotkey!.handler(new KeyboardEvent("keydown", { key: "Escape", code: "Escape" }));
+			hotkey?.handler(new KeyboardEvent("keydown", { key: "Escape", code: "Escape" }));
 		});
 
 		await waitFor(() => expect(mockHandleEscape).toHaveBeenCalledTimes(1));
@@ -180,7 +187,7 @@ describe("Document hotkeys", () => {
 		expect(hotkey).toBeDefined();
 
 		await act(async () => {
-			hotkey!.handler(new KeyboardEvent("keydown", { key: "c", ctrlKey: true, code: "KeyC" }));
+			hotkey?.handler(new KeyboardEvent("keydown", { key: "c", ctrlKey: true, code: "KeyC" }));
 		});
 
 		await waitFor(() => expect(mockHandleUnfocus).toHaveBeenCalledTimes(1));
@@ -193,7 +200,7 @@ describe("Document hotkeys", () => {
 		expect(hotkey).toBeDefined();
 
 		await act(async () => {
-			hotkey!.handler(new KeyboardEvent("keydown", { key: "Enter", code: "Enter" }));
+			hotkey?.handler(new KeyboardEvent("keydown", { key: "Enter", code: "Enter" }));
 		});
 
 		await waitFor(() => expect(mockEditorFocus).toHaveBeenCalledTimes(1));

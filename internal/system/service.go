@@ -8,13 +8,14 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
+
 	"yanta/internal/config"
+	"yanta/internal/events"
 	"yanta/internal/git"
 	"yanta/internal/logger"
 	"yanta/internal/migration"
-
-	"github.com/sirupsen/logrus"
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 var (
@@ -26,14 +27,15 @@ var (
 type Service struct {
 	db              *sql.DB
 	dbPath          string
-	ctx             context.Context
-	shutdownHandler func(context.Context)
+	eventBus        *events.EventBus
+	shutdownHandler func()
 }
 
-func NewService(db *sql.DB) *Service {
+func NewService(db *sql.DB, eventBus *events.EventBus) *Service {
 	return &Service{
-		db:     db,
-		dbPath: "",
+		db:       db,
+		dbPath:   "",
+		eventBus: eventBus,
 	}
 }
 
@@ -41,11 +43,7 @@ func (s *Service) SetDBPath(path string) {
 	s.dbPath = path
 }
 
-func (s *Service) SetContext(ctx context.Context) {
-	s.ctx = ctx
-}
-
-func (s *Service) SetShutdownHandler(handler func(context.Context)) {
+func (s *Service) SetShutdownHandler(handler func()) {
 	s.shutdownHandler = handler
 }
 
@@ -71,7 +69,7 @@ type SystemInfo struct {
 	Database DatabaseInfo `json:"database"`
 }
 
-func (s *Service) GetSystemInfo() (*SystemInfo, error) {
+func (s *Service) GetSystemInfo(ctx context.Context) (*SystemInfo, error) {
 	logger.Info("getting system information")
 
 	appInfo := AppInfo{
@@ -149,8 +147,12 @@ func formatBytes(bytes int64) string {
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
 
-// LogFromFrontend allows frontend to write logs to the backend log file
-func (s *Service) LogFromFrontend(level string, message string, data map[string]any) {
+func (s *Service) LogFromFrontend(
+	ctx context.Context,
+	level string,
+	message string,
+	data map[string]any,
+) {
 	fields := logger.Log.WithFields(data)
 
 	switch level {
@@ -167,7 +169,7 @@ func (s *Service) LogFromFrontend(level string, message string, data map[string]
 	}
 }
 
-func (s *Service) SetLogLevel(level string) error {
+func (s *Service) SetLogLevel(ctx context.Context, level string) error {
 	if err := config.SetLogLevel(level); err != nil {
 		return err
 	}
@@ -179,11 +181,11 @@ func (s *Service) SetLogLevel(level string) error {
 	return nil
 }
 
-func (s *Service) GetKeepInBackground() bool {
+func (s *Service) GetKeepInBackground(ctx context.Context) bool {
 	return config.GetKeepInBackground()
 }
 
-func (s *Service) SetKeepInBackground(keep bool) error {
+func (s *Service) SetKeepInBackground(ctx context.Context, keep bool) error {
 	if err := config.SetKeepInBackground(keep); err != nil {
 		logger.Errorf("failed to set keep_in_background: %v", err)
 		return err
@@ -193,23 +195,24 @@ func (s *Service) SetKeepInBackground(keep bool) error {
 	return nil
 }
 
-func (s *Service) ShowWindow() {
-	if s.ctx == nil {
-		logger.Warn("ShowWindow called but context is nil")
+func (s *Service) ShowWindow(ctx context.Context) {
+	window := s.eventBus.GetWindow()
+	if window == nil {
+		logger.Warn("ShowWindow called but window is nil")
 		return
 	}
 
 	logger.Info("Showing window...")
-	wailsRuntime.WindowShow(s.ctx)
-	wailsRuntime.WindowUnminimise(s.ctx)
+	window.Show()
+	window.Restore()
 	logger.Info("Window shown and unminimized")
 }
 
-func (s *Service) GetStartHidden() bool {
+func (s *Service) GetStartHidden(ctx context.Context) bool {
 	return config.GetStartHidden()
 }
 
-func (s *Service) SetStartHidden(hidden bool) error {
+func (s *Service) SetStartHidden(ctx context.Context, hidden bool) error {
 	if err := config.SetStartHidden(hidden); err != nil {
 		logger.Errorf("failed to set start_hidden: %v", err)
 		return err
@@ -219,23 +222,26 @@ func (s *Service) SetStartHidden(hidden bool) error {
 	return nil
 }
 
-func (s *Service) CheckGitInstalled() (bool, error) {
+func (s *Service) CheckGitInstalled(ctx context.Context) (bool, error) {
 	gitService := git.NewService()
 	return gitService.CheckInstalled()
 }
 
-func (s *Service) GetCurrentDataDirectory() string {
+func (s *Service) GetCurrentDataDirectory(ctx context.Context) string {
 	return config.GetDataDirectory()
 }
 
-func (s *Service) OpenDirectoryDialog() (string, error) {
-	if s.ctx == nil {
-		return "", fmt.Errorf("context not set")
+func (s *Service) OpenDirectoryDialog(ctx context.Context) (string, error) {
+	app := s.eventBus.GetApp()
+	if app == nil {
+		return "", fmt.Errorf("app not available")
 	}
 
-	selection, err := wailsRuntime.OpenDirectoryDialog(s.ctx, wailsRuntime.OpenDialogOptions{
-		Title: "Select Git Directory",
-	})
+	selection, err := app.Dialog.OpenFile().
+		CanChooseDirectories(true).
+		CanChooseFiles(false).
+		SetTitle("Select Git Directory").
+		PromptForSingleSelection()
 	if err != nil {
 		logger.Errorf("failed to open directory dialog: %v", err)
 		return "", err
@@ -244,13 +250,13 @@ func (s *Service) OpenDirectoryDialog() (string, error) {
 	return selection, nil
 }
 
-func (s *Service) ValidateMigrationTarget(targetPath string) error {
+func (s *Service) ValidateMigrationTarget(ctx context.Context, targetPath string) error {
 	gitService := git.NewService()
 	migrationService := migration.NewService(s.db, gitService)
 	return migrationService.ValidateTargetDirectory(targetPath)
 }
 
-func (s *Service) MigrateToGitDirectory(targetPath string) error {
+func (s *Service) MigrateToGitDirectory(ctx context.Context, targetPath string) error {
 	logger.Infof("starting migration to %s", targetPath)
 
 	gitService := git.NewService()
@@ -268,7 +274,7 @@ func (s *Service) MigrateToGitDirectory(targetPath string) error {
 
 		if s.shutdownHandler != nil {
 			logger.Info("calling shutdown handler for cleanup")
-			s.shutdownHandler(context.Background())
+			s.shutdownHandler()
 		}
 
 		logger.Info("forcing app exit after migration (ignoring background mode)")
@@ -278,15 +284,15 @@ func (s *Service) MigrateToGitDirectory(targetPath string) error {
 	return nil
 }
 
-func (s *Service) GetGitSyncConfig() config.GitSyncConfig {
+func (s *Service) GetGitSyncConfig(ctx context.Context) config.GitSyncConfig {
 	return config.GetGitSyncConfig()
 }
 
-func (s *Service) SetGitSyncConfig(cfg config.GitSyncConfig) error {
+func (s *Service) SetGitSyncConfig(ctx context.Context, cfg config.GitSyncConfig) error {
 	return config.SetGitSyncConfig(cfg)
 }
 
-func (s *Service) SyncNow() error {
+func (s *Service) SyncNow(ctx context.Context) error {
 	gitCfg := config.GetGitSyncConfig()
 	if !gitCfg.Enabled {
 		return fmt.Errorf("git sync is not enabled. Enable it in Settings")
@@ -302,7 +308,10 @@ func (s *Service) SyncNow() error {
 		return fmt.Errorf("failed to check git repository:\n%w\n\nDirectory: %s", err, dataDir)
 	}
 	if !isRepo {
-		return fmt.Errorf("not a git repository\n\nDirectory: %s\nHint: Migrate your data to a git directory first (Settings → Git Sync)", dataDir)
+		return fmt.Errorf(
+			"not a git repository\n\nDirectory: %s\nHint: Migrate your data to a git directory first (Settings → Git Sync)",
+			dataDir,
+		)
 	}
 
 	logger.Debug("staging changes with git add -A")
@@ -323,7 +332,10 @@ func (s *Service) SyncNow() error {
 	if gitCfg.AutoPush {
 		logger.Info("pushing to remote")
 		if err := gitService.Push(dataDir, "origin", "master"); err != nil {
-			return fmt.Errorf("failed to push to remote:\n%w\n\nBranch: master\nHint: Check network connection and authentication", err)
+			return fmt.Errorf(
+				"failed to push to remote:\n%w\n\nBranch: master\nHint: Check network connection and authentication",
+				err,
+			)
 		}
 	}
 
@@ -331,7 +343,7 @@ func (s *Service) SyncNow() error {
 	return nil
 }
 
-func (s *Service) GetGitStatus() (map[string]any, error) {
+func (s *Service) GetGitStatus(ctx context.Context) (map[string]any, error) {
 	gitCfg := config.GetGitSyncConfig()
 	if !gitCfg.Enabled {
 		return map[string]any{
@@ -356,10 +368,12 @@ func (s *Service) GetGitStatus() (map[string]any, error) {
 	}, nil
 }
 
-func (s *Service) GitPush() error {
+func (s *Service) GitPush(ctx context.Context) error {
 	gitCfg := config.GetGitSyncConfig()
 	if !gitCfg.Enabled {
-		return fmt.Errorf("GIT_NOT_ENABLED:\nGit sync is not enabled.\n\nGo to Settings → Git Sync and enable it first.")
+		return fmt.Errorf(
+			"GIT_NOT_ENABLED:\nGit sync is not enabled.\n\nGo to Settings → Git Sync and enable it first.",
+		)
 	}
 
 	dataDir := config.GetDataDirectory()
@@ -369,20 +383,33 @@ func (s *Service) GitPush() error {
 
 	isRepo, err := gitService.IsRepository(dataDir)
 	if err != nil {
-		return fmt.Errorf("REPO_CHECK_FAILED:\nFailed to check git repository: %v\n\nDirectory: %s", err, dataDir)
+		return fmt.Errorf(
+			"REPO_CHECK_FAILED:\nFailed to check git repository: %v\n\nDirectory: %s",
+			err,
+			dataDir,
+		)
 	}
 	if !isRepo {
-		return fmt.Errorf("NOT_A_REPO:\nNot a git repository.\n\nDirectory: %s\n\nMigrate your data to a git directory first (Settings → Git Sync)", dataDir)
+		return fmt.Errorf(
+			"NOT_A_REPO:\nNot a git repository.\n\nDirectory: %s\n\nMigrate your data to a git directory first (Settings → Git Sync)",
+			dataDir,
+		)
 	}
 
 	logger.Info("pushing to remote")
 	if err := gitService.Push(dataDir, "origin", "master"); err != nil {
 		errMsg := err.Error()
 		if strings.Contains(errMsg, "rejected") && strings.Contains(errMsg, "non-fast-forward") {
-			return fmt.Errorf("PUSH_REJECTED:\n%v\n\n⚠️ Your local commits are behind the remote.\n\nYou need to pull first:\n1. Run 'Git Pull' to fetch and merge remote changes\n2. Resolve any conflicts if they occur\n3. Then push again", err)
+			return fmt.Errorf(
+				"PUSH_REJECTED:\n%v\n\n⚠️ Your local commits are behind the remote.\n\nYou need to pull first:\n1. Run 'Git Pull' to fetch and merge remote changes\n2. Resolve any conflicts if they occur\n3. Then push again",
+				err,
+			)
 		}
 		if strings.Contains(errMsg, "failed to push") || strings.Contains(errMsg, "Connection") {
-			return fmt.Errorf("PUSH_FAILED:\n%v\n\nBranch: master\n\nPossible causes:\n- Network connectivity issues\n- Authentication problems (check SSH keys or credentials)\n- Remote repository doesn't exist or is unreachable", err)
+			return fmt.Errorf(
+				"PUSH_FAILED:\n%v\n\nBranch: master\n\nPossible causes:\n- Network connectivity issues\n- Authentication problems (check SSH keys or credentials)\n- Remote repository doesn't exist or is unreachable",
+				err,
+			)
 		}
 		return err
 	}
@@ -391,10 +418,12 @@ func (s *Service) GitPush() error {
 	return nil
 }
 
-func (s *Service) GitPull() error {
+func (s *Service) GitPull(ctx context.Context) error {
 	gitCfg := config.GetGitSyncConfig()
 	if !gitCfg.Enabled {
-		return fmt.Errorf("GIT_NOT_ENABLED:\nGit sync is not enabled.\n\nGo to Settings → Git Sync and enable it first.")
+		return fmt.Errorf(
+			"GIT_NOT_ENABLED:\nGit sync is not enabled.\n\nGo to Settings → Git Sync and enable it first.",
+		)
 	}
 
 	dataDir := config.GetDataDirectory()
@@ -404,10 +433,17 @@ func (s *Service) GitPull() error {
 
 	isRepo, err := gitService.IsRepository(dataDir)
 	if err != nil {
-		return fmt.Errorf("REPO_CHECK_FAILED:\nFailed to check git repository: %v\n\nDirectory: %s", err, dataDir)
+		return fmt.Errorf(
+			"REPO_CHECK_FAILED:\nFailed to check git repository: %v\n\nDirectory: %s",
+			err,
+			dataDir,
+		)
 	}
 	if !isRepo {
-		return fmt.Errorf("NOT_A_REPO:\nNot a git repository.\n\nDirectory: %s\n\nMigrate your data to a git directory first (Settings → Git Sync)", dataDir)
+		return fmt.Errorf(
+			"NOT_A_REPO:\nNot a git repository.\n\nDirectory: %s\n\nMigrate your data to a git directory first (Settings → Git Sync)",
+			dataDir,
+		)
 	}
 
 	logger.Info("pulling from remote")
@@ -419,19 +455,15 @@ func (s *Service) GitPull() error {
 	return nil
 }
 
-func (s *Service) Quit() {
-	if s.ctx == nil {
-		logger.Warn("Quit called but context is nil")
-		return
-	}
-
+func (s *Service) Quit(ctx context.Context) {
 	logger.Info("Quit requested from frontend")
-	wailsRuntime.Quit(s.ctx)
+	s.eventBus.Emit("app:quit", nil)
 }
 
-func (s *Service) BackgroundQuit() {
-	if s.ctx == nil {
-		logger.Warn("BackgroundQuit called but context is nil")
+func (s *Service) BackgroundQuit(ctx context.Context) {
+	window := s.eventBus.GetWindow()
+	if window == nil {
+		logger.Warn("BackgroundQuit called but window is nil")
 		return
 	}
 
@@ -440,20 +472,15 @@ func (s *Service) BackgroundQuit() {
 
 	if keepInBackground {
 		logger.Info("Hiding window (background mode enabled)")
-		wailsRuntime.WindowHide(s.ctx)
-		wailsRuntime.EventsEmit(s.ctx, "WindowHidden")
+		window.Hide()
+		s.eventBus.Emit("WindowHidden", nil)
 	} else {
 		logger.Info("Quitting application (background mode disabled)")
-		wailsRuntime.Quit(s.ctx)
+		s.eventBus.Emit("app:quit", nil)
 	}
 }
 
-func (s *Service) ForceQuit() {
-	if s.ctx == nil {
-		logger.Warn("ForceQuit called but context is nil")
-		return
-	}
-
+func (s *Service) ForceQuit(ctx context.Context) {
 	logger.Info("ForceQuit requested - quitting application regardless of background setting")
-	wailsRuntime.Quit(s.ctx)
+	s.eventBus.Emit("app:force-quit", nil)
 }

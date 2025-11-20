@@ -1,10 +1,11 @@
 import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Parse } from "../../wailsjs/go/commandline/ProjectCommands";
-import { commandline } from "../../wailsjs/go/models";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ProjectResult } from "../../bindings/yanta/internal/commandline/models";
+import { Parse } from "../../bindings/yanta/internal/commandline/projectcommands";
 import { Layout } from "../components/Layout";
 import { Table, type TableColumn, type TableRow } from "../components/ui";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { ProjectCommand } from "../constants";
 import { useProjectContext } from "../contexts";
 import { useHelp, useHotkeys } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
@@ -12,35 +13,33 @@ import { useSidebarSections } from "../hooks/useSidebarSections";
 import { type ExtendedProject, extendProject, type HelpCommand } from "../types";
 import { getProjectAliasColor } from "../utils/colorUtils";
 
-const { ProjectCommand } = commandline;
-
 const helpCommands: HelpCommand[] = [
 	{
-		command: `${ProjectCommand.New} [name] [alias] [start-date] [end-date]`,
+		command: `${ProjectCommand.ProjectCommandNew} [name] [alias] [start-date] [end-date]`,
 		description: "Create a new project (name: no spaces, dates: DD-MM-YYYY or YYYY-MM-DD)",
 	},
 	{
-		command: `${ProjectCommand.Archive} [alias]`,
+		command: `${ProjectCommand.ProjectCommandArchive} [alias]`,
 		description: "Archive a project",
 	},
 	{
-		command: `${ProjectCommand.Unarchive} [alias]`,
+		command: `${ProjectCommand.ProjectCommandUnarchive} [alias]`,
 		description: "Restore archived project",
 	},
 	{
-		command: `${ProjectCommand.Rename} [alias] [new-name]`,
+		command: `${ProjectCommand.ProjectCommandRename} [alias] [new-name]`,
 		description: "Rename a project",
 	},
 	{
-		command: `${ProjectCommand.Delete} [alias]`,
+		command: `${ProjectCommand.ProjectCommandDelete} [alias]`,
 		description: "Delete a project (safe - warns if has entries)",
 	},
 	{
-		command: `${ProjectCommand.Delete} [alias] --force`,
+		command: `${ProjectCommand.ProjectCommandDelete} [alias] --force`,
 		description: "Soft delete project and all entries (can be restored)",
 	},
 	{
-		command: `${ProjectCommand.Delete} [alias] --force --hard`,
+		command: `${ProjectCommand.ProjectCommandDelete} [alias] --force --hard`,
 		description: "PERMANENT deletion - removes ALL files from vault (⚠️ cannot be undone)",
 	},
 ];
@@ -176,7 +175,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 
 			const allProjects = [...projects, ...archivedProjects];
 
-			const applyResult = async (result: commandline.ProjectResult | undefined) => {
+			const applyResult = async (result: ProjectResult | undefined | null) => {
 				if (!result) return;
 
 				if (!result.success) {
@@ -228,6 +227,11 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 
 			try {
 				const preview = await Parse(normalized);
+
+				if (!preview) {
+					error("Command returned null");
+					return;
+				}
 
 				if (!preview.success) {
 					if (preview.message) {
@@ -314,7 +318,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 			const nextProject = allProjects[currentIndex + 1];
 			setSelectedProjectId(nextProject.id);
 		}
-	}, [setSelectedProjectId]);
+	}, []);
 
 	const selectPrevious = useCallback(() => {
 		const allProjects = [...projectsRef.current, ...archivedProjectsRef.current];
@@ -323,7 +327,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 			const prevProject = allProjects[currentIndex - 1];
 			setSelectedProjectId(prevProject.id);
 		}
-	}, [setSelectedProjectId]);
+	}, []);
 
 	const selectCurrentProject = useCallback(() => {
 		const allProjects = [...projectsRef.current, ...archivedProjectsRef.current];
@@ -334,7 +338,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 		}
 	}, [setCurrentProject, success]);
 
-	useHotkeys([
+	const projectHotkeys = useMemo(() => [
 		{
 			key: "j",
 			handler: selectNext,
@@ -442,7 +446,9 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 			allowInInput: false,
 			description: "Delete a project",
 		},
-	]);
+	], [selectNext, selectPrevious, selectCurrentProject, setCommandInput, commandInputRef, projectsRef, selectedProjectIdRef]);
+
+	useHotkeys(projectHotkeys);
 
 	const sidebarSections = useSidebarSections({
 		currentPage: "projects",

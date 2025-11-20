@@ -13,7 +13,7 @@ func TestProjectCommands_ArchiveRequiresConfirmation(t *testing.T) {
 	env := setupProjectCommandTest(t)
 	defer env.cleanup()
 
-	_, err := env.projectService.Create("Archive Test", "archtest", "", "")
+	_, err := env.projectService.Create(context.Background(), "Archive Test", "archtest", "", "")
 	require.NoError(t, err)
 
 	result, err := env.cmds.Parse("archive @archtest")
@@ -28,7 +28,13 @@ func TestProjectCommands_ArchiveForceBypassesConfirmation(t *testing.T) {
 	env := setupProjectCommandTest(t)
 	defer env.cleanup()
 
-	projectID, err := env.projectService.Create("Archive Force", "archforce", "", "")
+	projectID, err := env.projectService.Create(
+		context.Background(),
+		"Archive Force",
+		"archforce",
+		"",
+		"",
+	)
 	require.NoError(t, err)
 
 	result, err := env.cmds.Parse("archive @archforce --force")
@@ -38,7 +44,7 @@ func TestProjectCommands_ArchiveForceBypassesConfirmation(t *testing.T) {
 	require.False(t, result.Data.RequiresConfirmation)
 	require.Equal(t, []string{"--force"}, result.Data.Flags)
 
-	err = env.projectService.Restore(projectID)
+	err = env.projectService.Restore(context.Background(), projectID)
 	require.NoError(t, err)
 }
 
@@ -46,7 +52,13 @@ func TestProjectCommands_ArchiveShowsEntryCount(t *testing.T) {
 	env := setupProjectCommandTest(t)
 	defer env.cleanup()
 
-	_, err := env.projectService.Create("Archive Entries", "archentries", "", "")
+	_, err := env.projectService.Create(
+		context.Background(),
+		"Archive Entries",
+		"archentries",
+		"",
+		"",
+	)
 	require.NoError(t, err)
 
 	doc := document.New("projects/@archentries/doc-1.json", "@archentries", "Doc 1")

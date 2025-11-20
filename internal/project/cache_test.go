@@ -31,18 +31,7 @@ func TestNewCache(t *testing.T) {
 
 	assert.NotNil(t, cache, "Cache should not be nil")
 	assert.Equal(t, store, cache.store, "Store should be set correctly")
-	assert.NotNil(t, cache.ctx, "Context should be initialized")
 	// Note: We can't directly test sync.Map as it contains a mutex
-}
-
-func TestCache_SetContext(t *testing.T) {
-	cache, _, cleanup := setupCacheTest(t)
-	defer cleanup()
-
-	ctx := context.WithValue(context.Background(), "test", "value")
-	cache.SetContext(ctx)
-
-	assert.Equal(t, ctx, cache.ctx, "Context should be updated")
 }
 
 func TestCache_GetByID(t *testing.T) {
@@ -60,7 +49,7 @@ func TestCache_GetByID(t *testing.T) {
 
 	t.Run("get existing project from store", func(t *testing.T) {
 		// First call should hit the store
-		result, err := cache.GetByID(created.ID)
+		result, err := cache.GetByID(ctx, created.ID)
 		require.NoError(t, err, "GetByID() failed")
 		require.NotNil(t, result, "GetByID() returned nil project")
 
@@ -71,7 +60,7 @@ func TestCache_GetByID(t *testing.T) {
 
 	t.Run("get cached project", func(t *testing.T) {
 		// Second call should hit the cache
-		result, err := cache.GetByID(created.ID)
+		result, err := cache.GetByID(ctx, created.ID)
 		require.NoError(t, err, "GetByID() failed")
 		require.NotNil(t, result, "GetByID() returned nil project")
 
@@ -80,12 +69,12 @@ func TestCache_GetByID(t *testing.T) {
 	})
 
 	t.Run("get non-existent project", func(t *testing.T) {
-		_, err := cache.GetByID("non-existent-id")
+		_, err := cache.GetByID(ctx, "non-existent-id")
 		assert.Error(t, err, "GetByID() should have failed for non-existent project")
 	})
 
 	t.Run("get with empty ID", func(t *testing.T) {
-		_, err := cache.GetByID("")
+		_, err := cache.GetByID(ctx, "")
 		assert.Error(t, err, "GetByID() should have failed for empty ID")
 	})
 }
@@ -237,7 +226,7 @@ func TestCache_Get(t *testing.T) {
 
 	t.Run("get all projects from store", func(t *testing.T) {
 		ids := []string{created1.ID, created2.ID}
-		result, err := cache.Get(ids)
+		result, err := cache.Get(ctx, ids)
 		require.NoError(t, err, "Get() failed")
 		require.NotNil(t, result, "Get() returned nil result")
 
@@ -251,12 +240,12 @@ func TestCache_Get(t *testing.T) {
 	t.Run("get mixed cached and non-cached projects", func(t *testing.T) {
 		// First call should cache both projects
 		ids := []string{created1.ID, created2.ID}
-		result, err := cache.Get(ids)
+		result, err := cache.Get(ctx, ids)
 		require.NoError(t, err, "Get() failed")
 		assert.Len(t, result, 2, "Should return 2 projects")
 
 		// Second call should use cache for both
-		result2, err := cache.Get(ids)
+		result2, err := cache.Get(ctx, ids)
 		require.NoError(t, err, "Get() failed")
 		assert.Len(t, result2, 2, "Should return 2 projects")
 
@@ -267,19 +256,19 @@ func TestCache_Get(t *testing.T) {
 
 	t.Run("get non-existent projects", func(t *testing.T) {
 		ids := []string{"non-existent-1", "non-existent-2"}
-		_, err := cache.Get(ids)
+		_, err := cache.Get(ctx, ids)
 		assert.Error(t, err, "Get() should have failed for non-existent projects")
 	})
 
 	t.Run("get empty slice", func(t *testing.T) {
-		result, err := cache.Get([]string{})
+		result, err := cache.Get(ctx, []string{})
 		require.NoError(t, err, "Get() with empty slice should not fail")
 		assert.Len(t, result, 0, "Should return empty result for empty slice")
 	})
 
 	t.Run("get with duplicate IDs", func(t *testing.T) {
 		ids := []string{created1.ID, created1.ID, created2.ID}
-		result, err := cache.Get(ids)
+		result, err := cache.Get(ctx, ids)
 		require.NoError(t, err, "Get() failed")
 		assert.Len(t, result, 2, "Should return 2 unique projects")
 		assert.Contains(t, result, created1.ID, "Should contain project 1")
@@ -308,7 +297,7 @@ func TestCache_WarmUp(t *testing.T) {
 
 	t.Run("warm up existing projects", func(t *testing.T) {
 		ids := []string{created1.ID, created2.ID}
-		err := cache.WarmUp(ids)
+		err := cache.WarmUp(ctx, ids)
 		require.NoError(t, err, "WarmUp() failed")
 
 		// Verify projects are cached
@@ -320,19 +309,19 @@ func TestCache_WarmUp(t *testing.T) {
 
 	t.Run("warm up non-existent projects", func(t *testing.T) {
 		ids := []string{"non-existent-1", "non-existent-2"}
-		err := cache.WarmUp(ids)
+		err := cache.WarmUp(ctx, ids)
 		assert.Error(t, err, "WarmUp() should have failed for non-existent projects")
 		assert.Contains(t, err.Error(), "warming up project cache", "Error should mention cache warming")
 	})
 
 	t.Run("warm up mixed existing and non-existent projects", func(t *testing.T) {
 		ids := []string{created1.ID, "non-existent-id"}
-		err := cache.WarmUp(ids)
+		err := cache.WarmUp(ctx, ids)
 		assert.Error(t, err, "WarmUp() should have failed for mixed IDs")
 	})
 
 	t.Run("warm up empty slice", func(t *testing.T) {
-		err := cache.WarmUp([]string{})
+		err := cache.WarmUp(ctx, []string{})
 		require.NoError(t, err, "WarmUp() with empty slice should not fail")
 	})
 }
@@ -352,12 +341,12 @@ func TestCache_Integration(t *testing.T) {
 
 	t.Run("cache miss then hit", func(t *testing.T) {
 		// First call - cache miss
-		result1, err := cache.GetByID(created.ID)
+		result1, err := cache.GetByID(ctx, created.ID)
 		require.NoError(t, err, "GetByID() failed")
 		assert.Equal(t, created.ID, result1.ID, "Project ID mismatch")
 
 		// Second call - cache hit
-		result2, err := cache.GetByID(created.ID)
+		result2, err := cache.GetByID(ctx, created.ID)
 		require.NoError(t, err, "GetByID() failed")
 		assert.Equal(t, result1.ID, result2.ID, "Cached project should match")
 		assert.Equal(t, result1.Name, result2.Name, "Cached project name should match")
@@ -365,21 +354,21 @@ func TestCache_Integration(t *testing.T) {
 
 	t.Run("cache invalidation", func(t *testing.T) {
 		// Get project (should cache it)
-		_, err := cache.GetByID(created.ID)
+		_, err := cache.GetByID(ctx, created.ID)
 		require.NoError(t, err, "GetByID() failed")
 
 		// Invalidate cache
 		cache.Invalidate(created.ID)
 
 		// Get project again (should hit store again)
-		result, err := cache.GetByID(created.ID)
+		result, err := cache.GetByID(ctx, created.ID)
 		require.NoError(t, err, "GetByID() failed")
 		assert.Equal(t, created.ID, result.ID, "Project ID mismatch")
 	})
 
 	t.Run("cache update after store update", func(t *testing.T) {
 		// Get project (should cache it)
-		_, err := cache.GetByID(created.ID)
+		_, err := cache.GetByID(ctx, created.ID)
 		require.NoError(t, err, "GetByID() failed")
 
 		// Update project in store
@@ -391,7 +380,7 @@ func TestCache_Integration(t *testing.T) {
 		require.NoError(t, err, "Failed to update project in store")
 
 		// Cache should still have old data
-		cached, err := cache.GetByID(created.ID)
+		cached, err := cache.GetByID(ctx, created.ID)
 		require.NoError(t, err, "GetByID() failed")
 		assert.Equal(t, "Integration Test Project", cached.Name, "Cache should have old data")
 
@@ -399,7 +388,7 @@ func TestCache_Integration(t *testing.T) {
 		cache.Invalidate(created.ID)
 
 		// Now should get updated data
-		updated, err := cache.GetByID(created.ID)
+		updated, err := cache.GetByID(ctx, created.ID)
 		require.NoError(t, err, "GetByID() failed")
 		assert.Equal(t, "Updated Integration Project", updated.Name, "Should get updated data after invalidation")
 	})
@@ -433,7 +422,7 @@ func TestCache_ConcurrentAccess(t *testing.T) {
 		for i := 0; i < numGoroutines; i++ {
 			go func(i int) {
 				projectID := created[i%numProjects].ID
-				result, err := cache.GetByID(projectID)
+				result, err := cache.GetByID(ctx, projectID)
 				if err != nil {
 					errors <- err
 					return
@@ -469,7 +458,7 @@ func TestCache_ConcurrentAccess(t *testing.T) {
 				// Mix of Set and GetByID operations
 				if i%2 == 0 {
 					// GetByID operation
-					_, err := cache.GetByID(projectID)
+					_, err := cache.GetByID(ctx, projectID)
 					if err != nil {
 						t.Errorf("Concurrent GetByID failed: %v", err)
 					}
@@ -488,7 +477,7 @@ func TestCache_ConcurrentAccess(t *testing.T) {
 
 		// Verify cache is in consistent state
 		for i := 0; i < numProjects; i++ {
-			result, err := cache.GetByID(created[i].ID)
+			result, err := cache.GetByID(ctx, created[i].ID)
 			require.NoError(t, err, "GetByID failed for project %d", i)
 			assert.Equal(t, created[i].ID, result.ID, "Project %d ID mismatch", i)
 		}
@@ -500,7 +489,7 @@ func TestCache_ConcurrentAccess(t *testing.T) {
 
 		// Pre-populate cache
 		for i := 0; i < numProjects; i++ {
-			_, err := cache.GetByID(created[i].ID)
+			_, err := cache.GetByID(ctx, created[i].ID)
 			require.NoError(t, err, "Failed to pre-populate cache")
 		}
 
@@ -516,7 +505,7 @@ func TestCache_ConcurrentAccess(t *testing.T) {
 					cache.Invalidate(projectID)
 				} else {
 					// GetByID operation
-					_, err := cache.GetByID(projectID)
+					_, err := cache.GetByID(ctx, projectID)
 					if err != nil {
 						t.Errorf("Concurrent GetByID failed: %v", err)
 					}
@@ -531,7 +520,7 @@ func TestCache_ConcurrentAccess(t *testing.T) {
 
 		// Verify cache is in consistent state
 		for i := 0; i < numProjects; i++ {
-			result, err := cache.GetByID(created[i].ID)
+			result, err := cache.GetByID(ctx, created[i].ID)
 			require.NoError(t, err, "GetByID failed for project %d", i)
 			assert.Equal(t, created[i].ID, result.ID, "Project %d ID mismatch", i)
 		}
@@ -543,21 +532,19 @@ func TestCache_EdgeCases(t *testing.T) {
 	defer cleanup()
 
 	t.Run("get with context cancellation", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		cancelCtx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
-		cache.SetContext(ctx)
 
-		_, err := cache.GetByID("some-id")
+		_, err := cache.GetByID(cancelCtx, "some-id")
 		assert.Error(t, err, "GetByID with cancelled context should fail")
 	})
 
 	t.Run("get with timeout context", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
+		timeoutCtx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
 		defer cancel()
-		cache.SetContext(ctx)
 		time.Sleep(1 * time.Millisecond) // Ensure timeout
 
-		_, err := cache.GetByID("some-id")
+		_, err := cache.GetByID(timeoutCtx, "some-id")
 		assert.Error(t, err, "GetByID with timeout context should fail")
 	})
 
@@ -588,19 +575,21 @@ func TestCache_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("get with very long ID", func(t *testing.T) {
+		ctx := context.Background()
 		longID := string(make([]byte, 1000))
 		for i := range longID {
 			longID = longID[:i] + "a" + longID[i+1:]
 		}
 
-		_, err := cache.GetByID(longID)
+		_, err := cache.GetByID(ctx, longID)
 		assert.Error(t, err, "GetByID with very long ID should fail")
 	})
 
 	t.Run("warm up with duplicate IDs", func(t *testing.T) {
+		ctx := context.Background()
 		// This should not cause issues
 		ids := []string{"id1", "id1", "id2", "id2"}
-		err := cache.WarmUp(ids)
+		err := cache.WarmUp(ctx, ids)
 		assert.Error(t, err, "WarmUp with non-existent duplicate IDs should fail")
 	})
 }
@@ -609,38 +598,38 @@ func TestCache_ErrorHandling(t *testing.T) {
 	cache, _, cleanup := setupCacheTest(t)
 	defer cleanup()
 
+	ctx := context.Background()
+
 	t.Run("get with non-existent project", func(t *testing.T) {
-		_, err := cache.GetByID("non-existent-id")
+		_, err := cache.GetByID(ctx, "non-existent-id")
 		assert.Error(t, err, "GetByID with non-existent ID should fail")
 	})
 
 	t.Run("get multiple with non-existent projects", func(t *testing.T) {
-		_, err := cache.Get([]string{"non-existent-1", "non-existent-2"})
+		_, err := cache.Get(ctx, []string{"non-existent-1", "non-existent-2"})
 		assert.Error(t, err, "Get with non-existent IDs should fail")
 	})
 
 	t.Run("warm up with non-existent projects", func(t *testing.T) {
-		err := cache.WarmUp([]string{"non-existent-1", "non-existent-2"})
+		err := cache.WarmUp(ctx, []string{"non-existent-1", "non-existent-2"})
 		assert.Error(t, err, "WarmUp with non-existent IDs should fail")
 		assert.Contains(t, err.Error(), "warming up project cache", "Error should mention cache warming")
 	})
 
 	t.Run("get with context cancellation", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		cancelCtx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
-		cache.SetContext(ctx)
 
-		_, err := cache.GetByID("some-id")
+		_, err := cache.GetByID(cancelCtx, "some-id")
 		assert.Error(t, err, "GetByID with cancelled context should fail")
 	})
 
 	t.Run("get with timeout context", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
+		timeoutCtx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
 		defer cancel()
-		cache.SetContext(ctx)
 		time.Sleep(1 * time.Millisecond) // Ensure timeout
 
-		_, err := cache.GetByID("some-id")
+		_, err := cache.GetByID(timeoutCtx, "some-id")
 		assert.Error(t, err, "GetByID with timeout context should fail")
 	})
 }
@@ -660,7 +649,7 @@ func TestCache_Performance(t *testing.T) {
 
 	t.Run("cache hit performance", func(t *testing.T) {
 		// First call to populate cache
-		_, err := cache.GetByID(created.ID)
+		_, err := cache.GetByID(ctx, created.ID)
 		require.NoError(t, err, "GetByID failed")
 
 		// Measure cache hit performance
@@ -668,7 +657,7 @@ func TestCache_Performance(t *testing.T) {
 		const iterations = 1000
 
 		for i := 0; i < iterations; i++ {
-			_, err := cache.GetByID(created.ID)
+			_, err := cache.GetByID(ctx, created.ID)
 			require.NoError(t, err, "GetByID failed")
 		}
 
@@ -685,13 +674,13 @@ func TestCache_Performance(t *testing.T) {
 
 		// Measure cache miss
 		start := time.Now()
-		_, err := cache.GetByID(created.ID)
+		_, err := cache.GetByID(ctx, created.ID)
 		require.NoError(t, err, "GetByID failed")
 		missTime := time.Since(start)
 
 		// Measure cache hit
 		start = time.Now()
-		_, err = cache.GetByID(created.ID)
+		_, err = cache.GetByID(ctx, created.ID)
 		require.NoError(t, err, "GetByID failed")
 		hitTime := time.Since(start)
 

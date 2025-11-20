@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"yanta/internal/events"
 	"yanta/internal/testutil"
 	"yanta/internal/vault"
 
@@ -20,7 +21,7 @@ func setupServiceTest(t *testing.T) (*Service, func()) {
 	v, err := vault.New(vault.Config{RootPath: tempDir})
 	require.NoError(t, err, "Failed to create vault")
 
-	service := NewService(database, store, cache, v)
+	service := NewService(database, store, cache, v, events.NewEventBus())
 
 	cleanup := func() {
 		testutil.CleanupTestDB(t, database)
@@ -33,11 +34,11 @@ func TestService_Create(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	id, err := service.Create("Test Project", "test", "", "")
+	id, err := service.Create(context.Background(), "Test Project", "test", "", "")
 	require.NoError(t, err, "Create() failed")
 	require.NotEmpty(t, id, "Expected non-empty ID")
 
-	project, err := service.Get(id)
+	project, err := service.Get(context.Background(), id)
 	require.NoError(t, err, "Get() failed")
 	assert.Equal(t, "Test Project", project.Name)
 	assert.Equal(t, "@test", project.Alias)
@@ -47,7 +48,7 @@ func TestService_Create_EmptyName(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	_, err := service.Create("", "test", "", "")
+	_, err := service.Create(context.Background(), "", "test", "", "")
 	assert.Error(t, err, "Expected error for empty name")
 }
 
@@ -55,14 +56,14 @@ func TestService_Update(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	id, _ := service.Create("Original", "orig", "", "")
-	project, _ := service.Get(id)
+	id, _ := service.Create(context.Background(), "Original", "orig", "", "")
+	project, _ := service.Get(context.Background(), id)
 
 	project.Name = "Updated"
-	err := service.Update(project)
+	err := service.Update(context.Background(), project)
 	require.NoError(t, err, "Update() failed")
 
-	updated, _ := service.Get(id)
+	updated, _ := service.Get(context.Background(), id)
 	assert.Equal(t, "Updated", updated.Name)
 }
 
@@ -70,12 +71,12 @@ func TestService_SoftDelete(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	id, _ := service.Create("To Delete", "delete", "", "")
+	id, _ := service.Create(context.Background(), "To Delete", "delete", "", "")
 
-	err := service.SoftDelete(id)
+	err := service.SoftDelete(context.Background(), id)
 	require.NoError(t, err, "SoftDelete() failed")
 
-	projects, _ := service.ListActive()
+	projects, _ := service.ListActive(context.Background())
 	for _, p := range projects {
 		assert.NotEqual(t, id, p.ID, "Deleted project found in active list")
 	}
@@ -85,13 +86,13 @@ func TestService_Restore(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	id, _ := service.Create("To Restore", "restore", "", "")
-	service.SoftDelete(id)
+	id, _ := service.Create(context.Background(), "To Restore", "restore", "", "")
+	service.SoftDelete(context.Background(), id)
 
-	err := service.Restore(id)
+	err := service.Restore(context.Background(), id)
 	require.NoError(t, err, "Restore() failed")
 
-	projects, _ := service.ListActive()
+	projects, _ := service.ListActive(context.Background())
 	found := false
 	for _, p := range projects {
 		if p.ID == id {
@@ -105,12 +106,12 @@ func TestService_Delete_NoDocuments(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	id, _ := service.Create("To Hard Delete", "hard", "", "")
+	id, _ := service.Create(context.Background(), "To Hard Delete", "hard", "", "")
 
-	err := service.Delete(id)
+	err := service.Delete(context.Background(), id)
 	require.NoError(t, err, "Delete() failed")
 
-	_, err = service.Get(id)
+	_, err = service.Get(context.Background(), id)
 	assert.Error(t, err, "Expected error getting hard deleted project")
 }
 
@@ -118,12 +119,12 @@ func TestService_ListActive(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	service.Create("Active 1", "active1", "", "")
-	service.Create("Active 2", "active2", "", "")
-	archivedID, _ := service.Create("Archived", "archived", "", "2025-01-01")
-	service.SoftDelete(archivedID)
+	service.Create(context.Background(), "Active 1", "active1", "", "")
+	service.Create(context.Background(), "Active 2", "active2", "", "")
+	archivedID, _ := service.Create(context.Background(), "Archived", "archived", "", "2025-01-01")
+	service.SoftDelete(context.Background(), archivedID)
 
-	projects, err := service.ListActive()
+	projects, err := service.ListActive(context.Background())
 	require.NoError(t, err, "ListActive() failed")
 	assert.Equal(t, 2, len(projects), "Expected 2 active projects (archived excluded)")
 }
@@ -132,14 +133,14 @@ func TestService_ListArchived(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	activeID, _ := service.Create("Active", "active", "", "")
-	archivedID1, _ := service.Create("Archived 1", "arch1", "", "2025-01-01")
-	archivedID2, _ := service.Create("Archived 2", "arch2", "", "2025-01-02")
+	activeID, _ := service.Create(context.Background(), "Active", "active", "", "")
+	archivedID1, _ := service.Create(context.Background(), "Archived 1", "arch1", "", "2025-01-01")
+	archivedID2, _ := service.Create(context.Background(), "Archived 2", "arch2", "", "2025-01-02")
 
-	service.SoftDelete(archivedID1)
-	service.SoftDelete(archivedID2)
+	service.SoftDelete(context.Background(), archivedID1)
+	service.SoftDelete(context.Background(), archivedID2)
 
-	projects, err := service.ListArchived()
+	projects, err := service.ListArchived(context.Background())
 	require.NoError(t, err, "ListArchived() failed")
 	assert.Equal(t, 2, len(projects), "Expected 2 archived projects")
 
@@ -161,27 +162,17 @@ func TestService_GetCache(t *testing.T) {
 	assert.NotNil(t, cache, "GetCache() returned nil")
 }
 
-func TestService_SetContext(t *testing.T) {
-	service, cleanup := setupServiceTest(t)
-	defer cleanup()
-
-	ctx := context.WithValue(context.Background(), "test", "value")
-	service.SetContext(ctx)
-
-	assert.Equal(t, ctx, service.ctx, "Context not set correctly")
-}
-
 func TestService_DocumentCounts(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	id, _ := service.Create("Test Project", "test", "", "")
+	id, _ := service.Create(context.Background(), "Test Project", "test", "", "")
 
-	counts, err := service.GetAllDocumentCounts()
+	counts, err := service.GetAllDocumentCounts(context.Background())
 	require.NoError(t, err, "GetAllDocumentCounts() failed")
 	assert.Equal(t, 0, counts[id], "Expected 0 documents for new project")
 
-	err = service.UpdateDocumentCount(id)
+	err = service.UpdateDocumentCount(context.Background(), id)
 	require.NoError(t, err, "UpdateDocumentCount() failed")
 
 	cachedCount := service.cache.GetDocumentCount(id)
@@ -192,9 +183,9 @@ func TestService_LastDocumentDates(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	service.Create("Test Project", "test", "", "")
+	service.Create(context.Background(), "Test Project", "test", "", "")
 
-	dates, err := service.GetAllLastDocumentDates()
+	dates, err := service.GetAllLastDocumentDates(context.Background())
 	require.NoError(t, err, "GetAllLastDocumentDates() failed")
 	assert.NotNil(t, dates, "Expected non-nil dates map")
 }
@@ -203,12 +194,12 @@ func TestService_HardDelete(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	id, _ := service.Create("To Hard Delete", "hard", "", "")
+	id, _ := service.Create(context.Background(), "To Hard Delete", "hard", "", "")
 
-	err := service.HardDelete(id)
+	err := service.HardDelete(context.Background(), id)
 	require.NoError(t, err, "HardDelete() failed")
 
-	_, err = service.Get(id)
+	_, err = service.Get(context.Background(), id)
 	assert.Error(t, err, "Expected error getting hard deleted project")
 }
 
@@ -216,7 +207,7 @@ func TestService_HardDelete_EmptyID(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	err := service.HardDelete("")
+	err := service.HardDelete(context.Background(), "")
 	assert.Error(t, err, "Expected error for empty ID")
 }
 
@@ -224,6 +215,6 @@ func TestService_HardDelete_NonExistent(t *testing.T) {
 	service, cleanup := setupServiceTest(t)
 	defer cleanup()
 
-	err := service.HardDelete("non-existent-id")
+	err := service.HardDelete(context.Background(), "non-existent-id")
 	assert.Error(t, err, "Expected error for non-existent project")
 }

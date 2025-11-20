@@ -47,7 +47,17 @@ vi.mock("../contexts", async () => {
 });
 
 vi.mock("../components/Layout", () => {
-	const Layout = ({ children, commandInputRef, commandValue, onCommandChange }: any) => (
+	const Layout = ({
+		children,
+		commandInputRef,
+		commandValue,
+		onCommandChange,
+	}: {
+		children: React.ReactNode;
+		commandInputRef?: React.RefObject<HTMLInputElement>;
+		commandValue?: string;
+		onCommandChange?: (value: string) => void;
+	}) => (
 		<div>
 			<input
 				data-testid="command-input"
@@ -91,18 +101,21 @@ describe("Projects hotkeys", () => {
 		render(
 			<DialogProvider>
 				<HotkeyProvider>
+					{/* biome-ignore lint/suspicious/noAssignInExpressions: Test callback pattern */}
 					<HotkeyProbe onReady={(value) => (ctx = value)} />
 					<Projects />
 				</HotkeyProvider>
 			</DialogProvider>,
 		);
 		await waitFor(() => expect(ctx).not.toBeNull());
+		// biome-ignore lint/style/noNonNullAssertion: Test utility function ensures non-null
 		return ctx!;
 	};
 
 	const getHotkey = (ctx: HotkeyContextValue, key: string) => {
 		const hotkey = ctx.getRegisteredHotkeys().find((h) => h.key === key);
 		expect(hotkey).toBeDefined();
+		// biome-ignore lint/style/noNonNullAssertion: Test utility function ensures non-null
 		return hotkey!;
 	};
 
