@@ -22,7 +22,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version-file: 'go.mod'
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -41,12 +41,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Install Task CLI
-        run: go install github.com/go-task/task/v3/cmd/task@latest
-
-      - name: Install Wails v3
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
-
       - name: Install Linux dependencies
         run: |
           sudo apt-get update
@@ -62,6 +56,12 @@ jobs:
             build-essential \
             pkg-config \
             xvfb
+
+      - name: Install Task CLI
+        run: go install github.com/go-task/task/v3/cmd/task@latest
+
+      - name: Install Wails v3
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
 
       - name: Build application via Task (headless Linux build)
         run: task build:linux
@@ -87,7 +87,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version-file: 'go.mod'
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -98,9 +98,6 @@ jobs:
 
       - name: Install Task CLI
         run: go install github.com/go-task/task/v3/cmd/task@latest
-
-      - name: Install Wails v3
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
 
       - name: TypeScript type check
         run: task frontend:typecheck
