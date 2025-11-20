@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version_suffix:
-        description: "Optional custom version (defaults to test-<run-number>)"
+        description: "Optional custom version (defaults to 0.0.0-test.<run-number>)"
         required: false
         default: ""
 
@@ -23,7 +23,7 @@ jobs:
           - name: macos
             os: macos-latest
     env:
-      YANTA_VERSION: ${{ github.event.inputs.version_suffix != '' && github.event.inputs.version_suffix || format('test-{0}', github.run_number) }}
+      YANTA_VERSION: ${{ github.event.inputs.version_suffix != '' && github.event.inputs.version_suffix || format('0.0.0-test.{0}', github.run_number) }}
     defaults:
       run:
         shell: bash
@@ -58,7 +58,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version: "1.23"
 
       - uses: actions/setup-node@v4
         with:
