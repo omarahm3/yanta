@@ -287,7 +287,7 @@ tasks:
           export YANTA_DEBUG_BUILD=1
         fi
 
-        env "${BUILD_ENV[@]}" go build "${BUILD_TAGS[@]}" -ldflags "$LD_FLAGS" -o "$OUTPUT_PATH" .
+        env "${BUILD_ENV[@]}" go build ${BUILD_TAGS[@]+"${BUILD_TAGS[@]}"} -ldflags "$LD_FLAGS" -o "$OUTPUT_PATH" .
 
         if [[ "$POST_BUILD" == "arch" ]]; then
           echo "Packaging Linux artifacts (Arch + tarball)..."
@@ -335,19 +335,26 @@ tasks:
       - |
         set -euo pipefail
         TAR="{{.DIST_DIR}}/yanta-linux.tar.gz"
-            if [ ! -f "$TAR" ]; then
-              echo "Linux tarball not found at $TAR. Run 'task release:linux' first." >&2
-              exit 1
-            fi
-            if [ -n "${YANTA_VERSION:-}" ]; then
-              VERSION="${YANTA_VERSION}"
-            elif git describe --tags --abbrev=0 >/dev/null 2>&1; then
-              VERSION=$(git describe --tags --abbrev=0 | sed 's/^v//')
-            else
-              COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-              VERSION="dev-${COMMIT}"
-            fi
+        if [ ! -f "$TAR" ]; then
+          echo "Linux tarball not found at $TAR. Run 'task release:linux' first." >&2
+          exit 1
+        fi
+        if [[ -n "${YANTA_VERSION:-}" ]]; then
+          VERSION="${YANTA_VERSION}"
+        elif git describe --tags --abbrev=0 >/dev/null 2>&1; then
+          VERSION=$(git describe --tags --abbrev=0 | sed 's/^v//')
+        else
+          COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+          VERSION="dev-${COMMIT}"
+        fi
+        echo "Building Debian package with version: $VERSION"
         scripts/build_deb_from_tar.sh "$TAR" "$VERSION"
+        DEB_FILE="{{.DIST_DIR}}/yanta_${VERSION}_amd64.deb"
+        if [ ! -f "$DEB_FILE" ]; then
+          echo "ERROR: Expected Debian package not created at $DEB_FILE" >&2
+          exit 1
+        fi
+        echo "Successfully created Debian package: $DEB_FILE"
 
   release:windows:
     summary: Build Windows release artifacts (portable + installer)
@@ -366,13 +373,17 @@ tasks:
           exit 1
         fi
         cp "$PORTABLE" "$DIST/yanta-windows-portable.exe"
+        echo "Copied portable exe: $DIST/yanta-windows-portable.exe"
 
-        INSTALLER=$(find build/bin -maxdepth 1 -type f -iname '*installer*.exe' -print -quit)
+        echo "Looking for installer in build/bin..."
+        ls -la build/bin/ || true
+        INSTALLER=$(ls build/bin/*installer*.exe 2>/dev/null | head -1)
         if [ -z "$INSTALLER" ]; then
           echo 'Could not locate the NSIS installer output in build/bin' >&2
           exit 1
         fi
         cp "$INSTALLER" "$DIST/yanta-windows-installer.exe"
+        echo "Copied installer exe: $DIST/yanta-windows-installer.exe"
 
   release:macos:
     summary: Build macOS release tarball
@@ -387,7 +398,13 @@ tasks:
             DIST="{{.DIST_DIR}}"
             rm -rf "$DIST"
             mkdir -p "$DIST"
+            if [ ! -d "build/bin/yanta.app" ]; then
+              echo "ERROR: yanta.app not found in build/bin" >&2
+              ls -la build/bin/ || true
+              exit 1
+            fi
             tar -C build/bin -czf "$DIST/yanta-macos.tar.gz" yanta.app
+            echo "Created macOS tarball: $DIST/yanta-macos.tar.gz"
 
   release:all:
     summary: Build release artifacts supported on the current host
