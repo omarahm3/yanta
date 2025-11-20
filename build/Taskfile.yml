@@ -16,7 +16,24 @@ tasks:
     deps:
       - ensure:wails
     cmds:
-      - wails3 generate bindings -clean=true
+      - |
+          if [ "${SKIP_WAILS_BINDINGS:-0}" = "1" ]; then
+            echo "Skipping binding generation (SKIP_WAILS_BINDINGS=1)"
+          else
+            GO_CACHE_DIR="${GO_CACHE_DIR:-.gocache}"
+            case "$GO_CACHE_DIR" in
+              /*) ;;
+              *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;;
+            esac
+            mkdir -p "$GO_CACHE_DIR"
+            GOCACHE="$GO_CACHE_DIR" GOFLAGS="" wails3 generate bindings -clean=true -ts
+          fi
+
+  dev:frontend:
+    summary: Run the frontend dev server (Vite)
+    dir: frontend
+    cmds:
+      - WAILS_VITE_PORT={{.WAILS_VITE_PORT | default "9245"}} npm run dev
 
   wails:build:
     summary: Run wails3 build with optional platform/flags
@@ -28,11 +45,8 @@ tasks:
     cmds:
       - |
         set -euo pipefail
-        ARGS="-clean"
-        if [ -n "{{.PLATFORM}}" ]; then
-          ARGS="$ARGS -platform {{.PLATFORM}}"
-        fi
         if [ -n "{{.EXTRA_FLAGS}}" ]; then
-          ARGS="$ARGS {{.EXTRA_FLAGS}}"
+          wails3 build {{.EXTRA_FLAGS}}
+        else
+          wails3 build
         fi
-        wails3 build $ARGS

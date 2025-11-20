@@ -12,7 +12,6 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"golang.design/x/hotkey"
-	"golang.design/x/hotkey/mainthread"
 
 	"yanta/internal/asset"
 	"yanta/internal/commandline"
@@ -329,17 +328,14 @@ func (a *App) Shutdown() {
 }
 
 func (a *App) registerRestoreHotkey() {
+	if runtime.GOOS != "windows" {
+		logger.Info("global hotkey registration is only supported on Windows")
+		return
+	}
+
 	go func() {
-		// Required for Windows hotkey registration
-		var hk *hotkey.Hotkey
-		var err error
-
-		mainthread.Call(func() {
-			hk = hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyY)
-			err = hk.Register()
-		})
-
-		if err != nil {
+		hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyY)
+		if err := hk.Register(); err != nil {
 			logger.Errorf("failed to register global hotkey Ctrl+Shift+Y: %v", err)
 			return
 		}

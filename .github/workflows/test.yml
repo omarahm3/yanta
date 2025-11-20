@@ -41,16 +41,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
+      - name: Install Task CLI
+        run: go install github.com/go-task/task/v3/cmd/task@latest
+
       - name: Install Wails v3
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
-
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Build frontend
-        working-directory: frontend
-        run: npm run build
 
       - name: Install Linux dependencies
         run: |
@@ -68,14 +63,11 @@ jobs:
             pkg-config \
             xvfb
 
-      - name: Test Wails v3 bindings generation
-        run: wails3 generate bindings
-
-      - name: Test Wails v3 headless build
-        run: xvfb-run -a wails3 build -platform linux/amd64 -clean
+      - name: Build application via Task (headless Linux build)
+        run: task build:linux
 
       - name: Run Go tests
-        run: go test -v -race -coverprofile=coverage.out ./...
+        run: task test:backend
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -92,6 +84,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -99,14 +96,14 @@ jobs:
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
+      - name: Install Task CLI
+        run: go install github.com/go-task/task/v3/cmd/task@latest
+
+      - name: Install Wails v3
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
 
       - name: TypeScript type check
-        working-directory: frontend
-        run: npx tsc --noEmit
+        run: task frontend:typecheck
 
       - name: Build frontend
-        working-directory: frontend
-        run: npm run build
+        run: task frontend:build

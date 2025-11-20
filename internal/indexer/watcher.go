@@ -146,9 +146,10 @@ func (w *Watcher) handleEvent(event fsnotify.Event) {
 }
 
 func isDocumentFile(path string) bool {
+	slashPath := filepath.ToSlash(path)
 	return filepath.Ext(path) == ".json" &&
-		strings.Contains(path, "projects/") &&
-		!strings.Contains(path, "assets/")
+		strings.Contains(slashPath, "projects/") &&
+		!strings.Contains(slashPath, "/assets/")
 }
 
 func (w *Watcher) scheduleIndexing(relPath string, op fsnotify.Op) {

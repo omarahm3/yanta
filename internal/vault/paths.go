@@ -9,6 +9,25 @@ import (
 
 var aliasContentPattern = regexp.MustCompile(`^[a-z0-9-]+$`)
 
+func NormalizeDocumentPath(docPath string) string {
+	docPath = strings.TrimSpace(docPath)
+	if docPath == "" {
+		return ""
+	}
+
+	normalized := strings.ReplaceAll(docPath, "\\", "/")
+	normalized = strings.TrimPrefix(normalized, "./")
+	normalized = strings.TrimPrefix(normalized, "/")
+	normalized = strings.ReplaceAll(normalized, "//", "/")
+
+	cleanPath := path.Clean(normalized)
+	if cleanPath == "." {
+		return ""
+	}
+
+	return cleanPath
+}
+
 func ValidateDocumentPath(docPath string) error {
 	if docPath == "" {
 		return fmt.Errorf("path cannot be empty")
@@ -18,7 +37,10 @@ func ValidateDocumentPath(docPath string) error {
 		return fmt.Errorf("path contains directory traversal: %s", docPath)
 	}
 
-	cleanPath := path.Clean(docPath)
+	cleanPath := NormalizeDocumentPath(docPath)
+	if cleanPath == "" {
+		return fmt.Errorf("path cannot be empty")
+	}
 
 	if !strings.HasPrefix(cleanPath, "projects/") {
 		return fmt.Errorf("path must start with 'projects/', got: %s", cleanPath)

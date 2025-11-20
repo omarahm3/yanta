@@ -23,6 +23,8 @@ frontend/bindings/
 
 coverage.out
 
+/.gocache/
+
 *.log
 .DS_Store
 

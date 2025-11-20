@@ -32,17 +32,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Collect build metadata
-        id: build_info
-        run: |
-          set -euo pipefail
-          VERSION=${GITHUB_REF#refs/tags/v}
-          COMMIT=$(git rev-parse --short HEAD)
-          DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
-          echo "date=$DATE" >> "$GITHUB_OUTPUT"
-
       - name: Install Linux dependencies
         if: matrix.name == 'linux'
         run: |
@@ -77,61 +66,25 @@ jobs:
             "$nsisPath\Bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           }
 
+      - name: Install Task CLI
+        run: go install github.com/go-task/task/v3/cmd/task@latest
+
       - name: Install Wails v3
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
 
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Build Linux artifacts
-        id: linux_artifacts
+      - name: Build Linux release via Task
         if: matrix.name == 'linux'
         env:
-          LD_FLAGS: "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
-        run: |
-          set -euo pipefail
-          VERSION=${{ steps.build_info.outputs.version }}
-          PKGREL=1
-          xvfb-run -a wails3 build -platform ${{ matrix.wails_platform }} -clean ${{ matrix.tags }} -ldflags "${LD_FLAGS}"
-          scripts/build_linux_artifacts.sh "$VERSION" "$PKGREL"
+          PKGREL: "1"
+        run: task release:linux
 
-      - name: Build Windows executables
+      - name: Build Windows release via Task
         if: matrix.name == 'windows'
-        env:
-          LD_FLAGS: "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
-        run: |
-          set -euo pipefail
-          wails3 build -platform ${{ matrix.wails_platform }} -clean -nsis -webview2 download -ldflags "${LD_FLAGS}"
+        run: task release:windows
 
-      - name: Prepare Windows artifacts
-        if: matrix.name == 'windows'
-        run: |
-          set -euo pipefail
-          ls -al build/bin
-          PORTABLE=build/bin/yanta.exe
-          if [ ! -f "$PORTABLE" ]; then
-            echo 'Portable binary not found in build/bin' >&2
-            exit 1
-          fi
-          cp "$PORTABLE" yanta-windows-portable.exe
-          INSTALLER=$(find build/bin -maxdepth 1 -type f -iname '*installer*.exe' -print -quit)
-          if [ -z "$INSTALLER" ]; then
-            echo 'Could not locate the NSIS installer output in build/bin' >&2
-            exit 1
-          fi
-          cp "$INSTALLER" yanta-windows-installer.exe
-
-      - name: Build macOS tarball
+      - name: Build macOS release via Task
         if: matrix.name == 'macos'
-        env:
-          LD_FLAGS: "-X yanta/internal/system.BuildVersion=${{ steps.build_info.outputs.version }} -X yanta/internal/system.BuildCommit=${{ steps.build_info.outputs.commit }} -X yanta/internal/system.BuildDate=${{ steps.build_info.outputs.date }}"
-        run: |
-          set -euo pipefail
-          wails3 build -platform ${{ matrix.wails_platform }} -clean -ldflags "${LD_FLAGS}"
-          pushd build/bin >/dev/null
-          tar czf ../../yanta-macos.tar.gz yanta.app
-          popd >/dev/null
+        run: task release:macos
 
       - name: Upload Linux artifacts
         if: matrix.name == 'linux'
@@ -139,8 +92,8 @@ jobs:
         with:
           name: linux
           path: |
-            ${{ steps.linux_artifacts.outputs.linux_tar }}
-            ${{ steps.linux_artifacts.outputs.arch_pkg }}
+            build/dist/yanta-linux.tar.gz
+            build/dist/yanta-*-x86_64.pkg.tar.gz
           if-no-files-found: error
 
       - name: Upload Windows artifacts
@@ -149,8 +102,8 @@ jobs:
         with:
           name: windows
           path: |
-            yanta-windows-portable.exe
-            yanta-windows-installer.exe
+            build/dist/yanta-windows-portable.exe
+            build/dist/yanta-windows-installer.exe
           if-no-files-found: error
 
       - name: Upload macOS artifact
@@ -158,7 +111,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos
-          path: yanta-macos.tar.gz
+          path: build/dist/yanta-macos.tar.gz
           if-no-files-found: error
 
   debian:
@@ -215,8 +168,8 @@ jobs:
           files: |
             artifacts/linux/**/yanta-linux.tar.gz
             artifacts/linux/**/yanta-*-x86_64.pkg.tar.gz
-            artifacts/windows/yanta-windows-portable.exe
-            artifacts/windows/yanta-windows-installer.exe
-            artifacts/macos/yanta-macos.tar.gz
+            artifacts/windows/**/yanta-windows-portable.exe
+            artifacts/windows/**/yanta-windows-installer.exe
+            artifacts/macos/**/yanta-macos.tar.gz
             artifacts/debian/yanta_*_amd64.deb
           generate_release_notes: true

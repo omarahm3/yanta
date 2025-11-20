@@ -14,7 +14,6 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
-	"golang.design/x/hotkey/mainthread"
 
 	"yanta/internal/app"
 	"yanta/internal/asset"
@@ -28,8 +27,7 @@ import (
 var assets embed.FS
 
 func main() {
-	// Required for global hotkeys on Windows
-	mainthread.Init(run)
+	run()
 }
 
 func run() {
@@ -197,17 +195,24 @@ func createCustomAssetHandler() application.Middleware {
 				return
 			}
 
-			parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/assets/"), "/")
-			if len(parts) < 2 {
-				w.WriteHeader(http.StatusNotFound)
+			trimmed := strings.TrimPrefix(r.URL.Path, "/assets/")
+			parts := strings.SplitN(trimmed, "/", 2)
+			if len(parts) != 2 {
+				// Let the default asset server handle frontend bundles like /assets/index-*.js
+				next.ServeHTTP(w, r)
 				return
 			}
 
 			projectAlias := parts[0]
+			if projectAlias == "" || !strings.HasPrefix(projectAlias, "@") {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			file := parts[1]
 			dot := strings.LastIndex(file, ".")
 			if dot <= 0 {
-				w.WriteHeader(http.StatusNotFound)
+				next.ServeHTTP(w, r)
 				return
 			}
 
