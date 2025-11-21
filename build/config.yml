@@ -14,17 +14,23 @@ info:
 # Dev mode configuration
 dev_mode:
   root_path: .
-  log_level: info
+  log_level: warn
   debounce: 1000
   ignore:
     dir:
       - .git
       - node_modules
+      - frontend
       - bin
       - build/bin
+      - build/dist
+      - .gocache
     file:
       - .DS_Store
       - .gitignore
+      - coverage.out
+      - coverage.html
+      - "*.log"
     watched_extension:
       - "*.go"
       - "*.js"
@@ -33,7 +39,7 @@ dev_mode:
   executes:
     - cmd: wails3 task build
       type: blocking
-    - cmd: wails3 task common:dev:frontend
+    - cmd: wails3 task build:dev:frontend
       type: background
     - cmd: wails3 task run
       type: primary

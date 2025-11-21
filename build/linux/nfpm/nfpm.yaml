@@ -1,0 +1,64 @@
+# nfpm configuration for Yanta
+# Documentation: https://nfpm.goreleaser.com
+
+name: "yanta"
+arch: ${GOARCH}
+platform: "linux"
+version: ${YANTA_VERSION}
+section: "default"
+priority: "extra"
+maintainer: "Omar Ahmed <me@mrg.sh>"
+description: "Yet Another Note Taking App - A fast, keyboard-driven note-taking app for developers"
+vendor: "Omar Ahmed"
+homepage: "https://github.com/omarahm3/yanta"
+license: "MIT"
+release: "1"
+
+contents:
+  # Binary
+  - src: "./build/bin/yanta"
+    dst: "/usr/bin/yanta"
+    file_info:
+      mode: 0755
+
+  # Desktop file
+  - src: "./yanta.desktop"
+    dst: "/usr/share/applications/yanta.desktop"
+    file_info:
+      mode: 0644
+
+  # Icon
+  - src: "./build/appicon.png"
+    dst: "/usr/share/pixmaps/yanta.png"
+    file_info:
+      mode: 0644
+
+  # License
+  - src: "./LICENSE"
+    dst: "/usr/share/licenses/yanta/LICENSE"
+    file_info:
+      mode: 0644
+
+# Default dependencies for Debian/Ubuntu with WebKit 4.1
+depends:
+  - libgtk-3-0
+  - libwebkit2gtk-4.1-0
+
+# Distribution-specific overrides
+overrides:
+  # RPM packages for RHEL/CentOS/AlmaLinux/Rocky Linux
+  rpm:
+    depends:
+      - gtk3
+      - webkit2gtk4.1
+
+  # Arch Linux packages
+  archlinux:
+    depends:
+      - gtk3
+      - webkit2gtk-4.1
+      - glib2
+
+# Post-install script to update desktop database
+scripts:
+  postinstall: "./build/linux/nfpm/scripts/postinstall.sh"

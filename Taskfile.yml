@@ -28,6 +28,15 @@ vars:
   DIST_DIR: '{{.DIST_DIR | default "build/dist"}}'
   BIN_DIR: 'build/bin'
 
+set:
+  - nounset
+  - errexit
+  - pipefail
+
+output: group
+
+silent: false
+
 tasks:
   # ============================================================================
   # Development & Installation
@@ -61,6 +70,7 @@ tasks:
   frontend:install:
     summary: Install frontend dependencies
     dir: frontend
+    silent: true
     vars:
       FORCE_CI_INSTALL: '{{.FORCE_CI_INSTALL | default "0"}}'
     cmds:
@@ -72,13 +82,28 @@ tasks:
         fi
 
   frontend:build:
+    label: "build:frontend (PRODUCTION={{.PRODUCTION}})"
     summary: Build the frontend bundle
     deps:
       - frontend:install
       - bindings
     dir: frontend
+    sources:
+      - "src/**/*"
+      - "index.html"
+      - "package.json"
+      - "vite.config.ts"
+      - "tsconfig.json"
+      - "tsconfig.node.json"
+      - "bindings/**/*"
+    generates:
+      - "dist/**/*"
+    vars:
+      BUILD_COMMAND: '{{if eq .PRODUCTION "true"}}build{{else}}build:dev{{end}}'
+    env:
+      PRODUCTION: '{{.PRODUCTION | default "false"}}'
     cmds:
-      - npm run build
+      - npm run {{.BUILD_COMMAND}}
 
   frontend:typecheck:
     summary: Run frontend TypeScript type checking
@@ -99,18 +124,27 @@ tasks:
     cmds:
       - task: build:generate:bindings
 
+  icons:
+    summary: Generate platform icons from appicon.png
+    cmds:
+      - task: build:generate:icons
+
   # ============================================================================
   # Build Commands (Platform-specific)
   # ============================================================================
 
   build:
+    label: "build (TARGET={{.TARGET}}, PRODUCTION={{.PRODUCTION}})"
     summary: Build application for current platform (auto-detect) or specified TARGET
+    silent: true
     vars:
       TARGET: '{{.TARGET | default "local"}}'
       DEBUG: '{{.DEBUG | default "0"}}'
+      PRODUCTION: '{{.PRODUCTION | default "false"}}'
     deps:
-      - bindings
-      - frontend:build
+      - task: frontend:build
+        vars:
+          PRODUCTION: '{{.PRODUCTION}}'
     cmds:
       - task: build:go:build
         vars:
@@ -118,40 +152,56 @@ tasks:
           DEBUG: '{{.DEBUG}}'
 
   build:win:
+    label: "build:win (PRODUCTION={{.PRODUCTION}})"
     summary: Build for Windows (requires Windows or Linux with MinGW)
+    vars:
+      PRODUCTION: '{{.PRODUCTION | default "true"}}'
     deps:
-      - bindings
-      - frontend:build
+      - task: frontend:build
+        vars:
+          PRODUCTION: '{{.PRODUCTION}}'
     cmds:
       - task: build:go:build
         vars:
           TARGET: win
 
   build:linux:
+    label: "build:linux (PRODUCTION={{.PRODUCTION}})"
     summary: Build for Linux/Ubuntu
+    vars:
+      PRODUCTION: '{{.PRODUCTION | default "true"}}'
     deps:
-      - bindings
-      - frontend:build
+      - task: frontend:build
+        vars:
+          PRODUCTION: '{{.PRODUCTION}}'
     cmds:
       - task: build:go:build
         vars:
           TARGET: ubuntu
 
   build:arch:
-    summary: Build for Arch Linux (includes tarball + package generation)
+    label: "build:arch (PRODUCTION={{.PRODUCTION}})"
+    summary: Build for Arch Linux
+    vars:
+      PRODUCTION: '{{.PRODUCTION | default "true"}}'
     deps:
-      - bindings
-      - frontend:build
+      - task: frontend:build
+        vars:
+          PRODUCTION: '{{.PRODUCTION}}'
     cmds:
       - task: build:go:build
         vars:
           TARGET: arch
 
   build:osx:
+    label: "build:osx (PRODUCTION={{.PRODUCTION}})"
     summary: Build for macOS
+    vars:
+      PRODUCTION: '{{.PRODUCTION | default "true"}}'
     deps:
-      - bindings
-      - frontend:build
+      - task: frontend:build
+        vars:
+          PRODUCTION: '{{.PRODUCTION}}'
     cmds:
       - task: build:go:build
         vars:
@@ -163,11 +213,10 @@ tasks:
 
   run:
     summary: Run the last built binary (builds first if needed)
-    deps:
-      - build
+    silent: true
     cmds:
       - |
-        if [ "$OS" = "Windows_NT" ]; then
+        if [ "${OS:-}" = "Windows_NT" ]; then
           ./{{.BIN_DIR}}/{{.APP_NAME}}.exe
         else
           ./{{.BIN_DIR}}/{{.APP_NAME}}

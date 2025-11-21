@@ -18,13 +18,51 @@ tasks:
 
   ensure:wails:
     summary: Ensure wails3 CLI is installed
+    silent: true
     cmds:
       - task: common:ensure:wails
 
-  generate:bindings:
-    summary: Generate TypeScript bindings from Go services
+  generate:icons:
+    label: "generate:icons"
+    summary: Generate platform-specific icons from appicon.png
     deps:
       - ensure:wails
+    sources:
+      - "./appicon.png"
+    generates:
+      - "./icons.icns"
+      - "./icon.ico"
+      - "./windows/icon.ico"
+      - "./darwin/icons.icns"
+    cmds:
+      - |
+        set -euo pipefail
+        cd build
+
+        echo "Generating icons from appicon.png..."
+        wails3 generate icons -input ./appicon.png
+
+        # Move/copy icons to platform-specific directories
+        mkdir -p windows darwin
+        cp icon.ico windows/
+        cp icons.icns darwin/
+
+        echo "✓ Icons generated: icons.icns, icon.ico"
+        echo "✓ Platform icons: windows/icon.ico, darwin/icons.icns"
+
+  generate:bindings:
+    label: "generate:bindings"
+    summary: Generate TypeScript bindings from Go services
+    silent: true
+    deps:
+      - ensure:wails
+    sources:
+      - "../**/*.go"
+      - "../go.mod"
+      - "../go.sum"
+      - exclude: "../frontend/**/*"
+    generates:
+      - "../frontend/bindings/**/*"
     cmds:
       - |
         if [ "${SKIP_WAILS_BINDINGS:-0}" = "1" ]; then
@@ -46,11 +84,11 @@ tasks:
 
   dev:frontend:
     summary: Run frontend dev server (Vite)
-    dir: ../frontend
+    silent: true
     deps:
       - common:ensure:npm
     cmds:
-      - WAILS_VITE_PORT={{.WAILS_VITE_PORT | default "9245"}} npm run dev
+      - cd {{.ROOT_DIR}}/frontend && WAILS_VITE_PORT={{.WAILS_VITE_PORT | default "9245"}} npm run dev
 
   # ============================================================================
   # Go Build (Core Build Logic)
@@ -59,6 +97,7 @@ tasks:
   go:build:
     summary: Build Go binary for specified target platform
     internal: true
+    silent: true
     deps:
       - common:ensure:go
       - common:ensure:npm
@@ -94,7 +133,6 @@ tasks:
 
         # Platform-specific configuration
         USE_WEBKIT41=false
-        POST_BUILD=""
         GOOS_TARGET=""
         GOARCH_TARGET="amd64"
         CC_OVERRIDE=""
@@ -140,7 +178,6 @@ tasks:
             fi
             GOOS_TARGET="linux"
             USE_WEBKIT41=true
-            POST_BUILD="arch"
             ;;
 
           osx|mac|macos)
@@ -213,14 +250,6 @@ tasks:
         env "${BUILD_ENV[@]}" go build ${BUILD_TAGS[@]+"${BUILD_TAGS[@]}"} -ldflags "$LD_FLAGS" -o "$OUTPUT_PATH" .
 
         echo "✓ Build complete: $OUTPUT_PATH"
-
-        # Post-build artifact generation (for Arch Linux)
-        if [[ "$POST_BUILD" == "arch" ]]; then
-          echo ""
-          echo "Generating Linux artifacts (tarball + Arch package)..."
-          scripts/build_linux_artifacts.sh "$VERSION" "1"
-          echo "✓ Artifacts written to build/dist/"
-        fi
 
   # ============================================================================
   # Wails Build (alternative build method using wails3)

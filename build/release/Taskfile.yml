@@ -26,20 +26,54 @@ tasks:
         vars:
           MSG: "Building Linux Release Artifacts"
       - task: linux:build
+      - task: linux:package:archlinux
       - task: linux:verify
       - task: common:log:success
         vars:
           MSG: "Linux artifacts ready under {{.DIST_DIR}}"
 
   linux:build:
-    summary: Build Linux artifacts (internal)
+    summary: Build Linux binary (internal)
     internal: true
-    dir: ../..
     cmds:
-      # Build for Arch (includes tarball generation)
-      - task: build
-        vars:
-          TARGET: arch
+      - cd {{.ROOT_DIR}} && TARGET=ubuntu PRODUCTION=true task build
+
+  linux:package:archlinux:
+    summary: Generate Arch Linux package using nfpm (internal)
+    internal: true
+    deps:
+      - common:ensure:wails
+    cmds:
+      - |
+        set -euo pipefail
+        cd {{.ROOT_DIR}}
+
+        # Get version
+        COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+        if [[ -n "${YANTA_VERSION:-}" ]]; then
+          VERSION="${YANTA_VERSION}"
+        elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
+          VERSION="${VERSION_TAG#v}"
+        else
+          VERSION="dev-${COMMIT}"
+        fi
+
+        export YANTA_VERSION="$VERSION"
+        export GOARCH="amd64"
+
+        mkdir -p {{.DIST_DIR}}
+
+        echo "Generating Arch Linux package (version: $VERSION)..."
+        wails3 tool package \
+          -config ./build/linux/nfpm/nfpm.yaml \
+          -format archlinux \
+          -name yanta \
+          -out {{.DIST_DIR}}
+
+        # Rename to versioned filename
+        mv {{.DIST_DIR}}/yanta.pkg.tar.zst {{.DIST_DIR}}/yanta-${VERSION}-1-x86_64.pkg.tar.zst
+
+        echo "✓ Arch package: yanta-${VERSION}-1-x86_64.pkg.tar.zst"
 
   linux:verify:
     summary: Verify Linux artifacts exist
@@ -49,15 +83,27 @@ tasks:
         vars:
           DIR: '{{.DIST_DIR}}'
           MSG: "Distribution directory not found"
-      - task: common:file:verify
-        vars:
-          FILE: '{{.DIST_DIR}}/yanta-linux.tar.gz'
-          MSG: "Linux tarball not found"
       - |
-        ls {{.DIST_DIR}}/yanta-*-x86_64.pkg.tar.gz >/dev/null 2>&1 || {
-          echo "ERROR: Arch package not found" >&2
+        set -euo pipefail
+
+        # Get version
+        COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+        if [[ -n "${YANTA_VERSION:-}" ]]; then
+          VERSION="${YANTA_VERSION}"
+        elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
+          VERSION="${VERSION_TAG#v}"
+        else
+          VERSION="dev-${COMMIT}"
+        fi
+
+        ARCH_PKG="{{.DIST_DIR}}/yanta-${VERSION}-1-x86_64.pkg.tar.zst"
+
+        if [ ! -f "$ARCH_PKG" ]; then
+          echo "ERROR: Arch package not found: $ARCH_PKG" >&2
           exit 1
-        }
+        fi
+
+        echo "✓ Arch package verified: $(basename $ARCH_PKG)"
 
   # ============================================================================
   # Ubuntu/Debian Release
@@ -66,31 +112,60 @@ tasks:
   ubuntu:
     summary: Build Ubuntu/Debian .deb package
     deps:
-      - linux
+      - platform:verify:linux
     cmds:
       - task: common:log:section
         vars:
           MSG: "Building Debian Package"
       - task: ubuntu:build
+      - task: ubuntu:package
       - task: ubuntu:verify
       - task: common:log:success
         vars:
           MSG: "Debian package created successfully"
 
   ubuntu:build:
-    summary: Build Debian package (internal)
+    summary: Build Ubuntu binary (internal)
     internal: true
-    dir: ../..
+    cmds:
+      - cd {{.ROOT_DIR}} && TARGET=ubuntu PRODUCTION=true task build
+
+  ubuntu:package:
+    summary: Generate Debian package using nfpm (internal)
+    internal: true
+    deps:
+      - common:ensure:wails
     cmds:
       - |
         set -euo pipefail
-        TAR="{{.DIST_DIR}}/yanta-linux.tar.gz"
+        cd {{.ROOT_DIR}}
 
-        # Get version using common utility
-        VERSION=$(task common:version:get)
+        # Get version
+        COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+        if [[ -n "${YANTA_VERSION:-}" ]]; then
+          VERSION="${YANTA_VERSION}"
+        elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
+          VERSION="${VERSION_TAG#v}"
+        else
+          VERSION="dev-${COMMIT}"
+        fi
 
-        echo "Building Debian package with version: $VERSION"
-        scripts/build_deb_from_tar.sh "$TAR" "$VERSION"
+        export YANTA_VERSION="$VERSION"
+        export GOARCH="amd64"
+
+        mkdir -p {{.DIST_DIR}}
+
+        echo "Generating Debian package (version: $VERSION)..."
+        wails3 tool package \
+          -config ./build/linux/nfpm/nfpm.yaml \
+          -format deb \
+          -name yanta \
+          -out {{.DIST_DIR}}
+
+        # Rename to versioned filename
+        mv {{.DIST_DIR}}/yanta.deb {{.DIST_DIR}}/yanta_${VERSION}_amd64.deb
+
+        echo "✓ Debian package: yanta_${VERSION}_amd64.deb"
 
   ubuntu:verify:
     summary: Verify Debian package exists
@@ -98,7 +173,17 @@ tasks:
     cmds:
       - |
         set -euo pipefail
-        VERSION=$(task common:version:get)
+
+        # Get version
+        COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+        if [[ -n "${YANTA_VERSION:-}" ]]; then
+          VERSION="${YANTA_VERSION}"
+        elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
+          VERSION="${VERSION_TAG#v}"
+        else
+          VERSION="dev-${COMMIT}"
+        fi
+
         DEB_FILE="{{.DIST_DIR}}/yanta_${VERSION}_amd64.deb"
 
         if [ ! -f "$DEB_FILE" ]; then
@@ -130,11 +215,8 @@ tasks:
   windows:build:
     summary: Build Windows binary (internal)
     internal: true
-    dir: ../..
     cmds:
-      - task: build
-        vars:
-          TARGET: win
+      - cd {{.ROOT_DIR}} && TARGET=win task build
 
   windows:package:
     summary: Package Windows artifacts (internal)
@@ -201,11 +283,8 @@ tasks:
   macos:build:
     summary: Build macOS binary (internal)
     internal: true
-    dir: ../..
     cmds:
-      - task: build
-        vars:
-          TARGET: osx
+      - cd {{.ROOT_DIR}} && TARGET=osx task build
 
   macos:package:
     summary: Package macOS app into tarball (internal)

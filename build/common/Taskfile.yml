@@ -66,6 +66,7 @@ tasks:
   ensure:command:
     summary: Ensure a command exists in PATH
     internal: true
+    silent: true
     vars:
       CMD: '{{.CMD}}'
       MSG: '{{.MSG | default (printf "%s is not installed or not in PATH" .CMD)}}'

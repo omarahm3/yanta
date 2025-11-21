@@ -33,6 +33,7 @@ tasks:
         vars:
           MSG: "Running Backend Unit Tests"
       - |
+        cd {{.ROOT_DIR}}
         GO_CACHE_DIR="{{.GO_CACHE_DIR | default ".gocache"}}"
         case "$GO_CACHE_DIR" in
           /*) ;;
@@ -49,6 +50,7 @@ tasks:
     internal: true
     cmds:
       - |
+        cd {{.ROOT_DIR}}
         if [ -f "{{.COVERAGE_OUT}}" ]; then
           echo ""
           echo "Coverage Summary:"
@@ -60,7 +62,7 @@ tasks:
     deps:
       - backend:unit
     cmds:
-      - go tool cover -html={{.COVERAGE_OUT}} -o {{.COVERAGE_HTML}}
+      - cd {{.ROOT_DIR}} && go tool cover -html={{.COVERAGE_OUT}} -o {{.COVERAGE_HTML}}
       - task: common:log:success
         vars:
           MSG: "HTML coverage report generated: {{.COVERAGE_HTML}}"
@@ -73,7 +75,7 @@ tasks:
       - task: common:log:section
         vars:
           MSG: "Running Backend Benchmarks"
-      - go test -bench=. -benchmem ./...
+      - cd {{.ROOT_DIR}} && go test -bench=. -benchmem ./...
 
   # ============================================================================
   # Frontend Tests
@@ -81,14 +83,12 @@ tasks:
 
   frontend:
     summary: Run all frontend tests (typecheck + unit tests)
-    dir: ../..
     cmds:
       - task: frontend:typecheck
       - task: frontend:unit
 
   frontend:typecheck:
     summary: Run TypeScript type checking
-    dir: ../..
     deps:
       - common:ensure:npm
     cmds:
@@ -98,7 +98,7 @@ tasks:
       - task: frontend:install
       - task: bindings
       - |
-        cd frontend
+        cd {{.ROOT_DIR}}/frontend
         npx tsc --noEmit
       - task: common:log:success
         vars:
@@ -106,22 +106,22 @@ tasks:
 
   frontend:unit:
     summary: Run frontend unit tests (when implemented)
-    dir: ../..
     cmds:
       - task: common:log:info
         vars:
           MSG: "Frontend unit tests not yet implemented"
       # TODO: Add when frontend tests are implemented
-      # - cd frontend && npm test
+      # - cd {{.ROOT_DIR}}/frontend && npm test
 
   frontend:install:
     summary: Install frontend dependencies
     internal: true
-    dir: ../../frontend
+    silent: true
     vars:
       FORCE_CI: '{{.FORCE_CI | default "0"}}'
     cmds:
       - |
+        cd {{.ROOT_DIR}}/frontend
         if [ "{{.FORCE_CI}}" = "1" ] || [ "${CI:-}" = "true" ]; then
           npm ci
         else
@@ -131,11 +131,12 @@ tasks:
   bindings:
     summary: Generate TypeScript bindings
     internal: true
-    dir: ../..
+    silent: true
     deps:
       - common:ensure:wails
     cmds:
       - |
+        cd {{.ROOT_DIR}}
         if [ "${SKIP_WAILS_BINDINGS:-0}" = "1" ]; then
           echo "Skipping binding generation (SKIP_WAILS_BINDINGS=1)"
         else
@@ -164,6 +165,7 @@ tasks:
       - common:ensure:go
     cmds:
       - |
+        cd {{.ROOT_DIR}}
         if command -v golangci-lint >/dev/null 2>&1; then
           golangci-lint run ./...
         else
@@ -173,9 +175,9 @@ tasks:
 
   lint:frontend:
     summary: Run frontend linter (if configured)
-    dir: ../../frontend
     cmds:
       - |
+        cd {{.ROOT_DIR}}/frontend
         if [ -f "package.json" ] && grep -q "\"lint\"" package.json; then
           npm run lint
         else
