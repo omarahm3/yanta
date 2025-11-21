@@ -100,7 +100,7 @@ jobs:
           name: linux-test-${{ env.YANTA_VERSION }}
           path: |
             build/dist/yanta-linux.tar.gz
-            build/dist/yanta-*-x86_64.pkg.tar.gz
+            build/dist/yanta-*-x86_64.pkg.tar.zst
             build/dist/yanta_*_amd64.deb
           if-no-files-found: error
 

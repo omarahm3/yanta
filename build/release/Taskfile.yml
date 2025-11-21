@@ -26,6 +26,7 @@ tasks:
         vars:
           MSG: "Building Linux Release Artifacts"
       - task: linux:build
+      - task: linux:package:tarball
       - task: linux:package:archlinux
       - task: linux:verify
       - task: common:log:success
@@ -35,8 +36,21 @@ tasks:
   linux:build:
     summary: Build Linux binary (internal)
     internal: true
+    env:
+      TARGET: ubuntu
+      PRODUCTION: "true"
     cmds:
-      - cd {{.ROOT_DIR}} && TARGET=ubuntu PRODUCTION=true task build
+      - cd {{.ROOT_DIR}} && task build
+
+  linux:package:tarball:
+    summary: Create Linux tarball (internal)
+    internal: true
+    cmds:
+      - |
+        set -euo pipefail
+        mkdir -p {{.DIST_DIR}}
+        tar -C {{.BIN_DIR}} -czf "{{.DIST_DIR}}/yanta-linux.tar.gz" {{.APP_NAME}}
+        echo "✓ Linux tarball created: yanta-linux.tar.gz"
 
   linux:package:archlinux:
     summary: Generate Arch Linux package using nfpm (internal)
@@ -127,8 +141,11 @@ tasks:
   ubuntu:build:
     summary: Build Ubuntu binary (internal)
     internal: true
+    env:
+      TARGET: ubuntu
+      PRODUCTION: "true"
     cmds:
-      - cd {{.ROOT_DIR}} && TARGET=ubuntu PRODUCTION=true task build
+      - cd {{.ROOT_DIR}} && task build
 
   ubuntu:package:
     summary: Generate Debian package using nfpm (internal)
@@ -215,8 +232,11 @@ tasks:
   windows:build:
     summary: Build Windows binary (internal)
     internal: true
+    env:
+      TARGET: win
+      PRODUCTION: "true"
     cmds:
-      - cd {{.ROOT_DIR}} && TARGET=win task build
+      - cd {{.ROOT_DIR}} && task build
 
   windows:package:
     summary: Package Windows artifacts (internal)
@@ -283,8 +303,11 @@ tasks:
   macos:build:
     summary: Build macOS binary (internal)
     internal: true
+    env:
+      TARGET: osx
+      PRODUCTION: "true"
     cmds:
-      - cd {{.ROOT_DIR}} && TARGET=osx task build
+      - cd {{.ROOT_DIR}} && task build
 
   macos:package:
     summary: Package macOS app into tarball (internal)
