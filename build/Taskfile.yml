@@ -251,6 +251,53 @@ tasks:
 
         echo "✓ Build complete: $OUTPUT_PATH"
 
+        # Create Windows installer using NSIS (only on Windows host)
+        if [[ "$TARGET" == "win" || "$TARGET" == "windows" ]]; then
+          if [[ "$HOST_UNAME" == *mingw* || "$HOST_UNAME" == *msys* || "$HOST_UNAME" == *cygwin* || "$HOST_UNAME" == *windows* ]]; then
+            if command -v makensis >/dev/null 2>&1; then
+              echo "Creating Windows installer..."
+              NSI_FILE="build/windows/installer/project.nsi"
+              if [[ -f "$NSI_FILE" ]]; then
+                makensis -DARG_WAILS_AMD64_BINARY="$OUTPUT_PATH" "$NSI_FILE"
+                echo "✓ Windows installer created"
+              else
+                echo "WARNING: NSIS script not found at $NSI_FILE, skipping installer creation"
+              fi
+            else
+              echo "WARNING: makensis not found, skipping installer creation"
+            fi
+          else
+            echo "Note: Cross-compiling Windows binary from Linux, installer must be created on Windows"
+          fi
+        fi
+
+        # Create macOS .app bundle (only on macOS host)
+        if [[ "$TARGET" == "osx" || "$TARGET" == "mac" || "$TARGET" == "macos" ]]; then
+          echo "Creating macOS .app bundle..."
+          APP_DIR="{{.BIN_DIR}}/{{.APP_NAME}}.app"
+          CONTENTS_DIR="$APP_DIR/Contents"
+          MACOS_DIR="$CONTENTS_DIR/MacOS"
+          RESOURCES_DIR="$CONTENTS_DIR/Resources"
+
+          # Create directory structure
+          mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
+
+          # Copy binary
+          cp "$OUTPUT_PATH" "$MACOS_DIR/{{.APP_NAME}}"
+
+          # Copy Info.plist
+          if [[ -f "build/darwin/Info.plist" ]]; then
+            cp "build/darwin/Info.plist" "$CONTENTS_DIR/"
+          fi
+
+          # Copy icons
+          if [[ -f "build/darwin/icons.icns" ]]; then
+            cp "build/darwin/icons.icns" "$RESOURCES_DIR/"
+          fi
+
+          echo "✓ macOS .app bundle created: $APP_DIR"
+        fi
+
   # ============================================================================
   # Wails Build (alternative build method using wails3)
   # ============================================================================
