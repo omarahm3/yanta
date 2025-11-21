@@ -146,10 +146,7 @@ tasks:
         vars:
           PRODUCTION: '{{.PRODUCTION}}'
     cmds:
-      - task: build:go:build
-        vars:
-          TARGET: '{{.TARGET}}'
-          DEBUG: '{{.DEBUG}}'
+      - task: build:wails:build
 
   build:win:
     label: "build:win (PRODUCTION={{.PRODUCTION}})"
@@ -161,9 +158,7 @@ tasks:
         vars:
           PRODUCTION: '{{.PRODUCTION}}'
     cmds:
-      - task: build:go:build
-        vars:
-          TARGET: win
+      - task: build:wails:build
 
   build:linux:
     label: "build:linux (PRODUCTION={{.PRODUCTION}})"
@@ -175,9 +170,7 @@ tasks:
         vars:
           PRODUCTION: '{{.PRODUCTION}}'
     cmds:
-      - task: build:go:build
-        vars:
-          TARGET: ubuntu
+      - task: build:wails:build
 
   build:arch:
     label: "build:arch (PRODUCTION={{.PRODUCTION}})"
@@ -189,9 +182,7 @@ tasks:
         vars:
           PRODUCTION: '{{.PRODUCTION}}'
     cmds:
-      - task: build:go:build
-        vars:
-          TARGET: arch
+      - task: build:wails:build
 
   build:osx:
     label: "build:osx (PRODUCTION={{.PRODUCTION}})"
@@ -203,9 +194,7 @@ tasks:
         vars:
           PRODUCTION: '{{.PRODUCTION}}'
     cmds:
-      - task: build:go:build
-        vars:
-          TARGET: osx
+      - task: build:wails:build
 
   # ============================================================================
   # Run & Package
