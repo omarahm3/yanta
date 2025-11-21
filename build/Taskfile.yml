@@ -258,12 +258,15 @@ tasks:
           if [[ "$HOST_UNAME" == *mingw* || "$HOST_UNAME" == *msys* || "$HOST_UNAME" == *cygwin* || "$HOST_UNAME" == *windows* ]]; then
             if command -v makensis >/dev/null 2>&1; then
               echo "Creating Windows installer..."
-              NSI_FILE="build/windows/installer/project.nsi"
-              if [[ -f "$NSI_FILE" ]]; then
-                makensis -DARG_WAILS_AMD64_BINARY="$OUTPUT_PATH" "$NSI_FILE"
+              NSI_DIR="build/windows/installer"
+              if [[ -f "$NSI_DIR/project.nsi" ]]; then
+                # Get absolute path to binary for NSIS
+                ABS_BINARY="$(cd "$(dirname "$OUTPUT_PATH")" && pwd)/$(basename "$OUTPUT_PATH")"
+                # Run makensis from installer dir so it can find wails_tools.nsh
+                (cd "$NSI_DIR" && makensis -DARG_WAILS_AMD64_BINARY="$ABS_BINARY" project.nsi)
                 echo "✓ Windows installer created"
               else
-                echo "WARNING: NSIS script not found at $NSI_FILE, skipping installer creation"
+                echo "WARNING: NSIS script not found at $NSI_DIR/project.nsi, skipping installer creation"
               fi
             else
               echo "WARNING: makensis not found, skipping installer creation"
