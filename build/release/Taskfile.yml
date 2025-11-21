@@ -36,11 +36,11 @@ tasks:
   linux:build:
     summary: Build Linux binary (internal)
     internal: true
-    env:
-      TARGET: ubuntu
-      PRODUCTION: "true"
     cmds:
-      - cd {{.ROOT_DIR}} && task build
+      - task: :build
+        vars:
+          TARGET: ubuntu
+          PRODUCTION: "true"
 
   linux:package:tarball:
     summary: Create Linux tarball (internal)
@@ -141,11 +141,11 @@ tasks:
   ubuntu:build:
     summary: Build Ubuntu binary (internal)
     internal: true
-    env:
-      TARGET: ubuntu
-      PRODUCTION: "true"
     cmds:
-      - cd {{.ROOT_DIR}} && task build
+      - task: :build
+        vars:
+          TARGET: ubuntu
+          PRODUCTION: "true"
 
   ubuntu:package:
     summary: Generate Debian package using nfpm (internal)
@@ -232,11 +232,11 @@ tasks:
   windows:build:
     summary: Build Windows binary (internal)
     internal: true
-    env:
-      TARGET: win
-      PRODUCTION: "true"
     cmds:
-      - cd {{.ROOT_DIR}} && task build
+      - task: :build
+        vars:
+          TARGET: win
+          PRODUCTION: "true"
 
   windows:package:
     summary: Package Windows artifacts (internal)
@@ -303,11 +303,11 @@ tasks:
   macos:build:
     summary: Build macOS binary (internal)
     internal: true
-    env:
-      TARGET: osx
-      PRODUCTION: "true"
     cmds:
-      - cd {{.ROOT_DIR}} && task build
+      - task: :build
+        vars:
+          TARGET: osx
+          PRODUCTION: "true"
 
   macos:package:
     summary: Package macOS app into tarball (internal)
