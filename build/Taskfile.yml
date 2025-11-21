@@ -229,8 +229,10 @@ tasks:
           BUILD_ENV+=(GOOS="$GOOS_TARGET")
         fi
         BUILD_ENV+=(GOARCH="$GOARCH_TARGET")
+        # CGO is REQUIRED for Wails v3 (native platform APIs)
+        BUILD_ENV+=(CGO_ENABLED=1)
         if [[ -n "$CC_OVERRIDE" ]]; then
-          BUILD_ENV+=(CC="$CC_OVERRIDE" CXX="$CXX_OVERRIDE" CGO_ENABLED=1)
+          BUILD_ENV+=(CC="$CC_OVERRIDE" CXX="$CXX_OVERRIDE")
         fi
 
         # Build tags
