@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 # Core build tasks - frontend, backend, and Go compilation
 # Uses common utilities for DRY principles
@@ -9,7 +9,7 @@ includes:
 
 vars:
   APP_NAME: '{{.APP_NAME | default "yanta"}}'
-  BIN_DIR: 'build/bin'
+  BIN_DIR: "build/bin"
 
 tasks:
   # ============================================================================
@@ -211,6 +211,10 @@ tasks:
         LD_FLAGS="-X yanta/internal/system.BuildVersion=${VERSION}"
         LD_FLAGS="$LD_FLAGS -X yanta/internal/system.BuildCommit=${COMMIT}"
         LD_FLAGS="$LD_FLAGS -X yanta/internal/system.BuildDate=${DATE}"
+
+        if [[ "$GOOS_TARGET" == "windows" ]]; then
+          LD_FLAGS="$LD_FLAGS -H=windowsgui"
+        fi
 
         echo "========================================"
         echo "Building: {{.APP_NAME}}"
