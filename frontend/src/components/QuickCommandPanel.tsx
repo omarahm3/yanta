@@ -1,5 +1,6 @@
 import type React from "react";
 import { useMemo } from "react";
+import { RiArrowRightLine } from "react-icons/ri";
 import { useProjectContext } from "../contexts/ProjectContext";
 import { type CommandOption, CommandPalette } from "./ui";
 
@@ -16,7 +17,7 @@ export const QuickCommandPanel: React.FC<QuickCommandPanelProps> = ({ isOpen, on
 			.filter((project) => project.id !== currentProject?.id)
 			.map((project) => ({
 				id: project.id,
-				icon: "→",
+				icon: <RiArrowRightLine className="text-lg" />,
 				text: `Switch to ${project.alias}`,
 				hint: project.name,
 				action: () => {
