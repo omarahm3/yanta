@@ -1,5 +1,6 @@
 import type React from "react";
 import { cn } from "../../lib/utils";
+import { Button } from "./Button";
 
 export interface EntryMetadata {
 	id: string;
@@ -124,19 +125,15 @@ export const MetadataSidebar: React.FC<MetadataSidebarProps> = ({
 				<div className="text-xs uppercase tracking-wider text-text-dim mb-2">ACTIONS</div>
 				<div className="flex flex-col gap-2">
 					{actions.map((action) => (
-						<button
-							type="button"
+						<Button
 							key={action.id}
-							className={cn(
-								"px-3 py-1.5 bg-bg border border-border rounded text-xs cursor-pointer transition-all text-left",
-								action.variant === "danger"
-									? "text-text-dim hover:border-red hover:text-red"
-									: "text-text-dim hover:border-accent hover:text-text",
-							)}
+							variant={action.variant === "danger" ? "destructive" : "secondary"}
+							size="sm"
+							className="w-full justify-start text-xs"
 							onClick={action.onClick}
 						>
 							{action.shortcut} - {action.label}
-						</button>
+						</Button>
 					))}
 				</div>
 			</div>

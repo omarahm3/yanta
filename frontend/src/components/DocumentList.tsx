@@ -2,6 +2,7 @@ import type React from "react";
 import { cn } from "../lib/utils";
 import type { Document } from "../types/Document";
 import { formatShortDate } from "../utils/dateUtils";
+import { Button, Heading, Text } from "./ui";
 
 interface DocumentListProps {
 	documents: Document[];
@@ -46,10 +47,10 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 			<div className="opacity-50 space-y-2">
 				{placeholders.map((doc) => (
 					<div key={doc.path} className="space-y-2 rounded border border-border p-4">
-						<h3 className="text-lg font-semibold text-text">{doc.title}</h3>
+						<Heading as="h3" size="lg">{doc.title}</Heading>
 						<div className="mt-2 flex gap-4 text-sm text-text-dim">
-							<span>{doc.projectAlias}</span>
-							<span>{formatShortDate(doc.updated.toISOString())}</span>
+							<Text as="span" variant="dim" size="sm">{doc.projectAlias}</Text>
+							<Text as="span" variant="dim" size="sm">{formatShortDate(doc.updated.toISOString())}</Text>
 						</div>
 						<div className="mt-2 flex gap-2">
 							{doc.tags.map((tag) => (
@@ -60,7 +61,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 						</div>
 					</div>
 				))}
-				<p className="p-4 mt-4 text-sm text-text-dim">No documents yet. Create one to get started!</p>
+				<Text className="p-4 mt-4" size="sm" variant="dim">No documents yet. Create one to get started!</Text>
 			</div>
 		);
 	}
@@ -101,8 +102,9 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 						onMouseEnter={() => onHighlightDocument?.(index)}
 					>
 						<div className="flex items-start gap-3">
-							<button
-								type="button"
+							<Button
+								variant="ghost"
+								size="sm"
 								className={toggleClasses}
 								data-selected={isSelected}
 								aria-pressed={isSelected}
@@ -115,7 +117,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 								}}
 							>
 								{isSelected ? "✓" : ""}
-							</button>
+							</Button>
 							<span className={indexClasses}>{index + 1}.</span>
 							<div
 								className="flex-1 cursor-pointer"
@@ -125,7 +127,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 								}}
 							>
 								<div className="flex items-center gap-2">
-									<h3 className="text-lg font-semibold text-text">{doc.title}</h3>
+									<Heading as="h3" size="lg">{doc.title}</Heading>
 									{doc.deletedAt && (
 										<span className="ml-auto rounded border border-accent/60 bg-accent/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-accent">
 											Archived

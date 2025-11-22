@@ -1,8 +1,10 @@
+import { Dialog, Transition } from "@headlessui/react";
 import type React from "react";
-import { useEffect } from "react";
-import { GLOBAL_COMMANDS } from "../constants/globalCommands";
-import { useHotkeyContext } from "../contexts/HotkeyContext";
-import { useHelp } from "../hooks/useHelp";
+import { Fragment, useEffect } from "react";
+import { GLOBAL_COMMANDS } from "../../constants/globalCommands";
+import { useHotkeyContext } from "../../contexts/HotkeyContext";
+import { useHelp } from "../../hooks/useHelp";
+import { Heading, Text } from "../ui";
 
 const formatHotkeyDisplay = (key: string): string => {
 	return key
@@ -35,18 +37,16 @@ export const HelpModal: React.FC = () => {
 	useEffect(() => {
 		if (!isOpen) return;
 
-		const handleEscape = (e: KeyboardEvent) => {
-			if (e.key === "Escape" || e.key === "?") {
+		const handleQuestion = (e: KeyboardEvent) => {
+			if (e.key === "?") {
 				e.preventDefault();
 				closeHelp();
 			}
 		};
 
-		document.addEventListener("keydown", handleEscape);
-		return () => document.removeEventListener("keydown", handleEscape);
+		document.addEventListener("keydown", handleQuestion);
+		return () => document.removeEventListener("keydown", handleQuestion);
 	}, [isOpen, closeHelp]);
-
-	if (!isOpen) return null;
 
 	const allHotkeys =
 		pageName === "SETTINGS"
@@ -56,31 +56,53 @@ export const HelpModal: React.FC = () => {
 					.sort((a, b) => (a.description ?? "").localeCompare(b.description ?? ""));
 
 	return (
-		<div
-			className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
-			onClick={closeHelp}
-		>
-			<div
-				className="relative w-full max-w-4xl max-h-[85vh] mx-4 sm:mx-6 overflow-hidden bg-surface border-2 border-accent/30 rounded-lg shadow-2xl"
-				onClick={(e) => e.stopPropagation()}
-				style={{
-					boxShadow: "0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(88, 166, 255, 0.2)",
-				}}
-			>
-				<div className="flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 border-b border-border/40">
-					<h2 className="text-lg sm:text-xl font-bold tracking-wide text-accent">HELP</h2>
-					<div className="text-xs text-text-dim font-mono hidden sm:block">
-						Press <span className="text-accent font-semibold">ESC</span> or{" "}
-						<span className="text-accent font-semibold">?</span> to close
-					</div>
-				</div>
+		<Transition appear show={isOpen} as={Fragment}>
+			<Dialog as="div" className="relative z-50" onClose={closeHelp}>
+				<Transition.Child
+					as={Fragment}
+					enter="ease-out duration-300"
+					enterFrom="opacity-0"
+					enterTo="opacity-100"
+					leave="ease-in duration-200"
+					leaveFrom="opacity-100"
+					leaveTo="opacity-0"
+				>
+					<div className="fixed inset-0 bg-black/70" />
+				</Transition.Child>
 
-				<div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
-					<div className="grid grid-cols-1 xl:grid-cols-2 gap-6 xl:gap-8">
-						<div>
-							<h3 className="mb-4 sm:mb-6 text-sm font-bold tracking-wider text-text-dim uppercase">
-								GLOBAL COMMANDS
-							</h3>
+				<div className="fixed inset-0 overflow-y-auto">
+					<div className="flex min-h-full items-center justify-center p-4 text-center">
+						<Transition.Child
+							as={Fragment}
+							enter="ease-out duration-300"
+							enterFrom="opacity-0 scale-95"
+							enterTo="opacity-100 scale-100"
+							leave="ease-in duration-200"
+							leaveFrom="opacity-100 scale-100"
+							leaveTo="opacity-0 scale-95"
+						>
+							<Dialog.Panel 
+								className="relative w-full max-w-4xl max-h-[85vh] mx-auto overflow-hidden bg-surface border-2 border-accent/30 rounded-lg shadow-2xl transform transition-all"
+								style={{
+									boxShadow: "0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(88, 166, 255, 0.2)",
+								}}
+							>
+								<div className="flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 border-b border-border/40">
+									<Dialog.Title className="text-lg sm:text-xl font-bold tracking-wide text-accent">
+										HELP
+									</Dialog.Title>
+									<div className="text-xs text-text-dim font-mono hidden sm:block">
+										Press <span className="text-accent font-semibold">ESC</span> or{" "}
+										<span className="text-accent font-semibold">?</span> to close
+									</div>
+								</div>
+
+								<div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(85vh-80px)] text-left">
+									<div className="grid grid-cols-1 xl:grid-cols-2 gap-6 xl:gap-8">
+										<div>
+											<Heading as="h3" variant="dim" size="sm" weight="bold" className="mb-4 sm:mb-6 tracking-wider uppercase">
+												GLOBAL COMMANDS
+											</Heading>
 							<div className="space-y-3 sm:space-y-4">
 								{GLOBAL_COMMANDS.map((cmd, idx) => (
 									<div key={idx} className="flex items-start gap-3 sm:gap-4 font-mono text-sm group">
@@ -99,9 +121,9 @@ export const HelpModal: React.FC = () => {
 
 						{pageCommands.length > 0 && (
 							<div>
-								<h3 className="mb-4 sm:mb-6 text-sm font-bold tracking-wider text-text-dim uppercase">
+								<Heading as="h3" variant="dim" size="sm" weight="bold" className="mb-4 sm:mb-6 tracking-wider uppercase">
 									{pageName} COMMANDS
-								</h3>
+								</Heading>
 								<div className="space-y-3 sm:space-y-4">
 									{pageCommands.map((cmd, idx) => (
 										<div key={idx} className="flex items-start gap-3 sm:gap-4 font-mono text-sm group">
@@ -121,9 +143,9 @@ export const HelpModal: React.FC = () => {
 
 						{allHotkeys.length > 0 && (
 							<div>
-								<h3 className="mb-4 sm:mb-6 text-sm font-bold tracking-wider text-text-dim uppercase">
+								<Heading as="h3" variant="dim" size="sm" weight="bold" className="mb-4 sm:mb-6 tracking-wider uppercase">
 									KEYBOARD SHORTCUTS
-								</h3>
+								</Heading>
 								<div className="space-y-3 sm:space-y-4">
 									{allHotkeys.map((hotkey) => (
 										<div key={hotkey.id} className="flex items-start gap-3 sm:gap-4 font-mono text-sm group">
@@ -156,8 +178,12 @@ export const HelpModal: React.FC = () => {
 							)}
 						</div>
 					)}
+								</div>
+							</Dialog.Panel>
+						</Transition.Child>
+					</div>
 				</div>
-			</div>
-		</div>
+			</Dialog>
+		</Transition>
 	);
 };

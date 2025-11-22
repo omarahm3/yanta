@@ -2,6 +2,7 @@ import type { Block, BlockNoteEditor } from "@blocknote/core";
 import type React from "react";
 import { lazy, Suspense, useCallback, useMemo } from "react";
 import type { BlockNoteBlock } from "../../types/Document";
+import { Button } from "../ui";
 
 const RichEditor = lazy(() =>
 	import("../editor/RichEditor").then((m) => ({ default: m.RichEditor })),
@@ -87,19 +88,20 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 				<div className="px-2 py-2">
 					<div className="flex flex-wrap gap-2">
 						{tags.map((tag) => (
-							<button
-								type="button"
+							<Button
 								key={tag}
+								variant="secondary"
+								size="sm"
 								onKeyDown={(e) => handleTagKeyDown(e, tag)}
 								onClick={() => {
 									if (!isReadOnly) onTagRemove(tag);
 								}}
-								className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded bg-surface text-text-dim transition-colors hover:bg-accent hover:text-text focus:outline-none focus:ring-2 focus:ring-accent"
+								className="inline-flex items-center gap-1 text-sm"
 								disabled={isLoading || isReadOnly}
 								title="Click or press Delete/Backspace to remove"
 							>
 								{tag}
-							</button>
+							</Button>
 						))}
 					</div>
 					<div className="mt-2 text-xs text-text-dim">

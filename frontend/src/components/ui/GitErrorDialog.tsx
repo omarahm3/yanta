@@ -4,6 +4,7 @@ import { Fragment } from "react";
 import { RiAlertLine, RiCloseLine, RiErrorWarningLine, RiInformationLine } from "react-icons/ri";
 import { cn } from "../../lib/utils";
 import type { ParsedGitError } from "../../utils/gitErrorParser";
+import { Button } from "./Button";
 
 export interface GitErrorDialogProps {
 	isOpen: boolean;
@@ -62,13 +63,14 @@ export const GitErrorDialog: React.FC<GitErrorDialogProps> = ({ isOpen, onClose,
 											{error.title}
 										</Dialog.Title>
 									</div>
-									<button
-										type="button"
+									<Button
+										variant="ghost"
+										size="sm"
 										onClick={onClose}
-										className="text-text-dim hover:text-text-bright transition-colors"
+										className="text-text-dim hover:text-text-bright p-1"
 									>
 										<RiCloseLine className="text-2xl" />
-									</button>
+									</Button>
 								</div>
 
 								<div className="px-6 py-4 max-h-[60vh] overflow-y-auto">
@@ -81,16 +83,12 @@ export const GitErrorDialog: React.FC<GitErrorDialogProps> = ({ isOpen, onClose,
 
 								{/* Footer */}
 								<div className="px-6 py-4 border-t border-border flex justify-end">
-									<button
-										type="button"
+									<Button
+										variant="primary"
 										onClick={onClose}
-										className={cn(
-											"px-4 py-2 rounded-md font-medium transition-colors",
-											"bg-blue-600 hover:bg-blue-700 text-white",
-										)}
 									>
 										Close
-									</button>
+									</Button>
 								</div>
 							</Dialog.Panel>
 						</Transition.Child>

@@ -38,13 +38,6 @@ export default defineConfig({
           // Core React libraries
           "vendor-react": ["react", "react-dom"],
 
-          // Mantine UI (heavy library - separate chunk)
-          "vendor-mantine": [
-            "@mantine/core",
-            "@mantine/hooks",
-            "@mantine/notifications",
-          ],
-
           // BlockNote editor (very heavy - separate chunk)
           "vendor-blocknote": [
             "@blocknote/core",
@@ -75,8 +68,7 @@ export default defineConfig({
     include: [
       "react",
       "react-dom",
-      "@mantine/core",
-      "@mantine/hooks",
+      "@headlessui/react",
       "@blocknote/react",
     ],
   },

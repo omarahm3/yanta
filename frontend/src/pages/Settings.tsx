@@ -1,6 +1,6 @@
 import React, { useCallback, useRef } from "react";
 import { Layout } from "../components/Layout";
-import { type Shortcut, ShortcutsTable } from "../components/ui";
+import { Heading, Text, type Shortcut, ShortcutsTable } from "../components/ui";
 import { useHotkeys } from "../hooks";
 import { useHelp } from "../hooks/useHelp";
 import { useSidebarSections } from "../hooks/useSidebarSections";
@@ -283,8 +283,8 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 					<div ref={shortcutsRef}>
 						<div className="mt-8">
 							<div className="mb-6">
-								<h2 className="text-base font-medium text-text-bright">Keyboard Shortcuts</h2>
-								<p className="text-sm text-text-dim">All available keyboard shortcuts in Yanta</p>
+								<Heading as="h2" size="base" variant="bright" weight="medium">Keyboard Shortcuts</Heading>
+								<Text size="sm" variant="dim">All available keyboard shortcuts in Yanta</Text>
 							</div>
 							<ShortcutsTable shortcuts={actualShortcuts} />
 						</div>

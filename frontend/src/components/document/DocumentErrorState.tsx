@@ -1,6 +1,6 @@
 import React from "react";
 import { Layout } from "../Layout";
-import type { SidebarSection } from "../ui";
+import { Button, type SidebarSection } from "../ui";
 
 interface DocumentErrorStateProps {
 	sidebarSections: SidebarSection[];
@@ -15,13 +15,13 @@ export const DocumentErrorState: React.FC<DocumentErrorStateProps> = React.memo(
 				<div className="text-text-dim">
 					Document could not be loaded. It may have been deleted or doesn't exist.
 				</div>
-				<button
-					type="button"
+				<Button
+					variant="primary"
 					onClick={() => onNavigate?.("dashboard")}
-					className="px-6 py-2 mt-4 font-medium transition-colors rounded bg-accent text-bg hover:bg-accent/90"
+					className="mt-4"
 				>
 					← Back to Dashboard
-				</button>
+				</Button>
 			</div>
 		</Layout>
 	),

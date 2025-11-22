@@ -1,4 +1,5 @@
 import type React from "react";
+import { Button } from "./Button";
 
 interface StatusBarProps {
 	totalEntries: number;
@@ -30,13 +31,14 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 				<div className="flex flex-wrap items-center gap-2 text-text">
 					<span className="font-semibold">{selectionLabel}</span>
 					{onClearSelection && (
-						<button
-							type="button"
+						<Button
+							variant="secondary"
+							size="sm"
 							onClick={onClearSelection}
-							className="rounded border border-border px-2 py-1 text-xs text-text transition-colors hover:bg-bg"
+							className="px-2 py-1 text-xs"
 						>
 							Clear Selection
-						</button>
+						</Button>
 					)}
 				</div>
 			)}

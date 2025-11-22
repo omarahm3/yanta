@@ -1,5 +1,3 @@
-import { MantineProvider } from "@mantine/core";
-import { Notifications, notifications } from "@mantine/notifications";
 import { Events } from "@wailsio/runtime";
 import React from "react";
 import {
@@ -7,9 +5,8 @@ import {
   ForceQuit,
 } from "../bindings/yanta/internal/system/service";
 import { GlobalCommandPalette } from "./components";
-import { HelpModal } from "./components/HelpModal";
 import { Router } from "./components/Router";
-import { TitleBar } from "./components/TitleBar";
+import { HelpModal, TitleBar, ToastProvider, useToast } from "./components/ui";
 import {
   DialogProvider,
   DocumentCountProvider,
@@ -22,8 +19,6 @@ import {
 import { useHotkey } from "./hooks";
 import { useHelp } from "./hooks/useHelp";
 
-import "@mantine/core/styles.css";
-import "@mantine/notifications/styles.css";
 import "./styles/tailwind.css";
 import "./styles/yanta.css";
 
@@ -127,6 +122,27 @@ const GlobalCommandHotkey = () => {
   );
 };
 
+const WindowEventListener = () => {
+  const toast = useToast();
+
+  React.useEffect(() => {
+    const unsubscribe = Events.On("yanta/window/hidden", () => {
+      toast.info(
+        "YANTA is running in background. Press Ctrl+Shift+Y anywhere to restore, or click the taskbar icon",
+        { duration: 5000 }
+      );
+    });
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [toast]);
+
+  return null;
+};
+
 function App() {
   React.useEffect(() => {
     const handleError = (event: ErrorEvent) => {
@@ -160,46 +176,8 @@ function App() {
     };
   }, []);
 
-  React.useEffect(() => {
-    const unsubscribe = Events.On("yanta/window/hidden", () => {
-      notifications.show({
-        title: "YANTA is running in background",
-        message:
-          "Press Ctrl+Shift+Y anywhere to restore, or click the taskbar icon",
-        color: "blue",
-        autoClose: 5000,
-      });
-    });
-
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-  }, []);
-
   return (
-    <MantineProvider
-      defaultColorScheme="dark"
-      theme={{
-        colors: {
-          dark: [
-            "#f0f6fc",
-            "#c9d1d9",
-            "#8b949e",
-            "#6e7681",
-            "#484f58",
-            "#30363d",
-            "#21262d",
-            "#161b22",
-            "#0d1117",
-            "#010409",
-          ],
-        },
-        primaryColor: "blue",
-        defaultRadius: "md",
-      }}
-    >
+    <ToastProvider>
       <TitleBarProvider>
         <DialogProvider>
           <HotkeyProvider>
@@ -211,7 +189,7 @@ function App() {
                     <HelpHotkey />
                     <QuitHotkeys />
                     <GlobalCommandHotkey />
-                    <Notifications />
+                    <WindowEventListener />
                     <HelpModal />
                   </DocumentProvider>
                 </DocumentCountProvider>
@@ -220,7 +198,7 @@ function App() {
           </HotkeyProvider>
         </DialogProvider>
       </TitleBarProvider>
-    </MantineProvider>
+    </ToastProvider>
   );
 }
 

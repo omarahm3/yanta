@@ -5,7 +5,7 @@ import { Query } from "../../bindings/yanta/internal/search/service";
 import type * as tagModels from "../../bindings/yanta/internal/tag/models";
 import { ListActive as ListActiveTags } from "../../bindings/yanta/internal/tag/service";
 import { Layout } from "../components/Layout";
-import { Input } from "../components/ui";
+import { Button, Input } from "../components/ui";
 import { useProjectContext } from "../contexts";
 import { useNotification } from "../hooks/useNotification";
 import { useSidebarSections } from "../hooks/useSidebarSections";
@@ -298,26 +298,30 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 					<div className="flex items-center gap-3 text-xs flex-wrap">
 						{/* Projects */}
 						{projects.slice(0, 10).map((p) => (
-							<button
+							<Button
 								key={p.alias}
-								className="inline-flex items-center gap-1 px-3 py-1 border border-purple text-purple hover:bg-purple/10 rounded transition"
+								variant="ghost"
+								size="sm"
+								className="inline-flex items-center gap-1 border border-purple text-purple hover:bg-purple/10"
 								onClick={() => addFilterToQuery("project", p.alias)}
 							>
 								{p.alias}
-							</button>
+							</Button>
 						))}
 
 						<span className="px-1 text-text-dim">|</span>
 
 						{/* Tags */}
 						{availableTags.map((t) => (
-							<button
+							<Button
 								key={t}
-								className="inline-flex items-center gap-1 px-3 py-1 border border-green text-green hover:bg-green/10 rounded transition"
+								variant="ghost"
+								size="sm"
+								className="inline-flex items-center gap-1 border border-green text-green hover:bg-green/10"
 								onClick={() => addFilterToQuery("tag", t)}
 							>
 								#{t}
-							</button>
+							</Button>
 						))}
 					</div>
 				</div>

@@ -33,7 +33,7 @@ set:
   - errexit
   - pipefail
 
-output: group
+output: interleaved  # Changed from 'group' to get real-time output
 
 silent: false
 

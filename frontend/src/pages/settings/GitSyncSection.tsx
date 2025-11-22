@@ -3,6 +3,7 @@ import { RiAlertLine, RiFolderOpenLine } from "react-icons/ri";
 import {
 	Button,
 	Input,
+	Label,
 	Select,
 	type SelectOption,
 	SettingsSection,
@@ -62,16 +63,16 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 						)}
 
 						<div className="space-y-2">
-							<label className="block text-xs tracking-wider uppercase text-text-dim">
+							<Label variant="uppercase">
 								Current Data Directory
-							</label>
+							</Label>
 							<div className="text-sm font-mono text-text">{currentDataDir || "Loading..."}</div>
 						</div>
 
 						<div className="pt-4 space-y-3 border-t border-border">
-							<label className="block text-xs tracking-wider uppercase text-text-dim">
+							<Label variant="uppercase">
 								Change Data Directory
-							</label>
+							</Label>
 							<div className="text-xs text-text-dim">
 								Move your data to a different directory. YANTA will restart after migration.
 							</div>
@@ -119,7 +120,7 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 						{gitSyncEnabled && (
 							<>
 								<div className="space-y-2">
-									<label className="block text-xs tracking-wider uppercase text-text-dim">Commit Mode</label>
+									<Label variant="uppercase">Commit Mode</Label>
 									<Select
 										value={syncFrequency}
 										onChange={onSyncFrequencyChange}

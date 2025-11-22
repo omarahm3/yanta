@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TitleBarProvider } from "../../contexts";
-import { TitleBar } from "../TitleBar";
+import { TitleBar } from "../ui/TitleBar";
 
 const mockEnvironment = vi.fn();
 const mockQuit = vi.fn();

@@ -1,14 +1,15 @@
 import type { BlockNoteEditor } from "@blocknote/core";
 import {
-  type ComponentProps as BlockNoteComponentProps,
-  type Components as BlockNoteComponents,
-  BlockNoteViewRaw,
-  ComponentsContext,
+  SuggestionMenuController,
+  getDefaultReactSlashMenuItems,
   useCreateBlockNote,
+  useBlockNoteEditor,
+  ComponentsContext,
+  type Components as BlockNoteComponents,
 } from "@blocknote/react";
 import {
-  BlockNoteView as MantineBlockNoteView,
-  components as mantineComponents,
+  BlockNoteView as BlockNoteViewRaw,
+  components as blockNoteComponents,
 } from "@blocknote/shadcn";
 import React from "react";
 import { Layout } from "../components/Layout";
@@ -16,7 +17,7 @@ import { Button } from "../components/ui";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/shadcn/style.css";
 import { mergeCSSClasses } from "@blocknote/core";
-import { MantineContext, MantineProvider } from "@mantine/core";
+// Removed Mantine dependencies - using BlockNote with shadcn/ui
 import { cn } from "../lib/utils";
 import {
   type ClipboardImageSource,
@@ -293,27 +294,15 @@ type BlockNoteViewWithComponentsProps = {
 const BlockNoteViewWithComponents: React.FC<
   BlockNoteViewWithComponentsProps
 > = ({ componentsOverride, className, theme = "dark", ...rest }) => {
-  const mantineContext = React.useContext(MantineContext);
-
-  const view = (
+  return (
     <ComponentsContext.Provider value={componentsOverride}>
       <BlockNoteViewRaw
-        data-mantine-color-scheme={theme}
-        className={mergeCSSClasses("bn-mantine", className || "")}
+        data-theme={theme}
+        className={className || ""}
         theme={theme}
         {...rest}
       />
     </ComponentsContext.Provider>
-  );
-
-  if (mantineContext) {
-    return view;
-  }
-
-  return (
-    <MantineProvider withCssVariables={false} getRootElement={() => undefined}>
-      {view}
-    </MantineProvider>
   );
 };
 
@@ -335,9 +324,9 @@ export const Test: React.FC<TestProps> = () => {
     useBlockNoteTestEditor();
   const customComponents = React.useMemo<BlockNoteComponents>(() => {
     return {
-      ...mantineComponents,
+      ...blockNoteComponents,
       FilePanel: {
-        ...mantineComponents.FilePanel,
+        ...blockNoteComponents.FilePanel,
         FileInput: SimpleFileInput,
       },
     };
@@ -578,7 +567,7 @@ export const Test: React.FC<TestProps> = () => {
               className="border rounded border-border"
             >
               {baselineBlockNoteEditor ? (
-                <MantineBlockNoteView
+                <BlockNoteView
                   editor={baselineBlockNoteEditor}
                   theme="dark"
                 />
@@ -635,7 +624,7 @@ export const Test: React.FC<TestProps> = () => {
             <p className="text-xs text-text-dim">
               Same editor instance, but the file picker uses a plain HTML input.
               This helps determine if the Wayland portal filtering problem comes
-              from Mantine&apos;s hidden file input implementation.
+              from the library&apos;s hidden file input implementation.
             </p>
             <div
               ref={overrideContainerRef}

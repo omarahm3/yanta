@@ -1,5 +1,6 @@
 import type React from "react";
 import { type ForwardedRef, forwardRef } from "react";
+import { Input } from "../Input";
 import type { CommandLineProps } from "./types";
 
 const CommandLineComponent = (
@@ -25,10 +26,11 @@ const CommandLineComponent = (
 			<div className="flex items-center px-4 py-3 font-semibold border-r text-text-dim bg-bg border-border">
 				{prompt}
 			</div>
-			<input
+			<Input
 				ref={ref}
 				type="text"
-				className="flex-1 px-4 py-3 font-mono text-sm bg-transparent border-none outline-none text-text-bright"
+				variant="ghost"
+				className="flex-1 px-4 py-3 font-mono text-sm bg-transparent border-none outline-none text-text-bright rounded-none"
 				placeholder={placeholder}
 				value={value}
 				onChange={(e) => onChange(e.target.value)}

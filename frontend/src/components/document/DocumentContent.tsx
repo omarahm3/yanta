@@ -4,7 +4,7 @@ import type { SaveState } from "../../hooks/useAutoSave";
 import type { BlockNoteBlock } from "../../types/Document";
 import type { Project } from "../../types/Project";
 import { Layout } from "../Layout";
-import type { SidebarSection } from "../ui";
+import { Button, type SidebarSection } from "../ui";
 import { DocumentEditorActions } from "./DocumentEditorActions";
 import { DocumentEditorForm } from "./DocumentEditorForm";
 
@@ -71,14 +71,15 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 						<span className="font-semibold">Archived Document</span>
 						<span className="text-text-dim normal-case">Restore to resume editing.</span>
 						{onRestore && (
-							<button
-								type="button"
+							<Button
+								variant="primary"
+								size="sm"
 								onClick={onRestore}
 								disabled={isRestoring}
-								className="ml-auto rounded border border-accent bg-accent px-3 py-1 text-xs font-semibold uppercase tracking-widest text-bg transition-colors hover:bg-accent/90 disabled:opacity-60 disabled:cursor-not-allowed"
+								className="ml-auto text-xs font-semibold uppercase tracking-widest"
 							>
 								{isRestoring ? "Restoring..." : "Restore"}
-							</button>
+							</Button>
 						)}
 					</div>
 				)}

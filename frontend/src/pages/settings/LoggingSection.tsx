@@ -1,5 +1,5 @@
 import React from "react";
-import { Select, type SelectOption, SettingsSection } from "../../components/ui";
+import { Label, Select, type SelectOption, SettingsSection } from "../../components/ui";
 import type { SystemInfo } from "../../types";
 
 interface LoggingSectionProps {
@@ -15,7 +15,7 @@ export const LoggingSection = React.forwardRef<HTMLDivElement, LoggingSectionPro
 				<SettingsSection title="Logging" subtitle="Configure application logging level">
 					<div className="space-y-4">
 						<div className="space-y-2">
-							<label className="block text-xs tracking-wider uppercase text-text-dim">Log Level</label>
+							<Label variant="uppercase">Log Level</Label>
 							<Select
 								value={systemInfo?.app.logLevel || "info"}
 								onChange={onLogLevelChange}

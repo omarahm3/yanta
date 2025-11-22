@@ -1,5 +1,5 @@
 import type React from "react";
-import { StatusBar } from "../components";
+import { StatusBar } from "../components/ui";
 import { DocumentList } from "../components/DocumentList";
 import { Layout } from "../components/Layout";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";

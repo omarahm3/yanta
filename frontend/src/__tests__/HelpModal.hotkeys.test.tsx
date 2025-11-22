@@ -1,6 +1,6 @@
 import { fireEvent, render } from "@testing-library/react";
 import { vi } from "vitest";
-import { HelpModal } from "../components/HelpModal";
+import { HelpModal } from "../components/ui/HelpModal";
 
 const closeHelp = vi.fn();
 
