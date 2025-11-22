@@ -17,7 +17,6 @@ import { Button } from "../components/ui";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/shadcn/style.css";
 import { mergeCSSClasses } from "@blocknote/core";
-// Removed Mantine dependencies - using BlockNote with shadcn/ui
 import { cn } from "../lib/utils";
 import {
   type ClipboardImageSource,
