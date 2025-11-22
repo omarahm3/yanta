@@ -3,7 +3,6 @@ build/dist/
 build/pkg/
 build/windows-debug/
 
-build/windows/installer/wails_tools.nsh
 build/windows/installer/tmp/
 
 yanta-windows-*.exe
