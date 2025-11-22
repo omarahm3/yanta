@@ -212,7 +212,7 @@ tasks:
         LD_FLAGS="$LD_FLAGS -X yanta/internal/system.BuildCommit=${COMMIT}"
         LD_FLAGS="$LD_FLAGS -X yanta/internal/system.BuildDate=${DATE}"
 
-        if [[ "$GOOS_TARGET" == "windows" ]]; then
+        if [[ "$TARGET" == "win" || "$TARGET" == "windows" ]]; then
           LD_FLAGS="$LD_FLAGS -H=windowsgui"
         fi
 
