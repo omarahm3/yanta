@@ -260,15 +260,12 @@ tasks:
               echo "Creating Windows installer..."
               NSI_DIR="build/windows/installer"
               if [[ -f "$NSI_DIR/project.nsi" ]]; then
-                # Get Windows-native paths for NSIS (a native Windows program)
-                # pwd -W returns Windows-style paths in Git Bash/MSYS2 (e.g., D:\path\to\dir)
-                # This avoids mixed path separator issues that confuse NSIS include resolution
-                ABS_NSI_DIR="$(cd "$NSI_DIR" && pwd -W)"
-                ABS_BINARY_DIR="$(cd "$(dirname "$OUTPUT_PATH")" && pwd -W)"
-                # Use backslashes for Windows path separators
+                # Convert Unix paths to Windows paths for NSIS (a native Windows program)
+                # cygpath -w converts /d/path/to/dir to D:\path\to\dir
+                ABS_NSI_DIR="$(cygpath -w "$(cd "$NSI_DIR" && pwd)")"
+                ABS_BINARY="$(cygpath -w "$(cd "$(dirname "$OUTPUT_PATH")" && pwd)/$(basename "$OUTPUT_PATH")")"
                 ABS_NSI_FILE="${ABS_NSI_DIR}\\project.nsi"
-                ABS_BINARY="${ABS_BINARY_DIR}\\$(basename "$OUTPUT_PATH")"
-                # Run makensis with explicit include directory as belt-and-suspenders
+                # Run makensis with explicit include directory to ensure wails_tools.nsh is found
                 makensis "/X!addincludedir ${ABS_NSI_DIR}" "-DARG_WAILS_AMD64_BINARY=${ABS_BINARY}" "${ABS_NSI_FILE}"
                 echo "✓ Windows installer created"
               else
