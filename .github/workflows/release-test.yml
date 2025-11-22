@@ -93,31 +93,50 @@ jobs:
           task release:macos
           task release:list
 
-      - name: Upload Linux artifacts
+      - name: Upload Linux tarball
         if: matrix.name == 'linux'
         uses: actions/upload-artifact@v4
         with:
-          name: linux-test-${{ env.YANTA_VERSION }}
-          path: |
-            build/dist/yanta-linux.tar.gz
-            build/dist/yanta-*-x86_64.pkg.tar.zst
-            build/dist/yanta_*_amd64.deb
+          name: linux-tarball-${{ env.YANTA_VERSION }}
+          path: build/dist/yanta-linux.tar.gz
           if-no-files-found: error
 
-      - name: Upload Windows artifacts
+      - name: Upload Arch Linux package
+        if: matrix.name == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-arch-${{ env.YANTA_VERSION }}
+          path: build/dist/yanta-*-x86_64.pkg.tar.zst
+          if-no-files-found: error
+
+      - name: Upload Debian package
+        if: matrix.name == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-deb-${{ env.YANTA_VERSION }}
+          path: build/dist/yanta_*_amd64.deb
+          if-no-files-found: error
+
+      - name: Upload Windows portable
         if: matrix.name == 'windows'
         uses: actions/upload-artifact@v4
         with:
-          name: windows-test-${{ env.YANTA_VERSION }}
-          path: |
-            build/dist/yanta-windows-portable.exe
-            build/dist/yanta-windows-installer.exe
+          name: windows-portable-${{ env.YANTA_VERSION }}
+          path: build/dist/yanta-windows-portable.exe
           if-no-files-found: error
 
-      - name: Upload macOS artifact
+      - name: Upload Windows installer
+        if: matrix.name == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer-${{ env.YANTA_VERSION }}
+          path: build/dist/yanta-windows-installer.exe
+          if-no-files-found: error
+
+      - name: Upload macOS app
         if: matrix.name == 'macos'
         uses: actions/upload-artifact@v4
         with:
-          name: macos-test-${{ env.YANTA_VERSION }}
+          name: macos-app-${{ env.YANTA_VERSION }}
           path: build/dist/yanta-macos.tar.gz
           if-no-files-found: error
