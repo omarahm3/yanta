@@ -146,7 +146,7 @@ SELECT d.path, d.title,
 			"match": match,
 			"sql":   sqlBuilder,
 		}).Error("failed to execute search query")
-		return nil, fmt.Errorf("executing search query: %w", err)
+		return nil, formatSearchError(err, q)
 	}
 	defer rows.Close()
 
@@ -185,4 +185,21 @@ SELECT d.path, d.title,
 	}).Info("search completed")
 
 	return out, nil
+}
+
+// formatSearchError converts technical database errors into user-friendly messages.
+func formatSearchError(err error, query string) error {
+	errStr := err.Error()
+
+	if strings.Contains(errStr, "fts5: syntax error") {
+		return fmt.Errorf(
+			"invalid search syntax. Tips: use * only at end of words (e.g., 'kick*'), avoid special characters like . ? + in search terms",
+		)
+	}
+
+	if strings.Contains(errStr, "SQL logic error") {
+		return fmt.Errorf("invalid search query. Try simpler terms or check your syntax")
+	}
+
+	return fmt.Errorf("search failed: %w", err)
 }

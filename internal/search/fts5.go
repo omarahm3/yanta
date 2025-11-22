@@ -2,6 +2,7 @@ package search
 
 import (
 	"strings"
+
 	"yanta/internal/logger"
 )
 
@@ -168,13 +169,25 @@ func convertItems(items []*Item, initialScope string) string {
 					scope = scopeVal
 				}
 			case "title":
-				quoted := quoteIfNeeded(val)
+				sanitizedVal := sanitizeTerm(val)
+				if sanitizedVal == "" {
+					continue
+				}
+				quoted := quoteIfNeeded(sanitizedVal)
 				parts = append(parts, ftsCol("title", quoted))
 			case "body":
-				quoted := quoteIfNeeded(val)
+				sanitizedVal := sanitizeTerm(val)
+				if sanitizedVal == "" {
+					continue
+				}
+				quoted := quoteIfNeeded(sanitizedVal)
 				parts = append(parts, ftsCol("body", quoted))
 			default:
-				quoted := quoteIfNeeded(item.Filter.Key + ":" + val)
+				sanitizedVal := sanitizeTerm(item.Filter.Key + ":" + val)
+				if sanitizedVal == "" {
+					continue
+				}
+				quoted := quoteIfNeeded(sanitizedVal)
 				var clause string
 				switch scope {
 				case "title":
@@ -189,6 +202,7 @@ func convertItems(items []*Item, initialScope string) string {
 		} else if item.Term != nil {
 			termVal := item.Term.Value()
 			termVal = strings.ReplaceAll(termVal, "'", "")
+			termVal = sanitizeTerm(termVal)
 			if termVal == "" {
 				continue
 			}
@@ -258,4 +272,50 @@ func quoteIfNeeded(term string) string {
 	}
 	logger.Debugf("term does not need quoting term=%s", term)
 	return term
+}
+
+// sanitizeTerm removes or escapes characters that are invalid in FTS5 queries.
+// FTS5 only allows * at the end of a term for prefix matching.
+// Characters like . ? + are not valid FTS5 operators and will cause syntax errors.
+func sanitizeTerm(term string) string {
+	if term == "" {
+		return ""
+	}
+
+	hasSuffix := strings.HasSuffix(term, "*")
+	if hasSuffix {
+		term = strings.TrimSuffix(term, "*")
+	}
+
+	// Remove characters that are invalid in FTS5 terms
+	// Valid: alphanumeric, underscore, and characters specified in tokenchars (.-_/@#)
+	// Invalid as operators: . * ? + when used incorrectly
+	var result strings.Builder
+	for _, r := range term {
+		switch r {
+		case '.', '?', '+', '\\', '[', ']', '^', '$', '|', '{', '}':
+			// Skip regex-like characters that cause FTS5 syntax errors
+			continue
+		case '*':
+			// Only allow * at the end (handled separately)
+			continue
+		default:
+			result.WriteRune(r)
+		}
+	}
+
+	sanitized := result.String()
+	if sanitized == "" {
+		return ""
+	}
+
+	if hasSuffix {
+		sanitized += "*"
+	}
+
+	if sanitized != term || (hasSuffix && !strings.HasSuffix(term, "*")) {
+		logger.Debugf("sanitized term original=%s sanitized=%s", term, sanitized)
+	}
+
+	return sanitized
 }

@@ -245,3 +245,86 @@ func TestParseErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestSanitizeTerm(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "simple term unchanged",
+			input:    "meeting",
+			expected: "meeting",
+		},
+		{
+			name:     "prefix search preserved",
+			input:    "kick*",
+			expected: "kick*",
+		},
+		{
+			name:     "invalid regex-like pattern",
+			input:    "kick.*",
+			expected: "kick*",
+		},
+		{
+			name:     "remove dots",
+			input:    "test.value",
+			expected: "testvalue",
+		},
+		{
+			name:     "remove question marks",
+			input:    "test?",
+			expected: "test",
+		},
+		{
+			name:     "remove plus signs",
+			input:    "test+value",
+			expected: "testvalue",
+		},
+		{
+			name:     "remove asterisks in middle",
+			input:    "te*st",
+			expected: "test",
+		},
+		{
+			name:     "preserve asterisk at end",
+			input:    "test*",
+			expected: "test*",
+		},
+		{
+			name:     "complex invalid pattern",
+			input:    "kick.*[a-z]+",
+			expected: "kicka-z",
+		},
+		{
+			name:     "empty after sanitization",
+			input:    ".*",
+			expected: "",
+		},
+		{
+			name:     "preserve alphanumeric and underscores",
+			input:    "test_value123",
+			expected: "test_value123",
+		},
+		{
+			name:     "preserve hash for tags",
+			input:    "#meeting",
+			expected: "#meeting",
+		},
+		{
+			name:     "preserve at symbol",
+			input:    "@user",
+			expected: "@user",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := sanitizeTerm(tt.input)
+			if got != tt.expected {
+				t.Errorf("sanitizeTerm(%q) = %q, want %q", tt.input, got, tt.expected)
+			}
+		})
+	}
+}
