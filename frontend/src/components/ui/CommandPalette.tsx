@@ -188,7 +188,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 													index === selectedIndex ? "bg-border text-text-bright" : "text-text",
 												)}
 												value={command}
-												onMouseEnter={() => setSelectedIndex(index)}
 											>
 												<div
 													ref={(el) => (optionRefs.current[index] = el)}

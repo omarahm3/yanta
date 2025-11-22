@@ -172,10 +172,16 @@ const useBlockNoteTestEditor = () => {
   };
 };
 
-const SimpleFileInput = React.forwardRef<
-  HTMLInputElement,
-  BlockNoteComponentProps["FilePanel"]["FileInput"]
->((props, ref) => {
+interface SimpleFileInputProps {
+  className?: string;
+  accept: string;
+  value: File | null;
+  placeholder: string;
+  onChange: (payload: File | null) => void;
+}
+
+const SimpleFileInput = React.forwardRef<HTMLInputElement, SimpleFileInputProps>(
+  (props, ref) => {
   const { className, accept, placeholder, onChange } = props;
   const resolvedAccept =
     accept && accept.trim().length > 0 ? accept : "image/*";
@@ -203,7 +209,8 @@ const SimpleFileInput = React.forwardRef<
       }}
     />
   );
-});
+  }
+);
 SimpleFileInput.displayName = "SimpleFileInput";
 
 const useFileInputDebug = (
@@ -567,7 +574,7 @@ export const Test: React.FC<TestProps> = () => {
               className="border rounded border-border"
             >
               {baselineBlockNoteEditor ? (
-                <BlockNoteView
+                <BlockNoteViewRaw
                   editor={baselineBlockNoteEditor}
                   theme="dark"
                 />
