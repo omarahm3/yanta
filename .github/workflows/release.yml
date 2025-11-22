@@ -14,16 +14,13 @@ jobs:
         include:
           - name: linux
             os: ubuntu-latest
-            wails_platform: linux/amd64
-            tags: "-tags webkit2_41"
           - name: windows
             os: windows-latest
-            wails_platform: windows/amd64
-            tags: ""
           - name: macos
             os: macos-latest
-            wails_platform: darwin/universal
-            tags: ""
+    env:
+      # Extract version from tag (v1.0.0 -> 1.0.0)
+      YANTA_VERSION: ${{ github.ref_name }}
     defaults:
       run:
         shell: bash
@@ -31,6 +28,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Set version from tag
+        run: |
+          # Strip 'v' prefix from tag for version
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "YANTA_VERSION=${VERSION}" >> "$GITHUB_ENV"
+          echo "Building version: ${VERSION}"
+          echo "Commit: ${GITHUB_SHA::7}"
 
       - name: Install Linux dependencies
         if: matrix.name == 'linux'
@@ -45,16 +50,6 @@ jobs:
             libx11-dev \
             xvfb
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: 'go.mod'
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
       - name: Install Windows dependencies
         if: matrix.name == 'windows'
         shell: powershell
@@ -66,110 +61,124 @@ jobs:
             "$nsisPath\Bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           }
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+          cache-dependency-path: go.sum
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
       - name: Install Task CLI
         run: go install github.com/go-task/task/v3/cmd/task@latest
 
       - name: Install Wails v3
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
 
-      - name: Build Linux release via Task
+      - name: Build Linux artifacts
         if: matrix.name == 'linux'
-        env:
-          PKGREL: "1"
-        run: task release:linux
+        run: |
+          task release:linux
+          task release:ubuntu
+          task release:list
 
-      - name: Build Windows release via Task
+      - name: Build Windows artifacts
         if: matrix.name == 'windows'
-        run: task release:windows
+        run: |
+          task release:windows
+          task release:list
 
-      - name: Build macOS release via Task
+      - name: Build macOS artifacts
         if: matrix.name == 'macos'
-        run: task release:macos
+        run: |
+          task release:macos
+          task release:list
 
-      - name: Upload Linux artifacts
+      # Linux artifacts - separate uploads
+      - name: Upload Linux tarball
         if: matrix.name == 'linux'
         uses: actions/upload-artifact@v4
         with:
-          name: linux
-          path: |
-            build/dist/yanta-linux.tar.gz
-            build/dist/yanta-*-x86_64.pkg.tar.gz
+          name: linux-tarball
+          path: build/dist/yanta-linux.tar.gz
           if-no-files-found: error
 
-      - name: Upload Windows artifacts
+      - name: Upload Arch Linux package
+        if: matrix.name == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-arch
+          path: build/dist/yanta-*-x86_64.pkg.tar.zst
+          if-no-files-found: error
+
+      - name: Upload Debian package
+        if: matrix.name == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-deb
+          path: build/dist/yanta_*_amd64.deb
+          if-no-files-found: error
+
+      # Windows artifacts - separate uploads
+      - name: Upload Windows portable
         if: matrix.name == 'windows'
         uses: actions/upload-artifact@v4
         with:
-          name: windows
-          path: |
-            build/dist/yanta-windows-portable.exe
-            build/dist/yanta-windows-installer.exe
+          name: windows-portable
+          path: build/dist/yanta-windows-portable.exe
           if-no-files-found: error
 
-      - name: Upload macOS artifact
+      - name: Upload Windows installer
+        if: matrix.name == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: build/dist/yanta-windows-installer.exe
+          if-no-files-found: error
+
+      # macOS artifact
+      - name: Upload macOS app
         if: matrix.name == 'macos'
         uses: actions/upload-artifact@v4
         with:
-          name: macos
+          name: macos-app
           path: build/dist/yanta-macos.tar.gz
           if-no-files-found: error
 
-  debian:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download Linux artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: linux
-          path: linux
-
-      - name: Build Debian package
-        run: |
-          set -euo pipefail
-          VERSION=${GITHUB_REF#refs/tags/v}
-          TAR_PATH=$(find linux -type f -name 'yanta-linux.tar.gz' -print -quit)
-          if [ -z "$TAR_PATH" ]; then
-            echo "Could not locate linux tarball in downloaded artifacts" >&2
-            exit 1
-          fi
-          DEB_PATH=$(scripts/build_deb_from_tar.sh "$TAR_PATH" "$VERSION")
-          cp "$DEB_PATH" "yanta_${VERSION}_amd64.deb"
-          echo "PACKAGE_VERSION=${VERSION}" >> "$GITHUB_ENV"
-
-      - name: Upload Debian artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: debian
-          path: yanta_${{ env.PACKAGE_VERSION }}_amd64.deb
-          if-no-files-found: error
-
   release:
-    needs: [build, debian]
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Download build artifacts
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
-      - name: Inspect artifacts
-        run: ls -R artifacts
+      - name: List artifacts
+        run: |
+          echo "=== Downloaded artifacts ==="
+          find artifacts -type f -exec ls -lh {} \;
 
-      - name: Publish release
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          # Flatten all artifacts into release directory with proper names
+          find artifacts -type f -exec cp {} release/ \;
+          echo "=== Release files ==="
+          ls -lh release/
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            artifacts/linux/**/yanta-linux.tar.gz
-            artifacts/linux/**/yanta-*-x86_64.pkg.tar.gz
-            artifacts/windows/**/yanta-windows-portable.exe
-            artifacts/windows/**/yanta-windows-installer.exe
-            artifacts/macos/**/yanta-macos.tar.gz
-            artifacts/debian/yanta_*_amd64.deb
+          files: release/*
           generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
