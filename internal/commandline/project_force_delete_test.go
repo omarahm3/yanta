@@ -38,7 +38,7 @@ func setupProjectCommandTest(t *testing.T) projectCommandTestEnv {
 
 	projectStore := project.NewStore(db)
 	projectCache := project.NewCache(projectStore)
-	projectService := project.NewService(db, projectStore, projectCache, v, events.NewEventBus())
+	projectService := project.NewService(db, projectStore, projectCache, v, nil, events.NewEventBus())
 
 	docStore := document.NewStore(db)
 

@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupServiceTest(t *testing.T) (*Service, func()) {
+func setupServiceTest(t *testing.T, notifier SyncNotifier) (*Service, func()) {
 	database := testutil.SetupTestDB(t)
 	store := NewStore(database)
 	cache := NewCache(store)
@@ -21,7 +21,7 @@ func setupServiceTest(t *testing.T) (*Service, func()) {
 	v, err := vault.New(vault.Config{RootPath: tempDir})
 	require.NoError(t, err, "Failed to create vault")
 
-	service := NewService(database, store, cache, v, events.NewEventBus())
+	service := NewService(database, store, cache, v, notifier, events.NewEventBus())
 
 	cleanup := func() {
 		testutil.CleanupTestDB(t, database)
@@ -30,8 +30,16 @@ func setupServiceTest(t *testing.T) (*Service, func()) {
 	return service, cleanup
 }
 
+type mockSyncNotifier struct {
+	reasons []string
+}
+
+func (m *mockSyncNotifier) NotifyChange(reason string) {
+	m.reasons = append(m.reasons, reason)
+}
+
 func TestService_Create(t *testing.T) {
-	service, cleanup := setupServiceTest(t)
+	service, cleanup := setupServiceTest(t, nil)
 	defer cleanup()
 
 	id, err := service.Create(context.Background(), "Test Project", "test", "", "")
@@ -45,7 +53,7 @@ func TestService_Create(t *testing.T) {
 }
 
 func TestService_Create_EmptyName(t *testing.T) {
-	service, cleanup := setupServiceTest(t)
+	service, cleanup := setupServiceTest(t, nil)
 	defer cleanup()
 
 	_, err := service.Create(context.Background(), "", "test", "", "")
@@ -53,7 +61,7 @@ func TestService_Create_EmptyName(t *testing.T) {
 }
 
 func TestService_Update(t *testing.T) {
-	service, cleanup := setupServiceTest(t)
+	service, cleanup := setupServiceTest(t, nil)
 	defer cleanup()
 
 	id, _ := service.Create(context.Background(), "Original", "orig", "", "")
@@ -67,8 +75,41 @@ func TestService_Update(t *testing.T) {
 	assert.Equal(t, "Updated", updated.Name)
 }
 
+func TestService_Create_NotifiesSync(t *testing.T) {
+	notifier := &mockSyncNotifier{}
+	service, cleanup := setupServiceTest(t, notifier)
+	defer cleanup()
+
+	_, err := service.Create(context.Background(), "Sync Project", "sync", "", "")
+	require.NoError(t, err)
+
+	require.Len(t, notifier.reasons, 1)
+	assert.Contains(t, notifier.reasons[0], "@sync")
+	assert.Contains(t, notifier.reasons[0], "created")
+}
+
+func TestService_Update_NotifiesSync(t *testing.T) {
+	notifier := &mockSyncNotifier{}
+	service, cleanup := setupServiceTest(t, notifier)
+	defer cleanup()
+
+	id, err := service.Create(context.Background(), "Sync Update", "syncupd", "", "")
+	require.NoError(t, err)
+
+	project, err := service.Get(context.Background(), id)
+	require.NoError(t, err)
+	project.Name = "Updated Name"
+
+	err = service.Update(context.Background(), project)
+	require.NoError(t, err)
+
+	require.GreaterOrEqual(t, len(notifier.reasons), 2)
+	assert.Contains(t, notifier.reasons[len(notifier.reasons)-1], "@syncupd")
+	assert.Contains(t, notifier.reasons[len(notifier.reasons)-1], "updated")
+}
+
 func TestService_SoftDelete(t *testing.T) {
-	service, cleanup := setupServiceTest(t)
+	service, cleanup := setupServiceTest(t, nil)
 	defer cleanup()
 
 	id, _ := service.Create(context.Background(), "To Delete", "delete", "", "")
@@ -83,7 +124,7 @@ func TestService_SoftDelete(t *testing.T) {
 }
 
 func TestService_Restore(t *testing.T) {
-	service, cleanup := setupServiceTest(t)
+	service, cleanup := setupServiceTest(t, nil)
 	defer cleanup()
 
 	id, _ := service.Create(context.Background(), "To Restore", "restore", "", "")
@@ -103,7 +144,7 @@ func TestService_Restore(t *testing.T) {
 }
 
 func TestService_Delete_NoDocuments(t *testing.T) {
-	service, cleanup := setupServiceTest(t)
+	service, cleanup := setupServiceTest(t, nil)
 	defer cleanup()
 
 	id, _ := service.Create(context.Background(), "To Hard Delete", "hard", "", "")
@@ -116,7 +157,7 @@ func TestService_Delete_NoDocuments(t *testing.T) {
 }
 
 func TestService_ListActive(t *testing.T) {
-	service, cleanup := setupServiceTest(t)
+	service, cleanup := setupServiceTest(t, nil)
 	defer cleanup()
 
 	service.Create(context.Background(), "Active 1", "active1", "", "")
@@ -130,7 +171,7 @@ func TestService_ListActive(t *testing.T) {
 }
 
 func TestService_ListArchived(t *testing.T) {
-	service, cleanup := setupServiceTest(t)
+	service, cleanup := setupServiceTest(t, nil)
 	defer cleanup()
 
 	activeID, _ := service.Create(context.Background(), "Active", "active", "", "")
@@ -155,7 +196,7 @@ func TestService_ListArchived(t *testing.T) {
 }
 
 func TestService_GetCache(t *testing.T) {
-	service, cleanup := setupServiceTest(t)
+	service, cleanup := setupServiceTest(t, nil)
 	defer cleanup()
 
 	cache := service.GetCache()
@@ -163,7 +204,7 @@ func TestService_GetCache(t *testing.T) {
 }
 
 func TestService_DocumentCounts(t *testing.T) {
-	service, cleanup := setupServiceTest(t)
+	service, cleanup := setupServiceTest(t, nil)
 	defer cleanup()
 
 	id, _ := service.Create(context.Background(), "Test Project", "test", "", "")
@@ -180,7 +221,7 @@ func TestService_DocumentCounts(t *testing.T) {
 }
 
 func TestService_LastDocumentDates(t *testing.T) {
-	service, cleanup := setupServiceTest(t)
+	service, cleanup := setupServiceTest(t, nil)
 	defer cleanup()
 
 	service.Create(context.Background(), "Test Project", "test", "", "")
@@ -191,7 +232,7 @@ func TestService_LastDocumentDates(t *testing.T) {
 }
 
 func TestService_HardDelete(t *testing.T) {
-	service, cleanup := setupServiceTest(t)
+	service, cleanup := setupServiceTest(t, nil)
 	defer cleanup()
 
 	id, _ := service.Create(context.Background(), "To Hard Delete", "hard", "", "")
@@ -204,7 +245,7 @@ func TestService_HardDelete(t *testing.T) {
 }
 
 func TestService_HardDelete_EmptyID(t *testing.T) {
-	service, cleanup := setupServiceTest(t)
+	service, cleanup := setupServiceTest(t, nil)
 	defer cleanup()
 
 	err := service.HardDelete(context.Background(), "")
@@ -212,7 +253,7 @@ func TestService_HardDelete_EmptyID(t *testing.T) {
 }
 
 func TestService_HardDelete_NonExistent(t *testing.T) {
-	service, cleanup := setupServiceTest(t)
+	service, cleanup := setupServiceTest(t, nil)
 	defer cleanup()
 
 	err := service.HardDelete(context.Background(), "non-existent-id")

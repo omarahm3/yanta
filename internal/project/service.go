@@ -12,12 +12,17 @@ import (
 	"yanta/internal/vault"
 )
 
+type SyncNotifier interface {
+	NotifyChange(reason string)
+}
+
 type Service struct {
-	db       *sql.DB
-	store    *Store
-	cache    *Cache
-	vault    *vault.Vault
-	eventBus *events.EventBus
+	db           *sql.DB
+	store        *Store
+	cache        *Cache
+	vault        *vault.Vault
+	eventBus     *events.EventBus
+	syncNotifier SyncNotifier
 }
 
 func NewService(
@@ -25,14 +30,16 @@ func NewService(
 	store *Store,
 	cache *Cache,
 	v *vault.Vault,
+	syncNotifier SyncNotifier,
 	eventBus *events.EventBus,
 ) *Service {
 	return &Service{
-		db:       db,
-		store:    store,
-		cache:    cache,
-		vault:    v,
-		eventBus: eventBus,
+		db:           db,
+		store:        store,
+		cache:        cache,
+		vault:        v,
+		eventBus:     eventBus,
+		syncNotifier: syncNotifier,
 	}
 }
 
@@ -40,6 +47,13 @@ func (s *Service) emitEvent(eventName string, payload any) {
 	if s.eventBus != nil {
 		s.eventBus.Emit(eventName, payload)
 	}
+}
+
+func (s *Service) notifySync(reason string) {
+	if s.syncNotifier == nil {
+		return
+	}
+	s.syncNotifier.NotifyChange(reason)
 }
 
 func (s *Service) GetCache() *Cache {
@@ -83,6 +97,7 @@ func (s *Service) Create(
 			WithError(err).
 			Warn("failed to write project metadata file")
 	}
+	s.notifySync(fmt.Sprintf("project %s metadata created", p.Alias))
 
 	s.cache.Set(p)
 
@@ -136,6 +151,7 @@ func (s *Service) Update(ctx context.Context, p *Project) error {
 			WithError(err).
 			Warn("failed to update project metadata file")
 	}
+	s.notifySync(fmt.Sprintf("project %s metadata updated", p.Alias))
 
 	s.cache.Invalidate(p.ID)
 

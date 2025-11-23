@@ -110,7 +110,7 @@ func New(cfg Config) (*App, error) {
 	)
 
 	projectCache := project.NewCache(projectStore)
-	projectService := project.NewService(a.DB, projectStore, projectCache, v, eventBus)
+	projectService := project.NewService(a.DB, projectStore, projectCache, v, syncManager, eventBus)
 	documentService := document.NewService(a.DB, documentStore, v, idx, projectCache, eventBus)
 	documentFileManager := document.NewFileManager(v)
 	tagService := tag.NewService(a.DB, tagStore, documentFileManager, eventBus)
