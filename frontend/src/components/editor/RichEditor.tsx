@@ -180,6 +180,21 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 					}
 				});
 
+				const firstBlock = currentBlocks[0];
+				const needsH1 =
+					!firstBlock ||
+					firstBlock.type !== "heading" ||
+					(firstBlock.props as { level?: number })?.level !== 1;
+
+				if (needsH1) {
+					editor.insertBlocks(
+						[{ type: "heading", props: { level: 1 }, content: [] }],
+						currentBlocks[0],
+						"before",
+					);
+					return;
+				}
+
 				onChange(currentBlocks);
 				if (onTitleChange) {
 					const title = extractTitleFromBlocks(currentBlocks as BlockNoteBlock[]);

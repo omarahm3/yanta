@@ -76,9 +76,6 @@ export const useDocumentPersistence = ({
 
 			if (isNewDocument && savedPath) {
 				currentDocumentPathRef.current = savedPath;
-				if (onNavigate) {
-					onNavigate("document", { documentPath: savedPath });
-				}
 			}
 		} catch (err) {
 			console.error("Save failed:", err);
