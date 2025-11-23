@@ -21,6 +21,7 @@ import (
 	"yanta/internal/db"
 	"yanta/internal/logger"
 	"yanta/internal/vault"
+	windowcfg "yanta/internal/window"
 )
 
 //go:embed all:frontend/dist
@@ -54,8 +55,8 @@ func run() {
 	startHidden := config.GetStartHidden()
 	logger.Infof("start_hidden config: %v", startHidden)
 
-	frameless := runtimePkg.GOOS == "linux"
-	logger.Infof("platform: %s, frameless: %v", runtimePkg.GOOS, frameless)
+	frameless := config.IsLinuxFrameless()
+	logger.Infof("platform: %s, frameless: %v, linux_window_mode: %s", runtimePkg.GOOS, frameless, config.GetLinuxWindowMode())
 
 	customAssetHandler := createCustomAssetHandler()
 
@@ -72,6 +73,7 @@ func run() {
 			application.NewService(a.Bindings.ProjectCommands),
 			application.NewService(a.Bindings.GlobalCommands),
 			application.NewService(a.Bindings.DocumentCommands),
+			application.NewService(windowcfg.NewService()),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -86,10 +88,12 @@ func run() {
 
 	a.SetWailsApp(wailsApp)
 
-	window := wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
+	mainWindow := wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:            "YANTA",
-		Width:            1024,
-		Height:           768,
+		Width:            windowcfg.DefaultWidth,
+		Height:           windowcfg.DefaultHeight,
+		MinWidth:         windowcfg.MinWidth,
+		MinHeight:        windowcfg.MinHeight,
 		Hidden:           startHidden,
 		Frameless:        frameless,
 		URL:              "/",
@@ -109,7 +113,7 @@ func run() {
 		},
 	})
 
-	a.SetMainWindow(window)
+	a.SetMainWindow(mainWindow)
 
 	wailsApp.Event.OnApplicationEvent(
 		events.Common.ApplicationStarted,
@@ -124,7 +128,7 @@ func run() {
 		a.Shutdown()
 	})
 
-	window.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+	mainWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
 		logger.Debug("WindowClosing event fired")
 		if a.BeforeClose() {
 			logger.Debug("Window close prevented, hiding to background")

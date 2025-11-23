@@ -3,17 +3,35 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import { RiCheckboxBlankLine, RiCloseLine, RiSubtractLine } from "react-icons/ri";
 import { BackgroundQuit } from "../../../bindings/yanta/internal/system/service";
+import { IsFrameless } from "../../../bindings/yanta/internal/window/service";
 import { useTitleBarContext } from "../../contexts";
 import { Button } from "./Button";
 
 export const TitleBar: React.FC = () => {
-	const [isLinux, setIsLinux] = useState<boolean | null>(null);
+	const [shouldShow, setShouldShow] = useState<boolean>(false);
 	const { setHeight } = useTitleBarContext();
 
 	useEffect(() => {
-		const linux = System.IsLinux();
-		setIsLinux(linux);
-		setHeight(linux ? 2 : 0);
+		const checkFrameless = async () => {
+			const isLinux = System.IsLinux();
+			if (!isLinux) {
+				setShouldShow(false);
+				setHeight(0);
+				return;
+			}
+
+			try {
+				const frameless = await IsFrameless();
+				setShouldShow(frameless);
+				setHeight(frameless ? 2 : 0);
+			} catch (err) {
+				console.error("Failed to check frameless mode:", err);
+				setShouldShow(false);
+				setHeight(0);
+			}
+		};
+
+		checkFrameless();
 	}, [setHeight]);
 
 	const handleMinimize = () => {
@@ -28,7 +46,7 @@ export const TitleBar: React.FC = () => {
 		BackgroundQuit();
 	};
 
-	if (isLinux !== true) {
+	if (!shouldShow) {
 		return null;
 	}
 

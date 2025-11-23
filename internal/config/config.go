@@ -25,7 +25,13 @@ type Config struct {
 	StartHidden      bool          `toml:"start_hidden"`
 	DataDirectory    string        `toml:"data_directory"`
 	GitSync          GitSyncConfig `toml:"git_sync"`
+	LinuxWindowMode  string        `toml:"linux_window_mode"`
 }
+
+const (
+	WindowModeNormal    = "normal"
+	WindowModeFrameless = "frameless"
+)
 
 var (
 	instance     *Config
@@ -234,4 +240,32 @@ func ResetForTesting() {
 	defer mu.Unlock()
 	instance = nil
 	instanceOnce = sync.Once{}
+}
+
+func GetLinuxWindowMode() string {
+	cfg := Get()
+	if cfg.LinuxWindowMode == "" {
+		return WindowModeNormal
+	}
+	return cfg.LinuxWindowMode
+}
+
+func SetLinuxWindowMode(mode string) error {
+	if mode != WindowModeNormal && mode != WindowModeFrameless {
+		return fmt.Errorf("invalid window mode: %s (must be 'normal' or 'frameless')", mode)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	if instance == nil {
+		instance = &Config{}
+	}
+
+	instance.LinuxWindowMode = mode
+	return save(instance)
+}
+
+func IsLinuxFrameless() bool {
+	return runtime.GOOS == "linux" && GetLinuxWindowMode() == WindowModeFrameless
 }

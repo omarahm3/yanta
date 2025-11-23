@@ -15,6 +15,10 @@ import {
 	SyncNow,
 	ValidateMigrationTarget,
 } from "../../../bindings/yanta/internal/system/service";
+import {
+	GetWindowMode,
+	SetWindowMode,
+} from "../../../bindings/yanta/internal/window/service";
 import type { SelectOption } from "../../components/ui";
 import { useNotification } from "../../hooks/useNotification";
 import { type SystemInfo, systemInfoFromModel } from "../../types";
@@ -42,6 +46,7 @@ export const useSettingsController = () => {
 		syncFrequency: "daily",
 		autoPush: true,
 	});
+	const [linuxWindowMode, setLinuxWindowModeState] = useState<string>("normal");
 
 	const { success, error } = useNotification();
 
@@ -83,6 +88,10 @@ export const useSettingsController = () => {
 				});
 			})
 			.catch((err) => console.error("Failed to get git sync config:", err));
+
+		GetWindowMode()
+			.then((mode) => setLinuxWindowModeState(mode))
+			.catch((err) => console.error("Failed to get window mode:", err));
 	}, []);
 
 	const handleLogLevelChange = useCallback(
@@ -129,6 +138,25 @@ export const useSettingsController = () => {
 				success(enabled ? "App will start hidden in background" : "App will start with window visible");
 			} catch (err) {
 				error(`Failed to update setting: ${err}`);
+			}
+		},
+		[success, error],
+	);
+
+	const handleLinuxWindowModeToggle = useCallback(
+		async (frameless: boolean) => {
+			try {
+				const mode = frameless ? "frameless" : "normal";
+				await SetWindowMode(mode);
+				setLinuxWindowModeState(mode);
+				setNeedsRestart(true);
+				success(
+					frameless
+						? "Frameless mode enabled. Please restart the application."
+						: "Normal window mode enabled. Please restart the application.",
+				);
+			} catch (err) {
+				error(`Failed to update window mode: ${err}`);
 			}
 		},
 		[success, error],
@@ -252,6 +280,7 @@ export const useSettingsController = () => {
 		needsRestart,
 		keepInBackground,
 		startHidden,
+		linuxWindowMode,
 		gitInstalled,
 		currentDataDir,
 		migrationTarget,
@@ -265,6 +294,7 @@ export const useSettingsController = () => {
 			handleLogLevelChange,
 			handleKeepInBackgroundToggle,
 			handleStartHiddenToggle,
+			handleLinuxWindowModeToggle,
 			handleGitSyncToggle,
 			handleSyncFrequencyChange,
 			handleAutoPushToggle,

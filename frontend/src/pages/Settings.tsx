@@ -276,8 +276,10 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 						systemInfo={controller.systemInfo}
 						keepInBackground={controller.keepInBackground}
 						startHidden={controller.startHidden}
+						linuxWindowMode={controller.linuxWindowMode}
 						onKeepInBackgroundToggle={controller.handlers.handleKeepInBackgroundToggle}
 						onStartHiddenToggle={controller.handlers.handleStartHiddenToggle}
+						onLinuxWindowModeToggle={controller.handlers.handleLinuxWindowModeToggle}
 					/>
 
 					<div ref={shortcutsRef}>
