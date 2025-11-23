@@ -1,5 +1,8 @@
 /* Yanta Dashboard Styles */
 
+/* Import resize handles styles */
+@import "./resize-handles.css";
+
 /* Layout */
 .dashboard {
 	height: 100vh;

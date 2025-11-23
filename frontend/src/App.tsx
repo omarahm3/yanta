@@ -6,7 +6,7 @@ import {
 } from "../bindings/yanta/internal/system/service";
 import { GlobalCommandPalette } from "./components";
 import { Router } from "./components/Router";
-import { HelpModal, TitleBar, ToastProvider, useToast } from "./components/ui";
+import { HelpModal, ResizeHandles, TitleBar, ToastProvider, useToast } from "./components/ui";
 import {
   DialogProvider,
   DocumentCountProvider,
@@ -185,6 +185,7 @@ function App() {
               <ProjectProvider>
                 <DocumentCountProvider>
                   <DocumentProvider>
+                    <ResizeHandles />
                     <TitleBar />
                     <HelpHotkey />
                     <QuitHotkeys />

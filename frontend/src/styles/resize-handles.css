@@ -1,0 +1,106 @@
+/**
+ * Resize Handles Styles
+ *
+ * Provides invisible resize handles around the window edges for frameless windows.
+ * These handles enable window resizing on Linux with Hyprland, i3wm, and GNOME.
+ *
+ * Design principles:
+ * - Invisible to user (transparent background)
+ * - Fixed positioning at window edges
+ * - Proper cursor styles for visual feedback
+ * - High z-index to ensure accessibility
+ * - Minimal footprint (5px edges, 10px corners)
+ */
+
+/* Base resize handle styles */
+.resize-handle {
+	position: fixed;
+	user-select: none;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	pointer-events: auto;
+	z-index: 10000;
+	background-color: transparent;
+}
+
+/* Edge resize handles - 5px wide/tall */
+.resize-handle-top {
+	top: 0;
+	left: 10px;
+	right: 10px;
+	height: 5px;
+	cursor: n-resize;
+}
+
+.resize-handle-right {
+	top: 10px;
+	right: 0;
+	bottom: 10px;
+	width: 5px;
+	cursor: e-resize;
+}
+
+.resize-handle-bottom {
+	bottom: 0;
+	left: 10px;
+	right: 10px;
+	height: 5px;
+	cursor: s-resize;
+}
+
+.resize-handle-left {
+	top: 10px;
+	left: 0;
+	bottom: 10px;
+	width: 5px;
+	cursor: w-resize;
+}
+
+/* Corner resize handles - 10x10px for better UX */
+.resize-handle-corner {
+	width: 10px;
+	height: 10px;
+}
+
+.resize-handle-top-left {
+	top: 0;
+	left: 0;
+	cursor: nw-resize;
+}
+
+.resize-handle-top-right {
+	top: 0;
+	right: 0;
+	cursor: ne-resize;
+}
+
+.resize-handle-bottom-left {
+	bottom: 0;
+	left: 0;
+	cursor: sw-resize;
+}
+
+.resize-handle-bottom-right {
+	bottom: 0;
+	right: 0;
+	cursor: se-resize;
+}
+
+/**
+ * Optional: Visual feedback on hover
+ * Uncomment to see the resize handles (useful for debugging)
+ */
+/* .resize-handle:hover {
+	background-color: rgba(100, 150, 255, 0.15);
+} */
+
+/**
+ * Prevent cursor changes from interfering with content
+ * Ensure the resize handles don't block interaction with the window content
+ */
+@media (prefers-reduced-motion: no-preference) {
+	.resize-handle {
+		/* Smooth cursor change transition */
+		transition: background-color 0.1s ease-in-out;
+	}
+}
