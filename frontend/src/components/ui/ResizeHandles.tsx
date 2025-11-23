@@ -53,10 +53,7 @@ export const ResizeHandles: React.FC = () => {
 				const frameless = await IsFrameless();
 				setIsFrameless(frameless);
 			} catch (err: unknown) {
-				console.error(
-					"[ResizeHandles] Failed to check frameless mode:",
-					err
-				);
+				console.error("[ResizeHandles] Failed to check frameless mode:", err);
 				setIsFrameless(false);
 			}
 		};
@@ -150,27 +147,27 @@ export const ResizeHandles: React.FC = () => {
 	 * Initiates resize tracking.
 	 */
 	const handleResizeStart = useCallback(
-			async (edge: Edge, event: React.MouseEvent) => {
-				if (resizeStateRef.current.isResizing) return;
-				if (event.button !== 0) return; // only respond to primary button
-				const mouseScreenX = event.screenX;
-				const mouseScreenY = event.screenY;
+		async (edge: Edge, event: React.MouseEvent) => {
+			if (resizeStateRef.current.isResizing) return;
+			if (event.button !== 0) return; // only respond to primary button
+			const mouseScreenX = event.screenX;
+			const mouseScreenY = event.screenY;
 
-				try {
-					const pos = await Window.Position();
-					const width = await Window.Width();
-					const height = await Window.Height();
+			try {
+				const pos = await Window.Position();
+				const width = await Window.Width();
+				const height = await Window.Height();
 
 				resizeStateRef.current = {
-						isResizing: true,
-						edge,
-						startMouseX: mouseScreenX,
-						startMouseY: mouseScreenY,
-						startWindowX: pos.x,
-						startWindowY: pos.y,
-						startWidth: width,
-						startHeight: height,
-					};
+					isResizing: true,
+					edge,
+					startMouseX: mouseScreenX,
+					startMouseY: mouseScreenY,
+					startWindowX: pos.x,
+					startWindowY: pos.y,
+					startWidth: width,
+					startHeight: height,
+				};
 
 				// Prevent text selection during resize
 				document.body.style.userSelect = "none";
@@ -180,7 +177,7 @@ export const ResizeHandles: React.FC = () => {
 				console.error(`[ResizeHandles] Failed to start resize from ${edge}:`, err);
 			}
 		},
-		[handleMouseMove, handleMouseUp]
+		[handleMouseMove, handleMouseUp],
 	);
 
 	// Only render resize handles on Linux in frameless mode
@@ -189,62 +186,62 @@ export const ResizeHandles: React.FC = () => {
 	}
 
 	return (
-			<>
-				{/* Top edge resize handle */}
-				<div
-					className="resize-handle resize-handle-top"
-					onMouseDown={(e) => handleResizeStart("n", e)}
-					title="Drag to resize window (top edge)"
-				/>
+		<>
+			{/* Top edge resize handle */}
+			<div
+				className="resize-handle resize-handle-top"
+				onMouseDown={(e) => handleResizeStart("n", e)}
+				title="Drag to resize window (top edge)"
+			/>
 
-				{/* Right edge resize handle */}
-				<div
-					className="resize-handle resize-handle-right"
-					onMouseDown={(e) => handleResizeStart("e", e)}
-					title="Drag to resize window (right edge)"
-				/>
+			{/* Right edge resize handle */}
+			<div
+				className="resize-handle resize-handle-right"
+				onMouseDown={(e) => handleResizeStart("e", e)}
+				title="Drag to resize window (right edge)"
+			/>
 
-				{/* Bottom edge resize handle */}
-				<div
-					className="resize-handle resize-handle-bottom"
-					onMouseDown={(e) => handleResizeStart("s", e)}
-					title="Drag to resize window (bottom edge)"
-				/>
+			{/* Bottom edge resize handle */}
+			<div
+				className="resize-handle resize-handle-bottom"
+				onMouseDown={(e) => handleResizeStart("s", e)}
+				title="Drag to resize window (bottom edge)"
+			/>
 
-				{/* Left edge resize handle */}
-				<div
-					className="resize-handle resize-handle-left"
-					onMouseDown={(e) => handleResizeStart("w", e)}
-					title="Drag to resize window (left edge)"
-				/>
+			{/* Left edge resize handle */}
+			<div
+				className="resize-handle resize-handle-left"
+				onMouseDown={(e) => handleResizeStart("w", e)}
+				title="Drag to resize window (left edge)"
+			/>
 
-				{/* Top-left corner resize handle */}
-				<div
-					className="resize-handle resize-handle-corner resize-handle-top-left"
-					onMouseDown={(e) => handleResizeStart("nw", e)}
-					title="Drag to resize window (top-left corner)"
-				/>
+			{/* Top-left corner resize handle */}
+			<div
+				className="resize-handle resize-handle-corner resize-handle-top-left"
+				onMouseDown={(e) => handleResizeStart("nw", e)}
+				title="Drag to resize window (top-left corner)"
+			/>
 
-				{/* Top-right corner resize handle */}
-				<div
-					className="resize-handle resize-handle-corner resize-handle-top-right"
-					onMouseDown={(e) => handleResizeStart("ne", e)}
-					title="Drag to resize window (top-right corner)"
-				/>
+			{/* Top-right corner resize handle */}
+			<div
+				className="resize-handle resize-handle-corner resize-handle-top-right"
+				onMouseDown={(e) => handleResizeStart("ne", e)}
+				title="Drag to resize window (top-right corner)"
+			/>
 
-				{/* Bottom-left corner resize handle */}
-				<div
-					className="resize-handle resize-handle-corner resize-handle-bottom-left"
-					onMouseDown={(e) => handleResizeStart("sw", e)}
-					title="Drag to resize window (bottom-left corner)"
-				/>
+			{/* Bottom-left corner resize handle */}
+			<div
+				className="resize-handle resize-handle-corner resize-handle-bottom-left"
+				onMouseDown={(e) => handleResizeStart("sw", e)}
+				title="Drag to resize window (bottom-left corner)"
+			/>
 
-				{/* Bottom-right corner resize handle */}
-				<div
-					className="resize-handle resize-handle-corner resize-handle-bottom-right"
-					onMouseDown={(e) => handleResizeStart("se", e)}
-					title="Drag to resize window (bottom-right corner)"
-				/>
-			</>
-		);
-	};
+			{/* Bottom-right corner resize handle */}
+			<div
+				className="resize-handle resize-handle-corner resize-handle-bottom-right"
+				onMouseDown={(e) => handleResizeStart("se", e)}
+				title="Drag to resize window (bottom-right corner)"
+			/>
+		</>
+	);
+};

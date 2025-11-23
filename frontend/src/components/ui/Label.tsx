@@ -14,11 +14,7 @@ export const Label = React.forwardRef<HTMLLabelElement, LabelProps>(
 		};
 
 		return (
-			<label
-				ref={ref}
-				className={cn("block", variantClasses[variant], className)}
-				{...props}
-			>
+			<label ref={ref} className={cn("block", variantClasses[variant], className)} {...props}>
 				{children}
 				{required && <span className="text-red ml-1">*</span>}
 			</label>

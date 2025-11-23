@@ -377,20 +377,20 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 						<div className="space-y-5">
 							{groupedResults.map((r, idx) => {
 								return (
-								<div
-									key={r.path}
-									data-result-item="true"
-									tabIndex={0}
-									className={`relative p-4 bg-surface border border-border rounded transition cursor-pointer outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 ${
-										idx === selectedIndex ? "border-accent ring-1 ring-accent/30" : "hover:border-accent/50"
-									}`}
-									onClick={() => {
-										setSelectedIndex(idx);
-										openResult(idx);
-									}}
-									onMouseEnter={() => setSelectedIndex(idx)}
-									onFocus={() => setSelectedIndex(idx)}
-								>
+									<div
+										key={r.path}
+										data-result-item="true"
+										tabIndex={0}
+										className={`relative p-4 bg-surface border border-border rounded transition cursor-pointer outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 ${
+											idx === selectedIndex ? "border-accent ring-1 ring-accent/30" : "hover:border-accent/50"
+										}`}
+										onClick={() => {
+											setSelectedIndex(idx);
+											openResult(idx);
+										}}
+										onMouseEnter={() => setSelectedIndex(idx)}
+										onFocus={() => setSelectedIndex(idx)}
+									>
 										<div className="absolute -left-8 top-4 text-text-dim text-[11px] w-7 text-right">
 											{idx + 1}
 										</div>

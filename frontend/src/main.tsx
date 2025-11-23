@@ -39,7 +39,7 @@ async function waitForWailsRuntime(): Promise<void> {
 			console.log("[main.tsx] Wails runtime ready:", window._wails.environment);
 			return;
 		}
-		await new Promise(resolve => setTimeout(resolve, delayMs));
+		await new Promise((resolve) => setTimeout(resolve, delayMs));
 	}
 
 	console.error("[main.tsx] Wails runtime not initialized after timeout, proceeding anyway");
@@ -47,7 +47,7 @@ async function waitForWailsRuntime(): Promise<void> {
 	window._wails.environment = window._wails.environment || {
 		OS: "unknown",
 		Arch: "unknown",
-		Debug: false
+		Debug: false,
 	};
 }
 

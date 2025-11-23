@@ -42,8 +42,8 @@ export const GeneralSection = React.forwardRef<HTMLDivElement, GeneralSectionPro
 									<div>
 										<div className="text-sm text-text">Keep running in background when closed</div>
 										<div className="text-xs text-text-dim">
-											When enabled, closing the window will hide YANTA instead of quitting. Press
-											Ctrl+Shift+Y anywhere to restore the window.
+											When enabled, closing the window will hide YANTA instead of quitting. Press Ctrl+Shift+Y
+											anywhere to restore the window.
 										</div>
 									</div>
 									<Toggle checked={keepInBackground} onChange={onKeepInBackgroundToggle} />
@@ -53,8 +53,8 @@ export const GeneralSection = React.forwardRef<HTMLDivElement, GeneralSectionPro
 									<div>
 										<div className="text-sm text-text">Start hidden in background</div>
 										<div className="text-xs text-text-dim">
-											When enabled, YANTA will start hidden. Press Ctrl+Shift+Y to show it. Requires
-											"Keep running in background" to be enabled.
+											When enabled, YANTA will start hidden. Press Ctrl+Shift+Y to show it. Requires "Keep
+											running in background" to be enabled.
 										</div>
 									</div>
 									<Toggle
@@ -71,15 +71,12 @@ export const GeneralSection = React.forwardRef<HTMLDivElement, GeneralSectionPro
 								<div>
 									<div className="text-sm text-text">Frameless window mode</div>
 									<div className="text-xs text-text-dim">
-										Remove window borders and title bar for a cleaner look. You can drag the window
-										using the custom title bar and resize from edges.
+										Remove window borders and title bar for a cleaner look. You can drag the window using the
+										custom title bar and resize from edges.
 										<span className="text-yellow-400"> Requires restart to take effect.</span>
 									</div>
 								</div>
-								<Toggle
-									checked={linuxWindowMode === "frameless"}
-									onChange={onLinuxWindowModeToggle}
-								/>
+								<Toggle checked={linuxWindowMode === "frameless"} onChange={onLinuxWindowModeToggle} />
 							</div>
 						)}
 					</div>

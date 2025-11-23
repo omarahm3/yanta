@@ -20,7 +20,7 @@ export const Text = React.forwardRef<HTMLElement, TextProps>(
 			children,
 			...props
 		},
-		ref
+		ref,
 	) => {
 		const variantClasses = {
 			default: "text-text",
@@ -50,17 +50,12 @@ export const Text = React.forwardRef<HTMLElement, TextProps>(
 			Component,
 			{
 				ref: ref as any,
-				className: cn(
-					variantClasses[variant],
-					sizeClasses[size],
-					weightClasses[weight],
-					className
-				),
+				className: cn(variantClasses[variant], sizeClasses[size], weightClasses[weight], className),
 				...props,
 			},
-			children
+			children,
 		);
-	}
+	},
 );
 
 Text.displayName = "Text";

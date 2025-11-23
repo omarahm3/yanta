@@ -338,115 +338,126 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 		}
 	}, [setCurrentProject, success]);
 
-	const projectHotkeys = useMemo(() => [
-		{
-			key: "j",
-			handler: selectNext,
-			allowInInput: false,
-			description: "Select next project",
-		},
-		{
-			key: "k",
-			handler: selectPrevious,
-			allowInInput: false,
-			description: "Select previous project",
-		},
-		{
-			key: "ArrowDown",
-			handler: selectNext,
-			allowInInput: false,
-			description: "Select next project",
-		},
-		{
-			key: "ArrowUp",
-			handler: selectPrevious,
-			allowInInput: false,
-			description: "Select previous project",
-		},
-		{
-			key: "Enter",
-			handler: selectCurrentProject,
-			allowInInput: false,
-			description: "Switch to selected project",
-		},
-		{
-			key: "mod+N",
-			handler: () => {
-				setCommandInput("new ");
-				setTimeout(() => {
-					commandInputRef.current?.focus();
-					const len = "new ".length;
-					commandInputRef.current?.setSelectionRange(len, len);
-				}, 0);
+	const projectHotkeys = useMemo(
+		() => [
+			{
+				key: "j",
+				handler: selectNext,
+				allowInInput: false,
+				description: "Select next project",
 			},
-			allowInInput: false,
-			description: "Create a new project",
-		},
-		{
-			key: "mod+A",
-			handler: () => {
-				const selected = projectsRef.current.find((p) => p.id === selectedProjectIdRef.current);
-				if (selected) {
-					setCommandInput(`archive `);
+			{
+				key: "k",
+				handler: selectPrevious,
+				allowInInput: false,
+				description: "Select previous project",
+			},
+			{
+				key: "ArrowDown",
+				handler: selectNext,
+				allowInInput: false,
+				description: "Select next project",
+			},
+			{
+				key: "ArrowUp",
+				handler: selectPrevious,
+				allowInInput: false,
+				description: "Select previous project",
+			},
+			{
+				key: "Enter",
+				handler: selectCurrentProject,
+				allowInInput: false,
+				description: "Switch to selected project",
+			},
+			{
+				key: "mod+N",
+				handler: () => {
+					setCommandInput("new ");
 					setTimeout(() => {
 						commandInputRef.current?.focus();
-						const len = `archive `.length;
+						const len = "new ".length;
 						commandInputRef.current?.setSelectionRange(len, len);
 					}, 0);
-				}
+				},
+				allowInInput: false,
+				description: "Create a new project",
 			},
-			allowInInput: false,
-			description: "Archive a project",
-		},
-		{
-			key: "mod+U",
-			handler: () => {
-				const selected = projectsRef.current.find((p) => p.id === selectedProjectIdRef.current);
-				if (selected) {
-					setCommandInput(`unarchive `);
-					setTimeout(() => {
-						commandInputRef.current?.focus();
-						const len = `unarchive `.length;
-						commandInputRef.current?.setSelectionRange(len, len);
-					}, 0);
-				}
+			{
+				key: "mod+A",
+				handler: () => {
+					const selected = projectsRef.current.find((p) => p.id === selectedProjectIdRef.current);
+					if (selected) {
+						setCommandInput(`archive `);
+						setTimeout(() => {
+							commandInputRef.current?.focus();
+							const len = `archive `.length;
+							commandInputRef.current?.setSelectionRange(len, len);
+						}, 0);
+					}
+				},
+				allowInInput: false,
+				description: "Archive a project",
 			},
-			allowInInput: false,
-			description: "Restore archived project",
-		},
-		{
-			key: "mod+R",
-			handler: () => {
-				const selected = projectsRef.current.find((p) => p.id === selectedProjectIdRef.current);
-				if (selected) {
-					setCommandInput(`rename ${selected.alias} `);
-					setTimeout(() => {
-						commandInputRef.current?.focus();
-						const len = `rename ${selected.alias} `.length;
-						commandInputRef.current?.setSelectionRange(len, len);
-					}, 0);
-				}
+			{
+				key: "mod+U",
+				handler: () => {
+					const selected = projectsRef.current.find((p) => p.id === selectedProjectIdRef.current);
+					if (selected) {
+						setCommandInput(`unarchive `);
+						setTimeout(() => {
+							commandInputRef.current?.focus();
+							const len = `unarchive `.length;
+							commandInputRef.current?.setSelectionRange(len, len);
+						}, 0);
+					}
+				},
+				allowInInput: false,
+				description: "Restore archived project",
 			},
-			allowInInput: false,
-			description: "Rename a project",
-		},
-		{
-			key: "mod+D",
-			handler: () => {
-				const selected = projectsRef.current.find((p) => p.id === selectedProjectIdRef.current);
-				if (selected) {
-					setCommandInput(`delete ${selected.alias}`);
-					setTimeout(() => {
-						commandInputRef.current?.focus();
-						const len = `delete ${selected.alias}`.length;
-						commandInputRef.current?.setSelectionRange(len, len);
-					}, 0);
-				}
+			{
+				key: "mod+R",
+				handler: () => {
+					const selected = projectsRef.current.find((p) => p.id === selectedProjectIdRef.current);
+					if (selected) {
+						setCommandInput(`rename ${selected.alias} `);
+						setTimeout(() => {
+							commandInputRef.current?.focus();
+							const len = `rename ${selected.alias} `.length;
+							commandInputRef.current?.setSelectionRange(len, len);
+						}, 0);
+					}
+				},
+				allowInInput: false,
+				description: "Rename a project",
 			},
-			allowInInput: false,
-			description: "Delete a project",
-		},
-	], [selectNext, selectPrevious, selectCurrentProject, setCommandInput, commandInputRef, projectsRef, selectedProjectIdRef]);
+			{
+				key: "mod+D",
+				handler: () => {
+					const selected = projectsRef.current.find((p) => p.id === selectedProjectIdRef.current);
+					if (selected) {
+						setCommandInput(`delete ${selected.alias}`);
+						setTimeout(() => {
+							commandInputRef.current?.focus();
+							const len = `delete ${selected.alias}`.length;
+							commandInputRef.current?.setSelectionRange(len, len);
+						}, 0);
+					}
+				},
+				allowInInput: false,
+				description: "Delete a project",
+			},
+		],
+		[
+			selectNext,
+			selectPrevious,
+			selectCurrentProject,
+			setCommandInput,
+			commandInputRef,
+			projectsRef,
+			selectedProjectIdRef,
+		],
+	);
 
 	useHotkeys(projectHotkeys);
 

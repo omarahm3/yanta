@@ -20,7 +20,7 @@ export const Heading = React.forwardRef<HTMLHeadingElement, HeadingProps>(
 			children,
 			...props
 		},
-		ref
+		ref,
 	) => {
 		const variantClasses = {
 			default: "text-text",
@@ -66,13 +66,13 @@ export const Heading = React.forwardRef<HTMLHeadingElement, HeadingProps>(
 					variantClasses[variant],
 					sizeClasses[actualSize as keyof typeof sizeClasses],
 					weightClasses[weight],
-					className
+					className,
 				),
 				...props,
 			},
-			children
+			children,
 		);
-	}
+	},
 );
 
 Heading.displayName = "Heading";

@@ -83,10 +83,7 @@ export const GitErrorDialog: React.FC<GitErrorDialogProps> = ({ isOpen, onClose,
 
 								{/* Footer */}
 								<div className="px-6 py-4 border-t border-border flex justify-end">
-									<Button
-										variant="primary"
-										onClick={onClose}
-									>
+									<Button variant="primary" onClick={onClose}>
 										Close
 									</Button>
 								</div>

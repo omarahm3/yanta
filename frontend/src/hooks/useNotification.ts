@@ -5,12 +5,12 @@ export type NotificationType = "success" | "error" | "info" | "warning";
 export interface NotificationOptions {
 	duration?: number;
 	position?:
-	| "top-right"
-	| "top-center"
-	| "top-left"
-	| "bottom-right"
-	| "bottom-center"
-	| "bottom-left";
+		| "top-right"
+		| "top-center"
+		| "top-left"
+		| "bottom-right"
+		| "bottom-center"
+		| "bottom-left";
 	id?: string;
 }
 

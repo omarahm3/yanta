@@ -97,7 +97,9 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 								</div>
 
 								<div className="px-6 py-4 space-y-4">
-									<Text size="sm" variant="dim">{message}</Text>
+									<Text size="sm" variant="dim">
+										{message}
+									</Text>
 
 									{inputPrompt && expectedInput && (
 										<div className="space-y-2">
@@ -126,9 +128,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 												)}
 											>
 												<span className="sr-only">{checkboxLabel}</span>
-												{isChecked && (
-													<span className="text-bg text-xs font-bold">✓</span>
-												)}
+												{isChecked && <span className="text-bg text-xs font-bold">✓</span>}
 											</Switch>
 											<Label className="cursor-pointer text-sm font-normal text-text-dim">
 												{checkboxLabel}
@@ -138,11 +138,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 								</div>
 
 								<div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
-									<Button
-										variant="secondary"
-										onClick={onCancel}
-										ref={cancelButtonRef}
-									>
+									<Button variant="secondary" onClick={onCancel} ref={cancelButtonRef}>
 										{cancelText}
 									</Button>
 									<Button

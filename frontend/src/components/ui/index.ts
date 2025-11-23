@@ -34,10 +34,10 @@ export { Table, type TableColumn, type TableRow } from "./Table";
 export { type Tag, Tags } from "./Tags";
 export { Text } from "./Text";
 export { TitleBar } from "./TitleBar";
-export { 
-  ToastProvider,
-  useToast,
-  type ToastType,
-  type ToastOptions
+export {
+	ToastProvider,
+	useToast,
+	type ToastType,
+	type ToastOptions,
 } from "./Toast";
 export { Toggle } from "./Toggle";

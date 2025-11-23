@@ -63,16 +63,12 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 						)}
 
 						<div className="space-y-2">
-							<Label variant="uppercase">
-								Current Data Directory
-							</Label>
+							<Label variant="uppercase">Current Data Directory</Label>
 							<div className="text-sm font-mono text-text">{currentDataDir || "Loading..."}</div>
 						</div>
 
 						<div className="pt-4 space-y-3 border-t border-border">
-							<Label variant="uppercase">
-								Change Data Directory
-							</Label>
+							<Label variant="uppercase">Change Data Directory</Label>
 							<div className="text-xs text-text-dim">
 								Move your data to a different directory. YANTA will restart after migration.
 							</div>

@@ -15,10 +15,7 @@ import {
 	SyncNow,
 	ValidateMigrationTarget,
 } from "../../../bindings/yanta/internal/system/service";
-import {
-	GetWindowMode,
-	SetWindowMode,
-} from "../../../bindings/yanta/internal/window/service";
+import { GetWindowMode, SetWindowMode } from "../../../bindings/yanta/internal/window/service";
 import type { SelectOption } from "../../components/ui";
 import { useNotification } from "../../hooks/useNotification";
 import { type SystemInfo, systemInfoFromModel } from "../../types";

@@ -15,11 +15,7 @@ export const DocumentErrorState: React.FC<DocumentErrorStateProps> = React.memo(
 				<div className="text-text-dim">
 					Document could not be loaded. It may have been deleted or doesn't exist.
 				</div>
-				<Button
-					variant="primary"
-					onClick={() => onNavigate?.("dashboard")}
-					className="mt-4"
-				>
+				<Button variant="primary" onClick={() => onNavigate?.("dashboard")} className="mt-4">
 					← Back to Dashboard
 				</Button>
 			</div>

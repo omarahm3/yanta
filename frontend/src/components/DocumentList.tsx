@@ -47,10 +47,16 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 			<div className="opacity-50 space-y-2">
 				{placeholders.map((doc) => (
 					<div key={doc.path} className="space-y-2 rounded border border-border p-4">
-						<Heading as="h3" size="lg">{doc.title}</Heading>
+						<Heading as="h3" size="lg">
+							{doc.title}
+						</Heading>
 						<div className="mt-2 flex gap-4 text-sm text-text-dim">
-							<Text as="span" variant="dim" size="sm">{doc.projectAlias}</Text>
-							<Text as="span" variant="dim" size="sm">{formatShortDate(doc.updated.toISOString())}</Text>
+							<Text as="span" variant="dim" size="sm">
+								{doc.projectAlias}
+							</Text>
+							<Text as="span" variant="dim" size="sm">
+								{formatShortDate(doc.updated.toISOString())}
+							</Text>
 						</div>
 						<div className="mt-2 flex gap-2">
 							{doc.tags.map((tag) => (
@@ -61,7 +67,9 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 						</div>
 					</div>
 				))}
-				<Text className="p-4 mt-4" size="sm" variant="dim">No documents yet. Create one to get started!</Text>
+				<Text className="p-4 mt-4" size="sm" variant="dim">
+					No documents yet. Create one to get started!
+				</Text>
 			</div>
 		);
 	}
@@ -126,7 +134,9 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 								}}
 							>
 								<div className="flex items-center gap-2">
-									<Heading as="h3" size="lg">{doc.title}</Heading>
+									<Heading as="h3" size="lg">
+										{doc.title}
+									</Heading>
 									{doc.deletedAt && (
 										<span className="ml-auto rounded border border-accent/60 bg-accent/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-accent">
 											Archived

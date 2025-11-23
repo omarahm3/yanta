@@ -285,8 +285,12 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 					<div ref={shortcutsRef}>
 						<div className="mt-8">
 							<div className="mb-6">
-								<Heading as="h2" size="base" variant="bright" weight="medium">Keyboard Shortcuts</Heading>
-								<Text size="sm" variant="dim">All available keyboard shortcuts in Yanta</Text>
+								<Heading as="h2" size="base" variant="bright" weight="medium">
+									Keyboard Shortcuts
+								</Heading>
+								<Text size="sm" variant="dim">
+									All available keyboard shortcuts in Yanta
+								</Text>
 							</div>
 							<ShortcutsTable shortcuts={actualShortcuts} />
 						</div>
