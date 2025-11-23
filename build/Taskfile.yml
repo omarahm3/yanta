@@ -283,7 +283,7 @@ tasks:
           fi
         fi
 
-        # Create macOS .app bundle (only on macOS host)
+        # Create macOS .app bundle
         if [[ "$TARGET" == "osx" || "$TARGET" == "mac" || "$TARGET" == "macos" ]]; then
           echo "Creating macOS .app bundle..."
           APP_DIR="{{.BIN_DIR}}/{{.APP_NAME}}.app"
@@ -291,22 +291,29 @@ tasks:
           MACOS_DIR="$CONTENTS_DIR/MacOS"
           RESOURCES_DIR="$CONTENTS_DIR/Resources"
 
-          # Create directory structure
           mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
-
-          # Copy binary
           cp "$OUTPUT_PATH" "$MACOS_DIR/{{.APP_NAME}}"
 
-          # Copy Info.plist
-          if [[ -f "build/darwin/Info.plist" ]]; then
-            cp "build/darwin/Info.plist" "$CONTENTS_DIR/"
-          fi
+          /usr/libexec/PlistBuddy -c "Clear dict" "$CONTENTS_DIR/Info.plist" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundlePackageType string APPL" "$CONTENTS_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleName string YANTA" "$CONTENTS_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string YANTA" "$CONTENTS_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleExecutable string {{.APP_NAME}}" "$CONTENTS_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string com.omarahmed.yanta" "$CONTENTS_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string ${VERSION}" "$CONTENTS_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string ${VERSION}" "$CONTENTS_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleGetInfoString string Yet Another Note Taking App" "$CONTENTS_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string iconfile" "$CONTENTS_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :LSMinimumSystemVersion string 10.15" "$CONTENTS_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :NSHighResolutionCapable bool true" "$CONTENTS_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :NSHumanReadableCopyright string Copyright 2024-2025 Omar Ahmed" "$CONTENTS_DIR/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :NSSupportsAutomaticGraphicsSwitching bool true" "$CONTENTS_DIR/Info.plist"
 
-          # Copy icons
           if [[ -f "build/darwin/icons.icns" ]]; then
-            cp "build/darwin/icons.icns" "$RESOURCES_DIR/"
+            cp "build/darwin/icons.icns" "$RESOURCES_DIR/iconfile.icns"
           fi
 
+          codesign --force --deep --sign - "$APP_DIR"
           echo "✓ macOS .app bundle created: $APP_DIR"
         fi
 
