@@ -297,32 +297,57 @@ func (dc *DocumentCommands) handleArchiveForce(
 }
 
 func (dc *DocumentCommands) handleUnarchive(matches []string, fullCommand string) (*Result, error) {
-	path := ""
+	pathInput := ""
 	if len(matches) > 1 {
-		path = strings.TrimSpace(matches[1])
+		pathInput = strings.TrimSpace(matches[1])
 	}
 
-	if path == "" {
+	var paths []string
+	if pathInput == "" {
 		if dc.currentPath != "" {
-			path = dc.currentPath
+			paths = []string{dc.currentPath}
 		} else {
 			return &Result{
 				Success: false,
 				Message: "no document open - use in document editor",
 			}, nil
 		}
+	} else if strings.Contains(pathInput, ",") {
+		parts := strings.Split(pathInput, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				paths = append(paths, trimmed)
+			}
+		}
+	} else {
+		paths = []string{pathInput}
 	}
 
-	if err := dc.docSvc.Restore(context.Background(), path); err != nil {
+	if len(paths) == 0 {
 		return &Result{
 			Success: false,
-			Message: fmt.Sprintf("failed to unarchive document: %v", err),
+			Message: "no valid paths provided",
 		}, nil
+	}
+
+	for _, path := range paths {
+		if err := dc.docSvc.Restore(context.Background(), path); err != nil {
+			return &Result{
+				Success: false,
+				Message: fmt.Sprintf("failed to unarchive document %s: %v", path, err),
+			}, nil
+		}
+	}
+
+	message := "document unarchived"
+	if len(paths) > 1 {
+		message = fmt.Sprintf("%d documents unarchived", len(paths))
 	}
 
 	return &Result{
 		Success: true,
-		Message: "document unarchived",
+		Message: message,
 	}, nil
 }
 

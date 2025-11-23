@@ -10,6 +10,7 @@ import (
 
 type mockDocumentService struct {
 	lastRestoredPath string
+	restoredPaths    []string
 	restoreErr       error
 }
 
@@ -17,6 +18,7 @@ func (m *mockDocumentService) SoftDelete(ctx context.Context, path string) error
 
 func (m *mockDocumentService) Restore(ctx context.Context, path string) error {
 	m.lastRestoredPath = path
+	m.restoredPaths = append(m.restoredPaths, path)
 	return m.restoreErr
 }
 
@@ -80,6 +82,18 @@ func TestDocumentCommands_UnarchiveExplicitPath(t *testing.T) {
 	assert.True(t, result.Success)
 	assert.Equal(t, "document unarchived", result.Message)
 	assert.Equal(t, "projects/test/doc.json", docSvc.lastRestoredPath)
+}
+
+func TestDocumentCommands_UnarchiveMultiplePaths(t *testing.T) {
+	docSvc := &mockDocumentService{}
+	cmds := NewDocumentCommands(docSvc, &noopTagService{})
+
+	result, err := cmds.Parse("unarchive projects/test/doc1.json, projects/test/doc2.json")
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.True(t, result.Success)
+	assert.Equal(t, "2 documents unarchived", result.Message)
+	assert.Equal(t, []string{"projects/test/doc1.json", "projects/test/doc2.json"}, docSvc.restoredPaths)
 }
 
 func TestDocumentCommands_UnarchiveWithoutContextFails(t *testing.T) {

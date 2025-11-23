@@ -8,7 +8,8 @@ interface DashboardCommandHandlerOptions {
 	documents: Document[];
 	selectedDocuments: Set<string>;
 	currentProject: Project | null | undefined;
-	loadDocuments: (projectAlias: string, includeArchived?: boolean) => Promise<void>;
+	reloadDocuments: () => Promise<void>;
+	clearSelection: () => void;
 	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
 	success: (message: string) => void;
 	error: (message: string) => void;
@@ -29,7 +30,8 @@ export const useDashboardCommandHandler = ({
 	documents,
 	selectedDocuments,
 	currentProject,
-	loadDocuments,
+	reloadDocuments,
+	clearSelection,
 	onNavigate,
 	success,
 	error,
@@ -59,6 +61,7 @@ export const useDashboardCommandHandler = ({
 					.map((doc) => doc.path);
 
 				const preprocessedCommand = preprocessCommand(withoutPrefix, documents, selectedPathsInOrder);
+				const baseCommand = withoutPrefix.split(/\s+/)[0]?.toLowerCase() ?? "";
 				const result = await ParseWithContext(preprocessedCommand, currentProject.alias);
 
 				if (!result) {
@@ -119,41 +122,50 @@ export const useDashboardCommandHandler = ({
 					return;
 				}
 
-				const actions: Record<string, () => void> = {
-					"navigate to new document": () => {
+				const actions: Record<string, () => Promise<void>> = {
+					"navigate to new document": async () => {
 						onNavigate?.("document", {
 							initialTitle: result.data?.title,
 						});
 					},
-					"navigate to document": () => {
+					"navigate to document": async () => {
 						onNavigate?.("document", {
 							documentPath: result.data?.documentPath,
 						});
 					},
-					"document archived": () => {
-						loadDocuments(currentProject.alias);
+					"document archived": async () => {
+						await reloadDocuments();
+						clearSelection();
 						success("Document archived");
 					},
-					"document unarchived": () => {
-						loadDocuments(currentProject.alias);
+					"document unarchived": async () => {
+						await reloadDocuments();
+						clearSelection();
 						success("Document unarchived");
 					},
-					"document deleted": () => {
-						loadDocuments(currentProject.alias);
+					"document deleted": async () => {
+						await reloadDocuments();
+						clearSelection();
 						success("Document deleted");
 					},
-					"document permanently deleted": () => {
-						loadDocuments(currentProject.alias);
+					"document permanently deleted": async () => {
+						await reloadDocuments();
+						clearSelection();
 						success("Document permanently deleted");
 					},
 				};
 
 				const action = actions[result.message];
 				if (action) {
-					action();
+					await action();
 				} else if (result.message) {
-					if (result.message.includes("permanently deleted")) {
-						loadDocuments(currentProject.alias);
+					const shouldReloadForCommand = ["archive", "unarchive", "delete"].includes(baseCommand);
+					if (shouldReloadForCommand) {
+						await reloadDocuments();
+						clearSelection();
+					} else if (result.message.includes("permanently deleted")) {
+						await reloadDocuments();
+						clearSelection();
 					}
 					success(result.message);
 				}
@@ -170,7 +182,8 @@ export const useDashboardCommandHandler = ({
 			selectedDocuments,
 			error,
 			onNavigate,
-			loadDocuments,
+			reloadDocuments,
+			clearSelection,
 			success,
 			setCommandInput,
 			commandInputRef,

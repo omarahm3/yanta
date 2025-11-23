@@ -151,6 +151,11 @@ export function useDashboardController({
 		setSelectedDocuments(new Set());
 	}, []);
 
+	const reloadDocuments = useCallback(async () => {
+		if (!currentProjectRef.current) return;
+		await loadDocuments(currentProjectRef.current.alias, showArchivedRef.current);
+	}, [loadDocuments]);
+
 	const handleDocumentClick = useCallback(
 		(path: string) => {
 			onNavigate?.("document", { documentPath: path });
@@ -212,16 +217,14 @@ export function useDashboardController({
 				for (const path of paths) {
 					await SoftDelete(path);
 				}
-				if (currentProjectRef.current) {
-					await loadDocuments(currentProjectRef.current.alias, showArchivedRef.current);
-				}
+				await reloadDocuments();
 				clearSelection();
 				success(successMessage(paths.length));
 			} catch (err) {
 				error(err instanceof Error ? err.message : "Failed to archive");
 			}
 		},
-		[clearSelection, loadDocuments, success, error],
+		[clearSelection, reloadDocuments, success, error],
 	);
 
 	const handleArchiveSelectedDocuments = useCallback(async () => {
@@ -245,15 +248,13 @@ export function useDashboardController({
 			for (const path of paths) {
 				await Restore(path);
 			}
-			if (currentProjectRef.current) {
-				await loadDocuments(currentProjectRef.current.alias, showArchivedRef.current);
-			}
+			await reloadDocuments();
 			clearSelection();
 			success(paths.length === 1 ? "Document restored" : `${paths.length} documents restored`);
 		} catch (err) {
 			error(err instanceof Error ? err.message : "Failed to restore");
 		}
-	}, [loadDocuments, clearSelection, success, error]);
+	}, [reloadDocuments, clearSelection, success, error]);
 
 	const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
 		isOpen: false,
@@ -296,9 +297,7 @@ export function useDashboardController({
 								} else if (!result.success) {
 									error(result.message || "Failed to delete");
 								} else {
-									if (currentProjectRef.current) {
-										loadDocuments(currentProjectRef.current.alias, showArchivedRef.current);
-									}
+									await reloadDocuments();
 									clearSelection();
 									success("Document permanently deleted");
 								}
@@ -320,9 +319,7 @@ export function useDashboardController({
 						onConfirm: async () => {
 							try {
 								await SoftDelete(doc.path);
-								if (currentProjectRef.current) {
-									loadDocuments(currentProjectRef.current.alias, showArchivedRef.current);
-								}
+								await reloadDocuments();
 								clearSelection();
 								success("Document deleted");
 							} catch (err) {
@@ -354,9 +351,7 @@ export function useDashboardController({
 								} else if (!result.success) {
 									error(result.message || "Failed to delete");
 								} else {
-									if (currentProjectRef.current) {
-										loadDocuments(currentProjectRef.current.alias, showArchivedRef.current);
-									}
+									await reloadDocuments();
 									clearSelection();
 									success(`${count} documents permanently deleted`);
 								}
@@ -382,9 +377,7 @@ export function useDashboardController({
 								for (const path of selectedPaths) {
 									await SoftDelete(path);
 								}
-								if (currentProjectRef.current) {
-									loadDocuments(currentProjectRef.current.alias, showArchivedRef.current);
-								}
+								await reloadDocuments();
 								clearSelection();
 								success(`${count} documents deleted`);
 							} catch (err) {
@@ -397,7 +390,7 @@ export function useDashboardController({
 				}
 			}
 		},
-		[error, loadDocuments, clearSelection, success],
+		[error, reloadDocuments, clearSelection, success],
 	);
 
 	const handleOpenHighlightedDocument = useCallback(() => {
@@ -431,7 +424,8 @@ export function useDashboardController({
 		documents,
 		selectedDocuments,
 		currentProject,
-		loadDocuments,
+		reloadDocuments,
+		clearSelection,
 		onNavigate,
 		success,
 		error,
@@ -457,7 +451,8 @@ export function useDashboardController({
 						if (!result) {
 							error("Command returned null");
 						} else if (result.success) {
-							await loadDocuments(currentProjectRef.current.alias);
+							await reloadDocuments();
+							clearSelection();
 							if (result.message) success(result.message);
 						} else {
 							if (result.message) error(result.message);
