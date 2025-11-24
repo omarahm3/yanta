@@ -6,10 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"yanta/internal/config"
-	"yanta/internal/paths"
 
 	"github.com/sirupsen/logrus"
+
+	"yanta/internal/config"
+	"yanta/internal/paths"
 )
 
 var Log *logrus.Logger
@@ -60,16 +61,16 @@ func Init(config *Config) error {
 	})
 	Log.SetReportCaller(true)
 
-	var writers []io.Writer = []io.Writer{os.Stdout}
+	var writers []io.Writer
 
 	if config.LogFile != "" {
-		if err := os.MkdirAll(config.LogDir, 0755); err != nil {
+		if err := os.MkdirAll(config.LogDir, 0o755); err != nil {
 			writeEmergencyLog(config.LogDir, fmt.Sprintf("Failed to create log directory: %v", err))
 			return fmt.Errorf("creating log directory %s: %w", config.LogDir, err)
 		}
 
 		logFilePath := filepath.Join(config.LogDir, config.LogFile)
-		logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
 		if err != nil {
 			writeEmergencyLog(
 				config.LogDir,
@@ -80,6 +81,8 @@ func Init(config *Config) error {
 
 		writers = append(writers, logFile)
 	}
+
+	writers = append(writers, os.Stdout)
 
 	Log.SetOutput(io.MultiWriter(writers...))
 	Log.WithFields(logrus.Fields{
@@ -93,7 +96,7 @@ func Init(config *Config) error {
 
 func writeEmergencyLog(logDir, message string) {
 	emergencyPath := filepath.Join(logDir, "emergency.log")
-	f, err := os.OpenFile(emergencyPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	f, err := os.OpenFile(emergencyPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
 	if err != nil {
 		return
 	}
