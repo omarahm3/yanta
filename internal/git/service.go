@@ -8,13 +8,35 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
+	"yanta/internal/logger"
 )
 
 type Service struct{}
 
+var configuredRepos sync.Map
+
 func NewService() *Service {
 	return &Service{}
+}
+
+func (s *Service) newGitCmd(ctx context.Context, dir string, args ...string) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, "git", args...)
+	cmd.Dir = dir
+	hideConsoleWindow(cmd)
+
+	env := append([]string{}, os.Environ()...)
+	env = append(env,
+		"GIT_CONFIG_COUNT=2",
+		"GIT_CONFIG_KEY_0=core.autocrlf",
+		"GIT_CONFIG_VALUE_0=false",
+		"GIT_CONFIG_KEY_1=core.safecrlf",
+		"GIT_CONFIG_VALUE_1=false",
+	)
+	cmd.Env = env
+
+	return cmd
 }
 
 type Status struct {
@@ -45,9 +67,7 @@ func (s *Service) IsRepository(path string) (bool, error) {
 }
 
 func (s *Service) Init(path string) error {
-	cmd := exec.Command("git", "init")
-	cmd.Dir = path
-	hideConsoleWindow(cmd)
+	cmd := s.newGitCmd(context.Background(), path, "init")
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -56,6 +76,7 @@ func (s *Service) Init(path string) error {
 		return fmt.Errorf("git init failed: %w: %s", err, stderr.String())
 	}
 
+	s.ensureLFConfig(path)
 	return nil
 }
 
@@ -75,12 +96,12 @@ func (s *Service) CreateGitIgnore(path string, patterns []string) error {
 }
 
 func (s *Service) AddAll(path string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	s.ensureLFConfig(path)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "git", "add", "-A")
-	cmd.Dir = path
-	hideConsoleWindow(cmd)
+	cmd := s.newGitCmd(ctx, path, "add", "-A")
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -88,22 +109,23 @@ func (s *Service) AddAll(path string) error {
 
 	if err := cmd.Run(); err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
-			return fmt.Errorf("git add timed out after 10s")
+			return fmt.Errorf("git add timed out after 30s")
 		}
 		output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
 		return fmt.Errorf("git add failed (exit status %d):\n%s", cmd.ProcessState.ExitCode(), output)
 	}
 
+	logger.Debugf("git add output:\n%s\n%s", stdout.String(), stderr.String())
 	return nil
 }
 
 func (s *Service) Commit(path, message string) error {
+	s.ensureLFConfig(path)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "git", "commit", "-m", message)
-	cmd.Dir = path
-	hideConsoleWindow(cmd)
+	cmd := s.newGitCmd(ctx, path, "commit", "-m", message)
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -114,19 +136,23 @@ func (s *Service) Commit(path, message string) error {
 			return fmt.Errorf("git commit timed out after 10s")
 		}
 		output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
+		if output != "" {
+			logger.Debugf("git commit output (error):\n%s", output)
+		}
 		if strings.Contains(output, "nothing to commit") || strings.Contains(output, "nothing added to commit") {
 			return fmt.Errorf("nothing to commit")
 		}
 		return fmt.Errorf("git commit failed (exit status %d):\n%s", cmd.ProcessState.ExitCode(), output)
 	}
 
+	logger.Debugf("git commit output:\n%s\n%s", stdout.String(), stderr.String())
 	return nil
 }
 
 func (s *Service) SetRemote(path, name, url string) error {
-	cmd := exec.Command("git", "remote", "add", name, url)
-	cmd.Dir = path
-	hideConsoleWindow(cmd)
+	s.ensureLFConfig(path)
+
+	cmd := s.newGitCmd(context.Background(), path, "remote", "add", name, url)
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -134,9 +160,7 @@ func (s *Service) SetRemote(path, name, url string) error {
 	if err := cmd.Run(); err != nil {
 		errMsg := stderr.String()
 		if strings.Contains(errMsg, "already exists") {
-			cmd = exec.Command("git", "remote", "set-url", name, url)
-			cmd.Dir = path
-			hideConsoleWindow(cmd)
+			cmd = s.newGitCmd(context.Background(), path, "remote", "set-url", name, url)
 			cmd.Stderr = &stderr
 			if err := cmd.Run(); err != nil {
 				return fmt.Errorf("git remote set-url failed: %w: %s", err, stderr.String())
@@ -150,12 +174,12 @@ func (s *Service) SetRemote(path, name, url string) error {
 }
 
 func (s *Service) Push(path, remote, branch string) error {
+	s.ensureLFConfig(path)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "git", "push", remote, branch)
-	cmd.Dir = path
-	hideConsoleWindow(cmd)
+	cmd := s.newGitCmd(ctx, path, "push", remote, branch)
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -169,16 +193,17 @@ func (s *Service) Push(path, remote, branch string) error {
 		return fmt.Errorf("git push failed (exit status %d):\n%s", cmd.ProcessState.ExitCode(), output)
 	}
 
+	logger.Debugf("git push output:\n%s\n%s", stdout.String(), stderr.String())
 	return nil
 }
 
 func (s *Service) Pull(path, remote, branch string) error {
+	s.ensureLFConfig(path)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "git", "pull", remote, branch)
-	cmd.Dir = path
-	hideConsoleWindow(cmd)
+	cmd := s.newGitCmd(ctx, path, "pull", remote, branch)
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -206,6 +231,7 @@ func (s *Service) Pull(path, remote, branch string) error {
 	}
 
 	output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
+	logger.Debugf("git pull output:\n%s", output)
 	if strings.Contains(output, "Already up to date") || strings.Contains(output, "Already up-to-date") {
 		return nil
 	}
@@ -214,12 +240,12 @@ func (s *Service) Pull(path, remote, branch string) error {
 }
 
 func (s *Service) GetStatus(path string) (*Status, error) {
+	s.ensureLFConfig(path)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "git", "status", "--porcelain")
-	cmd.Dir = path
-	hideConsoleWindow(cmd)
+	cmd := s.newGitCmd(ctx, path, "status", "--porcelain")
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -257,7 +283,12 @@ func (s *Service) GetStatus(path string) (*Status, error) {
 		switch statusCode {
 		case "??":
 			status.Untracked = append(status.Untracked, filename)
-		case "M ", " M", "MM":
+		case "M ":
+			status.Staged = append(status.Staged, filename)
+		case " M":
+			status.Modified = append(status.Modified, filename)
+		case "MM":
+			status.Staged = append(status.Staged, filename)
 			status.Modified = append(status.Modified, filename)
 		case "A ", "AM":
 			status.Staged = append(status.Staged, filename)
@@ -265,4 +296,40 @@ func (s *Service) GetStatus(path string) (*Status, error) {
 	}
 
 	return status, nil
+}
+
+func (s *Service) ensureLFConfig(path string) {
+	cleanPath := filepath.Clean(path)
+	if cleanPath == "" {
+		return
+	}
+
+	if _, loaded := configuredRepos.LoadOrStore(cleanPath, struct{}{}); loaded {
+		return
+	}
+
+	configs := [][2]string{
+		{"core.autocrlf", "false"},
+		{"core.eol", "lf"},
+		{"core.safecrlf", "false"},
+	}
+
+	for _, cfg := range configs {
+		if err := s.setGitConfig(cleanPath, cfg[0], cfg[1]); err != nil {
+			logger.WithError(err).Warnf("failed to set git config %s", cfg[0])
+		}
+	}
+}
+
+func (s *Service) setGitConfig(path, key, value string) error {
+	cmd := s.newGitCmd(context.Background(), path, "config", key, value)
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("git config %s failed: %w: %s", key, err, strings.TrimSpace(stderr.String()))
+	}
+
+	return nil
 }

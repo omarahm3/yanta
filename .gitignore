@@ -3,6 +3,9 @@ build/dist/
 build/pkg/
 build/windows-debug/
 
+# Generated Windows resources
+*.syso
+
 # Keep WebView2 bootstrapper but ignore other tmp files
 build/windows/installer/tmp/*
 !build/windows/installer/tmp/MicrosoftEdgeWebview2Setup.exe

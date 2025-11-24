@@ -314,10 +314,26 @@ func (s *Service) SyncNow(ctx context.Context) error {
 		)
 	}
 
-	logger.Debug("staging changes with git add -A")
+	logger.Info("staging changes")
 	if err := gitService.AddAll(dataDir); err != nil {
 		return fmt.Errorf("failed to stage changes:\n%w\n\nDirectory: %s", err, dataDir)
 	}
+
+	status, err := gitService.GetStatus(dataDir)
+	if err != nil {
+		return fmt.Errorf("failed to read git status after staging:\n%w\n\nDirectory: %s", err, dataDir)
+	}
+
+	if status.Clean {
+		logger.Info("no changes to sync (git status clean after staging)")
+		return nil
+	}
+
+	logger.WithFields(map[string]any{
+		"modified":  status.Modified,
+		"untracked": status.Untracked,
+		"staged":    status.Staged,
+	}).Debug("git status after staging")
 
 	logger.Debug("committing changes")
 	commitMsg := fmt.Sprintf("sync: manual sync at %s", time.Now().Format("2006-01-02 15:04:05"))

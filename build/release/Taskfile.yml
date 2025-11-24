@@ -248,6 +248,12 @@ tasks:
       - |
         set -euo pipefail
 
+        HOST_UNAME=$(uname -s | tr '[:upper:]' '[:lower:]')
+        IS_CROSS_COMPILE=false
+        if [[ "$HOST_UNAME" == "linux" ]]; then
+          IS_CROSS_COMPILE=true
+        fi
+
         # Copy portable exe
         PORTABLE="{{.BIN_DIR}}/{{.APP_NAME}}.exe"
         if [ ! -f "$PORTABLE" ]; then
@@ -257,16 +263,28 @@ tasks:
         cp "$PORTABLE" "{{.DIST_DIR}}/yanta-windows-portable.exe"
         echo "✓ Copied portable exe"
 
-        # Find and copy installer
+        # Find and copy installer (only available when building on Windows)
         echo "Looking for installer in {{.BIN_DIR}}..."
-        INSTALLER=$(ls {{.BIN_DIR}}/*installer*.exe 2>/dev/null | head -1 || true)
+        INSTALLER=""
+        for f in {{.BIN_DIR}}/*installer*.exe; do
+          if [ -f "$f" ]; then
+            INSTALLER="$f"
+            break
+          fi
+        done
         if [ -z "$INSTALLER" ]; then
-          echo "ERROR: Could not locate NSIS installer output in {{.BIN_DIR}}" >&2
-          ls -la {{.BIN_DIR}}/ || true
-          exit 1
+          if $IS_CROSS_COMPILE; then
+            echo "⚠ Installer not available (cross-compiling from Linux)"
+            echo "  To create the installer, run on Windows: task release:windows"
+          else
+            echo "ERROR: Could not locate NSIS installer output in {{.BIN_DIR}}" >&2
+            ls -la {{.BIN_DIR}}/ || true
+            exit 1
+          fi
+        else
+          cp "$INSTALLER" "{{.DIST_DIR}}/yanta-windows-installer.exe"
+          echo "✓ Copied installer exe"
         fi
-        cp "$INSTALLER" "{{.DIST_DIR}}/yanta-windows-installer.exe"
-        echo "✓ Copied installer exe"
 
   windows:verify:
     summary: Verify Windows artifacts exist
@@ -276,10 +294,18 @@ tasks:
         vars:
           FILE: '{{.DIST_DIR}}/yanta-windows-portable.exe'
           MSG: "Windows portable exe not found"
-      - task: common:file:verify
-        vars:
-          FILE: '{{.DIST_DIR}}/yanta-windows-installer.exe'
-          MSG: "Windows installer exe not found"
+      - |
+        HOST_UNAME=$(uname -s | tr '[:upper:]' '[:lower:]')
+        INSTALLER="{{.DIST_DIR}}/yanta-windows-installer.exe"
+
+        if [ -f "$INSTALLER" ]; then
+          echo "✓ Windows installer verified"
+        elif [[ "$HOST_UNAME" == "linux" ]]; then
+          echo "⚠ Windows installer not available (cross-compiled from Linux)"
+        else
+          echo "ERROR: Windows installer exe not found" >&2
+          exit 1
+        fi
 
   # ============================================================================
   # macOS Release

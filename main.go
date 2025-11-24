@@ -27,6 +27,9 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+//go:embed build/appicon.png
+var appIcon []byte
+
 func main() {
 	run()
 }
@@ -56,13 +59,19 @@ func run() {
 	logger.Infof("start_hidden config: %v", startHidden)
 
 	frameless := config.IsLinuxFrameless()
-	logger.Infof("platform: %s, frameless: %v, linux_window_mode: %s", runtimePkg.GOOS, frameless, config.GetLinuxWindowMode())
+	logger.Infof(
+		"platform: %s, frameless: %v, linux_window_mode: %s",
+		runtimePkg.GOOS,
+		frameless,
+		config.GetLinuxWindowMode(),
+	)
 
 	customAssetHandler := createCustomAssetHandler()
 
 	wailsApp := application.New(application.Options{
 		Name:        "YANTA",
 		Description: "Your Advanced Note Taking Application",
+		Icon:        appIcon,
 		Services: []application.Service{
 			application.NewService(a.Bindings.Projects),
 			application.NewService(a.Bindings.Documents),

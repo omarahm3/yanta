@@ -50,6 +50,51 @@ tasks:
         echo "✓ Icons generated: icons.icns, icon.ico"
         echo "✓ Platform icons: windows/icon.ico, darwin/icons.icns"
 
+  generate:syso:
+    label: "generate:syso"
+    summary: Generate Windows resource file (.syso) with embedded icon
+    deps:
+      - common:ensure:go
+    sources:
+      - "./windows/icon.ico"
+    generates:
+      - "../rsrc_windows_windows_amd64.syso"
+    cmds:
+      - |
+        set -euo pipefail
+
+        # Ensure go-winres is installed
+        if ! command -v go-winres >/dev/null 2>&1; then
+          echo "Installing go-winres..."
+          go install github.com/tc-hib/go-winres@latest
+        fi
+
+        # Get version
+        if [[ -n "${YANTA_VERSION:-}" ]]; then
+          VERSION="${YANTA_VERSION}"
+        elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
+          VERSION="${VERSION_TAG#v}"
+        else
+          VERSION="1.0.0"
+        fi
+
+        echo "Generating Windows resources (version: $VERSION)..."
+
+        # Generate .syso file with embedded icon using go-winres simply
+        go-winres simply \
+          --icon build/windows/icon.ico \
+          --out rsrc_windows \
+          --arch amd64 \
+          --manifest gui \
+          --product-name "YANTA" \
+          --file-description "YANTA - Yet Another Note Taking App" \
+          --copyright "Copyright (c) 2024-2025 Omar Ahmed" \
+          --original-filename "yanta.exe" \
+          --product-version "$VERSION" \
+          --file-version "$VERSION"
+
+        echo "✓ Windows resources generated: rsrc_windows_windows_amd64.syso"
+
   generate:bindings:
     label: "generate:bindings"
     summary: Generate TypeScript bindings from Go services
@@ -143,6 +188,37 @@ tasks:
           win|windows)
             GOOS_TARGET="windows"
             OUTPUT_SUFFIX=".exe"
+
+            # Generate Windows resources (.syso) for icon embedding
+            echo "Generating Windows resources..."
+            if ! command -v go-winres >/dev/null 2>&1; then
+              echo "Installing go-winres..."
+              go install github.com/tc-hib/go-winres@latest
+            fi
+
+            # Get version for Windows resources
+            WINRES_VERSION="1.0.0"
+            if [[ -n "${YANTA_VERSION:-}" ]]; then
+              WINRES_VERSION="${YANTA_VERSION}"
+            elif WINRES_VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
+              WINRES_VERSION="${WINRES_VERSION_TAG#v}"
+            fi
+
+            # Generate .syso file with embedded icon using go-winres simply
+            go-winres simply \
+              --icon build/windows/icon.ico \
+              --out rsrc_windows \
+              --arch amd64 \
+              --manifest gui \
+              --product-name "YANTA" \
+              --file-description "YANTA - Yet Another Note Taking App" \
+              --copyright "Copyright (c) 2024-2025 Omar Ahmed" \
+              --original-filename "yanta.exe" \
+              --product-version "$WINRES_VERSION" \
+              --file-version "$WINRES_VERSION"
+
+            echo "✓ Windows resources generated (rsrc_windows_windows_amd64.syso)"
+
             if [[ "$HOST_UNAME" == "linux" ]]; then
               echo "Building Windows target on Linux (MinGW cross-compile)..."
               # Ensure MinGW is available

@@ -59,7 +59,7 @@ func Init(config *Config) error {
 			return "", fmt.Sprintf("%s:%d %s()", filename, f.Line, f.Function)
 		},
 	})
-	Log.SetReportCaller(true)
+	Log.SetReportCaller(false)
 
 	var writers []io.Writer
 

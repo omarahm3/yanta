@@ -92,6 +92,23 @@ func (sm *SyncManager) performSync(reasons []string) {
 		return
 	}
 
+	status, err := sm.gitService.GetStatus(dataDir)
+	if err != nil {
+		logger.WithField("error", err).Warn("auto-sync: failed to read git status after staging")
+		return
+	}
+
+	if status.Clean {
+		logger.Debug("auto-sync: git status clean after staging; skipping commit")
+		return
+	}
+
+	logger.WithFields(map[string]any{
+		"modified":  len(status.Modified),
+		"untracked": len(status.Untracked),
+		"staged":    len(status.Staged),
+	}).Debug("auto-sync: git status after staging")
+
 	commitMsg := sm.buildCommitMessage(reasons)
 	if err := sm.gitService.Commit(dataDir, commitMsg); err != nil {
 		if err.Error() == "nothing to commit" {
