@@ -247,16 +247,24 @@ func (s *Store) GetOrphanedAssets(ctx context.Context) ([]*Asset, error) {
 }
 
 func (s *Store) GetOrphanedAssetsTx(ctx context.Context, q queryer) ([]*Asset, error) {
+	// Grace period: don't consider assets created in the last 5 minutes as orphans.
+	// This protects against race conditions where:
+	// 1. Asset is uploaded but not yet linked (transaction isolation)
+	// 2. Frontend LinkToDocument hasn't run yet
+	// 3. Concurrent save operations are still in progress
+	gracePeriod := time.Now().Add(-5 * time.Minute).Format(time.RFC3339Nano)
+
 	query := `
 		SELECT a.hash, a.ext, a.bytes, a.mime, a.created_at
 		FROM asset a
 		WHERE NOT EXISTS (
 			SELECT 1 FROM doc_asset da WHERE da.hash = a.hash
 		)
+		AND a.created_at < ?
 		ORDER BY a.created_at DESC
 	`
 
-	rows, err := q.QueryContext(ctx, query)
+	rows, err := q.QueryContext(ctx, query, gracePeriod)
 	if err != nil {
 		return nil, fmt.Errorf("querying orphaned assets: %w", err)
 	}

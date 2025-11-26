@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
 	"yanta/internal/git"
+	"yanta/internal/logger"
 )
 
 type Service struct {
@@ -62,8 +64,17 @@ func (s *Service) Upload(ctx context.Context, projectAlias string, data []byte, 
 
 	info, err := WriteAsset(s.vault, projectAlias, data, ext)
 	if err != nil {
+		logger.WithError(err).WithFields(map[string]any{
+			"project": projectAlias,
+			"ext":     ext,
+		}).Error("failed to write asset file")
 		return nil, err
 	}
+
+	logger.WithFields(map[string]any{
+		"hash": info.Hash,
+		"ext":  info.Ext,
+	}).Info("asset file written successfully")
 
 	a := &Asset{
 		Hash:      info.Hash,
@@ -74,8 +85,11 @@ func (s *Service) Upload(ctx context.Context, projectAlias string, data []byte, 
 	}
 
 	if _, err := s.store.Upsert(ctx, a); err != nil {
+		logger.WithError(err).WithField("hash", info.Hash).Error("failed to insert asset into database")
 		return nil, err
 	}
+
+	logger.WithField("hash", info.Hash).Info("asset inserted into database successfully")
 
 	s.syncManager.NotifyChange(fmt.Sprintf("uploaded asset %s%s", info.Hash, info.Ext))
 

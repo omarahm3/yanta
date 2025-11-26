@@ -2,15 +2,25 @@ package project
 
 import (
 	"context"
+	"os"
 	"testing"
-
-	"yanta/internal/events"
-	"yanta/internal/testutil"
-	"yanta/internal/vault"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"yanta/internal/events"
+	"yanta/internal/logger"
+	"yanta/internal/testutil"
+	"yanta/internal/vault"
 )
+
+func TestMain(m *testing.M) {
+	code := m.Run()
+
+	logger.Close()
+
+	os.Exit(code)
+}
 
 func setupServiceTest(t *testing.T, notifier SyncNotifier) (*Service, func()) {
 	database := testutil.SetupTestDB(t)

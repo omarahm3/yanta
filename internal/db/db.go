@@ -7,13 +7,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"yanta/internal/logger"
-	"yanta/internal/paths"
 
 	_ "modernc.org/sqlite"
-)
 
-const defaultFile = "yanta.db"
+	"yanta/internal/logger"
+	"yanta/internal/paths"
+)
 
 var (
 	ErrFailedToOpenDB       = errors.New("failed to open database")
@@ -26,7 +25,7 @@ func DefaultPath() string {
 
 func OpenDB(path string) (*sql.DB, error) {
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, fmt.Errorf("%w: failed to create directory %s: %v", ErrFailedToOpenDB, dir, err)
 	}
 
@@ -37,13 +36,8 @@ func OpenDB(path string) (*sql.DB, error) {
 		return nil, fmt.Errorf("%w: %v", ErrFailedToOpenDB, err)
 	}
 
-	// Connection pool settings for optimal concurrency and performance:
-	// - MaxOpenConns=10: allows concurrent reads while preventing connection thrashing
-	// - MaxIdleConns=2: keeps connections ready for immediate reuse
-	// - ConnMaxLifetime=0: connections can live forever (fine for desktop apps)
-	// Note: WAL mode is specifically designed for multiple concurrent readers + one writer
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(2)
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
 	db.SetConnMaxLifetime(0)
 
 	// Don't apply WAL pragma for in-memory databases (causes schema visibility issues)

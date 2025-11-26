@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"yanta/internal/events"
@@ -34,6 +35,7 @@ type Service struct {
 	indexer      Indexer
 	projectCache ProjectCache
 	eventBus     *events.EventBus
+	saveMu       sync.Mutex // Serializes Save operations to prevent race conditions
 }
 
 func NewService(db *sql.DB, store *Store, v *vault.Vault, idx Indexer, projectCache ProjectCache, eventBus *events.EventBus) *Service {
@@ -91,6 +93,12 @@ type SaveRequest struct {
 }
 
 func (s *Service) Save(ctx context.Context, req SaveRequest) (string, error) {
+	// Serialize Save operations to prevent race conditions where concurrent saves
+	// can cause file write conflicts and FK constraint errors during IndexDocument.
+	// This ensures that WriteFile and IndexDocument are atomic with respect to each other.
+	s.saveMu.Lock()
+	defer s.saveMu.Unlock()
+
 	if err := project.ValidateAlias(strings.TrimSpace(req.ProjectAlias)); err != nil {
 		return "", fmt.Errorf("invalid project_alias: %w", err)
 	}

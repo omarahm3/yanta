@@ -549,12 +549,14 @@ func TestStore_GetOrphanedAssets(t *testing.T) {
 		t.Fatalf("Failed to link asset: %v", err)
 	}
 
+	// Create orphaned asset with CreatedAt older than the 5-minute grace period
+	// to ensure it's returned by GetOrphanedAssets (which excludes recently created assets)
 	orphanedAsset := &Asset{
 		Hash:      ComputeHash([]byte("orphaned")),
 		Ext:       ".pdf",
 		Bytes:     8,
 		MIME:      "application/pdf",
-		CreatedAt: time.Now(),
+		CreatedAt: time.Now().Add(-10 * time.Minute),
 	}
 	_, err = store.Upsert(ctx, orphanedAsset)
 	if err != nil {

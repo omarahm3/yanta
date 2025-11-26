@@ -2,9 +2,11 @@ package document
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"yanta/internal/events"
+	"yanta/internal/logger"
 	"yanta/internal/project"
 	"yanta/internal/testutil"
 	"yanta/internal/vault"
@@ -12,6 +14,19 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// TestMain ensures logger cleanup after all tests complete
+// This prevents file handle leaks that cause test hangs
+func TestMain(m *testing.M) {
+	// Run all tests
+	code := m.Run()
+
+	// Close logger file handle to prevent hang
+	// Must be called before os.Exit() as defer doesn't work with os.Exit()
+	logger.Close()
+
+	os.Exit(code)
+}
 
 type mockIndexer struct {
 	indexedPaths   []string
@@ -105,6 +120,8 @@ func setupServiceTest(t *testing.T) (*Service, *vault.Vault, func()) {
 	service := NewService(database, docStore, v, idx, projectCache, events.NewEventBus())
 
 	cleanup := func() {
+		// Close logger to prevent file handle leak
+		logger.Close()
 		testutil.CleanupTestDB(t, database)
 	}
 

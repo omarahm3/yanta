@@ -13,6 +13,7 @@ import (
 	"yanta/internal/document"
 	"yanta/internal/git"
 	"yanta/internal/link"
+	"yanta/internal/logger"
 	"yanta/internal/project"
 	"yanta/internal/search"
 	"yanta/internal/strutil"
@@ -334,8 +335,35 @@ func (idx *Indexer) IndexDocument(ctx context.Context, docPath string) error {
 			if err := asset.ValidateHash(hash); err != nil {
 				continue
 			}
+
+			// Check if asset exists before trying to link.
+			// If asset doesn't exist yet (e.g., upload still in progress), skip gracefully.
+			// The frontend has a fallback mechanism via LinkToDocument to handle this case.
+			existingAsset, checkErr := idx.assetStore.GetByHashTx(ctx, tx, hash)
+			if checkErr != nil {
+				// Asset not visible in this transaction - expected during concurrent upload+save.
+				// Frontend will link via LinkToDocument after both transactions complete.
+				logger.WithFields(map[string]any{
+					"hash":    hash,
+					"docPath": docPath,
+				}).Debug("asset not yet visible in transaction, frontend will link")
+				continue
+			}
+
+			logger.WithFields(map[string]any{
+				"hash":    hash,
+				"docPath": docPath,
+				"ext":     existingAsset.Ext,
+			}).Debug("asset exists, proceeding to link")
+
 			if err := idx.assetStore.LinkToDocumentTx(ctx, tx, hash, docPath); err != nil {
-				return fmt.Errorf("linking asset to document: %w", err)
+				// Log but don't fail - asset linking is not critical for document save.
+				// Frontend will handle via LinkToDocument if needed.
+				logger.WithError(err).WithFields(map[string]any{
+					"hash":    hash,
+					"docPath": docPath,
+				}).Warn("failed to link asset to document, continuing")
+				continue
 			}
 		}
 	}

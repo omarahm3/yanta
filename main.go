@@ -66,7 +66,7 @@ func run() {
 		config.GetLinuxWindowMode(),
 	)
 
-	customAssetHandler := createCustomAssetHandler()
+	customAssetHandler := createCustomAssetHandler(a.Bindings.Assets)
 
 	wailsApp := application.New(application.Options{
 		Name:        "YANTA",
@@ -195,9 +195,17 @@ func getWindowsCustomTheme() application.ThemeSettings {
 	}
 }
 
-func createCustomAssetHandler() application.Middleware {
+func createCustomAssetHandler(assetService *asset.Service) application.Middleware {
+	uploadHandler := asset.NewUploadHandler(assetService)
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Handle asset uploads via HTTP POST (bypasses Wails RPC URL length limits)
+			if strings.HasPrefix(r.URL.Path, "/api/upload") {
+				uploadHandler.ServeHTTP(w, r)
+				return
+			}
+
 			if !strings.HasPrefix(r.URL.Path, "/assets/") {
 				next.ServeHTTP(w, r)
 				return

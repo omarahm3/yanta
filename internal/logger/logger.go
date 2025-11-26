@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
 
 	"github.com/sirupsen/logrus"
 
@@ -13,7 +14,11 @@ import (
 	"yanta/internal/paths"
 )
 
-var Log *logrus.Logger
+var (
+	Log     *logrus.Logger
+	logFile *os.File
+	mu      sync.Mutex
+)
 
 type Config struct {
 	Level      string
@@ -38,6 +43,14 @@ func DefaultConfig() *Config {
 }
 
 func Init(config *Config) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if logFile != nil {
+		logFile.Close()
+		logFile = nil
+	}
+
 	if config == nil {
 		config = DefaultConfig()
 	}
@@ -70,7 +83,7 @@ func Init(config *Config) error {
 		}
 
 		logFilePath := filepath.Join(config.LogDir, config.LogFile)
-		logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
+		file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
 		if err != nil {
 			writeEmergencyLog(
 				config.LogDir,
@@ -79,6 +92,7 @@ func Init(config *Config) error {
 			return fmt.Errorf("opening log file %s: %w", logFilePath, err)
 		}
 
+		logFile = file // Store globally for cleanup
 		writers = append(writers, logFile)
 	}
 
@@ -90,6 +104,25 @@ func Init(config *Config) error {
 		"logFile": config.LogFile,
 		"logDir":  config.LogDir,
 	}).Info("Logger initialized")
+
+	return nil
+}
+
+func Close() error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if logFile != nil {
+		err := logFile.Close()
+		logFile = nil
+		if err != nil {
+			return fmt.Errorf("closing log file: %w", err)
+		}
+	}
+
+	if Log != nil {
+		Log.SetOutput(os.Stdout)
+	}
 
 	return nil
 }
