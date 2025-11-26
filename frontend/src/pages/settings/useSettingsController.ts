@@ -66,10 +66,7 @@ export const useSettingsController = () => {
 
 		CheckGitInstalled()
 			.then((installed) => setGitInstalled(installed))
-			.catch((err) => {
-				console.error("Failed to check git installation:", err);
-				setGitInstalled(false);
-			});
+			.catch(() => setGitInstalled(false));
 
 		GetCurrentDataDirectory()
 			.then((dir) => setCurrentDataDir(dir))

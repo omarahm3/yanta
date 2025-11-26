@@ -49,7 +49,7 @@ type Status struct {
 func (s *Service) CheckInstalled() (bool, error) {
 	_, err := exec.LookPath("git")
 	if err != nil {
-		return false, fmt.Errorf("git not found in PATH: %w", err)
+		return false, nil
 	}
 	return true, nil
 }
