@@ -107,6 +107,7 @@ func New(cfg Config) (*App, error) {
 		linkStore,
 		assetStore,
 		syncManager,
+		eventBus,
 	)
 
 	projectCache := project.NewCache(projectStore)
@@ -117,6 +118,7 @@ func New(cfg Config) (*App, error) {
 	searchService := search.NewService(a.DB, eventBus)
 	systemService := system.NewService(a.DB, eventBus)
 	systemService.SetDBPath(a.DBPath)
+	systemService.SetIndexer(idx)
 
 	assetService := asset.NewService(asset.ServiceConfig{
 		DB:          a.DB,

@@ -11,6 +11,7 @@ import (
 
 	"yanta/internal/asset"
 	"yanta/internal/document"
+	"yanta/internal/events"
 	"yanta/internal/git"
 	"yanta/internal/link"
 	"yanta/internal/logger"
@@ -34,6 +35,7 @@ type Indexer struct {
 	assetStore   *asset.Store
 	parser       *document.Parser
 	syncManager  *git.SyncManager
+	eventBus     *events.EventBus
 }
 
 func New(
@@ -46,6 +48,7 @@ func New(
 	linkStore *link.Store,
 	assetStore *asset.Store,
 	syncManager *git.SyncManager,
+	eventBus *events.EventBus,
 ) *Indexer {
 	return &Indexer{
 		db:           db,
@@ -58,6 +61,7 @@ func New(
 		assetStore:   assetStore,
 		parser:       document.NewParser(),
 		syncManager:  syncManager,
+		eventBus:     eventBus,
 	}
 }
 
@@ -169,6 +173,7 @@ func (idx *Indexer) ScanAndIndexVault(ctx context.Context) error {
 		return fmt.Errorf("reading projects directory: %w", err)
 	}
 
+	var docPaths []string
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
@@ -202,13 +207,35 @@ func (idx *Indexer) ScanAndIndexVault(ctx context.Context) error {
 				continue
 			}
 
-			if err := idx.IndexDocument(ctx, relativePath); err != nil {
-				return fmt.Errorf("indexing %s: %w", relativePath, err)
-			}
+			docPaths = append(docPaths, relativePath)
+		}
+	}
+
+	total := len(docPaths)
+	idx.emitProgress(0, total, "Indexing documents...")
+
+	for i, docPath := range docPaths {
+		if err := idx.IndexDocument(ctx, docPath); err != nil {
+			logger.Warnf("failed to index document %s: %v", docPath, err)
+			continue
+		}
+
+		if (i+1)%10 == 0 || i == total-1 {
+			idx.emitProgress(i+1, total, fmt.Sprintf("Indexed %d/%d documents", i+1, total))
 		}
 	}
 
 	return nil
+}
+
+func (idx *Indexer) emitProgress(current, total int, message string) {
+	if idx.eventBus != nil {
+		idx.eventBus.Emit("reindex:progress", map[string]interface{}{
+			"current": current,
+			"total":   total,
+			"message": message,
+		})
+	}
 }
 
 func (idx *Indexer) IndexDocument(ctx context.Context, docPath string) error {

@@ -14,6 +14,7 @@ import (
 
 	"yanta/internal/asset"
 	"yanta/internal/document"
+	"yanta/internal/events"
 	"yanta/internal/git"
 	"yanta/internal/link"
 	"yanta/internal/project"
@@ -98,7 +99,7 @@ func TestIndexer_IndexDocument(t *testing.T) {
 	assetStore := asset.NewStore(db)
 
 	// Create indexer
-	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager())
+	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
 
 	// Create test document
 	docPath := createTestDocument(t, v, "@test-project", "Test Document", []string{"test", "indexer"})
@@ -178,7 +179,7 @@ func TestIndexer_ReindexDocument(t *testing.T) {
 	linkStore := link.NewStore(db)
 	assetStore := asset.NewStore(db)
 
-	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager())
+	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
 
 	// Create and index document
 	docPath := createTestDocument(t, v, "@test-project", "Original Title", []string{"tag1"})
@@ -269,7 +270,7 @@ func TestIndexer_RemoveDocument(t *testing.T) {
 	linkStore := link.NewStore(db)
 	assetStore := asset.NewStore(db)
 
-	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager())
+	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
 
 	// Create and index document
 	docPath := createTestDocument(t, v, "@test-project", "To Be Removed", []string{"test"})
@@ -314,7 +315,7 @@ func TestIndexer_RemoveDocumentCompletely(t *testing.T) {
 	linkStore := link.NewStore(db)
 	assetStore := asset.NewStore(db)
 
-	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager())
+	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
 
 	// Create and index document
 	docPath := createTestDocument(t, v, "@test-project", "To Be Removed", []string{"test"})
@@ -379,7 +380,7 @@ func TestIndexer_ClearIndex(t *testing.T) {
 	linkStore := link.NewStore(db)
 	assetStore := asset.NewStore(db)
 
-	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager())
+	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
 
 	// Create and index multiple documents
 	ctx := context.Background()
@@ -433,7 +434,7 @@ func TestIndexer_ScanAndIndexVault(t *testing.T) {
 		linkStore := link.NewStore(db)
 		assetStore := asset.NewStore(db)
 
-		idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager())
+		idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
 
 		ctx := context.Background()
 
@@ -516,7 +517,7 @@ func TestIndexer_ScanAndIndexVault(t *testing.T) {
 			t.Fatalf("Failed to create empty vault: %v", err)
 		}
 
-		emptyIdx := New(db, emptyVault, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager())
+		emptyIdx := New(db, emptyVault, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
 
 		ctx := context.Background()
 
@@ -557,7 +558,7 @@ func TestIndexer_ScanAndIndexVault(t *testing.T) {
 			return nil
 		})
 
-		newIdx := New(db, newVault, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager())
+		newIdx := New(db, newVault, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
 
 		ctx := context.Background()
 
@@ -579,7 +580,7 @@ func TestIndexer_ScanAndIndexVault(t *testing.T) {
 		linkStore := link.NewStore(db)
 		assetStore := asset.NewStore(db)
 
-		idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager())
+		idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
 
 		ctx := context.Background()
 
@@ -625,7 +626,7 @@ func TestIndexer_ScanAndIndexVault(t *testing.T) {
 		linkStore := link.NewStore(db)
 		assetStore := asset.NewStore(db)
 
-		idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager())
+		idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
 
 		ctx := context.Background()
 
@@ -693,7 +694,7 @@ func TestIndexer_ScanAndIndexVault(t *testing.T) {
 		linkStore := link.NewStore(db)
 		assetStore := asset.NewStore(db)
 
-		idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager())
+		idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
 
 		ctx := context.Background()
 

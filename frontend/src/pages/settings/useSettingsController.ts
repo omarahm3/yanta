@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Events } from "@wailsio/runtime";
 import {
 	CheckGitInstalled,
 	GetCurrentDataDirectory,
@@ -8,6 +9,7 @@ import {
 	GetSystemInfo,
 	MigrateToGitDirectory,
 	OpenDirectoryDialog,
+	ReindexDatabase,
 	SetGitSyncConfig,
 	SetKeepInBackground,
 	SetLogLevel,
@@ -44,8 +46,15 @@ export const useSettingsController = () => {
 		autoPush: true,
 	});
 	const [linuxWindowMode, setLinuxWindowModeState] = useState<string>("normal");
+	const [isReindexing, setIsReindexing] = useState(false);
+	const [reindexProgress, setReindexProgress] = useState<{
+		current: number;
+		total: number;
+		message: string;
+	} | null>(null);
+	const [showReindexConfirm, setShowReindexConfirm] = useState(false);
 
-	const { success, error } = useNotification();
+	const { success, error} = useNotification();
 
 	useEffect(() => {
 		GetSystemInfo()
@@ -86,6 +95,19 @@ export const useSettingsController = () => {
 		GetWindowMode()
 			.then((mode) => setLinuxWindowModeState(mode))
 			.catch((err) => console.error("Failed to get window mode:", err));
+
+		const unsubscribe = Events.On("reindex:progress", (data: unknown) => {
+			const progressData = data as { current: number; total: number; message: string };
+			setReindexProgress({
+				current: progressData.current,
+				total: progressData.total,
+				message: progressData.message,
+			});
+		});
+
+		return () => {
+			unsubscribe();
+		};
 	}, []);
 
 	const handleLogLevelChange = useCallback(
@@ -261,6 +283,34 @@ export const useSettingsController = () => {
 		}
 	}, [success, error]);
 
+	const handleRequestReindex = useCallback(() => {
+		setShowReindexConfirm(true);
+	}, []);
+
+	const handleConfirmReindex = useCallback(async () => {
+		try {
+			setShowReindexConfirm(false);
+			setIsReindexing(true);
+			setReindexProgress({ current: 0, total: 0, message: "Starting..." });
+
+			await ReindexDatabase();
+
+			success("Database reindexed successfully");
+			setReindexProgress(null);
+		} catch (err) {
+			const errorMessage = String(err);
+			const cleanedMessage = errorMessage.replace(/^[A-Z_]+:\s*/, "");
+			error(`Reindex failed:\n\n${cleanedMessage}`);
+			setReindexProgress(null);
+		} finally {
+			setIsReindexing(false);
+		}
+	}, [success, error]);
+
+	const handleCancelReindex = useCallback(() => {
+		setShowReindexConfirm(false);
+	}, []);
+
 	const logLevelOptions: SelectOption[] = [
 		{ value: "debug", label: "Debug" },
 		{ value: "info", label: "Info" },
@@ -286,6 +336,9 @@ export const useSettingsController = () => {
 		isMigrating,
 		migrationProgress,
 		gitSync,
+		isReindexing,
+		reindexProgress,
+		showReindexConfirm,
 		logLevelOptions,
 		syncFrequencyOptions,
 		handlers: {
@@ -299,6 +352,9 @@ export const useSettingsController = () => {
 			handlePickDirectory,
 			handleMigration,
 			handleSyncNow,
+			handleRequestReindex,
+			handleConfirmReindex,
+			handleCancelReindex,
 		},
 	};
 };

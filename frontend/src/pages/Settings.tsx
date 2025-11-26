@@ -1,10 +1,11 @@
 import React, { useCallback, useRef } from "react";
 import { Layout } from "../components/Layout";
-import { Heading, Text, type Shortcut, ShortcutsTable } from "../components/ui";
+import { ConfirmDialog, Heading, Text, type Shortcut, ShortcutsTable } from "../components/ui";
 import { useHotkeys } from "../hooks";
 import { useHelp } from "../hooks/useHelp";
 import { useSidebarSections } from "../hooks/useSidebarSections";
 import { AboutSection } from "./settings/AboutSection";
+import { DatabaseSection } from "./settings/DatabaseSection";
 import { GeneralSection } from "./settings/GeneralSection";
 import { GitSyncSection } from "./settings/GitSyncSection";
 import { LoggingSection } from "./settings/LoggingSection";
@@ -148,6 +149,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 	const { setPageContext } = useHelp();
 
 	const generalRef = useRef<HTMLDivElement>(null);
+	const databaseRef = useRef<HTMLDivElement>(null);
 	const shortcutsRef = useRef<HTMLDivElement>(null);
 	const loggingRef = useRef<HTMLDivElement>(null);
 	const syncRef = useRef<HTMLDivElement>(null);
@@ -155,7 +157,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 
 	const [currentSectionIndex, setCurrentSectionIndex] = React.useState(0);
 
-	const sectionIds = ["general", "shortcuts", "logging", "sync", "about"];
+	const sectionIds = ["general", "database", "shortcuts", "logging", "sync", "about"];
 
 	React.useEffect(() => {
 		setPageContext([], "Settings");
@@ -164,6 +166,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 	const scrollToSection = useCallback((sectionId: string) => {
 		const refMap: Record<string, React.RefObject<HTMLDivElement>> = {
 			general: generalRef,
+			database: databaseRef,
 			shortcuts: shortcutsRef,
 			logging: loggingRef,
 			sync: syncRef,
@@ -218,6 +221,11 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 			id: "general",
 			label: "general",
 			onClick: () => scrollToSection("general"),
+		},
+		{
+			id: "database",
+			label: "database",
+			onClick: () => scrollToSection("database"),
 		},
 		{
 			id: "shortcuts",
@@ -282,6 +290,14 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 						onLinuxWindowModeToggle={controller.handlers.handleLinuxWindowModeToggle}
 					/>
 
+					<DatabaseSection
+						ref={databaseRef}
+						systemInfo={controller.systemInfo}
+						isReindexing={controller.isReindexing}
+						reindexProgress={controller.reindexProgress}
+						onReindex={controller.handlers.handleRequestReindex}
+					/>
+
 					<div ref={shortcutsRef}>
 						<div className="mt-8">
 							<div className="mb-6">
@@ -326,6 +342,16 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 					<AboutSection ref={aboutRef} systemInfo={controller.systemInfo} />
 				</div>
 			</div>
+
+			<ConfirmDialog
+				isOpen={controller.showReindexConfirm}
+				onCancel={controller.handlers.handleCancelReindex}
+				onConfirm={controller.handlers.handleConfirmReindex}
+				title="Reindex Database?"
+				message="This will rebuild the entire search index from your JSON files. The operation may take a few moments depending on the number of documents."
+				confirmText="Reindex"
+				cancelText="Cancel"
+			/>
 		</Layout>
 	);
 };

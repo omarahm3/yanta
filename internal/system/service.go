@@ -14,6 +14,7 @@ import (
 	"yanta/internal/config"
 	"yanta/internal/events"
 	"yanta/internal/git"
+	"yanta/internal/indexer"
 	"yanta/internal/logger"
 	"yanta/internal/migration"
 )
@@ -29,6 +30,7 @@ type Service struct {
 	dbPath          string
 	eventBus        *events.EventBus
 	shutdownHandler func()
+	indexer         *indexer.Indexer
 }
 
 func NewService(db *sql.DB, eventBus *events.EventBus) *Service {
@@ -45,6 +47,10 @@ func (s *Service) SetDBPath(path string) {
 
 func (s *Service) SetShutdownHandler(handler func()) {
 	s.shutdownHandler = handler
+}
+
+func (s *Service) SetIndexer(idx *indexer.Indexer) {
+	s.indexer = idx
 }
 
 type AppInfo struct {
@@ -499,4 +505,40 @@ func (s *Service) BackgroundQuit(ctx context.Context) {
 func (s *Service) ForceQuit(ctx context.Context) {
 	logger.Info("ForceQuit requested - quitting application regardless of background setting")
 	s.eventBus.Emit("app:force-quit", nil)
+}
+
+func (s *Service) ReindexDatabase(ctx context.Context) error {
+	if s.indexer == nil {
+		return fmt.Errorf("indexer not available")
+	}
+
+	logger.Info("starting database reindex")
+	s.emitProgress(0, 0, "Clearing index...")
+
+	if err := s.indexer.ClearIndex(ctx); err != nil {
+		logger.Errorf("failed to clear index: %v", err)
+		return fmt.Errorf("failed to clear index: %w", err)
+	}
+
+	logger.Info("index cleared, scanning vault")
+	s.emitProgress(0, 0, "Scanning vault...")
+
+	if err := s.indexer.ScanAndIndexVault(ctx); err != nil {
+		logger.Errorf("failed to scan and index vault: %v", err)
+		return fmt.Errorf("failed to scan and index vault: %w", err)
+	}
+
+	logger.Info("database reindex completed successfully")
+	s.emitProgress(100, 100, "Complete")
+	return nil
+}
+
+func (s *Service) emitProgress(current, total int, message string) {
+	if s.eventBus != nil {
+		s.eventBus.Emit("reindex:progress", map[string]interface{}{
+			"current": current,
+			"total":   total,
+			"message": message,
+		})
+	}
 }
