@@ -142,6 +142,9 @@ func (s *Service) Commit(path, message string) error {
 		if strings.Contains(output, "nothing to commit") || strings.Contains(output, "nothing added to commit") {
 			return fmt.Errorf("nothing to commit")
 		}
+		if strings.Contains(output, "Author identity unknown") || strings.Contains(output, "Please tell me who you are") {
+			return fmt.Errorf("GIT_IDENTITY_NOT_CONFIGURED:\nGit identity not configured.\n\nYou need to configure your git identity before using git sync.\n\nRun these commands in your terminal:\n\n  git config --global user.name \"Your Name\"\n  git config --global user.email \"your.email@example.com\"")
+		}
 		return fmt.Errorf("git commit failed (exit status %d):\n%s", cmd.ProcessState.ExitCode(), output)
 	}
 

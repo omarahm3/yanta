@@ -136,7 +136,7 @@ const ToastItem: React.FC<{
 						<div className="flex-shrink-0">{getIcon()}</div>
 						<div className="ml-3 w-0 flex-1 pt-0.5">
 							<p className="text-base font-semibold text-gray-900 dark:text-slate-50">{getTitle()}</p>
-							<p className="mt-1 text-sm leading-relaxed text-gray-600 dark:text-slate-300">
+							<p className="mt-1 text-sm leading-relaxed text-gray-600 dark:text-slate-300 whitespace-pre-wrap">
 								{toast.message}
 							</p>
 						</div>
@@ -239,7 +239,10 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 	);
 
 	const error = useCallback(
-		(message: string, options?: ToastOptions) => show(message, "error", options),
+		(message: string, options?: ToastOptions) => {
+			const defaultDuration = message.length > 200 ? 10000 : 6000;
+			return show(message, "error", { duration: defaultDuration, ...options });
+		},
 		[show],
 	);
 

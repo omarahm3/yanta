@@ -242,7 +242,9 @@ export const useSettingsController = () => {
 			setMigrationProgress("Migration complete! App will exit in 2 seconds...");
 			success("Migration completed! Please restart YANTA to use the new location.");
 		} catch (err) {
-			error(`Migration failed: ${err}`);
+			const errorMessage = String(err);
+			const cleanedMessage = errorMessage.replace(/^[A-Z_]+:\s*/, "");
+			error(`Migration failed:\n\n${cleanedMessage}`);
 			setIsMigrating(false);
 			setMigrationProgress("");
 		}
@@ -253,7 +255,9 @@ export const useSettingsController = () => {
 			await SyncNow();
 			success("Sync completed successfully");
 		} catch (err) {
-			error(`Sync failed: ${err}`);
+			const errorMessage = String(err);
+			const cleanedMessage = errorMessage.replace(/^[A-Z_]+:\s*/, "");
+			error(`Sync failed:\n\n${cleanedMessage}`);
 		}
 	}, [success, error]);
 
