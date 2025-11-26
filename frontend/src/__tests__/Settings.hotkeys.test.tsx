@@ -63,6 +63,19 @@ vi.mock("../../wailsjs/runtime/runtime", () => ({
 	EventsOn: vi.fn(() => () => {}),
 }));
 
+vi.mock("../components/ui/Toast", () => ({
+	ToastProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+	useToast: () => ({
+		show: vi.fn(),
+		success: vi.fn(),
+		error: vi.fn(),
+		info: vi.fn(),
+		warning: vi.fn(),
+		dismiss: vi.fn(),
+		dismissAll: vi.fn(),
+	}),
+}));
+
 const HotkeyProbe: React.FC<{ onReady: (ctx: HotkeyContextValue) => void }> = ({ onReady }) => {
 	const ctx = useHotkeyContext();
 	React.useEffect(() => {

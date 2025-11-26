@@ -30,31 +30,23 @@ func (s *Store) UpsertTx(ctx context.Context, q queryer, asset *Asset) (bool, er
 		return false, fmt.Errorf("validation failed: %w", err)
 	}
 
-	var exists bool
-	checkSQL := `SELECT 1 FROM asset WHERE hash = ?`
-	err := q.QueryRowContext(ctx, checkSQL, asset.Hash).Scan(&exists)
+	var existingCreatedAt string
+	checkSQL := `SELECT created_at FROM asset WHERE hash = ?`
+	err := q.QueryRowContext(ctx, checkSQL, asset.Hash).Scan(&existingCreatedAt)
+	exists := err == nil
 	if err != nil && err != sql.ErrNoRows {
 		return false, fmt.Errorf("checking asset existence: %w", err)
 	}
 
-	if exists {
-		updateSQL := `
-			UPDATE asset
-			SET ext = ?, bytes = ?, mime = ?
-			WHERE hash = ?
-		`
-		_, err = q.ExecContext(ctx, updateSQL, asset.Ext, asset.Bytes, asset.MIME, asset.Hash)
-		if err != nil {
-			return false, fmt.Errorf("updating asset: %w", err)
-		}
-		return true, nil
-	}
-
-	insertSQL := `
+	upsertSQL := `
 		INSERT INTO asset (hash, ext, bytes, mime, created_at)
 		VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT(hash) DO UPDATE SET
+			ext = excluded.ext,
+			bytes = excluded.bytes,
+			mime = excluded.mime
 	`
-	_, err = q.ExecContext(ctx, insertSQL,
+	_, err = q.ExecContext(ctx, upsertSQL,
 		asset.Hash,
 		asset.Ext,
 		asset.Bytes,
@@ -62,10 +54,10 @@ func (s *Store) UpsertTx(ctx context.Context, q queryer, asset *Asset) (bool, er
 		asset.CreatedAt.Format(time.RFC3339Nano),
 	)
 	if err != nil {
-		return false, fmt.Errorf("inserting asset: %w", err)
+		return false, fmt.Errorf("upserting asset: %w", err)
 	}
 
-	return false, nil
+	return exists, nil
 }
 
 func (s *Store) GetByHash(ctx context.Context, hash string) (*Asset, error) {

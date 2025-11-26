@@ -11,12 +11,16 @@ vi.mock("../hooks/useHelp", () => ({
 	}),
 }));
 
-vi.mock("../components/TitleBar", () => ({
+vi.mock("../components/ui/TitleBar", () => ({
 	TitleBar: () => <div data-testid="title-bar" />,
 }));
 
-vi.mock("../components/HelpModal", () => ({
+vi.mock("../components/ui/HelpModal", () => ({
 	HelpModal: () => <div data-testid="help-modal" />,
+}));
+
+vi.mock("../components/ui/ResizeHandles", () => ({
+	ResizeHandles: () => null,
 }));
 
 const commandPaletteRender = vi.fn();

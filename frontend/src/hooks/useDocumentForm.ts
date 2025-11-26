@@ -45,6 +45,7 @@ export const useDocumentForm = (initialData?: DocumentFormData) => {
 
 	const setBlocks = useCallback(
 		(blocks: BlockNoteBlock[]) => {
+			console.log("[useDocumentForm] setBlocks called", { blockCount: blocks.length });
 			updateFormData((prev) => ({
 				...prev,
 				blocks,

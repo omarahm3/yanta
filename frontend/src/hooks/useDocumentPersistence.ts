@@ -21,6 +21,7 @@ interface UseDocumentPersistenceProps {
 	resetChanges: () => void;
 	onAutoSaveComplete: () => void;
 	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
+	isEditorReady?: boolean;
 }
 
 export const useDocumentPersistence = ({
@@ -33,6 +34,7 @@ export const useDocumentPersistence = ({
 	resetChanges,
 	onAutoSaveComplete,
 	onNavigate,
+	isEditorReady = false,
 }: UseDocumentPersistenceProps) => {
 	const latestFormRef = useRef(formData);
 	const currentDocumentPathRef = useRef(documentPath);
@@ -89,6 +91,7 @@ export const useDocumentPersistence = ({
 
 	useEffect(() => {
 		if (shouldAutoSave && currentProject && !isLoading) {
+			console.log("[useDocumentPersistence] shouldAutoSave triggered immediate save");
 			onAutoSaveComplete();
 			handleSave().catch((err) => {
 				console.error("Auto-save failed:", err);
@@ -96,12 +99,15 @@ export const useDocumentPersistence = ({
 		}
 	}, [shouldAutoSave, currentProject, isLoading, handleSave, onAutoSaveComplete]);
 
+	console.log("[useDocumentPersistence] render", { hasChanges, isLoading, isEditorReady, enabled: hasChanges && !isLoading });
+
 	const autoSaveHook = useAutoSave({
 		value: formData,
 		onSave: handleSave,
 		delay: 2000,
 		enabled: hasChanges && !isLoading,
 		saveOnBlur: true,
+		isInitialized: isEditorReady,
 	});
 
 	return {

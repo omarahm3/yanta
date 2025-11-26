@@ -1,6 +1,40 @@
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
 
+// Mock @wailsio/runtime - the bindings depend on this
+const createIdentity = (x: unknown) => x;
+const createArrayFactory = () => (arr: unknown) => arr;
+const createMapFactory = () => (obj: unknown) => obj;
+const createNullableFactory = () => (val: unknown) => val;
+
+vi.mock("@wailsio/runtime", () => ({
+  Call: {
+    ByID: vi.fn(() => Promise.resolve({})),
+    ByName: vi.fn(() => Promise.resolve({})),
+  },
+  CancellablePromise: Promise,
+  Create: {
+    Any: createIdentity,
+    Array: createArrayFactory,
+    Map: createMapFactory,
+    Nullable: createNullableFactory,
+    Struct: () => createIdentity,
+  },
+  Events: {
+    On: vi.fn(() => () => {}),
+    Emit: vi.fn(),
+    Off: vi.fn(),
+  },
+  Browser: {
+    OpenURL: vi.fn(() => Promise.resolve()),
+  },
+  System: {
+    IsMac: vi.fn(() => false),
+    IsWindows: vi.fn(() => true),
+    IsLinux: vi.fn(() => false),
+  },
+}));
+
 Object.defineProperty(window.navigator, "platform", {
   value: "Win32",
   configurable: true,

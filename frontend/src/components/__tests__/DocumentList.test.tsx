@@ -15,8 +15,9 @@ const buildDocument = (overrides: Partial<Document> = {}): Document => ({
 });
 
 describe("DocumentList", () => {
-	it("highlights a document when hovered", () => {
+	it("highlights a document when clicked", () => {
 		const onHighlightDocument = vi.fn();
+		const onDocumentClick = vi.fn();
 		const documents = [
 			buildDocument({ path: "doc-1", title: "Doc 1" }),
 			buildDocument({ path: "doc-2", title: "Doc 2" }),
@@ -25,7 +26,7 @@ describe("DocumentList", () => {
 		render(
 			<DocumentList
 				documents={documents}
-				onDocumentClick={vi.fn()}
+				onDocumentClick={onDocumentClick}
 				highlightedIndex={0}
 				onHighlightDocument={onHighlightDocument}
 				selectedDocuments={new Set()}
@@ -33,10 +34,11 @@ describe("DocumentList", () => {
 			/>,
 		);
 
-		const items = screen.getAllByRole("listitem");
-		fireEvent.mouseEnter(items[1]);
+		const docTitles = screen.getAllByRole("heading", { level: 3 });
+		fireEvent.click(docTitles[1]);
 
 		expect(onHighlightDocument).toHaveBeenCalledWith(1);
+		expect(onDocumentClick).toHaveBeenCalledWith("doc-2");
 	});
 
 	it("toggles selection through the selection button without triggering navigation", () => {

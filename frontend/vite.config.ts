@@ -26,9 +26,9 @@ export default defineConfig({
     minify: "terser",
     terserOptions: {
       compress: {
-        drop_console: true,
+        // drop_console: true,
         drop_debugger: true,
-        pure_funcs: ["console.log", "console.info"],
+        // pure_funcs: ["console.log", "console.info"],
       },
     },
 
@@ -65,11 +65,6 @@ export default defineConfig({
 
   // Optimize dependency pre-bundling
   optimizeDeps: {
-    include: [
-      "react",
-      "react-dom",
-      "@headlessui/react",
-      "@blocknote/react",
-    ],
+    include: ["react", "react-dom", "@headlessui/react", "@blocknote/react"],
   },
 });

@@ -3,10 +3,56 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TitleBarProvider } from "../../contexts";
 import { TitleBar } from "../ui/TitleBar";
 
-const mockEnvironment = vi.fn();
-const mockQuit = vi.fn();
-const mockWindowMinimise = vi.fn();
-const mockWindowToggleMaximise = vi.fn();
+const mockIsLinux = vi.fn();
+const mockIsMac = vi.fn();
+const mockIsFrameless = vi.fn();
+
+vi.mock("@wailsio/runtime", () => {
+	const createIdentity = (x: unknown) => x;
+	const createArrayFactory = () => (arr: unknown) => arr;
+	const createMapFactory = () => (obj: unknown) => obj;
+	const createNullableFactory = () => (val: unknown) => val;
+
+	return {
+		System: {
+			IsLinux: () => mockIsLinux(),
+			IsMac: () => mockIsMac(),
+			IsWindows: () => false,
+		},
+		Window: {
+			Minimise: vi.fn(),
+			ToggleMaximise: vi.fn(),
+		},
+		Events: {
+			On: vi.fn(() => () => {}),
+			Emit: vi.fn(),
+			Off: vi.fn(),
+		},
+		Call: {
+			ByID: vi.fn(() => Promise.resolve({})),
+			ByName: vi.fn(() => Promise.resolve({})),
+		},
+		CancellablePromise: Promise,
+		Create: {
+			Any: createIdentity,
+			Array: createArrayFactory,
+			Map: createMapFactory,
+			Nullable: createNullableFactory,
+			Struct: () => createIdentity,
+		},
+		Browser: {
+			OpenURL: vi.fn(() => Promise.resolve()),
+		},
+	};
+});
+
+vi.mock("../../../bindings/yanta/internal/window/service", () => ({
+	IsFrameless: () => mockIsFrameless(),
+}));
+
+vi.mock("../../../bindings/yanta/internal/system/service", () => ({
+	BackgroundQuit: vi.fn(() => Promise.resolve()),
+}));
 
 const renderWithProvider = () =>
 	render(
@@ -15,45 +61,33 @@ const renderWithProvider = () =>
 		</TitleBarProvider>,
 	);
 
-interface MockWindow extends Window {
-	runtime: {
-		Environment: typeof mockEnvironment;
-		Quit: typeof mockQuit;
-		WindowMinimise: typeof mockWindowMinimise;
-		WindowToggleMaximise: typeof mockWindowToggleMaximise;
-	};
-}
-
 describe("TitleBar", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		(window as unknown as MockWindow).runtime = {
-			Environment: mockEnvironment,
-			Quit: mockQuit,
-			WindowMinimise: mockWindowMinimise,
-			WindowToggleMaximise: mockWindowToggleMaximise,
-		};
+		mockIsLinux.mockReturnValue(false);
+		mockIsMac.mockReturnValue(false);
+		mockIsFrameless.mockResolvedValue(true);
 	});
 
 	it("renders the custom controls on Linux", async () => {
-		mockEnvironment.mockResolvedValue({ platform: "linux" });
+		mockIsLinux.mockReturnValue(true);
+		mockIsMac.mockReturnValue(false);
 
 		renderWithProvider();
 
 		await waitFor(() => expect(screen.getByTitle("Minimize")).toBeInTheDocument());
 		expect(screen.getByTitle("Maximize")).toBeInTheDocument();
 		expect(screen.getByTitle("Close")).toBeInTheDocument();
-		expect(mockWindowMinimise).not.toHaveBeenCalled();
 	});
 
 	it("returns null on macOS (native title bar handles dragging)", async () => {
-		mockEnvironment.mockResolvedValue({ platform: "darwin" });
+		mockIsLinux.mockReturnValue(false);
+		mockIsMac.mockReturnValue(true);
 
 		const { container } = renderWithProvider();
 
 		await waitFor(() => {
 			expect(container.firstChild).toBeNull();
 		});
-		expect(mockWindowMinimise).not.toHaveBeenCalled();
 	});
 });

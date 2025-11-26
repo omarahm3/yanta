@@ -90,12 +90,14 @@ export function useDocumentController({
 	const editorRef = useRef<BlockNoteEditor | null>(null);
 	const [hasRestored, setHasRestored] = useState(false);
 	const [isRestoring, setIsRestoring] = useState(false);
+	const [isEditorReady, setIsEditorReady] = useState(false);
 	const isArchived = Boolean(data?.deletedAt) && !hasRestored;
 
 	useEffect(() => {
 		setHasRestored(false);
 		setIsRestoring(false);
-	}, []);
+		setIsEditorReady(false);
+	}, [documentPath]);
 
 	useEffect(() => {
 		if (!data?.deletedAt) {
@@ -107,6 +109,7 @@ export function useDocumentController({
 		(editor: BlockNoteEditor) => {
 			editorRef.current = editor;
 			handleEditorReady(editor);
+			setIsEditorReady(true);
 		},
 		[handleEditorReady],
 	);
@@ -126,17 +129,28 @@ export function useDocumentController({
 		resetChanges,
 		onAutoSaveComplete: resetAutoSave,
 		onNavigate,
+		isEditorReady,
+	});
+
+	const autoSaveRef = useRef(autoSave);
+	const isArchivedRef = useRef(isArchived);
+	const currentProjectRef = useRef(currentProject);
+
+	useEffect(() => {
+		autoSaveRef.current = autoSave;
+		isArchivedRef.current = isArchived;
+		currentProjectRef.current = currentProject;
 	});
 
 	useEffect(() => {
 		return () => {
-			if (autoSave.hasUnsavedChanges && !isArchived && currentProject) {
-				autoSave.saveNow().catch((err) => {
+			if (autoSaveRef.current.hasUnsavedChanges && !isArchivedRef.current && currentProjectRef.current) {
+				autoSaveRef.current.saveNow().catch((err) => {
 					console.error("[Document] Failed to save on unmount:", err);
 				});
 			}
 		};
-	}, [autoSave, isArchived, currentProject]);
+	}, []);
 
 	const handleCancel = useCallback(() => {
 		if (autoSave.hasUnsavedChanges && !isEditMode) {

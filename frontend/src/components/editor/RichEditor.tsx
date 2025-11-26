@@ -22,6 +22,7 @@ import { cn } from "../../lib/utils";
 import type { BlockNoteBlock } from "../../types/Document";
 import { registerClipboardImagePlugin } from "../../utils/clipboard";
 import { extractTitleFromBlocks } from "../../utils/documentUtils";
+import { computeContentHash } from "../../utils/contentHash";
 
 export interface RichEditorProps {
 	initialContent?: string;
@@ -60,9 +61,12 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 		const { currentProject } = useProjectContext();
 		const [isLinux, setIsLinux] = React.useState(false);
 		const [container, setContainer] = React.useState<HTMLDivElement | null>(null);
+		const hasEstablishedBaseline = React.useRef(false);
+		const baselineHashRef = React.useRef<string | null>(null);
 
 		const uploadFileFn = React.useCallback(
 			async (file: File) => {
+				console.warn("[RichEditor] uploadFileFn called by BlockNote!", { fileName: file.name, size: file.size });
 				const alias = currentProject?.alias ?? "";
 				if (!alias) throw new Error("No project selected");
 				return await uploadFile(file, alias);
@@ -151,6 +155,17 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 		}, [editor, onReady]);
 
 		useEffect(() => {
+			if (editor && isReady && !hasEstablishedBaseline.current) {
+				const raf = requestAnimationFrame(() => {
+					baselineHashRef.current = computeContentHash(editor.document);
+					hasEstablishedBaseline.current = true;
+					console.log("[RichEditor] Baseline established", { hash: baselineHashRef.current?.substring(0, 50) });
+				});
+				return () => cancelAnimationFrame(raf);
+			}
+		}, [editor, isReady]);
+
+		useEffect(() => {
 			if (editor && editable && isReady) {
 				setTimeout(() => {
 					editor.focus();
@@ -162,20 +177,26 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 
 		useEffect(() => {
 			if (!editor || !onChange) return;
+
 			const unsubscribe = editor.onChange(() => {
 				const currentBlocks = editor.document;
 
+				let didModify = false;
+
 				currentBlocks.forEach((block: Block) => {
-					if (block.type === "file" && block.props?.url && !convertedBlocksRef.current.has(block.id)) {
+					if (
+						block.type === "file" &&
+						block.props?.url &&
+						!convertedBlocksRef.current.has(block.id)
+					) {
 						const url = block.props.url as string;
 						if (url.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
 							convertedBlocksRef.current.add(block.id);
 							editor.updateBlock(block.id, {
 								type: "image",
-								props: {
-									url: url,
-								},
+								props: { url },
 							});
+							didModify = true;
 						}
 					}
 				});
@@ -192,15 +213,40 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 						currentBlocks[0],
 						"before",
 					);
+					didModify = true;
+				}
+
+				if (didModify) {
+					console.log("[RichEditor] onChange: didModify=true, skipping propagation");
 					return;
 				}
 
-				onChange(currentBlocks);
+				if (!hasEstablishedBaseline.current) {
+					console.log("[RichEditor] onChange: baseline not established, skipping");
+					return;
+				}
+
+				const finalBlocks = editor.document;
+				const currentHash = computeContentHash(finalBlocks);
+
+				if (currentHash === baselineHashRef.current) {
+					console.log("[RichEditor] onChange: hash matches baseline, skipping");
+					return;
+				}
+
+				console.log("[RichEditor] onChange: PROPAGATING change", {
+					baselineHash: baselineHashRef.current?.substring(0, 30),
+					currentHash: currentHash.substring(0, 30),
+				});
+				onChange(finalBlocks);
+				baselineHashRef.current = currentHash;
+
 				if (onTitleChange) {
-					const title = extractTitleFromBlocks(currentBlocks as BlockNoteBlock[]);
+					const title = extractTitleFromBlocks(finalBlocks as BlockNoteBlock[]);
 					onTitleChange(title);
 				}
 			});
+
 			return unsubscribe;
 		}, [editor, onChange, onTitleChange]);
 

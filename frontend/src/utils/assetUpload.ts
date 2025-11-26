@@ -1,19 +1,13 @@
 /**
- * Asset upload using HTTP POST with multipart/form-data.
- * Bypasses Wails RPC which has URL length limits due to base64 data in query params.
+ * Asset upload using chunked RPC calls.
+ * Bypasses WebView2 limitation where binary multipart POST data is not accessible.
+ * Works on all platforms: Linux (WebKitGTK), Windows (WebView2), macOS (WebKit).
  */
 
-const MAX_BYTES = 10 * 1024 * 1024; // 10MB
+import * as AssetService from "../../bindings/yanta/internal/asset/service";
 
-interface UploadResponse {
-	success: boolean;
-	hash?: string;
-	ext?: string;
-	url?: string;
-	bytes?: number;
-	mime?: string;
-	error?: string;
-}
+const MAX_BYTES = 10 * 1024 * 1024; // 10MB
+const CHUNK_SIZE = 256 * 1024; // 256KB chunks
 
 export async function uploadFile(file: File, projectAlias: string): Promise<string> {
 	if (!projectAlias) {
@@ -26,40 +20,64 @@ export async function uploadFile(file: File, projectAlias: string): Promise<stri
 		throw new Error(`File too large (max ${MAX_BYTES / (1024 * 1024)}MB)`);
 	}
 
-	const fileName = file.name || `image.${file.type.split("/")[1] || "png"}`;
+	const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+	const filename = file.name || `image.${file.type.split("/")[1] || "png"}`;
 
-	console.debug("[Upload] Starting:", { project: projectAlias, filename: fileName, size: file.size });
+	const startResp = await AssetService.StartChunkedUpload({
+		projectAlias,
+		filename,
+		totalSize: file.size,
+		totalChunks,
+		mimeType: file.type,
+	});
 
-	const formData = new FormData();
-	formData.append("project", projectAlias);
-	formData.append("file", file, fileName);
+	if (!startResp?.uploadId) {
+		throw new Error("Failed to start upload session");
+	}
+
+	const uploadId = startResp.uploadId;
 
 	try {
-		const response = await fetch("/api/upload", {
-			method: "POST",
-			body: formData,
-		});
+		for (let i = 0; i < totalChunks; i++) {
+			const start = i * CHUNK_SIZE;
+			const end = Math.min(start + CHUNK_SIZE, file.size);
+			const chunk = file.slice(start, end);
 
-		const result: UploadResponse = await response.json();
+			const base64 = await blobToBase64(chunk);
 
-		if (!response.ok || !result.success) {
-			const errorMessage = result.error || `HTTP ${response.status}: ${response.statusText}`;
-			console.error("[Upload] Failed:", { status: response.status, error: errorMessage });
-			throw new Error(errorMessage);
+			await AssetService.UploadChunk({
+				uploadId,
+				chunkIndex: i,
+				data: base64,
+			});
 		}
 
-		console.debug("[Upload] Success:", { hash: result.hash, ext: result.ext, bytes: result.bytes });
+		const result = await AssetService.FinalizeChunkedUpload(uploadId);
 
-		if (!result.url) {
+		if (!result?.url) {
 			throw new Error("Upload succeeded but no URL returned");
 		}
 
 		return result.url;
 	} catch (error) {
-		if (error instanceof TypeError && error.message.includes("fetch")) {
-			console.error("[Upload] Network error:", error);
-			throw new Error("Upload failed: Network error");
+		try {
+			await AssetService.AbortChunkedUpload(uploadId);
+		} catch {
+			// Ignore abort errors
 		}
 		throw error;
 	}
+}
+
+async function blobToBase64(blob: Blob): Promise<string> {
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onloadend = () => {
+			const result = reader.result as string;
+			const base64 = result.split(",")[1];
+			resolve(base64);
+		};
+		reader.onerror = () => reject(new Error("Failed to read file chunk"));
+		reader.readAsDataURL(blob);
+	});
 }

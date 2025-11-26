@@ -398,4 +398,148 @@ describe("useAutoSave", () => {
 			expect(onSave).not.toHaveBeenCalled();
 		});
 	});
+
+	describe("isInitialized guard", () => {
+		it("should NOT save on blur when isInitialized is false", async () => {
+			const onSave = vi.fn().mockResolvedValue(undefined);
+
+			renderHook(() =>
+				useAutoSave({
+					value: { content: "test" },
+					onSave,
+					delay: 100,
+					enabled: true,
+					saveOnBlur: true,
+					isInitialized: false,
+				}),
+			);
+
+			await act(async () => {
+				window.dispatchEvent(new Event("blur"));
+			});
+
+			expect(onSave).not.toHaveBeenCalled();
+		});
+
+		it("should save on blur when isInitialized is true and has changes", async () => {
+			const onSave = vi.fn().mockResolvedValue(undefined);
+
+			const { rerender } = renderHook(
+				({ value, isInitialized }) =>
+					useAutoSave({
+						value,
+						onSave,
+						delay: 100,
+						enabled: true,
+						saveOnBlur: true,
+						isInitialized,
+					}),
+				{
+					initialProps: {
+						value: { content: "initial" },
+						isInitialized: true,
+					},
+				},
+			);
+
+			rerender({
+				value: { content: "changed" },
+				isInitialized: true,
+			});
+
+			await act(async () => {
+				window.dispatchEvent(new Event("blur"));
+			});
+
+			expect(onSave).toHaveBeenCalledTimes(1);
+		});
+
+		it("should enable blur saves when isInitialized transitions to true and user makes changes after", async () => {
+			const onSave = vi.fn().mockResolvedValue(undefined);
+
+			const { rerender } = renderHook(
+				({ value, isInitialized }) =>
+					useAutoSave({
+						value,
+						onSave,
+						delay: 100,
+						enabled: true,
+						saveOnBlur: true,
+						isInitialized,
+					}),
+				{
+					initialProps: {
+						value: { content: "initial" },
+						isInitialized: false,
+					},
+				},
+			);
+
+			// Simulate document loading - value changes before editor ready
+			rerender({
+				value: { content: "loaded content" },
+				isInitialized: false,
+			});
+
+			await act(async () => {
+				window.dispatchEvent(new Event("blur"));
+			});
+			expect(onSave).not.toHaveBeenCalled();
+
+			// Editor becomes ready - baseline is reset to current value
+			// Changes from loading should NOT trigger save
+			rerender({
+				value: { content: "loaded content" },
+				isInitialized: true,
+			});
+
+			await act(async () => {
+				window.dispatchEvent(new Event("blur"));
+			});
+			// No save because "loaded content" is now the baseline (no unsaved changes)
+			expect(onSave).not.toHaveBeenCalled();
+
+			// User makes actual changes AFTER initialization
+			rerender({
+				value: { content: "user edited content" },
+				isInitialized: true,
+			});
+
+			await act(async () => {
+				window.dispatchEvent(new Event("blur"));
+			});
+			// Now save SHOULD trigger because user made real changes after initialization
+			expect(onSave).toHaveBeenCalledTimes(1);
+		});
+
+		it("should default isInitialized to true for backwards compatibility", async () => {
+			const onSave = vi.fn().mockResolvedValue(undefined);
+
+			const { rerender } = renderHook(
+				({ value }) =>
+					useAutoSave({
+						value,
+						onSave,
+						delay: 100,
+						enabled: true,
+						saveOnBlur: true,
+					}),
+				{
+					initialProps: {
+						value: { content: "initial" },
+					},
+				},
+			);
+
+			rerender({
+				value: { content: "changed" },
+			});
+
+			await act(async () => {
+				window.dispatchEvent(new Event("blur"));
+			});
+
+			expect(onSave).toHaveBeenCalledTimes(1);
+		});
+	});
 });

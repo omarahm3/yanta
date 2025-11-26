@@ -40,6 +40,13 @@ func NewUploadHandler(service *Service) *UploadHandler {
 func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 
+	logger.WithFields(map[string]any{
+		"method":         r.Method,
+		"content_type":   r.Header.Get("Content-Type"),
+		"content_length": r.ContentLength,
+		"url":            r.URL.String(),
+	}).Debug("HTTP upload handler invoked")
+
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
@@ -75,18 +82,19 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	logger.WithFields(map[string]any{
-		"project":  projectAlias,
-		"filename": header.Filename,
-		"size":     header.Size,
-	}).Debug("HTTP upload request received")
-
 	data, err := io.ReadAll(io.LimitReader(file, MaxUploadSize+1))
 	if err != nil {
 		logger.WithError(err).Error("failed to read uploaded file")
 		h.sendError(w, http.StatusInternalServerError, "failed to read file")
 		return
 	}
+
+	logger.WithFields(map[string]any{
+		"project":      projectAlias,
+		"filename":     header.Filename,
+		"header_size":  header.Size,
+		"actual_bytes": len(data),
+	}).Debug("HTTP upload request received")
 
 	if int64(len(data)) > MaxUploadSize {
 		h.sendError(w, http.StatusBadRequest, fmt.Sprintf("file too large: max %dMB", MaxUploadSize/(1024*1024)))
