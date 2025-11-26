@@ -145,13 +145,20 @@ func TestWALVisibilityRaceCondition(t *testing.T) {
 
 		wg.Wait()
 
+		// Database locked error is also a symptom of the race condition with multiple connections
+		if uploadErr != nil && strings.Contains(uploadErr.Error(), "database is locked") {
+			raceDetected = true
+			t.Logf("Race condition detected on iteration %d (database locked): %v", i, uploadErr)
+			break
+		}
+
 		if uploadErr != nil {
 			t.Fatalf("Asset upload failed: %v", uploadErr)
 		}
 
 		if linkErr != nil && strings.Contains(linkErr.Error(), "FOREIGN KEY constraint failed") {
 			raceDetected = true
-			t.Logf("Race condition detected on iteration %d: %v", i, linkErr)
+			t.Logf("Race condition detected on iteration %d (FK constraint): %v", i, linkErr)
 			break
 		}
 	}
