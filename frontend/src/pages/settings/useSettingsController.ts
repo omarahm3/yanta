@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Events } from "@wailsio/runtime";
+import { SyncStatus } from "../../../bindings/yanta/internal/git/models";
 import {
 	CheckGitInstalled,
 	GetAppScale,
@@ -58,7 +59,7 @@ export const useSettingsController = () => {
 	const [showReindexConfirm, setShowReindexConfirm] = useState(false);
 	const [appScale, setAppScaleState] = useState<number>(1.0);
 
-	const { success, error } = useNotification();
+	const { success, error, info, warning } = useNotification();
 	const { setScale } = useScale();
 
 	useEffect(() => {
@@ -297,14 +298,40 @@ export const useSettingsController = () => {
 
 	const handleSyncNow = useCallback(async () => {
 		try {
-			await SyncNow();
-			success("Sync completed successfully");
+			const result = await SyncNow();
+			if (!result) {
+				info("Sync completed");
+				return;
+			}
+
+			switch (result.status) {
+				case SyncStatus.SyncStatusNoChanges:
+					info(result.message || "No changes to sync");
+					break;
+				case SyncStatus.SyncStatusUpToDate:
+					info(result.message || "Already in sync with remote");
+					break;
+				case SyncStatus.SyncStatusCommitted:
+					success(result.message || `Committed ${result.filesChanged} file(s)`);
+					break;
+				case SyncStatus.SyncStatusSynced:
+					success(result.message || `Synced ${result.filesChanged} file(s) to remote`);
+					break;
+				case SyncStatus.SyncStatusPushFailed:
+					warning(result.message || "Committed locally, but push failed");
+					break;
+				case SyncStatus.SyncStatusConflict:
+					error("Merge conflict detected. Please resolve conflicts manually.");
+					break;
+				default:
+					success(result.message || "Sync completed");
+			}
 		} catch (err) {
 			const errorMessage = String(err);
 			const cleanedMessage = errorMessage.replace(/^[A-Z_]+:\s*/, "");
 			error(`Sync failed:\n\n${cleanedMessage}`);
 		}
-	}, [success, error]);
+	}, [success, error, info, warning]);
 
 	const handleRequestReindex = useCallback(() => {
 		setShowReindexConfirm(true);

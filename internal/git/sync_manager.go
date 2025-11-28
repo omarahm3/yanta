@@ -87,6 +87,20 @@ func (sm *SyncManager) performSync(reasons []string) {
 		return
 	}
 
+	branch, err := sm.gitService.GetCurrentBranch(dataDir)
+	if err != nil {
+		logger.WithError(err).Debug("auto-sync: could not determine branch, using master")
+		branch = "master"
+	}
+
+	hasRemote, _ := sm.gitService.HasRemote(dataDir, "origin")
+
+	if hasRemote {
+		if err := sm.gitService.Fetch(dataDir, "origin"); err != nil {
+			logger.WithField("error", err).Debug("auto-sync: fetch failed, continuing")
+		}
+	}
+
 	if err := sm.gitService.AddAll(dataDir); err != nil {
 		logger.WithField("error", err).Warn("auto-sync: git add failed")
 		return
@@ -103,10 +117,12 @@ func (sm *SyncManager) performSync(reasons []string) {
 		return
 	}
 
+	filesChanged := len(status.Staged) + len(status.Modified) + len(status.Untracked)
 	logger.WithFields(map[string]any{
 		"modified":  len(status.Modified),
 		"untracked": len(status.Untracked),
 		"staged":    len(status.Staged),
+		"total":     filesChanged,
 	}).Debug("auto-sync: git status after staging")
 
 	commitMsg := sm.buildCommitMessage(reasons)
@@ -119,18 +135,24 @@ func (sm *SyncManager) performSync(reasons []string) {
 		return
 	}
 
+	commitHash, _ := sm.gitService.GetLastCommitHash(dataDir)
 	logger.WithFields(map[string]any{
 		"operations": len(reasons),
+		"files":      filesChanged,
+		"commit":     commitHash,
 		"message":    commitMsg,
 	}).Info("auto-sync: committed successfully")
 
 	gitCfg := config.GetGitSyncConfig()
-	if gitCfg.AutoPush {
+	if gitCfg.AutoPush && hasRemote {
 		logger.Debug("auto-sync: pushing to remote")
-		if err := sm.gitService.Push(dataDir, "origin", "master"); err != nil {
+		if err := sm.gitService.Push(dataDir, "origin", branch); err != nil {
 			logger.WithField("error", err).Warn("auto-sync: push failed (commit was successful locally)")
 		} else {
-			logger.WithField("time", time.Now().Format("15:04:05")).Info("auto-sync: pushed to remote successfully")
+			logger.WithFields(map[string]any{
+				"time":   time.Now().Format("15:04:05"),
+				"branch": branch,
+			}).Info("auto-sync: pushed to remote successfully")
 		}
 	}
 }

@@ -266,3 +266,143 @@ func getGitRemotes(repoPath string) (string, error) {
 	output, err := cmd.CombinedOutput()
 	return string(output), err
 }
+
+func TestGetCurrentBranch(t *testing.T) {
+	skipIfNoGit(t)
+
+	service := NewService()
+	tempDir := t.TempDir()
+
+	err := service.Init(tempDir)
+	require.NoError(t, err)
+
+	configureGitUser(t, tempDir)
+
+	// Create an initial commit (required for branch to be valid)
+	testFile := filepath.Join(tempDir, "test.txt")
+	err = os.WriteFile(testFile, []byte("test content"), 0644)
+	require.NoError(t, err)
+	err = service.AddAll(tempDir)
+	require.NoError(t, err)
+	err = service.Commit(tempDir, "initial commit")
+	require.NoError(t, err)
+
+	t.Run("get current branch", func(t *testing.T) {
+		branch, err := service.GetCurrentBranch(tempDir)
+		require.NoError(t, err)
+		// Could be "master" or "main" depending on git config
+		assert.True(t, branch == "master" || branch == "main", "Expected master or main, got: %s", branch)
+	})
+}
+
+func TestHasRemote(t *testing.T) {
+	skipIfNoGit(t)
+
+	service := NewService()
+	tempDir := t.TempDir()
+
+	err := service.Init(tempDir)
+	require.NoError(t, err)
+
+	t.Run("no remote", func(t *testing.T) {
+		hasRemote, err := service.HasRemote(tempDir, "origin")
+		require.NoError(t, err)
+		assert.False(t, hasRemote)
+	})
+
+	t.Run("with remote", func(t *testing.T) {
+		err := service.SetRemote(tempDir, "origin", "https://github.com/user/repo.git")
+		require.NoError(t, err)
+
+		hasRemote, err := service.HasRemote(tempDir, "origin")
+		require.NoError(t, err)
+		assert.True(t, hasRemote)
+	})
+}
+
+func TestGetLastCommitHash(t *testing.T) {
+	skipIfNoGit(t)
+
+	service := NewService()
+	tempDir := t.TempDir()
+
+	err := service.Init(tempDir)
+	require.NoError(t, err)
+
+	configureGitUser(t, tempDir)
+
+	t.Run("no commits yet", func(t *testing.T) {
+		hash, err := service.GetLastCommitHash(tempDir)
+		require.NoError(t, err)
+		assert.Empty(t, hash)
+	})
+
+	t.Run("with commit", func(t *testing.T) {
+		testFile := filepath.Join(tempDir, "test.txt")
+		err = os.WriteFile(testFile, []byte("test content"), 0644)
+		require.NoError(t, err)
+		err = service.AddAll(tempDir)
+		require.NoError(t, err)
+		err = service.Commit(tempDir, "test commit")
+		require.NoError(t, err)
+
+		hash, err := service.GetLastCommitHash(tempDir)
+		require.NoError(t, err)
+		assert.NotEmpty(t, hash)
+		assert.Len(t, hash, 7) // Short hash is typically 7 characters
+	})
+}
+
+func TestFetch(t *testing.T) {
+	skipIfNoGit(t)
+
+	service := NewService()
+	tempDir := t.TempDir()
+
+	err := service.Init(tempDir)
+	require.NoError(t, err)
+
+	t.Run("fetch without remote fails", func(t *testing.T) {
+		err := service.Fetch(tempDir, "origin")
+		assert.Error(t, err)
+	})
+}
+
+func TestValidateRepoPath(t *testing.T) {
+	service := NewService()
+
+	t.Run("empty path", func(t *testing.T) {
+		err := service.validateRepoPath("")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "empty")
+	})
+
+	t.Run("non-existent path", func(t *testing.T) {
+		err := service.validateRepoPath("/non/existent/path")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "does not exist")
+	})
+
+	t.Run("valid directory", func(t *testing.T) {
+		tempDir := t.TempDir()
+		err := service.validateRepoPath(tempDir)
+		assert.NoError(t, err)
+	})
+}
+
+func TestAddAllWithPathValidation(t *testing.T) {
+	skipIfNoGit(t)
+
+	service := NewService()
+
+	t.Run("fails with empty path", func(t *testing.T) {
+		err := service.AddAll("")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "empty")
+	})
+
+	t.Run("fails with non-existent path", func(t *testing.T) {
+		err := service.AddAll("/non/existent/path")
+		assert.Error(t, err)
+	})
+}
