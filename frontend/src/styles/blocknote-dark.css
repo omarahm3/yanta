@@ -18,3 +18,20 @@
 	flex: 1 !important;
 	overflow-y: auto !important;
 }
+
+/* ============================================================================
+   INLINE CODE - Notion/Obsidian style
+   ============================================================================ */
+
+.bn-inline-content code {
+	font-family: var(--font-mono, "SF Mono", "Monaco", "Cascadia Code", monospace);
+	font-size: 0.875em;
+	background-color: rgba(110, 118, 129, 0.25);
+	color: #ff7b72;
+	padding: 0.15em 0.4em;
+	margin: 0 0.1em;
+	border-radius: 4px;
+	border: 1px solid rgba(110, 118, 129, 0.3);
+	white-space: pre-wrap;
+	word-break: break-word;
+}
