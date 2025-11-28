@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Events } from "@wailsio/runtime";
 import {
 	CheckGitInstalled,
+	GetAppScale,
 	GetCurrentDataDirectory,
 	GetGitSyncConfig,
 	GetKeepInBackground,
@@ -10,6 +11,7 @@ import {
 	MigrateToGitDirectory,
 	OpenDirectoryDialog,
 	ReindexDatabase,
+	SetAppScale,
 	SetGitSyncConfig,
 	SetKeepInBackground,
 	SetLogLevel,
@@ -19,6 +21,7 @@ import {
 } from "../../../bindings/yanta/internal/system/service";
 import { GetWindowMode, SetWindowMode } from "../../../bindings/yanta/internal/window/service";
 import type { SelectOption } from "../../components/ui";
+import { useScale } from "../../contexts";
 import { useNotification } from "../../hooks/useNotification";
 import { type SystemInfo, systemInfoFromModel } from "../../types";
 
@@ -53,8 +56,10 @@ export const useSettingsController = () => {
 		message: string;
 	} | null>(null);
 	const [showReindexConfirm, setShowReindexConfirm] = useState(false);
+	const [appScale, setAppScaleState] = useState<number>(1.0);
 
-	const { success, error} = useNotification();
+	const { success, error } = useNotification();
+	const { setScale } = useScale();
 
 	useEffect(() => {
 		GetSystemInfo()
@@ -95,6 +100,10 @@ export const useSettingsController = () => {
 		GetWindowMode()
 			.then((mode) => setLinuxWindowModeState(mode))
 			.catch((err) => console.error("Failed to get window mode:", err));
+
+		GetAppScale()
+			.then((scale) => setAppScaleState(scale))
+			.catch((err) => console.error("Failed to get app scale:", err));
 
 		const unsubscribe = Events.On("reindex:progress", (data: unknown) => {
 			const progressData = data as { current: number; total: number; message: string };
@@ -176,6 +185,20 @@ export const useSettingsController = () => {
 			}
 		},
 		[success, error],
+	);
+
+	const handleAppScaleChange = useCallback(
+		async (scale: number) => {
+			try {
+				await SetAppScale(scale);
+				setAppScaleState(scale);
+				setScale(scale);
+				success(`App scale set to ${Math.round(scale * 100)}%`);
+			} catch (err) {
+				error(`Failed to set app scale: ${err}`);
+			}
+		},
+		[setScale, success, error],
 	);
 
 	const handleGitSyncToggle = useCallback(
@@ -339,6 +362,7 @@ export const useSettingsController = () => {
 		isReindexing,
 		reindexProgress,
 		showReindexConfirm,
+		appScale,
 		logLevelOptions,
 		syncFrequencyOptions,
 		handlers: {
@@ -346,6 +370,7 @@ export const useSettingsController = () => {
 			handleKeepInBackgroundToggle,
 			handleStartHiddenToggle,
 			handleLinuxWindowModeToggle,
+			handleAppScaleChange,
 			handleGitSyncToggle,
 			handleSyncFrequencyChange,
 			handleAutoPushToggle,

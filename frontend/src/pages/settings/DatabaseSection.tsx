@@ -13,10 +13,7 @@ export const DatabaseSection = React.forwardRef<HTMLDivElement, DatabaseSectionP
 	({ systemInfo, isReindexing, reindexProgress, onReindex }, ref) => {
 		return (
 			<div ref={ref}>
-				<SettingsSection
-					title="Database"
-					subtitle="Manage your local database and search index"
-				>
+				<SettingsSection title="Database" subtitle="Manage your local database and search index">
 					<div className="space-y-4">
 						<div className="grid grid-cols-3 gap-4 p-4 border rounded border-border bg-bg-secondary">
 							<div>
@@ -43,8 +40,8 @@ export const DatabaseSection = React.forwardRef<HTMLDivElement, DatabaseSectionP
 							<div className="mb-3">
 								<div className="mb-1 font-medium text-text">Rebuild Search Index</div>
 								<Text size="xs" variant="dim">
-									Recreate the database search index from your JSON files. Use this if
-									search results seem incorrect or outdated.
+									Recreate the database search index from your JSON files. Use this if search results seem
+									incorrect or outdated.
 								</Text>
 							</div>
 
@@ -59,12 +56,7 @@ export const DatabaseSection = React.forwardRef<HTMLDivElement, DatabaseSectionP
 								</div>
 							)}
 
-							<Button
-								onClick={onReindex}
-								disabled={isReindexing}
-								variant="secondary"
-								size="sm"
-							>
+							<Button onClick={onReindex} disabled={isReindexing} variant="secondary" size="sm">
 								{isReindexing ? "Reindexing..." : "Reindex Database"}
 							</Button>
 						</div>

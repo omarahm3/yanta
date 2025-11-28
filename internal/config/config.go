@@ -26,6 +26,7 @@ type Config struct {
 	DataDirectory    string        `toml:"data_directory"`
 	GitSync          GitSyncConfig `toml:"git_sync"`
 	LinuxWindowMode  string        `toml:"linux_window_mode"`
+	AppScale         float64       `toml:"app_scale"`
 }
 
 const (
@@ -46,6 +47,7 @@ func Init() error {
 			LogLevel:         "info",
 			KeepInBackground: false,
 			StartHidden:      false,
+			AppScale:         1.0,
 		}
 
 		configPath, err := getConfigPath()
@@ -72,6 +74,10 @@ func Init() error {
 
 		if level := os.Getenv("YANTA_LOG_LEVEL"); level != "" {
 			cfg.LogLevel = strings.ToLower(level)
+		}
+
+		if cfg.AppScale < 0.75 || cfg.AppScale > 2.0 {
+			cfg.AppScale = 1.0
 		}
 
 		instance = cfg
@@ -268,4 +274,28 @@ func SetLinuxWindowMode(mode string) error {
 
 func IsLinuxFrameless() bool {
 	return runtime.GOOS == "linux" && GetLinuxWindowMode() == WindowModeFrameless
+}
+
+func GetAppScale() float64 {
+	cfg := Get()
+	if cfg.AppScale < 0.75 || cfg.AppScale > 2.0 {
+		return 1.0
+	}
+	return cfg.AppScale
+}
+
+func SetAppScale(scale float64) error {
+	if scale < 0.75 || scale > 2.0 {
+		return fmt.Errorf("app scale must be between 0.75 and 2.0")
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	if instance == nil {
+		instance = &Config{}
+	}
+
+	instance.AppScale = scale
+	return save(instance)
 }

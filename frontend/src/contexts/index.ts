@@ -7,4 +7,5 @@ export {
 export { HelpProvider, useHelpContext } from "./HelpContext";
 export { HotkeyProvider, useHotkeyContext } from "./HotkeyContext";
 export { ProjectProvider, useProjectContext } from "./ProjectContext";
+export { ScaleProvider, useScale } from "./ScaleContext";
 export { TitleBarProvider, useTitleBarContext } from "./TitleBarContext";

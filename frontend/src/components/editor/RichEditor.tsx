@@ -12,9 +12,10 @@ import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/shadcn";
 import "@blocknote/shadcn/style.css";
 import { codeBlockOptions } from "@blocknote/code-block";
-import { useProjectContext } from "../../contexts";
+import { useProjectContext, useScale } from "../../contexts";
 import { uploadFile } from "../../utils/assetUpload";
 import "../../styles/blocknote-dark.css";
+import "../../styles/blocknote-scale.css";
 import "../../extensions/rtl/rtl.css";
 import { Browser, System } from "@wailsio/runtime";
 import { RTLExtension } from "../../extensions/rtl";
@@ -59,6 +60,7 @@ type EditorInnerProps = {
 const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 	({ blocks, onChange, onTitleChange, onReady, className, editable }, ref) => {
 		const { currentProject } = useProjectContext();
+		const { scale } = useScale();
 		const [isLinux, setIsLinux] = React.useState(false);
 		const [container, setContainer] = React.useState<HTMLDivElement | null>(null);
 		const hasEstablishedBaseline = React.useRef(false);
@@ -66,7 +68,10 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 
 		const uploadFileFn = React.useCallback(
 			async (file: File) => {
-				console.warn("[RichEditor] uploadFileFn called by BlockNote!", { fileName: file.name, size: file.size });
+				console.warn("[RichEditor] uploadFileFn called by BlockNote!", {
+					fileName: file.name,
+					size: file.size,
+				});
 				const alias = currentProject?.alias ?? "";
 				if (!alias) throw new Error("No project selected");
 				return await uploadFile(file, alias);
@@ -91,6 +96,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 			domAttributes: {
 				editor: {
 					class: "bn-editor",
+					"data-scale": "true",
 				},
 			},
 			extensions: [
@@ -159,7 +165,9 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 				const raf = requestAnimationFrame(() => {
 					baselineHashRef.current = computeContentHash(editor.document);
 					hasEstablishedBaseline.current = true;
-					console.log("[RichEditor] Baseline established", { hash: baselineHashRef.current?.substring(0, 50) });
+					console.log("[RichEditor] Baseline established", {
+						hash: baselineHashRef.current?.substring(0, 50),
+					});
 				});
 				return () => cancelAnimationFrame(raf);
 			}
@@ -184,11 +192,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 				let didModify = false;
 
 				currentBlocks.forEach((block: Block) => {
-					if (
-						block.type === "file" &&
-						block.props?.url &&
-						!convertedBlocksRef.current.has(block.id)
-					) {
+					if (block.type === "file" && block.props?.url && !convertedBlocksRef.current.has(block.id)) {
 						const url = block.props.url as string;
 						if (url.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
 							convertedBlocksRef.current.add(block.id);
@@ -349,7 +353,11 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 		}
 
 		return (
-			<div ref={mergedRef} className={cn("rich-editor flex-1 overflow-y-auto h-full", className)}>
+			<div
+				ref={mergedRef}
+				className={cn("rich-editor flex-1 overflow-y-auto h-full", className)}
+				style={{ "--editor-scale": scale } as React.CSSProperties}
+			>
 				<BlockNoteView editor={editor} theme="dark" />
 			</div>
 		);

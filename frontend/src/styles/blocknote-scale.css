@@ -1,0 +1,13 @@
+/* BlockNote Editor Scaling
+ * BlockNote uses em units for headings which are relative to the base font-size.
+ * We set the base font-size on the editor, and headings scale proportionally.
+ *
+ * BlockNote's heading sizes (relative to base):
+ * H1: 3em, H2: 2em, H3: 1.3em, H4: 1em, H5: 0.9em, H6: 0.8em
+ * Base font: 16px
+ */
+
+/* Set base font-size on the editor - headings will scale from this */
+.bn-editor[data-scale] {
+	font-size: calc(16px * var(--editor-scale));
+}

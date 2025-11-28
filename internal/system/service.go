@@ -542,3 +542,17 @@ func (s *Service) emitProgress(current, total int, message string) {
 		})
 	}
 }
+
+func (s *Service) GetAppScale(ctx context.Context) float64 {
+	return config.GetAppScale()
+}
+
+func (s *Service) SetAppScale(ctx context.Context, scale float64) error {
+	if err := config.SetAppScale(scale); err != nil {
+		logger.Errorf("failed to set app scale: %v", err)
+		return err
+	}
+
+	logger.Infof("app scale changed to %v", scale)
+	return nil
+}

@@ -62,8 +62,7 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 									<div>
 										<div className="mb-1 font-medium text-yellow-400">Git Not Installed</div>
 										<div className="text-sm text-yellow-300">
-											Git is not found in your system PATH. Please install Git to enable sync
-											functionality.
+											Git is not found in your system PATH. Please install Git to enable sync functionality.
 										</div>
 									</div>
 								</div>

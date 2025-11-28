@@ -5,6 +5,7 @@ import { useHotkeys } from "../hooks";
 import { useHelp } from "../hooks/useHelp";
 import { useSidebarSections } from "../hooks/useSidebarSections";
 import { AboutSection } from "./settings/AboutSection";
+import { AppearanceSection } from "./settings/AppearanceSection";
 import { DatabaseSection } from "./settings/DatabaseSection";
 import { GeneralSection } from "./settings/GeneralSection";
 import { GitSyncSection } from "./settings/GitSyncSection";
@@ -149,6 +150,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 	const { setPageContext } = useHelp();
 
 	const generalRef = useRef<HTMLDivElement>(null);
+	const appearanceRef = useRef<HTMLDivElement>(null);
 	const databaseRef = useRef<HTMLDivElement>(null);
 	const shortcutsRef = useRef<HTMLDivElement>(null);
 	const loggingRef = useRef<HTMLDivElement>(null);
@@ -157,7 +159,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 
 	const [currentSectionIndex, setCurrentSectionIndex] = React.useState(0);
 
-	const sectionIds = ["general", "database", "shortcuts", "logging", "sync", "about"];
+	const sectionIds = ["general", "appearance", "database", "shortcuts", "logging", "sync", "about"];
 
 	React.useEffect(() => {
 		setPageContext([], "Settings");
@@ -166,6 +168,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 	const scrollToSection = useCallback((sectionId: string) => {
 		const refMap: Record<string, React.RefObject<HTMLDivElement>> = {
 			general: generalRef,
+			appearance: appearanceRef,
 			database: databaseRef,
 			shortcuts: shortcutsRef,
 			logging: loggingRef,
@@ -221,6 +224,11 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 			id: "general",
 			label: "general",
 			onClick: () => scrollToSection("general"),
+		},
+		{
+			id: "appearance",
+			label: "appearance",
+			onClick: () => scrollToSection("appearance"),
 		},
 		{
 			id: "database",
@@ -288,6 +296,12 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 						onKeepInBackgroundToggle={controller.handlers.handleKeepInBackgroundToggle}
 						onStartHiddenToggle={controller.handlers.handleStartHiddenToggle}
 						onLinuxWindowModeToggle={controller.handlers.handleLinuxWindowModeToggle}
+					/>
+
+					<AppearanceSection
+						ref={appearanceRef}
+						appScale={controller.appScale}
+						onAppScaleChange={controller.handlers.handleAppScaleChange}
 					/>
 
 					<DatabaseSection

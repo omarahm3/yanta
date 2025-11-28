@@ -11,6 +11,7 @@ import {
 	HelpProvider,
 	HotkeyProvider,
 	ProjectProvider,
+	ScaleProvider,
 	TitleBarProvider,
 } from "./contexts";
 import { useHotkey } from "./hooks";
@@ -166,27 +167,29 @@ function App() {
 
 	return (
 		<ToastProvider>
-			<TitleBarProvider>
-				<DialogProvider>
-					<HotkeyProvider>
-						<HelpProvider>
-							<ProjectProvider>
-								<DocumentCountProvider>
-									<DocumentProvider>
-										<ResizeHandles />
-										<TitleBar />
-										<HelpHotkey />
-										<QuitHotkeys />
-										<GlobalCommandHotkey />
-										<WindowEventListener />
-										<HelpModal />
-									</DocumentProvider>
-								</DocumentCountProvider>
-							</ProjectProvider>
-						</HelpProvider>
-					</HotkeyProvider>
-				</DialogProvider>
-			</TitleBarProvider>
+			<ScaleProvider>
+				<TitleBarProvider>
+					<DialogProvider>
+						<HotkeyProvider>
+							<HelpProvider>
+								<ProjectProvider>
+									<DocumentCountProvider>
+										<DocumentProvider>
+											<ResizeHandles />
+											<TitleBar />
+											<HelpHotkey />
+											<QuitHotkeys />
+											<GlobalCommandHotkey />
+											<WindowEventListener />
+											<HelpModal />
+										</DocumentProvider>
+									</DocumentCountProvider>
+								</ProjectProvider>
+							</HelpProvider>
+						</HotkeyProvider>
+					</DialogProvider>
+				</TitleBarProvider>
+			</ScaleProvider>
 		</ToastProvider>
 	);
 }

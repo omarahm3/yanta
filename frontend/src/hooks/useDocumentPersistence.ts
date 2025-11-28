@@ -99,7 +99,12 @@ export const useDocumentPersistence = ({
 		}
 	}, [shouldAutoSave, currentProject, isLoading, handleSave, onAutoSaveComplete]);
 
-	console.log("[useDocumentPersistence] render", { hasChanges, isLoading, isEditorReady, enabled: hasChanges && !isLoading });
+	console.log("[useDocumentPersistence] render", {
+		hasChanges,
+		isLoading,
+		isEditorReady,
+		enabled: hasChanges && !isLoading,
+	});
 
 	const autoSaveHook = useAutoSave({
 		value: formData,

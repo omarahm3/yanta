@@ -144,7 +144,11 @@ export function useDocumentController({
 
 	useEffect(() => {
 		return () => {
-			if (autoSaveRef.current.hasUnsavedChanges && !isArchivedRef.current && currentProjectRef.current) {
+			if (
+				autoSaveRef.current.hasUnsavedChanges &&
+				!isArchivedRef.current &&
+				currentProjectRef.current
+			) {
 				autoSaveRef.current.saveNow().catch((err) => {
 					console.error("[Document] Failed to save on unmount:", err);
 				});

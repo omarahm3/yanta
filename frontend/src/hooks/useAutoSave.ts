@@ -129,7 +129,7 @@ export const useAutoSave = <T>({
 			changedFromInitial,
 			hasUserMadeChanges: hasUserMadeChangesRef.current,
 			enabled,
-			isInitialized
+			isInitialized,
 		});
 
 		if (changedFromInitial && !hasUserMadeChangesRef.current) {
@@ -143,7 +143,11 @@ export const useAutoSave = <T>({
 			return;
 		}
 
-		console.log("[useAutoSave] Starting debounce timer for save", { enabled, valueChanged, hasUserMadeChanges: hasUserMadeChangesRef.current });
+		console.log("[useAutoSave] Starting debounce timer for save", {
+			enabled,
+			valueChanged,
+			hasUserMadeChanges: hasUserMadeChangesRef.current,
+		});
 
 		if (isSavingRef.current) {
 			return;
