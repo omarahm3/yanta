@@ -21,20 +21,47 @@ func NewService() *Service {
 	return &Service{}
 }
 
-func (s *Service) newGitCmd(ctx context.Context, dir string, args ...string) *exec.Cmd {
-	cmd := exec.CommandContext(ctx, "git", args...)
-	cmd.Dir = dir
+func (s *Service) validateRepoPath(path string) error {
+	if path == "" {
+		return fmt.Errorf("repository path is empty")
+	}
+
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("repository path does not exist: %s", path)
+	}
+	if err != nil {
+		return fmt.Errorf("cannot access repository path %q: %w", path, err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("repository path is not a directory: %s", path)
+	}
+
+	return nil
+}
+
+func (s *Service) newGitCmd(ctx context.Context, repoPath string, args ...string) *exec.Cmd {
+	fullArgs := append([]string{"-C", repoPath}, args...)
+	cmd := exec.CommandContext(ctx, "git", fullArgs...)
+	cmd.Dir = repoPath
 	hideConsoleWindow(cmd)
 
 	env := append([]string{}, os.Environ()...)
-	env = append(env,
+	filteredEnv := make([]string, 0, len(env))
+	for _, e := range env {
+		if !strings.HasPrefix(e, "GIT_CONFIG_") {
+			filteredEnv = append(filteredEnv, e)
+		}
+	}
+
+	filteredEnv = append(filteredEnv,
 		"GIT_CONFIG_COUNT=2",
 		"GIT_CONFIG_KEY_0=core.autocrlf",
 		"GIT_CONFIG_VALUE_0=false",
 		"GIT_CONFIG_KEY_1=core.safecrlf",
 		"GIT_CONFIG_VALUE_1=false",
 	)
-	cmd.Env = env
+	cmd.Env = filteredEnv
 
 	return cmd
 }
@@ -96,10 +123,16 @@ func (s *Service) CreateGitIgnore(path string, patterns []string) error {
 }
 
 func (s *Service) AddAll(path string) error {
+	if err := s.validateRepoPath(path); err != nil {
+		return fmt.Errorf("git add: %w", err)
+	}
+
 	s.ensureLFConfig(path)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	logger.WithField("path", path).Debug("git add: staging all changes")
 
 	cmd := s.newGitCmd(ctx, path, "add", "-A")
 
@@ -115,7 +148,15 @@ func (s *Service) AddAll(path string) error {
 		return fmt.Errorf("git add failed (exit status %d):\n%s", cmd.ProcessState.ExitCode(), output)
 	}
 
-	logger.Debugf("git add output:\n%s\n%s", stdout.String(), stderr.String())
+	stdoutStr := strings.TrimSpace(stdout.String())
+	stderrStr := strings.TrimSpace(stderr.String())
+	if stdoutStr != "" || stderrStr != "" {
+		logger.WithFields(map[string]any{
+			"stdout": stdoutStr,
+			"stderr": stderrStr,
+		}).Debug("git add output")
+	}
+
 	return nil
 }
 
@@ -198,6 +239,110 @@ func (s *Service) Push(path, remote, branch string) error {
 
 	logger.Debugf("git push output:\n%s\n%s", stdout.String(), stderr.String())
 	return nil
+}
+
+func (s *Service) Fetch(path, remote string) error {
+	if err := s.validateRepoPath(path); err != nil {
+		return fmt.Errorf("git fetch: %w", err)
+	}
+
+	s.ensureLFConfig(path)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	logger.WithFields(map[string]any{
+		"path":   path,
+		"remote": remote,
+	}).Debug("git fetch: fetching from remote")
+
+	cmd := s.newGitCmd(ctx, path, "fetch", remote)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return fmt.Errorf("git fetch timed out after 30s\n\nThis usually means:\n- Network connectivity issues\n- Authentication required (SSH key or credentials)\n- Remote repository is unreachable")
+		}
+		output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
+		return fmt.Errorf("git fetch failed (exit status %d):\n%s", cmd.ProcessState.ExitCode(), output)
+	}
+
+	logger.Debug("git fetch completed")
+	return nil
+}
+
+func (s *Service) HasRemote(path, remote string) (bool, error) {
+	if err := s.validateRepoPath(path); err != nil {
+		return false, fmt.Errorf("git remote: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := s.newGitCmd(ctx, path, "remote", "get-url", remote)
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		if cmd.ProcessState != nil && cmd.ProcessState.ExitCode() == 2 {
+			return false, nil
+		}
+		if strings.Contains(stderr.String(), "No such remote") {
+			return false, nil
+		}
+		return false, fmt.Errorf("git remote get-url failed: %w", err)
+	}
+
+	return true, nil
+}
+
+func (s *Service) GetCurrentBranch(path string) (string, error) {
+	if err := s.validateRepoPath(path); err != nil {
+		return "", fmt.Errorf("git branch: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := s.newGitCmd(ctx, path, "rev-parse", "--abbrev-ref", "HEAD")
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("git rev-parse failed: %w: %s", err, stderr.String())
+	}
+
+	return strings.TrimSpace(stdout.String()), nil
+}
+
+func (s *Service) GetLastCommitHash(path string) (string, error) {
+	if err := s.validateRepoPath(path); err != nil {
+		return "", fmt.Errorf("git log: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := s.newGitCmd(ctx, path, "rev-parse", "--short", "HEAD")
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		if strings.Contains(stderr.String(), "unknown revision") {
+			return "", nil
+		}
+		return "", fmt.Errorf("git rev-parse failed: %w: %s", err, stderr.String())
+	}
+
+	return strings.TrimSpace(stdout.String()), nil
 }
 
 func (s *Service) Pull(path, remote, branch string) error {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"yanta/internal/git"
 	"yanta/internal/project"
 	"yanta/internal/system"
 )
@@ -157,20 +158,22 @@ func (gc *GlobalCommands) handleSwitch(matches []string, fullCommand string) (*R
 }
 
 func (gc *GlobalCommands) handleSync(matches []string, fullCommand string) (*Result, error) {
-	err := gc.systemService.SyncNow(context.Background())
+	syncResult, err := gc.systemService.SyncNow(context.Background())
 	if err != nil {
 		errMsg := err.Error()
-		if strings.Contains(errMsg, "nothing to commit") {
-			return &Result{
-				Success: true,
-				Message: "No changes to sync",
-				Context: ContextGlobal,
-			}, nil
-		}
-		if strings.Contains(errMsg, "not enabled") {
+		if strings.Contains(errMsg, "GIT_NOT_ENABLED") {
 			return &Result{
 				Success: false,
 				Message: "Git sync is not enabled. Enable it in Settings.",
+				Context: ContextGlobal,
+			}, nil
+		}
+		// For push failures, we still have a partial success (commit worked)
+		if syncResult != nil && syncResult.Status == git.SyncStatusPushFailed {
+			return &Result{
+				Success: true,
+				Message: syncResult.Message,
+				Data:    syncResult,
 				Context: ContextGlobal,
 			}, nil
 		}
@@ -183,7 +186,8 @@ func (gc *GlobalCommands) handleSync(matches []string, fullCommand string) (*Res
 
 	return &Result{
 		Success: true,
-		Message: "Sync completed successfully",
+		Message: syncResult.Message,
+		Data:    syncResult,
 		Context: ContextGlobal,
 	}, nil
 }

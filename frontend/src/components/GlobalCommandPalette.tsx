@@ -14,6 +14,7 @@ import {
 	RiSettings3Line,
 	RiUploadCloudLine,
 } from "react-icons/ri";
+import { SyncStatus } from "../../bindings/yanta/internal/git/models";
 import { GitPull, GitPush, SyncNow } from "../../bindings/yanta/internal/system/service";
 import { useProjectContext } from "../contexts/ProjectContext";
 import { useNotification } from "../hooks/useNotification";
@@ -126,12 +127,38 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			id: "git-sync",
 			icon: <RiGitCommitLine className="text-lg" />,
 			text: "Git Sync",
-			hint: "Commit + push (if enabled)",
+			hint: "Fetch, pull, commit, push",
 			action: async () => {
 				onClose();
 				try {
-					await SyncNow();
-					notification.success("Sync completed successfully");
+					const result = await SyncNow();
+					if (!result) {
+						notification.info("Sync completed");
+						return;
+					}
+
+					switch (result.status) {
+						case SyncStatus.SyncStatusNoChanges:
+							notification.info(result.message || "No changes to sync");
+							break;
+						case SyncStatus.SyncStatusUpToDate:
+							notification.info(result.message || "Already in sync with remote");
+							break;
+						case SyncStatus.SyncStatusCommitted:
+							notification.success(result.message || `Committed ${result.filesChanged} file(s)`);
+							break;
+						case SyncStatus.SyncStatusSynced:
+							notification.success(result.message || `Synced ${result.filesChanged} file(s) to remote`);
+							break;
+						case SyncStatus.SyncStatusPushFailed:
+							notification.warning(result.message || "Committed locally, but push failed");
+							break;
+						case SyncStatus.SyncStatusConflict:
+							notification.error("Merge conflict detected. Please resolve conflicts manually.");
+							break;
+						default:
+							notification.success(result.message || "Sync completed");
+					}
 				} catch (err) {
 					showGitError(err);
 				}
