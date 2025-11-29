@@ -336,10 +336,12 @@ func (s *Service) GetLastCommitHash(path string) (string, error) {
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
-		if strings.Contains(stderr.String(), "unknown revision") {
+		stderrStr := stderr.String()
+		// Return empty string if there are no commits yet
+		if strings.Contains(stderrStr, "unknown revision") || strings.Contains(stderrStr, "Needed a single revision") {
 			return "", nil
 		}
-		return "", fmt.Errorf("git rev-parse failed: %w: %s", err, stderr.String())
+		return "", fmt.Errorf("git rev-parse failed: %w: %s", err, stderrStr)
 	}
 
 	return strings.TrimSpace(stdout.String()), nil
