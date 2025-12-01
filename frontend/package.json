@@ -18,10 +18,10 @@
     "format:check": "biome format ."
   },
   "dependencies": {
-    "@blocknote/code-block": "^0.41.1",
-    "@blocknote/core": "^0.41.1",
-    "@blocknote/react": "^0.41.1",
-    "@blocknote/shadcn": "^0.41.1",
+    "@blocknote/code-block": "^0.43.0",
+    "@blocknote/core": "^0.43.0",
+    "@blocknote/react": "^0.43.0",
+    "@blocknote/shadcn": "^0.43.0",
     "@headlessui/react": "^2.2.9",
     "@mantine/hooks": "^8.3.9",
     "@tailwindcss/forms": "^0.5.10",
