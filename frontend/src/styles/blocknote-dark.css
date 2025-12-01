@@ -1,22 +1,17 @@
 /* BlockNote Dark Theme - Minimal overrides */
 
 /* ============================================================================
-   EDITOR CONTAINER - ONLY BACKGROUND COLOR
+   EDITOR CONTAINER - Colors only, no layout changes
    ============================================================================ */
 
 .bn-container {
 	background: var(--color-bg, #0d1117) !important;
 	color: var(--color-text, #c9d1d9) !important;
-	height: 100% !important;
-	display: flex !important;
-	flex-direction: column !important;
 }
 
 .bn-editor {
 	background: transparent !important;
 	color: var(--color-text, #c9d1d9) !important;
-	flex: 1 !important;
-	overflow-y: auto !important;
 }
 
 /* ============================================================================
@@ -34,4 +29,50 @@
 	border: 1px solid rgba(110, 118, 129, 0.3);
 	white-space: pre-wrap;
 	word-break: break-word;
+}
+
+/* ============================================================================
+   TABLE HANDLE - Styled drag handle for table rows/columns
+   ============================================================================ */
+
+.bn-table-handle {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px !important;
+	height: 18px !important;
+	padding: 0 !important;
+	border-radius: 4px !important;
+	background-color: rgba(99, 110, 123, 0.4) !important;
+	border: 1px solid rgba(99, 110, 123, 0.5) !important;
+	color: #8b949e !important;
+	cursor: grab !important;
+	transition: all 0.15s ease !important;
+}
+
+.bn-table-handle:hover {
+	background-color: rgba(56, 139, 253, 0.6) !important;
+	border-color: rgba(56, 139, 253, 0.8) !important;
+	color: #ffffff !important;
+}
+
+.bn-table-handle:active,
+.bn-table-handle[data-state="open"] {
+	background-color: rgba(56, 139, 253, 0.8) !important;
+	border-color: #388bfd !important;
+	color: #ffffff !important;
+	cursor: grabbing !important;
+}
+
+.bn-table-handle-dragging {
+	background-color: rgba(56, 139, 253, 0.8) !important;
+	border-color: #388bfd !important;
+	color: #ffffff !important;
+	cursor: grabbing !important;
+}
+
+/* Make the icon smaller to fit the handle */
+.bn-table-handle svg {
+	width: 14px !important;
+	height: 14px !important;
 }

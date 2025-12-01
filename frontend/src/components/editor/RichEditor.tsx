@@ -24,6 +24,7 @@ import type { BlockNoteBlock } from "../../types/Document";
 import { registerClipboardImagePlugin } from "../../utils/clipboard";
 import { extractTitleFromBlocks } from "../../utils/documentUtils";
 import { computeContentHash } from "../../utils/contentHash";
+import { useTableHandleMenuPositionFix } from "./hooks";
 
 export interface RichEditorProps {
 	initialContent?: string;
@@ -61,6 +62,8 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 	({ blocks, onChange, onTitleChange, onReady, className, editable }, ref) => {
 		const { currentProject } = useProjectContext();
 		const { scale } = useScale();
+
+		useTableHandleMenuPositionFix();
 		const [isLinux, setIsLinux] = React.useState(false);
 		const [container, setContainer] = React.useState<HTMLDivElement | null>(null);
 		const hasEstablishedBaseline = React.useRef(false);
