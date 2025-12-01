@@ -25,6 +25,8 @@ import { registerClipboardImagePlugin } from "../../utils/clipboard";
 import { extractTitleFromBlocks } from "../../utils/documentUtils";
 import { computeContentHash } from "../../utils/contentHash";
 import { useTableHandleMenuPositionFix } from "./hooks";
+import { Link } from "@tiptap/extension-link";
+import { CustomLinkToolbarController } from "../../extensions/link-toolbar";
 
 export interface RichEditorProps {
 	initialContent?: string;
@@ -108,6 +110,12 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 				createExtension({
 					key: "rtl",
 					tiptapExtensions: [RTLExtension],
+				}),
+				createExtension({
+					key: "disableLinkClick",
+					tiptapExtensions: [
+						Link.extend({ inclusive: false }).configure({ openOnClick: false }),
+					],
 				}),
 			],
 		});
@@ -304,29 +312,27 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 			[ref],
 		);
 
-		const openLinkExternally = React.useCallback(async (url: string) => {
-			try {
-				await Browser.OpenURL(url);
-			} catch (_err) {
+		const openLinkExternally = React.useCallback((url: string) => {
+			Browser.OpenURL(url).catch(() => {
 				window.open(url, "_blank", "noopener,noreferrer");
-			}
+			});
 		}, []);
+
+		const allowedProtocols = React.useMemo(
+			() => new Set(["http:", "https:", "mailto:", "tel:"]),
+			[],
+		);
 
 		useEffect(() => {
 			if (!container) {
 				return;
 			}
 
-			const allowedProtocols = new Set(["http:", "https:", "mailto:", "tel:"]);
+			let isMounted = true;
+			const pendingTimeouts = new Set<ReturnType<typeof setTimeout>>();
 
-			const handleClick = (event: MouseEvent) => {
-				if (event.defaultPrevented) {
-					return;
-				}
-				if (event.type === "click" && event.button !== 0) {
-					return;
-				}
-				if (event.type === "auxclick" && event.button !== 1) {
+			const handleMouseDown = (event: MouseEvent) => {
+				if (event.button !== 0 && event.button !== 1) {
 					return;
 				}
 
@@ -334,6 +340,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 				if (!target) {
 					return;
 				}
+
 				const anchor = target.closest("a[href]") as HTMLAnchorElement | null;
 				if (!anchor || !container.contains(anchor)) {
 					return;
@@ -346,7 +353,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 
 				let resolvedUrl: URL;
 				try {
-					resolvedUrl = new URL(anchor.href);
+					resolvedUrl = new URL(href, window.location.href);
 				} catch {
 					return;
 				}
@@ -355,19 +362,32 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 					return;
 				}
 
-				event.preventDefault();
-				event.stopPropagation();
+				anchor.removeAttribute("href");
+				anchor.setAttribute("data-href-temp", href);
+
 				openLinkExternally(resolvedUrl.href);
+
+				const timeoutId = setTimeout(() => {
+					pendingTimeouts.delete(timeoutId);
+					if (!isMounted) return;
+					const tempHref = anchor.getAttribute("data-href-temp");
+					if (tempHref) {
+						anchor.setAttribute("href", tempHref);
+						anchor.removeAttribute("data-href-temp");
+					}
+				}, 100);
+				pendingTimeouts.add(timeoutId);
 			};
 
-			container.addEventListener("click", handleClick);
-			container.addEventListener("auxclick", handleClick);
+			container.addEventListener("mousedown", handleMouseDown, true);
 
 			return () => {
-				container.removeEventListener("click", handleClick);
-				container.removeEventListener("auxclick", handleClick);
+				isMounted = false;
+				pendingTimeouts.forEach(clearTimeout);
+				pendingTimeouts.clear();
+				container.removeEventListener("mousedown", handleMouseDown, true);
 			};
-		}, [container, openLinkExternally]);
+		}, [container, openLinkExternally, allowedProtocols]);
 
 		if (!editor || !isReady) {
 			return <div ref={mergedRef} className={cn("h-full w-full", className)} />;
@@ -379,7 +399,9 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 				className={cn("rich-editor flex-1 overflow-y-auto h-full", className)}
 				style={{ "--editor-scale": scale } as React.CSSProperties}
 			>
-				<BlockNoteView editor={editor} theme="dark" />
+				<BlockNoteView editor={editor} theme="dark" linkToolbar={false}>
+					<CustomLinkToolbarController />
+				</BlockNoteView>
 			</div>
 		);
 	},

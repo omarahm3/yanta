@@ -19,7 +19,13 @@
    ============================================================================ */
 
 .bn-inline-content code {
-	font-family: var(--font-mono, "SF Mono", "Monaco", "Cascadia Code", monospace);
+	font-family: var(
+		--font-mono,
+		"SF Mono",
+		"Monaco",
+		"Cascadia Code",
+		monospace
+	);
 	font-size: 0.875em;
 	background-color: rgba(110, 118, 129, 0.25);
 	color: #ff7b72;
@@ -75,4 +81,22 @@
 .bn-table-handle svg {
 	width: 14px !important;
 	height: 14px !important;
+}
+
+/* ============================================================================
+   LINKS - Subtle underlined style (overrides browser default blue/purple)
+   ============================================================================ */
+
+.bn-editor a,
+.bn-editor a:visited,
+.bn-editor a:link {
+	color: inherit;
+	text-decoration: underline;
+	text-decoration-color: rgba(139, 148, 158, 0.5);
+	text-underline-offset: 2px;
+	transition: text-decoration-color 0.15s ease;
+}
+
+.bn-editor a:hover {
+	text-decoration-color: currentColor;
 }
