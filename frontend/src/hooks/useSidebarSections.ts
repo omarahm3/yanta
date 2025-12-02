@@ -69,7 +69,7 @@ export const useSidebarSections = ({
 			],
 		});
 
-		if (projects.length > 0 && currentPage !== "settings") {
+		if (projects.length > 0 && currentPage !== "settings" && currentPage !== "document") {
 			sections.push({
 				id: "projects",
 				title: "PROJECTS",
@@ -109,7 +109,7 @@ export const useSidebarSections = ({
 
 		sections.push(...additionalSections);
 
-		if (archivedProjects.length > 0 && currentPage !== "settings") {
+		if (archivedProjects.length > 0 && currentPage !== "settings" && currentPage !== "document") {
 			sections.push({
 				id: "archive",
 				title: "ARCHIVE",

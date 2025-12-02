@@ -35,6 +35,8 @@ func main() {
 }
 
 func run() {
+	app.ConfigureGraphicsEnvironment()
+
 	if err := config.Init(); err != nil {
 		writeStartupError(fmt.Sprintf("Failed to initialize config: %v", err))
 		log.Fatalf("failed to initialize config: %v", err)
@@ -119,6 +121,7 @@ func run() {
 		},
 		Linux: application.LinuxWindow{
 			WindowIsTranslucent: false,
+			WebviewGpuPolicy:    getOptimalGpuPolicy(),
 		},
 	})
 
@@ -193,6 +196,26 @@ func getWindowsCustomTheme() application.ThemeSettings {
 			BorderColour:    application.NewRGBPtr(230, 230, 230),
 		},
 	}
+}
+
+func getOptimalGpuPolicy() application.WebviewGpuPolicy {
+	if isNVIDIA() && isWayland() {
+		logger.Info("Using software rendering for NVIDIA + Wayland compatibility")
+		return application.WebviewGpuPolicyNever
+	}
+
+	logger.Info("Using hardware acceleration when available")
+	return application.WebviewGpuPolicyOnDemand
+}
+
+func isNVIDIA() bool {
+	return os.Getenv("__NV_PRIME_RENDER_OFFLOAD") != "" ||
+		os.Getenv("__GLX_VENDOR_LIBRARY_NAME") == "nvidia"
+}
+
+func isWayland() bool {
+	return os.Getenv("XDG_SESSION_TYPE") == "wayland" ||
+		os.Getenv("WAYLAND_DISPLAY") != ""
 }
 
 func createCustomAssetHandler(assetService *asset.Service) application.Middleware {

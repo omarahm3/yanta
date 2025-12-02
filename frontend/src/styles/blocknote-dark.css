@@ -7,11 +7,14 @@
 .bn-container {
 	background: var(--color-bg, #0d1117) !important;
 	color: var(--color-text, #c9d1d9) !important;
+	overflow: hidden !important;
+	position: relative !important;
 }
 
 .bn-editor {
 	background: transparent !important;
 	color: var(--color-text, #c9d1d9) !important;
+	position: relative !important;
 }
 
 /* ============================================================================
@@ -93,4 +96,16 @@
 
 .bn-editor a:hover {
 	text-decoration-color: currentColor;
+}
+
+/* ============================================================================
+   EDITOR BOTTOM PADDING - Comfortable writing space at end of document
+   ============================================================================ */
+
+.bn-editor {
+	padding-bottom: 40vh !important;
+}
+
+.rich-editor {
+	position: relative !important;
 }

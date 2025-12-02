@@ -3,6 +3,7 @@ import { useEffect } from "react";
 const MENU_CONFIGS = {
 	"bn-table-handle-menu": { offset: { x: 0, y: 4 }, side: "bottom" as const },
 	"bn-drag-handle-menu": { offset: { x: 8, y: 0 }, side: "right" as const },
+	"bn-form-popover": { offset: { x: 0, y: 4 }, side: "bottom" as const },
 };
 
 type MenuClassName = keyof typeof MENU_CONFIGS;
@@ -57,13 +58,13 @@ function positionMenu(className: MenuClassName): void {
 }
 
 /**
- * Fixes BlockNote menu positioning when a CSS-transformed ancestor breaks Radix's Popper.
+ * Handles BlockNote menu positioning when a CSS-transformed ancestor breaks Radix's Popper.
  *
- * BlockNote renders menus via createPortal outside the FloatingPortal where triggers live.
+ * BlockNote renders menus (table handles, drag handles, form popovers) via createPortal outside the FloatingPortal where triggers live.
  * A parent's CSS transform creates a new containing block, causing incorrect positioning.
  * This hook detects menu opens and repositions them relative to the transformed ancestor.
  */
-export function useTableHandleMenuPositionFix(): void {
+export function useBlockNoteMenuPosition(): void {
 	useEffect(() => {
 		const observer = new MutationObserver((mutations) => {
 			for (const { type, target, attributeName, addedNodes } of mutations) {

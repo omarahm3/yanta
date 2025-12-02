@@ -26,7 +26,7 @@ import type { BlockNoteBlock } from "../../types/Document";
 import { registerClipboardImagePlugin } from "../../utils/clipboard";
 import { computeContentHash } from "../../utils/contentHash";
 import { extractTitleFromBlocks } from "../../utils/documentUtils";
-import { usePlainTextClipboard, useTableHandleMenuPositionFix } from "./hooks";
+import { usePlainTextClipboard, useBlockNoteMenuPosition } from "./hooks";
 
 export interface RichEditorProps {
 	initialContent?: string;
@@ -65,7 +65,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 		const { currentProject } = useProjectContext();
 		const { scale } = useScale();
 
-		useTableHandleMenuPositionFix();
+		useBlockNoteMenuPosition();
 
 		const [isLinux, setIsLinux] = React.useState(false);
 		const [container, setContainer] = React.useState<HTMLDivElement | null>(null);
@@ -115,7 +115,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 				}),
 				createExtension({
 					key: "disableLinkClick",
-					tiptapExtensions: [Link.extend({ inclusive: false }).configure({ openOnClick: false })],
+					tiptapExtensions: [Link.extend({ name: "disableLinkClick", inclusive: false }).configure({ openOnClick: false })],
 				}),
 			],
 		});
