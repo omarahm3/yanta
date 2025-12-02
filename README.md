@@ -38,11 +38,25 @@ Your notes are stored as plain JSON files. No database lock-in. No proprietary f
 
 ## Download
 
+### Quick Install (Linux)
+
+For **Arch Linux** and **Ubuntu/Debian**, use the automatic installer:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/omarahm3/yanta/main/install.sh | bash
+```
+
+This will automatically detect your distribution and install the latest release with all dependencies.
+
+### Manual Download
+
 Get the latest version: **[Releases](https://github.com/omarahm3/yanta/releases)**
 
 **Windows:** Choose installer or portable executable
 **macOS:** Universal binary for Intel and Apple Silicon
-**Linux:** Pacman package (`yanta-<version>-1-x86_64.pkg.tar.gz`) installable via `sudo pacman -U` or any Pacman-compatible helper
+**Linux:** 
+- **Arch Linux:** Pacman package (`yanta-<version>-1-x86_64.pkg.tar.zst`) installable via `sudo pacman -U`
+- **Ubuntu/Debian:** DEB package (`yanta_<version>_amd64.deb`) installable via `sudo dpkg -i`
 
 ### Linux Wayland Support
 
