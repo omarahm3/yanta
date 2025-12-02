@@ -43,7 +43,7 @@ Your notes are stored as plain JSON files. No database lock-in. No proprietary f
 For **Arch Linux** and **Ubuntu/Debian**, use the automatic installer:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/omarahm3/yanta/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/omarahm3/yanta/master/install.sh | bash
 ```
 
 This will automatically detect your distribution and install the latest release with all dependencies.
