@@ -12,7 +12,10 @@ A fast, keyboard-driven note-taking app built for developers.
 
 </div>
 
----
+<div align="center">
+  <img src="screenshots/collage.png" alt="Yanta app interface collage" width="100%">
+</div>
+
 
 ## Why Yanta?
 
