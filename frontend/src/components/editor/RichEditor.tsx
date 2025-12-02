@@ -24,7 +24,7 @@ import type { BlockNoteBlock } from "../../types/Document";
 import { registerClipboardImagePlugin } from "../../utils/clipboard";
 import { extractTitleFromBlocks } from "../../utils/documentUtils";
 import { computeContentHash } from "../../utils/contentHash";
-import { useTableHandleMenuPositionFix } from "./hooks";
+import { useTableHandleMenuPositionFix, usePlainTextClipboard } from "./hooks";
 import { Link } from "@tiptap/extension-link";
 import { CustomLinkToolbarController } from "../../extensions/link-toolbar";
 
@@ -66,10 +66,14 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 		const { scale } = useScale();
 
 		useTableHandleMenuPositionFix();
+
 		const [isLinux, setIsLinux] = React.useState(false);
 		const [container, setContainer] = React.useState<HTMLDivElement | null>(
 			null,
 		);
+
+		usePlainTextClipboard(container);
+
 		const hasEstablishedBaseline = React.useRef(false);
 		const baselineHashRef = React.useRef<string | null>(null);
 
