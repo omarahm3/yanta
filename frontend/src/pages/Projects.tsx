@@ -2,6 +2,7 @@ import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProjectResult } from "../../bindings/yanta/internal/commandline/models";
 import { Parse } from "../../bindings/yanta/internal/commandline/projectcommands";
+import { GetAllDocumentCounts, GetAllLastDocumentDates } from "../../bindings/yanta/internal/project/service";
 import { Layout } from "../components/Layout";
 import { Table, type TableColumn, type TableRow } from "../components/ui";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
@@ -53,6 +54,8 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 		useProjectContext();
 	const [selectedProjectId, setSelectedProjectId] = useState<string>(currentProject?.id || "");
 	const [commandInput, setCommandInput] = useState("");
+	const [documentCounts, setDocumentCounts] = useState<{ [id: string]: number }>({});
+	const [lastDocumentDates, setLastDocumentDates] = useState<{ [id: string]: string }>({});
 	const [confirmDialog, setConfirmDialog] = useState<{
 		isOpen: boolean;
 		title: string;
@@ -81,6 +84,25 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 		selectedProjectIdRef.current = selectedProjectId;
 	}, [projects, archivedProjects, selectedProjectId]);
 
+	const fetchDocumentData = useCallback(async () => {
+		try {
+			const [counts, dates] = await Promise.all([
+				GetAllDocumentCounts(),
+				GetAllLastDocumentDates(),
+			]);
+			setDocumentCounts(counts || {});
+			setLastDocumentDates(dates || {});
+		} catch (err) {
+			console.error("Failed to fetch document counts and dates:", err);
+		}
+	}, []);
+
+	useEffect(() => {
+		if (projects.length > 0 || archivedProjects.length > 0) {
+			fetchDocumentData();
+		}
+	}, [projects, archivedProjects, fetchDocumentData]);
+
 	useEffect(() => {
 		setPageContext(helpCommands, "Projects");
 	}, [setPageContext]);
@@ -97,16 +119,25 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 		}
 	}, [projects, selectedProjectId]);
 
-	const activeProjectDetails = projects.map((p) => ({
-		...extendProject(p, false),
-		entryCount: 0,
-		lastEntry: "-",
-	}));
-	const archivedProjectDetails = archivedProjects.map((p) => ({
-		...extendProject(p, true),
-		entryCount: 0,
-		lastEntry: "-",
-	}));
+	const activeProjectDetails = useMemo(
+		() =>
+			projects.map((p) => ({
+				...extendProject(p, false),
+				entryCount: documentCounts[p.id] || 0,
+				lastEntry: lastDocumentDates[p.id] || "-",
+			})),
+		[projects, documentCounts, lastDocumentDates],
+	);
+
+	const archivedProjectDetails = useMemo(
+		() =>
+			archivedProjects.map((p) => ({
+				...extendProject(p, true),
+				entryCount: documentCounts[p.id] || 0,
+				lastEntry: lastDocumentDates[p.id] || "-",
+			})),
+		[archivedProjects, documentCounts, lastDocumentDates],
+	);
 
 	const tableColumns: TableColumn[] = [
 		{ key: "number", label: "", width: "30px" },
@@ -186,6 +217,8 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 				}
 
 				await loadProjects();
+				await fetchDocumentData();
+				
 				if (result.data?.project?.id) {
 					setSelectedProjectId(result.data.project.id);
 				}
@@ -308,7 +341,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 				error(err instanceof Error ? err.message : "Command failed");
 			}
 		},
-		[projects, archivedProjects, loadProjects, error, success],
+		[projects, archivedProjects, loadProjects, fetchDocumentData, error, success],
 	);
 
 	const selectNext = useCallback(() => {
