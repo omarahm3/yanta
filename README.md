@@ -36,88 +36,76 @@ Your notes are stored as plain JSON files. No database lock-in. No proprietary f
 
 **Git-friendly storage.** Your notes live in `~/.yanta/vault/` as JSON files. Commit them, sync them, back them up.
 
-## Download
+## Installation
 
-### Quick Install (Linux)
+Download from **[Releases](https://github.com/omarahm3/yanta/releases)**
 
-For **Arch Linux** and **Ubuntu/Debian**, use the automatic installer:
+### Linux
+
+**Arch Linux:**
+
+```bash
+sudo pacman -U yanta-<version>-1-x86_64.pkg.tar.zst
+```
+
+**Ubuntu/Debian:**
+
+```bash
+sudo dpkg -i yanta_<version>_amd64.deb
+```
+
+**Quick Install Script:**
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/omarahm3/yanta/master/install.sh | bash
 ```
 
-This will automatically detect your distribution and install the latest release with all dependencies.
+Yanta is Wayland-friendly and automatically handles X11/Wayland/NVIDIA configurations.
 
-### Manual Download
+### Windows
 
-Get the latest version: **[Releases](https://github.com/omarahm3/yanta/releases)**
+- **Installer:** Run the `.exe` installer
+- **Portable:** Extract and run `yanta.exe`
 
-**Windows:** Choose installer or portable executable
-**macOS:** Universal binary for Intel and Apple Silicon
-**Linux:** 
-- **Arch Linux:** Pacman package (`yanta-<version>-1-x86_64.pkg.tar.zst`) installable via `sudo pacman -U`
-- **Ubuntu/Debian:** DEB package (`yanta_<version>_amd64.deb`) installable via `sudo dpkg -i`
+### macOS
 
-### Linux Wayland Support
+Download the `.dmg` file and drag Yanta to Applications. Works on both Intel and Apple Silicon.
 
-Yanta runs on Linux with Wayland via the XWayland compatibility layer. If you experience display issues on Wayland:
+## Development
 
-```bash
-# Force X11 session when launching
-unset WAYLAND_DISPLAY && ./yanta
-```
+Built with Go, Wails V3, React, and SQLite. See [GUIDELINES.md](GUIDELINES.md) for architecture and contribution details.
 
-Native Wayland support is tracked in [Wails issue #1420](https://github.com/wailsapp/wails/issues/1420).
-
-## Quick Start
-
-Launch Yanta. Your vault is created automatically at `~/.yanta/vault/`.
-
-Press `:` to open the command line. Type `new` to create a project. Type `doc` to create a note.
-
-That's it.
-
-## Keyboard Shortcuts
-
-| Shortcut | Action            |
-| -------- | ----------------- |
-| `:`      | Open command line |
-| `Ctrl+K` | Command palette   |
-| `Ctrl+B` | Toggle sidebar    |
-| `?`      | Show help         |
-
-## Configuration
-
-Everything lives in `~/.yanta/`:
-
-```
-~/.yanta/
-├── config.toml        # Settings
-├── yanta.db          # Search index
-└── vault/            # Your notes
-    └── projects/
-```
-
-The `vault/` directory is perfect for Git. Version control your notes like code.
-
-## Philosophy
-
-**Files over databases.** Your notes shouldn't be trapped in someone else's format.
-
-**Speed over features.** Native performance. No waiting. No lag.
-
-**Keyboard over mouse.** Type faster than you click.
-
-**Simple over complex.** Powerful doesn't have to mean complicated.
-
-## For Developers
-
-Built with Go, Wails, React, and SQLite. See [GUIDELINES.md](GUIDELINES.md) for architecture and contribution details.
+### Setup
 
 ```bash
+# Install Wails CLI
+go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+# Clone and run
 git clone https://github.com/omarahm3/yanta.git
 cd yanta
-wails dev
+wails3 dev
+```
+
+### Testing
+
+```bash
+# Backend tests
+go test ./...
+
+# Frontend tests
+cd frontend
+npm run test
+```
+
+### Building
+
+```bash
+# Development build
+wails3 build
+
+# Release build
+wails3 task release
 ```
 
 ## License
