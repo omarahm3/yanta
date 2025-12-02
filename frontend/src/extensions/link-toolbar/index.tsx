@@ -1,9 +1,14 @@
-import { useCallback } from "react";
-import { useComponentsContext, useDictionary } from "@blocknote/react";
-import { LinkToolbarController, EditLinkButton, DeleteLinkButton } from "@blocknote/react";
 import type { LinkToolbarProps } from "@blocknote/react";
-import { RiExternalLinkFill } from "react-icons/ri";
+import {
+	DeleteLinkButton,
+	EditLinkButton,
+	LinkToolbarController,
+	useComponentsContext,
+	useDictionary,
+} from "@blocknote/react";
 import { Browser } from "@wailsio/runtime";
+import { useCallback } from "react";
+import { RiExternalLinkFill } from "react-icons/ri";
 
 const resolveUrl = (url: string, baseUrl: string): string => {
 	try {

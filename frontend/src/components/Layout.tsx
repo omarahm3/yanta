@@ -3,8 +3,8 @@ import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { useProjectContext, useTitleBarContext } from "../contexts";
 import { useGlobalCommand, useHotkeys } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
-import { CommandLine } from "./ui/commandline";
 import { HeaderBar, type SidebarSection, Sidebar as UISidebar } from "./ui";
+import { CommandLine } from "./ui/commandline";
 
 export interface LayoutProps {
 	sidebarTitle?: string;

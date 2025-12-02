@@ -4,8 +4,8 @@ import type { BlockNoteEditor } from "@blocknote/core";
 import {
 	type Block,
 	BlockNoteSchema,
-	createExtension,
 	createCodeBlockSpec,
+	createExtension,
 	type PartialBlock,
 } from "@blocknote/core";
 import { useCreateBlockNote } from "@blocknote/react";
@@ -17,16 +17,16 @@ import { uploadFile } from "../../utils/assetUpload";
 import "../../styles/blocknote-dark.css";
 import "../../styles/blocknote-scale.css";
 import "../../extensions/rtl/rtl.css";
+import { Link } from "@tiptap/extension-link";
 import { Browser, System } from "@wailsio/runtime";
+import { CustomLinkToolbarController } from "../../extensions/link-toolbar";
 import { RTLExtension } from "../../extensions/rtl";
 import { cn } from "../../lib/utils";
 import type { BlockNoteBlock } from "../../types/Document";
 import { registerClipboardImagePlugin } from "../../utils/clipboard";
-import { extractTitleFromBlocks } from "../../utils/documentUtils";
 import { computeContentHash } from "../../utils/contentHash";
-import { useTableHandleMenuPositionFix, usePlainTextClipboard } from "./hooks";
-import { Link } from "@tiptap/extension-link";
-import { CustomLinkToolbarController } from "../../extensions/link-toolbar";
+import { extractTitleFromBlocks } from "../../utils/documentUtils";
+import { usePlainTextClipboard, useTableHandleMenuPositionFix } from "./hooks";
 
 export interface RichEditorProps {
 	initialContent?: string;

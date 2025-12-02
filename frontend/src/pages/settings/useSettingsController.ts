@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
 import { Events } from "@wailsio/runtime";
+import { useCallback, useEffect, useState } from "react";
 import { SyncStatus } from "../../../bindings/yanta/internal/git/models";
 import {
 	CheckGitInstalled,

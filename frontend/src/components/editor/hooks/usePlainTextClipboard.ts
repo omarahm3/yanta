@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 /**
  * Options for the plain text clipboard hook.
@@ -44,8 +44,19 @@ export function usePlainTextClipboard(
 	options: UsePlainTextClipboardOptions = {},
 ): void {
 	const { enabled = true } = options;
+	const containerRef = useRef<HTMLElement | null>(null);
+	containerRef.current = container;
 
 	const handleCopy = useCallback((event: ClipboardEvent) => {
+		if (!containerRef.current) {
+			return;
+		}
+
+		const target = event.target as Node | null;
+		if (!target || !containerRef.current.contains(target)) {
+			return;
+		}
+
 		if (!event.clipboardData) {
 			return;
 		}
@@ -68,10 +79,10 @@ export function usePlainTextClipboard(
 			return;
 		}
 
-		container.addEventListener("copy", handleCopy, true);
+		document.addEventListener("copy", handleCopy);
 
 		return () => {
-			container.removeEventListener("copy", handleCopy, true);
+			document.removeEventListener("copy", handleCopy);
 		};
 	}, [container, enabled, handleCopy]);
 }

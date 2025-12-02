@@ -1,11 +1,11 @@
 import type { BlockNoteEditor } from "@blocknote/core";
 import {
-	SuggestionMenuController,
-	getDefaultReactSlashMenuItems,
-	useCreateBlockNote,
-	useBlockNoteEditor,
-	ComponentsContext,
 	type Components as BlockNoteComponents,
+	ComponentsContext,
+	getDefaultReactSlashMenuItems,
+	SuggestionMenuController,
+	useBlockNoteEditor,
+	useCreateBlockNote,
 } from "@blocknote/react";
 import {
 	BlockNoteView as BlockNoteViewRaw,

@@ -1,7 +1,7 @@
 import type React from "react";
-import { StatusBar } from "../components/ui";
 import { DocumentList } from "../components/DocumentList";
 import { Layout } from "../components/Layout";
+import { StatusBar } from "../components/ui";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { useHotkeys } from "../hooks";
 import { useDashboardController } from "./dashboard/useDashboardController";

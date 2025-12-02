@@ -1,6 +1,6 @@
 import React, { useCallback, useRef } from "react";
 import { Layout } from "../components/Layout";
-import { ConfirmDialog, Heading, Text, type Shortcut, ShortcutsTable } from "../components/ui";
+import { ConfirmDialog, Heading, type Shortcut, ShortcutsTable, Text } from "../components/ui";
 import { useHotkeys } from "../hooks";
 import { useHelp } from "../hooks/useHelp";
 import { useSidebarSections } from "../hooks/useSidebarSections";

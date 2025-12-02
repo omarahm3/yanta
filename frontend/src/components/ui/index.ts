@@ -35,9 +35,9 @@ export { type Tag, Tags } from "./Tags";
 export { Text } from "./Text";
 export { TitleBar } from "./TitleBar";
 export {
-	ToastProvider,
-	useToast,
-	type ToastType,
 	type ToastOptions,
+	ToastProvider,
+	type ToastType,
+	useToast,
 } from "./Toast";
 export { Toggle } from "./Toggle";

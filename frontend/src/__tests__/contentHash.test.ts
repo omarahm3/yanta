@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { computeContentHash } from "../utils/contentHash";
 import type { Block } from "@blocknote/core";
+import { describe, expect, it } from "vitest";
+import { computeContentHash } from "../utils/contentHash";
 
 describe("computeContentHash", () => {
 	it("should produce same hash for semantically identical blocks", () => {

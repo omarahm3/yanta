@@ -1,18 +1,12 @@
 import { Transition } from "@headlessui/react";
-import React, {
-	Fragment,
-	createContext,
-	useContext,
-	useState,
-	useCallback,
-	useEffect,
-} from "react";
+import type React from "react";
+import { createContext, Fragment, useCallback, useContext, useEffect, useState } from "react";
 import {
+	RiAlertLine,
 	RiCheckLine,
 	RiCloseLine,
 	RiErrorWarningLine,
 	RiInformationLine,
-	RiAlertLine,
 } from "react-icons/ri";
 import { cn } from "../../lib/utils";
 
