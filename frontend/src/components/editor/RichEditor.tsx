@@ -68,9 +68,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 		useTableHandleMenuPositionFix();
 
 		const [isLinux, setIsLinux] = React.useState(false);
-		const [container, setContainer] = React.useState<HTMLDivElement | null>(
-			null,
-		);
+		const [container, setContainer] = React.useState<HTMLDivElement | null>(null);
 
 		usePlainTextClipboard(container);
 
@@ -117,9 +115,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 				}),
 				createExtension({
 					key: "disableLinkClick",
-					tiptapExtensions: [
-						Link.extend({ inclusive: false }).configure({ openOnClick: false }),
-					],
+					tiptapExtensions: [Link.extend({ inclusive: false }).configure({ openOnClick: false })],
 				}),
 			],
 		});
@@ -147,25 +143,17 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 
 					const meta = imageSpec.implementation.meta ?? {};
 					const acceptList = Array.isArray(meta.fileBlockAccept)
-						? meta.fileBlockAccept.filter(
-								(entry) => typeof entry === "string" && entry.trim().length > 0,
-							)
+						? meta.fileBlockAccept.filter((entry) => typeof entry === "string" && entry.trim().length > 0)
 						: [];
 
-					if (
-						acceptList.length === 0 ||
-						acceptList.every((entry) => entry === "*/*")
-					) {
+					if (acceptList.length === 0 || acceptList.every((entry) => entry === "*/*")) {
 						imageSpec.implementation.meta = {
 							...meta,
 							fileBlockAccept: ["image/*"],
 						};
 					}
 				} catch (err) {
-					console.warn(
-						"[RichEditor] Failed to apply Linux image accept workaround",
-						err,
-					);
+					console.warn("[RichEditor] Failed to apply Linux image accept workaround", err);
 				}
 			};
 
@@ -217,11 +205,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 				let didModify = false;
 
 				currentBlocks.forEach((block: Block) => {
-					if (
-						block.type === "file" &&
-						block.props?.url &&
-						!convertedBlocksRef.current.has(block.id)
-					) {
+					if (block.type === "file" && block.props?.url && !convertedBlocksRef.current.has(block.id)) {
 						const url = block.props.url as string;
 						if (url.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
 							convertedBlocksRef.current.add(block.id);
@@ -250,16 +234,12 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 				}
 
 				if (didModify) {
-					console.log(
-						"[RichEditor] onChange: didModify=true, skipping propagation",
-					);
+					console.log("[RichEditor] onChange: didModify=true, skipping propagation");
 					return;
 				}
 
 				if (!hasEstablishedBaseline.current) {
-					console.log(
-						"[RichEditor] onChange: baseline not established, skipping",
-					);
+					console.log("[RichEditor] onChange: baseline not established, skipping");
 					return;
 				}
 
@@ -322,10 +302,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 			});
 		}, []);
 
-		const allowedProtocols = React.useMemo(
-			() => new Set(["http:", "https:", "mailto:", "tel:"]),
-			[],
-		);
+		const allowedProtocols = React.useMemo(() => new Set(["http:", "https:", "mailto:", "tel:"]), []);
 
 		useEffect(() => {
 			if (!container) {
@@ -428,21 +405,14 @@ export const RichEditor = React.forwardRef<HTMLDivElement, RichEditorProps>(
 		ref,
 	) => {
 		const parsed = React.useMemo(() => {
-			if (isLoading)
-				return { ready: false as const, blocks: [] as PartialBlock[] };
+			if (isLoading) return { ready: false as const, blocks: [] as PartialBlock[] };
 			if (!initialContent || initialContent.trim() === "") {
 				return { ready: true as const, blocks: [createDefaultInitialBlock()] };
 			}
 			try {
 				const parsed = JSON.parse(initialContent);
-				const blocks: PartialBlock[] = Array.isArray(parsed)
-					? (parsed as PartialBlock[])
-					: [];
-				if (
-					blocks.length === 0 ||
-					blocks[0].type !== "heading" ||
-					blocks[0].props?.level !== 1
-				) {
+				const blocks: PartialBlock[] = Array.isArray(parsed) ? (parsed as PartialBlock[]) : [];
+				if (blocks.length === 0 || blocks[0].type !== "heading" || blocks[0].props?.level !== 1) {
 					return {
 						ready: true as const,
 						blocks: [createDefaultInitialBlock(), ...blocks],
@@ -457,20 +427,14 @@ export const RichEditor = React.forwardRef<HTMLDivElement, RichEditorProps>(
 
 		if (!parsed.ready) {
 			return (
-				<div
-					ref={ref}
-					className={cn("flex items-center justify-center h-full", className)}
-				>
+				<div ref={ref} className={cn("flex items-center justify-center h-full", className)}>
 					<div className="text-text-dim">Loading document...</div>
 				</div>
 			);
 		}
 
 		const contentKey =
-			docKey ??
-			(initialContent && initialContent.trim() !== ""
-				? "__content__"
-				: "__empty__");
+			docKey ?? (initialContent && initialContent.trim() !== "" ? "__content__" : "__empty__");
 
 		return (
 			<EditorInner

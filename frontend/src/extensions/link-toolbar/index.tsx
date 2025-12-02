@@ -1,10 +1,6 @@
 import { useCallback } from "react";
 import { useComponentsContext, useDictionary } from "@blocknote/react";
-import {
-	LinkToolbarController,
-	EditLinkButton,
-	DeleteLinkButton,
-} from "@blocknote/react";
+import { LinkToolbarController, EditLinkButton, DeleteLinkButton } from "@blocknote/react";
 import type { LinkToolbarProps } from "@blocknote/react";
 import { RiExternalLinkFill } from "react-icons/ri";
 import { Browser } from "@wailsio/runtime";
@@ -56,10 +52,7 @@ const CustomLinkToolbar = (props: LinkToolbarProps) => {
 				setToolbarOpen={props.setToolbarOpen}
 			/>
 			<CustomOpenLinkButton url={props.url} />
-			<DeleteLinkButton
-				range={props.range}
-				setToolbarOpen={props.setToolbarOpen}
-			/>
+			<DeleteLinkButton range={props.range} setToolbarOpen={props.setToolbarOpen} />
 		</Components.LinkToolbar.Root>
 	);
 };

@@ -38,21 +38,13 @@ describe("usePlainTextClipboard", () => {
 		it("attaches copy event listener when container is provided", () => {
 			renderHook(() => usePlainTextClipboard(container));
 
-			expect(addEventListenerSpy).toHaveBeenCalledWith(
-				"copy",
-				expect.any(Function),
-				true,
-			);
+			expect(addEventListenerSpy).toHaveBeenCalledWith("copy", expect.any(Function), true);
 		});
 
 		it("uses capture phase for the event listener", () => {
 			renderHook(() => usePlainTextClipboard(container));
 
-			expect(addEventListenerSpy).toHaveBeenCalledWith(
-				"copy",
-				expect.any(Function),
-				true,
-			);
+			expect(addEventListenerSpy).toHaveBeenCalledWith("copy", expect.any(Function), true);
 		});
 
 		it("does not attach listener when container is null", () => {
@@ -72,11 +64,7 @@ describe("usePlainTextClipboard", () => {
 
 			unmount();
 
-			expect(removeEventListenerSpy).toHaveBeenCalledWith(
-				"copy",
-				expect.any(Function),
-				true,
-			);
+			expect(removeEventListenerSpy).toHaveBeenCalledWith("copy", expect.any(Function), true);
 		});
 
 		it("removes and re-attaches listener when container changes", () => {
@@ -84,40 +72,26 @@ describe("usePlainTextClipboard", () => {
 			document.body.appendChild(newContainer);
 			const newAddSpy = vi.spyOn(newContainer, "addEventListener");
 
-			const { rerender } = renderHook(
-				({ cont }) => usePlainTextClipboard(cont),
-				{ initialProps: { cont: container } },
-			);
+			const { rerender } = renderHook(({ cont }) => usePlainTextClipboard(cont), {
+				initialProps: { cont: container },
+			});
 
 			rerender({ cont: newContainer });
 
-			expect(removeEventListenerSpy).toHaveBeenCalledWith(
-				"copy",
-				expect.any(Function),
-				true,
-			);
-			expect(newAddSpy).toHaveBeenCalledWith(
-				"copy",
-				expect.any(Function),
-				true,
-			);
+			expect(removeEventListenerSpy).toHaveBeenCalledWith("copy", expect.any(Function), true);
+			expect(newAddSpy).toHaveBeenCalledWith("copy", expect.any(Function), true);
 
 			document.body.removeChild(newContainer);
 		});
 
 		it("removes listener when enabled changes to false", () => {
-			const { rerender } = renderHook(
-				({ enabled }) => usePlainTextClipboard(container, { enabled }),
-				{ initialProps: { enabled: true } },
-			);
+			const { rerender } = renderHook(({ enabled }) => usePlainTextClipboard(container, { enabled }), {
+				initialProps: { enabled: true },
+			});
 
 			rerender({ enabled: false });
 
-			expect(removeEventListenerSpy).toHaveBeenCalledWith(
-				"copy",
-				expect.any(Function),
-				true,
-			);
+			expect(removeEventListenerSpy).toHaveBeenCalledWith("copy", expect.any(Function), true);
 		});
 	});
 
@@ -129,19 +103,14 @@ describe("usePlainTextClipboard", () => {
 				isCollapsed: false,
 				toString: () => "Hello World",
 			};
-			vi.spyOn(window, "getSelection").mockReturnValue(
-				mockSelection as unknown as Selection,
-			);
+			vi.spyOn(window, "getSelection").mockReturnValue(mockSelection as unknown as Selection);
 
 			const clipboardData = { setData: vi.fn() };
 			const copyEvent = createMockClipboardEvent(clipboardData);
 
 			container.dispatchEvent(copyEvent);
 
-			expect(clipboardData.setData).toHaveBeenCalledWith(
-				"text/plain",
-				"Hello World",
-			);
+			expect(clipboardData.setData).toHaveBeenCalledWith("text/plain", "Hello World");
 		});
 
 		it("does not set clipboard data when selection is collapsed", () => {
@@ -151,9 +120,7 @@ describe("usePlainTextClipboard", () => {
 				isCollapsed: true,
 				toString: () => "",
 			};
-			vi.spyOn(window, "getSelection").mockReturnValue(
-				mockSelection as unknown as Selection,
-			);
+			vi.spyOn(window, "getSelection").mockReturnValue(mockSelection as unknown as Selection);
 
 			const clipboardData = { setData: vi.fn() };
 			const copyEvent = createMockClipboardEvent(clipboardData);
@@ -183,9 +150,7 @@ describe("usePlainTextClipboard", () => {
 				isCollapsed: false,
 				toString: () => "",
 			};
-			vi.spyOn(window, "getSelection").mockReturnValue(
-				mockSelection as unknown as Selection,
-			);
+			vi.spyOn(window, "getSelection").mockReturnValue(mockSelection as unknown as Selection);
 
 			const clipboardData = { setData: vi.fn() };
 			const copyEvent = createMockClipboardEvent(clipboardData);
@@ -202,9 +167,7 @@ describe("usePlainTextClipboard", () => {
 				isCollapsed: false,
 				toString: () => "Hello World",
 			};
-			vi.spyOn(window, "getSelection").mockReturnValue(
-				mockSelection as unknown as Selection,
-			);
+			vi.spyOn(window, "getSelection").mockReturnValue(mockSelection as unknown as Selection);
 
 			const copyEvent = createMockClipboardEvent(null);
 
@@ -219,19 +182,14 @@ describe("usePlainTextClipboard", () => {
 				isCollapsed: false,
 				toString: () => multilineText,
 			};
-			vi.spyOn(window, "getSelection").mockReturnValue(
-				mockSelection as unknown as Selection,
-			);
+			vi.spyOn(window, "getSelection").mockReturnValue(mockSelection as unknown as Selection);
 
 			const clipboardData = { setData: vi.fn() };
 			const copyEvent = createMockClipboardEvent(clipboardData);
 
 			container.dispatchEvent(copyEvent);
 
-			expect(clipboardData.setData).toHaveBeenCalledWith(
-				"text/plain",
-				multilineText,
-			);
+			expect(clipboardData.setData).toHaveBeenCalledWith("text/plain", multilineText);
 		});
 
 		it("handles text with special characters", () => {
@@ -242,19 +200,14 @@ describe("usePlainTextClipboard", () => {
 				isCollapsed: false,
 				toString: () => specialText,
 			};
-			vi.spyOn(window, "getSelection").mockReturnValue(
-				mockSelection as unknown as Selection,
-			);
+			vi.spyOn(window, "getSelection").mockReturnValue(mockSelection as unknown as Selection);
 
 			const clipboardData = { setData: vi.fn() };
 			const copyEvent = createMockClipboardEvent(clipboardData);
 
 			container.dispatchEvent(copyEvent);
 
-			expect(clipboardData.setData).toHaveBeenCalledWith(
-				"text/plain",
-				specialText,
-			);
+			expect(clipboardData.setData).toHaveBeenCalledWith("text/plain", specialText);
 		});
 
 		it("handles unicode text", () => {
@@ -265,19 +218,14 @@ describe("usePlainTextClipboard", () => {
 				isCollapsed: false,
 				toString: () => unicodeText,
 			};
-			vi.spyOn(window, "getSelection").mockReturnValue(
-				mockSelection as unknown as Selection,
-			);
+			vi.spyOn(window, "getSelection").mockReturnValue(mockSelection as unknown as Selection);
 
 			const clipboardData = { setData: vi.fn() };
 			const copyEvent = createMockClipboardEvent(clipboardData);
 
 			container.dispatchEvent(copyEvent);
 
-			expect(clipboardData.setData).toHaveBeenCalledWith(
-				"text/plain",
-				unicodeText,
-			);
+			expect(clipboardData.setData).toHaveBeenCalledWith("text/plain", unicodeText);
 		});
 
 		it("copies link text without markdown syntax", () => {
@@ -288,19 +236,14 @@ describe("usePlainTextClipboard", () => {
 				isCollapsed: false,
 				toString: () => linkVisualText,
 			};
-			vi.spyOn(window, "getSelection").mockReturnValue(
-				mockSelection as unknown as Selection,
-			);
+			vi.spyOn(window, "getSelection").mockReturnValue(mockSelection as unknown as Selection);
 
 			const clipboardData = { setData: vi.fn() };
 			const copyEvent = createMockClipboardEvent(clipboardData);
 
 			container.dispatchEvent(copyEvent);
 
-			expect(clipboardData.setData).toHaveBeenCalledWith(
-				"text/plain",
-				linkVisualText,
-			);
+			expect(clipboardData.setData).toHaveBeenCalledWith("text/plain", linkVisualText);
 		});
 
 		it("copies URL without angle brackets", () => {
@@ -311,9 +254,7 @@ describe("usePlainTextClipboard", () => {
 				isCollapsed: false,
 				toString: () => urlText,
 			};
-			vi.spyOn(window, "getSelection").mockReturnValue(
-				mockSelection as unknown as Selection,
-			);
+			vi.spyOn(window, "getSelection").mockReturnValue(mockSelection as unknown as Selection);
 
 			const clipboardData = { setData: vi.fn() };
 			const copyEvent = createMockClipboardEvent(clipboardData);
@@ -350,10 +291,9 @@ describe("usePlainTextClipboard", () => {
 		});
 
 		it("can be toggled at runtime", () => {
-			const { rerender } = renderHook(
-				({ enabled }) => usePlainTextClipboard(container, { enabled }),
-				{ initialProps: { enabled: false } },
-			);
+			const { rerender } = renderHook(({ enabled }) => usePlainTextClipboard(container, { enabled }), {
+				initialProps: { enabled: false },
+			});
 
 			expect(addEventListenerSpy).not.toHaveBeenCalled();
 

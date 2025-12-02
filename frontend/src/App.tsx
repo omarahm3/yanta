@@ -36,6 +36,7 @@ const HelpHotkey = () => {
 const QuitHotkeys = () => {
 	useHotkey({
 		key: "ctrl+q",
+		capture: true,
 		handler: (e) => {
 			e.preventDefault();
 			BackgroundQuit();
@@ -46,6 +47,7 @@ const QuitHotkeys = () => {
 
 	useHotkey({
 		key: "ctrl+shift+q",
+		capture: true,
 		handler: (e) => {
 			e.preventDefault();
 			ForceQuit();
