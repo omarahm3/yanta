@@ -190,17 +190,6 @@ main() {
     echo ""
     print_success "Installation complete!"
     echo ""
-    print_info "Run 'yanta' to launch the application"
-    print_info "Your vault will be created at ~/.yanta/vault/"
-    echo ""
-    print_info "Keyboard shortcuts:"
-    echo "  :        - Open command line"
-    echo "  Ctrl+K   - Command palette"
-    echo "  Ctrl+B   - Toggle sidebar"
-    echo "  ?        - Show help"
-    echo ""
-    print_info "For more information, visit: https://github.com/$GITHUB_REPO"
-    echo ""
 }
 
 main
