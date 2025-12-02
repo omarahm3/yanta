@@ -60,14 +60,13 @@ Get the latest version: **[Releases](https://github.com/omarahm3/yanta/releases)
 
 ### Linux Wayland Support
 
-Yanta runs on Linux with Wayland via the XWayland compatibility layer. If you experience display issues on Wayland:
+Yanta runs natively on Wayland (via Wails v3). The app automatically detects your session type and uses the appropriate backend.
+
+If you experience issues, you can force X11 mode:
 
 ```bash
-# Force X11 session when launching
-unset WAYLAND_DISPLAY && ./yanta
+GDK_BACKEND=x11 ./yanta
 ```
-
-Native Wayland support is tracked in [Wails issue #1420](https://github.com/wailsapp/wails/issues/1420).
 
 ## Quick Start
 
