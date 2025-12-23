@@ -2,7 +2,10 @@ import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProjectResult } from "../../bindings/yanta/internal/commandline/models";
 import { Parse } from "../../bindings/yanta/internal/commandline/projectcommands";
-import { GetAllDocumentCounts, GetAllLastDocumentDates } from "../../bindings/yanta/internal/project/service";
+import {
+	GetAllDocumentCounts,
+	GetAllLastDocumentDates,
+} from "../../bindings/yanta/internal/project/service";
 import { Layout } from "../components/Layout";
 import { Table, type TableColumn, type TableRow } from "../components/ui";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
@@ -86,10 +89,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 
 	const fetchDocumentData = useCallback(async () => {
 		try {
-			const [counts, dates] = await Promise.all([
-				GetAllDocumentCounts(),
-				GetAllLastDocumentDates(),
-			]);
+			const [counts, dates] = await Promise.all([GetAllDocumentCounts(), GetAllLastDocumentDates()]);
 			setDocumentCounts(counts || {});
 			setLastDocumentDates(dates || {});
 		} catch (err) {
@@ -218,7 +218,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 
 				await loadProjects();
 				await fetchDocumentData();
-				
+
 				if (result.data?.project?.id) {
 					setSelectedProjectId(result.data.project.id);
 				}
