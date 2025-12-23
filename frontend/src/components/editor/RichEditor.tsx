@@ -115,7 +115,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 				}),
 				createExtension({
 					key: "disableLinkClick",
-					tiptapExtensions: [Link.extend({ name: "disableLinkClick", inclusive: false }).configure({ openOnClick: false })],
+					tiptapExtensions: [Link.extend({ inclusive: false }).configure({ openOnClick: false })],
 				}),
 			],
 		});
