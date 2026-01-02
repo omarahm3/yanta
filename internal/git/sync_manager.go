@@ -254,12 +254,12 @@ func (sm *SyncManager) loadLastCommitTime() {
 		return
 	}
 
-	sm.lastCommitTime = t
+	sm.lastCommitTime = t.Local()
 	logger.WithField("lastCommitTime", t.Format("2006-01-02 15:04:05")).Debug("auto-sync: loaded last commit time")
 }
 
 func (sm *SyncManager) saveLastCommitTime(t time.Time) {
-	value := t.Format(time.RFC3339)
+	value := t.UTC().Format(time.RFC3339)
 	_, err := sm.db.Exec(
 		"INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)",
 		kvKeyLastAutoSync,

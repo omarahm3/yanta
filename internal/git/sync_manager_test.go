@@ -529,12 +529,12 @@ func TestSyncManager_LoadsLastCommitTimeOnStartup(t *testing.T) {
 
 	database := setupTestDB(t, tempDir)
 
-	// Manually insert a last commit time
+	// Manually insert a last commit time (store in UTC as the code does)
 	expectedTime := time.Now().Add(-5 * time.Minute).Truncate(time.Second)
 	_, err := database.Exec(
 		"INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)",
 		"last_auto_sync",
-		expectedTime.Format(time.RFC3339),
+		expectedTime.UTC().Format(time.RFC3339),
 	)
 	require.NoError(t, err)
 
@@ -546,7 +546,8 @@ func TestSyncManager_LoadsLastCommitTimeOnStartup(t *testing.T) {
 	loadedTime := sm.lastCommitTime.Truncate(time.Second)
 	sm.mu.Unlock()
 
-	assert.Equal(t, expectedTime, loadedTime)
+	// Compare Unix timestamps to avoid timezone issues
+	assert.Equal(t, expectedTime.Unix(), loadedTime.Unix())
 }
 
 func setupGitRepo(t *testing.T, repoPath string) {
