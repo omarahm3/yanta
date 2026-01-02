@@ -87,8 +87,9 @@ func New(cfg Config) (*App, error) {
 	eventBus := events.NewEventBus()
 	a.eventBus = eventBus
 
-	syncManager := git.NewSyncManager()
+	syncManager := git.NewSyncManager(a.DB)
 	a.syncManager = syncManager
+	syncManager.Start()
 
 	projectStore := project.NewStore(a.DB)
 	documentStore := document.NewStore(a.DB)

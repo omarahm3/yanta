@@ -28,8 +28,7 @@ import { type SystemInfo, systemInfoFromModel } from "../../types";
 
 interface GitSyncSettings {
 	enabled: boolean;
-	repositoryPath: string;
-	syncFrequency: string;
+	commitInterval: number; // minutes, 0 = manual only
 	autoPush: boolean;
 }
 
@@ -45,8 +44,7 @@ export const useSettingsController = () => {
 	const [migrationProgress, setMigrationProgress] = useState("");
 	const [gitSync, setGitSync] = useState<GitSyncSettings>({
 		enabled: false,
-		repositoryPath: "",
-		syncFrequency: "daily",
+		commitInterval: 10, // default 10 minutes
 		autoPush: true,
 	});
 	const [linuxWindowMode, setLinuxWindowModeState] = useState<string>("normal");
@@ -91,8 +89,7 @@ export const useSettingsController = () => {
 			.then((config) => {
 				setGitSync({
 					enabled: config.Enabled,
-					repositoryPath: config.RepositoryPath,
-					syncFrequency: config.AutoCommit ? "realtime" : "manual",
+					commitInterval: config.CommitInterval || 10,
 					autoPush: config.AutoPush !== undefined ? config.AutoPush : true,
 				});
 			})
@@ -207,9 +204,9 @@ export const useSettingsController = () => {
 			try {
 				const config = {
 					Enabled: enabled,
-					RepositoryPath: gitSync.repositoryPath,
-					AutoCommit: gitSync.syncFrequency === "realtime",
+					AutoCommit: gitSync.commitInterval > 0,
 					AutoPush: gitSync.autoPush,
+					CommitInterval: gitSync.commitInterval,
 				};
 				await SetGitSyncConfig(config);
 				setGitSync((prev) => ({ ...prev, enabled }));
@@ -221,20 +218,24 @@ export const useSettingsController = () => {
 		[success, error, gitSync],
 	);
 
-	const handleSyncFrequencyChange = useCallback(
-		async (frequency: string) => {
+	const handleCommitIntervalChange = useCallback(
+		async (interval: number) => {
 			try {
 				const config = {
 					Enabled: gitSync.enabled,
-					RepositoryPath: gitSync.repositoryPath,
-					AutoCommit: frequency === "realtime",
+					AutoCommit: interval > 0,
 					AutoPush: gitSync.autoPush,
+					CommitInterval: interval,
 				};
 				await SetGitSyncConfig(config);
-				setGitSync((prev) => ({ ...prev, syncFrequency: frequency }));
-				success("Sync frequency updated");
+				setGitSync((prev) => ({ ...prev, commitInterval: interval }));
+				if (interval === 0) {
+					success("Auto-commit disabled (manual only)");
+				} else {
+					success(`Auto-commit interval set to ${interval} minutes`);
+				}
 			} catch (err) {
-				error(`Failed to update sync frequency: ${err}`);
+				error(`Failed to update commit interval: ${err}`);
 			}
 		},
 		[gitSync, success, error],
@@ -245,9 +246,9 @@ export const useSettingsController = () => {
 			try {
 				const config = {
 					Enabled: gitSync.enabled,
-					RepositoryPath: gitSync.repositoryPath,
-					AutoCommit: gitSync.syncFrequency === "realtime",
+					AutoCommit: gitSync.commitInterval > 0,
 					AutoPush: enabled,
+					CommitInterval: gitSync.commitInterval,
 				};
 				await SetGitSyncConfig(config);
 				setGitSync((prev) => ({ ...prev, autoPush: enabled }));
@@ -368,9 +369,13 @@ export const useSettingsController = () => {
 		{ value: "error", label: "Error" },
 	];
 
-	const syncFrequencyOptions: SelectOption[] = [
-		{ value: "realtime", label: "Auto-commit (after every save)" },
-		{ value: "manual", label: "Manual sync only" },
+	const commitIntervalOptions: SelectOption[] = [
+		{ value: "5", label: "Every 5 minutes" },
+		{ value: "10", label: "Every 10 minutes" },
+		{ value: "15", label: "Every 15 minutes" },
+		{ value: "30", label: "Every 30 minutes" },
+		{ value: "60", label: "Every hour" },
+		{ value: "0", label: "Manual only" },
 	];
 
 	return {
@@ -391,7 +396,7 @@ export const useSettingsController = () => {
 		showReindexConfirm,
 		appScale,
 		logLevelOptions,
-		syncFrequencyOptions,
+		commitIntervalOptions,
 		handlers: {
 			handleLogLevelChange,
 			handleKeepInBackgroundToggle,
@@ -399,7 +404,7 @@ export const useSettingsController = () => {
 			handleLinuxWindowModeToggle,
 			handleAppScaleChange,
 			handleGitSyncToggle,
-			handleSyncFrequencyChange,
+			handleCommitIntervalChange,
 			handleAutoPushToggle,
 			handlePickDirectory,
 			handleMigration,

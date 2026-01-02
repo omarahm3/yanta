@@ -18,11 +18,11 @@ interface GitSyncSectionProps {
 	isMigrating: boolean;
 	migrationProgress: string;
 	gitSyncEnabled: boolean;
-	syncFrequency: string;
+	commitInterval: number;
 	autoPush: boolean;
-	syncFrequencyOptions: SelectOption[];
+	commitIntervalOptions: SelectOption[];
 	onGitSyncToggle: (enabled: boolean) => void;
-	onSyncFrequencyChange: (frequency: string) => void;
+	onCommitIntervalChange: (interval: number) => void;
 	onAutoPushToggle: (enabled: boolean) => void;
 	onPickDirectory: () => void;
 	onMigration: () => void;
@@ -39,11 +39,11 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 			isMigrating,
 			migrationProgress,
 			gitSyncEnabled,
-			syncFrequency,
+			commitInterval,
 			autoPush,
-			syncFrequencyOptions,
+			commitIntervalOptions,
 			onGitSyncToggle,
-			onSyncFrequencyChange,
+			onCommitIntervalChange,
 			onAutoPushToggle,
 			onPickDirectory,
 			onMigration,
@@ -123,12 +123,15 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 						{gitSyncEnabled && (
 							<>
 								<div className="space-y-2">
-									<Label variant="uppercase">Commit Mode</Label>
+									<Label variant="uppercase">Auto-commit Interval</Label>
 									<Select
-										value={syncFrequency}
-										onChange={onSyncFrequencyChange}
-										options={syncFrequencyOptions}
+										value={commitInterval.toString()}
+										onChange={(val) => onCommitIntervalChange(Number.parseInt(val, 10))}
+										options={commitIntervalOptions}
 									/>
+									<div className="text-xs text-text-dim">
+										Changes are batched and committed at this interval
+									</div>
 								</div>
 
 								<div className="flex items-center justify-between pt-2">

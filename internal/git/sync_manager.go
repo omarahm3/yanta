@@ -1,6 +1,7 @@
 package git
 
 import (
+	"database/sql"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -9,29 +10,94 @@ import (
 	"yanta/internal/logger"
 )
 
+const (
+	kvKeyLastAutoSync = "last_auto_sync"
+	tickerInterval    = 1 * time.Minute
+)
+
 type SyncManager struct {
-	gitService *Service
-	queue      chan string
-	mu         sync.Mutex
-	reasons    []string
-	timer      *time.Timer
-	debounce   time.Duration
-	closed     atomic.Bool
+	gitService     *Service
+	db             *sql.DB
+	mu             sync.Mutex
+	reasons        []string
+	hasPending     bool
+	lastCommitTime time.Time
+	ticker         *time.Ticker
+	done           chan struct{}
+	closed         atomic.Bool
 }
 
-func NewSyncManager() *SyncManager {
+func NewSyncManager(db *sql.DB) *SyncManager {
 	sm := &SyncManager{
 		gitService: NewService(),
-		queue:      make(chan string, 100),
+		db:         db,
 		reasons:    make([]string, 0),
-		debounce:   2 * time.Second,
+		done:       make(chan struct{}),
 	}
 
-	go sm.processQueue()
+	sm.loadLastCommitTime()
 
 	return sm
 }
 
+func (sm *SyncManager) Start() {
+	sm.ticker = time.NewTicker(tickerInterval)
+	go sm.runLoop()
+	logger.Debug("sync manager started with timer-based auto-commit")
+}
+
+func (sm *SyncManager) runLoop() {
+	for {
+		select {
+		case <-sm.done:
+			logger.Debug("sync manager loop stopped")
+			return
+		case <-sm.ticker.C:
+			sm.checkAndSync()
+		}
+	}
+}
+
+func (sm *SyncManager) checkAndSync() {
+	gitCfg := config.GetGitSyncConfig()
+	if !gitCfg.Enabled || !gitCfg.AutoCommit {
+		return
+	}
+
+	if gitCfg.CommitInterval <= 0 {
+		return
+	}
+
+	sm.mu.Lock()
+	hasPending := sm.hasPending
+	timeSinceLastCommit := time.Since(sm.lastCommitTime)
+	commitInterval := time.Duration(gitCfg.CommitInterval) * time.Minute
+	reasons := sm.reasons
+	sm.mu.Unlock()
+
+	if !hasPending {
+		return
+	}
+
+	if timeSinceLastCommit < commitInterval {
+		logger.WithFields(map[string]any{
+			"timeSinceLastCommit": timeSinceLastCommit.Round(time.Second),
+			"commitInterval":      commitInterval,
+			"pendingChanges":      len(reasons),
+		}).Debug("auto-sync: waiting for interval to pass")
+		return
+	}
+
+	logger.WithFields(map[string]any{
+		"timeSinceLastCommit": timeSinceLastCommit.Round(time.Second),
+		"pendingChanges":      len(reasons),
+	}).Info("auto-sync: interval passed, performing sync")
+
+	sm.performSync(reasons)
+}
+
+// NotifyChange records that a change has occurred that should be synced.
+// The actual sync will happen when the commit interval passes.
 func (sm *SyncManager) NotifyChange(reason string) {
 	if sm.closed.Load() {
 		return
@@ -42,33 +108,16 @@ func (sm *SyncManager) NotifyChange(reason string) {
 		return
 	}
 
-	select {
-	case sm.queue <- reason:
-	default:
-		logger.Debug("sync queue full, dropping notification")
-	}
-}
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
 
-func (sm *SyncManager) processQueue() {
-	for reason := range sm.queue {
-		sm.mu.Lock()
-		sm.reasons = append(sm.reasons, reason)
+	sm.reasons = append(sm.reasons, reason)
+	sm.hasPending = true
 
-		if sm.timer != nil {
-			sm.timer.Stop()
-		}
-
-		sm.timer = time.AfterFunc(sm.debounce, func() {
-			sm.mu.Lock()
-			reasons := sm.reasons
-			sm.reasons = make([]string, 0)
-			sm.mu.Unlock()
-
-			sm.performSync(reasons)
-		})
-
-		sm.mu.Unlock()
-	}
+	logger.WithFields(map[string]any{
+		"reason":         reason,
+		"pendingChanges": len(sm.reasons),
+	}).Debug("auto-sync: change recorded")
 }
 
 func (sm *SyncManager) performSync(reasons []string) {
@@ -114,6 +163,7 @@ func (sm *SyncManager) performSync(reasons []string) {
 
 	if status.Clean {
 		logger.Debug("auto-sync: git status clean after staging; skipping commit")
+		sm.clearPendingState(false)
 		return
 	}
 
@@ -129,11 +179,14 @@ func (sm *SyncManager) performSync(reasons []string) {
 	if err := sm.gitService.Commit(dataDir, commitMsg); err != nil {
 		if err.Error() == "nothing to commit" {
 			logger.Debug("auto-sync: nothing to commit")
+			sm.clearPendingState(false)
 			return
 		}
 		logger.WithField("error", err).Warn("auto-sync: git commit failed")
 		return
 	}
+
+	sm.clearPendingState(true)
 
 	commitHash, _ := sm.gitService.GetLastCommitHash(dataDir)
 	logger.WithFields(map[string]any{
@@ -165,16 +218,98 @@ func (sm *SyncManager) buildCommitMessage(reasons []string) string {
 	return fmt.Sprintf("auto: %d changes", len(reasons))
 }
 
+func (sm *SyncManager) clearPendingState(updateCommitTime bool) {
+	now := time.Now()
+	sm.mu.Lock()
+	sm.reasons = make([]string, 0)
+	sm.hasPending = false
+	if updateCommitTime {
+		sm.lastCommitTime = now
+	}
+	sm.mu.Unlock()
+
+	if updateCommitTime {
+		sm.saveLastCommitTime(now)
+	}
+}
+
+// loadLastCommitTime loads the last auto-sync timestamp from the database
+func (sm *SyncManager) loadLastCommitTime() {
+	var value string
+	err := sm.db.QueryRow("SELECT value FROM kv WHERE key = ?", kvKeyLastAutoSync).Scan(&value)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			logger.WithError(err).Debug("auto-sync: failed to load last commit time")
+		}
+		return
+	}
+
+	if value == "" {
+		return
+	}
+
+	t, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		logger.WithError(err).Debug("auto-sync: failed to parse last commit time")
+		return
+	}
+
+	sm.lastCommitTime = t
+	logger.WithField("lastCommitTime", t.Format("2006-01-02 15:04:05")).Debug("auto-sync: loaded last commit time")
+}
+
+func (sm *SyncManager) saveLastCommitTime(t time.Time) {
+	value := t.Format(time.RFC3339)
+	_, err := sm.db.Exec(
+		"INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)",
+		kvKeyLastAutoSync,
+		value,
+	)
+	if err != nil {
+		logger.WithError(err).Warn("auto-sync: failed to save last commit time")
+	}
+}
+
 func (sm *SyncManager) Shutdown() {
 	if !sm.closed.CompareAndSwap(false, true) {
 		return
 	}
 
-	sm.mu.Lock()
-	if sm.timer != nil {
-		sm.timer.Stop()
+	if sm.ticker != nil {
+		sm.ticker.Stop()
 	}
+
+	close(sm.done)
+
+	sm.mu.Lock()
+	pendingCount := len(sm.reasons)
 	sm.mu.Unlock()
 
-	close(sm.queue)
+	if pendingCount > 0 {
+		logger.WithField("pendingChanges", pendingCount).Debug(
+			"auto-sync: shutdown with pending changes (will sync on next startup)",
+		)
+	}
+}
+
+func (sm *SyncManager) GetPendingChangesCount() int {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	return len(sm.reasons)
+}
+
+func (sm *SyncManager) HasPendingChanges() bool {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	return sm.hasPending
+}
+
+func (sm *SyncManager) ForceSync() {
+	sm.mu.Lock()
+	reasons := sm.reasons
+	sm.mu.Unlock()
+
+	if len(reasons) > 0 {
+		sm.performSync(reasons)
+	}
 }

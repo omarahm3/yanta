@@ -26,17 +26,15 @@ func TestConfig_GitSync(t *testing.T) {
 		cfg := Get()
 		assert.NotNil(t, cfg)
 		assert.False(t, cfg.GitSync.Enabled)
-		assert.Empty(t, cfg.GitSync.RepositoryPath)
 		assert.False(t, cfg.GitSync.AutoCommit)
 		assert.False(t, cfg.GitSync.AutoPush)
 	})
 
 	t.Run("set git sync config", func(t *testing.T) {
 		gitCfg := GitSyncConfig{
-			Enabled:        true,
-			RepositoryPath: "/path/to/repo",
-			AutoCommit:     true,
-			AutoPush:       false,
+			Enabled:    true,
+			AutoCommit: true,
+			AutoPush:   false,
 		}
 
 		err := SetGitSyncConfig(gitCfg)
@@ -44,7 +42,6 @@ func TestConfig_GitSync(t *testing.T) {
 
 		cfg := GetGitSyncConfig()
 		assert.True(t, cfg.Enabled)
-		assert.Equal(t, "/path/to/repo", cfg.RepositoryPath)
 		assert.True(t, cfg.AutoCommit)
 		assert.False(t, cfg.AutoPush)
 	})
@@ -58,7 +55,37 @@ func TestConfig_GitSync(t *testing.T) {
 
 		cfg := GetGitSyncConfig()
 		assert.True(t, cfg.Enabled)
-		assert.Equal(t, "/path/to/repo", cfg.RepositoryPath)
+		assert.True(t, cfg.AutoCommit)
+	})
+
+	t.Run("commit interval zero means manual-only mode", func(t *testing.T) {
+		// When CommitInterval is 0, it means manual-only mode (no auto-commits)
+		// This should be preserved, not overridden to a default
+		gitCfg := GitSyncConfig{
+			Enabled:        true,
+			AutoCommit:     true,
+			CommitInterval: 0, // Manual only
+		}
+
+		err := SetGitSyncConfig(gitCfg)
+		require.NoError(t, err)
+
+		cfg := GetGitSyncConfig()
+		assert.Equal(t, 0, cfg.CommitInterval, "CommitInterval=0 should be preserved for manual-only mode")
+	})
+
+	t.Run("commit interval is preserved when set", func(t *testing.T) {
+		gitCfg := GitSyncConfig{
+			Enabled:        true,
+			AutoCommit:     true,
+			CommitInterval: 30, // 30 minutes
+		}
+
+		err := SetGitSyncConfig(gitCfg)
+		require.NoError(t, err)
+
+		cfg := GetGitSyncConfig()
+		assert.Equal(t, 30, cfg.CommitInterval)
 	})
 }
 

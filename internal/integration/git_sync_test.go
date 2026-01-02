@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -32,9 +31,10 @@ func TestProjectMetadataChangeTriggersGitCommit(t *testing.T) {
 	require.NoError(t, config.Init())
 	require.NoError(t, config.SetDataDirectory(dataDir))
 	require.NoError(t, config.SetGitSyncConfig(config.GitSyncConfig{
-		Enabled:    true,
-		AutoCommit: true,
-		AutoPush:   false,
+		Enabled:        true,
+		AutoCommit:     true,
+		AutoPush:       false,
+		CommitInterval: 1, // 1 minute for faster testing
 	}))
 
 	dbPath := filepath.Join(dataDir, "yanta.db")
@@ -51,7 +51,8 @@ func TestProjectMetadataChangeTriggersGitCommit(t *testing.T) {
 	v, err := vault.New(vault.Config{RootPath: filepath.Join(dataDir, "vault")})
 	require.NoError(t, err)
 
-	syncManager := git.NewSyncManager()
+	syncManager := git.NewSyncManager(database)
+	syncManager.Start()
 	t.Cleanup(syncManager.Shutdown)
 
 	service := project.NewService(
@@ -66,10 +67,14 @@ func TestProjectMetadataChangeTriggersGitCommit(t *testing.T) {
 	_, err = service.Create(context.Background(), "Integration Test", "intsync", "", "")
 	require.NoError(t, err)
 
-	require.Eventually(t, func() bool {
-		log := runGit(t, dataDir, "log", "--oneline", "-1")
-		return strings.Contains(log, "project @intsync metadata created")
-	}, 10*time.Second, 200*time.Millisecond, "expected auto-sync commit for project metadata change")
+	// With timer-based model, changes are accumulated and committed at intervals.
+	// For testing, we force a sync immediately instead of waiting for the timer.
+	require.True(t, syncManager.HasPendingChanges(), "expected pending changes after project creation")
+	syncManager.ForceSync()
+
+	// Verify the commit was made
+	log := runGit(t, dataDir, "log", "--oneline", "-1")
+	require.Contains(t, log, "project @intsync metadata created", "expected auto-sync commit for project metadata change")
 }
 
 func ensureGitAvailable(t *testing.T) {

@@ -342,11 +342,11 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 						isMigrating={controller.isMigrating}
 						migrationProgress={controller.migrationProgress}
 						gitSyncEnabled={controller.gitSync.enabled}
-						syncFrequency={controller.gitSync.syncFrequency}
+						commitInterval={controller.gitSync.commitInterval}
 						autoPush={controller.gitSync.autoPush}
-						syncFrequencyOptions={controller.syncFrequencyOptions}
+						commitIntervalOptions={controller.commitIntervalOptions}
 						onGitSyncToggle={controller.handlers.handleGitSyncToggle}
-						onSyncFrequencyChange={controller.handlers.handleSyncFrequencyChange}
+						onCommitIntervalChange={controller.handlers.handleCommitIntervalChange}
 						onAutoPushToggle={controller.handlers.handleAutoPushToggle}
 						onPickDirectory={controller.handlers.handlePickDirectory}
 						onMigration={controller.handlers.handleMigration}

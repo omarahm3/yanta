@@ -13,10 +13,10 @@ import (
 )
 
 type GitSyncConfig struct {
-	Enabled        bool   `toml:"enabled"`
-	RepositoryPath string `toml:"repository_path"`
-	AutoCommit     bool   `toml:"auto_commit"`
-	AutoPush       bool   `toml:"auto_push"`
+	Enabled        bool `toml:"enabled"`
+	AutoCommit     bool `toml:"auto_commit"`
+	AutoPush       bool `toml:"auto_push"`
+	CommitInterval int  `toml:"commit_interval"` // minutes between auto-commits, 0 = manual only
 }
 
 type Config struct {
