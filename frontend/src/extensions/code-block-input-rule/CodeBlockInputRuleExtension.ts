@@ -98,7 +98,7 @@ export const CodeBlockInputRuleExtension = Extension.create<CodeBlockInputRuleOp
 
 							// Focus the code block after transformation
 							blockNoteEditor.focus();
-						} catch (error) {
+						} catch {
 							// If updateBlock fails, return false to let default behavior proceed
 							return false;
 						}
