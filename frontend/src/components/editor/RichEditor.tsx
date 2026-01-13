@@ -21,6 +21,7 @@ import { Link } from "@tiptap/extension-link";
 import { Browser, System } from "@wailsio/runtime";
 import { CustomLinkToolbarController } from "../../extensions/link-toolbar";
 import { RTLExtension } from "../../extensions/rtl";
+import { CodeBlockInputRuleExtension } from "../../extensions/code-block-input-rule";
 import { cn } from "../../lib/utils";
 import type { BlockNoteBlock } from "../../types/Document";
 import { registerClipboardImagePlugin } from "../../utils/clipboard";
@@ -116,6 +117,10 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 				createExtension({
 					key: "disableLinkClick",
 					tiptapExtensions: [Link.extend({ inclusive: false }).configure({ openOnClick: false })],
+				}),
+				createExtension({
+					key: "codeBlockInputRule",
+					tiptapExtensions: [CodeBlockInputRuleExtension],
 				}),
 			],
 		});
