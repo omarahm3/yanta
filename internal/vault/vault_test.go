@@ -4,12 +4,14 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"yanta/internal/testutil"
 )
 
 func TestNew(t *testing.T) {
 	// Create temp directory for testing
 	tempDir := t.TempDir()
-	t.Setenv("HOME", tempDir)
+	cleanup := testutil.SetTestHome(t, tempDir)
+	defer cleanup()
 
 	tests := []struct {
 		name    string
@@ -375,7 +377,8 @@ func TestVault_RelativePath(t *testing.T) {
 	if err != nil {
 		t.Errorf("RelativePath() failed: %v", err)
 	}
-	expected := filepath.Join("projects", "@yanta", "doc-abc123.json")
+	// RelativePath() intentionally returns forward slashes for cross-platform compatibility
+	expected := "projects/@yanta/doc-abc123.json"
 	if rel != expected {
 		t.Errorf("RelativePath() = %v, want %v", rel, expected)
 	}

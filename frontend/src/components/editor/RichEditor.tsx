@@ -26,7 +26,7 @@ import type { BlockNoteBlock } from "../../types/Document";
 import { registerClipboardImagePlugin } from "../../utils/clipboard";
 import { computeContentHash } from "../../utils/contentHash";
 import { extractTitleFromBlocks } from "../../utils/documentUtils";
-import { usePlainTextClipboard, useBlockNoteMenuPosition } from "./hooks";
+import { useBlockNoteMenuPosition, usePlainTextClipboard } from "./hooks";
 
 export interface RichEditorProps {
 	initialContent?: string;

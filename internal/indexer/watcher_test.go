@@ -78,7 +78,8 @@ func createDocumentInVault(t *testing.T, v *vault.Vault, projectAlias, title str
 	err := writer.WriteFile(relPath, docFile)
 	require.NoError(t, err)
 
-	return relPath
+	// Return forward slashes for cross-platform consistency (matches vault.RelativePath behavior)
+	return filepath.ToSlash(relPath)
 }
 
 func modifyDocument(t *testing.T, v *vault.Vault, relPath, newContent string) {

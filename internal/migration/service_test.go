@@ -6,6 +6,7 @@ import (
 	"testing"
 	"yanta/internal/config"
 	"yanta/internal/db"
+	"yanta/internal/testutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -50,8 +51,9 @@ func TestValidateTargetDirectory(t *testing.T) {
 		require.NoError(t, err)
 
 		targetDBPath := filepath.Join(targetDir, "yanta.db")
-		_, err = os.Create(targetDBPath)
+		f, err := os.Create(targetDBPath)
 		require.NoError(t, err)
+		f.Close()
 
 		// Should be VALID - database will be rebuilt
 		err = service.ValidateTargetDirectory(targetDir)
@@ -72,8 +74,8 @@ func TestValidateTargetDirectory(t *testing.T) {
 	t.Run("same as current directory is rejected", func(t *testing.T) {
 		tempDir := t.TempDir()
 		config.ResetForTesting()
-		os.Setenv("HOME", tempDir)
-		defer os.Unsetenv("HOME")
+		cleanup := testutil.SetTestHome(t, tempDir)
+		defer cleanup()
 
 		err := config.Init()
 		require.NoError(t, err)
@@ -164,8 +166,8 @@ func TestMigrateData(t *testing.T) {
 	t.Run("full migration flow", func(t *testing.T) {
 		tempHome := t.TempDir()
 		config.ResetForTesting()
-		os.Setenv("HOME", tempHome)
-		defer os.Unsetenv("HOME")
+		cleanup := testutil.SetTestHome(t, tempHome)
+		defer cleanup()
 
 		err := config.Init()
 		require.NoError(t, err)
@@ -226,8 +228,8 @@ func TestRollback(t *testing.T) {
 	t.Run("rollback cleans up partial migration", func(t *testing.T) {
 		tempHome := t.TempDir()
 		config.ResetForTesting()
-		os.Setenv("HOME", tempHome)
-		defer os.Unsetenv("HOME")
+		cleanup := testutil.SetTestHome(t, tempHome)
+		defer cleanup()
 
 		err := config.Init()
 		require.NoError(t, err)

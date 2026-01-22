@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"testing"
 
@@ -10,11 +11,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// setTestHome sets the home directory for testing in a cross-platform way.
+// On Windows, os.UserHomeDir() uses USERPROFILE, on Unix it uses HOME.
+func setTestHome(t *testing.T, dir string) func() {
+	t.Helper()
+	var oldHome, oldUserProfile string
+
+	if runtime.GOOS == "windows" {
+		oldUserProfile = os.Getenv("USERPROFILE")
+		os.Setenv("USERPROFILE", dir)
+	}
+	oldHome = os.Getenv("HOME")
+	os.Setenv("HOME", dir)
+
+	return func() {
+		os.Setenv("HOME", oldHome)
+		if runtime.GOOS == "windows" {
+			os.Setenv("USERPROFILE", oldUserProfile)
+		}
+	}
+}
+
 func TestConfig_GitSync(t *testing.T) {
 	tempDir := t.TempDir()
-	oldHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", oldHome)
-	os.Setenv("HOME", tempDir)
+	cleanup := setTestHome(t, tempDir)
+	defer cleanup()
 
 	instance = nil
 	instanceOnce = newOnce()
@@ -91,9 +112,8 @@ func TestConfig_GitSync(t *testing.T) {
 
 func TestConfig_DataDirectory(t *testing.T) {
 	tempDir := t.TempDir()
-	oldHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", oldHome)
-	os.Setenv("HOME", tempDir)
+	cleanup := setTestHome(t, tempDir)
+	defer cleanup()
 
 	instance = nil
 	instanceOnce = newOnce()
@@ -131,9 +151,8 @@ func TestConfig_DataDirectory(t *testing.T) {
 
 func TestConfig_ExistingFields(t *testing.T) {
 	tempDir := t.TempDir()
-	oldHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", oldHome)
-	os.Setenv("HOME", tempDir)
+	cleanup := setTestHome(t, tempDir)
+	defer cleanup()
 
 	instance = nil
 	instanceOnce = newOnce()

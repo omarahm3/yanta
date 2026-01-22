@@ -83,7 +83,8 @@ func createTestDocument(t *testing.T, v *vault.Vault, projectAlias, title string
 		t.Fatalf("Failed to write test document: %v", err)
 	}
 
-	return relPath
+	// Return forward slashes for cross-platform consistency (matches vault.RelativePath behavior)
+	return filepath.ToSlash(relPath)
 }
 
 func TestIndexer_IndexDocument(t *testing.T) {
