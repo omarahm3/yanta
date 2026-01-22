@@ -46,7 +46,8 @@
 		"enabled": true,
 		"indentStyle": "tab",
 		"indentWidth": 1,
-		"lineWidth": 100
+		"lineWidth": 100,
+		"lineEnding": "lf"
 	},
 	"css": {
 		"parser": {

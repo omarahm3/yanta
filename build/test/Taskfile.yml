@@ -27,6 +27,10 @@ tasks:
 
   backend:unit:
     summary: Run backend unit tests (cross-platform)
+    desc: |
+      Runs Go unit tests with coverage. Note: -race flag requires CGO.
+      On Windows, -race is skipped by default (requires MinGW/gcc).
+      On Unix, -race is enabled by default.
     internal: true
     deps:
       - common:ensure:go
@@ -38,18 +42,9 @@ tasks:
         vars:
           DIR: '{{.GO_CACHE_DIR}}'
       # Cross-platform: Set GOCACHE and run tests
-      - |
-        {{if eq OS "windows"}}
-        powershell -NoProfile -Command "$ErrorActionPreference = 'Stop'; $cacheDir = '{{.GO_CACHE_DIR}}'; if (-not [System.IO.Path]::IsPathRooted($cacheDir)) { $cacheDir = Join-Path (Get-Location) $cacheDir }; $env:GOCACHE = $cacheDir; Set-Location '{{.ROOT_DIR}}'; go test -v -race -coverprofile={{.COVERAGE_OUT}} -covermode=atomic ./..."
-        {{else}}
-        cd "{{.ROOT_DIR}}"
-        GO_CACHE_DIR="{{.GO_CACHE_DIR}}"
-        case "$GO_CACHE_DIR" in
-          /*) ;;
-          *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;;
-        esac
-        GOCACHE="$GO_CACHE_DIR" go test -v -race -coverprofile={{.COVERAGE_OUT}} -covermode=atomic ./...
-        {{end}}
+      # Windows: Skip -race by default (requires CGO/MinGW)
+      # Unix: Include -race
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "$cacheDir = ''{{.GO_CACHE_DIR}}''; if (-not [System.IO.Path]::IsPathRooted($cacheDir)) { $cacheDir = Join-Path (Get-Location) $cacheDir }; $env:GOCACHE = $cacheDir; Set-Location ''{{.ROOT_DIR}}''; Write-Output ''Note: Skipping -race on Windows (requires CGO/MinGW)''; go test -v -coverprofile={{.COVERAGE_OUT}} -covermode=atomic ./..."{{else}}cd "{{.ROOT_DIR}}" && GO_CACHE_DIR="{{.GO_CACHE_DIR}}" && case "$GO_CACHE_DIR" in /*) ;; *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;; esac && GOCACHE="$GO_CACHE_DIR" go test -v -race -coverprofile={{.COVERAGE_OUT}} -covermode=atomic ./...{{end}}'
       - task: common:log:success
         vars:
           MSG: "Backend tests passed"
@@ -157,17 +152,8 @@ tasks:
       FORCE_CI: '{{.FORCE_CI | default "0"}}'
     cmds:
       # Cross-platform: Install npm dependencies
-      - |
-        {{if eq OS "windows"}}
-        powershell -NoProfile -Command "$ErrorActionPreference = 'Stop'; Set-Location '{{.ROOT_DIR}}/frontend'; if ('{{.FORCE_CI}}' -eq '1' -or $env:CI -eq 'true') { npm ci } else { npm install }"
-        {{else}}
-        cd "{{.ROOT_DIR}}/frontend"
-        if [ "{{.FORCE_CI}}" = "1" ] || [ "${CI:-}" = "true" ]; then
-          npm ci
-        else
-          npm install
-        fi
-        {{end}}
+      # Note: Uses [Environment]::GetEnvironmentVariable instead of $env:CI to avoid cmd.exe parsing issues
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "Set-Location ''{{.ROOT_DIR}}/frontend''; if (''{{.FORCE_CI}}'' -eq ''1'' -or [Environment]::GetEnvironmentVariable(''CI'') -eq ''true'') { npm ci } else { npm install }"{{else}}cd "{{.ROOT_DIR}}/frontend" && if [ "{{.FORCE_CI}}" = "1" ] || [ "${CI:-}" = "true" ]; then npm ci; else npm install; fi{{end}}'
 
   bindings:
     summary: Generate TypeScript bindings (cross-platform)

@@ -260,67 +260,15 @@ tasks:
     summary: Package Windows artifacts (internal)
     desc: |
       Cross-platform: Uses Taskfile {{OS}} conditional
-      - On Windows: Uses PowerShell for file operations
+      - On Windows: Uses PowerShell script file for file operations
       - On Linux: Uses bash for cross-compile packaging
     internal: true
     cmds:
       - task: common:dir:clean
         vars:
           DIR: '{{.DIST_DIR}}'
-      - |
-        {{if eq OS "windows"}}
-        $ErrorActionPreference = "Stop"
-
-        $BinDir = "{{.BIN_DIR}}"
-        $DistDir = "{{.DIST_DIR}}"
-        $AppName = "{{.APP_NAME}}"
-
-        # Ensure dist directory exists
-        if (-not (Test-Path $DistDir)) {
-          New-Item -ItemType Directory -Path $DistDir -Force | Out-Null
-        }
-
-        # Copy portable exe
-        $Portable = Join-Path $BinDir "$AppName.exe"
-        if (-not (Test-Path $Portable)) {
-          Write-Error "Portable binary not found at $Portable"
-          exit 1
-        }
-        Copy-Item $Portable (Join-Path $DistDir "yanta-windows-portable.exe")
-        Write-Output "Copied portable exe"
-
-        # Find and copy installer
-        Write-Output "Looking for installer in $BinDir..."
-        $Installer = Get-ChildItem -Path $BinDir -Filter "*installer*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($Installer) {
-          Copy-Item $Installer.FullName (Join-Path $DistDir "yanta-windows-installer.exe")
-          Write-Output "Copied installer exe"
-        } else {
-          Write-Warning "Installer not found - may need to run NSIS separately"
-        }
-        {{else}}
-        set -euo pipefail
-
-        BIN_DIR="{{.BIN_DIR}}"
-        DIST_DIR="{{.DIST_DIR}}"
-        APP_NAME="{{.APP_NAME}}"
-
-        # Cross-compiling from Linux
-        IS_CROSS_COMPILE=true
-
-        # Copy portable exe
-        PORTABLE="${BIN_DIR}/${APP_NAME}.exe"
-        if [ ! -f "$PORTABLE" ]; then
-          echo "ERROR: Portable binary not found at $PORTABLE" >&2
-          exit 1
-        fi
-        cp "$PORTABLE" "${DIST_DIR}/yanta-windows-portable.exe"
-        echo "Copied portable exe"
-
-        # Installer not available when cross-compiling
-        echo "Installer not available (cross-compiling from Linux)"
-        echo "  To create the installer, run on Windows: task release:windows"
-        {{end}}
+      # Cross-platform: PowerShell script file on Windows (avoids cmd.exe parsing issues), bash on Unix
+      - '{{if eq OS "windows"}}powershell -NoProfile -ExecutionPolicy Bypass -File "{{.ROOT_DIR}}/build/scripts/windows-package.ps1" -BinDir "{{.BIN_DIR}}" -DistDir "{{.DIST_DIR}}" -AppName "{{.APP_NAME}}"{{else}}set -euo pipefail; BIN_DIR="{{.BIN_DIR}}"; DIST_DIR="{{.DIST_DIR}}"; APP_NAME="{{.APP_NAME}}"; PORTABLE="${BIN_DIR}/${APP_NAME}.exe"; if [ ! -f "$PORTABLE" ]; then echo "ERROR: Portable binary not found at $PORTABLE" >&2; exit 1; fi; cp "$PORTABLE" "${DIST_DIR}/yanta-windows-portable.exe"; echo "Copied portable exe"; echo "Installer not available (cross-compiling from Linux)"; echo "  To create the installer, run on Windows: task release:windows"{{end}}'
 
   windows:verify:
     summary: Verify Windows artifacts exist
@@ -334,22 +282,8 @@ tasks:
         vars:
           FILE: '{{.DIST_DIR}}/yanta-windows-portable.exe'
           MSG: "Windows portable exe not found"
-      - |
-        {{if eq OS "windows"}}
-        $Installer = Join-Path "{{.DIST_DIR}}" "yanta-windows-installer.exe"
-        if (Test-Path $Installer) {
-          Write-Output "Windows installer verified"
-        } else {
-          Write-Warning "Windows installer not found - may need to run NSIS"
-        }
-        {{else}}
-        INSTALLER="{{.DIST_DIR}}/yanta-windows-installer.exe"
-        if [ -f "$INSTALLER" ]; then
-          echo "Windows installer verified"
-        else
-          echo "Windows installer not available (cross-compiled from Linux)"
-        fi
-        {{end}}
+      # Cross-platform: PowerShell wrapped for Windows, bash for Unix
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "$Installer = Join-Path ''{{.DIST_DIR}}'' ''yanta-windows-installer.exe''; if (Test-Path $Installer) { Write-Output ''Windows installer verified'' } else { Write-Warning ''Windows installer not found - may need to run NSIS'' }"{{else}}INSTALLER="{{.DIST_DIR}}/yanta-windows-installer.exe"; if [ -f "$INSTALLER" ]; then echo "Windows installer verified"; else echo "Windows installer not available (cross-compiled from Linux)"; fi{{end}}'
 
   # ============================================================================
   # macOS Release (macOS-only - bash commands are appropriate)
@@ -431,17 +365,8 @@ tasks:
       - On macOS: Builds macOS release
     internal: true
     cmds:
-      - |
-        {{if eq OS "windows"}}
-        Write-Output "Detected Windows - building Windows release"
-        {{else if eq OS "linux"}}
-        echo "Detected Linux - building Linux + Ubuntu releases"
-        {{else if eq OS "darwin"}}
-        echo "Detected macOS - building macOS release"
-        {{else}}
-        echo "Unknown platform: {{OS}}" >&2
-        exit 1
-        {{end}}
+      # Cross-platform: echo works in both cmd.exe and bash
+      - 'echo Detected {{OS}} - building release'
       - task: all:{{OS}}
 
   all:linux:
@@ -474,27 +399,11 @@ tasks:
     summary: List all generated release artifacts
     desc: |
       Cross-platform: Uses Taskfile {{OS}} conditional
-      - On Windows: Uses PowerShell Get-ChildItem
+      - On Windows: Uses PowerShell Get-ChildItem (wrapped)
       - On Unix: Uses ls command
     cmds:
-      - |
-        {{if eq OS "windows"}}
-        Write-Output "Release artifacts in {{.DIST_DIR}}:"
-        Write-Output ""
-        if (Test-Path "{{.DIST_DIR}}") {
-          Get-ChildItem -Path "{{.DIST_DIR}}" | Format-Table Name, Length, LastWriteTime -AutoSize
-        } else {
-          Write-Output "Distribution directory does not exist"
-        }
-        {{else}}
-        echo "Release artifacts in {{.DIST_DIR}}:"
-        echo ""
-        if [ -d "{{.DIST_DIR}}" ]; then
-          ls -lh {{.DIST_DIR}}/ 2>/dev/null || echo "No artifacts found"
-        else
-          echo "Distribution directory does not exist"
-        fi
-        {{end}}
+      # Cross-platform: PowerShell wrapped for Windows, bash for Unix
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "Write-Output ''Release artifacts in {{.DIST_DIR}}:''; Write-Output ''''; if (Test-Path ''{{.DIST_DIR}}'') { Get-ChildItem -Path ''{{.DIST_DIR}}'' | Format-Table Name, Length, LastWriteTime -AutoSize } else { Write-Output ''Distribution directory does not exist'' }"{{else}}echo "Release artifacts in {{.DIST_DIR}}:"; echo ""; if [ -d "{{.DIST_DIR}}" ]; then ls -lh {{.DIST_DIR}}/ 2>/dev/null || echo "No artifacts found"; else echo "Distribution directory does not exist"; fi{{end}}'
 
   verify:
     summary: Verify all expected artifacts for current platform exist
@@ -502,14 +411,8 @@ tasks:
       Cross-platform: Uses Taskfile {{OS}} built-in
       Verifies artifacts appropriate for current platform
     cmds:
-      - |
-        {{if eq OS "windows"}}
-        Write-Output "Verifying Windows artifacts..."
-        {{else if eq OS "linux"}}
-        echo "Verifying Linux artifacts..."
-        {{else if eq OS "darwin"}}
-        echo "Verifying macOS artifacts..."
-        {{end}}
+      # Cross-platform: echo works in both cmd.exe and bash
+      - 'echo Verifying {{OS}} artifacts...'
       - task: verify:{{OS}}
 
   verify:linux:
