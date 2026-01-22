@@ -1,4 +1,7 @@
 # Wails v3 Configuration
+# Migration Note: This file replaces the legacy wails.json (v2 config) which has been removed.
+# All configuration is now managed through this build/config.yml and Taskfile.yml.
+# See: https://v3alpha.wails.io/learn/build/ for schema documentation.
 version: '3'
 
 # Application info
