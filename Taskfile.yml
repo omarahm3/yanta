@@ -28,11 +28,6 @@ vars:
   DIST_DIR: '{{.DIST_DIR | default "build/dist"}}'
   BIN_DIR: 'build/bin'
 
-set:
-  - nounset
-  - errexit
-  - pipefail
-
 output: interleaved  # Changed from 'group' to get real-time output
 
 silent: false
