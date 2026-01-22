@@ -2,6 +2,7 @@ version: '3'
 
 # Platform-specific build configurations
 # Defines platform-specific variables and build settings
+# Cross-platform: Uses Taskfile {{OS}} conditionals instead of bash-only constructs
 
 includes:
   common: ../common/Taskfile.yml
@@ -9,44 +10,40 @@ includes:
 tasks:
   # ============================================================================
   # Platform Configuration Getters
+  # Cross-platform JSON output using echo commands
   # ============================================================================
 
   config:linux:ubuntu:
     summary: Get build config for Ubuntu/Debian Linux
+    desc: |
+      Cross-platform: Uses Taskfile {{OS}} conditional
+      - On Linux: Outputs JSON config for Ubuntu build
+      - On Windows: Also outputs (for CI pipeline parsing)
     internal: true
     silent: true
     cmds:
       - |
-        cat <<'EOF'
-        {
-          "goos": "linux",
-          "goarch": "amd64",
-          "use_webkit41": true,
-          "output_suffix": "",
-          "requires_host": "linux",
-          "cc": "",
-          "cxx": ""
-        }
-        EOF
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command "Write-Output '{ \"goos\": \"linux\", \"goarch\": \"amd64\", \"use_webkit41\": true, \"output_suffix\": \"\", \"requires_host\": \"linux\", \"cc\": \"\", \"cxx\": \"\" }'"
+        {{else}}
+        echo '{ "goos": "linux", "goarch": "amd64", "use_webkit41": true, "output_suffix": "", "requires_host": "linux", "cc": "", "cxx": "" }'
+        {{end}}
 
   config:linux:arch:
     summary: Get build config for Arch Linux (includes artifact generation)
+    desc: |
+      Cross-platform: Uses Taskfile {{OS}} conditional
+      - On Linux: Outputs JSON config for Arch build with post_build step
+      - On Windows: Also outputs (for CI pipeline parsing)
     internal: true
     silent: true
     cmds:
       - |
-        cat <<'EOF'
-        {
-          "goos": "linux",
-          "goarch": "amd64",
-          "use_webkit41": true,
-          "output_suffix": "",
-          "requires_host": "linux",
-          "post_build": "arch",
-          "cc": "",
-          "cxx": ""
-        }
-        EOF
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command "Write-Output '{ \"goos\": \"linux\", \"goarch\": \"amd64\", \"use_webkit41\": true, \"output_suffix\": \"\", \"requires_host\": \"linux\", \"post_build\": \"arch\", \"cc\": \"\", \"cxx\": \"\" }'"
+        {{else}}
+        echo '{ "goos": "linux", "goarch": "amd64", "use_webkit41": true, "output_suffix": "", "requires_host": "linux", "post_build": "arch", "cc": "", "cxx": "" }'
+        {{end}}
 
   config:windows:
     summary: Get build config for Windows
@@ -60,27 +57,9 @@ tasks:
       # Cross-platform platform detection using Taskfile {{OS}} built-in
       - |
         {{if eq OS "linux"}}
-        cat <<'EOF'
-        {
-          "goos": "windows",
-          "goarch": "amd64",
-          "use_webkit41": false,
-          "output_suffix": ".exe",
-          "requires_host": "linux-mingw",
-          "cc": "x86_64-w64-mingw32-gcc",
-          "cxx": "x86_64-w64-mingw32-g++"
-        }
-        EOF
+        echo '{ "goos": "windows", "goarch": "amd64", "use_webkit41": false, "output_suffix": ".exe", "requires_host": "linux-mingw", "cc": "x86_64-w64-mingw32-gcc", "cxx": "x86_64-w64-mingw32-g++" }'
         {{else if eq OS "windows"}}
-        echo {
-        echo   "goos": "",
-        echo   "goarch": "amd64",
-        echo   "use_webkit41": false,
-        echo   "output_suffix": ".exe",
-        echo   "requires_host": "windows",
-        echo   "cc": "",
-        echo   "cxx": ""
-        echo }
+        powershell -NoProfile -Command "Write-Output '{ \"goos\": \"\", \"goarch\": \"amd64\", \"use_webkit41\": false, \"output_suffix\": \".exe\", \"requires_host\": \"windows\", \"cc\": \"\", \"cxx\": \"\" }'"
         {{else}}
         echo "Error: Windows builds must run on Windows or Linux (with MinGW)" >&2
         exit 1
@@ -88,21 +67,19 @@ tasks:
 
   config:macos:
     summary: Get build config for macOS
+    desc: |
+      Cross-platform: Uses Taskfile {{OS}} conditional
+      - On macOS: Outputs JSON config for Darwin build
+      - On other platforms: Also outputs (for CI pipeline parsing)
     internal: true
     silent: true
     cmds:
       - |
-        cat <<'EOF'
-        {
-          "goos": "darwin",
-          "goarch": "amd64",
-          "use_webkit41": false,
-          "output_suffix": "",
-          "requires_host": "darwin",
-          "cc": "",
-          "cxx": ""
-        }
-        EOF
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command "Write-Output '{ \"goos\": \"darwin\", \"goarch\": \"amd64\", \"use_webkit41\": false, \"output_suffix\": \"\", \"requires_host\": \"darwin\", \"cc\": \"\", \"cxx\": \"\" }'"
+        {{else}}
+        echo '{ "goos": "darwin", "goarch": "amd64", "use_webkit41": false, "output_suffix": "", "requires_host": "darwin", "cc": "", "cxx": "" }'
+        {{end}}
 
   # ============================================================================
   # Platform Verification
@@ -136,14 +113,13 @@ tasks:
       # Cross-platform platform detection using Taskfile {{OS}} built-in
       - |
         {{if eq OS "linux"}}
-        # Check for MinGW on Linux using 'which' (more portable than 'command -v')
         if ! which x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
           echo "Windows cross-compilation on Linux requires MinGW (x86_64-w64-mingw32-gcc)" >&2
           echo "Install: sudo apt-get install -y mingw-w64" >&2
           exit 1
         fi
         {{else if eq OS "windows"}}
-        REM Native Windows build - no verification needed
+        powershell -NoProfile -Command "Write-Output 'Native Windows build - no verification needed'"
         {{else}}
         echo "Windows builds must run on Windows or Linux (with MinGW)" >&2
         exit 1
@@ -165,7 +141,6 @@ tasks:
       # MinGW is only needed on Linux for cross-compilation
       - |
         {{if eq OS "linux"}}
-        # Use 'which' instead of 'command -v' for better portability
         if which x86_64-w64-mingw32-gcc >/dev/null 2>&1 && which x86_64-w64-mingw32-g++ >/dev/null 2>&1; then
           echo "MinGW already installed"
           exit 0
@@ -181,7 +156,7 @@ tasks:
           exit 1
         fi
         {{else if eq OS "windows"}}
-        echo "MinGW not needed on Windows (native build)"
+        powershell -NoProfile -Command "Write-Output 'MinGW not needed on Windows (native build)'"
         {{else}}
         echo "MinGW cross-compilation is only supported on Linux" >&2
         exit 1
@@ -196,21 +171,21 @@ tasks:
     internal: true
     silent: true
     cmds:
-      - echo "-tags webkit2_41"
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "Write-Output ''-tags webkit2_41''"{{else}}echo "-tags webkit2_41"{{end}}'
 
   build-tags:windows:
     summary: Get build tags for Windows
     internal: true
     silent: true
     cmds:
-      - echo ""
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "Write-Output ''''"{{else}}echo ""{{end}}'
 
   build-tags:macos:
     summary: Get build tags for macOS
     internal: true
     silent: true
     cmds:
-      - echo ""
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "Write-Output ''''"{{else}}echo ""{{end}}'
 
   # ============================================================================
   # Platform-specific Artifact Names
@@ -221,7 +196,7 @@ tasks:
     internal: true
     silent: true
     cmds:
-      - echo "yanta-linux.tar.gz"
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "Write-Output ''yanta-linux.tar.gz''"{{else}}echo "yanta-linux.tar.gz"{{end}}'
 
   artifact-name:linux:arch:
     summary: Get Arch Linux package artifact name pattern
@@ -230,7 +205,7 @@ tasks:
     vars:
       VERSION: '{{.VERSION | default "UNKNOWN"}}'
     cmds:
-      - echo "yanta-{{.VERSION}}-1-x86_64.pkg.tar.gz"
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "Write-Output ''yanta-{{.VERSION}}-1-x86_64.pkg.tar.gz''"{{else}}echo "yanta-{{.VERSION}}-1-x86_64.pkg.tar.gz"{{end}}'
 
   artifact-name:linux:deb:
     summary: Get Debian package artifact name
@@ -239,25 +214,25 @@ tasks:
     vars:
       VERSION: '{{.VERSION | default "UNKNOWN"}}'
     cmds:
-      - echo "yanta_{{.VERSION}}_amd64.deb"
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "Write-Output ''yanta_{{.VERSION}}_amd64.deb''"{{else}}echo "yanta_{{.VERSION}}_amd64.deb"{{end}}'
 
   artifact-name:windows:portable:
     summary: Get Windows portable exe artifact name
     internal: true
     silent: true
     cmds:
-      - echo "yanta-windows-portable.exe"
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "Write-Output ''yanta-windows-portable.exe''"{{else}}echo "yanta-windows-portable.exe"{{end}}'
 
   artifact-name:windows:installer:
     summary: Get Windows installer artifact name
     internal: true
     silent: true
     cmds:
-      - echo "yanta-windows-installer.exe"
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "Write-Output ''yanta-windows-installer.exe''"{{else}}echo "yanta-windows-installer.exe"{{end}}'
 
   artifact-name:macos:tarball:
     summary: Get macOS tarball artifact name
     internal: true
     silent: true
     cmds:
-      - echo "yanta-macos.tar.gz"
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "Write-Output ''yanta-macos.tar.gz''"{{else}}echo "yanta-macos.tar.gz"{{end}}'
