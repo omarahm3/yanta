@@ -34,6 +34,11 @@ tasks:
     internal: true
     deps:
       - common:ensure:go
+    env:
+      # Pass variables to PowerShell script via environment
+      GO_CACHE_DIR: '{{.GO_CACHE_DIR}}'
+      COVERAGE_OUT: '{{.COVERAGE_OUT}}'
+      ROOT_DIR: '{{.ROOT_DIR}}'
     cmds:
       - task: common:log:section
         vars:
@@ -42,9 +47,14 @@ tasks:
         vars:
           DIR: '{{.GO_CACHE_DIR}}'
       # Cross-platform: Set GOCACHE and run tests
-      # Windows: Skip -race by default (requires CGO/MinGW)
+      # Windows: Uses external .ps1 script to avoid cmd.exe $ stripping, skip -race (requires CGO/MinGW)
       # Unix: Include -race
-      - '{{if eq OS "windows"}}powershell -NoProfile -Command "$cacheDir = ''{{.GO_CACHE_DIR}}''; if (-not [System.IO.Path]::IsPathRooted($cacheDir)) { $cacheDir = Join-Path (Get-Location) $cacheDir }; $env:GOCACHE = $cacheDir; Set-Location ''{{.ROOT_DIR}}''; Write-Output ''Note: Skipping -race on Windows (requires CGO/MinGW)''; go test -v -coverprofile={{.COVERAGE_OUT}} -covermode=atomic ./..."{{else}}cd "{{.ROOT_DIR}}" && GO_CACHE_DIR="{{.GO_CACHE_DIR}}" && case "$GO_CACHE_DIR" in /*) ;; *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;; esac && GOCACHE="$GO_CACHE_DIR" go test -v -race -coverprofile={{.COVERAGE_OUT}} -covermode=atomic ./...{{end}}'
+      - |
+        {{if eq OS "windows"}}
+        powershell -NoProfile -ExecutionPolicy Bypass -File build/scripts/run-tests.ps1
+        {{else}}
+        cd "{{.ROOT_DIR}}" && GO_CACHE_DIR="{{.GO_CACHE_DIR}}" && case "$GO_CACHE_DIR" in /*) ;; *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;; esac && GOCACHE="$GO_CACHE_DIR" go test -v -race -coverprofile={{.COVERAGE_OUT}} -covermode=atomic ./...
+        {{end}}
       - task: common:log:success
         vars:
           MSG: "Backend tests passed"
@@ -161,14 +171,19 @@ tasks:
     silent: true
     deps:
       - common:ensure:wails
+    env:
+      # Pass variables to PowerShell script via environment
+      GO_CACHE_DIR: '{{.GO_CACHE_DIR}}'
     cmds:
       - task: common:dir:ensure
         vars:
           DIR: '{{.GO_CACHE_DIR}}'
       # Cross-platform: Generate bindings with wails3
+      # Windows: Uses external .ps1 script to avoid cmd.exe $ stripping
+      # Unix: Uses inline POSIX-compatible shell
       - |
         {{if eq OS "windows"}}
-        powershell -NoProfile -Command "$ErrorActionPreference = 'Stop'; if ($env:SKIP_WAILS_BINDINGS -eq '1') { Write-Output 'Skipping binding generation (SKIP_WAILS_BINDINGS=1)'; exit 0 }; $cacheDir = '{{.GO_CACHE_DIR}}'; if (-not [System.IO.Path]::IsPathRooted($cacheDir)) { $cacheDir = Join-Path (Get-Location) $cacheDir }; $env:GOCACHE = $cacheDir; $env:GOFLAGS = ''; Set-Location '{{.ROOT_DIR}}'; wails3 generate bindings -clean=true -ts"
+        powershell -NoProfile -ExecutionPolicy Bypass -File build/scripts/generate-bindings.ps1
         {{else}}
         cd "{{.ROOT_DIR}}"
         if [ "${SKIP_WAILS_BINDINGS:-0}" = "1" ]; then
