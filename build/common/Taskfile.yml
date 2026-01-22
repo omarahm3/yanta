@@ -45,19 +45,26 @@ tasks:
   # ============================================================================
 
   gocache:setup:
-    summary: Setup and export Go cache directory
+    summary: Setup and export Go cache directory (cross-platform)
     internal: true
     silent: true
     cmds:
+      # First ensure the directory exists using cross-platform task
+      - task: dir:ensure
+        vars:
+          DIR: '{{.GO_CACHE_DIR}}'
+      # Then output the absolute path for Go cache
       - |
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command "$dir = '{{.GO_CACHE_DIR}}'; if (-not [System.IO.Path]::IsPathRooted($dir)) { $dir = Join-Path (Get-Location) $dir }; Write-Output $dir"
+        {{else}}
         GO_CACHE_DIR="{{.GO_CACHE_DIR}}"
         case "$GO_CACHE_DIR" in
           /*) ;;
           *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;;
         esac
-        mkdir -p "$GO_CACHE_DIR"
-        export GOCACHE="$GO_CACHE_DIR"
         echo "$GO_CACHE_DIR"
+        {{end}}
 
   # ============================================================================
   # Tool Verification (DRY - check if required tools exist)
@@ -168,21 +175,25 @@ tasks:
   # ============================================================================
 
   dir:clean:
-    summary: Clean a directory
+    summary: Clean a directory (cross-platform)
     internal: true
     vars:
       DIR: '{{.DIR}}'
     cmds:
-      - rm -rf {{.DIR}}
-      - mkdir -p {{.DIR}}
+      # Cross-platform: PowerShell on Windows, rm -rf on Unix
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "if (Test-Path ''{{.DIR}}'') { Remove-Item -Recurse -Force ''{{.DIR}}'' }"{{else}}rm -rf "{{.DIR}}"{{end}}'
+      - task: dir:ensure
+        vars:
+          DIR: '{{.DIR}}'
 
   dir:ensure:
-    summary: Ensure a directory exists
+    summary: Ensure a directory exists (cross-platform)
     internal: true
     vars:
       DIR: '{{.DIR}}'
     cmds:
-      - mkdir -p {{.DIR}}
+      # Cross-platform: PowerShell on Windows, mkdir -p on Unix
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "if (-not (Test-Path ''{{.DIR}}'')) { New-Item -ItemType Directory -Path ''{{.DIR}}'' -Force | Out-Null }"{{else}}mkdir -p "{{.DIR}}"{{end}}'
 
   # ============================================================================
   # File Verification
