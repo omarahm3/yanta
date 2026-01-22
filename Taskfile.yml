@@ -276,11 +276,15 @@ tasks:
   # ============================================================================
 
   clean:
-    summary: Clean all build artifacts
+    summary: Clean all build artifacts (cross-platform)
+    desc: |
+      Removes all build artifacts including binaries, dist files, and caches.
+      Cross-platform: Works in both Windows PowerShell and Unix shells.
     cmds:
-      - rm -rf {{.BIN_DIR}}
-      - rm -rf {{.DIST_DIR}}
-      - rm -rf .gocache
+      # Cross-platform rm -rf: PowerShell on Windows, rm -rf on Unix
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "if (Test-Path ''{{.BIN_DIR}}'') { Remove-Item -Recurse -Force ''{{.BIN_DIR}}'' }"{{else}}rm -rf "{{.BIN_DIR}}"{{end}}'
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "if (Test-Path ''{{.DIST_DIR}}'') { Remove-Item -Recurse -Force ''{{.DIST_DIR}}'' }"{{else}}rm -rf "{{.DIST_DIR}}"{{end}}'
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "if (Test-Path ''.gocache'') { Remove-Item -Recurse -Force ''.gocache'' }"{{else}}rm -rf ".gocache"{{end}}'
       - task: test:clean
       - task: common:log:success
         vars:
