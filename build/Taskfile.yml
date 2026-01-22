@@ -162,7 +162,7 @@ tasks:
 
   generate:bindings:
     label: "generate:bindings"
-    summary: Generate TypeScript bindings from Go services
+    summary: Generate TypeScript bindings from Go services (cross-platform)
     silent: true
     deps:
       - ensure:wails
@@ -173,20 +173,61 @@ tasks:
       - exclude: "../frontend/**/*"
     generates:
       - "../frontend/bindings/**/*"
+    vars:
+      # Cross-platform: Use Taskfile template syntax for default value
+      GO_CACHE_DIR: '{{.GO_CACHE_DIR | default ".gocache"}}'
     cmds:
+      # Log start message
+      - task: common:log:info
+        vars:
+          MSG: "Generating TypeScript bindings from Go services..."
+      # Cross-platform binding generation
       - |
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command @'
+          # Check if binding generation should be skipped
+          if ($env:SKIP_WAILS_BINDINGS -eq "1") {
+            Write-Host "Skipping binding generation (SKIP_WAILS_BINDINGS=1)"
+            exit 0
+          }
+
+          # Setup Go cache directory
+          $GoCacheDir = if ($env:GO_CACHE_DIR) { $env:GO_CACHE_DIR } else { ".gocache" }
+          if (-not [System.IO.Path]::IsPathRooted($GoCacheDir)) {
+            $GoCacheDir = Join-Path (Get-Location) $GoCacheDir
+          }
+          if (-not (Test-Path $GoCacheDir)) {
+            New-Item -ItemType Directory -Path $GoCacheDir -Force | Out-Null
+          }
+
+          # Run wails3 generate bindings with cache directory
+          $env:GOCACHE = $GoCacheDir
+          $env:GOFLAGS = ""
+          wails3 generate bindings -clean=true -ts
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        '@
+        {{else}}
+        # Check if binding generation should be skipped (POSIX-compatible)
         if [ "${SKIP_WAILS_BINDINGS:-0}" = "1" ]; then
           echo "Skipping binding generation (SKIP_WAILS_BINDINGS=1)"
           exit 0
         fi
 
+        # Setup Go cache directory (POSIX-compatible)
         GO_CACHE_DIR="${GO_CACHE_DIR:-.gocache}"
         case "$GO_CACHE_DIR" in
           /*) ;;
           *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;;
         esac
         mkdir -p "$GO_CACHE_DIR"
+
+        # Run wails3 generate bindings with cache directory
         GOCACHE="$GO_CACHE_DIR" GOFLAGS="" wails3 generate bindings -clean=true -ts
+        {{end}}
+      # Log success message
+      - task: common:log:success
+        vars:
+          MSG: "TypeScript bindings generated successfully"
 
   # ============================================================================
   # Frontend Tasks
