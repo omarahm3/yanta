@@ -68,57 +68,100 @@ tasks:
 
   # ============================================================================
   # Tool Verification (DRY - check if required tools exist)
+  # Cross-platform: Uses each tool's own version command instead of 'command -v'
   # ============================================================================
 
   ensure:command:
-    summary: Ensure a command exists in PATH
+    summary: Ensure a command exists in PATH (cross-platform)
     internal: true
     silent: true
     vars:
       CMD: '{{.CMD}}'
       MSG: '{{.MSG | default (printf "%s is not installed or not in PATH" .CMD)}}'
     cmds:
+      # Cross-platform: 'where' on Windows, 'which' on Unix
+      # Note: We use 'which' instead of 'command -v' for better portability
       - |
-        if ! command -v {{.CMD}} >/dev/null 2>&1; then
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command "if (-not (Get-Command '{{.CMD}}' -ErrorAction SilentlyContinue)) { Write-Error '{{.MSG}}'; exit 1 }"
+        {{else}}
+        if ! which {{.CMD}} >/dev/null 2>&1; then
           echo "Error: {{.MSG}}" >&2
           exit 1
         fi
+        {{end}}
 
   ensure:wails:
-    summary: Ensure wails3 CLI is installed
+    summary: Ensure wails3 CLI is installed (cross-platform)
     internal: true
+    silent: true
+    vars:
+      MSG: "wails3 CLI not found. Install it with 'go install github.com/wailsapp/wails/v3/cmd/wails3@latest'"
     cmds:
-      - task: ensure:command
-        vars:
-          CMD: wails3
-          MSG: "wails3 CLI not found. Install it with 'go install github.com/wailsapp/wails/v3/cmd/wails3@latest'"
+      # Cross-platform: Use wails3 version command which works on all platforms
+      - |
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command "try { wails3 version | Out-Null } catch { Write-Error '{{.MSG}}'; exit 1 }"
+        {{else}}
+        if ! wails3 version >/dev/null 2>&1; then
+          echo "Error: {{.MSG}}" >&2
+          exit 1
+        fi
+        {{end}}
 
   ensure:go:
-    summary: Ensure Go is installed
+    summary: Ensure Go is installed (cross-platform)
     internal: true
+    silent: true
+    vars:
+      MSG: "Go is not installed"
     cmds:
-      - task: ensure:command
-        vars:
-          CMD: go
-          MSG: "Go is not installed"
+      # Cross-platform: Use 'go version' which works on all platforms
+      - |
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command "try { go version | Out-Null } catch { Write-Error '{{.MSG}}'; exit 1 }"
+        {{else}}
+        if ! go version >/dev/null 2>&1; then
+          echo "Error: {{.MSG}}" >&2
+          exit 1
+        fi
+        {{end}}
 
   ensure:npm:
-    summary: Ensure npm is installed
+    summary: Ensure npm is installed (cross-platform)
     internal: true
+    silent: true
+    vars:
+      MSG: "npm is not installed"
     cmds:
-      - task: ensure:command
-        vars:
-          CMD: npm
-          MSG: "npm is not installed"
+      # Cross-platform: Use 'npm --version' which works on all platforms
+      - |
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command "try { npm --version | Out-Null } catch { Write-Error '{{.MSG}}'; exit 1 }"
+        {{else}}
+        if ! npm --version >/dev/null 2>&1; then
+          echo "Error: {{.MSG}}" >&2
+          exit 1
+        fi
+        {{end}}
 
   ensure:node:
-    summary: Ensure Node.js is installed
+    summary: Ensure Node.js is installed (cross-platform)
     internal: true
+    silent: true
+    vars:
+      MSG: "Node.js is not installed"
     cmds:
-      - task: ensure:command
-        vars:
-          CMD: node
-          MSG: "Node.js is not installed"
+      # Cross-platform: Use 'node --version' which works on all platforms
+      - |
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command "try { node --version | Out-Null } catch { Write-Error '{{.MSG}}'; exit 1 }"
+        {{else}}
+        if ! node --version >/dev/null 2>&1; then
+          echo "Error: {{.MSG}}" >&2
+          exit 1
+        fi
+        {{end}}
 
   # ============================================================================
   # Host Platform Detection
