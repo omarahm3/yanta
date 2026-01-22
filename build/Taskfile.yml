@@ -24,7 +24,7 @@ tasks:
 
   generate:icons:
     label: "generate:icons"
-    summary: Generate platform-specific icons from appicon.png
+    summary: Generate platform-specific icons from appicon.png (cross-platform)
     deps:
       - ensure:wails
     sources:
@@ -34,21 +34,37 @@ tasks:
       - "./icon.ico"
       - "./windows/icon.ico"
       - "./darwin/icons.icns"
+    dir: build
     cmds:
+      # Log start message
+      - task: common:log:info
+        vars:
+          MSG: "Generating icons from appicon.png..."
+      # Generate icons using wails3 (cross-platform - wails3 works on all platforms)
+      - wails3 generate icons -input ./appicon.png
+      # Ensure platform-specific directories exist (cross-platform)
+      - task: common:dir:ensure
+        vars:
+          DIR: windows
+      - task: common:dir:ensure
+        vars:
+          DIR: darwin
+      # Copy icons to platform-specific directories (cross-platform)
       - |
-        set -euo pipefail
-        cd build
-
-        echo "Generating icons from appicon.png..."
-        wails3 generate icons -input ./appicon.png
-
-        # Move/copy icons to platform-specific directories
-        mkdir -p windows darwin
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command "Copy-Item -Path 'icon.ico' -Destination 'windows/' -Force"
+        powershell -NoProfile -Command "Copy-Item -Path 'icons.icns' -Destination 'darwin/' -Force"
+        {{else}}
         cp icon.ico windows/
         cp icons.icns darwin/
-
-        echo "✓ Icons generated: icons.icns, icon.ico"
-        echo "✓ Platform icons: windows/icon.ico, darwin/icons.icns"
+        {{end}}
+      # Log success messages
+      - task: common:log:success
+        vars:
+          MSG: "Icons generated: icons.icns, icon.ico"
+      - task: common:log:success
+        vars:
+          MSG: "Platform icons: windows/icon.ico, darwin/icons.icns"
 
   generate:syso:
     label: "generate:syso"
