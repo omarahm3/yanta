@@ -50,38 +50,41 @@ tasks:
 
   config:windows:
     summary: Get build config for Windows
+    desc: |
+      Cross-platform: Uses Taskfile {{OS}} built-in instead of uname
+      - On Windows: Native build (no cross-compiler needed)
+      - On Linux: Cross-compile using MinGW
     internal: true
     silent: true
     cmds:
+      # Cross-platform platform detection using Taskfile {{OS}} built-in
       - |
-        HOST_UNAME=$(uname -s | tr '[:upper:]' '[:lower:]')
-        GOOS="windows"
-        CC=""
-        CXX=""
-        REQUIRES_HOST=""
-
-        if [[ "$HOST_UNAME" == "linux" ]]; then
-          # Cross-compile from Linux using MinGW
-          CC="x86_64-w64-mingw32-gcc"
-          CXX="x86_64-w64-mingw32-g++"
-          REQUIRES_HOST="linux-mingw"
-        elif [[ "$HOST_UNAME" == *mingw* || "$HOST_UNAME" == *msys* || "$HOST_UNAME" == *cygwin* || "$HOST_UNAME" == *windows* ]]; then
-          # Native Windows build
-          GOOS=""
-          REQUIRES_HOST="windows"
-        fi
-
-        cat <<EOF
+        {{if eq OS "linux"}}
+        cat <<'EOF'
         {
-          "goos": "$GOOS",
+          "goos": "windows",
           "goarch": "amd64",
           "use_webkit41": false,
           "output_suffix": ".exe",
-          "requires_host": "$REQUIRES_HOST",
-          "cc": "$CC",
-          "cxx": "$CXX"
+          "requires_host": "linux-mingw",
+          "cc": "x86_64-w64-mingw32-gcc",
+          "cxx": "x86_64-w64-mingw32-g++"
         }
         EOF
+        {{else if eq OS "windows"}}
+        echo {
+        echo   "goos": "",
+        echo   "goarch": "amd64",
+        echo   "use_webkit41": false,
+        echo   "output_suffix": ".exe",
+        echo   "requires_host": "windows",
+        echo   "cc": "",
+        echo   "cxx": ""
+        echo }
+        {{else}}
+        echo "Error: Windows builds must run on Windows or Linux (with MinGW)" >&2
+        exit 1
+        {{end}}
 
   config:macos:
     summary: Get build config for macOS
@@ -123,21 +126,28 @@ tasks:
 
   verify:windows:
     summary: Verify we're on Windows or have MinGW (for Windows builds)
+    desc: |
+      Cross-platform: Uses Taskfile {{OS}} built-in instead of uname
+      - On Windows: Always passes (native build)
+      - On Linux: Checks for MinGW cross-compiler
+      - On other platforms: Fails with error message
     internal: true
     cmds:
+      # Cross-platform platform detection using Taskfile {{OS}} built-in
       - |
-        HOST_UNAME=$(uname -s | tr '[:upper:]' '[:lower:]')
-        if [[ "$HOST_UNAME" == "linux" ]]; then
-          # Check for MinGW on Linux
-          if ! command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
-            echo "Windows cross-compilation on Linux requires MinGW (x86_64-w64-mingw32-gcc)" >&2
-            echo "Install: sudo apt-get install -y mingw-w64" >&2
-            exit 1
-          fi
-        elif [[ "$HOST_UNAME" != *mingw* && "$HOST_UNAME" != *msys* && "$HOST_UNAME" != *cygwin* && "$HOST_UNAME" != *windows* ]]; then
-          echo "Windows builds must run on Windows or Linux (with MinGW)" >&2
+        {{if eq OS "linux"}}
+        # Check for MinGW on Linux using 'which' (more portable than 'command -v')
+        if ! which x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
+          echo "Windows cross-compilation on Linux requires MinGW (x86_64-w64-mingw32-gcc)" >&2
+          echo "Install: sudo apt-get install -y mingw-w64" >&2
           exit 1
         fi
+        {{else if eq OS "windows"}}
+        REM Native Windows build - no verification needed
+        {{else}}
+        echo "Windows builds must run on Windows or Linux (with MinGW)" >&2
+        exit 1
+        {{end}}
 
   # ============================================================================
   # MinGW Setup (for cross-compiling Windows on Linux)
@@ -145,15 +155,23 @@ tasks:
 
   ensure:mingw:
     summary: Ensure MinGW is installed (for Windows cross-compile on Linux)
+    desc: |
+      Cross-platform: Uses Taskfile {{OS}} built-in
+      - On Linux: Checks for MinGW and installs via apt-get if missing
+      - On Windows: Not needed (native build)
+      - Uses 'which' instead of 'command -v' for better portability
     internal: true
     cmds:
+      # MinGW is only needed on Linux for cross-compilation
       - |
-        if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1 && command -v x86_64-w64-mingw32-g++ >/dev/null 2>&1; then
+        {{if eq OS "linux"}}
+        # Use 'which' instead of 'command -v' for better portability
+        if which x86_64-w64-mingw32-gcc >/dev/null 2>&1 && which x86_64-w64-mingw32-g++ >/dev/null 2>&1; then
           echo "MinGW already installed"
           exit 0
         fi
 
-        if command -v apt-get >/dev/null 2>&1; then
+        if which apt-get >/dev/null 2>&1; then
           echo "Installing MinGW toolchain (mingw-w64)..."
           sudo apt-get update
           sudo apt-get install -y mingw-w64
@@ -162,6 +180,12 @@ tasks:
           echo "Please install MinGW manually: x86_64-w64-mingw32-gcc, x86_64-w64-mingw32-g++" >&2
           exit 1
         fi
+        {{else if eq OS "windows"}}
+        echo "MinGW not needed on Windows (native build)"
+        {{else}}
+        echo "MinGW cross-compilation is only supported on Linux" >&2
+        exit 1
+        {{end}}
 
   # ============================================================================
   # Build Tag Generation
