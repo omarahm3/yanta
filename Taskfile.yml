@@ -68,18 +68,31 @@ tasks:
   # ============================================================================
 
   frontend:install:
-    summary: Install frontend dependencies
+    summary: Install frontend dependencies (cross-platform)
+    desc: |
+      Installs frontend npm dependencies. Uses 'npm ci' for clean installs in CI
+      environments or when FORCE_CI_INSTALL=1, otherwise uses 'npm install'.
+      Cross-platform: Works in both Windows PowerShell and Unix shells.
     dir: frontend
     silent: true
+    deps:
+      - common:ensure:npm
     vars:
+      # FORCE_CI_INSTALL can be set to "1" to force npm ci (e.g., in install-tools)
       FORCE_CI_INSTALL: '{{.FORCE_CI_INSTALL | default "0"}}'
     cmds:
+      # Cross-platform: PowerShell on Windows, POSIX shell on Unix
+      # Uses npm ci when FORCE_CI_INSTALL=1 or CI=true, otherwise npm install
       - |
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command "if ('{{.FORCE_CI_INSTALL}}' -eq '1' -or $env:CI -eq 'true') { npm ci } else { npm install }"
+        {{else}}
         if [ "{{.FORCE_CI_INSTALL}}" = "1" ] || [ "${CI:-}" = "true" ]; then
           npm ci
         else
           npm install
         fi
+        {{end}}
 
   frontend:build:
     label: "build:frontend (PRODUCTION={{.PRODUCTION}})"
