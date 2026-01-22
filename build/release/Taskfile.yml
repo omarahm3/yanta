@@ -461,7 +461,7 @@ tasks:
 
   all:darwin:
     summary: Build all macOS releases
-    desc: macOS-only task (note: uses 'darwin' to match {{OS}})
+    desc: "macOS-only task (note: uses 'darwin' to match {{OS}})"
     platforms: [darwin]
     cmds:
       - task: macos
