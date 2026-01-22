@@ -296,29 +296,75 @@ tasks:
       - task: common:version:get
 
   info:
-    summary: Show build information
-    vars:
-      VERSION:
-        sh: git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || git rev-parse --short HEAD 2>/dev/null | sed 's/^/dev-/' || echo "unknown"
-      COMMIT:
-        sh: git rev-parse --short HEAD 2>/dev/null || echo "unknown"
-      PLATFORM:
-        sh: uname -s 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo "unknown"
+    summary: Show build information (cross-platform)
+    desc: |
+      Displays build system information including app name, version, commit hash,
+      and platform. Cross-platform: Works in both Windows PowerShell and Unix shells.
+      Uses Taskfile {{OS}} for platform detection instead of uname.
+    silent: true
     cmds:
+      # Cross-platform: PowerShell on Windows, POSIX shell on Unix
+      # Uses Taskfile {{OS}} for platform and git commands for version/commit
       - |
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command @"
+        `$ErrorActionPreference = 'SilentlyContinue'
+
+        # Get version: YANTA_VERSION > git tag > dev-commit
+        `$commit = (git rev-parse --short HEAD 2>`$null)
+        if (-not `$commit) { `$commit = 'unknown' }
+
+        `$version = `$env:YANTA_VERSION
+        if (-not `$version) {
+          `$tag = (git describe --tags --abbrev=0 2>`$null)
+          if (`$tag) {
+            `$version = `$tag -replace '^v', ''
+          } else {
+            `$version = "dev-`$commit"
+          }
+        }
+
+        Write-Host 'Yanta Build System'
+        Write-Host '=================='
+        Write-Host ''
+        Write-Host "App Name:     {{.APP_NAME}}"
+        Write-Host "Version:      `$version"
+        Write-Host "Commit:       `$commit"
+        Write-Host 'Platform:     {{OS}}'
+        Write-Host ''
+        Write-Host 'Directories:'
+        Write-Host "  Binary:     {{.BIN_DIR}}"
+        Write-Host "  Dist:       {{.DIST_DIR}}"
+        Write-Host ''
+        Write-Host "Use 'task --list' to see all available commands"
+        "@
+        {{else}}
+        # Get commit hash
+        COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+
+        # Get version: YANTA_VERSION > git tag > dev-commit
+        if [ -n "${YANTA_VERSION:-}" ]; then
+          VERSION="${YANTA_VERSION}"
+        elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
+          VERSION="${VERSION_TAG#v}"
+        else
+          VERSION="dev-${COMMIT}"
+        fi
+
         echo "Yanta Build System"
         echo "=================="
         echo ""
         echo "App Name:     {{.APP_NAME}}"
-        echo "Version:      {{.VERSION}}"
-        echo "Commit:       {{.COMMIT}}"
-        echo "Platform:     {{.PLATFORM}}"
+        echo "Version:      ${VERSION}"
+        echo "Commit:       ${COMMIT}"
+        echo "Platform:     {{OS}}"
         echo ""
         echo "Directories:"
         echo "  Binary:     {{.BIN_DIR}}"
         echo "  Dist:       {{.DIST_DIR}}"
         echo ""
         echo "Use 'task --list' to see all available commands"
+        {{end}}
 
   # ============================================================================
   # CI-specific Commands
