@@ -18,7 +18,7 @@ tasks:
     cmds:
       - |
         COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-        if [[ -n "${YANTA_VERSION:-}" ]]; then
+        if [ -n "${YANTA_VERSION:-}" ]; then
           echo "${YANTA_VERSION}"
         elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
           echo "${VERSION_TAG#v}"
@@ -141,23 +141,25 @@ tasks:
         HOST_UNAME=$(uname -s | tr '[:upper:]' '[:lower:]')
         case "{{.REQUIRED}}" in
           darwin)
-            if [[ "$HOST_UNAME" != "darwin" ]]; then
+            if [ "$HOST_UNAME" != "darwin" ]; then
               echo "This target must be built on macOS (current host: $HOST_UNAME)" >&2
               exit 1
             fi
             ;;
           linux)
-            if [[ "$HOST_UNAME" != "linux" ]]; then
+            if [ "$HOST_UNAME" != "linux" ]; then
               echo "This target must be built on Linux (current host: $HOST_UNAME)" >&2
               exit 1
             fi
             ;;
           windows)
-            if [[ "$HOST_UNAME" != *"mingw"* ]] && [[ "$HOST_UNAME" != *"msys"* ]] && \
-               [[ "$HOST_UNAME" != *"cygwin"* ]] && [[ "$HOST_UNAME" != *"windows"* ]]; then
-              echo "This target must be built on Windows (current host: $HOST_UNAME)" >&2
-              exit 1
-            fi
+            case "$HOST_UNAME" in
+              *mingw*|*msys*|*cygwin*|*windows*) ;;  # Valid Windows environment
+              *)
+                echo "This target must be built on Windows (current host: $HOST_UNAME)" >&2
+                exit 1
+                ;;
+            esac
             ;;
         esac
 
