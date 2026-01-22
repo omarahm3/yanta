@@ -24,7 +24,7 @@ includes:
 
 vars:
   APP_NAME: "yanta"
-  DEV_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
+  DEV_PORT: '{{.WAILS_VITE_PORT | default 34115}}'
   DIST_DIR: '{{.DIST_DIR | default "build/dist"}}'
   BIN_DIR: 'build/bin'
 

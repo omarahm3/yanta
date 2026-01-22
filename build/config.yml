@@ -16,6 +16,7 @@ dev_mode:
   root_path: .
   log_level: warn
   debounce: 1000
+  frontend_dev_server_url: "http://localhost:34115"
   ignore:
     dir:
       - .git

@@ -130,10 +130,13 @@ tasks:
   dev:frontend:
     summary: Run frontend dev server (Vite)
     silent: true
+    dir: "{{.ROOT_DIR}}/frontend"
     deps:
       - common:ensure:npm
+    env:
+      WAILS_VITE_PORT: '{{.WAILS_VITE_PORT | default "34115"}}'
     cmds:
-      - cd {{.ROOT_DIR}}/frontend && WAILS_VITE_PORT={{.WAILS_VITE_PORT | default "9245"}} npm run dev
+      - npm run dev
 
   # ============================================================================
   # Go Build (Core Build Logic)

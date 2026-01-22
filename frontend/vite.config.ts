@@ -17,7 +17,7 @@ export default defineConfig({
   ],
 
   server: {
-    port: Number(process.env.WAILS_VITE_PORT) || 9245,
+    port: Number(process.env.WAILS_VITE_PORT) || 34115,
     strictPort: true,
   },
 
