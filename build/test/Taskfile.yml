@@ -6,6 +6,7 @@ version: '3'
 
 includes:
   common: ../common/Taskfile.yml
+  build: ../Taskfile.yml
 
 vars:
   COVERAGE_OUT: 'coverage.out'
@@ -169,34 +170,9 @@ tasks:
     summary: Generate TypeScript bindings (cross-platform)
     internal: true
     silent: true
-    deps:
-      - common:ensure:wails
-    env:
-      # Pass variables to PowerShell script via environment
-      GO_CACHE_DIR: '{{.GO_CACHE_DIR}}'
     cmds:
-      - task: common:dir:ensure
-        vars:
-          DIR: '{{.GO_CACHE_DIR}}'
-      # Cross-platform: Generate bindings with wails3
-      # Windows: Uses external .ps1 script to avoid cmd.exe $ stripping
-      # Unix: Uses inline POSIX-compatible shell
-      - |
-        {{if eq OS "windows"}}
-        powershell -NoProfile -ExecutionPolicy Bypass -File build/scripts/generate-bindings.ps1
-        {{else}}
-        cd "{{.ROOT_DIR}}"
-        if [ "${SKIP_WAILS_BINDINGS:-0}" = "1" ]; then
-          echo "Skipping binding generation (SKIP_WAILS_BINDINGS=1)"
-        else
-          GO_CACHE_DIR="{{.GO_CACHE_DIR}}"
-          case "$GO_CACHE_DIR" in
-            /*) ;;
-            *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;;
-          esac
-          GOCACHE="$GO_CACHE_DIR" GOFLAGS="" wails3 generate bindings -clean=true -ts
-        fi
-        {{end}}
+      # Use the canonical bindings task from build/Taskfile.yml to avoid duplication
+      - task: build:generate:bindings
 
   # ============================================================================
   # Linting
