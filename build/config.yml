@@ -12,6 +12,7 @@ info:
   version: "1.0.0"
 
 # Dev mode configuration
+# Schema reference: https://v3alpha.wails.io/learn/build/
 dev_mode:
   root_path: .
   log_level: warn
@@ -32,11 +33,13 @@ dev_mode:
       - coverage.out
       - coverage.html
       - "*.log"
-    watched_extension:
-      - "*.go"
-      - "*.js"
-      - "*.ts"
-    git_ignore: true
+  # watched_extension and git_ignore are at dev_mode level, not inside ignore
+  watched_extension:
+    - "*.go"
+    - "*.js"
+    - "*.ts"
+  git_ignore: true
+  # Execute types: once, blocking, background, primary
   executes:
     - cmd: wails3 task build
       type: blocking
