@@ -226,14 +226,17 @@ tasks:
 
   run:
     summary: Run the last built binary (builds first if needed)
+    desc: |
+      Executes the built application binary for the current platform.
+      Cross-platform: Automatically uses .exe extension on Windows.
+      Uses Taskfile {{OS}} for platform detection instead of bash environment variables.
     silent: true
+    vars:
+      # Cross-platform executable extension
+      EXE_EXT: '{{if eq OS "windows"}}.exe{{else}}{{end}}'
     cmds:
-      - |
-        if [ "${OS:-}" = "Windows_NT" ]; then
-          ./{{.BIN_DIR}}/{{.APP_NAME}}.exe
-        else
-          ./{{.BIN_DIR}}/{{.APP_NAME}}
-        fi
+      # Cross-platform: Uses Taskfile template for correct binary path
+      - ./{{.BIN_DIR}}/{{.APP_NAME}}{{.EXE_EXT}}
 
   package:
     summary: Build release artifacts for current platform
