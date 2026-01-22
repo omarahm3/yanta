@@ -1,5 +1,9 @@
 version: '3'
 
+# Linux-specific build tasks for YANTA
+# These tasks are platform-restricted to prevent accidental execution on Windows
+# Use build/windows/Taskfile.yml for Windows builds
+
 includes:
   root: ../Taskfile.yml
 
@@ -9,6 +13,8 @@ vars:
 tasks:
   build:
     summary: Build Linux binary
+    desc: Build native Linux binary (Linux only)
+    platforms: [linux]
     cmds:
       - task: root:build
         vars:
@@ -16,6 +22,8 @@ tasks:
 
   package:
     summary: Build Linux artifacts (tarball + Arch pkg)
+    desc: Package Linux release artifacts (Linux only)
+    platforms: [linux]
     cmds:
       - task: root:build
         vars:
@@ -23,6 +31,8 @@ tasks:
 
   run:
     summary: Run the Linux build output
+    desc: Run the built Linux binary (Linux only)
+    platforms: [linux]
     deps:
       - build
     cmds:
