@@ -68,35 +68,81 @@ tasks:
 
   generate:syso:
     label: "generate:syso"
-    summary: Generate Windows resource file (.syso) with embedded icon
+    summary: Generate Windows resource file (.syso) with embedded icon (cross-platform)
     deps:
       - common:ensure:go
     sources:
       - "./windows/icon.ico"
     generates:
       - "../rsrc_windows_windows_amd64.syso"
+    vars:
+      # Get version from env, git tag, or default to 1.0.0
+      # Cross-platform: Uses Taskfile template syntax instead of bash variable expansion
+      VERSION: '{{.YANTA_VERSION | default ""}}'
     cmds:
+      # Log start message
+      - task: common:log:info
+        vars:
+          MSG: "Generating Windows resource file (.syso)..."
+      # Ensure go-winres is installed (cross-platform)
       - |
-        set -euo pipefail
-
-        # Ensure go-winres is installed
-        if ! command -v go-winres >/dev/null 2>&1; then
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command "if (-not (Get-Command 'go-winres' -ErrorAction SilentlyContinue)) { Write-Host 'Installing go-winres...'; go install github.com/tc-hib/go-winres@latest }"
+        {{else}}
+        if ! which go-winres >/dev/null 2>&1; then
           echo "Installing go-winres..."
           go install github.com/tc-hib/go-winres@latest
         fi
+        {{end}}
+      # Get version and generate .syso file (cross-platform)
+      - |
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command @'
+          # Get version from environment, git tag, or default
+          $Version = $env:YANTA_VERSION
+          if (-not $Version) {
+            try {
+              $VersionTag = git describe --tags --abbrev=0 2>$null
+              if ($VersionTag) {
+                $Version = $VersionTag -replace '^v', ''
+              }
+            } catch {}
+          }
+          if (-not $Version) {
+            $Version = "1.0.0"
+          }
+          Write-Host "Generating Windows resources (version: $Version)..."
 
-        # Get version
-        if [[ -n "${YANTA_VERSION:-}" ]]; then
-          VERSION="${YANTA_VERSION}"
-        elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
-          VERSION="${VERSION_TAG#v}"
-        else
+          # Generate .syso file with embedded icon using go-winres
+          go-winres simply `
+            --icon build/windows/icon.ico `
+            --out rsrc_windows `
+            --arch amd64 `
+            --manifest gui `
+            --product-name "YANTA" `
+            --file-description "YANTA - Yet Another Note Taking App" `
+            --copyright "Copyright (c) 2024-2025 Omar Ahmed" `
+            --original-filename "yanta.exe" `
+            --product-version $Version `
+            --file-version $Version
+
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        '@
+        {{else}}
+        # Get version from environment, git tag, or default
+        VERSION="${YANTA_VERSION:-}"
+        if [ -z "$VERSION" ]; then
+          VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null) || true
+          if [ -n "$VERSION_TAG" ]; then
+            VERSION="${VERSION_TAG#v}"
+          fi
+        fi
+        if [ -z "$VERSION" ]; then
           VERSION="1.0.0"
         fi
-
         echo "Generating Windows resources (version: $VERSION)..."
 
-        # Generate .syso file with embedded icon using go-winres simply
+        # Generate .syso file with embedded icon using go-winres
         go-winres simply \
           --icon build/windows/icon.ico \
           --out rsrc_windows \
@@ -108,8 +154,11 @@ tasks:
           --original-filename "yanta.exe" \
           --product-version "$VERSION" \
           --file-version "$VERSION"
-
-        echo "✓ Windows resources generated: rsrc_windows_windows_amd64.syso"
+        {{end}}
+      # Log success message
+      - task: common:log:success
+        vars:
+          MSG: "Windows resources generated: rsrc_windows_windows_amd64.syso"
 
   generate:bindings:
     label: "generate:bindings"
