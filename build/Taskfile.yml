@@ -234,14 +234,30 @@ tasks:
   # ============================================================================
 
   dev:frontend:
-    summary: Run frontend dev server (Vite)
+    label: "dev:frontend"
+    summary: Run frontend dev server (Vite) with configurable port (cross-platform)
+    desc: |
+      Cross-platform: Uses env: directive to pass WAILS_VITE_PORT
+      - Default port: 34115
+      - Override with WAILS_VITE_PORT environment variable
+      - Uses Taskfile dir: directive for working directory
     silent: true
     dir: "{{.ROOT_DIR}}/frontend"
     deps:
       - common:ensure:npm
+      - common:ensure:node
+    vars:
+      # Cross-platform: Use Taskfile template syntax for default port
+      DEV_PORT: '{{.WAILS_VITE_PORT | default "34115"}}'
     env:
-      WAILS_VITE_PORT: '{{.WAILS_VITE_PORT | default "34115"}}'
+      # Cross-platform: env: directive properly passes environment variable to npm
+      WAILS_VITE_PORT: '{{.DEV_PORT}}'
     cmds:
+      # Log the port being used
+      - task: common:log:info
+        vars:
+          MSG: "Starting frontend dev server on port {{.DEV_PORT}}..."
+      # Cross-platform: npm run dev works natively on all platforms
       - npm run dev
 
   # ============================================================================
