@@ -62,13 +62,6 @@ jobs:
     - name: Run backend tests
       run: task test:backend
 
-    - name: Upload coverage
-      uses: codecov/codecov-action@v5
-      with:
-        files: ./coverage.out
-        flags: backend
-      continue-on-error: true
-
   test-frontend:
     name: Test Frontend
     runs-on: ubuntu-latest
