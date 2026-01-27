@@ -2,6 +2,7 @@ version: '3'
 
 # Release artifact generation for all platforms
 # Centralizes all release logic in one place
+# Cross-platform: Uses Taskfile {{OS}} conditionals instead of bash-only constructs
 
 includes:
   common: ../common/Taskfile.yml
@@ -14,454 +15,439 @@ vars:
 
 tasks:
   # ============================================================================
-  # Linux Releases
+  # Linux Releases (Linux-only - bash commands are appropriate)
   # ============================================================================
 
   linux:
     summary: Build all Linux release artifacts (tarball + Arch package)
+    desc: |
+      Linux-only task: Uses native bash commands
+      Builds tarball and Arch Linux package
     deps:
-      - platform:verify:linux
+    - platform:verify:linux
     cmds:
-      - task: common:log:section
-        vars:
-          MSG: "Building Linux Release Artifacts"
-      - task: linux:build
-      - task: linux:package:tarball
-      - task: linux:package:archlinux
-      - task: linux:verify
-      - task: common:log:success
-        vars:
-          MSG: "Linux artifacts ready under {{.DIST_DIR}}"
+    - task: common:log:section
+      vars:
+        MSG: "Building Linux Release Artifacts"
+    - task: linux:build
+    - task: linux:package:tarball
+    - task: linux:package:archlinux
+    - task: linux:verify
+    - task: common:log:success
+      vars:
+        MSG: "Linux artifacts ready under {{.DIST_DIR}}"
 
   linux:build:
     summary: Build Linux binary (internal)
     internal: true
     cmds:
-      - task: :build
-        vars:
-          TARGET: ubuntu
-          PRODUCTION: "true"
+    - task: :build
+      vars:
+        TARGET: ubuntu
+        PRODUCTION: "true"
 
   linux:package:tarball:
     summary: Create Linux tarball (internal)
+    desc: Linux-only task - uses native bash commands
     internal: true
     cmds:
-      - |
-        set -euo pipefail
-        mkdir -p {{.DIST_DIR}}
-        tar -C {{.BIN_DIR}} -czf "{{.DIST_DIR}}/yanta-linux.tar.gz" {{.APP_NAME}}
-        echo "✓ Linux tarball created: yanta-linux.tar.gz"
+    - task: common:dir:ensure
+      vars:
+        DIR: '{{.DIST_DIR}}'
+    - |
+      set -euo pipefail
+      tar -C {{.BIN_DIR}} -czf "{{.DIST_DIR}}/yanta-linux.tar.gz" {{.APP_NAME}}
+      echo "Linux tarball created: yanta-linux.tar.gz"
 
   linux:package:archlinux:
     summary: Generate Arch Linux package using nfpm (internal)
+    desc: Linux-only task - uses native bash commands
     internal: true
     deps:
-      - common:ensure:wails
+    - common:ensure:wails
     cmds:
-      - |
-        set -euo pipefail
-        cd {{.ROOT_DIR}}
+    - task: common:dir:ensure
+      vars:
+        DIR: '{{.DIST_DIR}}'
+    - |
+      set -euo pipefail
+      cd {{.ROOT_DIR}}
 
-        # Get version
-        COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-        if [[ -n "${YANTA_VERSION:-}" ]]; then
-          VERSION="${YANTA_VERSION}"
-        elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
-          VERSION="${VERSION_TAG#v}"
-        else
-          VERSION="dev-${COMMIT}"
-        fi
+      # Get version using common pattern
+      COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+      if [ -n "${YANTA_VERSION:-}" ]; then
+        VERSION="${YANTA_VERSION}"
+      elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
+        VERSION="${VERSION_TAG#v}"
+      else
+        VERSION="dev-${COMMIT}"
+      fi
 
-        export YANTA_VERSION="$VERSION"
-        export GOARCH="amd64"
+      export YANTA_VERSION="$VERSION"
+      export GOARCH="amd64"
 
-        mkdir -p {{.DIST_DIR}}
+      echo "Generating Arch Linux package (version: $VERSION)..."
+      wails3 tool package \
+        -config ./build/linux/nfpm/nfpm.yaml \
+        -format archlinux \
+        -name yanta \
+        -out {{.DIST_DIR}}
 
-        echo "Generating Arch Linux package (version: $VERSION)..."
-        wails3 tool package \
-          -config ./build/linux/nfpm/nfpm.yaml \
-          -format archlinux \
-          -name yanta \
-          -out {{.DIST_DIR}}
+      # Rename to versioned filename
+      mv {{.DIST_DIR}}/yanta.pkg.tar.zst {{.DIST_DIR}}/yanta-${VERSION}-1-x86_64.pkg.tar.zst
 
-        # Rename to versioned filename
-        mv {{.DIST_DIR}}/yanta.pkg.tar.zst {{.DIST_DIR}}/yanta-${VERSION}-1-x86_64.pkg.tar.zst
-
-        echo "✓ Arch package: yanta-${VERSION}-1-x86_64.pkg.tar.zst"
+      echo "Arch package: yanta-${VERSION}-1-x86_64.pkg.tar.zst"
 
   linux:verify:
     summary: Verify Linux artifacts exist
+    desc: Linux-only task - uses native bash commands
     internal: true
     cmds:
-      - task: common:file:verify-dir
-        vars:
-          DIR: '{{.DIST_DIR}}'
-          MSG: "Distribution directory not found"
-      - |
-        set -euo pipefail
+    - task: common:file:verify-dir
+      vars:
+        DIR: '{{.DIST_DIR}}'
+        MSG: "Distribution directory not found"
+    - |
+      set -euo pipefail
 
-        # Get version
-        COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-        if [[ -n "${YANTA_VERSION:-}" ]]; then
-          VERSION="${YANTA_VERSION}"
-        elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
-          VERSION="${VERSION_TAG#v}"
-        else
-          VERSION="dev-${COMMIT}"
-        fi
+      # Get version
+      COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+      if [ -n "${YANTA_VERSION:-}" ]; then
+        VERSION="${YANTA_VERSION}"
+      elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
+        VERSION="${VERSION_TAG#v}"
+      else
+        VERSION="dev-${COMMIT}"
+      fi
 
-        ARCH_PKG="{{.DIST_DIR}}/yanta-${VERSION}-1-x86_64.pkg.tar.zst"
+      ARCH_PKG="{{.DIST_DIR}}/yanta-${VERSION}-1-x86_64.pkg.tar.zst"
 
-        if [ ! -f "$ARCH_PKG" ]; then
-          echo "ERROR: Arch package not found: $ARCH_PKG" >&2
-          exit 1
-        fi
+      if [ ! -f "$ARCH_PKG" ]; then
+        echo "ERROR: Arch package not found: $ARCH_PKG" >&2
+        exit 1
+      fi
 
-        echo "✓ Arch package verified: $(basename $ARCH_PKG)"
+      echo "Arch package verified: $(basename $ARCH_PKG)"
 
   # ============================================================================
-  # Ubuntu/Debian Release
+  # Ubuntu/Debian Release (Linux-only - bash commands are appropriate)
   # ============================================================================
 
   ubuntu:
     summary: Build Ubuntu/Debian .deb package
+    desc: Linux-only task - uses native bash commands
     deps:
-      - platform:verify:linux
+    - platform:verify:linux
     cmds:
-      - task: common:log:section
-        vars:
-          MSG: "Building Debian Package"
-      - task: ubuntu:build
-      - task: ubuntu:package
-      - task: ubuntu:verify
-      - task: common:log:success
-        vars:
-          MSG: "Debian package created successfully"
+    - task: common:log:section
+      vars:
+        MSG: "Building Debian Package"
+    - task: ubuntu:build
+    - task: ubuntu:package
+    - task: ubuntu:verify
+    - task: common:log:success
+      vars:
+        MSG: "Debian package created successfully"
 
   ubuntu:build:
     summary: Build Ubuntu binary (internal)
     internal: true
     cmds:
-      - task: :build
-        vars:
-          TARGET: ubuntu
-          PRODUCTION: "true"
+    - task: :build
+      vars:
+        TARGET: ubuntu
+        PRODUCTION: "true"
 
   ubuntu:package:
     summary: Generate Debian package using nfpm (internal)
+    desc: Linux-only task - uses native bash commands
     internal: true
     deps:
-      - common:ensure:wails
+    - common:ensure:wails
     cmds:
-      - |
-        set -euo pipefail
-        cd {{.ROOT_DIR}}
+    - task: common:dir:ensure
+      vars:
+        DIR: '{{.DIST_DIR}}'
+    - |
+      set -euo pipefail
+      cd {{.ROOT_DIR}}
 
-        # Get version
-        COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-        if [[ -n "${YANTA_VERSION:-}" ]]; then
-          VERSION="${YANTA_VERSION}"
-        elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
-          VERSION="${VERSION_TAG#v}"
-        else
-          VERSION="dev-${COMMIT}"
-        fi
+      # Get version
+      COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+      if [ -n "${YANTA_VERSION:-}" ]; then
+        VERSION="${YANTA_VERSION}"
+      elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
+        VERSION="${VERSION_TAG#v}"
+      else
+        VERSION="dev-${COMMIT}"
+      fi
 
-        export YANTA_VERSION="$VERSION"
-        export GOARCH="amd64"
+      export YANTA_VERSION="$VERSION"
+      export GOARCH="amd64"
 
-        mkdir -p {{.DIST_DIR}}
+      echo "Generating Debian package (version: $VERSION)..."
+      wails3 tool package \
+        -config ./build/linux/nfpm/nfpm.yaml \
+        -format deb \
+        -name yanta \
+        -out {{.DIST_DIR}}
 
-        echo "Generating Debian package (version: $VERSION)..."
-        wails3 tool package \
-          -config ./build/linux/nfpm/nfpm.yaml \
-          -format deb \
-          -name yanta \
-          -out {{.DIST_DIR}}
+      # Rename to versioned filename
+      mv {{.DIST_DIR}}/yanta.deb {{.DIST_DIR}}/yanta_${VERSION}_amd64.deb
 
-        # Rename to versioned filename
-        mv {{.DIST_DIR}}/yanta.deb {{.DIST_DIR}}/yanta_${VERSION}_amd64.deb
-
-        echo "✓ Debian package: yanta_${VERSION}_amd64.deb"
+      echo "Debian package: yanta_${VERSION}_amd64.deb"
 
   ubuntu:verify:
     summary: Verify Debian package exists
+    desc: Linux-only task - uses native bash commands
     internal: true
     cmds:
-      - |
-        set -euo pipefail
+    - |
+      set -euo pipefail
 
-        # Get version
-        COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-        if [[ -n "${YANTA_VERSION:-}" ]]; then
-          VERSION="${YANTA_VERSION}"
-        elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
-          VERSION="${VERSION_TAG#v}"
-        else
-          VERSION="dev-${COMMIT}"
-        fi
+      # Get version
+      COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+      if [ -n "${YANTA_VERSION:-}" ]; then
+        VERSION="${YANTA_VERSION}"
+      elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
+        VERSION="${VERSION_TAG#v}"
+      else
+        VERSION="dev-${COMMIT}"
+      fi
 
-        DEB_FILE="{{.DIST_DIR}}/yanta_${VERSION}_amd64.deb"
+      DEB_FILE="{{.DIST_DIR}}/yanta_${VERSION}_amd64.deb"
 
-        if [ ! -f "$DEB_FILE" ]; then
-          echo "ERROR: Expected Debian package not found: $DEB_FILE" >&2
-          exit 1
-        fi
+      if [ ! -f "$DEB_FILE" ]; then
+        echo "ERROR: Expected Debian package not found: $DEB_FILE" >&2
+        exit 1
+      fi
 
-        echo "✓ Debian package verified: $DEB_FILE"
+      echo "Debian package verified: $DEB_FILE"
 
   # ============================================================================
-  # Windows Release
+  # Windows Release (Cross-platform: Windows native + Linux cross-compile)
   # ============================================================================
 
   windows:
     summary: Build Windows release artifacts (portable + installer)
+    desc: |
+      Cross-platform: Uses Taskfile {{OS}} conditional
+      - On Windows: Native build with installer
+      - On Linux: Cross-compile (portable only, no installer)
     deps:
-      - platform:verify:windows
+    - platform:verify:windows
     cmds:
-      - task: common:log:section
-        vars:
-          MSG: "Building Windows Release Artifacts"
-      - task: windows:build
-      - task: windows:package
-      - task: windows:verify
-      - task: common:log:success
-        vars:
-          MSG: "Windows artifacts ready under {{.DIST_DIR}}"
+    - task: common:log:section
+      vars:
+        MSG: "Building Windows Release Artifacts"
+    - task: windows:build
+    - task: windows:package
+    - task: windows:verify
+    - task: common:log:success
+      vars:
+        MSG: "Windows artifacts ready under {{.DIST_DIR}}"
 
   windows:build:
     summary: Build Windows binary (internal)
     internal: true
     cmds:
-      - task: :build
-        vars:
-          TARGET: win
-          PRODUCTION: "true"
+    - task: :build
+      vars:
+        TARGET: win
+        PRODUCTION: "true"
 
   windows:package:
     summary: Package Windows artifacts (internal)
+    desc: |
+      Cross-platform: Uses Taskfile {{OS}} conditional
+      - On Windows: Uses PowerShell script file for file operations
+      - On Linux: Uses bash for cross-compile packaging
     internal: true
     cmds:
-      - task: common:dir:clean
-        vars:
-          DIR: '{{.DIST_DIR}}'
-      - |
-        set -euo pipefail
-
-        HOST_UNAME=$(uname -s | tr '[:upper:]' '[:lower:]')
-        IS_CROSS_COMPILE=false
-        if [[ "$HOST_UNAME" == "linux" ]]; then
-          IS_CROSS_COMPILE=true
-        fi
-
-        # Copy portable exe
-        PORTABLE="{{.BIN_DIR}}/{{.APP_NAME}}.exe"
-        if [ ! -f "$PORTABLE" ]; then
-          echo "ERROR: Portable binary not found at $PORTABLE" >&2
-          exit 1
-        fi
-        cp "$PORTABLE" "{{.DIST_DIR}}/yanta-windows-portable.exe"
-        echo "✓ Copied portable exe"
-
-        # Find and copy installer (only available when building on Windows)
-        echo "Looking for installer in {{.BIN_DIR}}..."
-        INSTALLER=""
-        for f in {{.BIN_DIR}}/*installer*.exe; do
-          if [ -f "$f" ]; then
-            INSTALLER="$f"
-            break
-          fi
-        done
-        if [ -z "$INSTALLER" ]; then
-          if $IS_CROSS_COMPILE; then
-            echo "⚠ Installer not available (cross-compiling from Linux)"
-            echo "  To create the installer, run on Windows: task release:windows"
-          else
-            echo "ERROR: Could not locate NSIS installer output in {{.BIN_DIR}}" >&2
-            ls -la {{.BIN_DIR}}/ || true
-            exit 1
-          fi
-        else
-          cp "$INSTALLER" "{{.DIST_DIR}}/yanta-windows-installer.exe"
-          echo "✓ Copied installer exe"
-        fi
+    - task: common:dir:clean
+      vars:
+        DIR: '{{.DIST_DIR}}'
+    # Cross-platform: PowerShell script file on Windows (avoids cmd.exe parsing issues), bash on Unix
+    - '{{if eq OS "windows"}}powershell -NoProfile -ExecutionPolicy Bypass -File "{{.ROOT_DIR}}/build/scripts/windows-package.ps1" -BinDir "{{.BIN_DIR}}" -DistDir "{{.DIST_DIR}}" -AppName "{{.APP_NAME}}"{{else}}set -euo pipefail; BIN_DIR="{{.BIN_DIR}}"; DIST_DIR="{{.DIST_DIR}}"; APP_NAME="{{.APP_NAME}}"; PORTABLE="${BIN_DIR}/${APP_NAME}.exe"; if [ ! -f "$PORTABLE" ]; then echo "ERROR: Portable binary not found at $PORTABLE" >&2; exit 1; fi; cp "$PORTABLE" "${DIST_DIR}/yanta-windows-portable.exe"; echo "Copied portable exe"; echo "Installer not available (cross-compiling from Linux)"; echo "  To create the installer, run on Windows: task release:windows"{{end}}'
 
   windows:verify:
     summary: Verify Windows artifacts exist
+    desc: |
+      Cross-platform: Uses Taskfile {{OS}} conditional
+      - On Windows: Uses PowerShell for file checks
+      - On Linux: Uses bash (cross-compile mode)
     internal: true
     cmds:
-      - task: common:file:verify
-        vars:
-          FILE: '{{.DIST_DIR}}/yanta-windows-portable.exe'
-          MSG: "Windows portable exe not found"
-      - |
-        HOST_UNAME=$(uname -s | tr '[:upper:]' '[:lower:]')
-        INSTALLER="{{.DIST_DIR}}/yanta-windows-installer.exe"
-
-        if [ -f "$INSTALLER" ]; then
-          echo "✓ Windows installer verified"
-        elif [[ "$HOST_UNAME" == "linux" ]]; then
-          echo "⚠ Windows installer not available (cross-compiled from Linux)"
-        else
-          echo "ERROR: Windows installer exe not found" >&2
-          exit 1
-        fi
+    - task: common:file:verify
+      vars:
+        FILE: '{{.DIST_DIR}}/yanta-windows-portable.exe'
+        MSG: "Windows portable exe not found"
+    # Cross-platform: PowerShell wrapped for Windows, bash for Unix
+    - '{{if eq OS "windows"}}powershell -NoProfile -ExecutionPolicy Bypass -File "{{.ROOT_DIR}}/build/scripts/windows-verify-installer.ps1" -DistDir "{{.DIST_DIR}}"{{else}}INSTALLER="{{.DIST_DIR}}/yanta-windows-installer.exe"; if [ -f "$INSTALLER" ]; then echo "Windows installer verified"; else echo "Windows installer not available (cross-compiled from Linux)"; fi{{end}}'
 
   # ============================================================================
-  # macOS Release
+  # macOS Release (macOS-only - bash commands are appropriate)
   # ============================================================================
 
   macos:
     summary: Build macOS release tarball
+    desc: macOS-only task - uses native bash commands
     deps:
-      - platform:verify:macos
+    - platform:verify:macos
     cmds:
-      - task: common:log:section
-        vars:
-          MSG: "Building macOS Release Artifacts"
-      - task: macos:build
-      - task: macos:package
-      - task: macos:verify
-      - task: common:log:success
-        vars:
-          MSG: "macOS artifacts ready under {{.DIST_DIR}}"
+    - task: common:log:section
+      vars:
+        MSG: "Building macOS Release Artifacts"
+    - task: macos:build
+    - task: macos:package
+    - task: macos:verify
+    - task: common:log:success
+      vars:
+        MSG: "macOS artifacts ready under {{.DIST_DIR}}"
 
   macos:build:
     summary: Build macOS binary (internal)
     internal: true
     cmds:
-      - task: :build
-        vars:
-          TARGET: osx
-          PRODUCTION: "true"
+    - task: :build
+      vars:
+        TARGET: osx
+        PRODUCTION: "true"
 
   macos:package:
     summary: Package macOS app into tarball (internal)
+    desc: macOS-only task - uses native bash commands
     internal: true
     cmds:
-      - task: common:dir:clean
-        vars:
-          DIR: '{{.DIST_DIR}}'
-      - |
-        set -euo pipefail
+    - task: common:dir:clean
+      vars:
+        DIR: '{{.DIST_DIR}}'
+    - |
+      set -euo pipefail
 
-        if [ ! -d "{{.BIN_DIR}}/yanta.app" ]; then
-          echo "ERROR: yanta.app not found in {{.BIN_DIR}}" >&2
-          ls -la {{.BIN_DIR}}/ || true
-          exit 1
-        fi
+      if [ ! -d "{{.BIN_DIR}}/yanta.app" ]; then
+        echo "ERROR: yanta.app not found in {{.BIN_DIR}}" >&2
+        ls -la {{.BIN_DIR}}/ || true
+        exit 1
+      fi
 
-        tar -C {{.BIN_DIR}} -czf "{{.DIST_DIR}}/yanta-macos.tar.gz" yanta.app
-        echo "✓ Created macOS tarball"
+      tar -C {{.BIN_DIR}} -czf "{{.DIST_DIR}}/yanta-macos.tar.gz" yanta.app
+      echo "Created macOS tarball"
 
   macos:verify:
     summary: Verify macOS artifacts exist
+    desc: macOS-only task - uses native bash commands
     internal: true
     cmds:
-      - task: common:file:verify
-        vars:
-          FILE: '{{.DIST_DIR}}/yanta-macos.tar.gz'
-          MSG: "macOS tarball not found"
+    - task: common:file:verify
+      vars:
+        FILE: '{{.DIST_DIR}}/yanta-macos.tar.gz'
+        MSG: "macOS tarball not found"
 
   # ============================================================================
-  # Platform-aware "all" releases
+  # Platform-aware "all" releases (Cross-platform)
   # ============================================================================
 
   all:
     summary: Build all release artifacts supported on current host
+    desc: |
+      Cross-platform: Uses Taskfile {{OS}} conditional
+      Automatically detects platform and builds appropriate releases
     cmds:
-      - task: all:detect
+    - task: all:detect
 
   all:detect:
     summary: Detect platform and build appropriate releases
+    desc: |
+      Cross-platform: Uses Taskfile {{OS}} built-in instead of uname
+      - On Windows: Builds Windows release
+      - On Linux: Builds Linux + Ubuntu releases
+      - On macOS: Builds macOS release
     internal: true
     cmds:
-      - |
-        PLATFORM=$(task common:platform:detect)
-
-        case "$PLATFORM" in
-          linux)
-            echo "Detected Linux - building Linux + Ubuntu releases"
-            task release:all:linux
-            ;;
-          darwin)
-            echo "Detected macOS - building macOS release"
-            task release:all:macos
-            ;;
-          windows)
-            echo "Detected Windows - building Windows release"
-            task release:all:windows
-            ;;
-          *)
-            echo "Unknown platform: $PLATFORM" >&2
-            exit 1
-            ;;
-        esac
+    # Cross-platform: echo works in both cmd.exe and bash
+    - 'echo Detected {{OS}} - building release'
+    - task: all:{{OS}}
 
   all:linux:
     summary: Build all Linux releases (Linux + Ubuntu)
-    platforms: [linux]
+    desc: Linux-only task
+    platforms: [ linux ]
     cmds:
-      - task: linux
-      - task: ubuntu
+    - task: linux
+    - task: ubuntu
 
   all:windows:
     summary: Build all Windows releases
-    platforms: [windows]
+    desc: Windows-only task
+    platforms: [ windows ]
     cmds:
-      - task: windows
+    - task: windows
 
-  all:macos:
+  all:darwin:
     summary: Build all macOS releases
-    platforms: [darwin]
+    desc: "macOS-only task (note: uses 'darwin' to match {{OS}})"
+    platforms: [ darwin ]
     cmds:
-      - task: macos
+    - task: macos
 
   # ============================================================================
-  # Release verification and listing
+  # Release verification and listing (Cross-platform)
   # ============================================================================
 
   list:
     summary: List all generated release artifacts
+    desc: |
+      Cross-platform: Uses Taskfile {{OS}} conditional
+      - On Windows: Uses PowerShell Get-ChildItem (wrapped)
+      - On Unix: Uses ls command
     cmds:
-      - |
-        echo "Release artifacts in {{.DIST_DIR}}:"
-        echo ""
-        if [ -d "{{.DIST_DIR}}" ]; then
-          ls -lh {{.DIST_DIR}}/ 2>/dev/null || echo "No artifacts found"
-        else
-          echo "Distribution directory does not exist"
-        fi
+    # Cross-platform: PowerShell wrapped for Windows, bash for Unix
+    - '{{if eq OS "windows"}}powershell -NoProfile -Command "Write-Output ''Release artifacts in {{.DIST_DIR}}:''; Write-Output ''''; if (Test-Path ''{{.DIST_DIR}}'') { Get-ChildItem -Path ''{{.DIST_DIR}}'' | Format-Table Name, Length, LastWriteTime -AutoSize } else { Write-Output ''Distribution directory does not exist'' }"{{else}}echo "Release artifacts in {{.DIST_DIR}}:"; echo ""; if [ -d "{{.DIST_DIR}}" ]; then ls -lh {{.DIST_DIR}}/ 2>/dev/null || echo "No artifacts found"; else echo "Distribution directory does not exist"; fi{{end}}'
 
   verify:
     summary: Verify all expected artifacts for current platform exist
+    desc: |
+      Cross-platform: Uses Taskfile {{OS}} built-in
+      Verifies artifacts appropriate for current platform
     cmds:
-      - |
-        PLATFORM=$(task common:platform:detect)
+    # Cross-platform: echo works in both cmd.exe and bash
+    - 'echo Verifying {{OS}} artifacts...'
+    - task: verify:{{OS}}
 
-        case "$PLATFORM" in
-          linux)
-            task release:linux:verify
-            task release:ubuntu:verify
-            ;;
-          darwin)
-            task release:macos:verify
-            ;;
-          windows)
-            task release:windows:verify
-            ;;
-        esac
+  verify:linux:
+    summary: Verify Linux artifacts
+    internal: true
+    platforms: [ linux ]
+    cmds:
+    - task: linux:verify
+    - task: ubuntu:verify
+
+  verify:windows:
+    summary: Verify Windows artifacts
+    internal: true
+    platforms: [ windows ]
+    cmds:
+    - task: windows:verify
+
+  verify:darwin:
+    summary: Verify macOS artifacts
+    internal: true
+    platforms: [ darwin ]
+    cmds:
+    - task: macos:verify
 
   # ============================================================================
-  # Clean release artifacts
+  # Clean release artifacts (Cross-platform via common:dir:clean)
   # ============================================================================
 
   clean:
     summary: Clean all release artifacts
+    desc: Cross-platform via common:dir:clean task
     cmds:
-      - task: common:dir:clean
-        vars:
-          DIR: '{{.DIST_DIR}}'
-      - task: common:log:success
-        vars:
-          MSG: "Release artifacts cleaned"
+    - task: common:dir:clean
+      vars:
+        DIR: '{{.DIST_DIR}}'
+    - task: common:log:success
+      vars:
+        MSG: "Release artifacts cleaned"
