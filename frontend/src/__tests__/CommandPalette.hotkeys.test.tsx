@@ -32,7 +32,8 @@ const mockCommands: CommandOption[] = [
 const getOptions = () => document.body.querySelectorAll('[role="option"]');
 
 // Helper to get the cmdk input element
-const getCmdkInput = () => document.body.querySelector('[data-slot="command-input"]') as HTMLInputElement;
+const getCmdkInput = () =>
+	document.body.querySelector('[data-slot="command-input"]') as HTMLInputElement;
 
 describe("CommandPalette hotkeys", () => {
 	beforeEach(() => {
