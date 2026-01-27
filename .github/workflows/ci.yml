@@ -17,17 +17,17 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: 'go.mod'
         cache: true
         cache-dependency-path: go.sum
 
     - name: Set up Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: "20.x"
         cache: "npm"
@@ -48,11 +48,19 @@ jobs:
     - name: Install Wails v3
       run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
 
+    - name: Install frontend dependencies
+      run: npm ci
+      working-directory: frontend
+
+    - name: Build frontend
+      run: npm run build
+      working-directory: frontend
+
     - name: Run backend tests
       run: task test:backend
 
     - name: Upload coverage
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       with:
         files: ./coverage.out
         flags: backend
@@ -64,18 +72,40 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version-file: 'go.mod'
+        cache: true
+        cache-dependency-path: go.sum
 
     - name: Set up Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: "20.x"
         cache: "npm"
         cache-dependency-path: frontend/package-lock.json
 
+    - name: Install Linux dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libgtk-3-dev \
+          libwebkit2gtk-4.1-dev \
+          build-essential \
+          pkg-config
+
+    - name: Install Wails v3
+      run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+
     - name: Install frontend dependencies
       run: npm ci
       working-directory: frontend
+
+    - name: Generate bindings
+      run: wails3 generate bindings
 
     - name: TypeScript type check
       run: npx tsc --noEmit
@@ -95,28 +125,26 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: 'go.mod'
         cache: true
         cache-dependency-path: go.sum
 
     - name: Set up Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: "20.x"
         cache: "npm"
         cache-dependency-path: frontend/package-lock.json
 
-    - name: Install golangci-lint
-      run: |
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.62.2
-
     - name: Lint Go code
-      run: golangci-lint run ./...
+      uses: golangci/golangci-lint-action@v9
+      with:
+        version: latest
 
     - name: Install frontend dependencies
       run: npm ci
@@ -146,17 +174,17 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: 'go.mod'
         cache: true
         cache-dependency-path: go.sum
 
     - name: Set up Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: "20.x"
         cache: "npm"

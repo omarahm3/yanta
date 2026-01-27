@@ -35,7 +35,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
@@ -69,14 +69,14 @@ jobs:
         }
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: 'go.mod'
         cache: true
         cache-dependency-path: go.sum
 
     - name: Set up Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: "20"
         cache: "npm"
@@ -109,7 +109,7 @@ jobs:
 
     - name: Upload Linux tarball
       if: matrix.name == 'linux'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: linux-tarball${{ inputs.artifact_suffix }}
         path: build/dist/yanta-linux.tar.gz
@@ -117,7 +117,7 @@ jobs:
 
     - name: Upload Arch Linux package
       if: matrix.name == 'linux'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: linux-arch${{ inputs.artifact_suffix }}
         path: build/dist/yanta-*-x86_64.pkg.tar.zst
@@ -125,7 +125,7 @@ jobs:
 
     - name: Upload Debian package
       if: matrix.name == 'linux'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: linux-deb${{ inputs.artifact_suffix }}
         path: build/dist/yanta_*_amd64.deb
@@ -133,7 +133,7 @@ jobs:
 
     - name: Upload Windows portable
       if: matrix.name == 'windows'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: windows-portable${{ inputs.artifact_suffix }}
         path: build/dist/yanta-windows-portable.exe
@@ -141,7 +141,7 @@ jobs:
 
     - name: Upload Windows installer
       if: matrix.name == 'windows'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: windows-installer${{ inputs.artifact_suffix }}
         path: build/dist/yanta-windows-installer.exe
@@ -149,7 +149,7 @@ jobs:
 
     - name: Upload macOS app
       if: matrix.name == 'macos'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: macos-app${{ inputs.artifact_suffix }}
         path: build/dist/yanta-macos.tar.gz
