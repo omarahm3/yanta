@@ -1,14 +1,20 @@
 import { Command as CommandPrimitive } from "cmdk";
 import { SearchIcon } from "lucide-react";
-import type * as React from "react";
+import * as React from "react";
+import { useEffect, useRef } from "react";
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
-function Command({ className, ...props }: React.ComponentProps<typeof CommandPrimitive>) {
+const Command = React.forwardRef<
+	React.ComponentRef<typeof CommandPrimitive>,
+	React.ComponentProps<typeof CommandPrimitive>
+>(({ className, loop = true, ...props }, ref) => {
 	return (
 		<CommandPrimitive
+			ref={ref}
 			data-slot="command"
+			loop={loop}
 			className={cn(
 				"bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-md",
 				className,
@@ -16,23 +22,59 @@ function Command({ className, ...props }: React.ComponentProps<typeof CommandPri
 			{...props}
 		/>
 	);
-}
+});
+Command.displayName = "Command";
 
 function CommandDialog({
 	title = "Command Palette",
 	description = "Search for a command to run...",
 	children,
+	open,
 	...props
 }: React.ComponentProps<typeof Dialog> & {
 	title?: string;
 	description?: string;
 }) {
+	const commandRef = useRef<HTMLDivElement>(null);
+
+	// Handle Ctrl+N/Ctrl+P keyboard shortcuts by translating them to ArrowDown/ArrowUp
+	useEffect(() => {
+		if (!open) return;
+
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.ctrlKey && (e.key === "n" || e.key === "N")) {
+				e.preventDefault();
+				// Dispatch ArrowDown event to the command container
+				const arrowEvent = new KeyboardEvent("keydown", {
+					key: "ArrowDown",
+					code: "ArrowDown",
+					bubbles: true,
+					cancelable: true,
+				});
+				commandRef.current?.dispatchEvent(arrowEvent);
+			} else if (e.ctrlKey && (e.key === "p" || e.key === "P")) {
+				e.preventDefault();
+				// Dispatch ArrowUp event to the command container
+				const arrowEvent = new KeyboardEvent("keydown", {
+					key: "ArrowUp",
+					code: "ArrowUp",
+					bubbles: true,
+					cancelable: true,
+				});
+				commandRef.current?.dispatchEvent(arrowEvent);
+			}
+		};
+
+		document.addEventListener("keydown", handleKeyDown);
+		return () => document.removeEventListener("keydown", handleKeyDown);
+	}, [open]);
+
 	return (
-		<Dialog {...props}>
+		<Dialog open={open} {...props}>
 			<DialogContent className="overflow-hidden p-0" showCloseButton={false}>
 				<DialogTitle className="sr-only">{title}</DialogTitle>
 				<DialogDescription className="sr-only">{description}</DialogDescription>
-				<Command className="[&_[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
+				<Command ref={commandRef} className="[&_[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
 					{children}
 				</Command>
 			</DialogContent>

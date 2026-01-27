@@ -28,6 +28,12 @@ const mockCommands: CommandOption[] = [
 	},
 ];
 
+// Helper to get options from the dialog (handles Radix portal)
+const getOptions = () => document.body.querySelectorAll('[role="option"]');
+
+// Helper to get the cmdk input element
+const getCmdkInput = () => document.body.querySelector('[data-slot="command-input"]') as HTMLInputElement;
+
 describe("CommandPalette hotkeys", () => {
 	beforeEach(() => {
 		onClose.mockClear();
@@ -50,7 +56,7 @@ describe("CommandPalette hotkeys", () => {
 	});
 
 	it("navigates down with Ctrl+N", async () => {
-		const { container } = render(
+		render(
 			<CommandPalette
 				isOpen={true}
 				onClose={onClose}
@@ -60,19 +66,23 @@ describe("CommandPalette hotkeys", () => {
 		);
 
 		await screen.findByText("New Document");
-		let options = container.querySelectorAll('[role="option"]');
-		expect(options[0]).toHaveClass("bg-border");
+
+		// First item should be selected by default
+		await waitFor(() => {
+			const options = getOptions();
+			expect(options[0]).toHaveAttribute("data-selected", "true");
+		});
 
 		fireEvent.keyDown(document, { key: "n", ctrlKey: true });
 
 		await waitFor(() => {
-			options = container.querySelectorAll('[role="option"]');
-			expect(options[1]).toHaveClass("bg-border");
+			const options = getOptions();
+			expect(options[1]).toHaveAttribute("data-selected", "true");
 		});
 	});
 
 	it("navigates up with Ctrl+P", async () => {
-		const { container } = render(
+		render(
 			<CommandPalette
 				isOpen={true}
 				onClose={onClose}
@@ -82,21 +92,24 @@ describe("CommandPalette hotkeys", () => {
 		);
 
 		await screen.findByText("New Document");
+
+		// Navigate down first
 		fireEvent.keyDown(document, { key: "n", ctrlKey: true });
 		await waitFor(() => {
-			const options = container.querySelectorAll('[role="option"]');
-			expect(options[1]).toHaveClass("bg-border");
+			const options = getOptions();
+			expect(options[1]).toHaveAttribute("data-selected", "true");
 		});
 
+		// Navigate back up
 		fireEvent.keyDown(document, { key: "p", ctrlKey: true });
 		await waitFor(() => {
-			const options = container.querySelectorAll('[role="option"]');
-			expect(options[0]).toHaveClass("bg-border");
+			const options = getOptions();
+			expect(options[0]).toHaveAttribute("data-selected", "true");
 		});
 	});
 
 	it("navigates down with ArrowDown", async () => {
-		const { container } = render(
+		render(
 			<CommandPalette
 				isOpen={true}
 				onClose={onClose}
@@ -106,19 +119,26 @@ describe("CommandPalette hotkeys", () => {
 		);
 
 		await screen.findByText("New Document");
-		let options = container.querySelectorAll('[role="option"]');
-		expect(options[0]).toHaveClass("bg-border");
+		const input = getCmdkInput();
+		expect(input).toBeTruthy();
 
-		fireEvent.keyDown(document, { key: "ArrowDown" });
+		// First item should be selected by default
+		await waitFor(() => {
+			const options = getOptions();
+			expect(options[0]).toHaveAttribute("data-selected", "true");
+		});
+
+		// Fire ArrowDown on the cmdk input
+		fireEvent.keyDown(input, { key: "ArrowDown" });
 
 		await waitFor(() => {
-			options = container.querySelectorAll('[role="option"]');
-			expect(options[1]).toHaveClass("bg-border");
+			const options = getOptions();
+			expect(options[1]).toHaveAttribute("data-selected", "true");
 		});
 	});
 
 	it("navigates up with ArrowUp", async () => {
-		const { container } = render(
+		render(
 			<CommandPalette
 				isOpen={true}
 				onClose={onClose}
@@ -128,16 +148,20 @@ describe("CommandPalette hotkeys", () => {
 		);
 
 		await screen.findByText("New Document");
-		fireEvent.keyDown(document, { key: "ArrowDown" });
+		const input = getCmdkInput();
+
+		// Navigate down first
+		fireEvent.keyDown(input, { key: "ArrowDown" });
 		await waitFor(() => {
-			const options = container.querySelectorAll('[role="option"]');
-			expect(options[1]).toHaveClass("bg-border");
+			const options = getOptions();
+			expect(options[1]).toHaveAttribute("data-selected", "true");
 		});
 
-		fireEvent.keyDown(document, { key: "ArrowUp" });
+		// Navigate back up
+		fireEvent.keyDown(input, { key: "ArrowUp" });
 		await waitFor(() => {
-			const options = container.querySelectorAll('[role="option"]');
-			expect(options[0]).toHaveClass("bg-border");
+			const options = getOptions();
+			expect(options[0]).toHaveAttribute("data-selected", "true");
 		});
 	});
 
@@ -152,8 +176,16 @@ describe("CommandPalette hotkeys", () => {
 		);
 
 		await screen.findByText("New Document");
+		const input = getCmdkInput();
 
-		fireEvent.keyDown(document, { key: "Enter" });
+		// Ensure first item is selected
+		await waitFor(() => {
+			const options = getOptions();
+			expect(options[0]).toHaveAttribute("data-selected", "true");
+		});
+
+		// Fire Enter on the cmdk input
+		fireEvent.keyDown(input, { key: "Enter" });
 
 		await waitFor(() => {
 			expect(mockCommands[0].action).toHaveBeenCalledTimes(1);
@@ -163,7 +195,7 @@ describe("CommandPalette hotkeys", () => {
 	});
 
 	it("wraps navigation at boundaries", async () => {
-		const { container } = render(
+		render(
 			<CommandPalette
 				isOpen={true}
 				onClose={onClose}
@@ -173,16 +205,26 @@ describe("CommandPalette hotkeys", () => {
 		);
 
 		await screen.findByText("Settings");
-		fireEvent.keyDown(document, { key: "p", ctrlKey: true });
+		const input = getCmdkInput();
+
+		// First item should be selected by default
 		await waitFor(() => {
-			const options = container.querySelectorAll('[role="option"]');
-			expect(options[2]).toHaveClass("bg-border");
+			const options = getOptions();
+			expect(options[0]).toHaveAttribute("data-selected", "true");
 		});
 
-		fireEvent.keyDown(document, { key: "ArrowDown" });
+		// Navigate up from first item should wrap to last (using Ctrl+P which triggers ArrowUp)
+		fireEvent.keyDown(document, { key: "p", ctrlKey: true });
 		await waitFor(() => {
-			const options = container.querySelectorAll('[role="option"]');
-			expect(options[0]).toHaveClass("bg-border");
+			const options = getOptions();
+			expect(options[2]).toHaveAttribute("data-selected", "true");
+		});
+
+		// Navigate down from last item should wrap to first
+		fireEvent.keyDown(input, { key: "ArrowDown" });
+		await waitFor(() => {
+			const options = getOptions();
+			expect(options[0]).toHaveAttribute("data-selected", "true");
 		});
 	});
 });
