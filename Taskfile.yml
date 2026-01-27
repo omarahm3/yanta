@@ -53,9 +53,18 @@ tasks:
 
   dev:
     summary: Launch Wails development mode with live reload
+    desc: |
+      Runs development mode with YANTA_DATA_DIR set to ~/.yanta-dev, providing
+      complete isolation from production data in ~/.yanta. This allows developers
+      to test freely without affecting their real notes.
     deps:
       - build:ensure:wails
+    env:
+      YANTA_DATA_DIR: '{{if eq OS "windows"}}{{.USERPROFILE}}{{else}}{{.HOME}}{{end}}/.yanta-dev'
     cmds:
+      - task: common:log:info
+        vars:
+          MSG: "Using isolated data directory: {{if eq OS \"windows\"}}%YANTA_DATA_DIR%{{else}}$YANTA_DATA_DIR{{end}}"
       - wails3 dev -config ./build/config.yml -port {{.DEV_PORT}}
 
   # ============================================================================
