@@ -1,0 +1,47 @@
+# golangci-lint v2 configuration
+# These settings balance code quality with practical CI needs.
+# TODO: Tighten these rules in a dedicated lint cleanup PR.
+
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+  - errcheck
+  - gosimple
+  - govet
+  - ineffassign
+  - staticcheck
+  - unused
+  settings:
+    errcheck:
+      # Ignore specific functions where error checking is commonly omitted
+      exclude-functions:
+      # Close operations in defer - errors usually logged/ignored
+      - (*os.File).Close
+      - (*database/sql.DB).Close
+      - (*database/sql.Rows).Close
+      - (*database/sql.Tx).Rollback
+      - (io.Closer).Close
+      # Fmt operations to stdout/files in crash handlers
+      - fmt.Fprintf
+      - fmt.Printf
+      - fmt.Println
+      # Test cleanup operations
+      - os.Remove
+      - os.RemoveAll
+      - os.Setenv
+    staticcheck:
+      checks:
+      - all
+      - -ST1005 # Allow error strings with punctuation (used for user-facing messages)
+      - -QF1001 # Don't enforce De Morgan's law (readability preference)
+      - -QF1003 # Don't enforce tagged switch (readability preference)
+
+issues:
+  # Don't limit the number of issues
+  max-issues-per-linter: 0
+  max-same-issues: 0

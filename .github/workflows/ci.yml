@@ -115,10 +115,8 @@ jobs:
       working-directory: frontend
 
     - name: Run frontend tests
-      run: npm test
+      run: npm test -- run
       working-directory: frontend
-      env:
-        NODE_OPTIONS: '--max-old-space-size=4096'
 
     - name: Build frontend
       run: npm run build

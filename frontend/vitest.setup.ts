@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { vi } from "vitest";
+import { cleanup } from "@testing-library/react";
+import { afterEach, vi } from "vitest";
+
+// Ensure DOM cleanup after each test to prevent memory leaks
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 
 // Mock @wailsio/runtime - the bindings depend on this
 const createIdentity = (x: unknown) => x;
