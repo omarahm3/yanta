@@ -4,13 +4,13 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"yanta/internal/testutil"
+	"yanta/internal/testenv"
 )
 
 func TestNew(t *testing.T) {
 	// Create temp directory for testing
 	tempDir := t.TempDir()
-	cleanup := testutil.SetTestHome(t, tempDir)
+	cleanup := testenv.SetTestHome(t, tempDir)
 	defer cleanup()
 
 	tests := []struct {

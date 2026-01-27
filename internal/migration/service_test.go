@@ -6,7 +6,7 @@ import (
 	"testing"
 	"yanta/internal/config"
 	"yanta/internal/db"
-	"yanta/internal/testutil"
+	"yanta/internal/testenv"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -74,7 +74,7 @@ func TestValidateTargetDirectory(t *testing.T) {
 	t.Run("same as current directory is rejected", func(t *testing.T) {
 		tempDir := t.TempDir()
 		config.ResetForTesting()
-		cleanup := testutil.SetTestHome(t, tempDir)
+		cleanup := testenv.SetTestHome(t, tempDir)
 		defer cleanup()
 
 		err := config.Init()
@@ -166,7 +166,7 @@ func TestMigrateData(t *testing.T) {
 	t.Run("full migration flow", func(t *testing.T) {
 		tempHome := t.TempDir()
 		config.ResetForTesting()
-		cleanup := testutil.SetTestHome(t, tempHome)
+		cleanup := testenv.SetTestHome(t, tempHome)
 		defer cleanup()
 
 		err := config.Init()
@@ -228,7 +228,7 @@ func TestRollback(t *testing.T) {
 	t.Run("rollback cleans up partial migration", func(t *testing.T) {
 		tempHome := t.TempDir()
 		config.ResetForTesting()
-		cleanup := testutil.SetTestHome(t, tempHome)
+		cleanup := testenv.SetTestHome(t, tempHome)
 		defer cleanup()
 
 		err := config.Init()

@@ -1,4 +1,4 @@
-package testutil
+package testenv
 
 import (
 	"os"
@@ -14,7 +14,7 @@ import (
 //
 //	func TestMyFunc(t *testing.T) {
 //	    tempDir := t.TempDir()
-//	    cleanup := testutil.SetTestHome(t, tempDir)
+//	    cleanup := testenv.SetTestHome(t, tempDir)
 //	    defer cleanup()
 //	    // ... test code
 //	}
