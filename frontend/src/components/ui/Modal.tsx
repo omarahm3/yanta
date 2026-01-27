@@ -1,7 +1,11 @@
-import { Dialog, Transition } from "@headlessui/react";
 import type React from "react";
-import { Fragment } from "react";
 import { cn } from "../../lib/utils";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "./dialog";
 
 export interface ModalProps {
 	isOpen: boolean;
@@ -13,55 +17,28 @@ export interface ModalProps {
 
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children, title, size = "md" }) => {
 	const sizeClasses = {
-		sm: "max-w-sm",
-		md: "max-w-md",
-		lg: "max-w-lg",
-		xl: "max-w-xl",
+		sm: "sm:max-w-sm",
+		md: "sm:max-w-md",
+		lg: "sm:max-w-lg",
+		xl: "sm:max-w-xl",
+	};
+
+	const handleOpenChange = (open: boolean) => {
+		if (!open) {
+			onClose();
+		}
 	};
 
 	return (
-		<Transition appear show={isOpen} as={Fragment}>
-			<Dialog as="div" className="relative z-50" onClose={onClose}>
-				<Transition.Child
-					as={Fragment}
-					enter="ease-out duration-300"
-					enterFrom="opacity-0"
-					enterTo="opacity-100"
-					leave="ease-in duration-200"
-					leaveFrom="opacity-100"
-					leaveTo="opacity-0"
-				>
-					<div className="fixed inset-0 bg-black/70" />
-				</Transition.Child>
-
-				<div className="fixed inset-0 overflow-y-auto">
-					<div className="flex min-h-full items-center justify-center p-4 text-center">
-						<Transition.Child
-							as={Fragment}
-							enter="ease-out duration-300"
-							enterFrom="opacity-0 scale-95"
-							enterTo="opacity-100 scale-100"
-							leave="ease-in duration-200"
-							leaveFrom="opacity-100 scale-100"
-							leaveTo="opacity-0 scale-95"
-						>
-							<Dialog.Panel
-								className={cn(
-									"w-full transform overflow-hidden rounded-lg bg-surface border border-border p-6 text-left align-middle shadow-xl transition-all",
-									sizeClasses[size],
-								)}
-							>
-								{title && (
-									<Dialog.Title as="h3" className="text-lg font-medium leading-6 text-text-bright mb-4">
-										{title}
-									</Dialog.Title>
-								)}
-								{children}
-							</Dialog.Panel>
-						</Transition.Child>
-					</div>
-				</div>
-			</Dialog>
-		</Transition>
+		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
+			<DialogContent className={cn(sizeClasses[size])}>
+				{title && (
+					<DialogHeader>
+						<DialogTitle>{title}</DialogTitle>
+					</DialogHeader>
+				)}
+				{children}
+			</DialogContent>
+		</Dialog>
 	);
 };
