@@ -78,7 +78,7 @@ jobs:
       working-directory: frontend
 
     - name: TypeScript type check
-      run: npm run typecheck
+      run: npx tsc --noEmit
       working-directory: frontend
 
     - name: Run frontend tests
