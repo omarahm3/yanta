@@ -75,13 +75,13 @@ func TestGetLogsPath(t *testing.T) {
 	err := config.Init()
 	require.NoError(t, err)
 
-	t.Run("logs always in home directory", func(t *testing.T) {
+	t.Run("logs always in home directory when env var not set", func(t *testing.T) {
 		logsPath := GetLogsPath()
 		expectedPath := filepath.Join(tempDir, ".yanta", "logs")
 		assert.Equal(t, expectedPath, logsPath)
 	})
 
-	t.Run("logs path independent of data directory", func(t *testing.T) {
+	t.Run("logs path independent of data directory config", func(t *testing.T) {
 		customDir := filepath.Join(tempDir, "my-git-repo")
 		err := config.SetDataDirectory(customDir)
 		require.NoError(t, err)
@@ -89,6 +89,45 @@ func TestGetLogsPath(t *testing.T) {
 		logsPath := GetLogsPath()
 		expectedPath := filepath.Join(tempDir, ".yanta", "logs")
 		assert.Equal(t, expectedPath, logsPath)
+	})
+}
+
+func TestGetLogsPath_WithEnvVar(t *testing.T) {
+	tempDir := t.TempDir()
+	cleanup := testenv.SetTestHome(t, tempDir)
+	defer cleanup()
+
+	resetConfig()
+
+	err := config.Init()
+	require.NoError(t, err)
+
+	t.Run("logs follow YANTA_DATA_DIR when set", func(t *testing.T) {
+		envDir := filepath.Join(tempDir, "isolated-dev")
+		cleanupEnv := testenv.SetTestDataDir(t, envDir)
+		defer cleanupEnv()
+
+		logsPath := GetLogsPath()
+		expectedPath := filepath.Join(envDir, "logs")
+		assert.Equal(t, expectedPath, logsPath, "Logs should follow YANTA_DATA_DIR for complete isolation")
+	})
+
+	t.Run("logs return to home directory when env var unset", func(t *testing.T) {
+		// Set and then unset the env var
+		envDir := filepath.Join(tempDir, "isolated-dev")
+		cleanupEnv := testenv.SetTestDataDir(t, envDir)
+
+		// Verify it's set
+		logsPath := GetLogsPath()
+		assert.Equal(t, filepath.Join(envDir, "logs"), logsPath)
+
+		// Now unset it
+		cleanupEnv()
+
+		// Should return to home directory
+		logsPath = GetLogsPath()
+		expectedPath := filepath.Join(tempDir, ".yanta", "logs")
+		assert.Equal(t, expectedPath, logsPath, "Logs should return to home when env var is unset")
 	})
 }
 
