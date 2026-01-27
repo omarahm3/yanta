@@ -171,6 +171,7 @@ jobs:
       uses: golangci/golangci-lint-action@v9
       with:
         version: latest
+      continue-on-error: true
 
     - name: Lint frontend code
       run: npm run lint

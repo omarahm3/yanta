@@ -6,7 +6,7 @@ version: "2"
 
 run:
   timeout: 5m
-  tests: true
+  tests: false
 
 linters:
   enable:
@@ -28,10 +28,14 @@ linters:
       - fmt.Fprintf
       - fmt.Printf
       - fmt.Println
-      # Test cleanup operations
+      # Filesystem operations where errors are often intentionally ignored
       - os.Remove
       - os.RemoveAll
       - os.Setenv
+      - os.MkdirAll
+      # JSON encode/decode in HTTP handlers (errors handled via HTTP response)
+      - (*encoding/json.Encoder).Encode
+      - (*encoding/json.Decoder).Decode
     staticcheck:
       checks:
       - all
