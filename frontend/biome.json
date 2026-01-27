@@ -25,7 +25,8 @@
 				"noLabelWithoutControl": "off",
 				"useSemanticElements": "off",
 				"useAriaPropsSupportedByRole": "off",
-				"useButtonType": "warn"
+				"useButtonType": "warn",
+				"noNoninteractiveTabindex": "off"
 			},
 			"suspicious": {
 				"noArrayIndexKey": "warn",

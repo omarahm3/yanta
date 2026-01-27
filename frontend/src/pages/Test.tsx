@@ -16,7 +16,6 @@ import { Layout } from "../components/Layout";
 import { Button } from "../components/ui";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/shadcn/style.css";
-import { mergeCSSClasses } from "@blocknote/core";
 import { cn } from "../lib/utils";
 import {
 	type ClipboardImageSource,

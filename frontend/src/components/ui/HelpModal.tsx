@@ -4,7 +4,7 @@ import { Fragment, useEffect } from "react";
 import { GLOBAL_COMMANDS } from "../../constants/globalCommands";
 import { useHotkeyContext } from "../../contexts/HotkeyContext";
 import { useHelp } from "../../hooks/useHelp";
-import { Heading, Text } from "../ui";
+import { Heading } from "../ui";
 
 const formatHotkeyDisplay = (key: string): string => {
 	return key
