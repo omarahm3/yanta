@@ -1,6 +1,5 @@
-import { Transition } from "@headlessui/react";
 import type React from "react";
-import { createContext, Fragment, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import {
 	RiAlertLine,
 	RiCheckLine,
@@ -59,17 +58,30 @@ const ToastItem: React.FC<{
 	toast: Toast;
 	onDismiss: (id: string) => void;
 }> = ({ toast, onDismiss }) => {
-	const [isShowing, setIsShowing] = useState(true);
+	const [isVisible, setIsVisible] = useState(false);
+	const [isExiting, setIsExiting] = useState(false);
 
+	// Trigger enter animation after mount
 	useEffect(() => {
-		if (toast.duration > 0) {
+		// Small delay to ensure the initial state is rendered before transitioning
+		const timer = setTimeout(() => setIsVisible(true), 10);
+		return () => clearTimeout(timer);
+	}, []);
+
+	const handleDismiss = useCallback(() => {
+		setIsExiting(true);
+		setTimeout(() => onDismiss(toast.id), 100); // Wait for exit animation (100ms)
+	}, [toast.id, onDismiss]);
+
+	// Auto dismiss timer
+	useEffect(() => {
+		if (toast.duration > 0 && !isExiting) {
 			const timer = setTimeout(() => {
-				setIsShowing(false);
-				setTimeout(() => onDismiss(toast.id), 300); // Wait for transition
+				handleDismiss();
 			}, toast.duration);
 			return () => clearTimeout(timer);
 		}
-	}, [toast.duration, toast.id, onDismiss]);
+	}, [toast.duration, isExiting, handleDismiss]);
 
 	const getIcon = () => {
 		switch (toast.type) {
@@ -84,7 +96,7 @@ const ToastItem: React.FC<{
 		}
 	};
 
-	const getStyles = () => {
+	const getBaseStyles = () => {
 		const base =
 			"pointer-events-auto w-full min-w-[280px] sm:min-w-[340px] max-w-[calc(100vw-2rem)] sm:max-w-lg overflow-hidden rounded-xl border border-slate-200/80 bg-white/95 text-gray-900 shadow-2xl ring-1 ring-black/5 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/95 dark:text-slate-100";
 		switch (toast.type) {
@@ -114,43 +126,42 @@ const ToastItem: React.FC<{
 	};
 
 	return (
-		<Transition
-			show={isShowing}
-			as={Fragment}
-			enter="transform ease-out duration-300 transition"
-			enterFrom="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
-			enterTo="translate-y-0 opacity-100 sm:translate-x-0"
-			leave="transition ease-in duration-100"
-			leaveFrom="opacity-100"
-			leaveTo="opacity-0"
+		<div
+			className={cn(
+				getBaseStyles(),
+				// Transition properties
+				"transition-all",
+				isExiting ? "duration-100 ease-in" : "duration-300 ease-out",
+				// Initial/entering state: translated and transparent
+				!isVisible && !isExiting && "translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2",
+				// Visible state: fully visible and in position
+				isVisible && !isExiting && "translate-y-0 opacity-100 sm:translate-x-0",
+				// Exiting state: fade out
+				isExiting && "opacity-0",
+			)}
 		>
-			<div className={getStyles()}>
-				<div className="p-4">
-					<div className="flex items-start">
-						<div className="flex-shrink-0">{getIcon()}</div>
-						<div className="ml-3 w-0 flex-1 pt-0.5">
-							<p className="text-base font-semibold text-gray-900 dark:text-slate-50">{getTitle()}</p>
-							<p className="mt-1 text-sm leading-relaxed text-gray-600 dark:text-slate-300 whitespace-pre-wrap">
-								{toast.message}
-							</p>
-						</div>
-						<div className="flex flex-shrink-0 ml-4">
-							<button
-								type="button"
-								className="inline-flex p-1 text-gray-400 bg-transparent rounded-md hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-white dark:text-slate-500 dark:hover:text-slate-300 dark:focus:ring-offset-slate-900"
-								onClick={() => {
-									setIsShowing(false);
-									setTimeout(() => onDismiss(toast.id), 300);
-								}}
-							>
-								<span className="sr-only">Close</span>
-								<RiCloseLine className="w-5 h-5" />
-							</button>
-						</div>
+			<div className="p-4">
+				<div className="flex items-start">
+					<div className="flex-shrink-0">{getIcon()}</div>
+					<div className="ml-3 w-0 flex-1 pt-0.5">
+						<p className="text-base font-semibold text-gray-900 dark:text-slate-50">{getTitle()}</p>
+						<p className="mt-1 text-sm leading-relaxed text-gray-600 dark:text-slate-300 whitespace-pre-wrap">
+							{toast.message}
+						</p>
+					</div>
+					<div className="flex flex-shrink-0 ml-4">
+						<button
+							type="button"
+							className="inline-flex p-1 text-gray-400 bg-transparent rounded-md hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-white dark:text-slate-500 dark:hover:text-slate-300 dark:focus:ring-offset-slate-900"
+							onClick={handleDismiss}
+						>
+							<span className="sr-only">Close</span>
+							<RiCloseLine className="w-5 h-5" />
+						</button>
 					</div>
 				</div>
 			</div>
-		</Transition>
+		</div>
 	);
 };
 
@@ -172,8 +183,8 @@ const ToastContainer: React.FC<{
 				return cn(base, "bottom-0 left-0");
 			case "bottom-center":
 				return cn(base, "bottom-0 left-1/2 -translate-x-1/2");
-			case "bottom-right":
 			default:
+				// bottom-right and any other position defaults to bottom-right
 				return cn(base, "bottom-0 right-0");
 		}
 	};
