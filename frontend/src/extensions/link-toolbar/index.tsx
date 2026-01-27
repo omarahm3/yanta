@@ -7,8 +7,8 @@ import {
 	useDictionary,
 } from "@blocknote/react";
 import { Browser } from "@wailsio/runtime";
+import { ExternalLink } from "lucide-react";
 import { useCallback } from "react";
-import { RiExternalLinkFill } from "react-icons/ri";
 
 const resolveUrl = (url: string, baseUrl: string): string => {
 	try {
@@ -39,7 +39,7 @@ const CustomOpenLinkButton = ({ url }: Pick<LinkToolbarProps, "url">) => {
 			label={dict.link_toolbar.open.tooltip}
 			isSelected={false}
 			onClick={handleClick}
-			icon={<RiExternalLinkFill />}
+			icon={<ExternalLink />}
 		/>
 	);
 };

@@ -1,5 +1,5 @@
+import { AlertCircle, AlertTriangle, Info, X } from "lucide-react";
 import type React from "react";
-import { RiAlertLine, RiCloseLine, RiErrorWarningLine, RiInformationLine } from "react-icons/ri";
 import { cn } from "../../lib/utils";
 import type { ParsedGitError } from "../../utils/gitErrorParser";
 import { Button } from "./Button";
@@ -17,13 +17,13 @@ export const GitErrorDialog: React.FC<GitErrorDialogProps> = ({ isOpen, onClose,
 	const getIcon = () => {
 		switch (error.type) {
 			case "CONFLICT":
-				return <RiAlertLine className="text-3xl text-yellow-500" />;
+				return <AlertTriangle className="text-3xl text-yellow-500" />;
 			case "NETWORK":
-				return <RiErrorWarningLine className="text-3xl text-red-500" />;
+				return <AlertCircle className="text-3xl text-red-500" />;
 			case "INFO":
-				return <RiInformationLine className="text-3xl text-blue-500" />;
+				return <Info className="text-3xl text-blue-500" />;
 			default:
-				return <RiErrorWarningLine className="text-3xl text-red-500" />;
+				return <AlertCircle className="text-3xl text-red-500" />;
 		}
 	};
 
@@ -51,7 +51,7 @@ export const GitErrorDialog: React.FC<GitErrorDialogProps> = ({ isOpen, onClose,
 						onClick={onClose}
 						className="text-text-dim hover:text-text-bright p-1"
 					>
-						<RiCloseLine className="text-2xl" />
+						<X className="text-2xl" />
 					</Button>
 				</DialogHeader>
 

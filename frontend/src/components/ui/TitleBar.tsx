@@ -1,7 +1,7 @@
 import { System, Window } from "@wailsio/runtime";
+import { Minus, Square, X } from "lucide-react";
 import type React from "react";
 import { useEffect, useState } from "react";
-import { RiCheckboxBlankLine, RiCloseLine, RiSubtractLine } from "react-icons/ri";
 import { BackgroundQuit } from "../../../bindings/yanta/internal/system/service";
 import { IsFrameless } from "../../../bindings/yanta/internal/window/service";
 import { useTitleBarContext } from "../../contexts";
@@ -68,7 +68,7 @@ export const TitleBar: React.FC = () => {
 					className="flex items-center justify-center w-8 h-6 text-text-dim transition-colors rounded hover:bg-border hover:text-text p-0"
 					title="Minimize"
 				>
-					<RiSubtractLine className="text-sm" />
+					<Minus className="text-sm" />
 				</Button>
 
 				<Button
@@ -78,7 +78,7 @@ export const TitleBar: React.FC = () => {
 					className="flex items-center justify-center w-8 h-6 text-text-dim transition-colors rounded hover:bg-border hover:text-text p-0"
 					title="Maximize"
 				>
-					<RiCheckboxBlankLine className="text-sm" />
+					<Square className="text-sm" />
 				</Button>
 
 				<Button
@@ -88,7 +88,7 @@ export const TitleBar: React.FC = () => {
 					className="flex items-center justify-center w-8 h-6 text-text-dim transition-colors rounded hover:bg-red hover:text-bg p-0"
 					title="Close"
 				>
-					<RiCloseLine className="text-sm" />
+					<X className="text-sm" />
 				</Button>
 			</div>
 		</div>
