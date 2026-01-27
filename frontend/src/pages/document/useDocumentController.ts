@@ -212,13 +212,13 @@ export function useDocumentController({
 
 				const actions: Record<string, () => void> = {
 					"tags added": () => {
-						success(result.message);
+						success(result.message || "Tags added");
 					},
 					"tags removed": () => {
-						success(result.message);
+						success(result.message || "Tags removed");
 					},
 					"current tags": () => {
-						success(result.message);
+						success(result.message || "Current tags");
 					},
 					"document unarchived": () => {
 						setHasRestored(true);
@@ -226,7 +226,7 @@ export function useDocumentController({
 					},
 				};
 
-				const action = actions[result.message];
+				const action = result.message ? actions[result.message] : undefined;
 				if (action) {
 					action();
 				} else if (result.message) {
