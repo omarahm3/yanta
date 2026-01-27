@@ -127,6 +127,73 @@ func TestConfig_DataDirectory(t *testing.T) {
 	})
 }
 
+func TestConfig_DataDirectory_EnvVar(t *testing.T) {
+	tempDir := t.TempDir()
+	cleanup := testenv.SetTestHome(t, tempDir)
+	defer cleanup()
+
+	t.Run("env var overrides config file setting", func(t *testing.T) {
+		instance = nil
+		instanceOnce = newOnce()
+
+		err := Init()
+		require.NoError(t, err)
+
+		// Set a custom data directory in config
+		configDir := filepath.Join(tempDir, "config-dir")
+		err = SetDataDirectory(configDir)
+		require.NoError(t, err)
+
+		// Verify config is set
+		assert.Equal(t, configDir, GetDataDirectory())
+
+		// Now set env var - it should take priority
+		envDir := filepath.Join(tempDir, "env-dir")
+		cleanupEnv := testenv.SetTestDataDir(t, envDir)
+		defer cleanupEnv()
+
+		dataDir := GetDataDirectory()
+		assert.Equal(t, envDir, dataDir, "YANTA_DATA_DIR env var should override config file setting")
+	})
+
+	t.Run("empty env var falls back to config", func(t *testing.T) {
+		instance = nil
+		instanceOnce = newOnce()
+
+		err := Init()
+		require.NoError(t, err)
+
+		// Set a custom data directory in config
+		configDir := filepath.Join(tempDir, "config-dir-2")
+		err = SetDataDirectory(configDir)
+		require.NoError(t, err)
+
+		// Ensure YANTA_DATA_DIR is not set
+		cleanupEnv := testenv.SetTestDataDir(t, "")
+		// Immediately restore - we want it unset
+		cleanupEnv()
+
+		dataDir := GetDataDirectory()
+		assert.Equal(t, configDir, dataDir, "Empty env var should fall back to config file setting")
+	})
+
+	t.Run("empty config falls back to default", func(t *testing.T) {
+		instance = nil
+		instanceOnce = newOnce()
+
+		err := Init()
+		require.NoError(t, err)
+
+		// Clear the data directory in config
+		err = SetDataDirectory("")
+		require.NoError(t, err)
+
+		dataDir := GetDataDirectory()
+		expectedDefault := filepath.Join(tempDir, ".yanta")
+		assert.Equal(t, expectedDefault, dataDir, "Empty config should fall back to default ~/.yanta")
+	})
+}
+
 func TestConfig_ExistingFields(t *testing.T) {
 	tempDir := t.TempDir()
 	cleanup := testenv.SetTestHome(t, tempDir)

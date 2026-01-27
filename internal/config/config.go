@@ -204,10 +204,15 @@ func save(cfg *Config) error {
 }
 
 func GetDataDirectory() string {
+	if envDir := os.Getenv("YANTA_DATA_DIR"); envDir != "" {
+		return envDir
+	}
+
 	cfg := Get()
 	if cfg.DataDirectory != "" {
 		return cfg.DataDirectory
 	}
+
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".yanta")
 }
