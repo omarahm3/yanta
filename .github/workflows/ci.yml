@@ -52,6 +52,9 @@ jobs:
       run: npm ci
       working-directory: frontend
 
+    - name: Generate bindings
+      run: wails3 generate bindings
+
     - name: Build frontend
       run: npm run build
       working-directory: frontend
@@ -114,6 +117,8 @@ jobs:
     - name: Run frontend tests
       run: npm test
       working-directory: frontend
+      env:
+        NODE_OPTIONS: '--max-old-space-size=4096'
 
     - name: Build frontend
       run: npm run build
@@ -150,21 +155,30 @@ jobs:
           build-essential \
           pkg-config
 
-    - name: Lint Go code
-      uses: golangci/golangci-lint-action@v9
-      with:
-        version: latest
+    - name: Install Wails v3
+      run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
 
     - name: Install frontend dependencies
       run: npm ci
       working-directory: frontend
+
+    - name: Generate bindings
+      run: wails3 generate bindings
+
+    - name: Build frontend
+      run: npm run build
+      working-directory: frontend
+
+    - name: Lint Go code
+      uses: golangci/golangci-lint-action@v9
+      with:
+        version: latest
 
     - name: Lint frontend code
       run: npm run lint
       working-directory: frontend
 
   build-verify:
-    name: Build Verify (${{ matrix.name }})
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ${{ matrix.os }}
     strategy:
