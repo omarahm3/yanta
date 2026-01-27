@@ -684,7 +684,8 @@ func TestCache_Performance(t *testing.T) {
 		require.NoError(t, err, "GetByID failed")
 		hitTime := time.Since(start)
 
-		// Cache hit should be significantly faster than cache miss
-		assert.Less(t, hitTime, missTime, "Cache hit (%v) should be faster than cache miss (%v)", hitTime, missTime)
+		// Cache hit should be at least as fast as cache miss (or faster)
+		// Using LessOrEqual because on fast systems both may complete in 0s
+		assert.LessOrEqual(t, hitTime, missTime, "Cache hit (%v) should be at least as fast as cache miss (%v)", hitTime, missTime)
 	})
 }

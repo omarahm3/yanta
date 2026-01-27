@@ -25,7 +25,8 @@
 				"noLabelWithoutControl": "off",
 				"useSemanticElements": "off",
 				"useAriaPropsSupportedByRole": "off",
-				"useButtonType": "warn"
+				"useButtonType": "warn",
+				"noNoninteractiveTabindex": "off"
 			},
 			"suspicious": {
 				"noArrayIndexKey": "warn",
@@ -46,7 +47,8 @@
 		"enabled": true,
 		"indentStyle": "tab",
 		"indentWidth": 1,
-		"lineWidth": 100
+		"lineWidth": 100,
+		"lineEnding": "lf"
 	},
 	"css": {
 		"parser": {

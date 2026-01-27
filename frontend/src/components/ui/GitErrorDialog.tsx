@@ -2,7 +2,6 @@ import { Dialog, Transition } from "@headlessui/react";
 import type React from "react";
 import { Fragment } from "react";
 import { RiAlertLine, RiCloseLine, RiErrorWarningLine, RiInformationLine } from "react-icons/ri";
-import { cn } from "../../lib/utils";
 import type { ParsedGitError } from "../../utils/gitErrorParser";
 import { Button } from "./Button";
 

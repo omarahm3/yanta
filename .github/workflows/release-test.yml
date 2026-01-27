@@ -3,140 +3,14 @@ name: Release Test Builds
 on:
   workflow_dispatch:
     inputs:
-      version_suffix:
-        description: "Optional custom version (defaults to 0.0.0-test.<run-number>)"
+      version:
+        description: "Version string (defaults to 0.0.0-test.<run-number>)"
         required: false
         default: ""
 
 jobs:
   build:
-    name: Test Release ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: linux
-            os: ubuntu-latest
-          - name: windows
-            os: windows-latest
-          - name: macos
-            os: macos-latest
-    env:
-      YANTA_VERSION: ${{ github.event.inputs.version_suffix != '' && github.event.inputs.version_suffix || format('0.0.0-test.{0}', github.run_number) }}
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Install Linux dependencies
-        if: matrix.name == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libgtk-3-dev \
-            libwebkit2gtk-4.1-dev \
-            build-essential \
-            pkg-config \
-            libayatana-appindicator3-dev \
-            libx11-dev \
-            xvfb
-
-      - name: Install Windows dependencies
-        if: matrix.name == 'windows'
-        shell: powershell
-        run: |
-          choco install -y nsis
-          $nsisPath = "${env:ProgramFiles(x86)}\NSIS"
-          if (Test-Path $nsisPath) {
-            "$nsisPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-            "$nsisPath\Bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          }
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: 'go.mod'
-          cache: true
-          cache-dependency-path: go.sum
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install Task CLI
-        run: go install github.com/go-task/task/v3/cmd/task@latest
-
-      - name: Install Wails v3
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
-
-      - name: Build Linux artifacts
-        if: matrix.name == 'linux'
-        run: |
-          task release:linux
-          task release:ubuntu
-          task release:list
-
-      - name: Build Windows artifacts
-        if: matrix.name == 'windows'
-        run: |
-          task release:windows
-          task release:list
-
-      - name: Build macOS artifacts
-        if: matrix.name == 'macos'
-        run: |
-          task release:macos
-          task release:list
-
-      - name: Upload Linux tarball
-        if: matrix.name == 'linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-tarball-${{ env.YANTA_VERSION }}
-          path: build/dist/yanta-linux.tar.gz
-          if-no-files-found: error
-
-      - name: Upload Arch Linux package
-        if: matrix.name == 'linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-arch-${{ env.YANTA_VERSION }}
-          path: build/dist/yanta-*-x86_64.pkg.tar.zst
-          if-no-files-found: error
-
-      - name: Upload Debian package
-        if: matrix.name == 'linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-deb-${{ env.YANTA_VERSION }}
-          path: build/dist/yanta_*_amd64.deb
-          if-no-files-found: error
-
-      - name: Upload Windows portable
-        if: matrix.name == 'windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-portable-${{ env.YANTA_VERSION }}
-          path: build/dist/yanta-windows-portable.exe
-          if-no-files-found: error
-
-      - name: Upload Windows installer
-        if: matrix.name == 'windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-installer-${{ env.YANTA_VERSION }}
-          path: build/dist/yanta-windows-installer.exe
-          if-no-files-found: error
-
-      - name: Upload macOS app
-        if: matrix.name == 'macos'
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-app-${{ env.YANTA_VERSION }}
-          path: build/dist/yanta-macos.tar.gz
-          if-no-files-found: error
+    uses: ./.github/workflows/build-release.yml
+    with:
+      version: ${{ github.event.inputs.version != '' && github.event.inputs.version || format('0.0.0-test.{0}', github.run_number) }}
+      artifact_suffix: -${{ github.event.inputs.version != '' && github.event.inputs.version || format('0.0.0-test.{0}', github.run_number) }}

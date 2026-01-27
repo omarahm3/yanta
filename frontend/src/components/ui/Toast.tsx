@@ -172,8 +172,7 @@ const ToastContainer: React.FC<{
 				return cn(base, "bottom-0 left-0");
 			case "bottom-center":
 				return cn(base, "bottom-0 left-1/2 -translate-x-1/2");
-			case "bottom-right":
-			default:
+			default: // bottom-right
 				return cn(base, "bottom-0 right-0");
 		}
 	};

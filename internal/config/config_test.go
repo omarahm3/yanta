@@ -1,10 +1,10 @@
 package config
 
 import (
-	"os"
 	"path/filepath"
 	"sync"
 	"testing"
+	"yanta/internal/testenv"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -12,9 +12,8 @@ import (
 
 func TestConfig_GitSync(t *testing.T) {
 	tempDir := t.TempDir()
-	oldHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", oldHome)
-	os.Setenv("HOME", tempDir)
+	cleanup := testenv.SetTestHome(t, tempDir)
+	defer cleanup()
 
 	instance = nil
 	instanceOnce = newOnce()
@@ -91,9 +90,8 @@ func TestConfig_GitSync(t *testing.T) {
 
 func TestConfig_DataDirectory(t *testing.T) {
 	tempDir := t.TempDir()
-	oldHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", oldHome)
-	os.Setenv("HOME", tempDir)
+	cleanup := testenv.SetTestHome(t, tempDir)
+	defer cleanup()
 
 	instance = nil
 	instanceOnce = newOnce()
@@ -131,9 +129,8 @@ func TestConfig_DataDirectory(t *testing.T) {
 
 func TestConfig_ExistingFields(t *testing.T) {
 	tempDir := t.TempDir()
-	oldHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", oldHome)
-	os.Setenv("HOME", tempDir)
+	cleanup := testenv.SetTestHome(t, tempDir)
+	defer cleanup()
 
 	instance = nil
 	instanceOnce = newOnce()

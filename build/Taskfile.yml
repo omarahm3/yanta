@@ -24,7 +24,7 @@ tasks:
 
   generate:icons:
     label: "generate:icons"
-    summary: Generate platform-specific icons from appicon.png
+    summary: Generate platform-specific icons from appicon.png (cross-platform)
     deps:
       - ensure:wails
     sources:
@@ -34,53 +34,85 @@ tasks:
       - "./icon.ico"
       - "./windows/icon.ico"
       - "./darwin/icons.icns"
+    dir: build
     cmds:
+      # Log start message
+      - task: common:log:info
+        vars:
+          MSG: "Generating icons from appicon.png..."
+      # Generate icons using wails3 (cross-platform - wails3 works on all platforms)
+      - wails3 generate icons -input ./appicon.png
+      # Ensure platform-specific directories exist (cross-platform)
+      - task: common:dir:ensure
+        vars:
+          DIR: windows
+      - task: common:dir:ensure
+        vars:
+          DIR: darwin
+      # Copy icons to platform-specific directories (cross-platform)
       - |
-        set -euo pipefail
-        cd build
-
-        echo "Generating icons from appicon.png..."
-        wails3 generate icons -input ./appicon.png
-
-        # Move/copy icons to platform-specific directories
-        mkdir -p windows darwin
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command "Copy-Item -Path 'icon.ico' -Destination 'windows/' -Force"
+        powershell -NoProfile -Command "Copy-Item -Path 'icons.icns' -Destination 'darwin/' -Force"
+        {{else}}
         cp icon.ico windows/
         cp icons.icns darwin/
-
-        echo "✓ Icons generated: icons.icns, icon.ico"
-        echo "✓ Platform icons: windows/icon.ico, darwin/icons.icns"
+        {{end}}
+      # Log success messages
+      - task: common:log:success
+        vars:
+          MSG: "Icons generated: icons.icns, icon.ico"
+      - task: common:log:success
+        vars:
+          MSG: "Platform icons: windows/icon.ico, darwin/icons.icns"
 
   generate:syso:
     label: "generate:syso"
-    summary: Generate Windows resource file (.syso) with embedded icon
+    summary: Generate Windows resource file (.syso) with embedded icon (cross-platform)
     deps:
       - common:ensure:go
     sources:
       - "./windows/icon.ico"
     generates:
       - "../rsrc_windows_windows_amd64.syso"
+    vars:
+      # Get version from env, git tag, or default to 1.0.0
+      # Cross-platform: Uses Taskfile template syntax instead of bash variable expansion
+      VERSION: '{{.YANTA_VERSION | default ""}}'
     cmds:
+      # Log start message
+      - task: common:log:info
+        vars:
+          MSG: "Generating Windows resource file (.syso)..."
+      # Ensure go-winres is installed (cross-platform)
       - |
-        set -euo pipefail
-
-        # Ensure go-winres is installed
-        if ! command -v go-winres >/dev/null 2>&1; then
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command "if (-not (Get-Command 'go-winres' -ErrorAction SilentlyContinue)) { Write-Host 'Installing go-winres...'; go install github.com/tc-hib/go-winres@latest }"
+        {{else}}
+        if ! which go-winres >/dev/null 2>&1; then
           echo "Installing go-winres..."
           go install github.com/tc-hib/go-winres@latest
         fi
-
-        # Get version
-        if [[ -n "${YANTA_VERSION:-}" ]]; then
-          VERSION="${YANTA_VERSION}"
-        elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
-          VERSION="${VERSION_TAG#v}"
-        else
+        {{end}}
+      # Get version and generate .syso file (cross-platform)
+      - |
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command "$Version = if ($env:YANTA_VERSION) { $env:YANTA_VERSION } elseif (git describe --tags --abbrev=0 2>$null) { (git describe --tags --abbrev=0) -replace '^v', '' } else { '1.0.0' }; Write-Host \"Generating Windows resources (version: $Version)...\"; go-winres simply --icon build/windows/icon.ico --out rsrc_windows --arch amd64 --manifest gui --product-name 'YANTA' --file-description 'YANTA - Yet Another Note Taking App' --copyright 'Copyright (c) 2024-2025 Omar Ahmed' --original-filename 'yanta.exe' --product-version $Version --file-version $Version; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }"
+        {{else}}
+        # Get version from environment, git tag, or default
+        VERSION="${YANTA_VERSION:-}"
+        if [ -z "$VERSION" ]; then
+          VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null) || true
+          if [ -n "$VERSION_TAG" ]; then
+            VERSION="${VERSION_TAG#v}"
+          fi
+        fi
+        if [ -z "$VERSION" ]; then
           VERSION="1.0.0"
         fi
-
         echo "Generating Windows resources (version: $VERSION)..."
 
-        # Generate .syso file with embedded icon using go-winres simply
+        # Generate .syso file with embedded icon using go-winres
         go-winres simply \
           --icon build/windows/icon.ico \
           --out rsrc_windows \
@@ -92,12 +124,15 @@ tasks:
           --original-filename "yanta.exe" \
           --product-version "$VERSION" \
           --file-version "$VERSION"
-
-        echo "✓ Windows resources generated: rsrc_windows_windows_amd64.syso"
+        {{end}}
+      # Log success message
+      - task: common:log:success
+        vars:
+          MSG: "Windows resources generated: rsrc_windows_windows_amd64.syso"
 
   generate:bindings:
     label: "generate:bindings"
-    summary: Generate TypeScript bindings from Go services
+    summary: Generate TypeScript bindings from Go services (cross-platform)
     silent: true
     deps:
       - ensure:wails
@@ -108,42 +143,86 @@ tasks:
       - exclude: "../frontend/**/*"
     generates:
       - "../frontend/bindings/**/*"
+    vars:
+      # Cross-platform: Use Taskfile template syntax for default value
+      GO_CACHE_DIR: '{{.GO_CACHE_DIR | default ".gocache"}}'
     cmds:
+      # Log start message
+      - task: common:log:info
+        vars:
+          MSG: "Generating TypeScript bindings from Go services..."
+      # Cross-platform binding generation
+      # Windows: Uses external .ps1 script to avoid cmd.exe $ stripping
+      # Unix: Uses inline POSIX-compatible shell
       - |
+        {{if eq OS "windows"}}
+        powershell -NoProfile -ExecutionPolicy Bypass -File build/scripts/generate-bindings.ps1
+        {{else}}
+        # Check if binding generation should be skipped (POSIX-compatible)
         if [ "${SKIP_WAILS_BINDINGS:-0}" = "1" ]; then
           echo "Skipping binding generation (SKIP_WAILS_BINDINGS=1)"
           exit 0
         fi
 
+        # Setup Go cache directory (POSIX-compatible)
         GO_CACHE_DIR="${GO_CACHE_DIR:-.gocache}"
         case "$GO_CACHE_DIR" in
           /*) ;;
           *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;;
         esac
         mkdir -p "$GO_CACHE_DIR"
+
+        # Run wails3 generate bindings with cache directory
         GOCACHE="$GO_CACHE_DIR" GOFLAGS="" wails3 generate bindings -clean=true -ts
+        {{end}}
+      # Log success message
+      - task: common:log:success
+        vars:
+          MSG: "TypeScript bindings generated successfully"
 
   # ============================================================================
   # Frontend Tasks
   # ============================================================================
 
   dev:frontend:
-    summary: Run frontend dev server (Vite)
+    label: "dev:frontend"
+    summary: Run frontend dev server (Vite) with configurable port (cross-platform)
+    desc: |
+      Cross-platform: Uses env: directive to pass WAILS_VITE_PORT
+      - Default port: 34115
+      - Override with WAILS_VITE_PORT environment variable
+      - Uses Taskfile dir: directive for working directory
     silent: true
     dir: "{{.ROOT_DIR}}/frontend"
     deps:
       - common:ensure:npm
+      - common:ensure:node
+    vars:
+      # Cross-platform: Use Taskfile template syntax for default port
+      DEV_PORT: '{{.WAILS_VITE_PORT | default "34115"}}'
     env:
-      WAILS_VITE_PORT: '{{.WAILS_VITE_PORT | default "34115"}}'
+      # Cross-platform: env: directive properly passes environment variable to npm
+      WAILS_VITE_PORT: '{{.DEV_PORT}}'
     cmds:
+      # Log the port being used
+      - task: common:log:info
+        vars:
+          MSG: "Starting frontend dev server on port {{.DEV_PORT}}..."
+      # Cross-platform: npm run dev works natively on all platforms
       - npm run dev
 
   # ============================================================================
   # Go Build (Core Build Logic)
+  # Cross-platform: Uses Taskfile {{OS}} conditionals for Windows/Linux/macOS
   # ============================================================================
 
   go:build:
-    summary: Build Go binary for specified target platform
+    summary: Build Go binary for specified target platform (cross-platform)
+    desc: |
+      Cross-platform: Uses Taskfile {{OS}} conditionals
+      - On Windows: Uses PowerShell for all operations
+      - On Linux/macOS: Uses POSIX-compatible shell
+      Supports TARGET values: local, win, ubuntu, arch, osx
     internal: true
     silent: true
     deps:
@@ -152,11 +231,31 @@ tasks:
     vars:
       TARGET: '{{.TARGET | default "local"}}'
       DEBUG: '{{.DEBUG | default "0"}}'
+      # Cross-platform: Use Taskfile default syntax
+      GO_CACHE_DIR: '{{.GO_CACHE_DIR | default ".gocache"}}'
+    env:
+      # Pass build parameters to PowerShell script via environment variables
+      BUILD_TARGET: '{{.TARGET}}'
+      BUILD_DEBUG: '{{.DEBUG}}'
+      APP_NAME: '{{.APP_NAME}}'
+      BIN_DIR: '{{.BIN_DIR}}'
+      GO_CACHE_DIR: '{{.GO_CACHE_DIR}}'
     cmds:
+      # Ensure bin directory exists (cross-platform)
+      - task: common:dir:ensure
+        vars:
+          DIR: '{{.BIN_DIR}}'
+      # Log build start
+      - task: common:log:info
+        vars:
+          MSG: "Starting Go build (TARGET={{.TARGET}}, DEBUG={{.DEBUG}})..."
+      # Cross-platform build logic
       - |
-        set -euo pipefail
-
-        # Setup Go cache
+        {{if eq OS "windows"}}
+        powershell -NoProfile -ExecutionPolicy Bypass -File build/scripts/go-build-windows.ps1
+        {{else}}
+        # Unix (Linux/macOS) build
+        # Setup Go cache directory (POSIX-compatible)
         GO_CACHE_DIR="${GO_CACHE_DIR:-.gocache}"
         case "$GO_CACHE_DIR" in
           /*) ;;
@@ -167,14 +266,17 @@ tasks:
 
         TARGET="{{.TARGET}}"
         DEBUG="{{.DEBUG}}"
+        APP_NAME="{{.APP_NAME}}"
+        BIN_DIR="{{.BIN_DIR}}"
+
+        # Detect host platform using uname (available on all Unix systems)
         HOST_UNAME=$(uname -s | tr '[:upper:]' '[:lower:]')
 
         # Auto-detect target if "local"
-        if [[ -z "$TARGET" || "$TARGET" == "local" ]]; then
+        if [ -z "$TARGET" ] || [ "$TARGET" = "local" ]; then
           case "$HOST_UNAME" in
             linux) TARGET="ubuntu" ;;
             darwin) TARGET="osx" ;;
-            *mingw*|*msys*|*cygwin*|windows) TARGET="win" ;;
             *) TARGET="ubuntu" ;;
           esac
         fi
@@ -186,6 +288,7 @@ tasks:
         CC_OVERRIDE=""
         CXX_OVERRIDE=""
         OUTPUT_SUFFIX=""
+        BUILD_TAGS=""
 
         case "$TARGET" in
           win|windows)
@@ -194,20 +297,23 @@ tasks:
 
             # Generate Windows resources (.syso) for icon embedding
             echo "Generating Windows resources..."
-            if ! command -v go-winres >/dev/null 2>&1; then
+            if ! which go-winres >/dev/null 2>&1; then
               echo "Installing go-winres..."
               go install github.com/tc-hib/go-winres@latest
             fi
 
             # Get version for Windows resources
             WINRES_VERSION="1.0.0"
-            if [[ -n "${YANTA_VERSION:-}" ]]; then
+            if [ -n "${YANTA_VERSION:-}" ]; then
               WINRES_VERSION="${YANTA_VERSION}"
-            elif WINRES_VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
-              WINRES_VERSION="${WINRES_VERSION_TAG#v}"
+            else
+              WINRES_VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null) || true
+              if [ -n "$WINRES_VERSION_TAG" ]; then
+                WINRES_VERSION="${WINRES_VERSION_TAG#v}"
+              fi
             fi
 
-            # Generate .syso file with embedded icon using go-winres simply
+            # Generate .syso file with embedded icon
             go-winres simply \
               --icon build/windows/icon.ico \
               --out rsrc_windows \
@@ -220,19 +326,17 @@ tasks:
               --product-version "$WINRES_VERSION" \
               --file-version "$WINRES_VERSION"
 
-            echo "✓ Windows resources generated (rsrc_windows_windows_amd64.syso)"
+            echo "Windows resources generated (rsrc_windows_windows_amd64.syso)"
 
-            if [[ "$HOST_UNAME" == "linux" ]]; then
+            if [ "$HOST_UNAME" = "linux" ]; then
               echo "Building Windows target on Linux (MinGW cross-compile)..."
               # Ensure MinGW is available
-              if ! command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
+              if ! which x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
                 echo "ERROR: MinGW not found. Install: sudo apt-get install -y mingw-w64" >&2
                 exit 1
               fi
               CC_OVERRIDE="x86_64-w64-mingw32-gcc"
               CXX_OVERRIDE="x86_64-w64-mingw32-g++"
-            elif [[ "$HOST_UNAME" == *mingw* || "$HOST_UNAME" == *msys* || "$HOST_UNAME" == *cygwin* || "$HOST_UNAME" == *windows* ]]; then
-              GOOS_TARGET=""
             else
               echo "ERROR: Windows builds must run on Windows or Linux (with MinGW)" >&2
               exit 1
@@ -241,27 +345,29 @@ tasks:
 
           ubuntu)
             # Verify we're on Linux
-            if [[ "$HOST_UNAME" != "linux" ]]; then
+            if [ "$HOST_UNAME" != "linux" ]; then
               echo "ERROR: Ubuntu target requires Linux host (current: $HOST_UNAME)" >&2
               exit 1
             fi
             GOOS_TARGET="linux"
             USE_WEBKIT41=true
+            BUILD_TAGS="-tags webkit2_41"
             ;;
 
           arch)
             # Verify we're on Linux
-            if [[ "$HOST_UNAME" != "linux" ]]; then
+            if [ "$HOST_UNAME" != "linux" ]; then
               echo "ERROR: Arch target requires Linux host (current: $HOST_UNAME)" >&2
               exit 1
             fi
             GOOS_TARGET="linux"
             USE_WEBKIT41=true
+            BUILD_TAGS="-tags webkit2_41"
             ;;
 
           osx|mac|macos)
             # Verify we're on macOS
-            if [[ "$HOST_UNAME" != "darwin" ]]; then
+            if [ "$HOST_UNAME" != "darwin" ]; then
               echo "ERROR: macOS target requires macOS host (current: $HOST_UNAME)" >&2
               exit 1
             fi
@@ -275,13 +381,16 @@ tasks:
             ;;
         esac
 
-        # Get version info using common utilities
+        # Get version info
         COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-        if [[ -n "${YANTA_VERSION:-}" ]]; then
-          VERSION="${YANTA_VERSION}"
-        elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
-          VERSION="${VERSION_TAG#v}"
-        else
+        VERSION="${YANTA_VERSION:-}"
+        if [ -z "$VERSION" ]; then
+          VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null) || true
+          if [ -n "$VERSION_TAG" ]; then
+            VERSION="${VERSION_TAG#v}"
+          fi
+        fi
+        if [ -z "$VERSION" ]; then
           VERSION="dev-${COMMIT}"
         fi
         DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -291,110 +400,99 @@ tasks:
         LD_FLAGS="$LD_FLAGS -X yanta/internal/system.BuildCommit=${COMMIT}"
         LD_FLAGS="$LD_FLAGS -X yanta/internal/system.BuildDate=${DATE}"
 
-        if [[ "$TARGET" == "win" || "$TARGET" == "windows" ]]; then
-          LD_FLAGS="$LD_FLAGS -H=windowsgui"
-        fi
+        case "$TARGET" in
+          win|windows)
+            LD_FLAGS="$LD_FLAGS -H=windowsgui"
+            ;;
+        esac
 
         echo "========================================"
-        echo "Building: {{.APP_NAME}}"
+        echo "Building: $APP_NAME"
         echo "Target:   $TARGET"
         echo "Version:  $VERSION"
         echo "Commit:   $COMMIT"
         echo "========================================"
 
-        # Setup output
-        mkdir -p {{.BIN_DIR}}
-        OUTPUT_PATH="{{.BIN_DIR}}/{{.APP_NAME}}${OUTPUT_SUFFIX}"
+        # Setup output path
+        OUTPUT_PATH="${BIN_DIR}/${APP_NAME}${OUTPUT_SUFFIX}"
 
-        # Build environment variables
-        BUILD_ENV=()
-        if [[ -n "$GOOS_TARGET" ]]; then
-          BUILD_ENV+=(GOOS="$GOOS_TARGET")
+        # Build with proper environment
+        export GOARCH="$GOARCH_TARGET"
+        export CGO_ENABLED=1
+        if [ -n "$GOOS_TARGET" ]; then
+          export GOOS="$GOOS_TARGET"
         fi
-        BUILD_ENV+=(GOARCH="$GOARCH_TARGET")
-        # CGO is REQUIRED for Wails v3 (native platform APIs)
-        BUILD_ENV+=(CGO_ENABLED=1)
-        if [[ -n "$CC_OVERRIDE" ]]; then
-          BUILD_ENV+=(CC="$CC_OVERRIDE" CXX="$CXX_OVERRIDE")
-        fi
-
-        # Build tags
-        BUILD_TAGS=()
-        if $USE_WEBKIT41; then
-          BUILD_TAGS+=("-tags" "webkit2_41")
+        if [ -n "$CC_OVERRIDE" ]; then
+          export CC="$CC_OVERRIDE"
+          export CXX="$CXX_OVERRIDE"
         fi
 
         # Debug mode
-        if [[ "$DEBUG" == "1" ]]; then
+        if [ "$DEBUG" = "1" ]; then
           export YANTA_DEBUG_BUILD=1
           echo "Debug mode enabled"
         fi
 
         # Execute build
         echo "Compiling Go binary..."
-        env "${BUILD_ENV[@]}" go build ${BUILD_TAGS[@]+"${BUILD_TAGS[@]}"} -ldflags "$LD_FLAGS" -o "$OUTPUT_PATH" .
+        if [ -n "$BUILD_TAGS" ]; then
+          go build $BUILD_TAGS -ldflags "$LD_FLAGS" -o "$OUTPUT_PATH" .
+        else
+          go build -ldflags "$LD_FLAGS" -o "$OUTPUT_PATH" .
+        fi
 
-        echo "✓ Build complete: $OUTPUT_PATH"
+        echo "Build complete: $OUTPUT_PATH"
 
-        # Create Windows installer using NSIS (only on Windows host)
-        if [[ "$TARGET" == "win" || "$TARGET" == "windows" ]]; then
-          if [[ "$HOST_UNAME" == *mingw* || "$HOST_UNAME" == *msys* || "$HOST_UNAME" == *cygwin* || "$HOST_UNAME" == *windows* ]]; then
-            if command -v makensis >/dev/null 2>&1; then
-              echo "Creating Windows installer..."
-              NSI_DIR="build/windows/installer"
-              if [[ -f "$NSI_DIR/project.nsi" ]]; then
-                # Convert Unix paths to Windows paths for NSIS (a native Windows program)
-                # cygpath -w converts /d/path/to/dir to D:\path\to\dir
-                ABS_NSI_DIR="$(cygpath -w "$(cd "$NSI_DIR" && pwd)")"
-                ABS_BINARY="$(cygpath -w "$(cd "$(dirname "$OUTPUT_PATH")" && pwd)/$(basename "$OUTPUT_PATH")")"
-                ABS_NSI_FILE="${ABS_NSI_DIR}\\project.nsi"
-                # Run makensis with explicit include directory to ensure wails_tools.nsh is found
-                makensis "/X!addincludedir ${ABS_NSI_DIR}" "-DARG_WAILS_AMD64_BINARY=${ABS_BINARY}" "${ABS_NSI_FILE}"
-                echo "✓ Windows installer created"
-              else
-                echo "WARNING: NSIS script not found at $NSI_DIR/project.nsi, skipping installer creation"
-              fi
-            else
-              echo "WARNING: makensis not found, skipping installer creation"
-            fi
-          else
+        # Cross-compiling Windows from Linux - skip installer
+        case "$TARGET" in
+          win|windows)
             echo "Note: Cross-compiling Windows binary from Linux, installer must be created on Windows"
-          fi
-        fi
+            ;;
+        esac
 
-        # Create macOS .app bundle
-        if [[ "$TARGET" == "osx" || "$TARGET" == "mac" || "$TARGET" == "macos" ]]; then
-          echo "Creating macOS .app bundle..."
-          APP_DIR="{{.BIN_DIR}}/{{.APP_NAME}}.app"
-          CONTENTS_DIR="$APP_DIR/Contents"
-          MACOS_DIR="$CONTENTS_DIR/MacOS"
-          RESOURCES_DIR="$CONTENTS_DIR/Resources"
+        # Create macOS .app bundle (only on macOS host)
+        case "$TARGET" in
+          osx|mac|macos)
+            echo "Creating macOS .app bundle..."
+            APP_DIR="${BIN_DIR}/${APP_NAME}.app"
+            CONTENTS_DIR="$APP_DIR/Contents"
+            MACOS_DIR="$CONTENTS_DIR/MacOS"
+            RESOURCES_DIR="$CONTENTS_DIR/Resources"
 
-          mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
-          cp "$OUTPUT_PATH" "$MACOS_DIR/{{.APP_NAME}}"
+            mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
+            cp "$OUTPUT_PATH" "$MACOS_DIR/${APP_NAME}"
 
-          /usr/libexec/PlistBuddy -c "Clear dict" "$CONTENTS_DIR/Info.plist" 2>/dev/null || true
-          /usr/libexec/PlistBuddy -c "Add :CFBundlePackageType string APPL" "$CONTENTS_DIR/Info.plist"
-          /usr/libexec/PlistBuddy -c "Add :CFBundleName string YANTA" "$CONTENTS_DIR/Info.plist"
-          /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string YANTA" "$CONTENTS_DIR/Info.plist"
-          /usr/libexec/PlistBuddy -c "Add :CFBundleExecutable string {{.APP_NAME}}" "$CONTENTS_DIR/Info.plist"
-          /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string com.omarahmed.yanta" "$CONTENTS_DIR/Info.plist"
-          /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string ${VERSION}" "$CONTENTS_DIR/Info.plist"
-          /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string ${VERSION}" "$CONTENTS_DIR/Info.plist"
-          /usr/libexec/PlistBuddy -c "Add :CFBundleGetInfoString string Yet Another Note Taking App" "$CONTENTS_DIR/Info.plist"
-          /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string iconfile" "$CONTENTS_DIR/Info.plist"
-          /usr/libexec/PlistBuddy -c "Add :LSMinimumSystemVersion string 10.15" "$CONTENTS_DIR/Info.plist"
-          /usr/libexec/PlistBuddy -c "Add :NSHighResolutionCapable bool true" "$CONTENTS_DIR/Info.plist"
-          /usr/libexec/PlistBuddy -c "Add :NSHumanReadableCopyright string Copyright 2024-2025 Omar Ahmed" "$CONTENTS_DIR/Info.plist"
-          /usr/libexec/PlistBuddy -c "Add :NSSupportsAutomaticGraphicsSwitching bool true" "$CONTENTS_DIR/Info.plist"
+            # Create Info.plist
+            /usr/libexec/PlistBuddy -c "Clear dict" "$CONTENTS_DIR/Info.plist" 2>/dev/null || true
+            /usr/libexec/PlistBuddy -c "Add :CFBundlePackageType string APPL" "$CONTENTS_DIR/Info.plist"
+            /usr/libexec/PlistBuddy -c "Add :CFBundleName string YANTA" "$CONTENTS_DIR/Info.plist"
+            /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string YANTA" "$CONTENTS_DIR/Info.plist"
+            /usr/libexec/PlistBuddy -c "Add :CFBundleExecutable string ${APP_NAME}" "$CONTENTS_DIR/Info.plist"
+            /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string com.omarahmed.yanta" "$CONTENTS_DIR/Info.plist"
+            /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string ${VERSION}" "$CONTENTS_DIR/Info.plist"
+            /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string ${VERSION}" "$CONTENTS_DIR/Info.plist"
+            /usr/libexec/PlistBuddy -c "Add :CFBundleGetInfoString string Yet Another Note Taking App" "$CONTENTS_DIR/Info.plist"
+            /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string iconfile" "$CONTENTS_DIR/Info.plist"
+            /usr/libexec/PlistBuddy -c "Add :LSMinimumSystemVersion string 10.15" "$CONTENTS_DIR/Info.plist"
+            /usr/libexec/PlistBuddy -c "Add :NSHighResolutionCapable bool true" "$CONTENTS_DIR/Info.plist"
+            /usr/libexec/PlistBuddy -c "Add :NSHumanReadableCopyright string Copyright 2024-2025 Omar Ahmed" "$CONTENTS_DIR/Info.plist"
+            /usr/libexec/PlistBuddy -c "Add :NSSupportsAutomaticGraphicsSwitching bool true" "$CONTENTS_DIR/Info.plist"
 
-          if [[ -f "build/darwin/icons.icns" ]]; then
-            cp "build/darwin/icons.icns" "$RESOURCES_DIR/iconfile.icns"
-          fi
+            # Copy icon if exists
+            if [ -f "build/darwin/icons.icns" ]; then
+              cp "build/darwin/icons.icns" "$RESOURCES_DIR/iconfile.icns"
+            fi
 
-          codesign --force --deep --sign - "$APP_DIR"
-          echo "✓ macOS .app bundle created: $APP_DIR"
-        fi
+            # Sign the app bundle
+            codesign --force --deep --sign - "$APP_DIR"
+            echo "macOS .app bundle created: $APP_DIR"
+            ;;
+        esac
+        {{end}}
+      # Log build completion
+      - task: common:log:success
+        vars:
+          MSG: "Go build completed for target {{.TARGET}}"
 
   # ============================================================================
   # Wails Build (alternative build method using wails3)

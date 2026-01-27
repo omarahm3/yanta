@@ -28,11 +28,6 @@ vars:
   DIST_DIR: '{{.DIST_DIR | default "build/dist"}}'
   BIN_DIR: 'build/bin'
 
-set:
-  - nounset
-  - errexit
-  - pipefail
-
 output: interleaved  # Changed from 'group' to get real-time output
 
 silent: false
@@ -68,18 +63,23 @@ tasks:
   # ============================================================================
 
   frontend:install:
-    summary: Install frontend dependencies
+    summary: Install frontend dependencies (cross-platform)
+    desc: |
+      Installs frontend npm dependencies. Uses 'npm ci' for clean installs in CI
+      environments or when FORCE_CI_INSTALL=1, otherwise uses 'npm install'.
+      Cross-platform: Works in both Windows PowerShell and Unix shells.
     dir: frontend
     silent: true
+    deps:
+      - common:ensure:npm
     vars:
+      # FORCE_CI_INSTALL can be set to "1" to force npm ci (e.g., in install-tools)
       FORCE_CI_INSTALL: '{{.FORCE_CI_INSTALL | default "0"}}'
     cmds:
-      - |
-        if [ "{{.FORCE_CI_INSTALL}}" = "1" ] || [ "${CI:-}" = "true" ]; then
-          npm ci
-        else
-          npm install
-        fi
+      # Cross-platform: PowerShell on Windows, POSIX shell on Unix
+      # Uses npm ci when FORCE_CI_INSTALL=1 or CI=true, otherwise npm install
+      # Note: Uses [Environment]::GetEnvironmentVariable instead of $env:CI to avoid cmd.exe parsing issues
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "if (''{{.FORCE_CI_INSTALL}}'' -eq ''1'' -or [Environment]::GetEnvironmentVariable(''CI'') -eq ''true'') { npm ci } else { npm install }"{{else}}if [ "{{.FORCE_CI_INSTALL}}" = "1" ] || [ "${CI:-}" = "true" ]; then npm ci; else npm install; fi{{end}}'
 
   frontend:build:
     label: "build:frontend (PRODUCTION={{.PRODUCTION}})"
@@ -213,14 +213,17 @@ tasks:
 
   run:
     summary: Run the last built binary (builds first if needed)
+    desc: |
+      Executes the built application binary for the current platform.
+      Cross-platform: Automatically uses .exe extension on Windows.
+      Uses Taskfile {{OS}} for platform detection instead of bash environment variables.
     silent: true
+    vars:
+      # Cross-platform executable extension
+      EXE_EXT: '{{if eq OS "windows"}}.exe{{else}}{{end}}'
     cmds:
-      - |
-        if [ "${OS:-}" = "Windows_NT" ]; then
-          ./{{.BIN_DIR}}/{{.APP_NAME}}.exe
-        else
-          ./{{.BIN_DIR}}/{{.APP_NAME}}
-        fi
+      # Cross-platform: Uses Taskfile template for correct binary path
+      - ./{{.BIN_DIR}}/{{.APP_NAME}}{{.EXE_EXT}}
 
   package:
     summary: Build release artifacts for current platform
@@ -260,11 +263,15 @@ tasks:
   # ============================================================================
 
   clean:
-    summary: Clean all build artifacts
+    summary: Clean all build artifacts (cross-platform)
+    desc: |
+      Removes all build artifacts including binaries, dist files, and caches.
+      Cross-platform: Works in both Windows PowerShell and Unix shells.
     cmds:
-      - rm -rf {{.BIN_DIR}}
-      - rm -rf {{.DIST_DIR}}
-      - rm -rf .gocache
+      # Cross-platform rm -rf: PowerShell on Windows, rm -rf on Unix
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "if (Test-Path ''{{.BIN_DIR}}'') { Remove-Item -Recurse -Force ''{{.BIN_DIR}}'' }"{{else}}rm -rf "{{.BIN_DIR}}"{{end}}'
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "if (Test-Path ''{{.DIST_DIR}}'') { Remove-Item -Recurse -Force ''{{.DIST_DIR}}'' }"{{else}}rm -rf "{{.DIST_DIR}}"{{end}}'
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "if (Test-Path ''.gocache'') { Remove-Item -Recurse -Force ''.gocache'' }"{{else}}rm -rf ".gocache"{{end}}'
       - task: test:clean
       - task: common:log:success
         vars:
@@ -276,29 +283,15 @@ tasks:
       - task: common:version:get
 
   info:
-    summary: Show build information
-    vars:
-      VERSION:
-        sh: git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || git rev-parse --short HEAD 2>/dev/null | sed 's/^/dev-/' || echo "unknown"
-      COMMIT:
-        sh: git rev-parse --short HEAD 2>/dev/null || echo "unknown"
-      PLATFORM:
-        sh: uname -s 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo "unknown"
+    summary: Show build information (cross-platform)
+    desc: |
+      Displays build system information including app name, version, commit hash,
+      and platform. Cross-platform: Works in both Windows PowerShell and Unix shells.
+      Uses Taskfile {{OS}} for platform detection instead of uname.
+    silent: true
     cmds:
-      - |
-        echo "Yanta Build System"
-        echo "=================="
-        echo ""
-        echo "App Name:     {{.APP_NAME}}"
-        echo "Version:      {{.VERSION}}"
-        echo "Commit:       {{.COMMIT}}"
-        echo "Platform:     {{.PLATFORM}}"
-        echo ""
-        echo "Directories:"
-        echo "  Binary:     {{.BIN_DIR}}"
-        echo "  Dist:       {{.DIST_DIR}}"
-        echo ""
-        echo "Use 'task --list' to see all available commands"
+      # Cross-platform: PowerShell script file on Windows (avoids cmd.exe parsing issues), inline shell on Unix
+      - '{{if eq OS "windows"}}powershell -NoProfile -ExecutionPolicy Bypass -File "{{.ROOT_DIR}}/build/scripts/info.ps1" -AppName "{{.APP_NAME}}" -BinDir "{{.BIN_DIR}}" -DistDir "{{.DIST_DIR}}" -Platform "{{OS}}"{{else}}COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); if [ -n "${YANTA_VERSION:-}" ]; then VERSION="${YANTA_VERSION}"; elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then VERSION="${VERSION_TAG#v}"; else VERSION="dev-${COMMIT}"; fi; echo "Yanta Build System"; echo "=================="; echo ""; echo "App Name:     {{.APP_NAME}}"; echo "Version:      ${VERSION}"; echo "Commit:       ${COMMIT}"; echo "Platform:     {{OS}}"; echo ""; echo "Directories:"; echo "  Binary:     {{.BIN_DIR}}"; echo "  Dist:       {{.DIST_DIR}}"; echo ""; echo "Use task --list to see all available commands"{{end}}'
 
   # ============================================================================
   # CI-specific Commands
