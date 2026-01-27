@@ -1,15 +1,15 @@
+import type React from "react";
+import { useCallback } from "react";
+
 import {
-	Combobox,
-	ComboboxButton,
-	ComboboxInput,
-	ComboboxOption,
-	ComboboxOptions,
-	Transition,
-	TransitionChild,
-} from "@headlessui/react";
-import Fuse from "fuse.js";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { cn } from "../../lib/utils";
+	CommandDialog,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+	CommandShortcut,
+} from "@/components/ui/command";
 
 export interface CommandOption {
 	id: string;
@@ -34,28 +34,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 	commands,
 	placeholder = "Type a command...",
 }) => {
-	const [query, setQuery] = useState("");
-	const [selectedIndex, setSelectedIndex] = useState(0);
-	const inputRef = useRef<HTMLInputElement>(null);
-	const optionRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-	const fuse = useMemo(
-		() =>
-			new Fuse(commands, {
-				keys: ["text", "hint"],
-				threshold: 0.4,
-				includeScore: true,
-				minMatchCharLength: 1,
-				ignoreLocation: true,
-			}),
-		[commands],
-	);
-
-	const filteredCommands = useMemo(() => {
-		if (!query.trim()) return commands;
-		return fuse.search(query).map((result) => result.item);
-	}, [query, fuse, commands]);
-
 	const handleSelect = useCallback(
 		(command: CommandOption) => {
 			command.action();
@@ -65,149 +43,35 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 		[onCommandSelect, onClose],
 	);
 
-	useEffect(() => {
-		if (isOpen && inputRef.current) {
-			inputRef.current.focus();
-			setQuery("");
-			setSelectedIndex(0);
-		}
-	}, [isOpen]);
-
-	useEffect(() => {
-		setSelectedIndex(0);
-	}, []);
-
-	useEffect(() => {
-		if (optionRefs.current[selectedIndex]) {
-			optionRefs.current[selectedIndex]?.scrollIntoView({
-				behavior: "smooth",
-				block: "center",
-				inline: "nearest",
-			});
-		}
-	}, [selectedIndex]);
-
-	useEffect(() => {
-		if (!isOpen) return;
-
-		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
-				e.preventDefault();
+	const handleOpenChange = useCallback(
+		(open: boolean) => {
+			if (!open) {
 				onClose();
-				return;
 			}
-
-			if (e.ctrlKey && e.key === "n") {
-				e.preventDefault();
-				if (filteredCommands.length > 0) {
-					setSelectedIndex((prev) => (prev + 1) % filteredCommands.length);
-				}
-				return;
-			}
-
-			if (e.ctrlKey && e.key === "p") {
-				e.preventDefault();
-				if (filteredCommands.length > 0) {
-					setSelectedIndex((prev) => (prev === 0 ? filteredCommands.length - 1 : prev - 1));
-				}
-				return;
-			}
-
-			if (e.key === "ArrowDown") {
-				e.preventDefault();
-				if (filteredCommands.length > 0) {
-					setSelectedIndex((prev) => (prev + 1) % filteredCommands.length);
-				}
-				return;
-			}
-
-			if (e.key === "ArrowUp") {
-				e.preventDefault();
-				if (filteredCommands.length > 0) {
-					setSelectedIndex((prev) => (prev === 0 ? filteredCommands.length - 1 : prev - 1));
-				}
-				return;
-			}
-
-			if (e.key === "Enter" && filteredCommands[selectedIndex]) {
-				e.preventDefault();
-				handleSelect(filteredCommands[selectedIndex]);
-				return;
-			}
-		};
-
-		document.addEventListener("keydown", handleKeyDown);
-		return () => document.removeEventListener("keydown", handleKeyDown);
-	}, [isOpen, onClose, selectedIndex, filteredCommands, handleSelect]);
-
-	if (!isOpen) return null;
+		},
+		[onClose],
+	);
 
 	return (
-		<Transition show={isOpen} as={React.Fragment}>
-			<Combobox value={null} onChange={(value) => value && handleSelect(value)}>
-				<div className="fixed inset-0 z-50 overflow-y-auto p-4 bg-black/70" onClick={onClose}>
-					<div
-						className="flex min-h-full items-center justify-center"
-						onClick={(e) => e.stopPropagation()}
-					>
-						<TransitionChild
-							as={React.Fragment}
-							enter="ease-out duration-300"
-							enterFrom="opacity-0 scale-95"
-							enterTo="opacity-100 scale-100"
-							leave="ease-in duration-200"
-							leaveFrom="opacity-100 scale-100"
-							leaveTo="opacity-0 scale-95"
+		<CommandDialog open={isOpen} onOpenChange={handleOpenChange}>
+			<CommandInput placeholder={placeholder} />
+			<CommandList>
+				<CommandEmpty>No commands found.</CommandEmpty>
+				<CommandGroup>
+					{commands.map((command) => (
+						<CommandItem
+							key={command.id}
+							value={command.text}
+							keywords={command.hint ? [command.hint] : undefined}
+							onSelect={() => handleSelect(command)}
 						>
-							<ComboboxOptions
-								static
-								className="w-full max-w-lg transform overflow-hidden rounded-lg bg-surface border border-border shadow-xl transition-all"
-							>
-								<div className="relative">
-									<ComboboxInput
-										ref={inputRef}
-										className="w-full bg-bg border-b border-border px-4 py-3 text-text-bright placeholder-text-dim focus:outline-none focus:ring-0 focus:border-border"
-										placeholder={placeholder}
-										onChange={(event) => setQuery(event.target.value)}
-									/>
-									<ComboboxButton className="absolute inset-y-0 right-0 flex items-center pr-2">
-										<kbd className="bg-surface px-2 py-1 text-xs text-text-dim rounded">ESC</kbd>
-									</ComboboxButton>
-								</div>
-								<div className="max-h-80 overflow-y-auto">
-									{filteredCommands.length === 0 && query !== "" ? (
-										<div className="relative cursor-default select-none px-4 py-2 text-text-dim">
-											No commands found.
-										</div>
-									) : (
-										filteredCommands.map((command, index) => (
-											<ComboboxOption
-												key={command.id}
-												className={cn(
-													"relative cursor-pointer select-none py-2 px-4 flex items-center gap-3",
-													index === selectedIndex ? "bg-border text-text-bright" : "text-text",
-												)}
-												value={command}
-											>
-												<div
-													ref={(el) => (optionRefs.current[index] = el)}
-													className="flex items-center gap-3 w-full"
-												>
-													<span className="text-text-dim w-5">{command.icon}</span>
-													<span className={cn("flex-1", index === selectedIndex && "font-medium")}>
-														{command.text}
-													</span>
-													{command.hint && <span className="text-text-dim text-xs">{command.hint}</span>}
-												</div>
-											</ComboboxOption>
-										))
-									)}
-								</div>
-							</ComboboxOptions>
-						</TransitionChild>
-					</div>
-				</div>
-			</Combobox>
-		</Transition>
+							<span className="w-5">{command.icon}</span>
+							<span className="flex-1">{command.text}</span>
+							{command.hint && <CommandShortcut>{command.hint}</CommandShortcut>}
+						</CommandItem>
+					))}
+				</CommandGroup>
+			</CommandList>
+		</CommandDialog>
 	);
 };
