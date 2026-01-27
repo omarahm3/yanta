@@ -16,29 +16,29 @@ tasks:
     internal: true
     silent: true
     cmds:
-      - |
-        COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-        if [ -n "${YANTA_VERSION:-}" ]; then
-          echo "${YANTA_VERSION}"
-        elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
-          echo "${VERSION_TAG#v}"
-        else
-          echo "dev-${COMMIT}"
-        fi
+    - |
+      COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+      if [ -n "${YANTA_VERSION:-}" ]; then
+        echo "${YANTA_VERSION}"
+      elif VERSION_TAG=$(git describe --tags --abbrev=0 2>/dev/null); then
+        echo "${VERSION_TAG#v}"
+      else
+        echo "dev-${COMMIT}"
+      fi
 
   version:commit:
     summary: Get git commit hash
     internal: true
     silent: true
     cmds:
-      - git rev-parse --short HEAD 2>/dev/null || echo "unknown"
+    - git rev-parse --short HEAD 2>/dev/null || echo "unknown"
 
   version:date:
     summary: Get build date in ISO 8601 format
     internal: true
     silent: true
     cmds:
-      - date -u +"%Y-%m-%dT%H:%M:%SZ"
+    - date -u +"%Y-%m-%dT%H:%M:%SZ"
 
   # ============================================================================
   # Go Cache Management (DRY - used in build, test, bindings)
@@ -49,22 +49,22 @@ tasks:
     internal: true
     silent: true
     cmds:
-      # First ensure the directory exists using cross-platform task
-      - task: dir:ensure
-        vars:
-          DIR: '{{.GO_CACHE_DIR}}'
-      # Then output the absolute path for Go cache
-      - |
-        {{if eq OS "windows"}}
-        powershell -NoProfile -Command "$dir = '{{.GO_CACHE_DIR}}'; if (-not [System.IO.Path]::IsPathRooted($dir)) { $dir = Join-Path (Get-Location) $dir }; Write-Output $dir"
-        {{else}}
-        GO_CACHE_DIR="{{.GO_CACHE_DIR}}"
-        case "$GO_CACHE_DIR" in
-          /*) ;;
-          *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;;
-        esac
-        echo "$GO_CACHE_DIR"
-        {{end}}
+    # First ensure the directory exists using cross-platform task
+    - task: dir:ensure
+      vars:
+        DIR: '{{.GO_CACHE_DIR}}'
+    # Then output the absolute path for Go cache
+    - |
+      {{if eq OS "windows"}}
+      powershell -NoProfile -Command "$dir = '{{.GO_CACHE_DIR}}'; if (-not [System.IO.Path]::IsPathRooted($dir)) { $dir = Join-Path (Get-Location) $dir }; Write-Output $dir"
+      {{else}}
+      GO_CACHE_DIR="{{.GO_CACHE_DIR}}"
+      case "$GO_CACHE_DIR" in
+        /*) ;;
+        *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;;
+      esac
+      echo "$GO_CACHE_DIR"
+      {{end}}
 
   # ============================================================================
   # Tool Verification (DRY - check if required tools exist)
@@ -79,17 +79,16 @@ tasks:
       CMD: '{{.CMD}}'
       MSG: '{{.MSG | default (printf "%s is not installed or not in PATH" .CMD)}}'
     cmds:
-      # Cross-platform: 'where' on Windows, 'which' on Unix
-      # Note: We use 'which' instead of 'command -v' for better portability
-      - |
-        {{if eq OS "windows"}}
-        powershell -NoProfile -Command "if (-not (Get-Command '{{.CMD}}' -ErrorAction SilentlyContinue)) { Write-Error '{{.MSG}}'; exit 1 }"
-        {{else}}
-        if ! which {{.CMD}} >/dev/null 2>&1; then
-          echo "Error: {{.MSG}}" >&2
-          exit 1
-        fi
-        {{end}}
+    # Cross-platform: Get-Command on Windows, command -v on Unix
+    - |
+      {{if eq OS "windows"}}
+      powershell -NoProfile -Command "if (-not (Get-Command '{{.CMD}}' -ErrorAction SilentlyContinue)) { Write-Error '{{.MSG}}'; exit 1 }"
+      {{else}}
+      if ! command -v {{.CMD}} >/dev/null 2>&1; then
+        echo "Error: {{.MSG}}" >&2
+        exit 1
+      fi
+      {{end}}
 
   ensure:wails:
     summary: Ensure wails3 CLI is installed (cross-platform)
@@ -98,16 +97,16 @@ tasks:
     vars:
       MSG: "wails3 CLI not found. Install it with 'go install github.com/wailsapp/wails/v3/cmd/wails3@latest'"
     cmds:
-      # Cross-platform: Use wails3 version command which works on all platforms
-      - |
-        {{if eq OS "windows"}}
-        powershell -NoProfile -Command "try { wails3 version | Out-Null } catch { Write-Error '{{.MSG}}'; exit 1 }"
-        {{else}}
-        if ! wails3 version >/dev/null 2>&1; then
-          echo "Error: {{.MSG}}" >&2
-          exit 1
-        fi
-        {{end}}
+    # Cross-platform: Use wails3 version command which works on all platforms
+    - |
+      {{if eq OS "windows"}}
+      powershell -NoProfile -Command "try { wails3 version | Out-Null } catch { Write-Error '{{.MSG}}'; exit 1 }"
+      {{else}}
+      if ! wails3 version >/dev/null 2>&1; then
+        echo "Error: {{.MSG}}" >&2
+        exit 1
+      fi
+      {{end}}
 
   ensure:go:
     summary: Ensure Go is installed (cross-platform)
@@ -116,16 +115,16 @@ tasks:
     vars:
       MSG: "Go is not installed"
     cmds:
-      # Cross-platform: Use 'go version' which works on all platforms
-      - |
-        {{if eq OS "windows"}}
-        powershell -NoProfile -Command "try { go version | Out-Null } catch { Write-Error '{{.MSG}}'; exit 1 }"
-        {{else}}
-        if ! go version >/dev/null 2>&1; then
-          echo "Error: {{.MSG}}" >&2
-          exit 1
-        fi
-        {{end}}
+    # Cross-platform: Use 'go version' which works on all platforms
+    - |
+      {{if eq OS "windows"}}
+      powershell -NoProfile -Command "try { go version | Out-Null } catch { Write-Error '{{.MSG}}'; exit 1 }"
+      {{else}}
+      if ! go version >/dev/null 2>&1; then
+        echo "Error: {{.MSG}}" >&2
+        exit 1
+      fi
+      {{end}}
 
   ensure:npm:
     summary: Ensure npm is installed (cross-platform)
@@ -134,16 +133,16 @@ tasks:
     vars:
       MSG: "npm is not installed"
     cmds:
-      # Cross-platform: Use 'npm --version' which works on all platforms
-      - |
-        {{if eq OS "windows"}}
-        powershell -NoProfile -Command "try { npm --version | Out-Null } catch { Write-Error '{{.MSG}}'; exit 1 }"
-        {{else}}
-        if ! npm --version >/dev/null 2>&1; then
-          echo "Error: {{.MSG}}" >&2
-          exit 1
-        fi
-        {{end}}
+    # Cross-platform: Use 'npm --version' which works on all platforms
+    - |
+      {{if eq OS "windows"}}
+      powershell -NoProfile -Command "try { npm --version | Out-Null } catch { Write-Error '{{.MSG}}'; exit 1 }"
+      {{else}}
+      if ! npm --version >/dev/null 2>&1; then
+        echo "Error: {{.MSG}}" >&2
+        exit 1
+      fi
+      {{end}}
 
   ensure:node:
     summary: Ensure Node.js is installed (cross-platform)
@@ -152,16 +151,16 @@ tasks:
     vars:
       MSG: "Node.js is not installed"
     cmds:
-      # Cross-platform: Use 'node --version' which works on all platforms
-      - |
-        {{if eq OS "windows"}}
-        powershell -NoProfile -Command "try { node --version | Out-Null } catch { Write-Error '{{.MSG}}'; exit 1 }"
-        {{else}}
-        if ! node --version >/dev/null 2>&1; then
-          echo "Error: {{.MSG}}" >&2
-          exit 1
-        fi
-        {{end}}
+    # Cross-platform: Use 'node --version' which works on all platforms
+    - |
+      {{if eq OS "windows"}}
+      powershell -NoProfile -Command "try { node --version | Out-Null } catch { Write-Error '{{.MSG}}'; exit 1 }"
+      {{else}}
+      if ! node --version >/dev/null 2>&1; then
+        echo "Error: {{.MSG}}" >&2
+        exit 1
+      fi
+      {{end}}
 
   # ============================================================================
   # Host Platform Detection
@@ -172,14 +171,14 @@ tasks:
     internal: true
     silent: true
     cmds:
-      - |
-        HOST_UNAME=$(uname -s 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo "unknown")
-        case "$HOST_UNAME" in
-          linux) echo "linux" ;;
-          darwin) echo "darwin" ;;
-          *mingw*|*msys*|*cygwin*|*windows*) echo "windows" ;;
-          *) echo "unknown" ;;
-        esac
+    - |
+      HOST_UNAME=$(uname -s 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo "unknown")
+      case "$HOST_UNAME" in
+        linux) echo "linux" ;;
+        darwin) echo "darwin" ;;
+        *mingw*|*msys*|*cygwin*|*windows*) echo "windows" ;;
+        *) echo "unknown" ;;
+      esac
 
   platform:verify:
     summary: Verify current platform matches required platform
@@ -187,31 +186,31 @@ tasks:
     vars:
       REQUIRED: '{{.REQUIRED}}'
     cmds:
-      - |
-        HOST_UNAME=$(uname -s | tr '[:upper:]' '[:lower:]')
-        case "{{.REQUIRED}}" in
-          darwin)
-            if [ "$HOST_UNAME" != "darwin" ]; then
-              echo "This target must be built on macOS (current host: $HOST_UNAME)" >&2
+    - |
+      HOST_UNAME=$(uname -s | tr '[:upper:]' '[:lower:]')
+      case "{{.REQUIRED}}" in
+        darwin)
+          if [ "$HOST_UNAME" != "darwin" ]; then
+            echo "This target must be built on macOS (current host: $HOST_UNAME)" >&2
+            exit 1
+          fi
+          ;;
+        linux)
+          if [ "$HOST_UNAME" != "linux" ]; then
+            echo "This target must be built on Linux (current host: $HOST_UNAME)" >&2
+            exit 1
+          fi
+          ;;
+        windows)
+          case "$HOST_UNAME" in
+            *mingw*|*msys*|*cygwin*|*windows*) ;;  # Valid Windows environment
+            *)
+              echo "This target must be built on Windows (current host: $HOST_UNAME)" >&2
               exit 1
-            fi
-            ;;
-          linux)
-            if [ "$HOST_UNAME" != "linux" ]; then
-              echo "This target must be built on Linux (current host: $HOST_UNAME)" >&2
-              exit 1
-            fi
-            ;;
-          windows)
-            case "$HOST_UNAME" in
-              *mingw*|*msys*|*cygwin*|*windows*) ;;  # Valid Windows environment
-              *)
-                echo "This target must be built on Windows (current host: $HOST_UNAME)" >&2
-                exit 1
-                ;;
-            esac
-            ;;
-        esac
+              ;;
+          esac
+          ;;
+      esac
 
   # ============================================================================
   # Directory Management
@@ -223,11 +222,11 @@ tasks:
     vars:
       DIR: '{{.DIR}}'
     cmds:
-      # Cross-platform: PowerShell on Windows, rm -rf on Unix
-      - '{{if eq OS "windows"}}powershell -NoProfile -Command "if (Test-Path ''{{.DIR}}'') { Remove-Item -Recurse -Force ''{{.DIR}}'' }"{{else}}rm -rf "{{.DIR}}"{{end}}'
-      - task: dir:ensure
-        vars:
-          DIR: '{{.DIR}}'
+    # Cross-platform: PowerShell on Windows, rm -rf on Unix
+    - '{{if eq OS "windows"}}powershell -NoProfile -Command "if (Test-Path ''{{.DIR}}'') { Remove-Item -Recurse -Force ''{{.DIR}}'' }"{{else}}rm -rf "{{.DIR}}"{{end}}'
+    - task: dir:ensure
+      vars:
+        DIR: '{{.DIR}}'
 
   dir:ensure:
     summary: Ensure a directory exists (cross-platform)
@@ -235,8 +234,8 @@ tasks:
     vars:
       DIR: '{{.DIR}}'
     cmds:
-      # Cross-platform: PowerShell on Windows, mkdir -p on Unix
-      - '{{if eq OS "windows"}}powershell -NoProfile -Command "if (-not (Test-Path ''{{.DIR}}'')) { New-Item -ItemType Directory -Path ''{{.DIR}}'' -Force | Out-Null }"{{else}}mkdir -p "{{.DIR}}"{{end}}'
+    # Cross-platform: PowerShell on Windows, mkdir -p on Unix
+    - '{{if eq OS "windows"}}powershell -NoProfile -Command "if (-not (Test-Path ''{{.DIR}}'')) { New-Item -ItemType Directory -Path ''{{.DIR}}'' -Force | Out-Null }"{{else}}mkdir -p "{{.DIR}}"{{end}}'
 
   # ============================================================================
   # File Verification
@@ -249,11 +248,11 @@ tasks:
       FILE: '{{.FILE}}'
       MSG: '{{.MSG | default (printf "File not found: %s" .FILE)}}'
     cmds:
-      - |
-        if [ ! -f "{{.FILE}}" ]; then
-          echo "ERROR: {{.MSG}}" >&2
-          exit 1
-        fi
+    - |
+      if [ ! -f "{{.FILE}}" ]; then
+        echo "ERROR: {{.MSG}}" >&2
+        exit 1
+      fi
 
   file:verify-dir:
     summary: Verify a directory exists
@@ -262,11 +261,11 @@ tasks:
       DIR: '{{.DIR}}'
       MSG: '{{.MSG | default (printf "Directory not found: %s" .DIR)}}'
     cmds:
-      - |
-        if [ ! -d "{{.DIR}}" ]; then
-          echo "ERROR: {{.MSG}}" >&2
-          exit 1
-        fi
+    - |
+      if [ ! -d "{{.DIR}}" ]; then
+        echo "ERROR: {{.MSG}}" >&2
+        exit 1
+      fi
 
   # ============================================================================
   # CI Environment Detection
@@ -277,12 +276,12 @@ tasks:
     internal: true
     silent: true
     cmds:
-      - |
-        if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ]; then
-          echo "true"
-        else
-          echo "false"
-        fi
+    - |
+      if [ "${CI:-}" = "true" ] || [ -n "${GITHUB_ACTIONS:-}" ]; then
+        echo "true"
+      else
+        echo "false"
+      fi
 
   # ============================================================================
   # Logging Utilities
@@ -294,7 +293,7 @@ tasks:
     vars:
       MSG: '{{.MSG}}'
     cmds:
-      - echo "==> {{.MSG}}"
+    - echo "==> {{.MSG}}"
 
   log:success:
     summary: Log a success message
@@ -302,7 +301,7 @@ tasks:
     vars:
       MSG: '{{.MSG}}'
     cmds:
-      - echo "✓ {{.MSG}}"
+    - echo "✓ {{.MSG}}"
 
   log:error:
     summary: Log an error message
@@ -310,7 +309,7 @@ tasks:
     vars:
       MSG: '{{.MSG}}'
     cmds:
-      - 'echo "ERROR: {{.MSG}}" >&2'
+    - 'echo "ERROR: {{.MSG}}" >&2'
 
   log:section:
     summary: Log a section header
@@ -318,7 +317,7 @@ tasks:
     vars:
       MSG: '{{.MSG}}'
     cmds:
-      - echo ""
-      - echo "========================================"
-      - echo "{{.MSG}}"
-      - echo "========================================"
+    - echo ""
+    - echo "========================================"
+    - echo "{{.MSG}}"
+    - echo "========================================"

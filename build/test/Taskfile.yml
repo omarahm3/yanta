@@ -21,10 +21,10 @@ tasks:
   backend:
     summary: Run Go backend tests with race detector and coverage
     deps:
-      - common:ensure:go
+    - common:ensure:go
     cmds:
-      - task: backend:unit
-      - task: backend:coverage-report
+    - task: backend:unit
+    - task: backend:coverage-report
 
   backend:unit:
     summary: Run backend unit tests (cross-platform)
@@ -34,80 +34,80 @@ tasks:
       On Unix, -race is enabled by default.
     internal: true
     deps:
-      - common:ensure:go
+    - common:ensure:go
     env:
       # Pass variables to PowerShell script via environment
       GO_CACHE_DIR: '{{.GO_CACHE_DIR}}'
       COVERAGE_OUT: '{{.COVERAGE_OUT}}'
       ROOT_DIR: '{{.ROOT_DIR}}'
     cmds:
-      - task: common:log:section
-        vars:
-          MSG: "Running Backend Unit Tests"
-      - task: common:dir:ensure
-        vars:
-          DIR: '{{.GO_CACHE_DIR}}'
-      # Cross-platform: Set GOCACHE and run tests
-      # Windows: Uses external .ps1 script to avoid cmd.exe $ stripping, skip -race (requires CGO/MinGW)
-      # Unix: Include -race
-      - |
-        {{if eq OS "windows"}}
-        powershell -NoProfile -ExecutionPolicy Bypass -File build/scripts/run-tests.ps1
-        {{else}}
-        cd "{{.ROOT_DIR}}" && GO_CACHE_DIR="{{.GO_CACHE_DIR}}" && case "$GO_CACHE_DIR" in /*) ;; *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;; esac && GOCACHE="$GO_CACHE_DIR" go test -v -race -coverprofile={{.COVERAGE_OUT}} -covermode=atomic ./...
-        {{end}}
-      - task: common:log:success
-        vars:
-          MSG: "Backend tests passed"
+    - task: common:log:section
+      vars:
+        MSG: "Running Backend Unit Tests"
+    - task: common:dir:ensure
+      vars:
+        DIR: '{{.GO_CACHE_DIR}}'
+    # Cross-platform: Set GOCACHE and run tests
+    # Windows: Uses external .ps1 script to avoid cmd.exe $ stripping, skip -race (requires CGO/MinGW)
+    # Unix: Include -race
+    - |
+      {{if eq OS "windows"}}
+      powershell -NoProfile -ExecutionPolicy Bypass -File build/scripts/run-tests.ps1
+      {{else}}
+      cd "{{.ROOT_DIR}}" && GO_CACHE_DIR="{{.GO_CACHE_DIR}}" && case "$GO_CACHE_DIR" in /*) ;; *) GO_CACHE_DIR="$(pwd)/$GO_CACHE_DIR" ;; esac && GOCACHE="$GO_CACHE_DIR" go test -v -race -coverprofile={{.COVERAGE_OUT}} -covermode=atomic ./...
+      {{end}}
+    - task: common:log:success
+      vars:
+        MSG: "Backend tests passed"
 
   backend:coverage-report:
     summary: Generate backend coverage report (cross-platform)
     internal: true
     cmds:
-      # Cross-platform: Check if coverage file exists and display summary
-      - |
-        {{if eq OS "windows"}}
-        powershell -NoProfile -Command "Set-Location '{{.ROOT_DIR}}'; if (Test-Path '{{.COVERAGE_OUT}}') { Write-Output ''; Write-Output 'Coverage Summary:'; go tool cover -func={{.COVERAGE_OUT}} | Select-Object -Last 1 }"
-        {{else}}
-        cd "{{.ROOT_DIR}}"
-        if [ -f "{{.COVERAGE_OUT}}" ]; then
-          echo ""
-          echo "Coverage Summary:"
-          go tool cover -func={{.COVERAGE_OUT}} | tail -1
-        fi
-        {{end}}
+    # Cross-platform: Check if coverage file exists and display summary
+    - |
+      {{if eq OS "windows"}}
+      powershell -NoProfile -Command "Set-Location '{{.ROOT_DIR}}'; if (Test-Path '{{.COVERAGE_OUT}}') { Write-Output ''; Write-Output 'Coverage Summary:'; go tool cover -func '{{.COVERAGE_OUT}}' | Select-Object -Last 1 }"
+      {{else}}
+      cd "{{.ROOT_DIR}}"
+      if [ -f "{{.COVERAGE_OUT}}" ]; then
+        echo ""
+        echo "Coverage Summary:"
+        go tool cover -func={{.COVERAGE_OUT}} | tail -1
+      fi
+      {{end}}
 
   backend:coverage-html:
     summary: Generate HTML coverage report (cross-platform)
     deps:
-      - backend:unit
+    - backend:unit
     cmds:
-      # Cross-platform: Generate HTML coverage report
-      - |
-        {{if eq OS "windows"}}
-        powershell -NoProfile -Command "Set-Location '{{.ROOT_DIR}}'; go tool cover -html={{.COVERAGE_OUT}} -o {{.COVERAGE_HTML}}"
-        {{else}}
-        cd "{{.ROOT_DIR}}" && go tool cover -html={{.COVERAGE_OUT}} -o {{.COVERAGE_HTML}}
-        {{end}}
-      - task: common:log:success
-        vars:
-          MSG: "HTML coverage report generated: {{.COVERAGE_HTML}}"
+    # Cross-platform: Generate HTML coverage report
+    - |
+      {{if eq OS "windows"}}
+      powershell -NoProfile -Command "Set-Location '{{.ROOT_DIR}}'; go tool cover -html={{.COVERAGE_OUT}} -o {{.COVERAGE_HTML}}"
+      {{else}}
+      cd "{{.ROOT_DIR}}" && go tool cover -html={{.COVERAGE_OUT}} -o {{.COVERAGE_HTML}}
+      {{end}}
+    - task: common:log:success
+      vars:
+        MSG: "HTML coverage report generated: {{.COVERAGE_HTML}}"
 
   backend:bench:
     summary: Run backend benchmarks (cross-platform)
     deps:
-      - common:ensure:go
+    - common:ensure:go
     cmds:
-      - task: common:log:section
-        vars:
-          MSG: "Running Backend Benchmarks"
-      # Cross-platform: Run benchmarks
-      - |
-        {{if eq OS "windows"}}
-        powershell -NoProfile -Command "Set-Location '{{.ROOT_DIR}}'; go test -bench=. -benchmem ./..."
-        {{else}}
-        cd "{{.ROOT_DIR}}" && go test -bench=. -benchmem ./...
-        {{end}}
+    - task: common:log:section
+      vars:
+        MSG: "Running Backend Benchmarks"
+    # Cross-platform: Run benchmarks
+    - |
+      {{if eq OS "windows"}}
+      powershell -NoProfile -Command "Set-Location '{{.ROOT_DIR}}'; go test -bench=. -benchmem ./..."
+      {{else}}
+      cd "{{.ROOT_DIR}}" && go test -bench=. -benchmem ./...
+      {{end}}
 
   # ============================================================================
   # Frontend Tests
@@ -116,44 +116,44 @@ tasks:
   frontend:
     summary: Run all frontend tests (typecheck + unit tests)
     cmds:
-      - task: frontend:typecheck
-      - task: frontend:unit
+    - task: frontend:typecheck
+    - task: frontend:unit
 
   frontend:typecheck:
     summary: Run TypeScript type checking (cross-platform)
     deps:
-      - common:ensure:npm
+    - common:ensure:npm
     cmds:
-      - task: common:log:section
-        vars:
-          MSG: "Running Frontend Type Check"
-      - task: frontend:install
-      - task: bindings
-      # Cross-platform: Run TypeScript type check
-      - |
-        {{if eq OS "windows"}}
-        powershell -NoProfile -Command "Set-Location '{{.ROOT_DIR}}/frontend'; npx tsc --noEmit"
-        {{else}}
-        cd "{{.ROOT_DIR}}/frontend" && npx tsc --noEmit
-        {{end}}
-      - task: common:log:success
-        vars:
-          MSG: "Frontend type check passed"
+    - task: common:log:section
+      vars:
+        MSG: "Running Frontend Type Check"
+    - task: frontend:install
+    - task: bindings
+    # Cross-platform: Run TypeScript type check
+    - |
+      {{if eq OS "windows"}}
+      powershell -NoProfile -Command "Set-Location '{{.ROOT_DIR}}/frontend'; npx tsc --noEmit"
+      {{else}}
+      cd "{{.ROOT_DIR}}/frontend" && npx tsc --noEmit
+      {{end}}
+    - task: common:log:success
+      vars:
+        MSG: "Frontend type check passed"
 
   frontend:unit:
     summary: Run frontend unit tests (when implemented)
     cmds:
-      - task: common:log:info
-        vars:
-          MSG: "Frontend unit tests not yet implemented"
-      # TODO: Add when frontend tests are implemented
-      # Cross-platform ready:
-      # - |
-      #   {{if eq OS "windows"}}
-      #   powershell -NoProfile -Command "Set-Location '{{.ROOT_DIR}}/frontend'; npm test"
-      #   {{else}}
-      #   cd "{{.ROOT_DIR}}/frontend" && npm test
-      #   {{end}}
+    - task: common:log:info
+      vars:
+        MSG: "Frontend unit tests not yet implemented"
+    # TODO: Add when frontend tests are implemented
+    # Cross-platform ready:
+    # - |
+    #   {{if eq OS "windows"}}
+    #   powershell -NoProfile -Command "Set-Location '{{.ROOT_DIR}}/frontend'; npm test"
+    #   {{else}}
+    #   cd "{{.ROOT_DIR}}/frontend" && npm test
+    #   {{end}}
 
   frontend:install:
     summary: Install frontend dependencies (cross-platform)
@@ -162,17 +162,17 @@ tasks:
     vars:
       FORCE_CI: '{{.FORCE_CI | default "0"}}'
     cmds:
-      # Cross-platform: Install npm dependencies
-      # Note: Uses [Environment]::GetEnvironmentVariable instead of $env:CI to avoid cmd.exe parsing issues
-      - '{{if eq OS "windows"}}powershell -NoProfile -Command "Set-Location ''{{.ROOT_DIR}}/frontend''; if (''{{.FORCE_CI}}'' -eq ''1'' -or [Environment]::GetEnvironmentVariable(''CI'') -eq ''true'') { npm ci } else { npm install }"{{else}}cd "{{.ROOT_DIR}}/frontend" && if [ "{{.FORCE_CI}}" = "1" ] || [ "${CI:-}" = "true" ]; then npm ci; else npm install; fi{{end}}'
+    # Cross-platform: Install npm dependencies
+    # Note: Uses [Environment]::GetEnvironmentVariable instead of $env:CI to avoid cmd.exe parsing issues
+    - '{{if eq OS "windows"}}powershell -NoProfile -Command "Set-Location ''{{.ROOT_DIR}}/frontend''; if (''{{.FORCE_CI}}'' -eq ''1'' -or [Environment]::GetEnvironmentVariable(''CI'') -eq ''true'') { npm ci } else { npm install }"{{else}}cd "{{.ROOT_DIR}}/frontend" && if [ "{{.FORCE_CI}}" = "1" ] || [ "${CI:-}" = "true" ]; then npm ci; else npm install; fi{{end}}'
 
   bindings:
     summary: Generate TypeScript bindings (cross-platform)
     internal: true
     silent: true
     cmds:
-      # Use the canonical bindings task from build/Taskfile.yml to avoid duplication
-      - task: build:generate:bindings
+    # Use the canonical bindings task from build/Taskfile.yml to avoid duplication
+    - task: build:generate:bindings
 
   # ============================================================================
   # Linting
@@ -181,43 +181,43 @@ tasks:
   lint:
     summary: Run all linters (Go + Frontend)
     cmds:
-      - task: lint:go
-      - task: lint:frontend
+    - task: lint:go
+    - task: lint:frontend
 
   lint:go:
     summary: Run Go linters if golangci-lint is installed (cross-platform)
     deps:
-      - common:ensure:go
+    - common:ensure:go
     cmds:
-      # Cross-platform: Check for golangci-lint and run if available
-      - |
-        {{if eq OS "windows"}}
-        powershell -NoProfile -Command "Set-Location '{{.ROOT_DIR}}'; if (Get-Command golangci-lint -ErrorAction SilentlyContinue) { golangci-lint run ./... } else { Write-Output 'golangci-lint not installed, skipping Go lint'; Write-Output 'Install: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest' }"
-        {{else}}
-        cd "{{.ROOT_DIR}}"
-        if which golangci-lint >/dev/null 2>&1; then
-          golangci-lint run ./...
-        else
-          echo "golangci-lint not installed, skipping Go lint"
-          echo "Install: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"
-        fi
-        {{end}}
+    # Cross-platform: Check for golangci-lint and run if available
+    - |
+      {{if eq OS "windows"}}
+      powershell -NoProfile -Command "Set-Location '{{.ROOT_DIR}}'; if (Get-Command golangci-lint -ErrorAction SilentlyContinue) { golangci-lint run ./... } else { Write-Output 'golangci-lint not installed, skipping Go lint'; Write-Output 'Install: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest' }"
+      {{else}}
+      cd "{{.ROOT_DIR}}"
+      if which golangci-lint >/dev/null 2>&1; then
+        golangci-lint run ./...
+      else
+        echo "golangci-lint not installed, skipping Go lint"
+        echo "Install: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"
+      fi
+      {{end}}
 
   lint:frontend:
     summary: Run frontend linter if configured (cross-platform)
     cmds:
-      # Cross-platform: Check for lint script in package.json
-      - |
-        {{if eq OS "windows"}}
-        powershell -NoProfile -Command "Set-Location '{{.ROOT_DIR}}/frontend'; if ((Test-Path 'package.json') -and ((Get-Content 'package.json' -Raw) -match '\"lint\"')) { npm run lint } else { Write-Output 'Frontend lint script not configured, skipping' }"
-        {{else}}
-        cd "{{.ROOT_DIR}}/frontend"
-        if [ -f "package.json" ] && grep -q '"lint"' package.json; then
-          npm run lint
-        else
-          echo "Frontend lint script not configured, skipping"
-        fi
-        {{end}}
+    # Cross-platform: Check for lint script in package.json
+    - |
+      {{if eq OS "windows"}}
+      powershell -NoProfile -Command "Set-Location '{{.ROOT_DIR}}/frontend'; if ((Test-Path 'package.json') -and ((Get-Content 'package.json' -Raw) -match '\"lint\"')) { npm run lint } else { Write-Output 'Frontend lint script not configured, skipping' }"
+      {{else}}
+      cd "{{.ROOT_DIR}}/frontend"
+      if [ -f "package.json" ] && grep -q '"lint"' package.json; then
+        npm run lint
+      else
+        echo "Frontend lint script not configured, skipping"
+      fi
+      {{end}}
 
   # ============================================================================
   # Integration Tests
@@ -226,24 +226,24 @@ tasks:
   integration:
     summary: Run integration tests (when implemented)
     cmds:
-      - task: common:log:info
-        vars:
-          MSG: "Integration tests not yet implemented"
-      # TODO: Add integration tests here
+    - task: common:log:info
+      vars:
+        MSG: "Integration tests not yet implemented"
+    # TODO: Add integration tests here
 
-  # ============================================================================
-  # All Tests
-  # ============================================================================
+    # ============================================================================
+    # All Tests
+    # ============================================================================
 
   all:
     summary: Run all tests (backend + frontend + lint)
     cmds:
-      - task: backend
-      - task: frontend
-      - task: lint
-      - task: common:log:success
-        vars:
-          MSG: "All tests passed!"
+    - task: backend
+    - task: frontend
+    - task: lint
+    - task: common:log:success
+      vars:
+        MSG: "All tests passed!"
 
   # ============================================================================
   # CI-specific test suite
@@ -252,8 +252,8 @@ tasks:
   ci:
     summary: Run tests in CI mode (all tests with extra checks)
     cmds:
-      - task: all
-      - task: backend:coverage-report
+    - task: all
+    - task: backend:coverage-report
 
   # ============================================================================
   # Clean test artifacts
@@ -262,13 +262,13 @@ tasks:
   clean:
     summary: Clean test artifacts and coverage reports (cross-platform)
     cmds:
-      # Cross-platform: Remove coverage files
-      - |
-        {{if eq OS "windows"}}
-        powershell -NoProfile -Command "Set-Location '{{.ROOT_DIR}}'; if (Test-Path '{{.COVERAGE_OUT}}') { Remove-Item '{{.COVERAGE_OUT}}' -Force }; if (Test-Path '{{.COVERAGE_HTML}}') { Remove-Item '{{.COVERAGE_HTML}}' -Force }"
-        {{else}}
-        cd "{{.ROOT_DIR}}" && rm -f {{.COVERAGE_OUT}} {{.COVERAGE_HTML}}
-        {{end}}
-      - task: common:log:success
-        vars:
-          MSG: "Test artifacts cleaned"
+    # Cross-platform: Remove coverage files
+    - |
+      {{if eq OS "windows"}}
+      powershell -NoProfile -Command "Set-Location '{{.ROOT_DIR}}'; if (Test-Path '{{.COVERAGE_OUT}}') { Remove-Item '{{.COVERAGE_OUT}}' -Force }; if (Test-Path '{{.COVERAGE_HTML}}') { Remove-Item '{{.COVERAGE_HTML}}' -Force }"
+      {{else}}
+      cd "{{.ROOT_DIR}}" && rm -f {{.COVERAGE_OUT}} {{.COVERAGE_HTML}}
+      {{end}}
+    - task: common:log:success
+      vars:
+        MSG: "Test artifacts cleaned"
