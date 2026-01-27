@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { DialogProvider } from "../../../contexts";
+import { DialogProvider } from "../../../contexts/DialogContext";
 import { ConfirmDialog } from "../ConfirmDialog";
 
 describe("ConfirmDialog", () => {
@@ -179,7 +179,7 @@ describe("ConfirmDialog", () => {
 		expect(confirmButton).not.toBeDisabled();
 	});
 
-	it("renders switch toggle when showCheckbox is true", () => {
+	it("renders checkbox when showCheckbox is true", () => {
 		render(
 			<DialogProvider>
 				<ConfirmDialog
@@ -195,8 +195,8 @@ describe("ConfirmDialog", () => {
 			</DialogProvider>,
 		);
 
-		const toggle = screen.getByRole("switch");
-		expect(toggle).toBeInTheDocument();
+		const checkbox = screen.getByRole("checkbox");
+		expect(checkbox).toBeInTheDocument();
 		expect(screen.getAllByText("I understand").length).toBeGreaterThan(0);
 	});
 
@@ -234,8 +234,8 @@ describe("ConfirmDialog", () => {
 			</DialogProvider>,
 		);
 
-		const toggle = screen.getByRole("switch");
-		fireEvent.click(toggle);
+		const checkbox = screen.getByRole("checkbox");
+		fireEvent.click(checkbox);
 
 		const confirmButton = screen.getByText("Confirm");
 		expect(confirmButton).not.toBeDisabled();
@@ -265,8 +265,8 @@ describe("ConfirmDialog", () => {
 		fireEvent.change(input, { target: { value: "DELETE" } });
 		expect(confirmButton).toBeDisabled();
 
-		const toggle = screen.getByRole("switch");
-		fireEvent.click(toggle);
+		const checkbox = screen.getByRole("checkbox");
+		fireEvent.click(checkbox);
 		expect(confirmButton).not.toBeDisabled();
 	});
 
@@ -288,10 +288,10 @@ describe("ConfirmDialog", () => {
 		);
 
 		const input = screen.getByPlaceholderText("text");
-		const toggle = screen.getByRole("switch");
+		const checkbox = screen.getByRole("checkbox");
 
 		fireEvent.change(input, { target: { value: "text" } });
-		fireEvent.click(toggle);
+		fireEvent.click(checkbox);
 
 		rerender(
 			<DialogProvider>
@@ -369,10 +369,10 @@ describe("ConfirmDialog", () => {
 			</DialogProvider>,
 		);
 
-		const toggle = screen.getByRole("switch");
-		expect(toggle).toHaveAttribute("aria-checked", "false");
+		const checkbox = screen.getByRole("checkbox");
+		expect(checkbox).toHaveAttribute("aria-checked", "false");
 
-		fireEvent.click(toggle);
-		expect(toggle).toHaveAttribute("aria-checked", "true");
+		fireEvent.click(checkbox);
+		expect(checkbox).toHaveAttribute("aria-checked", "true");
 	});
 });
