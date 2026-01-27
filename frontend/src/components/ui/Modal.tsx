@@ -1,11 +1,6 @@
 import type React from "react";
 import { cn } from "../../lib/utils";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from "./dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./dialog";
 
 export interface ModalProps {
 	isOpen: boolean;

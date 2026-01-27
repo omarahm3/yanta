@@ -3,13 +3,7 @@ import { RiAlertLine, RiCloseLine, RiErrorWarningLine, RiInformationLine } from 
 import { cn } from "../../lib/utils";
 import type { ParsedGitError } from "../../utils/gitErrorParser";
 import { Button } from "./Button";
-import {
-	Dialog,
-	DialogContent,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "./dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "./dialog";
 
 export interface GitErrorDialogProps {
 	isOpen: boolean;
@@ -42,18 +36,14 @@ export const GitErrorDialog: React.FC<GitErrorDialogProps> = ({ isOpen, onClose,
 	return (
 		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
 			<DialogContent
-				className={cn(
-					"sm:max-w-2xl p-0 bg-surface border-border overflow-hidden"
-				)}
+				className={cn("sm:max-w-2xl p-0 bg-surface border-border overflow-hidden")}
 				showCloseButton={false}
 			>
 				{/* Header */}
 				<DialogHeader className="flex flex-row items-start justify-between px-6 py-4 border-b border-border gap-0">
 					<div className="flex items-center gap-3">
 						{getIcon()}
-						<DialogTitle className="text-lg font-semibold text-text-bright">
-							{error.title}
-						</DialogTitle>
+						<DialogTitle className="text-lg font-semibold text-text-bright">{error.title}</DialogTitle>
 					</div>
 					<Button
 						variant="ghost"

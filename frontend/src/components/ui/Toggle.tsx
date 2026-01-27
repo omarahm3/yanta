@@ -15,11 +15,6 @@ export const Toggle: React.FC<ToggleProps> = ({
 	className,
 }) => {
 	return (
-		<Switch
-			checked={checked}
-			onCheckedChange={onChange}
-			disabled={disabled}
-			className={className}
-		/>
+		<Switch checked={checked} onCheckedChange={onChange} disabled={disabled} className={className} />
 	);
 };

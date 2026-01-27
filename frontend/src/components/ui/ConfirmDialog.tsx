@@ -3,13 +3,7 @@ import { useDialog } from "../../contexts/DialogContext";
 import { cn } from "../../lib/utils";
 import { Button } from "./Button";
 import { Checkbox } from "./checkbox";
-import {
-	Dialog,
-	DialogContent,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "./dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "./dialog";
 import { Input } from "./Input";
 import { Label } from "./Label";
 import { Text } from "./Text";
@@ -111,9 +105,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 							/>
 							<Label
 								htmlFor="confirm-checkbox"
-								className={cn(
-									"cursor-pointer text-sm font-normal text-muted-foreground",
-								)}
+								className={cn("cursor-pointer text-sm font-normal text-muted-foreground")}
 							>
 								{checkboxLabel}
 							</Label>

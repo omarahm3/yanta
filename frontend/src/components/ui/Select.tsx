@@ -1,11 +1,11 @@
 import React from "react";
 import { cn } from "../../lib/utils";
 import {
-	Select as ShadcnSelect,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
+	Select as ShadcnSelect,
 } from "./select-shadcn";
 
 export interface SelectOption {
@@ -31,10 +31,7 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
 
 		return (
 			<ShadcnSelect value={value} onValueChange={onChange} disabled={disabled}>
-				<SelectTrigger
-					ref={ref}
-					className={cn("w-full", variantClasses[variant], className)}
-				>
+				<SelectTrigger ref={ref} className={cn("w-full", variantClasses[variant], className)}>
 					<SelectValue placeholder="Select..." />
 				</SelectTrigger>
 				<SelectContent>

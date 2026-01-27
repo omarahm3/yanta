@@ -4,12 +4,7 @@ import { GLOBAL_COMMANDS } from "../../constants/globalCommands";
 import { useHotkeyContext } from "../../contexts/HotkeyContext";
 import { useHelp } from "../../hooks/useHelp";
 import { Heading } from "../ui";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from "./dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./dialog";
 
 const formatHotkeyDisplay = (key: string): string => {
 	return key
@@ -154,10 +149,7 @@ export const HelpModal: React.FC = () => {
 								</Heading>
 								<div className="space-y-3 sm:space-y-4">
 									{allHotkeys.map((hotkey) => (
-										<div
-											key={hotkey.id}
-											className="flex items-start gap-3 sm:gap-4 font-mono text-sm group"
-										>
+										<div key={hotkey.id} className="flex items-start gap-3 sm:gap-4 font-mono text-sm group">
 											<div className="shrink-0">
 												<code className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-bg border border-purple/20 rounded-md text-purple font-medium transition-all duration-200 group-hover:border-purple/40 group-hover:bg-purple/5 text-xs sm:text-sm">
 													{formatHotkeyDisplay(hotkey.key)}
@@ -180,9 +172,7 @@ export const HelpModal: React.FC = () => {
 									<div className="text-6xl">🤔</div>
 									<div className="text-lg font-semibold text-text">Looking for keyboard shortcuts?</div>
 									<div className="text-text-dim">They're literally right there on the page! ↓</div>
-									<div className="text-sm text-text-dim/70 italic">
-										(Scroll up if you can't see them)
-									</div>
+									<div className="text-sm text-text-dim/70 italic">(Scroll up if you can't see them)</div>
 								</div>
 							) : (
 								<div className="text-text-dim">No page-specific commands or shortcuts available.</div>
