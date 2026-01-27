@@ -52,9 +52,6 @@ export default defineConfig({
             "@blocknote/shadcn",
           ],
 
-          // Headless UI (modal/dialog system)
-          "vendor-headlessui": ["@headlessui/react"],
-
           // Utilities
           "vendor-utils": [
             "clsx",
@@ -72,6 +69,6 @@ export default defineConfig({
 
   // Optimize dependency pre-bundling
   optimizeDeps: {
-    include: ["react", "react-dom", "@headlessui/react", "@blocknote/react"],
+    include: ["react", "react-dom", "@blocknote/react"],
   },
 });
