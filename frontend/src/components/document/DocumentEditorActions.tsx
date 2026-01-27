@@ -1,11 +1,5 @@
+import { Check, Circle, Loader2, X } from "lucide-react";
 import type React from "react";
-import {
-	RiCheckLine,
-	RiCircleLine,
-	RiCloseLine,
-	RiLoader4Line,
-	RiRecordCircleFill,
-} from "react-icons/ri";
 import type { SaveState } from "../../hooks/useAutoSave";
 
 interface DocumentEditorActionsProps {
@@ -36,7 +30,7 @@ export const DocumentEditorActions: React.FC<DocumentEditorActionsProps> = ({
 	const getStatusIndicator = () => {
 		if (isArchived) {
 			return {
-				icon: RiCircleLine,
+				icon: Circle,
 				text: "Read-only",
 				color: "text-accent",
 				iconClass: "",
@@ -44,7 +38,7 @@ export const DocumentEditorActions: React.FC<DocumentEditorActionsProps> = ({
 		}
 		if (saveState === "saving") {
 			return {
-				icon: RiLoader4Line,
+				icon: Loader2,
 				text: "Saving",
 				color: "text-accent",
 				iconClass: "animate-spin",
@@ -52,7 +46,7 @@ export const DocumentEditorActions: React.FC<DocumentEditorActionsProps> = ({
 		}
 		if (saveState === "error" && saveError) {
 			return {
-				icon: RiCloseLine,
+				icon: X,
 				text: saveError.message,
 				color: "text-red",
 				iconClass: "",
@@ -60,22 +54,22 @@ export const DocumentEditorActions: React.FC<DocumentEditorActionsProps> = ({
 		}
 		if (hasUnsavedChanges) {
 			return {
-				icon: RiRecordCircleFill,
+				icon: Circle,
 				text: "Unsaved",
 				color: "text-yellow",
-				iconClass: "",
+				iconClass: "fill-current",
 			};
 		}
 		if (lastSaved) {
 			return {
-				icon: RiCheckLine,
+				icon: Check,
 				text: formatTimeSince(lastSaved),
 				color: "text-green",
 				iconClass: "",
 			};
 		}
 		return {
-			icon: RiCircleLine,
+			icon: Circle,
 			text: "Ready",
 			color: "text-text-dim",
 			iconClass: "",

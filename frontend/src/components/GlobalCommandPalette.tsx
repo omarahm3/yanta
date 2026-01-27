@@ -1,19 +1,19 @@
+import {
+	Archive,
+	ArchiveRestore,
+	ArrowRight,
+	Bug,
+	CloudDownload,
+	CloudUpload,
+	FilePlus,
+	Folder,
+	GitCommit,
+	LayoutDashboard,
+	Search,
+	Settings,
+} from "lucide-react";
 import type React from "react";
 import { useMemo, useState } from "react";
-import {
-	RiArchiveLine,
-	RiArrowRightLine,
-	RiBugLine,
-	RiDashboardLine,
-	RiDownloadCloudLine,
-	RiFileAddLine,
-	RiFolderLine,
-	RiGitCommitLine,
-	RiInboxUnarchiveLine,
-	RiSearchLine,
-	RiSettings3Line,
-	RiUploadCloudLine,
-} from "react-icons/ri";
 import { SyncStatus } from "../../bindings/yanta/internal/git/models";
 import { GitPull, GitPush, SyncNow } from "../../bindings/yanta/internal/system/service";
 import { useProjectContext } from "../contexts/ProjectContext";
@@ -59,7 +59,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 
 		commands.push({
 			id: "nav-dashboard",
-			icon: <RiDashboardLine className="text-lg" />,
+			icon: <LayoutDashboard className="text-lg" />,
 			text: "Go to Dashboard",
 			hint: "Home",
 			action: () => {
@@ -70,7 +70,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 
 		commands.push({
 			id: "nav-projects",
-			icon: <RiFolderLine className="text-lg" />,
+			icon: <Folder className="text-lg" />,
 			text: "Go to Projects",
 			hint: "Manage projects",
 			action: () => {
@@ -81,7 +81,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 
 		commands.push({
 			id: "nav-search",
-			icon: <RiSearchLine className="text-lg" />,
+			icon: <Search className="text-lg" />,
 			text: "Go to Search",
 			hint: "Find documents",
 			action: () => {
@@ -92,7 +92,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 
 		commands.push({
 			id: "nav-settings",
-			icon: <RiSettings3Line className="text-lg" />,
+			icon: <Settings className="text-lg" />,
 			text: "Go to Settings",
 			hint: "Configure app",
 			action: () => {
@@ -103,7 +103,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 
 		commands.push({
 			id: "new-document",
-			icon: <RiFileAddLine className="text-lg" />,
+			icon: <FilePlus className="text-lg" />,
 			text: "New Document",
 			hint: "Create new entry",
 			action: () => {
@@ -114,7 +114,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 
 		commands.push({
 			id: "nav-test",
-			icon: <RiBugLine className="text-lg" />,
+			icon: <Bug className="text-lg" />,
 			text: "Open Development Test",
 			hint: "Debug tools",
 			action: () => {
@@ -125,7 +125,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 
 		commands.push({
 			id: "git-sync",
-			icon: <RiGitCommitLine className="text-lg" />,
+			icon: <GitCommit className="text-lg" />,
 			text: "Git Sync",
 			hint: "Fetch, pull, commit, push",
 			action: async () => {
@@ -167,7 +167,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 
 		commands.push({
 			id: "git-push",
-			icon: <RiUploadCloudLine className="text-lg" />,
+			icon: <CloudUpload className="text-lg" />,
 			text: "Git Push",
 			hint: "Push to remote",
 			action: async () => {
@@ -183,7 +183,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 
 		commands.push({
 			id: "git-pull",
-			icon: <RiDownloadCloudLine className="text-lg" />,
+			icon: <CloudDownload className="text-lg" />,
 			text: "Git Pull",
 			hint: "Pull from remote (merge)",
 			action: async () => {
@@ -200,11 +200,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 		if (currentPage === "dashboard" && onToggleArchived && currentProject) {
 			commands.push({
 				id: "toggle-archived",
-				icon: showArchived ? (
-					<RiInboxUnarchiveLine className="text-lg" />
-				) : (
-					<RiArchiveLine className="text-lg" />
-				),
+				icon: showArchived ? <ArchiveRestore className="text-lg" /> : <Archive className="text-lg" />,
 				text: showArchived ? "Hide Archived Documents" : "Show Archived Documents",
 				hint: `${currentProject.alias} context`,
 				action: () => {
@@ -219,7 +215,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			.forEach((project) => {
 				commands.push({
 					id: `project-${project.id}`,
-					icon: <RiArrowRightLine className="text-lg" />,
+					icon: <ArrowRight className="text-lg" />,
 					text: `Switch to ${project.alias}`,
 					hint: project.name,
 					action: () => {

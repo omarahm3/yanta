@@ -1,5 +1,5 @@
+import { AlertTriangle, FolderOpen } from "lucide-react";
 import React from "react";
-import { RiAlertLine, RiFolderOpenLine } from "react-icons/ri";
 import {
 	Button,
 	Input,
@@ -58,7 +58,7 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 						{!gitInstalled && (
 							<div className="p-4 border border-yellow-700 rounded bg-yellow-900/30">
 								<div className="flex items-start gap-2">
-									<RiAlertLine className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
+									<AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
 									<div>
 										<div className="mb-1 font-medium text-yellow-400">Git Not Installed</div>
 										<div className="text-sm text-yellow-300">
@@ -96,7 +96,7 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 										disabled={isMigrating || !gitInstalled}
 										title="Browse for folder"
 									>
-										<RiFolderOpenLine className="w-4 h-4" />
+										<FolderOpen className="w-4 h-4" />
 									</Button>
 								</div>
 								<Button

@@ -82,6 +82,10 @@ vi.mock("../../wailsjs/runtime/runtime", () => ({
 	EventsOn: vi.fn(() => () => {}),
 }));
 
+vi.mock("../../bindings/yanta/internal/system/service", () => ({
+	GetAppScale: vi.fn(() => Promise.resolve(1.0)),
+}));
+
 vi.mock("../components/ui/Toast", () => ({
 	ToastProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 	useToast: () => ({

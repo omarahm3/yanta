@@ -23,7 +23,8 @@ node_modules
 frontend/dist
 frontend/.vite
 
-frontend/bindings/
+# Wails generates bindings at runtime - stubs are committed for TypeScript compilation
+# frontend/bindings/
 
 coverage.out
 

@@ -92,7 +92,7 @@ export const useDashboardCommandHandler = ({
 
 					if (isArchive) {
 						title = "Archive Document";
-						message = result.message;
+						message = result.message || "Archive this document?";
 						danger = false;
 					} else if (isDelete) {
 						if (isHard) {
@@ -104,7 +104,7 @@ export const useDashboardCommandHandler = ({
 							danger = true;
 						} else {
 							title = "Delete Document";
-							message = result.message;
+							message = result.message || "Delete this document?";
 							danger = false;
 						}
 					}
@@ -155,7 +155,7 @@ export const useDashboardCommandHandler = ({
 					},
 				};
 
-				const action = actions[result.message];
+				const action = result.message ? actions[result.message] : undefined;
 				if (action) {
 					await action();
 				} else if (result.message) {
