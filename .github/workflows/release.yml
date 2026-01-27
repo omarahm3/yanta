@@ -2,183 +2,44 @@ name: Release
 
 on:
   push:
-    tags: ["v*"]
+    tags: [ "v*" ]
 
 jobs:
   build:
-    name: Build ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: linux
-            os: ubuntu-latest
-          - name: windows
-            os: windows-latest
-          - name: macos
-            os: macos-latest
-    env:
-      # Extract version from tag (v1.0.0 -> 1.0.0)
-      YANTA_VERSION: ${{ github.ref_name }}
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set version from tag
-        run: |
-          # Strip 'v' prefix from tag for version
-          VERSION="${GITHUB_REF_NAME#v}"
-          echo "YANTA_VERSION=${VERSION}" >> "$GITHUB_ENV"
-          echo "Building version: ${VERSION}"
-          echo "Commit: ${GITHUB_SHA::7}"
-
-      - name: Install Linux dependencies
-        if: matrix.name == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libgtk-3-dev \
-            libwebkit2gtk-4.1-dev \
-            build-essential \
-            pkg-config \
-            libayatana-appindicator3-dev \
-            libx11-dev \
-            xvfb
-
-      - name: Install Windows dependencies
-        if: matrix.name == 'windows'
-        shell: powershell
-        run: |
-          choco install -y nsis
-          $nsisPath = "${env:ProgramFiles(x86)}\NSIS"
-          if (Test-Path $nsisPath) {
-            "$nsisPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-            "$nsisPath\Bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          }
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: 'go.mod'
-          cache: true
-          cache-dependency-path: go.sum
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install Task CLI
-        run: go install github.com/go-task/task/v3/cmd/task@latest
-
-      - name: Install Wails v3
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
-
-      - name: Build Linux artifacts
-        if: matrix.name == 'linux'
-        run: |
-          task release:linux
-          task release:ubuntu
-          task release:list
-
-      - name: Build Windows artifacts
-        if: matrix.name == 'windows'
-        run: |
-          task release:windows
-          task release:list
-
-      - name: Build macOS artifacts
-        if: matrix.name == 'macos'
-        run: |
-          task release:macos
-          task release:list
-
-      # Linux artifacts - separate uploads
-      - name: Upload Linux tarball
-        if: matrix.name == 'linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-tarball
-          path: build/dist/yanta-linux.tar.gz
-          if-no-files-found: error
-
-      - name: Upload Arch Linux package
-        if: matrix.name == 'linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-arch
-          path: build/dist/yanta-*-x86_64.pkg.tar.zst
-          if-no-files-found: error
-
-      - name: Upload Debian package
-        if: matrix.name == 'linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-deb
-          path: build/dist/yanta_*_amd64.deb
-          if-no-files-found: error
-
-      # Windows artifacts - separate uploads
-      - name: Upload Windows portable
-        if: matrix.name == 'windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-portable
-          path: build/dist/yanta-windows-portable.exe
-          if-no-files-found: error
-
-      - name: Upload Windows installer
-        if: matrix.name == 'windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-installer
-          path: build/dist/yanta-windows-installer.exe
-          if-no-files-found: error
-
-      # macOS artifact
-      - name: Upload macOS app
-        if: matrix.name == 'macos'
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-app
-          path: build/dist/yanta-macos.tar.gz
-          if-no-files-found: error
+    uses: ./.github/workflows/build-release.yml
+    with:
+      version: ${{ github.ref_name }}
 
   release:
     needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: write
+
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
 
-      - name: List artifacts
-        run: |
-          echo "=== Downloaded artifacts ==="
-          find artifacts -type f -exec ls -lh {} \;
+    - name: List artifacts
+      run: |
+        echo "=== Downloaded artifacts ==="
+        find artifacts -type f -exec ls -lh {} \;
 
-      - name: Prepare release files
-        run: |
-          mkdir -p release
-          # Flatten all artifacts into release directory with proper names
-          find artifacts -type f -exec cp {} release/ \;
-          echo "=== Release files ==="
-          ls -lh release/
+    - name: Prepare release files
+      run: |
+        mkdir -p release
+        find artifacts -type f -exec cp {} release/ \;
+        echo "=== Release files ==="
+        ls -lh release/
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release/*
-          generate_release_notes: true
-          draft: false
-          prerelease: ${{ contains(github.ref_name, '-') }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: release/*
+        generate_release_notes: true
+        draft: false
+        prerelease: ${{ contains(github.ref_name, '-') }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
