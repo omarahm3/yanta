@@ -16,7 +16,7 @@ const Command = React.forwardRef<
 			data-slot="command"
 			loop={loop}
 			className={cn(
-				"bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-md",
+				"bg-surface text-text flex h-full w-full flex-col overflow-hidden rounded-md",
 				className,
 			)}
 			{...props}
@@ -37,41 +37,12 @@ function CommandDialog({
 }) {
 	const commandRef = useRef<HTMLDivElement>(null);
 
-	// Handle Ctrl+N/Ctrl+P keyboard shortcuts by translating them to ArrowDown/ArrowUp
-	useEffect(() => {
-		if (!open) return;
-
-		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.ctrlKey && (e.key === "n" || e.key === "N")) {
-				e.preventDefault();
-				// Dispatch ArrowDown event to the command container
-				const arrowEvent = new KeyboardEvent("keydown", {
-					key: "ArrowDown",
-					code: "ArrowDown",
-					bubbles: true,
-					cancelable: true,
-				});
-				commandRef.current?.dispatchEvent(arrowEvent);
-			} else if (e.ctrlKey && (e.key === "p" || e.key === "P")) {
-				e.preventDefault();
-				// Dispatch ArrowUp event to the command container
-				const arrowEvent = new KeyboardEvent("keydown", {
-					key: "ArrowUp",
-					code: "ArrowUp",
-					bubbles: true,
-					cancelable: true,
-				});
-				commandRef.current?.dispatchEvent(arrowEvent);
-			}
-		};
-
-		document.addEventListener("keydown", handleKeyDown);
-		return () => document.removeEventListener("keydown", handleKeyDown);
-	}, [open]);
-
 	return (
 		<Dialog open={open} {...props}>
-			<DialogContent className="overflow-hidden p-0" showCloseButton={false}>
+			<DialogContent
+				className="overflow-hidden p-0 bg-surface text-text border border-border shadow-[0_16px_48px_rgba(0,0,0,0.5)]"
+				showCloseButton={false}
+			>
 				<DialogTitle className="sr-only">{title}</DialogTitle>
 				<DialogDescription className="sr-only">{description}</DialogDescription>
 				<Command
@@ -87,10 +58,16 @@ function CommandDialog({
 
 function CommandInput({
 	className,
+	showEscBadge = true,
 	...props
-}: React.ComponentProps<typeof CommandPrimitive.Input>) {
+}: React.ComponentProps<typeof CommandPrimitive.Input> & {
+	showEscBadge?: boolean;
+}) {
 	return (
-		<div data-slot="command-input-wrapper" className="flex h-9 items-center gap-2 border-b px-3">
+		<div
+			data-slot="command-input-wrapper"
+			className="flex h-11 items-center gap-2 border-b border-border bg-bg px-3"
+		>
 			<SearchIcon className="size-4 shrink-0 opacity-50" />
 			<CommandPrimitive.Input
 				data-slot="command-input"
@@ -100,6 +77,11 @@ function CommandInput({
 				)}
 				{...props}
 			/>
+			{showEscBadge && (
+				<kbd className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+					ESC
+				</kbd>
+			)}
 		</div>
 	);
 }
@@ -158,7 +140,7 @@ function CommandItem({ className, ...props }: React.ComponentProps<typeof Comman
 		<CommandPrimitive.Item
 			data-slot="command-item"
 			className={cn(
-				"data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+				"data-[selected=true]:bg-border data-[selected=true]:text-text [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
 				className,
 			)}
 			{...props}
