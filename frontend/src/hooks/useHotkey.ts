@@ -50,7 +50,9 @@ export const useHotkeys = (configs: HotkeyConfig[]) => {
 	}, [configs]);
 
 	useEffect(() => {
-		hotkeyIdsRef.current.forEach((id) => unregister(id));
+		hotkeyIdsRef.current.forEach((id) => {
+			unregister(id);
+		});
 		hotkeyIdsRef.current = [];
 
 		const ids = configs.map((config, index) => {
@@ -63,7 +65,9 @@ export const useHotkeys = (configs: HotkeyConfig[]) => {
 		hotkeyIdsRef.current = ids;
 
 		return () => {
-			hotkeyIdsRef.current.forEach((id) => unregister(id));
+			hotkeyIdsRef.current.forEach((id) => {
+				unregister(id);
+			});
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [configs, register, unregister]);

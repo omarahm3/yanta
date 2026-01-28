@@ -29,8 +29,8 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 				{breadcrumb} / <span className="text-text-bright font-semibold">{currentPage}</span>
 			</div>
 			<div className="flex gap-4 text-xs text-text-dim">
-				{shortcuts.map((shortcut, index) => (
-					<span key={index} className="flex items-center gap-1">
+				{shortcuts.map((shortcut) => (
+					<span key={shortcut.key} className="flex items-center gap-1">
 						<kbd className="bg-bg px-1.5 py-0.5 rounded text-xs border border-border">{shortcut.key}</kbd>
 						{shortcut.label}
 					</span>

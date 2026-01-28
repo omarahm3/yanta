@@ -1,5 +1,6 @@
 export interface HotkeyConfig {
 	key: string;
+	// biome-ignore lint/suspicious/noConfusingVoidType: void is intentional here - handlers may return nothing or a boolean
 	handler: (event: KeyboardEvent) => void | boolean;
 	allowInInput?: boolean;
 	description?: string;

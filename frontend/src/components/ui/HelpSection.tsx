@@ -17,8 +17,8 @@ export const HelpSection: React.FC<HelpSectionProps> = ({ title, commands, class
 		<div className={cn("mt-8 p-5 bg-surface border border-border rounded max-w-4xl", className)}>
 			<div className="text-text-bright font-semibold mb-3">{title}</div>
 			<div className="grid grid-cols-[200px_auto] gap-2 text-sm">
-				{commands.map((cmd, index) => (
-					<React.Fragment key={index}>
+				{commands.map((cmd) => (
+					<React.Fragment key={cmd.command}>
 						<div className="text-accent font-mono">{cmd.command}</div>
 						<div className="text-text-dim">{cmd.description}</div>
 					</React.Fragment>

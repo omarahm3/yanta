@@ -2,9 +2,6 @@ import type { BlockNoteEditor } from "@blocknote/core";
 import {
 	type Components as BlockNoteComponents,
 	ComponentsContext,
-	getDefaultReactSlashMenuItems,
-	SuggestionMenuController,
-	useBlockNoteEditor,
 	useCreateBlockNote,
 } from "@blocknote/react";
 import {
@@ -44,14 +41,6 @@ const describeFile = (file: File, resolvedPath?: string): ResolvedFileInfo => ({
 	lastModified: file.lastModified,
 	path: resolvedPath,
 });
-
-type BlockNoteDiagnostics = {
-	events: string[];
-	imageCount: number;
-	serialized: string;
-	accept: string;
-	reset: () => void;
-};
 
 const useBlockNoteTestEditor = () => {
 	const urlsRef = React.useRef<string[]>([]);
@@ -141,7 +130,9 @@ const useBlockNoteTestEditor = () => {
 
 	React.useEffect(() => {
 		return () => {
-			urlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+			urlsRef.current.forEach((url) => {
+				URL.revokeObjectURL(url);
+			});
 			urlsRef.current = [];
 		};
 	}, []);
@@ -150,7 +141,9 @@ const useBlockNoteTestEditor = () => {
 		setEvents([]);
 		setImageCount(0);
 		setSerialized("[]");
-		urlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+		urlsRef.current.forEach((url) => {
+			URL.revokeObjectURL(url);
+		});
 		urlsRef.current = [];
 	}, []);
 
@@ -534,6 +527,7 @@ export const Test: React.FC<TestProps> = () => {
 										<li className="text-text-dim">No uploads recorded yet.</li>
 									)}
 									{baselineDiagnostics.events.map((entry, index) => (
+										// biome-ignore lint/suspicious/noArrayIndexKey: log entries may repeat, index is necessary
 										<li key={`${entry}-${index}`} className="font-mono text-[11px] text-text">
 											{entry}
 										</li>
@@ -585,6 +579,7 @@ export const Test: React.FC<TestProps> = () => {
 										<li className="text-text-dim">No uploads recorded yet.</li>
 									)}
 									{overrideDiagnostics.events.map((entry, index) => (
+										// biome-ignore lint/suspicious/noArrayIndexKey: log entries may repeat, index is necessary
 										<li key={`${entry}-${index}`} className="font-mono text-[11px] text-text">
 											{entry}
 										</li>

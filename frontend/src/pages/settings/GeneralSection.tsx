@@ -28,7 +28,7 @@ export const GeneralSection = React.forwardRef<HTMLDivElement, GeneralSectionPro
 		const platform = systemInfo?.app?.platform ?? "";
 		const isLinux = platform.includes("linux");
 		const isMac = platform.includes("darwin");
-		const backgroundUnavailable = isLinux || isMac;
+		const _backgroundUnavailable = isLinux || isMac;
 
 		const isWindows = !isLinux && !isMac;
 
