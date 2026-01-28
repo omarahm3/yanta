@@ -17,6 +17,7 @@ const (
 	DocumentCommandTag       DocumentCommand = "tag"
 	DocumentCommandUntag     DocumentCommand = "untag"
 	DocumentCommandTags      DocumentCommand = "tags"
+	DocumentCommandExportPDF DocumentCommand = "export-pdf"
 )
 
 type DocumentResultData struct {
@@ -81,6 +82,7 @@ func (dc *DocumentCommands) GetAllCommands() []DocumentCommand {
 		DocumentCommandTag,
 		DocumentCommandUntag,
 		DocumentCommandTags,
+		DocumentCommandExportPDF,
 	}
 }
 
@@ -152,6 +154,7 @@ func (dc *DocumentCommands) registerCommands() {
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandTag), `\s+(.+)$`), dc.handleTag)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandUntag), `\s+(.+)$`), dc.handleUntag)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandTags), `$`), dc.handleTags)
+	dc.parser.MustRegister(formatCommand(string(DocumentCommandExportPDF), `$`), dc.handleExportPDF)
 	dc.parser.MustRegister(`^(help|\?)$`, dc.handleHelp)
 }
 
@@ -687,5 +690,22 @@ func (dc *DocumentCommands) handleTags(matches []string, fullCommand string) (*R
 	return &Result{
 		Success: true,
 		Message: fmt.Sprintf("tags: %s", tagList),
+	}, nil
+}
+
+func (dc *DocumentCommands) handleExportPDF(matches []string, fullCommand string) (*Result, error) {
+	if dc.currentPath == "" {
+		return &Result{
+			Success: false,
+			Message: "no document open - use in document editor",
+		}, nil
+	}
+
+	return &Result{
+		Success: true,
+		Message: "export to PDF",
+		Data: DocumentResultData{
+			DocumentPath: dc.currentPath,
+		},
 	}, nil
 }
