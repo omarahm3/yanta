@@ -9,6 +9,20 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
+/**
+ * ExportDocument exports a single document to markdown format
+ */
+export function ExportDocument(req: $models.ExportDocumentRequest): $CancellablePromise<void> {
+    return $Call.ByID(2595318286, req);
+}
+
+/**
+ * ExportProject exports all documents in a project to markdown format
+ */
+export function ExportProject(req: $models.ExportProjectRequest): $CancellablePromise<void> {
+    return $Call.ByID(3183703096, req);
+}
+
 export function Get(path: string): $CancellablePromise<$models.DocumentWithTags | null> {
     return $Call.ByID(632320575, path).then(($result: any) => {
         return $$createType1($result);
