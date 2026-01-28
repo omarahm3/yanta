@@ -209,6 +209,19 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			},
 		});
 
+		if (currentProject) {
+			commands.push({
+				id: "export-project",
+				icon: <FileDown className="text-lg" />,
+				text: "Export Project",
+				hint: "Export project to markdown",
+				action: () => {
+					onNavigate("export", { projectId: currentProject.id });
+					onClose();
+				},
+			});
+		}
+
 		if (currentPage === "dashboard" && onToggleArchived && currentProject) {
 			commands.push({
 				id: "toggle-archived",
