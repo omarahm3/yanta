@@ -361,6 +361,21 @@ export function useDocumentController({
 				capture: true,
 			},
 			{
+				key: "mod+shift+e",
+				handler: (event: KeyboardEvent) => {
+					event.preventDefault();
+					event.stopPropagation();
+					if (isArchived) {
+						error("Restore the document before exporting.");
+						return;
+					}
+					void handleCommandSubmit(":export-pdf");
+				},
+				allowInInput: true,
+				description: "Export to PDF",
+				capture: true,
+			},
+			{
 				key: "Escape",
 				handler: handleEscape,
 				allowInInput: false,
@@ -379,7 +394,7 @@ export function useDocumentController({
 				description: "Focus editor when unfocused",
 			},
 		],
-		[saveNow, error, focusEditor, handleEscape, handleUnfocus, isArchived],
+		[saveNow, error, focusEditor, handleEscape, handleUnfocus, isArchived, handleCommandSubmit],
 	);
 
 	return {
