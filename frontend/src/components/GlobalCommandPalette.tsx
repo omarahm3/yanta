@@ -5,6 +5,7 @@ import {
 	Bug,
 	CloudDownload,
 	CloudUpload,
+	FileDown,
 	FilePlus,
 	Folder,
 	GitCommit,
@@ -108,6 +109,17 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			hint: "Create new entry",
 			action: () => {
 				onNavigate("document");
+				onClose();
+			},
+		});
+
+		commands.push({
+			id: "export-document",
+			icon: <FileDown className="text-lg" />,
+			text: "Export Document",
+			hint: "Export to markdown",
+			action: () => {
+				onNavigate("export");
 				onClose();
 			},
 		});
