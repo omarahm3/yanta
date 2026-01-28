@@ -19,12 +19,18 @@ type GitSyncConfig struct {
 	CommitInterval int  `toml:"commit_interval"` // minutes between auto-commits, 0 = manual only
 }
 
+type BackupConfig struct {
+	Enabled    bool `toml:"enabled"`
+	MaxBackups int  `toml:"max_backups"` // number of backups to retain, 0 = unlimited
+}
+
 type Config struct {
 	LogLevel         string        `toml:"log_level"`
 	KeepInBackground bool          `toml:"keep_in_background"`
 	StartHidden      bool          `toml:"start_hidden"`
 	DataDirectory    string        `toml:"data_directory"`
 	GitSync          GitSyncConfig `toml:"git_sync"`
+	Backup           BackupConfig  `toml:"backup"`
 	LinuxWindowMode  string        `toml:"linux_window_mode"`
 	AppScale         float64       `toml:"app_scale"`
 }
@@ -48,6 +54,10 @@ func Init() error {
 			KeepInBackground: false,
 			StartHidden:      false,
 			AppScale:         1.0,
+			Backup: BackupConfig{
+				Enabled:    true,
+				MaxBackups: 10,
+			},
 		}
 
 		configPath, err := getConfigPath()
@@ -78,6 +88,10 @@ func Init() error {
 
 		if cfg.AppScale < 0.75 || cfg.AppScale > 2.0 {
 			cfg.AppScale = 1.0
+		}
+
+		if cfg.Backup.MaxBackups == 0 {
+			cfg.Backup.MaxBackups = 10
 		}
 
 		instance = cfg
@@ -302,5 +316,22 @@ func SetAppScale(scale float64) error {
 	}
 
 	instance.AppScale = scale
+	return save(instance)
+}
+
+func GetBackupConfig() BackupConfig {
+	cfg := Get()
+	return cfg.Backup
+}
+
+func SetBackupConfig(backupCfg BackupConfig) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if instance == nil {
+		instance = &Config{}
+	}
+
+	instance.Backup = backupCfg
 	return save(instance)
 }
