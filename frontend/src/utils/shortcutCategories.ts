@@ -199,9 +199,7 @@ export function inferCategory(hotkey: RegisteredHotkey): ShortcutCategory {
  * @param shortcuts Array of registered hotkeys
  * @returns Array of grouped shortcuts ordered by CATEGORY_ORDER
  */
-export function groupShortcutsByCategory(
-	shortcuts: RegisteredHotkey[],
-): GroupedShortcuts[] {
+export function groupShortcutsByCategory(shortcuts: RegisteredHotkey[]): GroupedShortcuts[] {
 	// First, categorize all shortcuts
 	const categorized = shortcuts.map((shortcut) => ({
 		...shortcut,
@@ -220,11 +218,9 @@ export function groupShortcutsByCategory(
 	}
 
 	// Return in specified order, only including categories that have shortcuts
-	return CATEGORY_ORDER.filter((category) => grouped.has(category)).map(
-		(category) => ({
-			category,
-			info: CATEGORY_INFO[category],
-			shortcuts: grouped.get(category) || [],
-		}),
-	);
+	return CATEGORY_ORDER.filter((category) => grouped.has(category)).map((category) => ({
+		category,
+		info: CATEGORY_INFO[category],
+		shortcuts: grouped.get(category) || [],
+	}));
 }
