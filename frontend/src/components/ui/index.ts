@@ -26,6 +26,7 @@ export { RelatedEntries, type RelatedEntry } from "./RelatedEntries";
 export { ResizeHandles } from "./ResizeHandles";
 export { Select, type SelectOption } from "./Select";
 export { SettingsSection } from "./SettingsSection";
+export { ShortcutSearch, type ShortcutSearchProps } from "./ShortcutSearch";
 export { type Shortcut, ShortcutsTable } from "./ShortcutsTable";
 export { Sidebar, type SidebarItem, type SidebarSection } from "./Sidebar";
 export { StatusBar } from "./StatusBar";

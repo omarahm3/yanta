@@ -89,6 +89,7 @@ export const Layout: React.FC<LayoutProps> = ({
 				},
 				allowInInput: false,
 				description: "Toggle sidebar",
+				category: "navigation",
 			},
 			{
 				key: "mod+e",
@@ -97,6 +98,7 @@ export const Layout: React.FC<LayoutProps> = ({
 				},
 				allowInInput: false,
 				description: "Toggle sidebar",
+				category: "navigation",
 			},
 		],
 		[],
@@ -117,6 +119,7 @@ export const Layout: React.FC<LayoutProps> = ({
 							},
 							allowInInput: false,
 							description: "Focus command line",
+							category: "navigation",
 						},
 						{
 							key: "Escape",
@@ -137,6 +140,7 @@ export const Layout: React.FC<LayoutProps> = ({
 							priority: 100,
 							description: "Exit command line",
 							capture: true,
+							category: "navigation",
 						},
 					]
 				: [],

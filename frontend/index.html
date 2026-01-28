@@ -1,39 +1,41 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
+
 <head>
-    <meta charset="UTF-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>yanta</title>
-    <script>
-        // Early diagnostic - runs before any modules load
-        window.__YANTA_DEBUG__ = {
-            htmlLoaded: Date.now(),
-            errors: [],
-            logs: []
-        };
+  <meta charset="UTF-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>YANTA</title>
+  <script>
+    // Early diagnostic - runs before any modules load
+    window.__YANTA_DEBUG__ = {
+      htmlLoaded: Date.now(),
+      errors: [],
+      logs: []
+    };
 
-        document.addEventListener('DOMContentLoaded', function() {
-            window.__YANTA_DEBUG__.domReady = Date.now();
-            console.log('[HTML] DOM Content Loaded at', new Date().toISOString());
-        });
+    document.addEventListener('DOMContentLoaded', function () {
+      window.__YANTA_DEBUG__.domReady = Date.now();
+      console.log('[HTML] DOM Content Loaded at', new Date().toISOString());
+    });
 
-        // Capture all errors
-        window.addEventListener('error', function(event) {
-            window.__YANTA_DEBUG__.errors.push({
-                message: event.message,
-                filename: event.filename,
-                lineno: event.lineno,
-                colno: event.colno,
-                error: event.error ? event.error.toString() : null,
-                time: Date.now()
-            });
-            console.error('[HTML] Error captured:', event.message, event.filename, event.lineno);
-        });
-    </script>
+    // Capture all errors
+    window.addEventListener('error', function (event) {
+      window.__YANTA_DEBUG__.errors.push({
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        error: event.error ? event.error.toString() : null,
+        time: Date.now()
+      });
+      console.error('[HTML] Error captured:', event.message, event.filename, event.lineno);
+    });
+  </script>
 </head>
-<body>
-<div id="root"></div>
-<script src="./src/main.tsx" type="module"></script>
-</body>
-</html>
 
+<body>
+  <div id="root"></div>
+  <script src="./src/main.tsx" type="module"></script>
+</body>
+
+</html>
