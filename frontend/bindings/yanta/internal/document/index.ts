@@ -12,5 +12,7 @@ export {
     DocumentFile,
     DocumentMeta,
     DocumentWithTags,
+    ExportDocumentRequest,
+    ExportProjectRequest,
     SaveRequest
 } from "./models.js";
