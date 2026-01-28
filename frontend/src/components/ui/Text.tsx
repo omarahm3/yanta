@@ -49,6 +49,7 @@ export const Text = React.forwardRef<HTMLElement, TextProps>(
 		return React.createElement(
 			Component,
 			{
+				// biome-ignore lint/suspicious/noExplicitAny: polymorphic component ref type cannot be statically inferred
 				ref: ref as any,
 				className: cn(variantClasses[variant], sizeClasses[size], weightClasses[weight], className),
 				...props,
