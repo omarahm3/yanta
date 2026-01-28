@@ -291,3 +291,174 @@ func TestExportDocument_ComplexDocument(t *testing.T) {
 	lines := strings.Split(markdown, "\n")
 	assert.True(t, len(lines) > 10, "markdown should have multiple lines")
 }
+
+func TestExportProject(t *testing.T) {
+	// Create test vault
+	v := setupTestVaultForExport(t)
+	fm := NewFileManager(v)
+
+	// Create multiple test documents in the same project
+	projectAlias := "@testproject"
+
+	// Document 1
+	doc1Path := filepath.Join("projects", projectAlias, "doc-test1.json")
+	doc1 := &DocumentFile{
+		Meta: DocumentMeta{
+			Project: projectAlias,
+			Title:   "First Document",
+			Tags:    []string{"test"},
+			Created: time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
+			Updated: time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
+		},
+		Blocks: []BlockNoteBlock{
+			{
+				ID:   "1",
+				Type: "heading",
+				Props: map[string]any{
+					"level": float64(1),
+				},
+				Content: mustMarshalContent([]BlockNoteContent{
+					{Type: "text", Text: "First Document"},
+				}),
+			},
+			{
+				ID:   "2",
+				Type: "paragraph",
+				Content: mustMarshalContent([]BlockNoteContent{
+					{Type: "text", Text: "This is the first document."},
+				}),
+			},
+		},
+	}
+	err := fm.WriteFile(doc1Path, doc1)
+	require.NoError(t, err)
+
+	// Document 2
+	doc2Path := filepath.Join("projects", projectAlias, "doc-test2.json")
+	doc2 := &DocumentFile{
+		Meta: DocumentMeta{
+			Project: projectAlias,
+			Title:   "Second Document",
+			Tags:    []string{"test", "export"},
+			Created: time.Date(2024, 1, 2, 12, 0, 0, 0, time.UTC),
+			Updated: time.Date(2024, 1, 2, 12, 0, 0, 0, time.UTC),
+		},
+		Blocks: []BlockNoteBlock{
+			{
+				ID:   "1",
+				Type: "heading",
+				Props: map[string]any{
+					"level": float64(2),
+				},
+				Content: mustMarshalContent([]BlockNoteContent{
+					{Type: "text", Text: "Second Document"},
+				}),
+			},
+			{
+				ID:   "2",
+				Type: "paragraph",
+				Content: mustMarshalContent([]BlockNoteContent{
+					{Type: "text", Text: "This is the second document."},
+				}),
+			},
+		},
+	}
+	err = fm.WriteFile(doc2Path, doc2)
+	require.NoError(t, err)
+
+	// Create exporter
+	exporter := NewExporter(v)
+
+	// Export project
+	outputDir := filepath.Join(t.TempDir(), "project-export")
+	err = exporter.ExportProject(ExportProjectRequest{
+		ProjectAlias: projectAlias,
+		OutputDir:    outputDir,
+	})
+	require.NoError(t, err)
+
+	// Verify output directory was created
+	_, err = os.Stat(outputDir)
+	require.NoError(t, err)
+
+	// Verify both documents were exported
+	files, err := os.ReadDir(outputDir)
+	require.NoError(t, err)
+	assert.Equal(t, 2, len(files), "should have 2 exported files")
+
+	// Find and read the first document
+	var firstDocContent, secondDocContent string
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		content, err := os.ReadFile(filepath.Join(outputDir, file.Name()))
+		require.NoError(t, err)
+
+		contentStr := string(content)
+		if strings.Contains(contentStr, "First Document") {
+			firstDocContent = contentStr
+		} else if strings.Contains(contentStr, "Second Document") {
+			secondDocContent = contentStr
+		}
+	}
+
+	// Verify first document
+	assert.NotEmpty(t, firstDocContent, "first document should be exported")
+	assert.Contains(t, firstDocContent, "title: First Document")
+	assert.Contains(t, firstDocContent, "# First Document")
+	assert.Contains(t, firstDocContent, "This is the first document.")
+
+	// Verify second document
+	assert.NotEmpty(t, secondDocContent, "second document should be exported")
+	assert.Contains(t, secondDocContent, "title: Second Document")
+	assert.Contains(t, secondDocContent, "## Second Document")
+	assert.Contains(t, secondDocContent, "This is the second document.")
+}
+
+func TestExportProject_EmptyProject(t *testing.T) {
+	// Create test vault
+	v := setupTestVaultForExport(t)
+	exporter := NewExporter(v)
+
+	// Export non-existent project
+	outputDir := filepath.Join(t.TempDir(), "empty-export")
+	err := exporter.ExportProject(ExportProjectRequest{
+		ProjectAlias: "@emptyproject",
+		OutputDir:    outputDir,
+	})
+	require.NoError(t, err, "exporting empty project should not error")
+
+	// Verify output directory was created even though there are no documents
+	_, err = os.Stat(outputDir)
+	require.NoError(t, err)
+
+	// Verify no files were created
+	files, err := os.ReadDir(outputDir)
+	require.NoError(t, err)
+	assert.Equal(t, 0, len(files), "should have no files for empty project")
+}
+
+func TestExportProject_MissingProjectAlias(t *testing.T) {
+	v := setupTestVaultForExport(t)
+	exporter := NewExporter(v)
+
+	err := exporter.ExportProject(ExportProjectRequest{
+		ProjectAlias: "",
+		OutputDir:    "/tmp/test-export",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "project alias is required")
+}
+
+func TestExportProject_MissingOutputDir(t *testing.T) {
+	v := setupTestVaultForExport(t)
+	exporter := NewExporter(v)
+
+	err := exporter.ExportProject(ExportProjectRequest{
+		ProjectAlias: "@test",
+		OutputDir:    "",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "output directory is required")
+}
