@@ -16,15 +16,17 @@ import {
 import type React from "react";
 import { useMemo, useState } from "react";
 import {
-	ExportDocument,
-	ExportProject,
-} from "../../bindings/yanta/internal/document/service";
-import {
 	ExportDocumentRequest,
 	ExportProjectRequest,
 } from "../../bindings/yanta/internal/document/models";
+import { ExportDocument, ExportProject } from "../../bindings/yanta/internal/document/service";
 import { SyncStatus } from "../../bindings/yanta/internal/git/models";
-import { GitPull, GitPush, OpenDirectoryDialog, SyncNow } from "../../bindings/yanta/internal/system/service";
+import {
+	GitPull,
+	GitPush,
+	OpenDirectoryDialog,
+	SyncNow,
+} from "../../bindings/yanta/internal/system/service";
 import { useDocumentContext } from "../contexts/DocumentContext";
 import { useProjectContext } from "../contexts/ProjectContext";
 import { useNotification } from "../hooks/useNotification";
@@ -145,7 +147,8 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 						return;
 					}
 
-					const documentName = currentDocument.path.split("/").pop()?.replace(".json", ".md") || "document.md";
+					const documentName =
+						currentDocument.path.split("/").pop()?.replace(".json", ".md") || "document.md";
 					const outputPath = `${outputDir}/${documentName}`;
 
 					const req = new ExportDocumentRequest({
