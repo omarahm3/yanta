@@ -27,6 +27,7 @@ export { ResizeHandles } from "./ResizeHandles";
 export { Select, type SelectOption } from "./Select";
 export { SettingsSection } from "./SettingsSection";
 export { type Shortcut, ShortcutsTable } from "./ShortcutsTable";
+export { ShortcutSearch, type ShortcutSearchProps } from "./ShortcutSearch";
 export { Sidebar, type SidebarItem, type SidebarSection } from "./Sidebar";
 export { StatusBar } from "./StatusBar";
 export { StatusMessage } from "./StatusMessage";
