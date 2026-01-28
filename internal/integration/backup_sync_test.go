@@ -495,3 +495,188 @@ func TestBackupRetentionPolicy(t *testing.T) {
 		require.Contains(t, log, projectAlias, "git log should contain commit for project %d", i)
 	}
 }
+
+func TestBackupPerformance(t *testing.T) {
+	ensureGitAvailable(t)
+
+	dataDir := t.TempDir()
+	initGitRepo(t, dataDir)
+
+	tempHome := t.TempDir()
+	overrideHome(t, tempHome)
+
+	config.ResetForTesting()
+	require.NoError(t, config.Init())
+	require.NoError(t, config.SetDataDirectory(dataDir))
+
+	dbPath := filepath.Join(dataDir, "yanta.db")
+	database, err := db.OpenDB(dbPath)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		db.CloseDB(database)
+		logger.Close()
+	})
+	require.NoError(t, db.RunMigrations(database))
+
+	projectStore := project.NewStore(database)
+	projectCache := project.NewCache(projectStore)
+
+	v, err := vault.New(vault.Config{RootPath: filepath.Join(dataDir, "vault")})
+	require.NoError(t, err)
+
+	syncManager := git.NewSyncManager(database)
+	syncManager.Start()
+	t.Cleanup(syncManager.Shutdown)
+
+	service := project.NewService(
+		database,
+		projectStore,
+		projectCache,
+		v,
+		syncManager,
+		events.NewEventBus(),
+	)
+
+	// Create a realistic vault with multiple projects and files
+	// Target: 300+ files, 25MB total size
+	t.Log("Creating realistic vault with ~300 files, ~25MB...")
+
+	numProjects := 10
+	filesPerProject := 30 // Total: 300 files
+	fileSizeKB := 85      // Each file ~85KB = 25.5MB total
+
+	for i := 1; i <= numProjects; i++ {
+		projectName := fmt.Sprintf("Performance Test Project %d", i)
+		projectAlias := fmt.Sprintf("perftest%d", i)
+		projectID, err := service.Create(context.Background(), projectName, projectAlias, "", "")
+		require.NoError(t, err)
+
+		// Create multiple files in each project
+		projectVaultPath := filepath.Join(dataDir, "vault", projectAlias)
+		// Ensure directory exists
+		err = os.MkdirAll(projectVaultPath, 0755)
+		require.NoError(t, err)
+
+		for j := 1; j <= filesPerProject; j++ {
+			fileName := fmt.Sprintf("document-%d.md", j)
+			filePath := filepath.Join(projectVaultPath, fileName)
+
+			// Create file with content (approximately fileSizeKB in size)
+			content := fmt.Sprintf("# Document %d in Project %d\n\n", j, i)
+			// Pad content to reach desired size
+			paddingSize := (fileSizeKB * 1024) - len(content)
+			if paddingSize > 0 {
+				// Generate padding with repeated text to simulate realistic markdown content
+				padding := make([]byte, paddingSize)
+				paragraph := "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\n"
+				for k := 0; k < paddingSize; k++ {
+					padding[k] = paragraph[k%len(paragraph)]
+				}
+				content += string(padding)
+			}
+
+			err = os.WriteFile(filePath, []byte(content), 0644)
+			require.NoError(t, err)
+		}
+
+		t.Logf("Created project %d with %d files", i, filesPerProject)
+		_ = projectID // Use the variable
+	}
+
+	// Calculate actual vault size
+	vaultPath := filepath.Join(dataDir, "vault")
+	vaultSize, err := calculateDirSize(vaultPath)
+	require.NoError(t, err)
+	vaultSizeMB := float64(vaultSize) / (1024 * 1024)
+	t.Logf("Vault size: %.2f MB", vaultSizeMB)
+
+	// Count total files
+	totalFiles := 0
+	err = filepath.Walk(vaultPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			totalFiles++
+		}
+		return nil
+	})
+	require.NoError(t, err)
+	t.Logf("Total files: %d", totalFiles)
+
+	// Close database to ensure all data is flushed to disk
+	db.CloseDB(database)
+
+	// Test 1: Measure backup creation time
+	t.Log("Measuring backup creation time...")
+	backupService := backup.NewService()
+
+	backupStartTime := time.Now()
+	err = backupService.CreateBackup(dataDir)
+	backupDuration := time.Since(backupStartTime)
+	require.NoError(t, err)
+
+	t.Logf("Backup creation time: %.3f seconds", backupDuration.Seconds())
+	require.Less(t, backupDuration.Seconds(), 5.0, "Backup creation should complete in under 5 seconds")
+
+	// Get the backup path for restore test
+	backups, err := backupService.ListBackups(dataDir)
+	require.NoError(t, err)
+	require.NotEmpty(t, backups, "backup should exist")
+	backupPath := backups[0].Path
+
+	// Verify backup size is reasonable
+	backupSize, err := calculateDirSize(backupPath)
+	require.NoError(t, err)
+	backupSizeMB := float64(backupSize) / (1024 * 1024)
+	t.Logf("Backup size: %.2f MB", backupSizeMB)
+
+	// Test 2: Measure restore time
+	t.Log("Measuring backup restore time...")
+
+	restoreStartTime := time.Now()
+	err = backupService.RestoreBackup(dataDir, backupPath)
+	restoreDuration := time.Since(restoreStartTime)
+	require.NoError(t, err)
+
+	t.Logf("Backup restore time: %.3f seconds", restoreDuration.Seconds())
+	require.Less(t, restoreDuration.Seconds(), 5.0, "Backup restore should complete in under 5 seconds")
+
+	// Verify restore was successful by checking a sample file
+	sampleFilePath := filepath.Join(dataDir, "vault", "perftest1", "document-1.md")
+	require.FileExists(t, sampleFilePath, "restored vault should contain sample file")
+
+	// Verify database was restored
+	dbRestorePath := filepath.Join(dataDir, "yanta.db")
+	require.FileExists(t, dbRestorePath, "database should be restored")
+
+	// Log summary
+	t.Logf("\n=== Performance Test Summary ===")
+	t.Logf("Vault: %d files, %.2f MB", totalFiles, vaultSizeMB)
+	t.Logf("Backup creation: %.3f seconds (requirement: < 5s)", backupDuration.Seconds())
+	t.Logf("Backup restore: %.3f seconds (requirement: < 5s)", restoreDuration.Seconds())
+	t.Logf("Backup size: %.2f MB", backupSizeMB)
+
+	// Both operations should complete in under 5 seconds total
+	totalTime := backupDuration + restoreDuration
+	t.Logf("Total time: %.3f seconds", totalTime.Seconds())
+
+	// Final assertions
+	require.Less(t, backupDuration.Seconds(), 5.0, "Backup creation exceeded 5 second requirement")
+	require.Less(t, restoreDuration.Seconds(), 5.0, "Backup restore exceeded 5 second requirement")
+}
+
+// calculateDirSize calculates the total size of all files in a directory recursively
+func calculateDirSize(path string) (int64, error) {
+	var size int64
+	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return nil
+	})
+	return size, err
+}
