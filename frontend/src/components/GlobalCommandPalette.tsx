@@ -17,10 +17,12 @@ import type React from "react";
 import { useMemo, useState } from "react";
 import {
 	ExportDocument,
-	ExportDocumentRequest,
 	ExportProject,
+} from "../../bindings/yanta/internal/document/service";
+import {
+	ExportDocumentRequest,
 	ExportProjectRequest,
-} from "../../bindings/yanta/internal/document";
+} from "../../bindings/yanta/internal/document/models";
 import { SyncStatus } from "../../bindings/yanta/internal/git/models";
 import { GitPull, GitPush, OpenDirectoryDialog, SyncNow } from "../../bindings/yanta/internal/system/service";
 import { useDocumentContext } from "../contexts/DocumentContext";
@@ -47,7 +49,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 	showArchived,
 }) => {
 	const { projects, currentProject, setCurrentProject } = useProjectContext();
-	const { currentDocument } = useDocumentContext();
+	const { getSelectedDocument } = useDocumentContext();
 	const notification = useNotification();
 	const [gitError, setGitError] = useState<ParsedGitError | null>(null);
 	const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
@@ -128,6 +130,10 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			hint: "Export to markdown",
 			action: async () => {
 				onClose();
+
+				// Get current document using the method from context
+				const currentDocument = getSelectedDocument();
+
 				if (!currentDocument?.path) {
 					notification.error("No document open");
 					return;
@@ -300,7 +306,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 	}, [
 		projects,
 		currentProject,
-		currentDocument,
+		getSelectedDocument,
 		setCurrentProject,
 		onNavigate,
 		onClose,
