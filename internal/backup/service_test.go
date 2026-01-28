@@ -295,3 +295,85 @@ func TestBackupService_Delete(t *testing.T) {
 		t.Fatalf("expected 0 backups, got %d", len(backups))
 	}
 }
+
+func TestBackupService_Retention(t *testing.T) {
+	// Setup: Create temporary test environment
+	tempDir, err := os.MkdirTemp("", "backup_test_retention_*")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	// Clean up, but ignore errors on Windows due to logger file locking
+	defer os.RemoveAll(tempDir)
+
+	oldDataDir := os.Getenv("YANTA_DATA_DIR")
+	os.Setenv("YANTA_DATA_DIR", tempDir)
+	defer os.Setenv("YANTA_DATA_DIR", oldDataDir)
+
+	// Create mock vault and database
+	vaultPath := filepath.Join(tempDir, "vault")
+	dbPath := filepath.Join(tempDir, "yanta.db")
+
+	if err := os.MkdirAll(vaultPath, 0755); err != nil {
+		t.Fatalf("failed to create mock vault: %v", err)
+	}
+
+	if err := os.WriteFile(dbPath, []byte("mock db"), 0644); err != nil {
+		t.Fatalf("failed to create mock database: %v", err)
+	}
+
+	// Create 5 backups with different timestamps
+	service := NewService()
+	maxBackups := 3
+
+	for i := 0; i < 5; i++ {
+		if err := service.CreateBackup(tempDir); err != nil {
+			t.Fatalf("CreateBackup %d failed: %v", i, err)
+		}
+		time.Sleep(2 * time.Second) // Ensure different timestamps
+	}
+
+	// Verify we have 5 backups before pruning
+	backups, err := service.ListBackups(tempDir)
+	if err != nil {
+		t.Fatalf("ListBackups failed: %v", err)
+	}
+
+	if len(backups) != 5 {
+		t.Fatalf("expected 5 backups before pruning, got %d", len(backups))
+	}
+
+	// Keep track of the 3 newest backup paths (should be kept)
+	expectedToKeep := make(map[string]bool)
+	for i := 0; i < maxBackups && i < len(backups); i++ {
+		expectedToKeep[backups[i].Path] = true
+	}
+
+	// Test: Prune old backups, keeping only maxBackups
+	if err := service.PruneOldBackups(tempDir, maxBackups); err != nil {
+		t.Fatalf("PruneOldBackups failed: %v", err)
+	}
+
+	// Verify: Only maxBackups remain
+	backups, err = service.ListBackups(tempDir)
+	if err != nil {
+		t.Fatalf("ListBackups failed after pruning: %v", err)
+	}
+
+	if len(backups) != maxBackups {
+		t.Fatalf("expected %d backups after pruning, got %d", maxBackups, len(backups))
+	}
+
+	// Verify: The remaining backups are the newest ones
+	for _, backup := range backups {
+		if !expectedToKeep[backup.Path] {
+			t.Fatalf("unexpected backup kept: %s", backup.Path)
+		}
+	}
+
+	// Verify: Backups are still sorted by timestamp (newest first)
+	for i := 0; i < len(backups)-1; i++ {
+		if backups[i].Timestamp.Before(backups[i+1].Timestamp) {
+			t.Fatalf("backups not sorted correctly after pruning: backup[%d] is older than backup[%d]", i, i+1)
+		}
+	}
+}

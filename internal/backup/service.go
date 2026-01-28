@@ -250,6 +250,45 @@ func (s *Service) DeleteBackup(backupPath string) error {
 	return nil
 }
 
+// PruneOldBackups removes old backups keeping only maxBackups most recent ones
+func (s *Service) PruneOldBackups(dataDir string, maxBackups int) error {
+	if maxBackups <= 0 {
+		return fmt.Errorf("maxBackups must be greater than 0")
+	}
+
+	// Get list of all backups (sorted newest first)
+	backups, err := s.ListBackups(dataDir)
+	if err != nil {
+		return fmt.Errorf("failed to list backups: %w", err)
+	}
+
+	// If we have more backups than allowed, delete the oldest ones
+	if len(backups) > maxBackups {
+		backupsToDelete := backups[maxBackups:]
+
+		logger.WithFields(map[string]any{
+			"totalBackups":   len(backups),
+			"maxBackups":     maxBackups,
+			"backupsToDelete": len(backupsToDelete),
+		}).Info("pruning old backups")
+
+		for _, backup := range backupsToDelete {
+			if err := s.DeleteBackup(backup.Path); err != nil {
+				logger.WithFields(map[string]any{
+					"path":  backup.Path,
+					"error": err.Error(),
+				}).Warn("failed to delete old backup")
+				// Continue deleting other backups even if one fails
+				continue
+			}
+		}
+
+		logger.WithField("deletedCount", len(backupsToDelete)).Info("old backups pruned successfully")
+	}
+
+	return nil
+}
+
 // copyFile copies a single file from src to dst
 func copyFile(src, dst string) error {
 	sourceFile, err := os.Open(src)
