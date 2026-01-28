@@ -2,9 +2,11 @@ package integration
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -369,4 +371,127 @@ func TestBackupRestoration(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "Initial Project", restoredProject.Name, "restored project name should match")
 	require.Equal(t, "@initial", restoredProject.Alias, "restored project alias should match")
+}
+
+func TestBackupRetentionPolicy(t *testing.T) {
+	ensureGitAvailable(t)
+
+	dataDir := t.TempDir()
+	initGitRepo(t, dataDir)
+
+	tempHome := t.TempDir()
+	overrideHome(t, tempHome)
+
+	config.ResetForTesting()
+	require.NoError(t, config.Init())
+	require.NoError(t, config.SetDataDirectory(dataDir))
+
+	// Enable git sync and set MaxBackups to 3
+	require.NoError(t, config.SetGitSyncConfig(config.GitSyncConfig{
+		Enabled:        true,
+		AutoCommit:     true,
+		AutoPush:       false,
+		CommitInterval: 1,
+	}))
+
+	require.NoError(t, config.SetBackupConfig(config.BackupConfig{
+		Enabled:    true,
+		MaxBackups: 3, // Only keep 3 most recent backups
+	}))
+
+	dbPath := filepath.Join(dataDir, "yanta.db")
+	database, err := db.OpenDB(dbPath)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		db.CloseDB(database)
+		logger.Close()
+	})
+	require.NoError(t, db.RunMigrations(database))
+
+	projectStore := project.NewStore(database)
+	projectCache := project.NewCache(projectStore)
+
+	v, err := vault.New(vault.Config{RootPath: filepath.Join(dataDir, "vault")})
+	require.NoError(t, err)
+
+	syncManager := git.NewSyncManager(database)
+	syncManager.Start()
+	t.Cleanup(syncManager.Shutdown)
+
+	service := project.NewService(
+		database,
+		projectStore,
+		projectCache,
+		v,
+		syncManager,
+		events.NewEventBus(),
+	)
+
+	backupService := backup.NewService()
+
+	// Create 5 syncs to generate 5 backups
+	// Each sync needs a change to trigger backup creation
+	for i := 1; i <= 5; i++ {
+		// Create a project to trigger a change
+		projectName := fmt.Sprintf("Project %d", i)
+		projectAlias := fmt.Sprintf("proj%d", i)
+		_, err = service.Create(context.Background(), projectName, projectAlias, "", "")
+		require.NoError(t, err)
+
+		// Verify pending changes exist
+		require.True(t, syncManager.HasPendingChanges(), "expected pending changes after project creation")
+
+		// Force sync (this should trigger backup creation)
+		syncManager.ForceSync()
+
+		// Small delay to ensure timestamps are different
+		// (backup directory names are timestamped to the second)
+		time.Sleep(1100 * time.Millisecond)
+	}
+
+	// Verify only 3 most recent backups exist
+	backups, err := backupService.ListBackups(dataDir)
+	require.NoError(t, err)
+	require.Len(t, backups, 3, "should have exactly 3 backups (retention policy enforced)")
+
+	// Verify backups are the most recent ones (backups 5, 4, 3)
+	// backups list is sorted newest first
+	backupsPath := paths.GetBackupsPath()
+	entries, err := os.ReadDir(backupsPath)
+	require.NoError(t, err)
+	require.Len(t, entries, 3, "backups directory should contain exactly 3 backup directories")
+
+	// Verify each remaining backup has a valid structure
+	for _, backup := range backups {
+		// Each backup should contain vault directory
+		vaultPath := filepath.Join(backup.Path, "vault")
+		require.DirExists(t, vaultPath, "backup should contain vault directory")
+
+		// Each backup should contain database file
+		dbBackupPath := filepath.Join(backup.Path, "yanta.db")
+		require.FileExists(t, dbBackupPath, "backup should contain yanta.db file")
+
+		// Database should not be empty
+		dbInfo, err := os.Stat(dbBackupPath)
+		require.NoError(t, err)
+		require.Greater(t, dbInfo.Size(), int64(0), "backed up database should not be empty")
+	}
+
+	// Verify the timestamps of remaining backups are the most recent
+	// The oldest kept backup should be from the 3rd sync (project 3)
+	// Backups from syncs 1 and 2 should have been deleted
+	require.Equal(t, 3, len(backups), "exactly 3 backups should remain")
+
+	// Verify the backup timestamps are unique and sorted correctly
+	for i := 0; i < len(backups)-1; i++ {
+		require.True(t, backups[i].Timestamp.After(backups[i+1].Timestamp),
+			"backups should be sorted newest first")
+	}
+
+	// Verify git log shows all 5 sync commits
+	log := runGit(t, dataDir, "log", "--oneline")
+	for i := 1; i <= 5; i++ {
+		projectAlias := fmt.Sprintf("@proj%d", i)
+		require.Contains(t, log, projectAlias, "git log should contain commit for project %d", i)
+	}
 }
