@@ -1,5 +1,5 @@
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GLOBAL_COMMANDS } from "../../constants/globalCommands";
 import { useHotkeyContext } from "../../contexts/HotkeyContext";
 import { useHelp } from "../../hooks/useHelp";
@@ -34,20 +34,41 @@ export const HelpModal: React.FC = () => {
 	const { isOpen, closeHelp, pageCommands, pageName } = useHelp();
 	const { getRegisteredHotkeys } = useHotkeyContext();
 	const [searchQuery, setSearchQuery] = useState("");
+	const searchInputRef = useRef<HTMLInputElement>(null);
+
+	// Auto-focus search input when modal opens
+	useEffect(() => {
+		if (isOpen && searchInputRef.current) {
+			setTimeout(() => {
+				searchInputRef.current?.focus();
+			}, 100);
+		}
+	}, [isOpen]);
 
 	useEffect(() => {
 		if (!isOpen) return;
 
-		const handleQuestion = (e: KeyboardEvent) => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			// Handle ? to toggle/close
 			if (e.key === "?") {
 				e.preventDefault();
 				closeHelp();
 			}
+			// Handle ESC to clear search first, then close
+			else if (e.key === "Escape") {
+				if (searchQuery.trim()) {
+					e.preventDefault();
+					e.stopPropagation();
+					setSearchQuery("");
+					searchInputRef.current?.focus();
+				}
+				// If search is empty, let ESC close the modal (default behavior)
+			}
 		};
 
-		document.addEventListener("keydown", handleQuestion);
-		return () => document.removeEventListener("keydown", handleQuestion);
-	}, [isOpen, closeHelp]);
+		document.addEventListener("keydown", handleKeyDown);
+		return () => document.removeEventListener("keydown", handleKeyDown);
+	}, [isOpen, closeHelp, searchQuery]);
 
 	// Reset search when modal closes
 	useEffect(() => {
@@ -99,10 +120,19 @@ export const HelpModal: React.FC = () => {
 		);
 	});
 
+	// Calculate total result count
+	const totalResults = filteredGlobalCommands.length + filteredPageCommands.length + filteredHotkeys.length;
+	const hasSearchQuery = searchQuery.trim().length > 0;
+
 	const handleOpenChange = (open: boolean) => {
 		if (!open) {
 			closeHelp();
 		}
+	};
+
+	const handleClearSearch = () => {
+		setSearchQuery("");
+		searchInputRef.current?.focus();
 	};
 
 	return (
@@ -126,13 +156,37 @@ export const HelpModal: React.FC = () => {
 
 				{/* Search input */}
 				<div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-2">
-					<input
-						type="text"
-						placeholder="Search commands and shortcuts..."
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-						className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-bg border border-border/40 rounded-md text-text placeholder-text-dim focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/30 transition-all text-sm sm:text-base"
-					/>
+					<div className="relative">
+						<input
+							ref={searchInputRef}
+							type="text"
+							placeholder="Search commands and shortcuts..."
+							value={searchQuery}
+							onChange={(e) => setSearchQuery(e.target.value)}
+							className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pr-20 bg-bg border border-border/40 rounded-md text-text placeholder-text-dim focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/30 transition-all text-sm sm:text-base"
+						/>
+						{searchQuery && (
+							<button
+								type="button"
+								onClick={handleClearSearch}
+								className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-xs text-text-dim hover:text-text transition-colors rounded hover:bg-bg-dim"
+								aria-label="Clear search"
+							>
+								Clear
+							</button>
+						)}
+					</div>
+					{hasSearchQuery && (
+						<div className="mt-2 text-xs text-text-dim font-mono">
+							{totalResults === 0 ? (
+								<span className="text-red">No results found</span>
+							) : (
+								<span>
+									Found <span className="text-accent font-semibold">{totalResults}</span> result{totalResults !== 1 ? "s" : ""}
+								</span>
+							)}
+						</div>
+					)}
 				</div>
 
 				<div className="p-4 sm:p-6 pt-2 overflow-y-auto max-h-[calc(85vh-160px)] text-left">
