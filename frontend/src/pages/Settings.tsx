@@ -6,6 +6,7 @@ import { useHelp } from "../hooks/useHelp";
 import { useSidebarSections } from "../hooks/useSidebarSections";
 import { AboutSection } from "./settings/AboutSection";
 import { AppearanceSection } from "./settings/AppearanceSection";
+import { BackupSection } from "./settings/BackupSection";
 import { DatabaseSection } from "./settings/DatabaseSection";
 import { GeneralSection } from "./settings/GeneralSection";
 import { GitSyncSection } from "./settings/GitSyncSection";
@@ -154,12 +155,13 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 	const databaseRef = useRef<HTMLDivElement>(null);
 	const shortcutsRef = useRef<HTMLDivElement>(null);
 	const loggingRef = useRef<HTMLDivElement>(null);
+	const backupRef = useRef<HTMLDivElement>(null);
 	const syncRef = useRef<HTMLDivElement>(null);
 	const aboutRef = useRef<HTMLDivElement>(null);
 
 	const [currentSectionIndex, setCurrentSectionIndex] = React.useState(0);
 
-	const sectionIds = ["general", "appearance", "database", "shortcuts", "logging", "sync", "about"];
+	const sectionIds = ["general", "appearance", "database", "shortcuts", "logging", "backup", "sync", "about"];
 
 	React.useEffect(() => {
 		setPageContext([], "Settings");
@@ -172,6 +174,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 			database: databaseRef,
 			shortcuts: shortcutsRef,
 			logging: loggingRef,
+			backup: backupRef,
 			sync: syncRef,
 			about: aboutRef,
 		};
@@ -244,6 +247,11 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 			id: "logging",
 			label: "logging",
 			onClick: () => scrollToSection("logging"),
+		},
+		{
+			id: "backup",
+			label: "backup",
+			onClick: () => scrollToSection("backup"),
 		},
 		{
 			id: "sync",
@@ -331,6 +339,17 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 						systemInfo={controller.systemInfo}
 						logLevelOptions={controller.logLevelOptions}
 						onLogLevelChange={controller.handlers.handleLogLevelChange}
+					/>
+
+					<BackupSection
+						ref={backupRef}
+						backupEnabled={controller.backupConfig.Enabled}
+						maxBackups={controller.backupConfig.MaxBackups}
+						backups={controller.backups}
+						onBackupToggle={controller.handlers.handleBackupToggle}
+						onMaxBackupsChange={controller.handlers.handleMaxBackupsChange}
+						onRestore={controller.handlers.handleRestoreBackup}
+						onDelete={controller.handlers.handleDeleteBackup}
 					/>
 
 					<GitSyncSection
