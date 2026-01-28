@@ -2,6 +2,7 @@ import { Clock, Database, Trash2 } from "lucide-react";
 import React from "react";
 import {
 	Button,
+	ConfirmDialog,
 	Input,
 	Label,
 	SettingsSection,
@@ -37,6 +38,8 @@ export const BackupSection = React.forwardRef<HTMLDivElement, BackupSectionProps
 		},
 		ref,
 	) => {
+		const [restoreConfirmPath, setRestoreConfirmPath] = React.useState<string | null>(null);
+		const [deleteConfirmPath, setDeleteConfirmPath] = React.useState<string | null>(null);
 		const formatSize = (bytes: number): string => {
 			if (bytes < 1024) return `${bytes} B`;
 			if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
@@ -50,6 +53,41 @@ export const BackupSection = React.forwardRef<HTMLDivElement, BackupSectionProps
 			} catch {
 				return timestamp;
 			}
+		};
+
+		const getBackupTimestamp = (path: string): string => {
+			const backup = backups.find((b) => b.path === path);
+			return backup ? formatTimestamp(backup.timestamp) : "";
+		};
+
+		const handleRestoreClick = (backupPath: string) => {
+			setRestoreConfirmPath(backupPath);
+		};
+
+		const handleDeleteClick = (backupPath: string) => {
+			setDeleteConfirmPath(backupPath);
+		};
+
+		const handleConfirmRestore = () => {
+			if (restoreConfirmPath) {
+				onRestore(restoreConfirmPath);
+				setRestoreConfirmPath(null);
+			}
+		};
+
+		const handleCancelRestore = () => {
+			setRestoreConfirmPath(null);
+		};
+
+		const handleConfirmDelete = () => {
+			if (deleteConfirmPath) {
+				onDelete(deleteConfirmPath);
+				setDeleteConfirmPath(null);
+			}
+		};
+
+		const handleCancelDelete = () => {
+			setDeleteConfirmPath(null);
 		};
 
 		return (
@@ -120,14 +158,14 @@ export const BackupSection = React.forwardRef<HTMLDivElement, BackupSectionProps
 														<Button
 															variant="primary"
 															size="sm"
-															onClick={() => onRestore(backup.path)}
+															onClick={() => handleRestoreClick(backup.path)}
 														>
 															Restore
 														</Button>
 														<Button
 															variant="ghost"
 															size="sm"
-															onClick={() => onDelete(backup.path)}
+															onClick={() => handleDeleteClick(backup.path)}
 															title="Delete backup"
 														>
 															<Trash2 className="w-4 h-4" />
@@ -142,6 +180,28 @@ export const BackupSection = React.forwardRef<HTMLDivElement, BackupSectionProps
 						)}
 					</div>
 				</SettingsSection>
+
+				<ConfirmDialog
+					isOpen={restoreConfirmPath !== null}
+					onCancel={handleCancelRestore}
+					onConfirm={handleConfirmRestore}
+					title="Restore Backup?"
+					message={`This will restore your vault from the backup created on ${getBackupTimestamp(restoreConfirmPath || "")}. The current state will be replaced with the backup data. The application will need to be restarted after restore.`}
+					confirmText="Restore"
+					cancelText="Cancel"
+					danger={true}
+				/>
+
+				<ConfirmDialog
+					isOpen={deleteConfirmPath !== null}
+					onCancel={handleCancelDelete}
+					onConfirm={handleConfirmDelete}
+					title="Delete Backup?"
+					message={`Are you sure you want to delete the backup from ${getBackupTimestamp(deleteConfirmPath || "")}? This action cannot be undone.`}
+					confirmText="Delete"
+					cancelText="Cancel"
+					danger={true}
+				/>
 			</div>
 		);
 	},
