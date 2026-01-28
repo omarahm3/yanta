@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"yanta/internal/config"
@@ -361,7 +362,7 @@ func (s *Service) SetConfig(ctx context.Context, cfg config.BackupConfig) error 
 	return nil
 }
 
-// copyFile copies a single file from src to dst
+// copyFile copies a single file from src to dst with optimized buffering
 func copyFile(src, dst string) error {
 	sourceFile, err := os.Open(src)
 	if err != nil {
@@ -369,13 +370,20 @@ func copyFile(src, dst string) error {
 	}
 	defer sourceFile.Close()
 
+	sourceInfo, err := sourceFile.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to stat source file: %w", err)
+	}
+
 	destFile, err := os.Create(dst)
 	if err != nil {
 		return fmt.Errorf("failed to create destination file: %w", err)
 	}
 	defer destFile.Close()
 
-	if _, err := io.Copy(destFile, sourceFile); err != nil {
+	// Use larger buffer (64KB) for better I/O throughput
+	buffer := make([]byte, 64*1024)
+	if _, err := io.CopyBuffer(destFile, sourceFile, buffer); err != nil {
 		return fmt.Errorf("failed to copy file contents: %w", err)
 	}
 
@@ -385,11 +393,6 @@ func copyFile(src, dst string) error {
 	}
 
 	// Copy file permissions
-	sourceInfo, err := os.Stat(src)
-	if err != nil {
-		return fmt.Errorf("failed to stat source file: %w", err)
-	}
-
 	if err := os.Chmod(dst, sourceInfo.Mode()); err != nil {
 		return fmt.Errorf("failed to set file permissions: %w", err)
 	}
@@ -397,39 +400,88 @@ func copyFile(src, dst string) error {
 	return nil
 }
 
-// copyDir recursively copies a directory from src to dst
+// copyDir recursively copies a directory from src to dst with concurrent file copying
 func copyDir(src, dst string) error {
-	// Get source directory info
+	// Validate source directory exists
 	sourceInfo, err := os.Stat(src)
 	if err != nil {
 		return fmt.Errorf("failed to stat source directory: %w", err)
 	}
-
-	// Create destination directory
-	if err := os.MkdirAll(dst, sourceInfo.Mode()); err != nil {
-		return fmt.Errorf("failed to create destination directory: %w", err)
+	if !sourceInfo.IsDir() {
+		return fmt.Errorf("source is not a directory: %s", src)
 	}
 
-	entries, err := os.ReadDir(src)
-	if err != nil {
-		return fmt.Errorf("failed to read source directory: %w", err)
-	}
-
-	for _, entry := range entries {
-		sourcePath := filepath.Join(src, entry.Name())
-		destPath := filepath.Join(dst, entry.Name())
-
-		if entry.IsDir() {
-			// Recursively copy subdirectory
-			if err := copyDir(sourcePath, destPath); err != nil {
-				return err
-			}
-		} else {
-			// Copy file
-			if err := copyFile(sourcePath, destPath); err != nil {
-				return err
-			}
+	// First pass: create all directories (sequential - must complete first)
+	err = filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
 		}
+
+		relPath, err := filepath.Rel(src, path)
+		if err != nil {
+			return fmt.Errorf("failed to get relative path: %w", err)
+		}
+		dstPath := filepath.Join(dst, relPath)
+
+		if info.IsDir() {
+			return os.MkdirAll(dstPath, info.Mode())
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	// Second pass: copy all files concurrently
+	const maxWorkers = 8
+	semaphore := make(chan struct{}, maxWorkers)
+	var wg sync.WaitGroup
+	var copyErr error
+	var errMu sync.Mutex
+
+	err = filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip directories (already created)
+		if info.IsDir() {
+			return nil
+		}
+
+		relPath, err := filepath.Rel(src, path)
+		if err != nil {
+			return fmt.Errorf("failed to get relative path: %w", err)
+		}
+		dstPath := filepath.Join(dst, relPath)
+
+		// Launch worker to copy this file
+		wg.Add(1)
+		semaphore <- struct{}{} // Acquire worker slot
+
+		go func(srcPath, dstPath string, mode os.FileMode) {
+			defer wg.Done()
+			defer func() { <-semaphore }() // Release worker slot
+
+			if err := copyFile(srcPath, dstPath); err != nil {
+				errMu.Lock()
+				if copyErr == nil {
+					copyErr = fmt.Errorf("failed to copy %s: %w", srcPath, err)
+				}
+				errMu.Unlock()
+			}
+		}(path, dstPath, info.Mode())
+
+		return nil
+	})
+
+	wg.Wait() // Wait for all workers to complete
+
+	if err != nil {
+		return err
+	}
+	if copyErr != nil {
+		return copyErr
 	}
 
 	return nil
