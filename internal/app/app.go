@@ -1,3 +1,4 @@
+// Package app provides the main application structure and lifecycle management for YANTA.
 package app
 
 import (

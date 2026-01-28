@@ -205,9 +205,9 @@ export const HelpModal: React.FC = () => {
 									GLOBAL COMMANDS
 								</Heading>
 								<div className="grid gap-2">
-									{filteredGlobalCommands.map((cmd, idx) => (
+									{filteredGlobalCommands.map((cmd) => (
 										<div
-											key={idx}
+											key={cmd.command}
 											className="grid grid-cols-[minmax(160px,auto)_1fr] items-baseline gap-3 sm:gap-4 font-mono text-sm group py-1.5 px-2 -mx-2 rounded hover:bg-bg/50 transition-colors"
 										>
 											<code className="px-2 py-1 bg-bg border border-green/20 rounded text-green font-medium transition-all duration-200 group-hover:border-green/40 group-hover:bg-green/5 text-xs sm:text-sm w-fit">
@@ -232,9 +232,9 @@ export const HelpModal: React.FC = () => {
 									{pageName} COMMANDS
 								</Heading>
 								<div className="grid gap-2">
-									{filteredPageCommands.map((cmd, idx) => (
+									{filteredPageCommands.map((cmd) => (
 										<div
-											key={idx}
+											key={cmd.command}
 											className="grid grid-cols-[minmax(160px,auto)_1fr] items-baseline gap-3 sm:gap-4 font-mono text-sm group py-1.5 px-2 -mx-2 rounded hover:bg-bg/50 transition-colors"
 										>
 											<code className="px-2 py-1 bg-bg border border-accent/20 rounded text-accent font-medium transition-all duration-200 group-hover:border-accent/40 group-hover:bg-accent/5 text-xs sm:text-sm w-fit">

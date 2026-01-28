@@ -143,8 +143,8 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 		const groups = new Map<string, GroupedSearchResult>();
 
 		results.forEach((result) => {
-			if (groups.has(result.path)) {
-				const existing = groups.get(result.path)!;
+			const existing = groups.get(result.path);
+			if (existing) {
 				if (!existing.snippets.includes(result.snippet)) {
 					existing.snippets.push(result.snippet);
 					existing.matchCount += 1;
@@ -263,6 +263,7 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 	});
 
 	const renderSnippet = (snippet: string) => {
+		// biome-ignore lint/security/noDangerouslySetInnerHtml: search result HTML is trusted backend content with highlight marks
 		return <div className="leading-snug text-text" dangerouslySetInnerHTML={{ __html: snippet }} />;
 	};
 
@@ -412,6 +413,7 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 										<div className="space-y-2">
 											{r.snippets.map((snippet, snippetIdx) => (
 												<div
+													// biome-ignore lint/suspicious/noArrayIndexKey: snippets are unique within a result
 													key={snippetIdx}
 													className="text-sm [&_mark]:bg-yellow/20 [&_mark]:text-yellow [&_mark]:px-1 [&_mark]:rounded [&_mark]:font-semibold pl-3 border-l-2 border-border"
 												>
