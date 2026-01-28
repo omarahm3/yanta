@@ -1,12 +1,14 @@
 package document
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"yanta/internal/asset"
 	"yanta/internal/vault"
 
 	"github.com/stretchr/testify/assert"
@@ -461,4 +463,124 @@ func TestExportProject_MissingOutputDir(t *testing.T) {
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "output directory is required")
+}
+
+func TestExportWithAssets(t *testing.T) {
+	// Create test vault
+	v := setupTestVaultForExport(t)
+
+	// Create test assets
+	projectAlias := "@assettest"
+	imageData := []byte("fake-image-data-png")
+	fileData := []byte("fake-file-data-pdf")
+
+	// Write assets to vault using asset package
+	imageAsset, err := writeTestAsset(v, projectAlias, imageData, ".png")
+	require.NoError(t, err)
+
+	fileAsset, err := writeTestAsset(v, projectAlias, fileData, ".pdf")
+	require.NoError(t, err)
+
+	// Create document with asset references
+	docPath := filepath.Join("projects", projectAlias, "doc-with-assets.json")
+	doc := &DocumentFile{
+		Meta: DocumentMeta{
+			Project: projectAlias,
+			Title:   "Document with Assets",
+			Tags:    []string{"test"},
+			Created: time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
+			Updated: time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
+		},
+		Blocks: []BlockNoteBlock{
+			{
+				ID:   "1",
+				Type: "heading",
+				Props: map[string]any{
+					"level": float64(1),
+				},
+				Content: mustMarshalContent([]BlockNoteContent{
+					{Type: "text", Text: "Document with Assets"},
+				}),
+			},
+			{
+				ID:   "2",
+				Type: "paragraph",
+				Content: mustMarshalContent([]BlockNoteContent{
+					{Type: "text", Text: "This document contains images and files."},
+				}),
+			},
+			{
+				ID:   "3",
+				Type: "image",
+				Props: map[string]any{
+					"url":     fmt.Sprintf("/api/assets/%s/%s%s", projectAlias, imageAsset.Hash, imageAsset.Ext),
+					"caption": "Test Image",
+				},
+			},
+			{
+				ID:   "4",
+				Type: "file",
+				Props: map[string]any{
+					"url":  fmt.Sprintf("/api/assets/%s/%s%s", projectAlias, fileAsset.Hash, fileAsset.Ext),
+					"name": "Test File",
+				},
+			},
+		},
+	}
+
+	fm := NewFileManager(v)
+	err = fm.WriteFile(docPath, doc)
+	require.NoError(t, err)
+
+	// Export document
+	exporter := NewExporter(v)
+	outputDir := t.TempDir()
+	outputPath := filepath.Join(outputDir, "doc-with-assets.md")
+
+	err = exporter.ExportDocument(ExportDocumentRequest{
+		DocumentPath: docPath,
+		OutputPath:   outputPath,
+	})
+	require.NoError(t, err)
+
+	// Verify markdown file exists
+	_, err = os.Stat(outputPath)
+	require.NoError(t, err)
+
+	// Read markdown content
+	content, err := os.ReadFile(outputPath)
+	require.NoError(t, err)
+	markdown := string(content)
+
+	// Verify asset links were rewritten to local paths
+	expectedImageLink := fmt.Sprintf("./assets/%s%s", imageAsset.Hash, imageAsset.Ext)
+	expectedFileLink := fmt.Sprintf("./assets/%s%s", fileAsset.Hash, fileAsset.Ext)
+
+	assert.Contains(t, markdown, expectedImageLink, "markdown should contain rewritten image link")
+	assert.Contains(t, markdown, expectedFileLink, "markdown should contain rewritten file link")
+
+	// Verify asset files were copied
+	assetsDir := filepath.Join(outputDir, "assets")
+	imageAssetPath := filepath.Join(assetsDir, imageAsset.Hash+imageAsset.Ext)
+	fileAssetPath := filepath.Join(assetsDir, fileAsset.Hash+fileAsset.Ext)
+
+	_, err = os.Stat(imageAssetPath)
+	require.NoError(t, err, "image asset should be copied")
+
+	_, err = os.Stat(fileAssetPath)
+	require.NoError(t, err, "file asset should be copied")
+
+	// Verify asset contents
+	copiedImageData, err := os.ReadFile(imageAssetPath)
+	require.NoError(t, err)
+	assert.Equal(t, imageData, copiedImageData, "copied image data should match original")
+
+	copiedFileData, err := os.ReadFile(fileAssetPath)
+	require.NoError(t, err)
+	assert.Equal(t, fileData, copiedFileData, "copied file data should match original")
+}
+
+// Helper function to write test assets to vault
+func writeTestAsset(v *vault.Vault, projectAlias string, data []byte, ext string) (*asset.AssetInfo, error) {
+	return asset.WriteAsset(v, projectAlias, data, ext)
 }

@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 
+	"yanta/internal/asset"
 	"yanta/internal/logger"
 	"yanta/internal/vault"
 )
@@ -13,6 +16,7 @@ import (
 type Exporter struct {
 	fm        *FileManager
 	converter *MarkdownConverter
+	vault     *vault.Vault
 }
 
 // NewExporter creates a new Exporter instance
@@ -20,6 +24,7 @@ func NewExporter(v *vault.Vault) *Exporter {
 	return &Exporter{
 		fm:        NewFileManager(v),
 		converter: NewMarkdownConverter(),
+		vault:     v,
 	}
 }
 
@@ -59,11 +64,41 @@ func (e *Exporter) ExportDocument(req ExportDocumentRequest) error {
 		return fmt.Errorf("converting to markdown: %w", err)
 	}
 
+	// Extract asset references from markdown
+	assetRefs := e.extractAssetReferences(markdown)
+	logger.WithFields(map[string]any{
+		"documentPath": req.DocumentPath,
+		"assetCount":   len(assetRefs),
+	}).Debug("extracted asset references")
+
 	// Ensure output directory exists
 	outputDir := filepath.Dir(req.OutputPath)
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		logger.WithError(err).WithField("outputDir", outputDir).Error("failed to create output directory")
 		return fmt.Errorf("creating output directory: %w", err)
+	}
+
+	// Copy assets and rewrite links if there are any assets
+	if len(assetRefs) > 0 {
+		assetsDir := filepath.Join(outputDir, "assets")
+
+		for _, ref := range assetRefs {
+			if err := e.copyAsset(ref, assetsDir); err != nil {
+				logger.WithError(err).WithFields(map[string]any{
+					"hash": ref.Hash,
+					"ext":  ref.Ext,
+					"url":  ref.OriginalURL,
+				}).Error("failed to copy asset")
+				return fmt.Errorf("copying asset %s: %w", ref.OriginalURL, err)
+			}
+		}
+
+		// Rewrite asset links in markdown
+		markdown = e.rewriteAssetLinks(markdown, assetRefs)
+		logger.WithFields(map[string]any{
+			"documentPath": req.DocumentPath,
+			"assetsCopied": len(assetRefs),
+		}).Debug("copied assets and rewrote links")
 	}
 
 	// Write markdown file
@@ -152,10 +187,126 @@ func (e *Exporter) ExportProject(req ExportProjectRequest) error {
 	}
 
 	logger.WithFields(map[string]any{
-		"projectAlias":   req.ProjectAlias,
-		"outputDir":      req.OutputDir,
+		"projectAlias":      req.ProjectAlias,
+		"outputDir":         req.OutputDir,
 		"documentsExported": len(documentPaths),
 	}).Info("project exported successfully")
 
 	return nil
+}
+
+// assetReference represents a parsed asset URL
+type assetReference struct {
+	ProjectAlias string
+	Hash         string
+	Ext          string
+	OriginalURL  string
+}
+
+// parseAssetURL parses an asset URL like /api/assets/@project/hash.ext
+func (e *Exporter) parseAssetURL(url string) (*assetReference, error) {
+	// Match URLs like /api/assets/@project/hash.ext or /api/assets/@project/hash
+	re := regexp.MustCompile(`^/api/assets/(@[^/]+)/([a-f0-9]{64})(\.[\w]+)?$`)
+	matches := re.FindStringSubmatch(url)
+
+	if matches == nil {
+		return nil, fmt.Errorf("invalid asset URL format: %s", url)
+	}
+
+	projectAlias := matches[1]
+	hash := matches[2]
+	ext := matches[3]
+
+	if ext == "" {
+		ext = ""
+	}
+
+	return &assetReference{
+		ProjectAlias: projectAlias,
+		Hash:         hash,
+		Ext:          ext,
+		OriginalURL:  url,
+	}, nil
+}
+
+// extractAssetReferences extracts all asset URLs from markdown content
+func (e *Exporter) extractAssetReferences(markdown string) []*assetReference {
+	var refs []*assetReference
+
+	// Match markdown image syntax: ![alt](url)
+	imageRe := regexp.MustCompile(`!\[[^\]]*\]\((/api/assets/[^)]+)\)`)
+	imageMatches := imageRe.FindAllStringSubmatch(markdown, -1)
+	for _, match := range imageMatches {
+		if len(match) > 1 {
+			if ref, err := e.parseAssetURL(match[1]); err == nil {
+				refs = append(refs, ref)
+			}
+		}
+	}
+
+	// Match markdown link syntax: [text](url) - only for asset URLs
+	linkRe := regexp.MustCompile(`\[[^\]]+\]\((/api/assets/[^)]+)\)`)
+	linkMatches := linkRe.FindAllStringSubmatch(markdown, -1)
+	for _, match := range linkMatches {
+		if len(match) > 1 {
+			if ref, err := e.parseAssetURL(match[1]); err == nil {
+				// Check if we already have this ref from image matches
+				isDuplicate := false
+				for _, existingRef := range refs {
+					if existingRef.OriginalURL == ref.OriginalURL {
+						isDuplicate = true
+						break
+					}
+				}
+				if !isDuplicate {
+					refs = append(refs, ref)
+				}
+			}
+		}
+	}
+
+	return refs
+}
+
+// copyAsset copies an asset from the vault to the export directory
+func (e *Exporter) copyAsset(ref *assetReference, assetsDir string) error {
+	// Read asset from vault
+	data, err := asset.ReadAsset(e.vault, ref.ProjectAlias, ref.Hash, ref.Ext)
+	if err != nil {
+		return fmt.Errorf("reading asset from vault: %w", err)
+	}
+
+	// Ensure assets directory exists
+	if err := os.MkdirAll(assetsDir, 0755); err != nil {
+		return fmt.Errorf("creating assets directory: %w", err)
+	}
+
+	// Write asset to export directory
+	filename := ref.Hash + ref.Ext
+	destPath := filepath.Join(assetsDir, filename)
+
+	if err := os.WriteFile(destPath, data, 0644); err != nil {
+		return fmt.Errorf("writing asset file: %w", err)
+	}
+
+	logger.WithFields(map[string]any{
+		"hash":     ref.Hash,
+		"ext":      ref.Ext,
+		"destPath": destPath,
+	}).Debug("copied asset")
+
+	return nil
+}
+
+// rewriteAssetLinks rewrites asset URLs in markdown to point to local files
+func (e *Exporter) rewriteAssetLinks(markdown string, refs []*assetReference) string {
+	result := markdown
+
+	for _, ref := range refs {
+		// Replace the original URL with a relative path to the assets directory
+		localPath := "./assets/" + ref.Hash + ref.Ext
+		result = strings.ReplaceAll(result, ref.OriginalURL, localPath)
+	}
+
+	return result
 }
