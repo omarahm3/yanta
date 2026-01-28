@@ -1,3 +1,4 @@
+// Package document provides document types, storage, and manipulation functionality.
 package document
 
 import (

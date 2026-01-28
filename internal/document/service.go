@@ -149,7 +149,7 @@ func (s *Service) Save(ctx context.Context, req SaveRequest) (string, error) {
 
 	if err := s.indexer.IndexDocument(ctx, docPath); err != nil {
 		logger.WithError(err).WithField("path", docPath).Error("failed to index document")
-		s.fm.DeleteFile(docPath)
+		_ = s.fm.DeleteFile(docPath)
 		return "", fmt.Errorf("indexing document: %w", err)
 	}
 

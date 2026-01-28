@@ -1,3 +1,4 @@
+// Package db provides database connection management and utilities.
 package db
 
 import (
@@ -54,8 +55,8 @@ func CloseDB(db *sql.DB) error {
 		return nil
 	}
 
-	db.Exec("PRAGMA optimize")
-	db.Exec("PRAGMA wal_checkpoint(FULL)")
+	_, _ = db.Exec("PRAGMA optimize")
+	_, _ = db.Exec("PRAGMA wal_checkpoint(FULL)")
 
 	return db.Close()
 }

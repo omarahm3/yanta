@@ -1,3 +1,4 @@
+// Package seed provides functionality to seed the database with initial or test data.
 package seed
 
 import (

@@ -281,8 +281,8 @@ func (s *Service) Restore(ctx context.Context, id string) error {
 	return nil
 }
 
-// If project has documents: soft delete project (documents handled separately)
-// If no documents: hard delete project
+// Delete removes a project. If the project has documents, it performs a soft delete
+// (documents are handled separately). If no documents exist, it performs a hard delete.
 func (s *Service) Delete(ctx context.Context, id string) error {
 	if strings.TrimSpace(id) == "" {
 		return errors.New("id is required")

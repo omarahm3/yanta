@@ -128,7 +128,7 @@ func (w *Watcher) handleEvent(event fsnotify.Event) {
 	if event.Op&fsnotify.Create == fsnotify.Create {
 		info, err := os.Stat(event.Name)
 		if err == nil && info.IsDir() {
-			w.watcher.Add(event.Name)
+			_ = w.watcher.Add(event.Name)
 		}
 	}
 

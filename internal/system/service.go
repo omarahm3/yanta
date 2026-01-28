@@ -1,3 +1,4 @@
+// Package system provides system-level services and coordination.
 package system
 
 import (

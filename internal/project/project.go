@@ -1,3 +1,4 @@
+// Package project provides project types, storage, and management functionality.
 package project
 
 import (

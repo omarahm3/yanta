@@ -1,3 +1,4 @@
+// Package testutil provides database and other test utilities.
 package testutil
 
 import (

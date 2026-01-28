@@ -1,3 +1,4 @@
+// Package git provides Git repository operations and synchronization management.
 package git
 
 import (
