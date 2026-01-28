@@ -464,6 +464,83 @@ func TestMarkdownConverter_File(t *testing.T) {
 	}
 }
 
+func TestYAMLFrontmatter(t *testing.T) {
+	converter := NewMarkdownConverter()
+
+	created := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
+	updated := time.Date(2024, 1, 16, 14, 45, 0, 0, time.UTC)
+
+	doc := &DocumentFile{
+		Meta: DocumentMeta{
+			Project: "@test",
+			Title:   "Test Document",
+			Tags:    []string{"test", "documentation"},
+			Aliases: []string{"test-doc", "doc1"},
+			Created: created,
+			Updated: updated,
+		},
+		Blocks: []BlockNoteBlock{
+			{
+				ID:   "p1",
+				Type: "paragraph",
+				Content: mustMarshalContent([]BlockNoteContent{
+					{Type: "text", Text: "Content"},
+				}),
+			},
+		},
+	}
+
+	markdown, err := converter.ToMarkdown(doc)
+	if err != nil {
+		t.Fatalf("ToMarkdown() error: %v", err)
+	}
+
+	// Check frontmatter delimiters
+	if !contains(markdown, "---") {
+		t.Error("Expected YAML frontmatter delimiters")
+	}
+
+	// Check title
+	if !contains(markdown, "title: Test Document") {
+		t.Error("Expected title in frontmatter")
+	}
+
+	// Check project
+	if !contains(markdown, "project: @test") {
+		t.Error("Expected project in frontmatter")
+	}
+
+	// Check tags
+	if !contains(markdown, "tags:") {
+		t.Error("Expected tags in frontmatter")
+	}
+	if !contains(markdown, "  - test") {
+		t.Error("Expected tag 'test' in frontmatter")
+	}
+	if !contains(markdown, "  - documentation") {
+		t.Error("Expected tag 'documentation' in frontmatter")
+	}
+
+	// Check aliases
+	if !contains(markdown, "aliases:") {
+		t.Error("Expected aliases in frontmatter")
+	}
+	if !contains(markdown, "  - test-doc") {
+		t.Error("Expected alias 'test-doc' in frontmatter")
+	}
+	if !contains(markdown, "  - doc1") {
+		t.Error("Expected alias 'doc1' in frontmatter")
+	}
+
+	// Check timestamps
+	if !contains(markdown, "created: 2024-01-15T10:30:00Z") {
+		t.Error("Expected created timestamp in frontmatter")
+	}
+	if !contains(markdown, "updated: 2024-01-16T14:45:00Z") {
+		t.Error("Expected updated timestamp in frontmatter")
+	}
+}
+
 func contains(s, substr string) bool {
 	return len(s) > 0 && len(substr) > 0 && (s == substr || len(s) >= len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || containsSubstring(s, substr)))
 }

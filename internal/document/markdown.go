@@ -15,11 +15,43 @@ func NewMarkdownConverter() *MarkdownConverter {
 func (m *MarkdownConverter) ToMarkdown(doc *DocumentFile) (string, error) {
 	var lines []string
 
+	// Add YAML frontmatter
+	frontmatter := m.generateFrontmatter(&doc.Meta)
+	lines = append(lines, frontmatter)
+
 	for _, block := range doc.Blocks {
 		m.convertBlock(block, &lines, 0)
 	}
 
 	return strings.Join(lines, "\n"), nil
+}
+
+func (m *MarkdownConverter) generateFrontmatter(meta *DocumentMeta) string {
+	var lines []string
+
+	lines = append(lines, "---")
+	lines = append(lines, fmt.Sprintf("title: %s", meta.Title))
+	lines = append(lines, fmt.Sprintf("project: %s", meta.Project))
+
+	if len(meta.Tags) > 0 {
+		lines = append(lines, "tags:")
+		for _, tag := range meta.Tags {
+			lines = append(lines, fmt.Sprintf("  - %s", tag))
+		}
+	}
+
+	if len(meta.Aliases) > 0 {
+		lines = append(lines, "aliases:")
+		for _, alias := range meta.Aliases {
+			lines = append(lines, fmt.Sprintf("  - %s", alias))
+		}
+	}
+
+	lines = append(lines, fmt.Sprintf("created: %s", meta.Created.Format("2006-01-02T15:04:05Z07:00")))
+	lines = append(lines, fmt.Sprintf("updated: %s", meta.Updated.Format("2006-01-02T15:04:05Z07:00")))
+	lines = append(lines, "---")
+
+	return strings.Join(lines, "\n")
 }
 
 func (m *MarkdownConverter) convertBlock(block BlockNoteBlock, lines *[]string, depth int) {
