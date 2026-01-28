@@ -32,6 +32,7 @@ type Service struct {
 	db           *sql.DB
 	store        *Store
 	fm           *FileManager
+	vault        *vault.Vault
 	indexer      Indexer
 	projectCache ProjectCache
 	eventBus     *events.EventBus
@@ -43,6 +44,7 @@ func NewService(db *sql.DB, store *Store, v *vault.Vault, idx Indexer, projectCa
 		db:           db,
 		store:        store,
 		fm:           NewFileManager(v),
+		vault:        v,
 		indexer:      idx,
 		projectCache: projectCache,
 		eventBus:     eventBus,
@@ -548,6 +550,59 @@ func (s *Service) HardDeleteByProject(ctx context.Context, projectAlias string) 
 		"projectAlias": projectAlias,
 		"count":        len(paths),
 	}).Info("all documents hard deleted for project")
+
+	return nil
+}
+
+// ExportDocument exports a single document to markdown format
+func (s *Service) ExportDocument(ctx context.Context, req ExportDocumentRequest) error {
+	logger.WithFields(map[string]any{
+		"documentPath": req.DocumentPath,
+		"outputPath":   req.OutputPath,
+	}).Info("service ExportDocument called")
+
+	exporter := NewExporter(s.vault)
+	if err := exporter.ExportDocument(req); err != nil {
+		logger.WithError(err).WithFields(map[string]any{
+			"documentPath": req.DocumentPath,
+			"outputPath":   req.OutputPath,
+		}).Error("failed to export document")
+		return fmt.Errorf("exporting document: %w", err)
+	}
+
+	logger.WithFields(map[string]any{
+		"documentPath": req.DocumentPath,
+		"outputPath":   req.OutputPath,
+	}).Info("document exported successfully")
+
+	return nil
+}
+
+// ExportProject exports all documents in a project to markdown format
+func (s *Service) ExportProject(ctx context.Context, req ExportProjectRequest) error {
+	logger.WithFields(map[string]any{
+		"projectAlias": req.ProjectAlias,
+		"outputDir":    req.OutputDir,
+	}).Info("service ExportProject called")
+
+	// Validate project alias
+	if err := project.ValidateAlias(strings.TrimSpace(req.ProjectAlias)); err != nil {
+		return fmt.Errorf("invalid project_alias: %w", err)
+	}
+
+	exporter := NewExporter(s.vault)
+	if err := exporter.ExportProject(req); err != nil {
+		logger.WithError(err).WithFields(map[string]any{
+			"projectAlias": req.ProjectAlias,
+			"outputDir":    req.OutputDir,
+		}).Error("failed to export project")
+		return fmt.Errorf("exporting project: %w", err)
+	}
+
+	logger.WithFields(map[string]any{
+		"projectAlias": req.ProjectAlias,
+		"outputDir":    req.OutputDir,
+	}).Info("project exported successfully")
 
 	return nil
 }
