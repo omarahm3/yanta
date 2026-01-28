@@ -18,6 +18,7 @@ import (
 	"yanta/internal/db"
 	"yanta/internal/document"
 	"yanta/internal/events"
+	"yanta/internal/export"
 	"yanta/internal/git"
 	"yanta/internal/indexer"
 	"yanta/internal/link"
@@ -128,6 +129,11 @@ func New(cfg Config) (*App, error) {
 		SyncManager: syncManager,
 	})
 
+	exportService := export.NewService(export.ServiceConfig{
+		DocumentService: documentService,
+		Vault:           v,
+	})
+
 	logger.Debugf("services created")
 
 	if err := seedDemoDocuments(v, documentStore, idx); err != nil {
@@ -158,6 +164,7 @@ func New(cfg Config) (*App, error) {
 		Search:           searchService,
 		System:           systemService,
 		Assets:           assetService,
+		Export:           exportService,
 		ProjectCommands:  projectCommands,
 		GlobalCommands:   globalCommands,
 		DocumentCommands: documentCommands,
