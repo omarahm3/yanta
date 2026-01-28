@@ -570,3 +570,100 @@ func setupGitRepo(t *testing.T, repoPath string) {
 	require.NoError(t, gitService.AddAll(repoPath))
 	require.NoError(t, gitService.Commit(repoPath, "initial commit"))
 }
+
+func TestSyncManager_BackupBeforeSync(t *testing.T) {
+	skipIfNoGit(t)
+
+	tempDir := t.TempDir()
+	setupGitRepo(t, tempDir)
+
+	// Setup config with both backup and sync enabled
+	cleanup := setupTestConfig(t, tempDir, config.GitSyncConfig{
+		Enabled:        true,
+		AutoCommit:     true,
+		CommitInterval: 10,
+	})
+	defer cleanup()
+
+	// Enable backup
+	backupCfg := config.BackupConfig{
+		Enabled:    true,
+		MaxBackups: 10,
+	}
+	require.NoError(t, config.SetBackupConfig(backupCfg))
+
+	// Create vault directory structure required by backup service
+	vaultDir := filepath.Join(tempDir, "vault")
+	require.NoError(t, os.MkdirAll(vaultDir, 0755))
+
+	// Create a test file in vault
+	testNote := filepath.Join(vaultDir, "note.md")
+	require.NoError(t, os.WriteFile(testNote, []byte("# Test Note"), 0644))
+
+	// Create database at the correct path that backup service expects
+	dbPath := filepath.Join(tempDir, "yanta.db")
+	database, err := db.OpenDB(dbPath)
+	require.NoError(t, err)
+	require.NoError(t, db.RunMigrations(database))
+
+	t.Cleanup(func() {
+		db.CloseDB(database)
+	})
+
+	// Create a file to change in the repo
+	testFile := filepath.Join(tempDir, "test.txt")
+	require.NoError(t, os.WriteFile(testFile, []byte("content"), 0644))
+
+	sm := NewSyncManager(database)
+	sm.Start()
+	defer sm.Shutdown()
+
+	sm.NotifyChange("backup test")
+	assert.True(t, sm.HasPendingChanges())
+
+	// Get backups directory path
+	backupsDir := filepath.Join(tempDir, "backups")
+
+	// Force sync - should create backup first
+	sm.ForceSync()
+
+	// Verify backup was created
+	if _, err := os.Stat(backupsDir); os.IsNotExist(err) {
+		t.Error("backups directory was not created")
+	} else {
+		// List backups
+		entries, err := os.ReadDir(backupsDir)
+		require.NoError(t, err)
+
+		// Filter directories only
+		var backupDirs []os.DirEntry
+		for _, entry := range entries {
+			if entry.IsDir() {
+				backupDirs = append(backupDirs, entry)
+			}
+		}
+
+		assert.GreaterOrEqual(t, len(backupDirs), 1, "at least one backup should be created")
+
+		// Verify backup contains expected files
+		if len(backupDirs) > 0 {
+			firstBackup := filepath.Join(backupsDir, backupDirs[0].Name())
+			backupVault := filepath.Join(firstBackup, "vault")
+			backupDB := filepath.Join(firstBackup, "yanta.db")
+
+			_, vaultErr := os.Stat(backupVault)
+			_, dbErr := os.Stat(backupDB)
+
+			assert.NoError(t, vaultErr, "backup should contain vault directory")
+			assert.NoError(t, dbErr, "backup should contain yanta.db")
+		}
+	}
+
+	// Verify sync still happened after backup
+	assert.False(t, sm.HasPendingChanges())
+
+	// Verify commit was made
+	log, err := getGitLog(tempDir)
+	require.NoError(t, err)
+	assert.Contains(t, log, "auto: backup test")
+}
