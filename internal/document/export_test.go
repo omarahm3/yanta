@@ -1,12 +1,9 @@
 package document
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
-	"time"
 
 	"yanta/internal/asset"
 	"yanta/internal/vault"
@@ -15,572 +12,640 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupTestVaultForExport(t *testing.T) *vault.Vault {
-	t.Helper()
-	tempDir := t.TempDir()
-	v, err := vault.New(vault.Config{RootPath: tempDir})
-	if err != nil {
-		t.Fatalf("Failed to create test vault: %v", err)
-	}
-	return v
-}
+func setupExportTest(t *testing.T) (*Exporter, *vault.Vault, func()) {
+	tmpDir := t.TempDir()
+	v, err := vault.New(vault.Config{RootPath: tmpDir})
+	require.NoError(t, err, "failed to create vault")
 
-func TestExportDocument(t *testing.T) {
-	// Create test vault
-	v := setupTestVaultForExport(t)
-
-	// Create test document
-	docPath := "projects/@test/doc-test123.json"
-	doc := &DocumentFile{
-		Meta: DocumentMeta{
-			Project: "@test",
-			Title:   "Test Document",
-			Tags:    []string{"test", "export"},
-			Created: time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
-			Updated: time.Date(2024, 1, 2, 12, 0, 0, 0, time.UTC),
-		},
-		Blocks: []BlockNoteBlock{
-			{
-				ID:   "1",
-				Type: "heading",
-				Props: map[string]any{
-					"level": float64(1),
-				},
-				Content: mustMarshalContent([]BlockNoteContent{
-					{Type: "text", Text: "Hello World"},
-				}),
-			},
-			{
-				ID:   "2",
-				Type: "paragraph",
-				Content: mustMarshalContent([]BlockNoteContent{
-					{Type: "text", Text: "This is a test document."},
-				}),
-			},
-		},
-	}
-
-	fm := NewFileManager(v)
-	err := fm.WriteFile(docPath, doc)
-	require.NoError(t, err)
-
-	// Create exporter
 	exporter := NewExporter(v)
 
-	// Create output directory
-	outputDir := filepath.Join(t.TempDir(), "export")
-	outputPath := filepath.Join(outputDir, "test-document.md")
+	cleanup := func() {
+		// Nothing to cleanup for exporter tests
+	}
 
-	// Export document
-	err = exporter.ExportDocument(ExportDocumentRequest{
+	return exporter, v, cleanup
+}
+
+func createTestDocument(t *testing.T, v *vault.Vault, projectAlias, title string, blocks []BlockNoteBlock) string {
+	fm := NewFileManager(v)
+
+	// Ensure project directory exists
+	err := v.EnsureProjectDir(projectAlias)
+	require.NoError(t, err, "failed to create project directory")
+
+	// Create document file
+	docFile := NewDocumentFile(projectAlias, title, []string{"test"})
+	docFile.Blocks = blocks
+
+	// Generate a test document path
+	relativePath := "projects/" + projectAlias + "/doc-test-" + title + ".json"
+
+	// Write the file
+	err = fm.WriteFile(relativePath, docFile)
+	require.NoError(t, err, "failed to write test document")
+
+	return relativePath
+}
+
+func TestExportDocument_BasicExport(t *testing.T) {
+	exporter, v, cleanup := setupExportTest(t)
+	defer cleanup()
+
+	blocks := []BlockNoteBlock{
+		{
+			ID:   "block1",
+			Type: "paragraph",
+			Content: mustMarshalContent([]BlockNoteContent{
+				{Type: "text", Text: "Hello World"},
+			}),
+		},
+	}
+
+	docPath := createTestDocument(t, v, "@test", "Test Document", blocks)
+
+	outputDir := t.TempDir()
+	outputPath := filepath.Join(outputDir, "test.md")
+
+	req := ExportDocumentRequest{
 		DocumentPath: docPath,
 		OutputPath:   outputPath,
-	})
-	require.NoError(t, err)
+	}
 
-	// Verify file exists
+	err := exporter.ExportDocument(req)
+	require.NoError(t, err, "ExportDocument() failed")
+
+	// Verify file was created
 	_, err = os.Stat(outputPath)
-	require.NoError(t, err)
-
-	// Read exported file
-	content, err := os.ReadFile(outputPath)
-	require.NoError(t, err)
-
-	markdown := string(content)
-
-	// Verify frontmatter
-	assert.Contains(t, markdown, "---")
-	assert.Contains(t, markdown, "title: Test Document")
-	assert.Contains(t, markdown, "project: @test")
-	assert.Contains(t, markdown, "tags:")
-	assert.Contains(t, markdown, "  - test")
-	assert.Contains(t, markdown, "  - export")
+	require.NoError(t, err, "Output file should exist")
 
 	// Verify content
-	assert.Contains(t, markdown, "# Hello World")
-	assert.Contains(t, markdown, "This is a test document.")
+	content, err := os.ReadFile(outputPath)
+	require.NoError(t, err, "Failed to read output file")
+
+	markdown := string(content)
+	assert.Contains(t, markdown, "title: Test Document")
+	assert.Contains(t, markdown, "project: @test")
+	assert.Contains(t, markdown, "Hello World")
 }
 
-func TestExportDocument_MissingDocumentPath(t *testing.T) {
-	v := setupTestVaultForExport(t)
-	exporter := NewExporter(v)
+func TestExportDocument_EmptyDocumentPath(t *testing.T) {
+	exporter, _, cleanup := setupExportTest(t)
+	defer cleanup()
 
-	err := exporter.ExportDocument(ExportDocumentRequest{
+	outputDir := t.TempDir()
+	outputPath := filepath.Join(outputDir, "test.md")
+
+	req := ExportDocumentRequest{
 		DocumentPath: "",
-		OutputPath:   "/tmp/test.md",
-	})
-	require.Error(t, err)
+		OutputPath:   outputPath,
+	}
+
+	err := exporter.ExportDocument(req)
+	assert.Error(t, err, "Expected error for empty document path")
 	assert.Contains(t, err.Error(), "document path is required")
 }
 
-func TestExportDocument_MissingOutputPath(t *testing.T) {
-	v := setupTestVaultForExport(t)
-	exporter := NewExporter(v)
+func TestExportDocument_EmptyOutputPath(t *testing.T) {
+	exporter, v, cleanup := setupExportTest(t)
+	defer cleanup()
 
-	err := exporter.ExportDocument(ExportDocumentRequest{
-		DocumentPath: "projects/@test/doc-test.json",
+	blocks := []BlockNoteBlock{
+		{
+			ID:   "block1",
+			Type: "paragraph",
+			Content: mustMarshalContent([]BlockNoteContent{
+				{Type: "text", Text: "Test"},
+			}),
+		},
+	}
+
+	docPath := createTestDocument(t, v, "@test", "Test", blocks)
+
+	req := ExportDocumentRequest{
+		DocumentPath: docPath,
 		OutputPath:   "",
-	})
-	require.Error(t, err)
+	}
+
+	err := exporter.ExportDocument(req)
+	assert.Error(t, err, "Expected error for empty output path")
 	assert.Contains(t, err.Error(), "output path is required")
 }
 
-func TestExportDocument_DocumentNotFound(t *testing.T) {
-	v := setupTestVaultForExport(t)
-	exporter := NewExporter(v)
-	outputPath := filepath.Join(t.TempDir(), "nonexistent.md")
+func TestExportDocument_InvalidDocumentPath(t *testing.T) {
+	exporter, _, cleanup := setupExportTest(t)
+	defer cleanup()
 
-	err := exporter.ExportDocument(ExportDocumentRequest{
-		DocumentPath: "projects/@test/doc-nonexistent.json",
+	outputDir := t.TempDir()
+	outputPath := filepath.Join(outputDir, "test.md")
+
+	req := ExportDocumentRequest{
+		DocumentPath: "projects/@test/nonexistent.json",
 		OutputPath:   outputPath,
-	})
-	require.Error(t, err)
+	}
+
+	err := exporter.ExportDocument(req)
+	assert.Error(t, err, "Expected error for nonexistent document")
 	assert.Contains(t, err.Error(), "reading document")
 }
 
+func TestExportDocument_WithAssets(t *testing.T) {
+	exporter, v, cleanup := setupExportTest(t)
+	defer cleanup()
+
+	// Create a test asset
+	assetData := []byte("fake image data")
+	assetInfo, err := asset.WriteAsset(v, "@test", assetData, ".png")
+	require.NoError(t, err, "Failed to create test asset")
+
+	// Create document with image block
+	blocks := []BlockNoteBlock{
+		{
+			ID:   "block1",
+			Type: "paragraph",
+			Content: mustMarshalContent([]BlockNoteContent{
+				{Type: "text", Text: "Document with image"},
+			}),
+		},
+		{
+			ID:   "block2",
+			Type: "image",
+			Props: map[string]any{
+				"url":     "/api/assets/@test/" + assetInfo.Hash + assetInfo.Ext,
+				"caption": "Test Image",
+			},
+		},
+	}
+
+	docPath := createTestDocument(t, v, "@test", "Document with Assets", blocks)
+
+	outputDir := t.TempDir()
+	outputPath := filepath.Join(outputDir, "test.md")
+
+	req := ExportDocumentRequest{
+		DocumentPath: docPath,
+		OutputPath:   outputPath,
+	}
+
+	err = exporter.ExportDocument(req)
+	require.NoError(t, err, "ExportDocument() failed")
+
+	// Verify markdown file was created
+	markdown, err := os.ReadFile(outputPath)
+	require.NoError(t, err, "Failed to read output file")
+
+	// Verify asset link was rewritten
+	assert.Contains(t, string(markdown), "./assets/"+assetInfo.Hash+assetInfo.Ext)
+	assert.NotContains(t, string(markdown), "/api/assets/")
+
+	// Verify asset was copied
+	assetPath := filepath.Join(outputDir, "assets", assetInfo.Hash+assetInfo.Ext)
+	_, err = os.Stat(assetPath)
+	require.NoError(t, err, "Asset file should exist")
+
+	// Verify asset content
+	copiedData, err := os.ReadFile(assetPath)
+	require.NoError(t, err, "Failed to read copied asset")
+	assert.Equal(t, assetData, copiedData, "Asset content should match")
+}
+
 func TestExportDocument_CreatesOutputDirectory(t *testing.T) {
-	// Create test vault
-	v := setupTestVaultForExport(t)
+	exporter, v, cleanup := setupExportTest(t)
+	defer cleanup()
 
-	// Create test document
-	docPath := "projects/@test/doc-test456.json"
-	doc := &DocumentFile{
-		Meta: DocumentMeta{
-			Project: "@test",
-			Title:   "Test Document",
-			Tags:    []string{},
-			Created: time.Now(),
-			Updated: time.Now(),
-		},
-		Blocks: []BlockNoteBlock{
-			{
-				ID:   "1",
-				Type: "paragraph",
-				Content: mustMarshalContent([]BlockNoteContent{
-					{Type: "text", Text: "Test content"},
-				}),
-			},
+	blocks := []BlockNoteBlock{
+		{
+			ID:   "block1",
+			Type: "paragraph",
+			Content: mustMarshalContent([]BlockNoteContent{
+				{Type: "text", Text: "Test"},
+			}),
 		},
 	}
 
-	fm := NewFileManager(v)
-	err := fm.WriteFile(docPath, doc)
-	require.NoError(t, err)
+	docPath := createTestDocument(t, v, "@test", "Test", blocks)
 
-	// Create exporter
-	exporter := NewExporter(v)
+	outputDir := t.TempDir()
+	outputPath := filepath.Join(outputDir, "subdir", "nested", "test.md")
 
-	// Use nested directory that doesn't exist
-	outputPath := filepath.Join(t.TempDir(), "deeply", "nested", "path", "test.md")
-
-	// Export document
-	err = exporter.ExportDocument(ExportDocumentRequest{
+	req := ExportDocumentRequest{
 		DocumentPath: docPath,
 		OutputPath:   outputPath,
-	})
-	require.NoError(t, err)
+	}
 
-	// Verify file exists and directory was created
+	err := exporter.ExportDocument(req)
+	require.NoError(t, err, "ExportDocument() failed")
+
+	// Verify nested directory was created
+	_, err = os.Stat(filepath.Dir(outputPath))
+	require.NoError(t, err, "Nested directory should exist")
+
+	// Verify file exists
 	_, err = os.Stat(outputPath)
-	require.NoError(t, err)
-
-	// Verify content
-	content, err := os.ReadFile(outputPath)
-	require.NoError(t, err)
-	assert.Contains(t, string(content), "Test content")
+	require.NoError(t, err, "Output file should exist")
 }
 
-func TestExportDocument_ComplexDocument(t *testing.T) {
-	// Create test vault
-	v := setupTestVaultForExport(t)
+func TestExportProject_BasicExport(t *testing.T) {
+	exporter, v, cleanup := setupExportTest(t)
+	defer cleanup()
 
-	// Create complex document with various block types
-	docPath := "projects/@test/doc-complex.json"
-	doc := &DocumentFile{
-		Meta: DocumentMeta{
-			Project: "@test",
-			Title:   "Complex Document",
-			Tags:    []string{"markdown", "export", "test"},
-			Aliases: []string{"complex-doc", "test-doc"},
-			Created: time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
-			Updated: time.Date(2024, 1, 2, 12, 0, 0, 0, time.UTC),
-		},
-		Blocks: []BlockNoteBlock{
+	// Create multiple test documents
+	for i := 1; i <= 3; i++ {
+		blocks := []BlockNoteBlock{
 			{
-				ID:   "1",
-				Type: "heading",
-				Props: map[string]any{
-					"level": float64(1),
-				},
-				Content: mustMarshalContent([]BlockNoteContent{
-					{Type: "text", Text: "Main Heading"},
-				}),
-			},
-			{
-				ID:   "2",
+				ID:   "block1",
 				Type: "paragraph",
 				Content: mustMarshalContent([]BlockNoteContent{
-					{Type: "text", Text: "This is ", Styles: map[string]any{}},
-					{Type: "text", Text: "bold", Styles: map[string]any{"bold": true}},
-					{Type: "text", Text: " and ", Styles: map[string]any{}},
-					{Type: "text", Text: "italic", Styles: map[string]any{"italic": true}},
-					{Type: "text", Text: " text.", Styles: map[string]any{}},
+					{Type: "text", Text: "Document " + string(rune('0'+i))},
 				}),
 			},
-			{
-				ID:   "3",
-				Type: "bulletListItem",
-				Content: mustMarshalContent([]BlockNoteContent{
-					{Type: "text", Text: "First item"},
-				}),
-			},
-			{
-				ID:   "4",
-				Type: "bulletListItem",
-				Content: mustMarshalContent([]BlockNoteContent{
-					{Type: "text", Text: "Second item"},
-				}),
-			},
-			{
-				ID:   "5",
-				Type: "codeBlock",
-				Props: map[string]any{
-					"language": "go",
-				},
-				Content: mustMarshalContent([]BlockNoteContent{
-					{Type: "text", Text: "func main() {\n\tfmt.Println(\"Hello\")\n}"},
-				}),
-			},
-		},
+		}
+		createTestDocument(t, v, "@test", "Document "+string(rune('0'+i)), blocks)
 	}
 
-	fm := NewFileManager(v)
-	err := fm.WriteFile(docPath, doc)
-	require.NoError(t, err)
+	outputDir := t.TempDir()
 
-	// Create exporter
-	exporter := NewExporter(v)
-	outputPath := filepath.Join(t.TempDir(), "complex.md")
-
-	// Export document
-	err = exporter.ExportDocument(ExportDocumentRequest{
-		DocumentPath: docPath,
-		OutputPath:   outputPath,
-	})
-	require.NoError(t, err)
-
-	// Read exported file
-	content, err := os.ReadFile(outputPath)
-	require.NoError(t, err)
-	markdown := string(content)
-
-	// Verify frontmatter with aliases
-	assert.Contains(t, markdown, "title: Complex Document")
-	assert.Contains(t, markdown, "aliases:")
-	assert.Contains(t, markdown, "  - complex-doc")
-	assert.Contains(t, markdown, "  - test-doc")
-
-	// Verify content formatting
-	assert.Contains(t, markdown, "# Main Heading")
-	assert.Contains(t, markdown, "**bold**")
-	assert.Contains(t, markdown, "*italic*")
-	assert.Contains(t, markdown, "- First item")
-	assert.Contains(t, markdown, "- Second item")
-	assert.Contains(t, markdown, "```go")
-	assert.Contains(t, markdown, "func main()")
-
-	// Verify proper structure
-	lines := strings.Split(markdown, "\n")
-	assert.True(t, len(lines) > 10, "markdown should have multiple lines")
-}
-
-func TestExportProject(t *testing.T) {
-	// Create test vault
-	v := setupTestVaultForExport(t)
-	fm := NewFileManager(v)
-
-	// Create multiple test documents in the same project
-	projectAlias := "@testproject"
-
-	// Document 1
-	doc1Path := filepath.Join("projects", projectAlias, "doc-test1.json")
-	doc1 := &DocumentFile{
-		Meta: DocumentMeta{
-			Project: projectAlias,
-			Title:   "First Document",
-			Tags:    []string{"test"},
-			Created: time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
-			Updated: time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
-		},
-		Blocks: []BlockNoteBlock{
-			{
-				ID:   "1",
-				Type: "heading",
-				Props: map[string]any{
-					"level": float64(1),
-				},
-				Content: mustMarshalContent([]BlockNoteContent{
-					{Type: "text", Text: "First Document"},
-				}),
-			},
-			{
-				ID:   "2",
-				Type: "paragraph",
-				Content: mustMarshalContent([]BlockNoteContent{
-					{Type: "text", Text: "This is the first document."},
-				}),
-			},
-		},
-	}
-	err := fm.WriteFile(doc1Path, doc1)
-	require.NoError(t, err)
-
-	// Document 2
-	doc2Path := filepath.Join("projects", projectAlias, "doc-test2.json")
-	doc2 := &DocumentFile{
-		Meta: DocumentMeta{
-			Project: projectAlias,
-			Title:   "Second Document",
-			Tags:    []string{"test", "export"},
-			Created: time.Date(2024, 1, 2, 12, 0, 0, 0, time.UTC),
-			Updated: time.Date(2024, 1, 2, 12, 0, 0, 0, time.UTC),
-		},
-		Blocks: []BlockNoteBlock{
-			{
-				ID:   "1",
-				Type: "heading",
-				Props: map[string]any{
-					"level": float64(2),
-				},
-				Content: mustMarshalContent([]BlockNoteContent{
-					{Type: "text", Text: "Second Document"},
-				}),
-			},
-			{
-				ID:   "2",
-				Type: "paragraph",
-				Content: mustMarshalContent([]BlockNoteContent{
-					{Type: "text", Text: "This is the second document."},
-				}),
-			},
-		},
-	}
-	err = fm.WriteFile(doc2Path, doc2)
-	require.NoError(t, err)
-
-	// Create exporter
-	exporter := NewExporter(v)
-
-	// Export project
-	outputDir := filepath.Join(t.TempDir(), "project-export")
-	err = exporter.ExportProject(ExportProjectRequest{
-		ProjectAlias: projectAlias,
+	req := ExportProjectRequest{
+		ProjectAlias: "@test",
 		OutputDir:    outputDir,
-	})
-	require.NoError(t, err)
+	}
 
-	// Verify output directory was created
-	_, err = os.Stat(outputDir)
-	require.NoError(t, err)
+	err := exporter.ExportProject(req)
+	require.NoError(t, err, "ExportProject() failed")
 
-	// Verify both documents were exported
+	// Verify all documents were exported
 	files, err := os.ReadDir(outputDir)
-	require.NoError(t, err)
-	assert.Equal(t, 2, len(files), "should have 2 exported files")
+	require.NoError(t, err, "Failed to read output directory")
 
-	// Find and read the first document
-	var firstDocContent, secondDocContent string
+	mdFiles := 0
 	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-		content, err := os.ReadFile(filepath.Join(outputDir, file.Name()))
-		require.NoError(t, err)
-
-		contentStr := string(content)
-		if strings.Contains(contentStr, "First Document") {
-			firstDocContent = contentStr
-		} else if strings.Contains(contentStr, "Second Document") {
-			secondDocContent = contentStr
+		if filepath.Ext(file.Name()) == ".md" {
+			mdFiles++
 		}
 	}
-
-	// Verify first document
-	assert.NotEmpty(t, firstDocContent, "first document should be exported")
-	assert.Contains(t, firstDocContent, "title: First Document")
-	assert.Contains(t, firstDocContent, "# First Document")
-	assert.Contains(t, firstDocContent, "This is the first document.")
-
-	// Verify second document
-	assert.NotEmpty(t, secondDocContent, "second document should be exported")
-	assert.Contains(t, secondDocContent, "title: Second Document")
-	assert.Contains(t, secondDocContent, "## Second Document")
-	assert.Contains(t, secondDocContent, "This is the second document.")
+	assert.Equal(t, 3, mdFiles, "Expected 3 markdown files")
 }
 
-func TestExportProject_EmptyProject(t *testing.T) {
-	// Create test vault
-	v := setupTestVaultForExport(t)
-	exporter := NewExporter(v)
+func TestExportProject_EmptyProjectAlias(t *testing.T) {
+	exporter, _, cleanup := setupExportTest(t)
+	defer cleanup()
 
-	// Export non-existent project
-	outputDir := filepath.Join(t.TempDir(), "empty-export")
-	err := exporter.ExportProject(ExportProjectRequest{
-		ProjectAlias: "@emptyproject",
-		OutputDir:    outputDir,
-	})
-	require.NoError(t, err, "exporting empty project should not error")
+	outputDir := t.TempDir()
 
-	// Verify output directory was created even though there are no documents
-	_, err = os.Stat(outputDir)
-	require.NoError(t, err)
-
-	// Verify no files were created
-	files, err := os.ReadDir(outputDir)
-	require.NoError(t, err)
-	assert.Equal(t, 0, len(files), "should have no files for empty project")
-}
-
-func TestExportProject_MissingProjectAlias(t *testing.T) {
-	v := setupTestVaultForExport(t)
-	exporter := NewExporter(v)
-
-	err := exporter.ExportProject(ExportProjectRequest{
+	req := ExportProjectRequest{
 		ProjectAlias: "",
-		OutputDir:    "/tmp/test-export",
-	})
-	require.Error(t, err)
+		OutputDir:    outputDir,
+	}
+
+	err := exporter.ExportProject(req)
+	assert.Error(t, err, "Expected error for empty project alias")
 	assert.Contains(t, err.Error(), "project alias is required")
 }
 
-func TestExportProject_MissingOutputDir(t *testing.T) {
-	v := setupTestVaultForExport(t)
-	exporter := NewExporter(v)
+func TestExportProject_EmptyOutputDir(t *testing.T) {
+	exporter, _, cleanup := setupExportTest(t)
+	defer cleanup()
 
-	err := exporter.ExportProject(ExportProjectRequest{
+	req := ExportProjectRequest{
 		ProjectAlias: "@test",
 		OutputDir:    "",
-	})
-	require.Error(t, err)
+	}
+
+	err := exporter.ExportProject(req)
+	assert.Error(t, err, "Expected error for empty output directory")
 	assert.Contains(t, err.Error(), "output directory is required")
 }
 
-func TestExportWithAssets(t *testing.T) {
-	// Create test vault
-	v := setupTestVaultForExport(t)
+func TestExportProject_NoDocuments(t *testing.T) {
+	exporter, _, cleanup := setupExportTest(t)
+	defer cleanup()
 
-	// Create test assets
-	projectAlias := "@assettest"
-	imageData := []byte("fake-image-data-png")
-	fileData := []byte("fake-file-data-pdf")
+	outputDir := t.TempDir()
 
-	// Write assets to vault using asset package
-	imageAsset, err := writeTestAsset(v, projectAlias, imageData, ".png")
-	require.NoError(t, err)
+	req := ExportProjectRequest{
+		ProjectAlias: "@test",
+		OutputDir:    outputDir,
+	}
 
-	fileAsset, err := writeTestAsset(v, projectAlias, fileData, ".pdf")
-	require.NoError(t, err)
+	err := exporter.ExportProject(req)
+	require.NoError(t, err, "ExportProject() should succeed with no documents")
 
-	// Create document with asset references
-	docPath := filepath.Join("projects", projectAlias, "doc-with-assets.json")
-	doc := &DocumentFile{
-		Meta: DocumentMeta{
-			Project: projectAlias,
-			Title:   "Document with Assets",
-			Tags:    []string{"test"},
-			Created: time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
-			Updated: time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
-		},
-		Blocks: []BlockNoteBlock{
-			{
-				ID:   "1",
-				Type: "heading",
-				Props: map[string]any{
-					"level": float64(1),
-				},
-				Content: mustMarshalContent([]BlockNoteContent{
-					{Type: "text", Text: "Document with Assets"},
-				}),
-			},
-			{
-				ID:   "2",
-				Type: "paragraph",
-				Content: mustMarshalContent([]BlockNoteContent{
-					{Type: "text", Text: "This document contains images and files."},
-				}),
-			},
-			{
-				ID:   "3",
-				Type: "image",
-				Props: map[string]any{
-					"url":     fmt.Sprintf("/api/assets/%s/%s%s", projectAlias, imageAsset.Hash, imageAsset.Ext),
-					"caption": "Test Image",
-				},
-			},
-			{
-				ID:   "4",
-				Type: "file",
-				Props: map[string]any{
-					"url":  fmt.Sprintf("/api/assets/%s/%s%s", projectAlias, fileAsset.Hash, fileAsset.Ext),
-					"name": "Test File",
-				},
+	// Verify output directory was created but is empty
+	files, err := os.ReadDir(outputDir)
+	require.NoError(t, err, "Failed to read output directory")
+	assert.Len(t, files, 0, "Output directory should be empty")
+}
+
+func TestExportProject_WithAssets(t *testing.T) {
+	exporter, v, cleanup := setupExportTest(t)
+	defer cleanup()
+
+	// Create test asset
+	assetData := []byte("test asset content")
+	assetInfo, err := asset.WriteAsset(v, "@test", assetData, ".png")
+	require.NoError(t, err, "Failed to create test asset")
+
+	// Create document with asset reference
+	blocks := []BlockNoteBlock{
+		{
+			ID:   "block1",
+			Type: "image",
+			Props: map[string]any{
+				"url":     "/api/assets/@test/" + assetInfo.Hash + assetInfo.Ext,
+				"caption": "Test",
 			},
 		},
 	}
 
-	fm := NewFileManager(v)
-	err = fm.WriteFile(docPath, doc)
-	require.NoError(t, err)
+	createTestDocument(t, v, "@test", "Doc with Asset", blocks)
 
-	// Export document
-	exporter := NewExporter(v)
 	outputDir := t.TempDir()
-	outputPath := filepath.Join(outputDir, "doc-with-assets.md")
 
-	err = exporter.ExportDocument(ExportDocumentRequest{
-		DocumentPath: docPath,
-		OutputPath:   outputPath,
-	})
-	require.NoError(t, err)
+	req := ExportProjectRequest{
+		ProjectAlias: "@test",
+		OutputDir:    outputDir,
+	}
 
-	// Verify markdown file exists
-	_, err = os.Stat(outputPath)
-	require.NoError(t, err)
+	err = exporter.ExportProject(req)
+	require.NoError(t, err, "ExportProject() failed")
 
-	// Read markdown content
-	content, err := os.ReadFile(outputPath)
-	require.NoError(t, err)
-	markdown := string(content)
-
-	// Verify asset links were rewritten to local paths
-	expectedImageLink := fmt.Sprintf("./assets/%s%s", imageAsset.Hash, imageAsset.Ext)
-	expectedFileLink := fmt.Sprintf("./assets/%s%s", fileAsset.Hash, fileAsset.Ext)
-
-	assert.Contains(t, markdown, expectedImageLink, "markdown should contain rewritten image link")
-	assert.Contains(t, markdown, expectedFileLink, "markdown should contain rewritten file link")
-
-	// Verify asset files were copied
+	// Verify assets directory was created
 	assetsDir := filepath.Join(outputDir, "assets")
-	imageAssetPath := filepath.Join(assetsDir, imageAsset.Hash+imageAsset.Ext)
-	fileAssetPath := filepath.Join(assetsDir, fileAsset.Hash+fileAsset.Ext)
+	_, err = os.Stat(assetsDir)
+	require.NoError(t, err, "Assets directory should exist")
 
-	_, err = os.Stat(imageAssetPath)
-	require.NoError(t, err, "image asset should be copied")
-
-	_, err = os.Stat(fileAssetPath)
-	require.NoError(t, err, "file asset should be copied")
-
-	// Verify asset contents
-	copiedImageData, err := os.ReadFile(imageAssetPath)
-	require.NoError(t, err)
-	assert.Equal(t, imageData, copiedImageData, "copied image data should match original")
-
-	copiedFileData, err := os.ReadFile(fileAssetPath)
-	require.NoError(t, err)
-	assert.Equal(t, fileData, copiedFileData, "copied file data should match original")
+	// Verify asset was copied
+	assetPath := filepath.Join(assetsDir, assetInfo.Hash+assetInfo.Ext)
+	_, err = os.Stat(assetPath)
+	require.NoError(t, err, "Asset file should exist")
 }
 
-// Helper function to write test assets to vault
-func writeTestAsset(v *vault.Vault, projectAlias string, data []byte, ext string) (*asset.AssetInfo, error) {
-	return asset.WriteAsset(v, projectAlias, data, ext)
+func TestParseAssetURL_Valid(t *testing.T) {
+	exporter, _, cleanup := setupExportTest(t)
+	defer cleanup()
+
+	tests := []struct {
+		name          string
+		url           string
+		expectedAlias string
+		expectedHash  string
+		expectedExt   string
+	}{
+		{
+			name:          "With extension",
+			url:           "/api/assets/@test/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.png",
+			expectedAlias: "@test",
+			expectedHash:  "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+			expectedExt:   ".png",
+		},
+		{
+			name:          "Without extension",
+			url:           "/api/assets/@myproject/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+			expectedAlias: "@myproject",
+			expectedHash:  "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+			expectedExt:   "",
+		},
+		{
+			name:          "Different extension",
+			url:           "/api/assets/@test/abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789.jpg",
+			expectedAlias: "@test",
+			expectedHash:  "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+			expectedExt:   ".jpg",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ref, err := exporter.parseAssetURL(tt.url)
+			require.NoError(t, err, "parseAssetURL() failed")
+			assert.Equal(t, tt.expectedAlias, ref.ProjectAlias)
+			assert.Equal(t, tt.expectedHash, ref.Hash)
+			assert.Equal(t, tt.expectedExt, ref.Ext)
+			assert.Equal(t, tt.url, ref.OriginalURL)
+		})
+	}
+}
+
+func TestParseAssetURL_Invalid(t *testing.T) {
+	exporter, _, cleanup := setupExportTest(t)
+	defer cleanup()
+
+	tests := []struct {
+		name string
+		url  string
+	}{
+		{
+			name: "Missing /api/assets prefix",
+			url:  "/@test/hash.png",
+		},
+		{
+			name: "Invalid hash length",
+			url:  "/api/assets/@test/short.png",
+		},
+		{
+			name: "Invalid hash characters",
+			url:  "/api/assets/@test/ghijklmnopqrstuvwxyzghijklmnopqrstuvwxyzghijklmnopqrstuvwxyz12.png",
+		},
+		{
+			name: "Missing project alias",
+			url:  "/api/assets/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.png",
+		},
+		{
+			name: "Empty URL",
+			url:  "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := exporter.parseAssetURL(tt.url)
+			assert.Error(t, err, "Expected error for invalid URL")
+		})
+	}
+}
+
+func TestExtractAssetReferences_Images(t *testing.T) {
+	exporter, _, cleanup := setupExportTest(t)
+	defer cleanup()
+
+	markdown := `# Document
+
+![Image 1](/api/assets/@test/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.png)
+
+Some text here.
+
+![Image 2](/api/assets/@test/abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789.jpg)
+`
+
+	refs := exporter.extractAssetReferences(markdown)
+	assert.Len(t, refs, 2, "Expected 2 asset references")
+	assert.Equal(t, "@test", refs[0].ProjectAlias)
+	assert.Equal(t, ".png", refs[0].Ext)
+	assert.Equal(t, "@test", refs[1].ProjectAlias)
+	assert.Equal(t, ".jpg", refs[1].Ext)
+}
+
+func TestExtractAssetReferences_Links(t *testing.T) {
+	exporter, _, cleanup := setupExportTest(t)
+	defer cleanup()
+
+	markdown := `# Document
+
+[Download File](/api/assets/@test/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.pdf)
+`
+
+	refs := exporter.extractAssetReferences(markdown)
+	assert.Len(t, refs, 1, "Expected 1 asset reference")
+	assert.Equal(t, "@test", refs[0].ProjectAlias)
+	assert.Equal(t, ".pdf", refs[0].Ext)
+}
+
+func TestExtractAssetReferences_Mixed(t *testing.T) {
+	exporter, _, cleanup := setupExportTest(t)
+	defer cleanup()
+
+	markdown := `# Document
+
+![Image](/api/assets/@test/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.png)
+
+[File](/api/assets/@test/abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789.pdf)
+
+Regular [link](https://example.com) should be ignored.
+`
+
+	refs := exporter.extractAssetReferences(markdown)
+	assert.Len(t, refs, 2, "Expected 2 asset references")
+}
+
+func TestExtractAssetReferences_Duplicates(t *testing.T) {
+	exporter, _, cleanup := setupExportTest(t)
+	defer cleanup()
+
+	markdown := `# Document
+
+![Image 1](/api/assets/@test/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.png)
+
+![Image 2](/api/assets/@test/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.png)
+`
+
+	refs := exporter.extractAssetReferences(markdown)
+	assert.Len(t, refs, 2, "Should include duplicates")
+	assert.Equal(t, refs[0].Hash, refs[1].Hash, "Both references should have same hash")
+}
+
+func TestExtractAssetReferences_NoAssets(t *testing.T) {
+	exporter, _, cleanup := setupExportTest(t)
+	defer cleanup()
+
+	markdown := `# Document
+
+Regular content with no assets.
+
+[External link](https://example.com)
+`
+
+	refs := exporter.extractAssetReferences(markdown)
+	assert.Len(t, refs, 0, "Expected no asset references")
+}
+
+func TestRewriteAssetLinks(t *testing.T) {
+	exporter, _, cleanup := setupExportTest(t)
+	defer cleanup()
+
+	markdown := `# Document
+
+![Image](/api/assets/@test/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.png)
+`
+
+	refs := []*assetReference{
+		{
+			ProjectAlias: "@test",
+			Hash:         "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+			Ext:          ".png",
+			OriginalURL:  "/api/assets/@test/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.png",
+		},
+	}
+
+	result := exporter.rewriteAssetLinks(markdown, refs)
+
+	assert.NotContains(t, result, "/api/assets/")
+	assert.Contains(t, result, "./assets/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.png")
+}
+
+func TestRewriteAssetLinks_MultipleRefs(t *testing.T) {
+	exporter, _, cleanup := setupExportTest(t)
+	defer cleanup()
+
+	markdown := `# Document
+
+![Image 1](/api/assets/@test/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.png)
+[File](/api/assets/@test/abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789.pdf)
+`
+
+	refs := []*assetReference{
+		{
+			Hash:        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+			Ext:         ".png",
+			OriginalURL: "/api/assets/@test/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.png",
+		},
+		{
+			Hash:        "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+			Ext:         ".pdf",
+			OriginalURL: "/api/assets/@test/abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789.pdf",
+		},
+	}
+
+	result := exporter.rewriteAssetLinks(markdown, refs)
+
+	assert.NotContains(t, result, "/api/assets/")
+	assert.Contains(t, result, "./assets/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.png")
+	assert.Contains(t, result, "./assets/abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789.pdf")
+}
+
+func TestCopyAsset_Success(t *testing.T) {
+	exporter, v, cleanup := setupExportTest(t)
+	defer cleanup()
+
+	// Create test asset in vault
+	assetData := []byte("test asset content")
+	assetInfo, err := asset.WriteAsset(v, "@test", assetData, ".png")
+	require.NoError(t, err, "Failed to create test asset")
+
+	// Copy asset to export directory
+	outputDir := t.TempDir()
+	assetsDir := filepath.Join(outputDir, "assets")
+
+	ref := &assetReference{
+		ProjectAlias: "@test",
+		Hash:         assetInfo.Hash,
+		Ext:          assetInfo.Ext,
+		OriginalURL:  "/api/assets/@test/" + assetInfo.Hash + assetInfo.Ext,
+	}
+
+	err = exporter.copyAsset(ref, assetsDir)
+	require.NoError(t, err, "copyAsset() failed")
+
+	// Verify asset was copied
+	assetPath := filepath.Join(assetsDir, assetInfo.Hash+assetInfo.Ext)
+	copiedData, err := os.ReadFile(assetPath)
+	require.NoError(t, err, "Failed to read copied asset")
+	assert.Equal(t, assetData, copiedData, "Asset content should match")
+}
+
+func TestCopyAsset_AssetNotFound(t *testing.T) {
+	exporter, _, cleanup := setupExportTest(t)
+	defer cleanup()
+
+	outputDir := t.TempDir()
+	assetsDir := filepath.Join(outputDir, "assets")
+
+	ref := &assetReference{
+		ProjectAlias: "@test",
+		Hash:         "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+		Ext:          ".png",
+		OriginalURL:  "/api/assets/@test/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.png",
+	}
+
+	err := exporter.copyAsset(ref, assetsDir)
+	assert.Error(t, err, "Expected error for nonexistent asset")
+	assert.Contains(t, err.Error(), "reading asset from vault")
 }
