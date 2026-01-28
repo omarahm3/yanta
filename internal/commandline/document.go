@@ -17,6 +17,7 @@ const (
 	DocumentCommandTag       DocumentCommand = "tag"
 	DocumentCommandUntag     DocumentCommand = "untag"
 	DocumentCommandTags      DocumentCommand = "tags"
+	DocumentCommandExport    DocumentCommand = "export"
 )
 
 type DocumentResultData struct {
@@ -81,6 +82,7 @@ func (dc *DocumentCommands) GetAllCommands() []DocumentCommand {
 		DocumentCommandTag,
 		DocumentCommandUntag,
 		DocumentCommandTags,
+		DocumentCommandExport,
 	}
 }
 
@@ -152,6 +154,7 @@ func (dc *DocumentCommands) registerCommands() {
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandTag), `\s+(.+)$`), dc.handleTag)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandUntag), `\s+(.+)$`), dc.handleUntag)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandTags), `$`), dc.handleTags)
+	dc.parser.MustRegister(formatCommand(string(DocumentCommandExport), `(?:\s+(.+))?$`), dc.handleExport)
 	dc.parser.MustRegister(`^(help|\?)$`, dc.handleHelp)
 }
 
@@ -687,5 +690,34 @@ func (dc *DocumentCommands) handleTags(matches []string, fullCommand string) (*R
 	return &Result{
 		Success: true,
 		Message: fmt.Sprintf("tags: %s", tagList),
+	}, nil
+}
+
+func (dc *DocumentCommands) handleExport(matches []string, fullCommand string) (*Result, error) {
+	pathInput := ""
+	if len(matches) > 1 {
+		pathInput = strings.TrimSpace(matches[1])
+	}
+
+	var path string
+	if pathInput == "" {
+		if dc.currentPath != "" {
+			path = dc.currentPath
+		} else {
+			return &Result{
+				Success: false,
+				Message: "no document open - use in document editor or specify path",
+			}, nil
+		}
+	} else {
+		path = pathInput
+	}
+
+	return &Result{
+		Success: true,
+		Message: "export document",
+		Data: DocumentResultData{
+			DocumentPath: path,
+		},
 	}, nil
 }
