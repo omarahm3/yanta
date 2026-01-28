@@ -43,6 +43,8 @@ func (r *Renderer) RenderBlock(block document.BlockNoteBlock) error {
 		return r.renderCheckListItem(block)
 	case "image":
 		return r.renderImage(block)
+	case "file":
+		return r.renderFile(block)
 	case "quote":
 		return r.renderQuote(block)
 	case "table":
@@ -184,6 +186,31 @@ func (r *Renderer) renderImage(block document.BlockNoteBlock) error {
 	if err := r.pdf.AddImage(imagePath, caption); err != nil {
 		logger.WithError(err).WithField("path", imagePath).Warn("failed to add image to PDF")
 		return nil
+	}
+
+	return nil
+}
+
+func (r *Renderer) renderFile(block document.BlockNoteBlock) error {
+	if block.Props == nil {
+		return nil
+	}
+
+	url, ok := block.Props["url"].(string)
+	if !ok || url == "" {
+		return nil
+	}
+
+	name := ""
+	if n, ok := block.Props["name"].(string); ok && n != "" {
+		name = n
+	}
+
+	// Render file as a paragraph with name and URL
+	if name != "" {
+		r.pdf.AddParagraph(fmt.Sprintf("📎 %s (%s)", name, url))
+	} else {
+		r.pdf.AddParagraph(fmt.Sprintf("📎 %s", url))
 	}
 
 	return nil
