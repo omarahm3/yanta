@@ -3,6 +3,7 @@ export interface HotkeyConfig {
 	handler: (event: KeyboardEvent) => void | boolean;
 	allowInInput?: boolean;
 	description?: string;
+	category?: string;
 	priority?: number;
 	capture?: boolean;
 }
