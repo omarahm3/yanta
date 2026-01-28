@@ -1,3 +1,4 @@
+// Package vault provides file-based vault storage and path management.
 package vault
 
 import (

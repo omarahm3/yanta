@@ -31,8 +31,8 @@ export const ContextBar: React.FC<ContextBarProps> = ({
 			)}
 		>
 			<div className="flex items-center gap-4">
-				{contextItems.map((item, index) => (
-					<div key={index} className="flex items-center gap-2">
+				{contextItems.map((item) => (
+					<div key={item.label} className="flex items-center gap-2">
 						<div
 							className="w-1.5 h-1.5 rounded-full"
 							style={{ backgroundColor: item.color || "#a371f7" }}
@@ -44,8 +44,8 @@ export const ContextBar: React.FC<ContextBarProps> = ({
 
 			{shortcuts.length > 0 && (
 				<div className="flex gap-4">
-					{shortcuts.map((shortcut, index) => (
-						<div key={index} className="flex items-center gap-1">
+					{shortcuts.map((shortcut) => (
+						<div key={shortcut.key} className="flex items-center gap-1">
 							<kbd className="bg-surface px-1.5 py-0.5 rounded text-xs font-mono border border-border">
 								{shortcut.key}
 							</kbd>

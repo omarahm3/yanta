@@ -4,69 +4,74 @@ type LogLevel = "debug" | "info" | "warn" | "error";
 
 type LogValue = string | number | boolean | null | undefined | Error | Record<string, unknown>;
 
-export class BackendLogger {
-	static formatArgs(args: LogValue[]): {
-		message: string;
-		data: Record<string, unknown>;
-	} {
-		const message = args
-			.map((arg) => (typeof arg === "object" ? JSON.stringify(arg) : String(arg)))
-			.join(" ");
+export function formatLogArgs(args: LogValue[]): {
+	message: string;
+	data: Record<string, unknown>;
+} {
+	const message = args
+		.map((arg) => (typeof arg === "object" ? JSON.stringify(arg) : String(arg)))
+		.join(" ");
 
-		const data: Record<string, unknown> = {};
-		args.forEach((arg) => {
-			if (typeof arg === "object" && arg !== null) {
-				Object.assign(data, arg);
-			}
-		});
-
-		return { message, data };
-	}
-
-	private static async log(level: LogLevel, ...args: LogValue[]) {
-		const { message, data } = BackendLogger.formatArgs(args);
-
-		try {
-			await LogFromFrontend(level, message, data);
-		} catch (error) {
-			// Silently fail if backend logging fails
-			console.error("[BackendLogger] Failed to send log to backend:", error);
+	const data: Record<string, unknown> = {};
+	args.forEach((arg) => {
+		if (typeof arg === "object" && arg !== null) {
+			Object.assign(data, arg);
 		}
-	}
+	});
 
-	static debug(...args: LogValue[]) {
-		console.log(...args);
-		BackendLogger.log("debug", ...args);
-	}
+	return { message, data };
+}
 
-	static info(...args: LogValue[]) {
-		console.log(...args);
-		BackendLogger.log("info", ...args);
-	}
+async function logToBackend(level: LogLevel, ...args: LogValue[]) {
+	const { message, data } = formatLogArgs(args);
 
-	static warn(...args: LogValue[]) {
-		console.warn(...args);
-		BackendLogger.log("warn", ...args);
-	}
-
-	static error(...args: LogValue[]) {
-		console.error(...args);
-		BackendLogger.log("error", ...args);
+	try {
+		await LogFromFrontend(level, message, data);
+	} catch (error) {
+		// Silently fail if backend logging fails
+		console.error("[BackendLogger] Failed to send log to backend:", error);
 	}
 }
 
+export function logDebug(...args: LogValue[]) {
+	console.log(...args);
+	logToBackend("debug", ...args);
+}
+
+export function logInfo(...args: LogValue[]) {
+	console.log(...args);
+	logToBackend("info", ...args);
+}
+
+export function logWarn(...args: LogValue[]) {
+	console.warn(...args);
+	logToBackend("warn", ...args);
+}
+
+export function logError(...args: LogValue[]) {
+	console.error(...args);
+	logToBackend("error", ...args);
+}
+
+// Legacy wrapper for backward compatibility
+export const BackendLogger = {
+	formatArgs: formatLogArgs,
+	debug: logDebug,
+	info: logInfo,
+	warn: logWarn,
+	error: logError,
+};
+
 // Replace console methods to automatically send to backend
-const originalLog = console.log;
 const originalError = console.error;
 const originalWarn = console.warn;
-const originalInfo = console.info;
 
 export function enableBackendLogging() {
 	// Only intercept errors and warnings to avoid spamming backend with verbose logs
 	// Regular console.log/info remain local and don't trigger RPC calls
 	console.error = (...args) => {
 		originalError(...args);
-		const { message, data } = BackendLogger.formatArgs(args);
+		const { message, data } = formatLogArgs(args);
 		LogFromFrontend("error", message, data).catch(() => {});
 	};
 
@@ -84,7 +89,7 @@ export function enableBackendLogging() {
 		}
 
 		originalWarn(...args);
-		const formattedData = BackendLogger.formatArgs(args);
+		const formattedData = formatLogArgs(args);
 		LogFromFrontend("warn", formattedData.message, formattedData.data).catch(() => {});
 	};
 }

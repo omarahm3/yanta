@@ -1,3 +1,4 @@
+// Package indexer provides document indexing and file system watching functionality.
 package indexer
 
 import (

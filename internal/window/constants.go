@@ -1,3 +1,4 @@
+// Package window provides window configuration and management constants.
 package window
 
 import (

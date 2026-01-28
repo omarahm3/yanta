@@ -1,3 +1,4 @@
+// Package testenv provides test environment setup and utilities.
 package testenv
 
 import (
@@ -55,9 +56,9 @@ func SetTestDataDir(t *testing.T, dir string) func() {
 	os.Setenv("YANTA_DATA_DIR", dir)
 	return func() {
 		if old == "" {
-			os.Unsetenv("YANTA_DATA_DIR")
+			_ = os.Unsetenv("YANTA_DATA_DIR")
 		} else {
-			os.Setenv("YANTA_DATA_DIR", old)
+			_ = os.Setenv("YANTA_DATA_DIR", old)
 		}
 	}
 }
