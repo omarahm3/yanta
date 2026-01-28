@@ -1,3 +1,4 @@
+// Package asset handles storage and management of binary assets like images and files.
 package asset
 
 import (

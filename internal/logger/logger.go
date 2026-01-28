@@ -1,3 +1,4 @@
+// Package logger provides structured logging configuration and utilities.
 package logger
 
 import (
@@ -154,7 +155,7 @@ func InitFromEnv() error {
 
 func GetLogger() *logrus.Logger {
 	if Log == nil {
-		Init(DefaultConfig())
+		_ = Init(DefaultConfig())
 	}
 	return Log
 }
