@@ -1,6 +1,7 @@
 package backup
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"yanta/internal/config"
 	"yanta/internal/logger"
 	"yanta/internal/paths"
 )
@@ -284,6 +286,76 @@ func (s *Service) PruneOldBackups(dataDir string, maxBackups int) error {
 		}
 
 		logger.WithField("deletedCount", len(backupsToDelete)).Info("old backups pruned successfully")
+	}
+
+	return nil
+}
+
+// Wails-compatible methods (exposed to frontend)
+
+// GetBackups returns a list of available backups for the frontend
+func (s *Service) GetBackups(ctx context.Context) ([]BackupInfo, error) {
+	dataDir := config.GetDataDirectory()
+
+	logger.WithField("dataDir", dataDir).Debug("listing backups for frontend")
+
+	backups, err := s.ListBackups(dataDir)
+	if err != nil {
+		logger.WithError(err).Error("failed to list backups")
+		return nil, fmt.Errorf("failed to list backups: %w", err)
+	}
+
+	return backups, nil
+}
+
+// Restore restores data from a specific backup
+func (s *Service) Restore(ctx context.Context, backupPath string) error {
+	dataDir := config.GetDataDirectory()
+
+	logger.WithFields(map[string]any{
+		"dataDir":    dataDir,
+		"backupPath": backupPath,
+	}).Info("restoring backup from frontend")
+
+	if err := s.RestoreBackup(dataDir, backupPath); err != nil {
+		logger.WithError(err).Error("failed to restore backup")
+		return fmt.Errorf("failed to restore backup: %w", err)
+	}
+
+	return nil
+}
+
+// Delete deletes a specific backup
+func (s *Service) Delete(ctx context.Context, backupPath string) error {
+	logger.WithField("backupPath", backupPath).Info("deleting backup from frontend")
+
+	if err := s.DeleteBackup(backupPath); err != nil {
+		logger.WithError(err).Error("failed to delete backup")
+		return fmt.Errorf("failed to delete backup: %w", err)
+	}
+
+	return nil
+}
+
+// GetConfig returns the current backup configuration
+func (s *Service) GetConfig(ctx context.Context) (config.BackupConfig, error) {
+	logger.Debug("getting backup configuration")
+
+	cfg := config.GetBackupConfig()
+
+	return cfg, nil
+}
+
+// SetConfig updates the backup configuration
+func (s *Service) SetConfig(ctx context.Context, cfg config.BackupConfig) error {
+	logger.WithFields(map[string]any{
+		"enabled":    cfg.Enabled,
+		"maxBackups": cfg.MaxBackups,
+	}).Info("updating backup configuration from frontend")
+
+	if err := config.SetBackupConfig(cfg); err != nil {
+		logger.WithError(err).Error("failed to set backup configuration")
+		return fmt.Errorf("failed to set backup configuration: %w", err)
 	}
 
 	return nil

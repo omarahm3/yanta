@@ -14,6 +14,7 @@ import (
 	"golang.design/x/hotkey"
 
 	"yanta/internal/asset"
+	"yanta/internal/backup"
 	"yanta/internal/commandline"
 	"yanta/internal/db"
 	"yanta/internal/document"
@@ -128,6 +129,8 @@ func New(cfg Config) (*App, error) {
 		SyncManager: syncManager,
 	})
 
+	backupService := backup.NewService()
+
 	logger.Debugf("services created")
 
 	if err := seedDemoDocuments(v, documentStore, idx); err != nil {
@@ -158,6 +161,7 @@ func New(cfg Config) (*App, error) {
 		Search:           searchService,
 		System:           systemService,
 		Assets:           assetService,
+		Backup:           backupService,
 		ProjectCommands:  projectCommands,
 		GlobalCommands:   globalCommands,
 		DocumentCommands: documentCommands,
