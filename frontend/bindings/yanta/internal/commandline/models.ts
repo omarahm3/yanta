@@ -37,6 +37,7 @@ export enum DocumentCommand {
     DocumentCommandTag = "tag",
     DocumentCommandUntag = "untag",
     DocumentCommandTags = "tags",
+    DocumentCommandExport = "export",
 };
 
 export class DocumentResult {

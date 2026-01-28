@@ -281,6 +281,76 @@ export class DocumentWithTags {
     }
 }
 
+/**
+ * ExportDocumentRequest contains parameters for exporting a single document
+ */
+export class ExportDocumentRequest {
+    /**
+     * Path to document in vault (e.g., "projects/@myproject/doc-xyz.json")
+     */
+    "DocumentPath": string;
+
+    /**
+     * Absolute path where markdown file should be written
+     */
+    "OutputPath": string;
+
+    /** Creates a new ExportDocumentRequest instance. */
+    constructor($$source: Partial<ExportDocumentRequest> = {}) {
+        if (!("DocumentPath" in $$source)) {
+            this["DocumentPath"] = "";
+        }
+        if (!("OutputPath" in $$source)) {
+            this["OutputPath"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExportDocumentRequest instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ExportDocumentRequest {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ExportDocumentRequest($$parsedSource as Partial<ExportDocumentRequest>);
+    }
+}
+
+/**
+ * ExportProjectRequest contains parameters for exporting an entire project
+ */
+export class ExportProjectRequest {
+    /**
+     * Project alias (e.g., "@myproject")
+     */
+    "ProjectAlias": string;
+
+    /**
+     * Absolute path to directory where markdown files should be written
+     */
+    "OutputDir": string;
+
+    /** Creates a new ExportProjectRequest instance. */
+    constructor($$source: Partial<ExportProjectRequest> = {}) {
+        if (!("ProjectAlias" in $$source)) {
+            this["ProjectAlias"] = "";
+        }
+        if (!("OutputDir" in $$source)) {
+            this["OutputDir"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ExportProjectRequest instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ExportProjectRequest {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ExportProjectRequest($$parsedSource as Partial<ExportProjectRequest>);
+    }
+}
+
 export class SaveRequest {
     "Path": string;
     "ProjectAlias": string;
