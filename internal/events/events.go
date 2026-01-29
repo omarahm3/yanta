@@ -1,3 +1,4 @@
+// Package events defines event types and provides an event bus for inter-component communication.
 package events
 
 const (

@@ -1,3 +1,4 @@
+// Package paths provides path resolution and manipulation utilities.
 package paths
 
 import (

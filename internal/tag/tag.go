@@ -1,3 +1,4 @@
+// Package tag provides tag types, storage, and management functionality.
 package tag
 
 import (

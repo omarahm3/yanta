@@ -39,7 +39,9 @@ describe("CommandPalette hotkeys", () => {
 	beforeEach(() => {
 		onClose.mockClear();
 		onCommandSelect.mockClear();
-		mockCommands.forEach((cmd) => vi.mocked(cmd.action).mockClear());
+		mockCommands.forEach((cmd) => {
+			vi.mocked(cmd.action).mockClear();
+		});
 	});
 
 	it("closes with Escape", async () => {

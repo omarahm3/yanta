@@ -5,6 +5,7 @@ import {
 	Bug,
 	CloudDownload,
 	CloudUpload,
+	FileDown,
 	FilePlus,
 	Folder,
 	GitCommit,
@@ -14,8 +15,19 @@ import {
 } from "lucide-react";
 import type React from "react";
 import { useMemo, useState } from "react";
+import {
+	ExportDocumentRequest,
+	ExportProjectRequest,
+} from "../../bindings/yanta/internal/document/models";
+import { ExportDocument, ExportProject } from "../../bindings/yanta/internal/document/service";
 import { SyncStatus } from "../../bindings/yanta/internal/git/models";
-import { GitPull, GitPush, SyncNow } from "../../bindings/yanta/internal/system/service";
+import {
+	GitPull,
+	GitPush,
+	OpenDirectoryDialog,
+	SyncNow,
+} from "../../bindings/yanta/internal/system/service";
+import { useDocumentContext } from "../contexts/DocumentContext";
 import { useProjectContext } from "../contexts/ProjectContext";
 import { useNotification } from "../hooks/useNotification";
 import { type ParsedGitError, parseGitError } from "../utils/gitErrorParser";
@@ -39,6 +51,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 	showArchived,
 }) => {
 	const { projects, currentProject, setCurrentProject } = useProjectContext();
+	const { getSelectedDocument } = useDocumentContext();
 	const notification = useNotification();
 	const [gitError, setGitError] = useState<ParsedGitError | null>(null);
 	const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
@@ -109,6 +122,45 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			action: () => {
 				onNavigate("document");
 				onClose();
+			},
+		});
+
+		commands.push({
+			id: "export-document",
+			icon: <FileDown className="text-lg" />,
+			text: "Export Document",
+			hint: "Export to markdown",
+			action: async () => {
+				onClose();
+
+				// Get current document using the method from context
+				const currentDocument = getSelectedDocument();
+
+				if (!currentDocument?.path) {
+					notification.error("No document open");
+					return;
+				}
+
+				try {
+					const outputDir = await OpenDirectoryDialog();
+					if (!outputDir) {
+						return;
+					}
+
+					const documentName =
+						currentDocument.path.split("/").pop()?.replace(".json", ".md") || "document.md";
+					const outputPath = `${outputDir}/${documentName}`;
+
+					const req = new ExportDocumentRequest({
+						DocumentPath: currentDocument.path,
+						OutputPath: outputPath,
+					});
+
+					await ExportDocument(req);
+					notification.success(`Exported to ${outputPath}`);
+				} catch (err) {
+					notification.error(`Export failed: ${err}`);
+				}
 			},
 		});
 
@@ -197,6 +249,34 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			},
 		});
 
+		if (currentProject) {
+			commands.push({
+				id: "export-project",
+				icon: <FileDown className="text-lg" />,
+				text: "Export Project",
+				hint: "Export project to markdown",
+				action: async () => {
+					onClose();
+					try {
+						const outputDir = await OpenDirectoryDialog();
+						if (!outputDir) {
+							return;
+						}
+
+						const req = new ExportProjectRequest({
+							ProjectAlias: currentProject.alias,
+							OutputDir: outputDir,
+						});
+
+						await ExportProject(req);
+						notification.success(`Exported project to ${outputDir}`);
+					} catch (err) {
+						notification.error(`Export failed: ${err}`);
+					}
+				},
+			});
+		}
+
 		if (currentPage === "dashboard" && onToggleArchived && currentProject) {
 			commands.push({
 				id: "toggle-archived",
@@ -229,6 +309,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 	}, [
 		projects,
 		currentProject,
+		getSelectedDocument,
 		setCurrentProject,
 		onNavigate,
 		onClose,
