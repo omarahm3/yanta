@@ -73,6 +73,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onRegisterTogg
 							showArchived={showArchived}
 							selectedCount={statusBar.selectedCount}
 							onClearSelection={statusBar.selectedCount > 0 ? clearSelection : undefined}
+							onExportSelectedMarkdown={
+								statusBar.selectedCount > 0 ? controller.handleExportSelectedMarkdown : undefined
+							}
+							onExportSelectedPDF={
+								statusBar.selectedCount > 0 ? controller.handleExportSelectedPDF : undefined
+							}
 						/>
 					</div>
 				)}

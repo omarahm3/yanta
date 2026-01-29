@@ -20,6 +20,8 @@ import {
 	ExportProjectRequest,
 } from "../../bindings/yanta/internal/document/models";
 import { ExportDocument, ExportProject } from "../../bindings/yanta/internal/document/service";
+import { ExportRequest } from "../../bindings/yanta/internal/export";
+import { ExportToPDF } from "../../bindings/yanta/internal/export/service";
 import { SyncStatus } from "../../bindings/yanta/internal/git/models";
 import {
 	GitPull,
@@ -157,6 +159,44 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 					});
 
 					await ExportDocument(req);
+					notification.success(`Exported to ${outputPath}`);
+				} catch (err) {
+					notification.error(`Export failed: ${err}`);
+				}
+			},
+		});
+
+		commands.push({
+			id: "export-document-pdf",
+			icon: <FileDown className="text-lg" />,
+			text: "Export Document to PDF",
+			hint: "Export to PDF",
+			action: async () => {
+				onClose();
+
+				const currentDocument = getSelectedDocument();
+
+				if (!currentDocument?.path) {
+					notification.error("No document open");
+					return;
+				}
+
+				try {
+					const outputDir = await OpenDirectoryDialog();
+					if (!outputDir) {
+						return;
+					}
+
+					const documentName =
+						currentDocument.path.split("/").pop()?.replace(".json", ".pdf") || "document.pdf";
+					const outputPath = `${outputDir}/${documentName}`;
+
+					const req = new ExportRequest({
+						DocumentPath: currentDocument.path,
+						OutputPath: outputPath,
+					});
+
+					await ExportToPDF(req);
 					notification.success(`Exported to ${outputPath}`);
 				} catch (err) {
 					notification.error(`Export failed: ${err}`);
