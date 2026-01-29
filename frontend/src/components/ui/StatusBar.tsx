@@ -7,6 +7,8 @@ interface StatusBarProps {
 	showArchived?: boolean;
 	selectedCount?: number;
 	onClearSelection?: () => void;
+	onExportSelectedMarkdown?: () => void;
+	onExportSelectedPDF?: () => void;
 }
 
 export const StatusBar: React.FC<StatusBarProps> = ({
@@ -15,6 +17,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 	showArchived,
 	selectedCount = 0,
 	onClearSelection,
+	onExportSelectedMarkdown,
+	onExportSelectedPDF,
 }) => {
 	const entriesLabel = totalEntries === 1 ? "1 entry" : `${totalEntries} entries`;
 	const hasSelection = selectedCount > 0;
@@ -38,6 +42,26 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 							className="px-2 py-1 text-xs"
 						>
 							Clear Selection
+						</Button>
+					)}
+					{onExportSelectedMarkdown && (
+						<Button
+							variant="secondary"
+							size="sm"
+							onClick={onExportSelectedMarkdown}
+							className="px-2 py-1 text-xs"
+						>
+							Export MD
+						</Button>
+					)}
+					{onExportSelectedPDF && (
+						<Button
+							variant="secondary"
+							size="sm"
+							onClick={onExportSelectedPDF}
+							className="px-2 py-1 text-xs"
+						>
+							Export PDF
 						</Button>
 					)}
 				</div>

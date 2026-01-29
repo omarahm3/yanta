@@ -18,6 +18,13 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 			{ value: "2.0", label: "Huge (200%)" },
 		];
 
+		const formatScaleValue = (scale: number): string => {
+			const matchingOption = scaleOptions.find(
+				(opt) => Math.abs(parseFloat(opt.value) - scale) < 0.001,
+			);
+			return matchingOption ? matchingOption.value : scale.toString();
+		};
+
 		return (
 			<div ref={ref}>
 				<SettingsSection title="Appearance" subtitle="Customize the look and feel of the application">
@@ -25,7 +32,7 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 						<div className="space-y-2">
 							<Label variant="uppercase">Interface Scale</Label>
 							<Select
-								value={appScale.toString()}
+								value={formatScaleValue(appScale)}
 								onChange={(value) => onAppScaleChange(parseFloat(value))}
 								options={scaleOptions}
 							/>

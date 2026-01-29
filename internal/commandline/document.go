@@ -17,7 +17,8 @@ const (
 	DocumentCommandTag       DocumentCommand = "tag"
 	DocumentCommandUntag     DocumentCommand = "untag"
 	DocumentCommandTags      DocumentCommand = "tags"
-	DocumentCommandExport    DocumentCommand = "export"
+	DocumentCommandExportMD  DocumentCommand = "export-md"
+	DocumentCommandExportPDF DocumentCommand = "export-pdf"
 )
 
 type DocumentResultData struct {
@@ -82,7 +83,8 @@ func (dc *DocumentCommands) GetAllCommands() []DocumentCommand {
 		DocumentCommandTag,
 		DocumentCommandUntag,
 		DocumentCommandTags,
-		DocumentCommandExport,
+		DocumentCommandExportMD,
+		DocumentCommandExportPDF,
 	}
 }
 
@@ -154,7 +156,8 @@ func (dc *DocumentCommands) registerCommands() {
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandTag), `\s+(.+)$`), dc.handleTag)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandUntag), `\s+(.+)$`), dc.handleUntag)
 	dc.parser.MustRegister(formatCommand(string(DocumentCommandTags), `$`), dc.handleTags)
-	dc.parser.MustRegister(formatCommand(string(DocumentCommandExport), `(?:\s+(.+))?$`), dc.handleExport)
+	dc.parser.MustRegister(formatCommand(string(DocumentCommandExportMD), `(?:\s+(.+))?$`), dc.handleExportMD)
+	dc.parser.MustRegister(formatCommand(string(DocumentCommandExportPDF), `$`), dc.handleExportPDF)
 	dc.parser.MustRegister(`^(help|\?)$`, dc.handleHelp)
 }
 
@@ -693,7 +696,7 @@ func (dc *DocumentCommands) handleTags(matches []string, fullCommand string) (*R
 	}, nil
 }
 
-func (dc *DocumentCommands) handleExport(matches []string, fullCommand string) (*Result, error) {
+func (dc *DocumentCommands) handleExportMD(matches []string, fullCommand string) (*Result, error) {
 	pathInput := ""
 	if len(matches) > 1 {
 		pathInput = strings.TrimSpace(matches[1])
@@ -718,6 +721,23 @@ func (dc *DocumentCommands) handleExport(matches []string, fullCommand string) (
 		Message: "export document",
 		Data: DocumentResultData{
 			DocumentPath: path,
+		},
+	}, nil
+}
+
+func (dc *DocumentCommands) handleExportPDF(matches []string, fullCommand string) (*Result, error) {
+	if dc.currentPath == "" {
+		return &Result{
+			Success: false,
+			Message: "no document open - use in document editor",
+		}, nil
+	}
+
+	return &Result{
+		Success: true,
+		Message: "export to PDF",
+		Data: DocumentResultData{
+			DocumentPath: dc.currentPath,
 		},
 	}, nil
 }

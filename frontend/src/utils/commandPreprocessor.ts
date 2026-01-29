@@ -1,6 +1,13 @@
 import type { Document } from "../types/Document";
 
-const COMMANDS_WITH_NUMERIC_SHORTCUTS = ["doc", "archive", "unarchive", "delete"];
+const COMMANDS_WITH_NUMERIC_SHORTCUTS = [
+	"doc",
+	"archive",
+	"unarchive",
+	"delete",
+	"export-md",
+	"export-pdf",
+];
 
 export function preprocessCommand(
 	command: string,
