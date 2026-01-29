@@ -1,3 +1,6 @@
+// Package backup provides automatic backup functionality for YANTA data.
+// It creates timestamped backups of the vault and database before sync operations
+// and manages backup retention according to configured limits.
 package backup
 
 import (

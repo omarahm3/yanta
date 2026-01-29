@@ -161,7 +161,16 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 
 	const [currentSectionIndex, setCurrentSectionIndex] = React.useState(0);
 
-	const sectionIds = ["general", "appearance", "database", "shortcuts", "logging", "backup", "sync", "about"];
+	const sectionIds = [
+		"general",
+		"appearance",
+		"database",
+		"shortcuts",
+		"logging",
+		"backup",
+		"sync",
+		"about",
+	];
 
 	React.useEffect(() => {
 		setPageContext([], "Settings");

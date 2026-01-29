@@ -1,13 +1,6 @@
 import { Clock, Database, Trash2 } from "lucide-react";
 import React from "react";
-import {
-	Button,
-	ConfirmDialog,
-	Input,
-	Label,
-	SettingsSection,
-	Toggle,
-} from "../../components/ui";
+import { Button, ConfirmDialog, Input, Label, SettingsSection, Toggle } from "../../components/ui";
 
 interface BackupInfo {
 	timestamp: string;
@@ -27,15 +20,7 @@ interface BackupSectionProps {
 
 export const BackupSection = React.forwardRef<HTMLDivElement, BackupSectionProps>(
 	(
-		{
-			backupEnabled,
-			maxBackups,
-			backups,
-			onBackupToggle,
-			onMaxBackupsChange,
-			onRestore,
-			onDelete,
-		},
+		{ backupEnabled, maxBackups, backups, onBackupToggle, onMaxBackupsChange, onRestore, onDelete },
 		ref,
 	) => {
 		const [restoreConfirmPath, setRestoreConfirmPath] = React.useState<string | null>(null);
@@ -145,21 +130,13 @@ export const BackupSection = React.forwardRef<HTMLDivElement, BackupSectionProps
 														<div className="flex-1 min-w-0">
 															<div className="flex items-center gap-2 mb-1">
 																<Clock className="w-3 h-3 text-text-dim" />
-																<div className="text-sm text-text">
-																	{formatTimestamp(backup.timestamp)}
-																</div>
+																<div className="text-sm text-text">{formatTimestamp(backup.timestamp)}</div>
 															</div>
-															<div className="text-xs text-text-dim">
-																{formatSize(backup.size)}
-															</div>
+															<div className="text-xs text-text-dim">{formatSize(backup.size)}</div>
 														</div>
 													</div>
 													<div className="flex gap-2 shrink-0">
-														<Button
-															variant="primary"
-															size="sm"
-															onClick={() => handleRestoreClick(backup.path)}
-														>
+														<Button variant="primary" size="sm" onClick={() => handleRestoreClick(backup.path)}>
 															Restore
 														</Button>
 														<Button

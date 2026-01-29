@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 import type { BackupConfig, BackupInfo } from "../../../bindings/yanta/internal/backup/models";
 import {
 	Delete as DeleteBackup,
-	GetBackups,
 	GetConfig as GetBackupConfig,
+	GetBackups,
 	Restore as RestoreBackup,
 	SetConfig as SetBackupConfig,
 } from "../../../bindings/yanta/internal/backup/service";
