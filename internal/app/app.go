@@ -20,6 +20,7 @@ import (
 	"yanta/internal/db"
 	"yanta/internal/document"
 	"yanta/internal/events"
+	"yanta/internal/export"
 	"yanta/internal/git"
 	"yanta/internal/indexer"
 	"yanta/internal/link"
@@ -131,6 +132,10 @@ func New(cfg Config) (*App, error) {
 	})
 
 	backupService := backup.NewService()
+	exportService := export.NewService(export.ServiceConfig{
+		DocumentService: documentService,
+		Vault:           v,
+	})
 
 	logger.Debugf("services created")
 
@@ -163,6 +168,7 @@ func New(cfg Config) (*App, error) {
 		System:           systemService,
 		Assets:           assetService,
 		Backup:           backupService,
+		Export:           exportService,
 		ProjectCommands:  projectCommands,
 		GlobalCommands:   globalCommands,
 		DocumentCommands: documentCommands,

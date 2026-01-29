@@ -57,38 +57,74 @@ func (m *mockTagServiceForExport) GetDocumentTags(
 	return []string{}, nil
 }
 
-func TestDocumentCommandExport_WithExplicitPath(t *testing.T) {
+func TestDocumentCommandExportMD_WithExplicitPath(t *testing.T) {
 	docSvc := &mockDocServiceForExport{}
 	tagSvc := &mockTagServiceForExport{}
 	cmds := NewDocumentCommands(docSvc, tagSvc)
 
-	result, err := cmds.Parse("export test/doc.json")
+	result, err := cmds.Parse("export-md test/doc.json")
 	require.NoError(t, err)
 	require.True(t, result.Success)
 	require.Equal(t, "export document", result.Message)
 	require.Equal(t, "test/doc.json", result.Data.DocumentPath)
 }
 
-func TestDocumentCommandExport_WithCurrentDocument(t *testing.T) {
+func TestDocumentCommandExportMD_WithCurrentDocument(t *testing.T) {
 	docSvc := &mockDocServiceForExport{}
 	tagSvc := &mockTagServiceForExport{}
 	cmds := NewDocumentCommands(docSvc, tagSvc)
 	cmds.SetCurrentDocument("current/doc.json")
 
-	result, err := cmds.Parse("export")
+	result, err := cmds.Parse("export-md")
 	require.NoError(t, err)
 	require.True(t, result.Success)
 	require.Equal(t, "export document", result.Message)
 	require.Equal(t, "current/doc.json", result.Data.DocumentPath)
 }
 
-func TestDocumentCommandExport_NoDocumentOpen(t *testing.T) {
+func TestDocumentCommandExportMD_NoDocumentOpen(t *testing.T) {
 	docSvc := &mockDocServiceForExport{}
 	tagSvc := &mockTagServiceForExport{}
 	cmds := NewDocumentCommands(docSvc, tagSvc)
 
-	result, err := cmds.Parse("export")
+	result, err := cmds.Parse("export-md")
 	require.NoError(t, err)
 	require.False(t, result.Success)
 	require.Equal(t, "no document open - use in document editor or specify path", result.Message)
+}
+
+func TestDocumentCommands_ExportPDFRequiresDocument(t *testing.T) {
+	docSvc := &mockDocServiceForExport{}
+	tagSvc := &mockTagServiceForExport{}
+	cmds := NewDocumentCommands(docSvc, tagSvc)
+
+	result, err := cmds.Parse("export-pdf")
+	require.NoError(t, err)
+	require.False(t, result.Success)
+	require.Equal(t, "no document open - use in document editor", result.Message)
+}
+
+func TestDocumentCommands_ExportPDFWithDocument(t *testing.T) {
+	docSvc := &mockDocServiceForExport{}
+	tagSvc := &mockTagServiceForExport{}
+	cmds := NewDocumentCommands(docSvc, tagSvc)
+
+	result, err := cmds.ParseWithDocument("export-pdf", "test/doc.json")
+	require.NoError(t, err)
+	require.True(t, result.Success)
+	require.Equal(t, "export to PDF", result.Message)
+	require.Equal(t, "test/doc.json", result.Data.DocumentPath)
+}
+
+func TestDocumentCommands_ExportPDFWithSetCurrentDocument(t *testing.T) {
+	docSvc := &mockDocServiceForExport{}
+	tagSvc := &mockTagServiceForExport{}
+	cmds := NewDocumentCommands(docSvc, tagSvc)
+
+	cmds.SetCurrentDocument("another/doc.json")
+	result, err := cmds.Parse("export-pdf")
+	require.NoError(t, err)
+	require.True(t, result.Success)
+	require.Equal(t, "export to PDF", result.Message)
+	require.Equal(t, "another/doc.json", result.Data.DocumentPath)
 }

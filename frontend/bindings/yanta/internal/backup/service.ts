@@ -7,32 +7,89 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as config$0 from "../config/models.js";
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
-export function GetBackups(): $CancellablePromise<$models.BackupInfo[]> {
-	return $Call.ByID(0).then(($result: any) => {
-		return $$createType0($result);
-	});
+/**
+ * CreateBackup creates a timestamped backup of the data directory
+ */
+export function CreateBackup(dataDir: string): $CancellablePromise<void> {
+    return $Call.ByID(2575318254, dataDir);
 }
 
-export function Restore(backupPath: string): $CancellablePromise<void> {
-	return $Call.ByID(0, backupPath);
-}
-
+/**
+ * Delete deletes a specific backup
+ */
 export function Delete(backupPath: string): $CancellablePromise<void> {
-	return $Call.ByID(0, backupPath);
+    return $Call.ByID(4203185055, backupPath);
 }
 
-export function GetConfig(): $CancellablePromise<$models.BackupConfig> {
-	return $Call.ByID(0).then(($result: any) => {
-		return $$createType1($result);
-	});
+/**
+ * DeleteBackup deletes a specific backup
+ */
+export function DeleteBackup(backupPath: string): $CancellablePromise<void> {
+    return $Call.ByID(2800067461, backupPath);
 }
 
-export function SetConfig(cfg: $models.BackupConfig): $CancellablePromise<void> {
-	return $Call.ByID(0, cfg);
+/**
+ * GetBackups returns a list of available backups for the frontend
+ */
+export function GetBackups(): $CancellablePromise<$models.BackupInfo[]> {
+    return $Call.ByID(111509975).then(($result: any) => {
+        return $$createType1($result);
+    });
+}
+
+/**
+ * GetConfig returns the current backup configuration
+ */
+export function GetConfig(): $CancellablePromise<config$0.BackupConfig> {
+    return $Call.ByID(457937118).then(($result: any) => {
+        return $$createType2($result);
+    });
+}
+
+/**
+ * ListBackups returns a list of available backups, sorted by timestamp (newest first)
+ */
+export function ListBackups(dataDir: string): $CancellablePromise<$models.BackupInfo[]> {
+    return $Call.ByID(3780049603, dataDir).then(($result: any) => {
+        return $$createType1($result);
+    });
+}
+
+/**
+ * PruneOldBackups removes old backups keeping only maxBackups most recent ones
+ */
+export function PruneOldBackups(dataDir: string, maxBackups: number): $CancellablePromise<void> {
+    return $Call.ByID(470099688, dataDir, maxBackups);
+}
+
+/**
+ * Restore restores data from a specific backup
+ */
+export function Restore(backupPath: string): $CancellablePromise<void> {
+    return $Call.ByID(517804990, backupPath);
+}
+
+/**
+ * RestoreBackup restores data from a backup
+ */
+export function RestoreBackup(dataDir: string, backupPath: string): $CancellablePromise<void> {
+    return $Call.ByID(4084337592, dataDir, backupPath);
+}
+
+/**
+ * SetConfig updates the backup configuration
+ */
+export function SetConfig(cfg: config$0.BackupConfig): $CancellablePromise<void> {
+    return $Call.ByID(2740971594, cfg);
 }
 
 // Private type creation functions
-const $$createType0 = $Create.Array($models.BackupInfo.createFrom);
-const $$createType1 = $models.BackupConfig.createFrom;
+const $$createType0 = $models.BackupInfo.createFrom;
+const $$createType1 = $Create.Array($$createType0);
+const $$createType2 = config$0.BackupConfig.createFrom;

@@ -5,56 +5,38 @@
 // @ts-ignore: Unused imports
 import { Create as $Create } from "@wailsio/runtime";
 
-export class BackupConfig {
-	"Enabled": boolean;
-	"MaxBackups": number;
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as time$0 from "../../../time/models.js";
 
-	/** Creates a new BackupConfig instance. */
-	constructor($$source: Partial<BackupConfig> = {}) {
-		if (!("Enabled" in $$source)) {
-			this["Enabled"] = false;
-		}
-		if (!("MaxBackups" in $$source)) {
-			this["MaxBackups"] = 5;
-		}
-
-		Object.assign(this, $$source);
-	}
-
-	/**
-	 * Creates a new BackupConfig instance from a string or object.
-	 */
-	static createFrom($$source: any = {}): BackupConfig {
-		let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-		return new BackupConfig($$parsedSource as Partial<BackupConfig>);
-	}
-}
-
+/**
+ * BackupInfo contains metadata about a specific backup
+ */
 export class BackupInfo {
-	"timestamp": string;
-	"path": string;
-	"size": number;
+    "timestamp": time$0.Time;
+    "path": string;
+    "size": number;
 
-	/** Creates a new BackupInfo instance. */
-	constructor($$source: Partial<BackupInfo> = {}) {
-		if (!("timestamp" in $$source)) {
-			this["timestamp"] = "";
-		}
-		if (!("path" in $$source)) {
-			this["path"] = "";
-		}
-		if (!("size" in $$source)) {
-			this["size"] = 0;
-		}
+    /** Creates a new BackupInfo instance. */
+    constructor($$source: Partial<BackupInfo> = {}) {
+        if (!("timestamp" in $$source)) {
+            this["timestamp"] = null;
+        }
+        if (!("path" in $$source)) {
+            this["path"] = "";
+        }
+        if (!("size" in $$source)) {
+            this["size"] = 0;
+        }
 
-		Object.assign(this, $$source);
-	}
+        Object.assign(this, $$source);
+    }
 
-	/**
-	 * Creates a new BackupInfo instance from a string or object.
-	 */
-	static createFrom($$source: any = {}): BackupInfo {
-		let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-		return new BackupInfo($$parsedSource as Partial<BackupInfo>);
-	}
+    /**
+     * Creates a new BackupInfo instance from a string or object.
+     */
+    static createFrom($$source: any = {}): BackupInfo {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new BackupInfo($$parsedSource as Partial<BackupInfo>);
+    }
 }

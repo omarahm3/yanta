@@ -1,7 +1,11 @@
 import type { BlockNoteEditor } from "@blocknote/core";
-import { Events } from "@wailsio/runtime";
+import { Dialogs, Events } from "@wailsio/runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ParseWithDocument } from "../../../bindings/yanta/internal/commandline/documentcommands";
+import { ExportDocumentRequest } from "../../../bindings/yanta/internal/document/models";
+import { ExportDocument } from "../../../bindings/yanta/internal/document/service";
+import { ExportRequest } from "../../../bindings/yanta/internal/export/models";
+import { ExportToPDF } from "../../../bindings/yanta/internal/export/service";
 import { GetDocumentTags } from "../../../bindings/yanta/internal/tag/service";
 import type { DocumentContentProps } from "../../components/document/DocumentContent";
 import { useProjectContext } from "../../contexts";
@@ -34,6 +38,14 @@ const helpCommands: HelpCommand[] = [
 	{
 		command: "tags",
 		description: "List all tags on the current document",
+	},
+	{
+		command: "export-md",
+		description: "Export the current document to Markdown",
+	},
+	{
+		command: "export-pdf",
+		description: "Export the current document to PDF",
 	},
 ];
 
@@ -210,7 +222,7 @@ export function useDocumentController({
 					return;
 				}
 
-				const actions: Record<string, () => void> = {
+				const actions: Record<string, () => void | Promise<void>> = {
 					"tags added": () => {
 						success(result.message || "Tags added");
 					},
@@ -224,11 +236,71 @@ export function useDocumentController({
 						setHasRestored(true);
 						success("Document unarchived");
 					},
+					"export document": async () => {
+						try {
+							const defaultFilename = `${formData.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.md`;
+							const outputPath = await Dialogs.SaveFile({
+								Title: "Export to Markdown",
+								Filename: defaultFilename,
+								Filters: [
+									{
+										DisplayName: "Markdown Files",
+										Pattern: "*.md",
+									},
+								],
+							});
+
+							if (!outputPath) {
+								return;
+							}
+
+							await ExportDocument(
+								new ExportDocumentRequest({
+									DocumentPath: documentPath || "",
+									OutputPath: outputPath,
+								}),
+							);
+
+							success("Document exported to Markdown successfully");
+						} catch (err) {
+							error(err instanceof Error ? err.message : "Failed to export Markdown");
+						}
+					},
+					"export to PDF": async () => {
+						try {
+							const defaultFilename = `${formData.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`;
+							const outputPath = await Dialogs.SaveFile({
+								Title: "Export to PDF",
+								Filename: defaultFilename,
+								Filters: [
+									{
+										DisplayName: "PDF Files",
+										Pattern: "*.pdf",
+									},
+								],
+							});
+
+							if (!outputPath) {
+								return;
+							}
+
+							await ExportToPDF(
+								new ExportRequest({
+									DocumentPath: documentPath || "",
+									OutputPath: outputPath,
+								}),
+							);
+
+							success("Document exported to PDF successfully");
+						} catch (err) {
+							error(err instanceof Error ? err.message : "Failed to export PDF");
+						}
+					},
 				};
 
 				const action = result.message ? actions[result.message] : undefined;
 				if (action) {
-					action();
+					await action();
 				} else if (result.message) {
 					success(result.message);
 				}
@@ -327,6 +399,36 @@ export function useDocumentController({
 				capture: true,
 			},
 			{
+				key: "mod+e",
+				handler: (event: KeyboardEvent) => {
+					event.preventDefault();
+					event.stopPropagation();
+					if (isArchived) {
+						error("Restore the document before exporting.");
+						return;
+					}
+					void handleCommandSubmit(":export-md");
+				},
+				allowInInput: true,
+				description: "Export to Markdown",
+				capture: true,
+			},
+			{
+				key: "mod+shift+e",
+				handler: (event: KeyboardEvent) => {
+					event.preventDefault();
+					event.stopPropagation();
+					if (isArchived) {
+						error("Restore the document before exporting.");
+						return;
+					}
+					void handleCommandSubmit(":export-pdf");
+				},
+				allowInInput: true,
+				description: "Export to PDF",
+				capture: true,
+			},
+			{
 				key: "Escape",
 				handler: handleEscape,
 				allowInInput: false,
@@ -345,7 +447,7 @@ export function useDocumentController({
 				description: "Focus editor when unfocused",
 			},
 		],
-		[saveNow, error, focusEditor, handleEscape, handleUnfocus, isArchived],
+		[saveNow, error, focusEditor, handleEscape, handleUnfocus, isArchived, handleCommandSubmit],
 	);
 
 	return {
