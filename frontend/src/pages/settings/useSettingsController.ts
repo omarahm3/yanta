@@ -1,7 +1,6 @@
 import { Events } from "@wailsio/runtime";
 import { useCallback, useEffect, useState } from "react";
 import type { BackupInfo } from "../../../bindings/yanta/internal/backup/models";
-import type { BackupConfig } from "../../../bindings/yanta/internal/config/models";
 import {
 	Delete as DeleteBackup,
 	GetConfig as GetBackupConfig,
@@ -9,6 +8,7 @@ import {
 	Restore as RestoreBackup,
 	SetConfig as SetBackupConfig,
 } from "../../../bindings/yanta/internal/backup/service";
+import type { BackupConfig } from "../../../bindings/yanta/internal/config/models";
 import { SyncStatus } from "../../../bindings/yanta/internal/git/models";
 import {
 	CheckGitInstalled,
