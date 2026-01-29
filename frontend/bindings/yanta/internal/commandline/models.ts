@@ -37,6 +37,7 @@ export enum DocumentCommand {
     DocumentCommandTag = "tag",
     DocumentCommandUntag = "untag",
     DocumentCommandTags = "tags",
+    DocumentCommandExportMD = "export-md",
     DocumentCommandExportPDF = "export-pdf",
 };
 

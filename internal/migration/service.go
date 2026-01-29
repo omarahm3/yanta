@@ -1,3 +1,4 @@
+// Package migration handles data migration between YANTA data directories.
 package migration
 
 import (
@@ -150,13 +151,13 @@ func (s *Service) migrateExistingData(currentDataDir, targetPath string) error {
 		if _, err := os.Stat(vaultSrc); err == nil {
 			logger.Infof("copying vault: %s -> %s", vaultSrc, targetVaultPath)
 			if err := s.copyDirectory(vaultSrc, targetVaultPath); err != nil {
-				s.rollback(targetPath, currentDataDir)
+				_ = s.rollback(targetPath, currentDataDir)
 				return fmt.Errorf("copying vault data: %w", err)
 			}
 
 			logger.Info("verifying vault integrity")
 			if err := s.verifyIntegrity(vaultSrc, targetVaultPath); err != nil {
-				s.rollback(targetPath, currentDataDir)
+				_ = s.rollback(targetPath, currentDataDir)
 				return fmt.Errorf("integrity verification failed: %w", err)
 			}
 		} else {
@@ -205,7 +206,7 @@ func (s *Service) setupGitRepository(targetPath, originalDataDir string) error {
 	isRepo, err := s.gitService.IsRepository(targetPath)
 	if err != nil {
 		if originalDataDir != "" {
-			s.rollback(targetPath, originalDataDir)
+			_ = s.rollback(targetPath, originalDataDir)
 		}
 		return fmt.Errorf("checking git repository: %w", err)
 	}
@@ -214,7 +215,7 @@ func (s *Service) setupGitRepository(targetPath, originalDataDir string) error {
 		logger.Info("initializing git repository")
 		if err := s.gitService.Init(targetPath); err != nil {
 			if originalDataDir != "" {
-				s.rollback(targetPath, originalDataDir)
+				_ = s.rollback(targetPath, originalDataDir)
 			}
 			return fmt.Errorf("git init failed: %w", err)
 		}
@@ -230,7 +231,7 @@ func (s *Service) setupGitRepository(targetPath, originalDataDir string) error {
 	}
 	if err := s.gitService.CreateGitIgnore(targetPath, patterns); err != nil {
 		if originalDataDir != "" {
-			s.rollback(targetPath, originalDataDir)
+			_ = s.rollback(targetPath, originalDataDir)
 		}
 		return fmt.Errorf("creating .gitignore: %w", err)
 	}
@@ -238,7 +239,7 @@ func (s *Service) setupGitRepository(targetPath, originalDataDir string) error {
 	logger.Info("staging files for initial commit")
 	if err := s.gitService.AddAll(targetPath); err != nil {
 		if originalDataDir != "" {
-			s.rollback(targetPath, originalDataDir)
+			_ = s.rollback(targetPath, originalDataDir)
 		}
 		return fmt.Errorf("git add failed: %w", err)
 	}
@@ -249,7 +250,7 @@ func (s *Service) setupGitRepository(targetPath, originalDataDir string) error {
 		// If nothing to commit, that's okay
 		if err.Error() != "nothing to commit" {
 			if originalDataDir != "" {
-				s.rollback(targetPath, originalDataDir)
+				_ = s.rollback(targetPath, originalDataDir)
 			}
 			return fmt.Errorf("git commit failed: %w", err)
 		}
@@ -258,7 +259,7 @@ func (s *Service) setupGitRepository(targetPath, originalDataDir string) error {
 	logger.Info("updating configuration")
 	if err := config.SetDataDirectory(targetPath); err != nil {
 		if originalDataDir != "" {
-			s.rollback(targetPath, originalDataDir)
+			_ = s.rollback(targetPath, originalDataDir)
 		}
 		return fmt.Errorf("updating config: %w", err)
 	}

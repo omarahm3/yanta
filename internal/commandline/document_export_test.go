@@ -57,6 +57,42 @@ func (m *mockTagServiceForExport) GetDocumentTags(
 	return []string{}, nil
 }
 
+func TestDocumentCommandExportMD_WithExplicitPath(t *testing.T) {
+	docSvc := &mockDocServiceForExport{}
+	tagSvc := &mockTagServiceForExport{}
+	cmds := NewDocumentCommands(docSvc, tagSvc)
+
+	result, err := cmds.Parse("export-md test/doc.json")
+	require.NoError(t, err)
+	require.True(t, result.Success)
+	require.Equal(t, "export document", result.Message)
+	require.Equal(t, "test/doc.json", result.Data.DocumentPath)
+}
+
+func TestDocumentCommandExportMD_WithCurrentDocument(t *testing.T) {
+	docSvc := &mockDocServiceForExport{}
+	tagSvc := &mockTagServiceForExport{}
+	cmds := NewDocumentCommands(docSvc, tagSvc)
+	cmds.SetCurrentDocument("current/doc.json")
+
+	result, err := cmds.Parse("export-md")
+	require.NoError(t, err)
+	require.True(t, result.Success)
+	require.Equal(t, "export document", result.Message)
+	require.Equal(t, "current/doc.json", result.Data.DocumentPath)
+}
+
+func TestDocumentCommandExportMD_NoDocumentOpen(t *testing.T) {
+	docSvc := &mockDocServiceForExport{}
+	tagSvc := &mockTagServiceForExport{}
+	cmds := NewDocumentCommands(docSvc, tagSvc)
+
+	result, err := cmds.Parse("export-md")
+	require.NoError(t, err)
+	require.False(t, result.Success)
+	require.Equal(t, "no document open - use in document editor or specify path", result.Message)
+}
+
 func TestDocumentCommands_ExportPDFRequiresDocument(t *testing.T) {
 	docSvc := &mockDocServiceForExport{}
 	tagSvc := &mockTagServiceForExport{}
