@@ -2,6 +2,7 @@ import {
 	Archive,
 	ArchiveRestore,
 	ArrowRight,
+	BookOpen,
 	Bug,
 	CloudDownload,
 	CloudUpload,
@@ -101,6 +102,17 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			hint: "Find documents",
 			action: () => {
 				onNavigate("search");
+				onClose();
+			},
+		});
+
+		commands.push({
+			id: "nav-journal",
+			icon: <BookOpen className="text-lg" />,
+			text: "Go to Journal",
+			hint: "Quick notes",
+			action: () => {
+				onNavigate("journal");
 				onClose();
 			},
 		});

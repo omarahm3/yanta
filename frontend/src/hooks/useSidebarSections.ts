@@ -4,9 +4,11 @@ import { useDocumentCount, useProjectContext } from "../contexts";
 import type { Filter } from "../types";
 import { useNotification } from "./useNotification";
 
+type NavigationState = Record<string, string | number | boolean | undefined>;
+
 interface UseSidebarSectionsProps {
 	currentPage: string;
-	onNavigate?: (page: string) => void;
+	onNavigate?: (page: string, state?: NavigationState) => void;
 	filters?: Filter[];
 	onFilterSelect?: (filterId: string) => void;
 	additionalSections?: SidebarSection[];
@@ -59,6 +61,12 @@ export const useSidebarSections = ({
 					label: "search",
 					active: currentPage === "search",
 					onClick: () => onNavigate?.("search"),
+				},
+				{
+					id: "journal",
+					label: "journal",
+					active: currentPage === "journal",
+					onClick: () => onNavigate?.("journal"),
 				},
 				{
 					id: "settings",

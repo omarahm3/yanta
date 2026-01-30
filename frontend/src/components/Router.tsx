@@ -68,7 +68,6 @@ export const Router: React.FC<RouterProps> = ({
 
 	const journalProps = {
 		onNavigate: handleNavigation,
-		projectAlias: (navigationState.projectAlias as string) || "personal",
 	};
 
 	const page = currentPage as Page;
