@@ -1,3 +1,4 @@
+// Package link handles URL and document link parsing and storage.
 package link
 
 import (

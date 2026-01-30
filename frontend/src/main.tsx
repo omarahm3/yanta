@@ -61,7 +61,7 @@ if (!container) {
 	throw new Error("Root container not found");
 }
 
-const root = createRoot(container!);
+const root = createRoot(container);
 
 waitForWailsRuntime().then(() => {
 	try {

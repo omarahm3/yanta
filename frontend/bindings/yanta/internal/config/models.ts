@@ -5,6 +5,35 @@
 // @ts-ignore: Unused imports
 import { Create as $Create } from "@wailsio/runtime";
 
+export class BackupConfig {
+    "Enabled": boolean;
+
+    /**
+     * number of backups to retain, 0 = unlimited
+     */
+    "MaxBackups": number;
+
+    /** Creates a new BackupConfig instance. */
+    constructor($$source: Partial<BackupConfig> = {}) {
+        if (!("Enabled" in $$source)) {
+            this["Enabled"] = false;
+        }
+        if (!("MaxBackups" in $$source)) {
+            this["MaxBackups"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new BackupConfig instance from a string or object.
+     */
+    static createFrom($$source: any = {}): BackupConfig {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new BackupConfig($$parsedSource as Partial<BackupConfig>);
+    }
+}
+
 export class GitSyncConfig {
     "Enabled": boolean;
     "AutoCommit": boolean;

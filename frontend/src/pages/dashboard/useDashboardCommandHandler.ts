@@ -1,5 +1,10 @@
 import { type RefObject, useCallback } from "react";
 import { ParseWithContext } from "../../../bindings/yanta/internal/commandline/documentcommands";
+import { ExportDocumentRequest } from "../../../bindings/yanta/internal/document/models";
+import { ExportDocument } from "../../../bindings/yanta/internal/document/service";
+import { ExportRequest } from "../../../bindings/yanta/internal/export";
+import { ExportToPDF } from "../../../bindings/yanta/internal/export/service";
+import { OpenDirectoryDialog } from "../../../bindings/yanta/internal/system/service";
 import type { Document } from "../../types/Document";
 import type { Project } from "../../types/Project";
 import { preprocessCommand } from "../../utils/commandPreprocessor";
@@ -152,6 +157,44 @@ export const useDashboardCommandHandler = ({
 						await reloadDocuments();
 						clearSelection();
 						success("Document permanently deleted");
+					},
+					"export document": async () => {
+						const docPath = result.data?.documentPath;
+						if (!docPath) {
+							error("No document path provided");
+							return;
+						}
+						const outputDir = await OpenDirectoryDialog();
+						if (!outputDir) {
+							return;
+						}
+						const documentName = docPath.split("/").pop()?.replace(".json", ".md") || "document.md";
+						const outputPath = `${outputDir}/${documentName}`;
+						const req = new ExportDocumentRequest({
+							DocumentPath: docPath,
+							OutputPath: outputPath,
+						});
+						await ExportDocument(req);
+						success(`Exported to ${outputPath}`);
+					},
+					"export to PDF": async () => {
+						const docPath = result.data?.documentPath;
+						if (!docPath) {
+							error("No document path provided");
+							return;
+						}
+						const outputDir = await OpenDirectoryDialog();
+						if (!outputDir) {
+							return;
+						}
+						const documentName = docPath.split("/").pop()?.replace(".json", ".pdf") || "document.pdf";
+						const outputPath = `${outputDir}/${documentName}`;
+						const req = new ExportRequest({
+							DocumentPath: docPath,
+							OutputPath: outputPath,
+						});
+						await ExportToPDF(req);
+						success(`Exported to ${outputPath}`);
 					},
 				};
 

@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ParseWithContext } from "../../../bindings/yanta/internal/commandline/documentcommands";
-import { Restore, SoftDelete } from "../../../bindings/yanta/internal/document/service";
+import { ExportDocumentRequest } from "../../../bindings/yanta/internal/document/models";
+import {
+	ExportDocument,
+	Restore,
+	SoftDelete,
+} from "../../../bindings/yanta/internal/document/service";
+import { ExportRequest } from "../../../bindings/yanta/internal/export";
+import { ExportToPDF } from "../../../bindings/yanta/internal/export/service";
+import { OpenDirectoryDialog } from "../../../bindings/yanta/internal/system/service";
 import { DocumentCommand } from "../../constants";
 import { useDocumentContext, useProjectContext } from "../../contexts";
 import { useHelp } from "../../hooks";
@@ -80,6 +88,8 @@ export interface DashboardControllerResult {
 	handleArchiveSelectedDocuments: () => Promise<void>;
 	handleRestoreSelectedDocuments: () => Promise<void>;
 	handleDeleteSelectedDocuments: (hard: boolean) => void;
+	handleExportSelectedMarkdown: () => Promise<void>;
+	handleExportSelectedPDF: () => Promise<void>;
 	confirmDialog: ConfirmDialogState;
 	setConfirmDialog: React.Dispatch<React.SetStateAction<ConfirmDialogState>>;
 	statusBar: {
@@ -255,6 +265,64 @@ export function useDashboardController({
 			error(err instanceof Error ? err.message : "Failed to restore");
 		}
 	}, [reloadDocuments, clearSelection, success, error]);
+
+	const handleExportSelectedMarkdown = useCallback(async () => {
+		const paths = Array.from(selectedDocumentsRef.current);
+		if (paths.length === 0) {
+			error("No documents selected");
+			return;
+		}
+		try {
+			const outputDir = await OpenDirectoryDialog();
+			if (!outputDir) {
+				return;
+			}
+			for (const docPath of paths) {
+				const documentName = docPath.split("/").pop()?.replace(".json", ".md") || "document.md";
+				const outputPath = `${outputDir}/${documentName}`;
+				const req = new ExportDocumentRequest({
+					DocumentPath: docPath,
+					OutputPath: outputPath,
+				});
+				await ExportDocument(req);
+			}
+			success(
+				paths.length === 1
+					? "Document exported to markdown"
+					: `${paths.length} documents exported to markdown`,
+			);
+		} catch (err) {
+			error(err instanceof Error ? err.message : "Failed to export");
+		}
+	}, [success, error]);
+
+	const handleExportSelectedPDF = useCallback(async () => {
+		const paths = Array.from(selectedDocumentsRef.current);
+		if (paths.length === 0) {
+			error("No documents selected");
+			return;
+		}
+		try {
+			const outputDir = await OpenDirectoryDialog();
+			if (!outputDir) {
+				return;
+			}
+			for (const docPath of paths) {
+				const documentName = docPath.split("/").pop()?.replace(".json", ".pdf") || "document.pdf";
+				const outputPath = `${outputDir}/${documentName}`;
+				const req = new ExportRequest({
+					DocumentPath: docPath,
+					OutputPath: outputPath,
+				});
+				await ExportToPDF(req);
+			}
+			success(
+				paths.length === 1 ? "Document exported to PDF" : `${paths.length} documents exported to PDF`,
+			);
+		} catch (err) {
+			error(err instanceof Error ? err.message : "Failed to export");
+		}
+	}, [success, error]);
 
 	const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
 		isOpen: false,
@@ -582,6 +650,26 @@ export function useDashboardController({
 				allowInInput: false,
 				description: "Restore archived documents",
 			},
+			{
+				key: "mod+E",
+				handler: (event: KeyboardEvent) => {
+					event.preventDefault();
+					event.stopPropagation();
+					void handleExportSelectedMarkdown();
+				},
+				allowInInput: false,
+				description: "Export selected documents to markdown",
+			},
+			{
+				key: "mod+shift+E",
+				handler: (event: KeyboardEvent) => {
+					event.preventDefault();
+					event.stopPropagation();
+					void handleExportSelectedPDF();
+				},
+				allowInInput: false,
+				description: "Export selected documents to PDF",
+			},
 		],
 		[
 			handleNewDocument,
@@ -593,6 +681,8 @@ export function useDashboardController({
 			highlightPrevious,
 			handleArchiveSelectedDocuments,
 			handleRestoreSelectedDocuments,
+			handleExportSelectedMarkdown,
+			handleExportSelectedPDF,
 		],
 	);
 
@@ -619,6 +709,8 @@ export function useDashboardController({
 		handleArchiveSelectedDocuments,
 		handleRestoreSelectedDocuments,
 		handleDeleteSelectedDocuments,
+		handleExportSelectedMarkdown,
+		handleExportSelectedPDF,
 		confirmDialog,
 		setConfirmDialog,
 		statusBar: {

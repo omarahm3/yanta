@@ -1,3 +1,4 @@
+// Package app provides the main application structure and lifecycle management for YANTA.
 package app
 
 import (
@@ -14,10 +15,12 @@ import (
 	"golang.design/x/hotkey"
 
 	"yanta/internal/asset"
+	"yanta/internal/backup"
 	"yanta/internal/commandline"
 	"yanta/internal/db"
 	"yanta/internal/document"
 	"yanta/internal/events"
+	"yanta/internal/export"
 	"yanta/internal/git"
 	"yanta/internal/indexer"
 	"yanta/internal/journal"
@@ -129,9 +132,13 @@ func New(cfg Config) (*App, error) {
 		SyncManager: syncManager,
 	})
 
-	// Journal service for Quick Launch feature
 	journalService := journal.NewService(v, eventBus)
 	journalWailsService := journal.NewWailsService(journalService)
+	backupService := backup.NewService()
+	exportService := export.NewService(export.ServiceConfig{
+		DocumentService: documentService,
+		Vault:           v,
+	})
 
 	logger.Debugf("services created")
 
@@ -164,6 +171,8 @@ func New(cfg Config) (*App, error) {
 		System:           systemService,
 		Assets:           assetService,
 		Journal:          journalWailsService,
+		Backup:           backupService,
+		Export:           exportService,
 		ProjectCommands:  projectCommands,
 		GlobalCommands:   globalCommands,
 		DocumentCommands: documentCommands,

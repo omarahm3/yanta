@@ -14,8 +14,8 @@ export function Create(name: string, alias: string, startDate: string, endDate: 
 }
 
 /**
- * If project has documents: soft delete project (documents handled separately)
- * If no documents: hard delete project
+ * Delete removes a project. If the project has documents, it performs a soft delete
+ * (documents are handled separately). If no documents exist, it performs a hard delete.
  */
 export function Delete(id: string): $CancellablePromise<void> {
     return $Call.ByID(2740200680, id);

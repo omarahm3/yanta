@@ -6,6 +6,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"yanta/internal/backup"
 	"yanta/internal/config"
 	"yanta/internal/logger"
 )
@@ -147,6 +148,22 @@ func (sm *SyncManager) performSync(reasons []string) {
 	if hasRemote {
 		if err := sm.gitService.Fetch(dataDir, "origin"); err != nil {
 			logger.WithField("error", err).Debug("auto-sync: fetch failed, continuing")
+		}
+	}
+
+	// Create backup before sync if enabled
+	backupCfg := config.GetBackupConfig()
+	if backupCfg.Enabled {
+		logger.Debug("auto-sync: creating pre-sync backup")
+		backupService := backup.NewService()
+		if err := backupService.CreateBackup(dataDir); err != nil {
+			logger.WithField("error", err).Warn("auto-sync: backup creation failed, continuing with sync")
+		} else {
+			logger.Info("auto-sync: pre-sync backup created successfully")
+			// Enforce retention policy
+			if err := backupService.PruneOldBackups(dataDir, backupCfg.MaxBackups); err != nil {
+				logger.WithField("error", err).Warn("auto-sync: failed to prune old backups")
+			}
 		}
 	}
 

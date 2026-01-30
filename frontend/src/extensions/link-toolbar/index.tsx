@@ -25,7 +25,8 @@ const openLinkExternally = (url: string): void => {
 };
 
 const CustomOpenLinkButton = ({ url }: Pick<LinkToolbarProps, "url">) => {
-	const Components = useComponentsContext()!;
+	const Components = useComponentsContext();
+	if (!Components) throw new Error("Components context not found");
 	const dict = useDictionary();
 
 	const handleClick = useCallback(() => {
@@ -45,7 +46,8 @@ const CustomOpenLinkButton = ({ url }: Pick<LinkToolbarProps, "url">) => {
 };
 
 const CustomLinkToolbar = (props: LinkToolbarProps) => {
-	const Components = useComponentsContext()!;
+	const Components = useComponentsContext();
+	if (!Components) throw new Error("Components context not found");
 
 	return (
 		<Components.LinkToolbar.Root className="bn-toolbar bn-link-toolbar">

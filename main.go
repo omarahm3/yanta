@@ -113,6 +113,8 @@ func run() {
 			application.NewService(a.Bindings.System),
 			application.NewService(a.Bindings.Assets),
 			application.NewService(a.Bindings.Journal),
+			application.NewService(a.Bindings.Backup),
+			application.NewService(a.Bindings.Export),
 			application.NewService(a.Bindings.ProjectCommands),
 			application.NewService(a.Bindings.GlobalCommands),
 			application.NewService(a.Bindings.DocumentCommands),

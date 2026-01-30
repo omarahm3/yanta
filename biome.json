@@ -1,0 +1,65 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.3.2/schema.json",
+	"files": {
+		"includes": [
+			"frontend/**/*.ts",
+			"frontend/**/*.tsx",
+			"frontend/**/*.js",
+			"frontend/**/*.jsx",
+			"frontend/**/*.css"
+		]
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"complexity": {
+				"noImportantStyles": "off",
+				"noStaticOnlyClass": "warn"
+			},
+			"style": {
+				"noNonNullAssertion": "warn"
+			},
+			"a11y": {
+				"noStaticElementInteractions": "off",
+				"useKeyWithClickEvents": "off",
+				"noLabelWithoutControl": "off",
+				"useSemanticElements": "off",
+				"useAriaPropsSupportedByRole": "off",
+				"useButtonType": "warn",
+				"noNoninteractiveTabindex": "off"
+			},
+			"suspicious": {
+				"noArrayIndexKey": "warn",
+				"useIterableCallbackReturn": "warn",
+				"noCommentText": "warn",
+				"noAssignInExpressions": "warn"
+			},
+			"correctness": {
+				"useExhaustiveDependencies": "off",
+				"noUnknownProperty": "off"
+			},
+			"security": {
+				"noDangerouslySetInnerHtml": "warn"
+			}
+		}
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab",
+		"indentWidth": 1,
+		"lineWidth": 100,
+		"lineEnding": "lf"
+	},
+	"css": {
+		"parser": {
+			"cssModules": false,
+			"allowWrongLineComments": false,
+			"tailwindDirectives": true
+		},
+		"formatter": {
+			"enabled": true,
+			"indentStyle": "tab",
+			"indentWidth": 1
+		}
+	}
+}

@@ -15,7 +15,7 @@ describe("useAutoSave", () => {
 	describe("Debouncing behavior", () => {
 		it("should debounce rapid changes and only save once", async () => {
 			const onSave = vi.fn(async () => {});
-			const { result, rerender } = renderHook(
+			const { rerender } = renderHook(
 				({ value }) => useAutoSave({ value, onSave, delay: 2000, enabled: true }),
 				{ initialProps: { value: "initial" } },
 			);
@@ -96,7 +96,7 @@ describe("useAutoSave", () => {
 
 		it("should reset debounce timer on each change", async () => {
 			const onSave = vi.fn(async () => {});
-			const { result, rerender } = renderHook(
+			const { rerender } = renderHook(
 				({ value }) => useAutoSave({ value, onSave, delay: 2000, enabled: true }),
 				{ initialProps: { value: "initial" } },
 			);
@@ -248,7 +248,7 @@ describe("useAutoSave", () => {
 	describe("Disabled state", () => {
 		it("should not save when disabled", async () => {
 			const onSave = vi.fn(async () => {});
-			const { result, rerender } = renderHook(
+			const { rerender } = renderHook(
 				({ value, enabled }) => useAutoSave({ value, onSave, delay: 2000, enabled }),
 				{ initialProps: { value: "initial", enabled: false } },
 			);
@@ -266,7 +266,7 @@ describe("useAutoSave", () => {
 
 		it("should resume saving when re-enabled", async () => {
 			const onSave = vi.fn(async () => {});
-			const { result, rerender } = renderHook(
+			const { rerender } = renderHook(
 				({ value, enabled }) => useAutoSave({ value, onSave, delay: 2000, enabled }),
 				{ initialProps: { value: "initial", enabled: false } },
 			);
@@ -373,7 +373,7 @@ describe("useAutoSave", () => {
 	describe("Cleanup", () => {
 		it("should cancel pending save on unmount", async () => {
 			const onSave = vi.fn(async () => {});
-			const { result, rerender, unmount } = renderHook(
+			const { rerender, unmount } = renderHook(
 				({ value }) => useAutoSave({ value, onSave, delay: 2000, enabled: true }),
 				{ initialProps: { value: "initial" } },
 			);

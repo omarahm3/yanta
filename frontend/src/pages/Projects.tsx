@@ -280,7 +280,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 					const project = allProjects.find((p) => p.alias === alias);
 					const projectName = project ? project.name : alias;
 					const isHard = data.flags?.includes("--hard") ?? false;
-					const confirmationCommand = data.confirmationCommand!;
+					const confirmationCommand = data.confirmationCommand;
 					const isArchive = normalized.startsWith("archive ");
 					const isDelete = normalized.startsWith("delete ");
 

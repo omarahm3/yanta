@@ -1,3 +1,4 @@
+// Package commandline provides parsing and handling of command-line style input.
 package commandline
 
 import (
