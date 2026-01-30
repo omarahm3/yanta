@@ -1,5 +1,14 @@
 import { Events } from "@wailsio/runtime";
 import { useCallback, useEffect, useState } from "react";
+import type { BackupInfo } from "../../../bindings/yanta/internal/backup/models";
+import {
+	Delete as DeleteBackup,
+	GetConfig as GetBackupConfig,
+	GetBackups,
+	Restore as RestoreBackup,
+	SetConfig as SetBackupConfig,
+} from "../../../bindings/yanta/internal/backup/service";
+import type { BackupConfig } from "../../../bindings/yanta/internal/config/models";
 import { SyncStatus } from "../../../bindings/yanta/internal/git/models";
 import {
 	CheckGitInstalled,
@@ -56,6 +65,11 @@ export const useSettingsController = () => {
 	} | null>(null);
 	const [showReindexConfirm, setShowReindexConfirm] = useState(false);
 	const [appScale, setAppScaleState] = useState<number>(1.0);
+	const [backupConfig, setBackupConfig] = useState<BackupConfig>({
+		Enabled: false,
+		MaxBackups: 5,
+	});
+	const [backups, setBackups] = useState<BackupInfo[]>([]);
 
 	const { success, error, info, warning } = useNotification();
 	const { setScale } = useScale();
@@ -102,6 +116,14 @@ export const useSettingsController = () => {
 		GetAppScale()
 			.then((scale) => setAppScaleState(scale))
 			.catch((err) => console.error("Failed to get app scale:", err));
+
+		GetBackupConfig()
+			.then((config) => setBackupConfig(config))
+			.catch((err) => console.error("Failed to get backup config:", err));
+
+		GetBackups()
+			.then((backupList) => setBackups(backupList))
+			.catch((err) => console.error("Failed to get backups:", err));
 
 		const unsubscribe = Events.On("reindex:progress", (data: unknown) => {
 			const progressData = data as { current: number; total: number; message: string };
@@ -362,6 +384,72 @@ export const useSettingsController = () => {
 		setShowReindexConfirm(false);
 	}, []);
 
+	const handleBackupToggle = useCallback(
+		async (enabled: boolean) => {
+			try {
+				const config = {
+					Enabled: enabled,
+					MaxBackups: backupConfig.MaxBackups,
+				};
+				await SetBackupConfig(config);
+				setBackupConfig(config);
+				success(enabled ? "Automatic backups enabled" : "Automatic backups disabled");
+			} catch (err) {
+				error(`Failed to update backup config: ${err}`);
+			}
+		},
+		[backupConfig, success, error],
+	);
+
+	const handleMaxBackupsChange = useCallback(
+		async (value: number) => {
+			try {
+				const config = {
+					Enabled: backupConfig.Enabled,
+					MaxBackups: value,
+				};
+				await SetBackupConfig(config);
+				setBackupConfig(config);
+				success(`Maximum backups set to ${value}`);
+			} catch (err) {
+				error(`Failed to update max backups: ${err}`);
+			}
+		},
+		[backupConfig, success, error],
+	);
+
+	const handleRestoreBackup = useCallback(
+		async (backupPath: string) => {
+			try {
+				await RestoreBackup(backupPath);
+				success("Backup restored successfully. Please restart the application.");
+				setNeedsRestart(true);
+			} catch (err) {
+				const errorMessage = String(err);
+				const cleanedMessage = errorMessage.replace(/^[A-Z_]+:\s*/, "");
+				error(`Restore failed:\n\n${cleanedMessage}`);
+			}
+		},
+		[success, error],
+	);
+
+	const handleDeleteBackup = useCallback(
+		async (backupPath: string) => {
+			try {
+				await DeleteBackup(backupPath);
+				// Refresh backups list
+				const backupList = await GetBackups();
+				setBackups(backupList);
+				success("Backup deleted successfully");
+			} catch (err) {
+				const errorMessage = String(err);
+				const cleanedMessage = errorMessage.replace(/^[A-Z_]+:\s*/, "");
+				error(`Delete failed:\n\n${cleanedMessage}`);
+			}
+		},
+		[success, error],
+	);
+
 	const logLevelOptions: SelectOption[] = [
 		{ value: "debug", label: "Debug" },
 		{ value: "info", label: "Info" },
@@ -395,6 +483,8 @@ export const useSettingsController = () => {
 		reindexProgress,
 		showReindexConfirm,
 		appScale,
+		backupConfig,
+		backups,
 		logLevelOptions,
 		commitIntervalOptions,
 		handlers: {
@@ -412,6 +502,10 @@ export const useSettingsController = () => {
 			handleRequestReindex,
 			handleConfirmReindex,
 			handleCancelReindex,
+			handleBackupToggle,
+			handleMaxBackupsChange,
+			handleRestoreBackup,
+			handleDeleteBackup,
 		},
 	};
 };

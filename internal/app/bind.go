@@ -2,6 +2,7 @@ package app
 
 import (
 	"yanta/internal/asset"
+	"yanta/internal/backup"
 	"yanta/internal/commandline"
 	"yanta/internal/document"
 	"yanta/internal/events"
@@ -19,6 +20,7 @@ type Bindings struct {
 	Search           *search.Service
 	System           *system.Service
 	Assets           *asset.Service
+	Backup           *backup.Service
 	Export           *export.Service
 	ProjectCommands  *commandline.ProjectCommands
 	GlobalCommands   *commandline.GlobalCommands
@@ -42,6 +44,7 @@ func (b *Bindings) Bind() []any {
 		b.Search,
 		b.System,
 		b.Assets,
+		b.Backup,
 		b.Export,
 		b.ProjectCommands,
 		b.GlobalCommands,

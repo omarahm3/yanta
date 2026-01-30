@@ -29,3 +29,7 @@ func GetConfigPath() string {
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".yanta", "config.toml")
 }
+
+func GetBackupsPath() string {
+	return filepath.Join(config.GetDataDirectory(), "backups")
+}

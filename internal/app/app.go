@@ -15,6 +15,7 @@ import (
 	"golang.design/x/hotkey"
 
 	"yanta/internal/asset"
+	"yanta/internal/backup"
 	"yanta/internal/commandline"
 	"yanta/internal/db"
 	"yanta/internal/document"
@@ -130,6 +131,7 @@ func New(cfg Config) (*App, error) {
 		SyncManager: syncManager,
 	})
 
+	backupService := backup.NewService()
 	exportService := export.NewService(export.ServiceConfig{
 		DocumentService: documentService,
 		Vault:           v,
@@ -165,6 +167,7 @@ func New(cfg Config) (*App, error) {
 		Search:           searchService,
 		System:           systemService,
 		Assets:           assetService,
+		Backup:           backupService,
 		Export:           exportService,
 		ProjectCommands:  projectCommands,
 		GlobalCommands:   globalCommands,
