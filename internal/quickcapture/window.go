@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 
 	"yanta/internal/logger"
 )
@@ -70,6 +71,15 @@ func CreateWindow(app *application.App) *application.WebviewWindow {
 
 	// Center the window after creation
 	quickCaptureWindow.Center()
+
+	// Register hook to clear reference when window is closed
+	// This prevents trying to show a destroyed WebView2 window
+	quickCaptureWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		logger.Debug("Quick Capture window closing")
+		windowMutex.Lock()
+		quickCaptureWindow = nil
+		windowMutex.Unlock()
+	})
 
 	logger.Info("Quick Capture window created")
 	return quickCaptureWindow
