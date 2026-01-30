@@ -127,6 +127,52 @@ export class JournalEntry {
 }
 
 /**
+ * JournalEntryWithProject wraps a JournalEntry with its project alias.
+ * Used when fetching entries from all projects.
+ */
+export class JournalEntryWithProject {
+    "id": string;
+    "content": string;
+    "tags": string[];
+    "created": time$0.Time;
+    "deleted"?: boolean;
+    "projectAlias": string;
+
+    /** Creates a new JournalEntryWithProject instance. */
+    constructor($$source: Partial<JournalEntryWithProject> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("content" in $$source)) {
+            this["content"] = "";
+        }
+        if (!("tags" in $$source)) {
+            this["tags"] = [];
+        }
+        if (!("created" in $$source)) {
+            this["created"] = null;
+        }
+        if (!("projectAlias" in $$source)) {
+            this["projectAlias"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new JournalEntryWithProject instance from a string or object.
+     */
+    static createFrom($$source: any = {}): JournalEntryWithProject {
+        const $$createField2_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("tags" in $$parsedSource) {
+            $$parsedSource["tags"] = $$createField2_0($$parsedSource["tags"]);
+        }
+        return new JournalEntryWithProject($$parsedSource as Partial<JournalEntryWithProject>);
+    }
+}
+
+/**
  * JournalFile represents a daily journal file containing multiple entries.
  */
 export class JournalFile {

@@ -17,11 +17,17 @@ import (
 	"yanta/internal/vault"
 )
 
+// Indexer interface for indexing documents created by promote.
+type Indexer interface {
+	IndexDocument(ctx context.Context, docPath string) error
+}
+
 // Service provides journal operations.
 type Service struct {
 	vault    *vault.Vault
 	store    *Store
 	eventBus *events.EventBus
+	indexer  Indexer
 	mu       sync.Mutex // Serializes writes to prevent race conditions
 }
 
@@ -32,6 +38,11 @@ func NewService(v *vault.Vault, eventBus *events.EventBus) *Service {
 		store:    NewStore(v),
 		eventBus: eventBus,
 	}
+}
+
+// SetIndexer sets the document indexer for promoted documents.
+func (s *Service) SetIndexer(indexer Indexer) {
+	s.indexer = indexer
 }
 
 func (s *Service) emitEvent(eventName string, payload any) {
@@ -175,6 +186,69 @@ func (s *Service) GetActiveEntries(ctx context.Context, projectAlias, date strin
 	}
 
 	return file.ActiveEntries(), nil
+}
+
+// GetAllActiveEntries returns non-deleted entries from all projects for a date.
+func (s *Service) GetAllActiveEntries(ctx context.Context, date string) ([]JournalEntryWithProject, error) {
+	if err := ValidateDate(date); err != nil {
+		return nil, fmt.Errorf("invalid date: %w", err)
+	}
+
+	projects, err := s.vault.ListProjects()
+	if err != nil {
+		return nil, fmt.Errorf("listing projects: %w", err)
+	}
+
+	var allEntries []JournalEntryWithProject
+
+	for _, projectAlias := range projects {
+		file, err := s.store.ReadFile(projectAlias, date)
+		if err != nil {
+			// Skip projects with no journal for this date
+			if os.IsNotExist(err) {
+				continue
+			}
+			logger.Warnf("failed to read journal for %s on %s: %v", projectAlias, date, err)
+			continue
+		}
+
+		for _, entry := range file.ActiveEntries() {
+			allEntries = append(allEntries, JournalEntryWithProject{
+				JournalEntry: entry,
+				ProjectAlias: projectAlias,
+			})
+		}
+	}
+
+	return allEntries, nil
+}
+
+// ListAllDates returns available journal dates from all projects.
+func (s *Service) ListAllDates(ctx context.Context) ([]string, error) {
+	projects, err := s.vault.ListProjects()
+	if err != nil {
+		return nil, fmt.Errorf("listing projects: %w", err)
+	}
+
+	dateSet := make(map[string]struct{})
+
+	for _, projectAlias := range projects {
+		dates, err := s.store.ListDates(projectAlias)
+		if err != nil {
+			logger.Warnf("failed to list dates for %s: %v", projectAlias, err)
+			continue
+		}
+		for _, d := range dates {
+			dateSet[d] = struct{}{}
+		}
+	}
+
+	dates := make([]string, 0, len(dateSet))
+	for d := range dateSet {
+		dates = append(dates, d)
+	}
+
+	return dates, nil
 }
 
 // ListDates returns available journal dates for a project.
@@ -394,6 +468,14 @@ func (s *Service) PromoteToDocument(ctx context.Context, req PromoteRequest) (st
 
 	if err := os.WriteFile(absDocPath, docData, 0644); err != nil {
 		return "", fmt.Errorf("writing document: %w", err)
+	}
+
+	// Index the document so it appears in the database
+	if s.indexer != nil {
+		if err := s.indexer.IndexDocument(ctx, docPath); err != nil {
+			logger.WithError(err).WithField("docPath", docPath).Error("failed to index promoted document")
+			// Don't fail the operation, the document was created successfully
+		}
 	}
 
 	// Mark entries as deleted if not keeping original

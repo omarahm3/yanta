@@ -41,6 +41,16 @@ func (ws *WailsService) GetActiveEntries(ctx context.Context, projectAlias, date
 	return ws.svc.GetActiveEntries(ctx, projectAlias, date)
 }
 
+// GetAllActiveEntries returns non-deleted entries from all projects for a date.
+func (ws *WailsService) GetAllActiveEntries(ctx context.Context, date string) ([]JournalEntryWithProject, error) {
+	return ws.svc.GetAllActiveEntries(ctx, date)
+}
+
+// ListAllDates returns available journal dates from all projects.
+func (ws *WailsService) ListAllDates(ctx context.Context) ([]string, error) {
+	return ws.svc.ListAllDates(ctx)
+}
+
 // ListDates returns available journal dates for a project.
 // If year and month are both 0, returns all dates.
 func (ws *WailsService) ListDates(ctx context.Context, projectAlias string, year, month int) ([]string, error) {

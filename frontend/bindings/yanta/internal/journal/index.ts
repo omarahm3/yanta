@@ -10,6 +10,7 @@ export {
     AppendEntryRequest,
     AppendEntryRequestWithDate,
     JournalEntry,
+    JournalEntryWithProject,
     JournalFile,
     JournalMeta,
     PromoteRequest,

@@ -133,6 +133,7 @@ func New(cfg Config) (*App, error) {
 	})
 
 	journalService := journal.NewService(v, eventBus)
+	journalService.SetIndexer(idx)
 	journalWailsService := journal.NewWailsService(journalService)
 	backupService := backup.NewService()
 	exportService := export.NewService(export.ServiceConfig{

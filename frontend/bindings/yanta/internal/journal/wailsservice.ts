@@ -51,11 +51,20 @@ export function GetActiveEntries(projectAlias: string, date: string): $Cancellab
 }
 
 /**
+ * GetAllActiveEntries returns non-deleted entries from all projects for a date.
+ */
+export function GetAllActiveEntries(date: string): $CancellablePromise<$models.JournalEntryWithProject[]> {
+    return $Call.ByID(3967147906, date).then(($result: any) => {
+        return $$createType4($result);
+    });
+}
+
+/**
  * GetByDate returns a specific day's journal.
  */
 export function GetByDate(projectAlias: string, date: string): $CancellablePromise<$models.JournalFile | null> {
     return $Call.ByID(2407524012, projectAlias, date).then(($result: any) => {
-        return $$createType4($result);
+        return $$createType6($result);
     });
 }
 
@@ -64,7 +73,16 @@ export function GetByDate(projectAlias: string, date: string): $CancellablePromi
  */
 export function GetToday(projectAlias: string): $CancellablePromise<$models.JournalFile | null> {
     return $Call.ByID(1029232418, projectAlias).then(($result: any) => {
-        return $$createType4($result);
+        return $$createType6($result);
+    });
+}
+
+/**
+ * ListAllDates returns available journal dates from all projects.
+ */
+export function ListAllDates(): $CancellablePromise<string[]> {
+    return $Call.ByID(424477375).then(($result: any) => {
+        return $$createType7($result);
     });
 }
 
@@ -74,7 +92,7 @@ export function GetToday(projectAlias: string): $CancellablePromise<$models.Jour
  */
 export function ListDates(projectAlias: string, year: number, month: number): $CancellablePromise<string[]> {
     return $Call.ByID(3792384704, projectAlias, year, month).then(($result: any) => {
-        return $$createType5($result);
+        return $$createType7($result);
     });
 }
 
@@ -97,7 +115,7 @@ export function RestoreEntry(projectAlias: string, date: string, entryID: string
  */
 export function SearchEntries(projectAlias: string, query: string, limit: number): $CancellablePromise<$models.SearchResult[]> {
     return $Call.ByID(411758309, projectAlias, query, limit).then(($result: any) => {
-        return $$createType7($result);
+        return $$createType9($result);
     });
 }
 
@@ -114,8 +132,10 @@ export function UpdateEntry(req: $models.UpdateEntryRequest): $CancellablePromis
 const $$createType0 = $models.JournalEntry.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
 const $$createType2 = $Create.Array($$createType0);
-const $$createType3 = $models.JournalFile.createFrom;
-const $$createType4 = $Create.Nullable($$createType3);
-const $$createType5 = $Create.Array($Create.Any);
-const $$createType6 = $models.SearchResult.createFrom;
-const $$createType7 = $Create.Array($$createType6);
+const $$createType3 = $models.JournalEntryWithProject.createFrom;
+const $$createType4 = $Create.Array($$createType3);
+const $$createType5 = $models.JournalFile.createFrom;
+const $$createType6 = $Create.Nullable($$createType5);
+const $$createType7 = $Create.Array($Create.Any);
+const $$createType8 = $models.SearchResult.createFrom;
+const $$createType9 = $Create.Array($$createType8);

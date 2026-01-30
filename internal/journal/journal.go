@@ -177,3 +177,10 @@ func (f *JournalFile) ActiveEntries() []JournalEntry {
 	}
 	return active
 }
+
+// JournalEntryWithProject wraps a JournalEntry with its project alias.
+// Used when fetching entries from all projects.
+type JournalEntryWithProject struct {
+	JournalEntry
+	ProjectAlias string `json:"projectAlias"`
+}
