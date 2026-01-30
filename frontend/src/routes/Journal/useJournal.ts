@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
+import { Events } from "@wailsio/runtime";
 import {
 	GetActiveEntries,
+	GetAllActiveEntries,
 	DeleteEntry,
 	RestoreEntry,
 	ListDates,
+	ListAllDates,
 	PromoteToDocument,
 } from "../../../bindings/yanta/internal/journal/wailsservice";
 import { PromoteRequest } from "../../../bindings/yanta/internal/journal/models";
 import type { JournalEntryData } from "./JournalEntry";
 
 export interface UseJournalOptions {
-	projectAlias: string;
+	projectAlias: string; // Use "all" for all projects
 	date?: string;
 }
 
@@ -53,11 +56,12 @@ export function useJournal({
 	const [date, setDateInternal] = useState(() => initialDate || getTodayString());
 
 	// Convert backend entry to frontend format
-	const mapEntry = (entry: { id: string; content: string; tags: string[]; created: unknown }): JournalEntryData => ({
+	const mapEntry = (entry: { id: string; content: string; tags: string[]; created: unknown; projectAlias?: string }): JournalEntryData => ({
 		id: entry.id,
 		content: entry.content,
 		tags: entry.tags || [],
 		created: typeof entry.created === "string" ? entry.created : new Date().toISOString(),
+		projectAlias: entry.projectAlias,
 	});
 
 	// Fetch entries
@@ -66,9 +70,17 @@ export function useJournal({
 		setError(null);
 
 		try {
-			const result = await GetActiveEntries(projectAlias, date);
-			const mappedEntries = (result || []).map(mapEntry);
-			setEntries(mappedEntries);
+			if (projectAlias === "all") {
+				// Fetch from all projects
+				const result = await GetAllActiveEntries(date);
+				const mappedEntries = (result || []).map(mapEntry);
+				setEntries(mappedEntries);
+			} else {
+				// Fetch from specific project
+				const result = await GetActiveEntries(projectAlias, date);
+				const mappedEntries = (result || []).map(mapEntry);
+				setEntries(mappedEntries);
+			}
 		} catch (err) {
 			console.error("Failed to fetch journal entries:", err);
 			setError("Failed to load entries");
@@ -82,6 +94,50 @@ export function useJournal({
 	useEffect(() => {
 		refresh();
 	}, [refresh]);
+
+	// Subscribe to journal entry events for real-time updates
+	useEffect(() => {
+		const unsubscribeCreated = Events.On("yanta/entry/created", (ev: { data: { type?: string; projectId?: string; date?: string } }) => {
+			// Only refresh if it's a journal entry for the current project/date
+			if (ev.data?.type === "journal") {
+				const eventProject = ev.data.projectId;
+				const eventDate = ev.data.date;
+
+				// Refresh if viewing all projects, or if the project and date match
+				if (projectAlias === "all" || (eventProject === projectAlias && eventDate === date)) {
+					refresh();
+				}
+			}
+		});
+
+		const unsubscribeDeleted = Events.On("yanta/entry/deleted", (ev: { data: { type?: string; projectId?: string; date?: string } }) => {
+			if (ev.data?.type === "journal") {
+				const eventProject = ev.data.projectId;
+				const eventDate = ev.data.date;
+
+				if (projectAlias === "all" || (eventProject === projectAlias && eventDate === date)) {
+					refresh();
+				}
+			}
+		});
+
+		const unsubscribeRestored = Events.On("yanta/entry/restored", (ev: { data: { type?: string; projectId?: string; date?: string } }) => {
+			if (ev.data?.type === "journal") {
+				const eventProject = ev.data.projectId;
+				const eventDate = ev.data.date;
+
+				if (projectAlias === "all" || (eventProject === projectAlias && eventDate === date)) {
+					refresh();
+				}
+			}
+		});
+
+		return () => {
+			unsubscribeCreated();
+			unsubscribeDeleted();
+			unsubscribeRestored();
+		};
+	}, [projectAlias, date, refresh]);
 
 	// Update date and trigger refresh
 	const setDate = useCallback((newDate: string) => {

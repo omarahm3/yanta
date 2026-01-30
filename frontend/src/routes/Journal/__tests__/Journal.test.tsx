@@ -1,6 +1,40 @@
+import type React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Journal } from "../Journal";
+import { DialogProvider, HelpProvider, HotkeyProvider, ProjectContext } from "../../../contexts";
+
+// Mock Layout to render children only (sidebar/header tested elsewhere)
+vi.mock("../../../components/Layout", () => ({
+	Layout: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock("../../../hooks/useSidebarSections", () => ({
+	useSidebarSections: () => [],
+}));
+
+// Test wrapper with project context and hotkey provider
+const mockProject = { id: "1", alias: "personal", name: "Personal", createdAt: "", updatedAt: "", startDate: "" };
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+	<DialogProvider>
+		<HelpProvider>
+			<HotkeyProvider>
+				<ProjectContext.Provider
+					value={{
+						currentProject: mockProject,
+						projects: [mockProject],
+						archivedProjects: [],
+						setCurrentProject: vi.fn(),
+						loadProjects: vi.fn(),
+						isLoading: false,
+					}}
+				>
+					{children}
+				</ProjectContext.Provider>
+			</HotkeyProvider>
+		</HelpProvider>
+	</DialogProvider>
+);
 
 // Mock the journal service
 vi.mock("../../../../bindings/yanta/internal/journal/wailsservice", () => ({
@@ -20,9 +54,11 @@ vi.mock("../../../../bindings/yanta/internal/journal/wailsservice", () => ({
 			},
 		])
 	),
+	GetAllActiveEntries: vi.fn(() => Promise.resolve([])),
 	DeleteEntry: vi.fn(() => Promise.resolve()),
 	RestoreEntry: vi.fn(() => Promise.resolve()),
 	ListDates: vi.fn(() => Promise.resolve(["2026-01-28", "2026-01-30"])),
+	ListAllDates: vi.fn(() => Promise.resolve([])),
 	PromoteToDocument: vi.fn(() => Promise.resolve("projects/work/doc-123.json")),
 }));
 
@@ -60,7 +96,7 @@ describe("Journal", () => {
 	});
 
 	it("renders date picker", async () => {
-		render(<Journal projectAlias="personal" />);
+		render(<Journal />, { wrapper: TestWrapper });
 
 		await waitFor(() => {
 			// Should show current date (formatted)
@@ -71,7 +107,7 @@ describe("Journal", () => {
 	});
 
 	it("renders entry list", async () => {
-		render(<Journal projectAlias="personal" />);
+		render(<Journal />, { wrapper: TestWrapper });
 
 		await waitFor(() => {
 			expect(screen.getByText("Fix the auth bug")).toBeInTheDocument();
@@ -86,52 +122,37 @@ describe("Journal", () => {
 		const mockGet = GetActiveEntries as ReturnType<typeof vi.fn>;
 		mockGet.mockResolvedValue([]);
 
-		render(<Journal projectAlias="personal" />);
+		render(<Journal />, { wrapper: TestWrapper });
 
 		await waitFor(() => {
 			expect(screen.getByText(/no entries/i)).toBeInTheDocument();
 		});
 	});
 
-	it("allows multi-select for promote", async () => {
-		render(<Journal projectAlias="personal" />);
+	it("renders status bar with entry count", async () => {
+		render(<Journal />, { wrapper: TestWrapper });
 
 		await waitFor(() => {
-			expect(screen.getByText("Fix the auth bug")).toBeInTheDocument();
-		});
-
-		// Enable selection mode
-		const selectButton = screen.getByRole("button", { name: /select/i });
-		fireEvent.click(selectButton);
-
-		// Checkboxes should appear
-		await waitFor(() => {
-			expect(screen.getAllByRole("checkbox")).toHaveLength(2);
+			expect(screen.getByText("2 entries")).toBeInTheDocument();
 		});
 	});
 
-	it("shows promote dialog", async () => {
-		render(<Journal projectAlias="personal" />);
+	it("shows selection controls in status bar when entries selected", async () => {
+		render(<Journal />, { wrapper: TestWrapper });
 
 		await waitFor(() => {
 			expect(screen.getByText("Fix the auth bug")).toBeInTheDocument();
 		});
 
-		// Enable selection mode
-		const selectButton = screen.getByRole("button", { name: /select/i });
-		fireEvent.click(selectButton);
-
-		// Select an entry
-		const checkboxes = screen.getAllByRole("checkbox");
-		fireEvent.click(checkboxes[0]);
-
-		// Click promote button
-		const promoteButton = screen.getByRole("button", { name: /promote/i });
-		fireEvent.click(promoteButton);
+		// Click the selection toggle on first entry
+		const selectButtons = screen.getAllByRole("button", { name: /select/i });
+		fireEvent.click(selectButtons[0]);
 
 		await waitFor(() => {
-			// Check for the dialog heading specifically
-			expect(screen.getByRole("heading", { name: /move to document/i })).toBeInTheDocument();
+			expect(screen.getByText("1 entry selected")).toBeInTheDocument();
+			expect(screen.getByText("Clear")).toBeInTheDocument();
+			expect(screen.getByText("Promote to Doc")).toBeInTheDocument();
+			expect(screen.getByText("Delete")).toBeInTheDocument();
 		});
 	});
 
@@ -140,7 +161,7 @@ describe("Journal", () => {
 			"../../../../bindings/yanta/internal/journal/wailsservice"
 		);
 
-		render(<Journal projectAlias="personal" />);
+		render(<Journal />, { wrapper: TestWrapper });
 
 		await waitFor(() => {
 			expect(screen.getByText("Fix the auth bug")).toBeInTheDocument();
@@ -155,20 +176,37 @@ describe("Journal", () => {
 		});
 	});
 
-	it("deletes entry with confirmation", async () => {
+	it("deletes selected entries", async () => {
 		const { DeleteEntry } = await import(
 			"../../../../bindings/yanta/internal/journal/wailsservice"
 		);
 
-		render(<Journal projectAlias="personal" />);
+		render(<Journal />, { wrapper: TestWrapper });
 
 		await waitFor(() => {
 			expect(screen.getByText("Fix the auth bug")).toBeInTheDocument();
 		});
 
-		// Find and click delete button
-		const deleteButtons = screen.getAllByRole("button", { name: /delete/i });
-		fireEvent.click(deleteButtons[0]);
+		// Select an entry
+		const selectButtons = screen.getAllByRole("button", { name: /select/i });
+		fireEvent.click(selectButtons[0]);
+
+		// Click delete in status bar
+		await waitFor(() => {
+			expect(screen.getByText("Delete")).toBeInTheDocument();
+		});
+
+		const deleteButton = screen.getByText("Delete");
+		fireEvent.click(deleteButton);
+
+		// Confirm dialog should appear
+		await waitFor(() => {
+			expect(screen.getByText("Delete Journal Entry")).toBeInTheDocument();
+		});
+
+		// Click Confirm in the dialog
+		const confirmButton = screen.getByText("Confirm");
+		fireEvent.click(confirmButton);
 
 		await waitFor(() => {
 			expect(DeleteEntry).toHaveBeenCalledWith(
@@ -176,6 +214,17 @@ describe("Journal", () => {
 				expect.any(String),
 				"abc123"
 			);
+		});
+	});
+
+	it("shows project context in status bar", async () => {
+		render(<Journal />, { wrapper: TestWrapper });
+
+		await waitFor(() => {
+			expect(screen.getByText("Context:")).toBeInTheDocument();
+			// "personal" appears twice (header and status bar), use getAllByText
+			const personalTexts = screen.getAllByText("personal");
+			expect(personalTexts.length).toBeGreaterThan(0);
 		});
 	});
 });

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { JournalEntry } from "../JournalEntry";
 
@@ -12,7 +12,11 @@ const mockEntry = {
 describe("JournalEntry", () => {
 	it("renders entry content", () => {
 		render(
-			<JournalEntry entry={mockEntry} onDelete={vi.fn()} onEdit={vi.fn()} />
+			<JournalEntry
+				entry={mockEntry}
+				index={0}
+				onEntryClick={vi.fn()}
+			/>
 		);
 
 		expect(screen.getByText("Fix the auth bug")).toBeInTheDocument();
@@ -20,7 +24,11 @@ describe("JournalEntry", () => {
 
 	it("renders tags", () => {
 		render(
-			<JournalEntry entry={mockEntry} onDelete={vi.fn()} onEdit={vi.fn()} />
+			<JournalEntry
+				entry={mockEntry}
+				index={0}
+				onEntryClick={vi.fn()}
+			/>
 		);
 
 		expect(screen.getByText("#urgent")).toBeInTheDocument();
@@ -29,93 +37,140 @@ describe("JournalEntry", () => {
 
 	it("renders timestamp", () => {
 		render(
-			<JournalEntry entry={mockEntry} onDelete={vi.fn()} onEdit={vi.fn()} />
+			<JournalEntry
+				entry={mockEntry}
+				index={0}
+				onEntryClick={vi.fn()}
+			/>
 		);
 
 		// Should show a time (format depends on locale/timezone)
-		// The output is "10:15 AM" or similar depending on environment
 		expect(screen.getByText(/\d{1,2}:\d{2}/)).toBeInTheDocument();
 	});
 
-	it("expands on click for edit", () => {
-		const onEdit = vi.fn();
+	it("renders index number", () => {
 		render(
-			<JournalEntry entry={mockEntry} onDelete={vi.fn()} onEdit={onEdit} />
+			<JournalEntry
+				entry={mockEntry}
+				index={2}
+				onEntryClick={vi.fn()}
+			/>
+		);
+
+		expect(screen.getByText("3.")).toBeInTheDocument();
+	});
+
+	it("calls onEntryClick when content clicked", () => {
+		const onEntryClick = vi.fn();
+		render(
+			<JournalEntry
+				entry={mockEntry}
+				index={0}
+				onEntryClick={onEntryClick}
+			/>
 		);
 
 		const content = screen.getByText("Fix the auth bug");
 		fireEvent.click(content);
 
-		expect(onEdit).toHaveBeenCalledWith(mockEntry);
-	});
-
-	it("shows delete button on hover", () => {
-		render(
-			<JournalEntry entry={mockEntry} onDelete={vi.fn()} onEdit={vi.fn()} />
-		);
-
-		const entry = screen.getByTestId("journal-entry");
-
-		// Delete button should be hidden initially (opacity-0)
-		const deleteButton = screen.getByRole("button", { name: /delete/i });
-		expect(deleteButton).toHaveClass("opacity-0");
-
-		// On hover, delete button becomes visible
-		fireEvent.mouseEnter(entry);
-		expect(deleteButton).toHaveClass("group-hover:opacity-100");
-	});
-
-	it("calls onDelete with entry id", () => {
-		const onDelete = vi.fn();
-		render(
-			<JournalEntry entry={mockEntry} onDelete={onDelete} onEdit={vi.fn()} />
-		);
-
-		const deleteButton = screen.getByRole("button", { name: /delete/i });
-		fireEvent.click(deleteButton);
-
-		expect(onDelete).toHaveBeenCalledWith("abc123");
+		expect(onEntryClick).toHaveBeenCalledWith("abc123");
 	});
 
 	it("renders entry without tags", () => {
 		const entryNoTags = { ...mockEntry, tags: [] };
 		render(
-			<JournalEntry entry={entryNoTags} onDelete={vi.fn()} onEdit={vi.fn()} />
+			<JournalEntry
+				entry={entryNoTags}
+				index={0}
+				onEntryClick={vi.fn()}
+			/>
 		);
 
 		expect(screen.getByText("Fix the auth bug")).toBeInTheDocument();
 		expect(screen.queryByText("#")).not.toBeInTheDocument();
 	});
 
-	it("handles selected state", () => {
+	it("shows selection toggle button", () => {
 		render(
 			<JournalEntry
 				entry={mockEntry}
-				onDelete={vi.fn()}
-				onEdit={vi.fn()}
+				index={0}
+				onEntryClick={vi.fn()}
+				onToggleSelection={vi.fn()}
+			/>
+		);
+
+		expect(screen.getByRole("button", { name: /select/i })).toBeInTheDocument();
+	});
+
+	it("calls onToggleSelection when toggle clicked", () => {
+		const onToggleSelection = vi.fn();
+		render(
+			<JournalEntry
+				entry={mockEntry}
+				index={0}
+				onEntryClick={vi.fn()}
+				onToggleSelection={onToggleSelection}
+			/>
+		);
+
+		const toggleButton = screen.getByRole("button", { name: /select/i });
+		fireEvent.click(toggleButton);
+
+		expect(onToggleSelection).toHaveBeenCalledWith("abc123");
+	});
+
+	it("shows checkmark when selected", () => {
+		render(
+			<JournalEntry
+				entry={mockEntry}
+				index={0}
+				onEntryClick={vi.fn()}
+				isSelected
+			/>
+		);
+
+		expect(screen.getByText("✓")).toBeInTheDocument();
+	});
+
+	it("applies highlighted styling", () => {
+		render(
+			<JournalEntry
+				entry={mockEntry}
+				index={0}
+				onEntryClick={vi.fn()}
+				isHighlighted
+			/>
+		);
+
+		const entry = screen.getByTestId("journal-entry");
+		expect(entry).toHaveClass("border-l-accent");
+	});
+
+	it("applies selected styling", () => {
+		render(
+			<JournalEntry
+				entry={mockEntry}
+				index={0}
+				onEntryClick={vi.fn()}
 				isSelected
 			/>
 		);
 
 		const entry = screen.getByTestId("journal-entry");
-		expect(entry).toHaveClass("border-[#61AFEF]");
+		expect(entry).toHaveClass("border-l-green");
 	});
 
-	it("handles checkbox selection", () => {
-		const onSelect = vi.fn();
+	it("renders project alias when present", () => {
+		const entryWithProject = { ...mockEntry, projectAlias: "@work" };
 		render(
 			<JournalEntry
-				entry={mockEntry}
-				onDelete={vi.fn()}
-				onEdit={vi.fn()}
-				onSelect={onSelect}
-				showCheckbox
+				entry={entryWithProject}
+				index={0}
+				onEntryClick={vi.fn()}
 			/>
 		);
 
-		const checkbox = screen.getByRole("checkbox");
-		fireEvent.click(checkbox);
-
-		expect(onSelect).toHaveBeenCalledWith("abc123", true);
+		expect(screen.getByText("@work")).toBeInTheDocument();
 	});
 });

@@ -1,128 +1,133 @@
 import type React from "react";
 import { cn } from "../../lib/utils";
+import { Button } from "../../components/ui";
 
 export interface JournalEntryData {
 	id: string;
 	content: string;
 	tags: string[];
 	created: string;
+	projectAlias?: string; // Present when viewing "All Projects"
 }
 
 export interface JournalEntryProps {
 	entry: JournalEntryData;
-	onDelete: (id: string) => void;
-	onEdit: (entry: JournalEntryData) => void;
-	onSelect?: (id: string, selected: boolean) => void;
+	index: number;
+	onEntryClick: (id: string) => void;
+	onToggleSelection?: (id: string) => void;
+	isHighlighted?: boolean;
 	isSelected?: boolean;
-	showCheckbox?: boolean;
 	className?: string;
 }
 
 /**
  * Single journal entry display component
  * Based on PRD Section 7.9 - Journal Entry Operations
+ * Follows Dashboard DocumentList pattern for consistent UX
  */
 export const JournalEntry: React.FC<JournalEntryProps> = ({
 	entry,
-	onDelete,
-	onEdit,
-	onSelect,
+	index,
+	onEntryClick,
+	onToggleSelection,
+	isHighlighted = false,
 	isSelected = false,
-	showCheckbox = false,
 	className,
 }) => {
 	const formattedTime = formatTime(entry.created);
 
-	const handleContentClick = () => {
-		onEdit(entry);
-	};
+	const borderClass = isHighlighted
+		? "border-l-accent"
+		: isSelected
+			? "border-l-green"
+			: "border-l-transparent";
 
-	const handleDeleteClick = (e: React.MouseEvent) => {
-		e.stopPropagation();
-		onDelete(entry.id);
-	};
+	const itemClasses = cn(
+		"group border-b border-border px-4 py-4 transition-colors border-l-4 hover:bg-surface/60",
+		isHighlighted && "bg-surface/80",
+		borderClass,
+		className
+	);
 
-	const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		e.stopPropagation();
-		onSelect?.(entry.id, e.target.checked);
-	};
+	const indexClasses = cn(
+		"text-sm font-mono shrink-0 pt-1",
+		isSelected ? "text-green font-bold" : isHighlighted ? "text-accent" : "text-text-dim"
+	);
+
+	const toggleClasses = cn(
+		"mt-1 inline-flex h-5 w-5 items-center justify-center rounded border text-xs font-semibold transition-colors",
+		isSelected
+			? "border-green text-green"
+			: "border-border text-text-dim hover:text-text hover:border-text"
+	);
 
 	return (
 		<div
 			data-testid="journal-entry"
-			className={cn(
-				"group relative p-3 bg-surface border rounded-lg transition-colors",
-				isSelected ? "border-[#61AFEF]" : "border-border hover:border-accent",
-				className
-			)}
+			className={itemClasses}
+			role="listitem"
+			aria-selected={isSelected}
+			data-highlighted={isHighlighted}
+			data-selected={isSelected}
 		>
 			<div className="flex items-start gap-3">
-				{/* Checkbox for multi-select */}
-				{showCheckbox && (
-					<input
-						type="checkbox"
-						checked={isSelected}
-						onChange={handleCheckboxChange}
-						className="mt-1 rounded border-border"
-					/>
-				)}
+				{/* Selection toggle */}
+				<Button
+					variant="ghost"
+					size="sm"
+					className={toggleClasses}
+					data-selected={isSelected}
+					aria-pressed={isSelected}
+					aria-label={isSelected ? `Deselect entry` : `Select entry`}
+					onClick={(e) => {
+						e.stopPropagation();
+						onToggleSelection?.(entry.id);
+					}}
+				>
+					{isSelected ? "✓" : ""}
+				</Button>
+
+				{/* Index number */}
+				<span className={indexClasses}>{index + 1}.</span>
 
 				{/* Content */}
-				<div className="flex-1 min-w-0">
-					{/* Text content - clickable for edit */}
-					<div
-						className="text-sm text-text-primary cursor-pointer hover:text-accent"
-						onClick={handleContentClick}
-					>
+				<div
+					className="flex-1 cursor-pointer min-w-0"
+					onClick={() => onEntryClick(entry.id)}
+				>
+					{/* Text content */}
+					<div className="text-sm text-text-primary hover:text-accent">
 						{entry.content}
 					</div>
 
-					{/* Tags and time */}
-					<div className="flex items-center gap-2 mt-2 text-xs">
-						{/* Tags */}
-						{entry.tags.length > 0 && (
-							<div className="flex gap-1.5">
-								{entry.tags.map((tag) => (
-									<span key={tag} className="text-[#98C379]">
-										#{tag}
-									</span>
-								))}
-							</div>
+					{/* Project, Tags and time */}
+					<div className="flex items-center gap-2 mt-2 text-xs text-text-dim">
+						{/* Project badge (when viewing all projects) */}
+						{entry.projectAlias && (
+							<>
+								<span className="text-[#61AFEF]">{entry.projectAlias}</span>
+								<span>·</span>
+							</>
 						)}
 
-						{/* Separator */}
+						{/* Tags */}
 						{entry.tags.length > 0 && (
-							<span className="text-text-secondary">·</span>
+							<>
+								<div className="flex gap-1.5">
+									{entry.tags.map((tag) => (
+										<span key={tag} className="text-[#98C379]">
+											#{tag}
+										</span>
+									))}
+								</div>
+								<span>·</span>
+							</>
 						)}
 
 						{/* Time */}
-						<span className="text-text-secondary">{formattedTime}</span>
+						<span>{formattedTime}</span>
 					</div>
 				</div>
-
-				{/* Delete button - visible on hover */}
-				<button
-					type="button"
-					onClick={handleDeleteClick}
-					className="opacity-0 group-hover:opacity-100 p-1 text-text-secondary hover:text-[#E06C75] transition-opacity"
-					aria-label="Delete entry"
-				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						width="16"
-						height="16"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="2"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-					>
-						<path d="M3 6h18" />
-						<path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-						<path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-					</svg>
-				</button>
 			</div>
 		</div>
 	);
