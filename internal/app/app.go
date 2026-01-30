@@ -20,6 +20,7 @@ import (
 	"yanta/internal/events"
 	"yanta/internal/git"
 	"yanta/internal/indexer"
+	"yanta/internal/journal"
 	"yanta/internal/link"
 	"yanta/internal/logger"
 	"yanta/internal/project"
@@ -128,6 +129,10 @@ func New(cfg Config) (*App, error) {
 		SyncManager: syncManager,
 	})
 
+	// Journal service for Quick Launch feature
+	journalService := journal.NewService(v, eventBus)
+	journalWailsService := journal.NewWailsService(journalService)
+
 	logger.Debugf("services created")
 
 	if err := seedDemoDocuments(v, documentStore, idx); err != nil {
@@ -158,6 +163,7 @@ func New(cfg Config) (*App, error) {
 		Search:           searchService,
 		System:           systemService,
 		Assets:           assetService,
+		Journal:          journalWailsService,
 		ProjectCommands:  projectCommands,
 		GlobalCommands:   globalCommands,
 		DocumentCommands: documentCommands,
