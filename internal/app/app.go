@@ -192,6 +192,11 @@ func (a *App) SetMainWindow(window *application.WebviewWindow) {
 	}
 }
 
+// GetMainWindow returns the main window reference.
+func (a *App) GetMainWindow() *application.WebviewWindow {
+	return a.mainWindow
+}
+
 func (a *App) Startup(ctx context.Context) {
 	defer func() {
 		if r := recover(); r != nil {

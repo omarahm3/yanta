@@ -20,6 +20,7 @@ import (
 	"yanta/internal/config"
 	"yanta/internal/db"
 	"yanta/internal/logger"
+	"yanta/internal/quickcapture"
 	"yanta/internal/vault"
 	windowcfg "yanta/internal/window"
 )
@@ -70,10 +71,40 @@ func run() {
 
 	customAssetHandler := createCustomAssetHandler(a.Bindings.Assets)
 
+	// Check if this is a quick capture launch
+	isQuickLaunch := hasQuickFlag(os.Args)
+	logger.Infof("quick launch mode: %v", isQuickLaunch)
+
 	wailsApp := application.New(application.Options{
 		Name:        "YANTA",
 		Description: "Your Advanced Note Taking Application",
 		Icon:        appIcon,
+
+		// SingleInstance ensures only one Yanta instance runs.
+		// Second instance launches trigger OnSecondInstanceLaunch.
+		SingleInstance: &application.SingleInstanceOptions{
+			UniqueID: "com.yanta.app",
+			OnSecondInstanceLaunch: func(data application.SecondInstanceData) {
+				logger.Infof("second instance launched with args: %v", data.Args)
+
+				// Check for --quick or -q flag
+				for _, arg := range data.Args {
+					if arg == "--quick" || arg == "-q" {
+						logger.Info("opening Quick Capture window from second instance")
+						quickcapture.ShowWindow()
+						return
+					}
+				}
+
+				// No quick flag - focus main window
+				logger.Info("focusing main window from second instance")
+				if mainWindow := a.GetMainWindow(); mainWindow != nil {
+					mainWindow.Show()
+					mainWindow.Focus()
+				}
+			},
+		},
+
 		Services: []application.Service{
 			application.NewService(a.Bindings.Projects),
 			application.NewService(a.Bindings.Documents),
@@ -99,6 +130,9 @@ func run() {
 	})
 
 	a.SetWailsApp(wailsApp)
+
+	// Set app reference for Quick Capture window creation
+	quickcapture.SetApp(wailsApp)
 
 	mainWindow := wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:            "YANTA",
@@ -133,6 +167,12 @@ func run() {
 		func(event *application.ApplicationEvent) {
 			logger.Debug("ApplicationStarted event fired, calling app.Startup()")
 			a.Startup(context.Background())
+
+			// If this is a quick launch, open Quick Capture window
+			if isQuickLaunch {
+				logger.Info("opening Quick Capture window on startup")
+				quickcapture.CreateWindow(wailsApp)
+			}
 		},
 	)
 
@@ -217,6 +257,16 @@ func isNVIDIA() bool {
 func isWayland() bool {
 	return os.Getenv("XDG_SESSION_TYPE") == "wayland" ||
 		os.Getenv("WAYLAND_DISPLAY") != ""
+}
+
+// hasQuickFlag checks if --quick or -q flag is present in args
+func hasQuickFlag(args []string) bool {
+	for _, arg := range args {
+		if arg == "--quick" || arg == "-q" {
+			return true
+		}
+	}
+	return false
 }
 
 func createCustomAssetHandler(assetService *asset.Service) application.Middleware {
