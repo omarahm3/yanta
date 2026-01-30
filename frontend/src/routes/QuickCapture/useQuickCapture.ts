@@ -59,16 +59,18 @@ export function useQuickCapture(): UseQuickCaptureReturn {
 		setError(null);
 
 		try {
+			const projectAlias =
+				selectedProject.startsWith("@") ? selectedProject : `@${selectedProject}`;
+
 			const request = new AppendEntryRequest({
-				projectAlias: selectedProject,
+				projectAlias,
 				content: cleanContent,
 				tags: tags,
 			});
 
 			await AppendEntry(request);
 
-			// Remember last project
-			localStorage.setItem(LAST_PROJECT_KEY, selectedProject);
+			localStorage.setItem(LAST_PROJECT_KEY, projectAlias);
 
 			// Clear content and tags after successful save
 			setContentInternal("");

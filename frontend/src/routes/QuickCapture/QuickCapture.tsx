@@ -4,7 +4,7 @@ import { Window } from "@wailsio/runtime";
 import { ListActive } from "../../../bindings/yanta/internal/project/service";
 import { cn } from "../../lib/utils";
 import { QuickEditor } from "./QuickEditor";
-import { ProjectPicker, type ProjectOption } from "./ProjectPicker";
+import type { ProjectOption } from "./ProjectPicker";
 import { TagChips } from "./TagChips";
 import { useQuickCapture } from "./useQuickCapture";
 
@@ -21,8 +21,6 @@ export const QuickCapture: React.FC = () => {
 		content,
 		setContent,
 		tags,
-		selectedProject,
-		setSelectedProject,
 		error,
 		isSaving,
 		save,
@@ -30,7 +28,7 @@ export const QuickCapture: React.FC = () => {
 		clear,
 	} = useQuickCapture();
 
-	// Load projects on mount
+	// Load projects on mount (for inline @ project list)
 	useEffect(() => {
 		const loadProjects = async () => {
 			try {
@@ -39,15 +37,10 @@ export const QuickCapture: React.FC = () => {
 					.filter((p): p is NonNullable<typeof p> => p !== null)
 					.map((p) => ({
 						id: p.id,
-						alias: p.alias,
+						alias: (p.alias ?? "").replace(/^@/, ""),
 						name: p.name,
 					}));
 				setProjects(mapped);
-
-				// Set first project if none selected
-				if (!selectedProject && mapped.length > 0) {
-					setSelectedProject(mapped[0].alias);
-				}
 			} catch (err) {
 				console.error("Failed to load projects:", err);
 			} finally {
@@ -56,7 +49,7 @@ export const QuickCapture: React.FC = () => {
 		};
 
 		loadProjects();
-	}, [selectedProject, setSelectedProject]);
+	}, []);
 
 	const handleClose = useCallback(() => {
 		try {
@@ -127,22 +120,13 @@ export const QuickCapture: React.FC = () => {
 	}
 
 	return (
-		<div className="h-full flex flex-col bg-[#1B2636] p-4 select-none">
-			{/* Project Picker */}
-			<div className="mb-3">
-				<ProjectPicker
-					projects={projects}
-					selectedAlias={selectedProject}
-					onSelect={setSelectedProject}
-				/>
-			</div>
-
-			{/* Editor */}
-			<div className="flex-1 mb-3">
+		<div className="flex flex-col bg-[#1B2636] p-4 select-none w-full">
+			<div className="mb-3 flex-shrink-0">
 				<QuickEditor
 					value={content}
 					onChange={setContent}
 					onKeyDown={handleKeyDown}
+					projects={projects}
 					autoFocus
 					maxLength={10000}
 				/>

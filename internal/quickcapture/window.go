@@ -12,9 +12,8 @@ import (
 )
 
 const (
-	// Window dimensions from PRD Section 3.4
 	WindowWidth  = 500
-	WindowHeight = 220
+	WindowHeight = 200
 )
 
 var (

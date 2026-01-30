@@ -5,6 +5,12 @@ import { QuickCapture } from "../QuickCapture";
 // Create mock function before vi.mock hoisting
 const mockClose = vi.fn();
 
+// Mock projects – use this list so tests set "last project" from actual mock data
+const MOCK_PROJECTS = [
+	{ id: "1", alias: "personal", name: "Personal" },
+	{ id: "2", alias: "work", name: "Work" },
+];
+
 // Mock the journal service
 vi.mock("../../../../bindings/yanta/internal/journal/wailsservice", () => ({
 	AppendEntry: vi.fn(() => Promise.resolve({ id: "abc123", content: "Test" })),
@@ -12,12 +18,7 @@ vi.mock("../../../../bindings/yanta/internal/journal/wailsservice", () => ({
 
 // Mock the project service
 vi.mock("../../../../bindings/yanta/internal/project/service", () => ({
-	ListActive: vi.fn(() =>
-		Promise.resolve([
-			{ id: "1", alias: "personal", name: "Personal" },
-			{ id: "2", alias: "work", name: "Work" },
-		])
-	),
+	ListActive: vi.fn(() => Promise.resolve(MOCK_PROJECTS)),
 }));
 
 // Mock window close - use module-level mock
@@ -66,9 +67,6 @@ describe("QuickCapture", () => {
 			expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
 		});
 
-		// Project picker
-		expect(screen.getByRole("button")).toBeInTheDocument();
-
 		// Footer hints - use getAllByText since there are multiple "Save" elements
 		expect(screen.getAllByText(/Save/).length).toBeGreaterThan(0);
 		expect(screen.getByText(/Cancel/)).toBeInTheDocument();
@@ -79,6 +77,8 @@ describe("QuickCapture", () => {
 			"../../../../bindings/yanta/internal/journal/wailsservice"
 		);
 
+		// Use a project from the mock list so we don't assume a hardcoded project exists
+		localStorage.setItem("yanta:lastProject", MOCK_PROJECTS[0].alias);
 		render(<QuickCapture />);
 
 		await waitFor(() => {
@@ -147,6 +147,8 @@ describe("QuickCapture", () => {
 			"../../../../bindings/yanta/internal/journal/wailsservice"
 		);
 
+		// Use a project from the mock list so we don't assume a hardcoded project exists
+		localStorage.setItem("yanta:lastProject", MOCK_PROJECTS[0].alias);
 		render(<QuickCapture />);
 
 		await waitFor(() => {
@@ -185,10 +187,36 @@ describe("QuickCapture", () => {
 		});
 	});
 
-	it("shows error when saving without project", async () => {
-		// Clear any saved project
-		localStorage.removeItem("yanta:lastProject");
+	it("shows project list when typing @ and filters as user types", async () => {
+		render(<QuickCapture />);
 
+		await waitFor(() => {
+			expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
+		});
+
+		const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+		fireEvent.change(textarea, { target: { value: "@" } });
+		textarea.setSelectionRange(1, 1);
+		fireEvent.select(textarea);
+
+		await waitFor(() => {
+			expect(screen.getByTestId("project-list")).toBeInTheDocument();
+			expect(screen.getByText("@personal")).toBeInTheDocument();
+			expect(screen.getByText("@work")).toBeInTheDocument();
+		});
+
+		fireEvent.change(textarea, { target: { value: "@wo" } });
+		textarea.setSelectionRange(3, 3);
+		fireEvent.select(textarea);
+
+		await waitFor(() => {
+			expect(screen.getByText("@work")).toBeInTheDocument();
+			expect(screen.queryByText("@personal")).not.toBeInTheDocument();
+		});
+	});
+
+	it("shows error when saving without project", async () => {
+		localStorage.removeItem("yanta:lastProject");
 		render(<QuickCapture />);
 
 		await waitFor(() => {
@@ -197,8 +225,10 @@ describe("QuickCapture", () => {
 
 		const textarea = screen.getByRole("textbox");
 		fireEvent.change(textarea, { target: { value: "Test" } });
+		fireEvent.keyDown(textarea, { key: "Enter" });
 
-		// Remove project selection
-		// Since we can't easily unselect, just check that the component handles the case
+		await waitFor(() => {
+			expect(screen.getByText(/Please select a project/)).toBeInTheDocument();
+		});
 	});
 });
