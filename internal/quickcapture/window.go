@@ -55,8 +55,8 @@ func CreateWindow(app *application.App) *application.WebviewWindow {
 		Hidden:        false,
 		DisableResize: true,
 		URL:           "/quick-capture",
-		// Background color: #1B2636 from PRD Section 3.2
-		BackgroundColour: application.NewRGBA(27, 38, 54, 255),
+		// Transparent background to allow CSS rounded corners
+		BackgroundColour: application.NewRGBA(0, 0, 0, 0),
 		Mac: application.MacWindow{
 			TitleBar:   application.MacTitleBarHidden,
 			Appearance: application.NSAppearanceNameDarkAqua,
@@ -65,7 +65,7 @@ func CreateWindow(app *application.App) *application.WebviewWindow {
 			Theme: application.Dark,
 		},
 		Linux: application.LinuxWindow{
-			WindowIsTranslucent: false,
+			WindowIsTranslucent: true,
 			WebviewGpuPolicy:    application.WebviewGpuPolicyOnDemand,
 		},
 	})

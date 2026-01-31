@@ -113,14 +113,14 @@ export const QuickCapture: React.FC = () => {
 
 	if (isLoading) {
 		return (
-			<div className="h-full flex items-center justify-center bg-[#1B2636] text-[#5C6B7A]">
+			<div className="h-full flex items-center justify-center bg-bg text-text-dim rounded-2xl border border-accent/30">
 				Loading...
 			</div>
 		);
 	}
 
 	return (
-		<div className="flex flex-col h-full bg-[#1B2636] p-4 select-none w-full">
+		<div className="flex flex-col h-full bg-bg p-4 select-none w-full rounded-2xl border border-accent/30">
 			<div className="flex-1 min-h-0 mb-3">
 				<QuickEditor
 					value={content}
@@ -153,15 +153,15 @@ export const QuickCapture: React.FC = () => {
 			)}
 
 			{/* Footer with keyboard hints */}
-			<div className="flex items-center justify-center gap-6 text-xs text-[#5C6B7A] pt-1">
+			<div className="flex items-center justify-center gap-6 text-xs text-text-dim pt-1">
 				<span>
-					<kbd className="px-1.5 py-0.5 bg-[#2D3F54] rounded">⏎</kbd> Save
+					<kbd className="px-1.5 py-0.5 bg-surface rounded">⏎</kbd> Save
 				</span>
 				<span>
-					<kbd className="px-1.5 py-0.5 bg-[#2D3F54] rounded">⇧⏎</kbd> Save & New
+					<kbd className="px-1.5 py-0.5 bg-surface rounded">⇧⏎</kbd> Save & New
 				</span>
 				<span>
-					<kbd className="px-1.5 py-0.5 bg-[#2D3F54] rounded">⎋</kbd> Cancel
+					<kbd className="px-1.5 py-0.5 bg-surface rounded">⎋</kbd> Cancel
 				</span>
 			</div>
 		</div>

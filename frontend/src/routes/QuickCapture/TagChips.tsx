@@ -22,7 +22,7 @@ export const TagChips: React.FC<TagChipsProps> = ({ tags, onRemove, className })
 				<span
 					key={tag}
 					data-testid="tag-chip"
-					className="tag-chip inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-[#2D3F54] text-[#98C379] font-medium"
+					className="tag-chip inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-border text-green font-medium"
 				>
 					<span className="text-[#98C379]/60">#</span>
 					{tag}

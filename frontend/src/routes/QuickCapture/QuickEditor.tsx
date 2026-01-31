@@ -180,7 +180,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 		<div
 			ref={containerRef}
 			className={cn(
-				"relative h-full rounded-lg border border-[#3D4F63] bg-[#232F3E]",
+				"relative h-full rounded-lg border border-border bg-surface",
 				className
 			)}
 		>
@@ -201,7 +201,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 				onKeyDown={handleKeyDown}
 				maxLength={maxLength}
 				placeholder={placeholder}
-				className="relative w-full h-full min-h-[80px] p-3 bg-transparent border-0 rounded-lg font-mono text-sm leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-[#61AFEF] focus:ring-inset text-transparent caret-[#E8E8E8] placeholder:text-[#5C6B7A]"
+				className="relative w-full h-full min-h-[80px] p-3 bg-transparent border-0 rounded-lg font-mono text-sm leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-accent focus:ring-inset text-transparent caret-text-bright placeholder:text-text-dim"
 				style={{ caretColor: "#E8E8E8" }}
 			/>
 
@@ -209,7 +209,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 			{showProjectList && (
 				<div
 					data-testid="project-list"
-					className="absolute left-0 right-0 top-full mt-1 bg-[#232F3E] border border-[#3D4F63] rounded-lg shadow-lg z-50 overflow-hidden max-h-48 overflow-y-auto"
+					className="absolute left-0 right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg z-50 overflow-hidden max-h-48 overflow-y-auto"
 				>
 					{filteredProjects.map((project, index) => (
 						<button
@@ -222,13 +222,13 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 							className={cn(
 								"w-full px-3 py-2 text-left text-sm transition-colors",
 								index === highlightedIndex
-									? "bg-[#2D3F54] text-[#61AFEF]"
-									: "text-[#E8E8E8] hover:bg-[#2D3F54]"
+									? "bg-border text-accent"
+									: "text-text hover:bg-border"
 							)}
 						>
 							<span className="text-[#61AFEF]">@{project.alias}</span>
 							{project.name !== project.alias && (
-								<span className="ml-2 text-[#5C6B7A]">{project.name}</span>
+								<span className="ml-2 text-text-dim">{project.name}</span>
 							)}
 						</button>
 					))}
@@ -241,7 +241,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 					data-testid="char-counter"
 					className={cn(
 						"absolute bottom-2 right-2 text-xs",
-						isNearLimit ? "text-[#E06C75]" : "text-[#5C6B7A]"
+						isNearLimit ? "text-red" : "text-text-dim"
 					)}
 				>
 					{value.length}/{maxLength}
