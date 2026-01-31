@@ -180,7 +180,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 		<div
 			ref={containerRef}
 			className={cn(
-				"relative rounded-lg border border-[#3D4F63] bg-[#232F3E]",
+				"relative h-full rounded-lg border border-[#3D4F63] bg-[#232F3E]",
 				className
 			)}
 		>
@@ -201,7 +201,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 				onKeyDown={handleKeyDown}
 				maxLength={maxLength}
 				placeholder={placeholder}
-				className="relative w-full min-h-[80px] p-3 bg-transparent border-0 rounded-lg font-mono text-sm leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-[#61AFEF] focus:ring-inset text-transparent caret-[#E8E8E8] placeholder:text-[#5C6B7A]"
+				className="relative w-full h-full min-h-[80px] p-3 bg-transparent border-0 rounded-lg font-mono text-sm leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-[#61AFEF] focus:ring-inset text-transparent caret-[#E8E8E8] placeholder:text-[#5C6B7A]"
 				style={{ caretColor: "#E8E8E8" }}
 			/>
 

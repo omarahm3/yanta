@@ -120,8 +120,8 @@ export const QuickCapture: React.FC = () => {
 	}
 
 	return (
-		<div className="flex flex-col bg-[#1B2636] p-4 select-none w-full">
-			<div className="mb-3 flex-shrink-0">
+		<div className="flex flex-col h-full bg-[#1B2636] p-4 select-none w-full">
+			<div className="flex-1 min-h-0 mb-3">
 				<QuickEditor
 					value={content}
 					onChange={setContent}
@@ -129,30 +129,31 @@ export const QuickCapture: React.FC = () => {
 					projects={projects}
 					autoFocus
 					maxLength={10000}
+					className="h-full"
 				/>
 			</div>
 
 			{/* Tags */}
 			{tags.length > 0 && (
-				<div className="mb-3 px-1">
+				<div className="mb-2 px-1">
 					<TagChips tags={tags} onRemove={removeTag} />
 				</div>
 			)}
 
 			{/* Error message */}
 			{error && (
-				<div className="mb-3 px-1 text-sm text-[#E06C75]">{error}</div>
+				<div className="mb-2 px-1 text-sm text-[#E06C75]">{error}</div>
 			)}
 
 			{/* Escape hint */}
 			{showEscapeHint && (
-				<div className="mb-3 px-1 text-sm text-[#8B9CAF]">
+				<div className="mb-2 px-1 text-sm text-[#8B9CAF]">
 					Press Esc again to discard
 				</div>
 			)}
 
 			{/* Footer with keyboard hints */}
-			<div className="flex items-center gap-4 text-xs text-[#5C6B7A]">
+			<div className="flex items-center justify-center gap-6 text-xs text-[#5C6B7A] pt-1">
 				<span>
 					<kbd className="px-1.5 py-0.5 bg-[#2D3F54] rounded">⏎</kbd> Save
 				</span>

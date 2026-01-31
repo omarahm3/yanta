@@ -13,7 +13,7 @@ import (
 
 const (
 	WindowWidth  = 500
-	WindowHeight = 200
+	WindowHeight = 130
 )
 
 var (
@@ -48,6 +48,8 @@ func CreateWindow(app *application.App) *application.WebviewWindow {
 		Title:         "Quick Capture",
 		Width:         WindowWidth,
 		Height:        WindowHeight,
+		MinWidth:      WindowWidth,
+		MinHeight:     WindowHeight,
 		Frameless:     true,
 		AlwaysOnTop:   true,
 		Hidden:        false,
