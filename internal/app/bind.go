@@ -4,10 +4,11 @@ import (
 	"yanta/internal/asset"
 	"yanta/internal/backup"
 	"yanta/internal/commandline"
+	"yanta/internal/config"
 	"yanta/internal/document"
 	"yanta/internal/events"
-	"yanta/internal/journal"
 	"yanta/internal/export"
+	"yanta/internal/journal"
 	"yanta/internal/project"
 	"yanta/internal/search"
 	"yanta/internal/system"
@@ -29,12 +30,16 @@ type Bindings struct {
 	DocumentCommands *commandline.DocumentCommands
 	EventBus         *events.EventBus
 
-	shutdownHandler func()
+	shutdownHandler          func()
+	hotkeyReconfigureHandler func(config.HotkeyConfig) error
 }
 
 func (b *Bindings) OnStartup() {
 	if b.shutdownHandler != nil {
 		b.System.SetShutdownHandler(b.shutdownHandler)
+	}
+	if b.hotkeyReconfigureHandler != nil {
+		b.System.SetHotkeyReconfigureHandler(b.hotkeyReconfigureHandler)
 	}
 }
 

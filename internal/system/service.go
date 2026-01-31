@@ -27,11 +27,12 @@ var (
 )
 
 type Service struct {
-	db              *sql.DB
-	dbPath          string
-	eventBus        *events.EventBus
-	shutdownHandler func()
-	indexer         *indexer.Indexer
+	db                        *sql.DB
+	dbPath                    string
+	eventBus                  *events.EventBus
+	shutdownHandler           func()
+	hotkeyReconfigureHandler  func(config.HotkeyConfig) error
+	indexer                   *indexer.Indexer
 }
 
 func NewService(db *sql.DB, eventBus *events.EventBus) *Service {
@@ -48,6 +49,10 @@ func (s *Service) SetDBPath(path string) {
 
 func (s *Service) SetShutdownHandler(handler func()) {
 	s.shutdownHandler = handler
+}
+
+func (s *Service) SetHotkeyReconfigureHandler(handler func(config.HotkeyConfig) error) {
+	s.hotkeyReconfigureHandler = handler
 }
 
 func (s *Service) SetIndexer(idx *indexer.Indexer) {
@@ -621,4 +626,59 @@ func (s *Service) SetAppScale(ctx context.Context, scale float64) error {
 
 	logger.Infof("app scale changed to %v", scale)
 	return nil
+}
+
+// GetHotkeyConfig returns the current hotkey configuration.
+func (s *Service) GetHotkeyConfig(ctx context.Context) config.HotkeyConfig {
+	return config.GetHotkeyConfig()
+}
+
+// SetHotkeyConfig updates the hotkey configuration and triggers live reconfiguration.
+func (s *Service) SetHotkeyConfig(ctx context.Context, cfg config.HotkeyConfig) error {
+	// Validate the configuration
+	if cfg.QuickCaptureKey == "" {
+		return fmt.Errorf("quick capture key cannot be empty")
+	}
+	if len(cfg.QuickCaptureModifiers) == 0 {
+		return fmt.Errorf("at least one modifier is required")
+	}
+
+	// Save to config
+	if err := config.SetHotkeyConfig(cfg); err != nil {
+		logger.Errorf("failed to save hotkey config: %v", err)
+		return err
+	}
+
+	// Trigger live reconfiguration if handler is set
+	if s.hotkeyReconfigureHandler != nil {
+		if err := s.hotkeyReconfigureHandler(cfg); err != nil {
+			logger.Errorf("failed to reconfigure hotkeys: %v", err)
+			return fmt.Errorf("config saved but hotkey registration failed: %w", err)
+		}
+	}
+
+	logger.Infof("hotkey config updated: enabled=%v, modifiers=%v, key=%s",
+		cfg.QuickCaptureEnabled, cfg.QuickCaptureModifiers, cfg.QuickCaptureKey)
+	return nil
+}
+
+// GetAvailableHotkeyKeys returns the list of supported keys for hotkey configuration.
+func (s *Service) GetAvailableHotkeyKeys(ctx context.Context) []string {
+	return []string{
+		"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+		"N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+		"0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+		"F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
+		"Space", "Enter", "Escape", "Tab",
+	}
+}
+
+// GetAvailableHotkeyModifiers returns the list of supported modifiers for hotkey configuration.
+func (s *Service) GetAvailableHotkeyModifiers(ctx context.Context) []string {
+	return []string{"Ctrl", "Shift", "Alt", "Win"}
+}
+
+// GetPlatform returns the current platform name.
+func (s *Service) GetPlatform(ctx context.Context) string {
+	return runtime.GOOS
 }
