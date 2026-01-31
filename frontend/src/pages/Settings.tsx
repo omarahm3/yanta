@@ -1,6 +1,6 @@
 import React, { useCallback, useRef } from "react";
 import { Layout } from "../components/Layout";
-import { ConfirmDialog, Heading, type Shortcut, ShortcutsTable, Text } from "../components/ui";
+import { ConfirmDialog, type Shortcut } from "../components/ui";
 import { useHotkeys } from "../hooks";
 import { useHelp } from "../hooks/useHelp";
 import { useSidebarSections } from "../hooks/useSidebarSections";
@@ -11,6 +11,7 @@ import { DatabaseSection } from "./settings/DatabaseSection";
 import { GeneralSection } from "./settings/GeneralSection";
 import { GitSyncSection } from "./settings/GitSyncSection";
 import { LoggingSection } from "./settings/LoggingSection";
+import { ShortcutsSection } from "./settings/ShortcutsSection";
 import { useSettingsController } from "./settings/useSettingsController";
 
 const actualShortcuts: Shortcut[] = [
@@ -329,19 +330,16 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 						onReindex={controller.handlers.handleRequestReindex}
 					/>
 
-					<div ref={shortcutsRef}>
-						<div className="mt-8">
-							<div className="mb-6">
-								<Heading as="h2" size="base" variant="bright" weight="medium">
-									Keyboard Shortcuts
-								</Heading>
-								<Text size="sm" variant="dim">
-									All available keyboard shortcuts in Yanta
-								</Text>
-							</div>
-							<ShortcutsTable shortcuts={actualShortcuts} />
-						</div>
-					</div>
+					<ShortcutsSection
+						ref={shortcutsRef}
+						platform={controller.platform}
+						hotkeyConfig={controller.hotkeyConfig}
+						availableKeys={controller.availableKeys}
+						availableModifiers={controller.availableModifiers}
+						onHotkeyConfigChange={controller.handlers.handleHotkeyConfigChange}
+						hotkeyError={controller.hotkeyError}
+						shortcuts={actualShortcuts}
+					/>
 
 					<LoggingSection
 						ref={loggingRef}
