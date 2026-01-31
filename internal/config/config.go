@@ -25,6 +25,12 @@ type BackupConfig struct {
 	MaxBackups int  `toml:"max_backups"` // number of backups to retain, 0 = unlimited
 }
 
+type HotkeyConfig struct {
+	QuickCaptureEnabled   bool     `toml:"quick_capture_enabled"`
+	QuickCaptureModifiers []string `toml:"quick_capture_modifiers"` // e.g., ["Ctrl", "Shift"]
+	QuickCaptureKey       string   `toml:"quick_capture_key"`       // e.g., "N"
+}
+
 type Config struct {
 	LogLevel         string        `toml:"log_level"`
 	KeepInBackground bool          `toml:"keep_in_background"`
@@ -34,6 +40,7 @@ type Config struct {
 	Backup           BackupConfig  `toml:"backup"`
 	LinuxWindowMode  string        `toml:"linux_window_mode"`
 	AppScale         float64       `toml:"app_scale"`
+	Hotkey           HotkeyConfig  `toml:"hotkey"`
 }
 
 const (
@@ -334,5 +341,45 @@ func SetBackupConfig(backupCfg BackupConfig) error {
 	}
 
 	instance.Backup = backupCfg
+	return save(instance)
+}
+
+// GetDefaultHotkeyConfig returns platform-specific default hotkey configuration.
+// Windows: Ctrl+Shift+N enabled by default.
+// macOS/Linux: disabled (users should configure via system/WM shortcuts).
+func GetDefaultHotkeyConfig() HotkeyConfig {
+	if runtime.GOOS == "windows" {
+		return HotkeyConfig{
+			QuickCaptureEnabled:   true,
+			QuickCaptureModifiers: []string{"Ctrl", "Shift"},
+			QuickCaptureKey:       "N",
+		}
+	}
+	// macOS and Linux: disabled by default
+	return HotkeyConfig{
+		QuickCaptureEnabled:   false,
+		QuickCaptureModifiers: []string{"Ctrl", "Shift"},
+		QuickCaptureKey:       "N",
+	}
+}
+
+func GetHotkeyConfig() HotkeyConfig {
+	cfg := Get()
+	// If not configured, return platform defaults
+	if cfg.Hotkey.QuickCaptureKey == "" {
+		return GetDefaultHotkeyConfig()
+	}
+	return cfg.Hotkey
+}
+
+func SetHotkeyConfig(hotkeyCfg HotkeyConfig) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if instance == nil {
+		instance = &Config{}
+	}
+
+	instance.Hotkey = hotkeyCfg
 	return save(instance)
 }
