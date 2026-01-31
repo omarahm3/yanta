@@ -1,6 +1,16 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { DialogProvider, HotkeyProvider } from "../../../contexts";
 import { QuickCapture } from "../QuickCapture";
+
+const renderQuickCapture = () =>
+	render(
+		<DialogProvider>
+			<HotkeyProvider>
+				<QuickCapture />
+			</HotkeyProvider>
+		</DialogProvider>,
+	);
 
 // Create mock function before vi.mock hoisting
 const mockClose = vi.fn();
@@ -60,7 +70,7 @@ describe("QuickCapture", () => {
 	});
 
 	it("renders all components", async () => {
-		render(<QuickCapture />);
+		renderQuickCapture();
 
 		// Wait for projects to load
 		await waitFor(() => {
@@ -72,14 +82,14 @@ describe("QuickCapture", () => {
 		expect(screen.getByText(/Cancel/)).toBeInTheDocument();
 	});
 
-	it("saves on Enter", async () => {
+	it("saves on Ctrl+Enter", async () => {
 		const { AppendEntry } = await import(
 			"../../../../bindings/yanta/internal/journal/wailsservice"
 		);
 
 		// Use a project from the mock list so we don't assume a hardcoded project exists
 		localStorage.setItem("yanta:lastProject", MOCK_PROJECTS[0].alias);
-		render(<QuickCapture />);
+		renderQuickCapture();
 
 		await waitFor(() => {
 			expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
@@ -87,7 +97,7 @@ describe("QuickCapture", () => {
 
 		const textarea = screen.getByRole("textbox");
 		fireEvent.change(textarea, { target: { value: "Test note" } });
-		fireEvent.keyDown(textarea, { key: "Enter" });
+		fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true });
 
 		await waitFor(() => {
 			expect(AppendEntry).toHaveBeenCalled();
@@ -95,7 +105,7 @@ describe("QuickCapture", () => {
 	});
 
 	it("closes on Escape when empty", async () => {
-		render(<QuickCapture />);
+		renderQuickCapture();
 
 		await waitFor(() => {
 			expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
@@ -108,7 +118,7 @@ describe("QuickCapture", () => {
 	});
 
 	it("shows hint on first Escape with text", async () => {
-		render(<QuickCapture />);
+		renderQuickCapture();
 
 		await waitFor(() => {
 			expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
@@ -124,7 +134,7 @@ describe("QuickCapture", () => {
 	});
 
 	it("closes on double Escape with text", async () => {
-		render(<QuickCapture />);
+		renderQuickCapture();
 
 		await waitFor(() => {
 			expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
@@ -149,7 +159,7 @@ describe("QuickCapture", () => {
 
 		// Use a project from the mock list so we don't assume a hardcoded project exists
 		localStorage.setItem("yanta:lastProject", MOCK_PROJECTS[0].alias);
-		render(<QuickCapture />);
+		renderQuickCapture();
 
 		await waitFor(() => {
 			expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
@@ -172,7 +182,7 @@ describe("QuickCapture", () => {
 	});
 
 	it("displays extracted tags as chips", async () => {
-		render(<QuickCapture />);
+		renderQuickCapture();
 
 		await waitFor(() => {
 			expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
@@ -188,7 +198,7 @@ describe("QuickCapture", () => {
 	});
 
 	it("shows project list when typing @ and filters as user types", async () => {
-		render(<QuickCapture />);
+		renderQuickCapture();
 
 		await waitFor(() => {
 			expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
@@ -217,7 +227,7 @@ describe("QuickCapture", () => {
 
 	it("shows error when saving without project", async () => {
 		localStorage.removeItem("yanta:lastProject");
-		render(<QuickCapture />);
+		renderQuickCapture();
 
 		await waitFor(() => {
 			expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
@@ -225,7 +235,7 @@ describe("QuickCapture", () => {
 
 		const textarea = screen.getByRole("textbox");
 		fireEvent.change(textarea, { target: { value: "Test" } });
-		fireEvent.keyDown(textarea, { key: "Enter" });
+		fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true });
 
 		await waitFor(() => {
 			expect(screen.getByText(/Please select a project/)).toBeInTheDocument();

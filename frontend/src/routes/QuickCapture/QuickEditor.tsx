@@ -180,13 +180,13 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 		<div
 			ref={containerRef}
 			className={cn(
-				"relative h-full rounded-lg border border-border bg-surface",
+				"relative h-full border border-border bg-surface",
 				className
 			)}
 		>
 			<div
 				data-testid="highlight-layer"
-				className="absolute inset-0 p-3 font-mono text-sm leading-relaxed pointer-events-none whitespace-pre-wrap break-words text-[#E8E8E8] overflow-hidden rounded-lg"
+				className="absolute inset-0 p-3 font-mono text-sm leading-relaxed pointer-events-none whitespace-pre-wrap break-words text-[#E8E8E8] overflow-hidden"
 				aria-hidden="true"
 				// biome-ignore lint/security/noDangerouslySetInnerHtml: Intentional for syntax highlighting
 				dangerouslySetInnerHTML={{ __html: highlightedContent || "&nbsp;" }}
@@ -201,7 +201,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 				onKeyDown={handleKeyDown}
 				maxLength={maxLength}
 				placeholder={placeholder}
-				className="relative w-full h-full min-h-[80px] p-3 bg-transparent border-0 rounded-lg font-mono text-sm leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-accent focus:ring-inset text-transparent caret-text-bright placeholder:text-text-dim"
+				className="relative w-full h-full min-h-[80px] p-3 bg-transparent border-0 font-mono text-sm leading-relaxed resize-none focus:outline-none focus:ring-0 focus:shadow-[inset_0_0_0_2px_var(--color-accent)] text-transparent caret-text-bright placeholder:text-text-dim"
 				style={{ caretColor: "#E8E8E8" }}
 			/>
 
@@ -209,7 +209,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 			{showProjectList && (
 				<div
 					data-testid="project-list"
-					className="absolute left-0 right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg z-50 overflow-hidden max-h-48 overflow-y-auto"
+					className="absolute left-0 right-0 top-full mt-1 bg-surface border border-border shadow-lg z-50 overflow-hidden max-h-48 overflow-y-auto"
 				>
 					{filteredProjects.map((project, index) => (
 						<button

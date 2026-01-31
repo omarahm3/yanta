@@ -1,8 +1,9 @@
 import type React from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Window } from "@wailsio/runtime";
 import { ListActive } from "../../../bindings/yanta/internal/project/service";
-import { cn } from "../../lib/utils";
+import { useHotkeys } from "../../hooks";
+import type { HotkeyConfig } from "../../types/hotkeys";
 import { QuickEditor } from "./QuickEditor";
 import type { ProjectOption } from "./ProjectPicker";
 import { TagChips } from "./TagChips";
@@ -69,58 +70,71 @@ export const QuickCapture: React.FC = () => {
 		[save, handleClose]
 	);
 
+	const hotkeys: HotkeyConfig[] = useMemo(
+		() => [
+			{
+				key: "ctrl+enter",
+				handler: (event: KeyboardEvent) => {
+					event.preventDefault();
+					void handleSave(false);
+				},
+				allowInInput: true,
+				capture: true,
+				description: "Save and close",
+			},
+			{
+				key: "shift+enter",
+				handler: (event: KeyboardEvent) => {
+					event.preventDefault();
+					void handleSave(true);
+				},
+				allowInInput: true,
+				capture: true,
+				description: "Save and keep window open",
+			},
+			{
+				key: "Escape",
+				handler: (event: KeyboardEvent) => {
+					event.preventDefault();
+					if (!content.trim()) {
+						handleClose();
+					} else if (showEscapeHint) {
+						clear();
+						handleClose();
+					} else {
+						setShowEscapeHint(true);
+					}
+				},
+				allowInInput: true,
+				capture: true,
+				description: "Close or discard",
+			},
+		],
+		[content, showEscapeHint, handleSave, handleClose, clear]
+	);
+
+	useHotkeys(hotkeys);
+
+	// Clear "Press Esc again to discard" hint when user presses any key other than Escape
 	const handleKeyDown = useCallback(
-		async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-			// Enter - Save and close
-			if (e.key === "Enter" && !e.shiftKey) {
-				e.preventDefault();
-				await handleSave(false);
-				return;
-			}
-
-			// Shift+Enter - Save and keep window open for another note
-			if (e.key === "Enter" && e.shiftKey) {
-				e.preventDefault();
-				await handleSave(true);
-				return;
-			}
-
-			// Escape - Close or show hint
-			if (e.key === "Escape") {
-				e.preventDefault();
-
-				if (!content.trim()) {
-					// Empty - close immediately
-					handleClose();
-				} else if (showEscapeHint) {
-					// Second Escape - discard and close
-					clear();
-					handleClose();
-				} else {
-					// First Escape with text - show hint
-					setShowEscapeHint(true);
-				}
-				return;
-			}
-
-			// Reset escape hint on any other key
-			if (showEscapeHint) {
+		(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+			if (showEscapeHint && e.key !== "Escape") {
 				setShowEscapeHint(false);
 			}
 		},
-		[content, showEscapeHint, handleSave, handleClose, clear]
+		[showEscapeHint]
 	);
 
 	if (isLoading) {
 		return (
-			<div className="h-full flex items-center justify-center bg-bg text-text-dim rounded-2xl border border-accent/30">
+			<div className="h-full flex items-center justify-center bg-bg text-text-dim border border-accent/30">
 				Loading...
 			</div>
 		);
 	}
 
 	return (
-		<div className="flex flex-col h-full bg-bg p-4 select-none w-full rounded-2xl border border-accent/30">
+		<div className="flex flex-col h-full bg-bg p-4 select-none w-full border border-accent/30">
 			<div className="flex-1 min-h-0 mb-3">
 				<QuickEditor
 					value={content}
@@ -155,7 +169,7 @@ export const QuickCapture: React.FC = () => {
 			{/* Footer with keyboard hints */}
 			<div className="flex items-center justify-center gap-6 text-xs text-text-dim pt-1">
 				<span>
-					<kbd className="px-1.5 py-0.5 bg-surface rounded">⏎</kbd> Save
+					<kbd className="px-1.5 py-0.5 bg-surface rounded">Ctrl+⏎</kbd> Save
 				</span>
 				<span>
 					<kbd className="px-1.5 py-0.5 bg-surface rounded">⇧⏎</kbd> Save & New
