@@ -3,5 +3,6 @@
 
 export {
     BackupConfig,
-    GitSyncConfig
+    GitSyncConfig,
+    HotkeyConfig
 } from "./models.js";
