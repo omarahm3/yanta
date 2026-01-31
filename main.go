@@ -282,16 +282,6 @@ func createCustomAssetHandler(assetService *asset.Service) application.Middlewar
 				return
 			}
 
-			// SPA fallback: serve index.html for client-side routes
-			// (paths that don't have a file extension and aren't API routes)
-			if !strings.HasPrefix(r.URL.Path, "/assets/") &&
-				!strings.HasPrefix(r.URL.Path, "/wails/") &&
-				!strings.HasPrefix(r.URL.Path, "/api/") &&
-				r.URL.Path != "/" &&
-				!strings.Contains(r.URL.Path, ".") {
-				// Rewrite to index.html for SPA routing
-				r.URL.Path = "/"
-			}
 
 			if !strings.HasPrefix(r.URL.Path, "/assets/") {
 				next.ServeHTTP(w, r)

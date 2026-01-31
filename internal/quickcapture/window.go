@@ -13,7 +13,7 @@ import (
 
 const (
 	WindowWidth  = 500
-	WindowHeight = 130
+	WindowHeight = 200
 )
 
 var (
