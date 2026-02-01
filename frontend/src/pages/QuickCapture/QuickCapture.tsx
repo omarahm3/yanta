@@ -1,11 +1,11 @@
+import { Window } from "@wailsio/runtime";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Window } from "@wailsio/runtime";
 import { ListActive } from "../../../bindings/yanta/internal/project/service";
 import { useHotkeys } from "../../hooks";
 import type { HotkeyConfig } from "../../types/hotkeys";
-import { QuickEditor } from "./QuickEditor";
 import type { ProjectOption } from "./ProjectPicker";
+import { QuickEditor } from "./QuickEditor";
 import { TagChips } from "./TagChips";
 import { useQuickCapture } from "./useQuickCapture";
 
@@ -18,16 +18,7 @@ export const QuickCapture: React.FC = () => {
 	const [isLoading, setIsLoading] = useState(true);
 	const [showEscapeHint, setShowEscapeHint] = useState(false);
 
-	const {
-		content,
-		setContent,
-		tags,
-		error,
-		isSaving,
-		save,
-		removeTag,
-		clear,
-	} = useQuickCapture();
+	const { content, setContent, tags, error, save, removeTag, clear } = useQuickCapture();
 
 	// Load projects on mount (for inline @ project list)
 	useEffect(() => {
@@ -67,7 +58,7 @@ export const QuickCapture: React.FC = () => {
 				handleClose();
 			}
 		},
-		[save, handleClose]
+		[save, handleClose],
 	);
 
 	const hotkeys: HotkeyConfig[] = useMemo(
@@ -110,7 +101,7 @@ export const QuickCapture: React.FC = () => {
 				description: "Close or discard",
 			},
 		],
-		[content, showEscapeHint, handleSave, handleClose, clear]
+		[content, showEscapeHint, handleSave, handleClose, clear],
 	);
 
 	useHotkeys(hotkeys);
@@ -122,7 +113,7 @@ export const QuickCapture: React.FC = () => {
 				setShowEscapeHint(false);
 			}
 		},
-		[showEscapeHint]
+		[showEscapeHint],
 	);
 
 	if (isLoading) {
@@ -155,15 +146,11 @@ export const QuickCapture: React.FC = () => {
 			)}
 
 			{/* Error message */}
-			{error && (
-				<div className="mb-2 px-1 text-sm text-[#E06C75]">{error}</div>
-			)}
+			{error && <div className="mb-2 px-1 text-sm text-[#E06C75]">{error}</div>}
 
 			{/* Escape hint */}
 			{showEscapeHint && (
-				<div className="mb-2 px-1 text-sm text-[#8B9CAF]">
-					Press Esc again to discard
-				</div>
+				<div className="mb-2 px-1 text-sm text-[#8B9CAF]">Press Esc again to discard</div>
 			)}
 
 			{/* Footer with keyboard hints */}

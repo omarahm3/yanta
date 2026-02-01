@@ -1,15 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
 import { Events } from "@wailsio/runtime";
+import { useCallback, useEffect, useState } from "react";
+import { PromoteRequest } from "../../../bindings/yanta/internal/journal/models";
 import {
+	DeleteEntry,
 	GetActiveEntries,
 	GetAllActiveEntries,
-	DeleteEntry,
-	RestoreEntry,
-	ListDates,
-	ListAllDates,
 	PromoteToDocument,
+	RestoreEntry,
 } from "../../../bindings/yanta/internal/journal/wailsservice";
-import { PromoteRequest } from "../../../bindings/yanta/internal/journal/models";
 import type { JournalEntryData } from "./JournalEntry";
 
 export interface UseJournalOptions {
@@ -56,7 +54,13 @@ export function useJournal({
 	const [date, setDateInternal] = useState(() => initialDate || getTodayString());
 
 	// Convert backend entry to frontend format
-	const mapEntry = (entry: { id: string; content: string; tags: string[]; created: unknown; projectAlias?: string }): JournalEntryData => ({
+	const mapEntry = (entry: {
+		id: string;
+		content: string;
+		tags: string[];
+		created: unknown;
+		projectAlias?: string;
+	}): JournalEntryData => ({
 		id: entry.id,
 		content: entry.content,
 		tags: entry.tags || [],
@@ -97,40 +101,49 @@ export function useJournal({
 
 	// Subscribe to journal entry events for real-time updates
 	useEffect(() => {
-		const unsubscribeCreated = Events.On("yanta/entry/created", (ev: { data: { type?: string; projectId?: string; date?: string } }) => {
-			// Only refresh if it's a journal entry for the current project/date
-			if (ev.data?.type === "journal") {
-				const eventProject = ev.data.projectId;
-				const eventDate = ev.data.date;
+		const unsubscribeCreated = Events.On(
+			"yanta/entry/created",
+			(ev: { data: { type?: string; projectId?: string; date?: string } }) => {
+				// Only refresh if it's a journal entry for the current project/date
+				if (ev.data?.type === "journal") {
+					const eventProject = ev.data.projectId;
+					const eventDate = ev.data.date;
 
-				// Refresh if viewing all projects, or if the project and date match
-				if (projectAlias === "all" || (eventProject === projectAlias && eventDate === date)) {
-					refresh();
+					// Refresh if viewing all projects, or if the project and date match
+					if (projectAlias === "all" || (eventProject === projectAlias && eventDate === date)) {
+						refresh();
+					}
 				}
-			}
-		});
+			},
+		);
 
-		const unsubscribeDeleted = Events.On("yanta/entry/deleted", (ev: { data: { type?: string; projectId?: string; date?: string } }) => {
-			if (ev.data?.type === "journal") {
-				const eventProject = ev.data.projectId;
-				const eventDate = ev.data.date;
+		const unsubscribeDeleted = Events.On(
+			"yanta/entry/deleted",
+			(ev: { data: { type?: string; projectId?: string; date?: string } }) => {
+				if (ev.data?.type === "journal") {
+					const eventProject = ev.data.projectId;
+					const eventDate = ev.data.date;
 
-				if (projectAlias === "all" || (eventProject === projectAlias && eventDate === date)) {
-					refresh();
+					if (projectAlias === "all" || (eventProject === projectAlias && eventDate === date)) {
+						refresh();
+					}
 				}
-			}
-		});
+			},
+		);
 
-		const unsubscribeRestored = Events.On("yanta/entry/restored", (ev: { data: { type?: string; projectId?: string; date?: string } }) => {
-			if (ev.data?.type === "journal") {
-				const eventProject = ev.data.projectId;
-				const eventDate = ev.data.date;
+		const unsubscribeRestored = Events.On(
+			"yanta/entry/restored",
+			(ev: { data: { type?: string; projectId?: string; date?: string } }) => {
+				if (ev.data?.type === "journal") {
+					const eventProject = ev.data.projectId;
+					const eventDate = ev.data.date;
 
-				if (projectAlias === "all" || (eventProject === projectAlias && eventDate === date)) {
-					refresh();
+					if (projectAlias === "all" || (eventProject === projectAlias && eventDate === date)) {
+						refresh();
+					}
 				}
-			}
-		});
+			},
+		);
 
 		return () => {
 			unsubscribeCreated();
@@ -162,7 +175,7 @@ export function useJournal({
 				throw err;
 			}
 		},
-		[projectAlias, date]
+		[projectAlias, date],
 	);
 
 	// Restore entry
@@ -176,7 +189,7 @@ export function useJournal({
 				throw err;
 			}
 		},
-		[projectAlias, date, refresh]
+		[projectAlias, date, refresh],
 	);
 
 	// Promote to document
@@ -195,15 +208,13 @@ export function useJournal({
 
 			// If not keeping original, remove from list
 			if (!options.keepOriginal) {
-				setEntries((prev) =>
-					prev.filter((e) => !options.entryIds.includes(e.id))
-				);
+				setEntries((prev) => prev.filter((e) => !options.entryIds.includes(e.id)));
 				setSelectedIds(new Set());
 			}
 
 			return documentPath;
 		},
-		[projectAlias, date]
+		[projectAlias, date],
 	);
 
 	// Selection management

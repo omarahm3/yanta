@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type React from "react";
 import { useMemo, useState } from "react";
 import { cn } from "../../lib/utils";
@@ -70,8 +71,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 		setViewDate(next);
 	};
 
-	const isToday =
-		formatDateString(selectedDateObj) === formatDateString(new Date());
+	const isToday = formatDateString(selectedDateObj) === formatDateString(new Date());
 
 	return (
 		<div className={cn("relative", className)}>
@@ -83,7 +83,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 					aria-label="Previous day"
 					className="p-2 text-text-secondary hover:text-accent transition-colors"
 				>
-					<ChevronLeft />
+					<ChevronLeft size={16} />
 				</button>
 
 				{/* Date button */}
@@ -102,7 +102,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 					aria-label="Next day"
 					className="p-2 text-text-secondary hover:text-accent transition-colors"
 				>
-					<ChevronRight />
+					<ChevronRight size={16} />
 				</button>
 
 				{/* Today button */}
@@ -188,7 +188,7 @@ const Calendar: React.FC<CalendarProps> = ({
 					aria-label="Previous month"
 					className="p-1 text-text-secondary hover:text-accent"
 				>
-					<ChevronLeft />
+					<ChevronLeft size={16} />
 				</button>
 				<span className="text-sm font-medium">{monthName}</span>
 				<button
@@ -197,7 +197,7 @@ const Calendar: React.FC<CalendarProps> = ({
 					aria-label="Next month"
 					className="p-1 text-text-secondary hover:text-accent"
 				>
-					<ChevronRight />
+					<ChevronRight size={16} />
 				</button>
 			</div>
 
@@ -217,13 +217,13 @@ const Calendar: React.FC<CalendarProps> = ({
 			<div data-testid="calendar-grid" className="grid grid-cols-7 gap-1">
 				{days.map((day, index) => {
 					if (day === null) {
+						// biome-ignore lint/suspicious/noArrayIndexKey: empty calendar cells are stable placeholders
 						return <div key={`empty-${index}`} className="w-8 h-8" />;
 					}
 
 					const date = new Date(year, month, day);
 					const dateString = formatDateString(date);
-					const isSelected =
-						formatDateString(selectedDate) === dateString;
+					const isSelected = formatDateString(selectedDate) === dateString;
 					const hasEntries = datesWithEntriesSet.has(dateString);
 
 					return (
@@ -234,10 +234,8 @@ const Calendar: React.FC<CalendarProps> = ({
 							data-has-entries={hasEntries}
 							className={cn(
 								"w-8 h-8 flex items-center justify-center text-sm rounded relative transition-colors",
-								isSelected
-									? "bg-accent text-white"
-									: "hover:bg-surface-hover",
-								hasEntries && !isSelected && "text-accent"
+								isSelected ? "bg-accent text-white" : "hover:bg-surface-hover",
+								hasEntries && !isSelected && "text-accent",
 							)}
 						>
 							{day}
@@ -251,39 +249,6 @@ const Calendar: React.FC<CalendarProps> = ({
 		</div>
 	);
 };
-
-// Helper icons
-const ChevronLeft = () => (
-	<svg
-		xmlns="http://www.w3.org/2000/svg"
-		width="16"
-		height="16"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		strokeWidth="2"
-		strokeLinecap="round"
-		strokeLinejoin="round"
-	>
-		<path d="M15 18l-6-6 6-6" />
-	</svg>
-);
-
-const ChevronRight = () => (
-	<svg
-		xmlns="http://www.w3.org/2000/svg"
-		width="16"
-		height="16"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		strokeWidth="2"
-		strokeLinecap="round"
-		strokeLinejoin="round"
-	>
-		<path d="M9 18l6-6-6-6" />
-	</svg>
-);
 
 /**
  * Format date to YYYY-MM-DD string

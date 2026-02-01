@@ -25,11 +25,9 @@ const PROJECT_REGEX = /(?:^|\s)@([\w-]+)(?=\s|$)/g;
 export function parseTags(text: string): string[] {
 	const tags: string[] = [];
 	const seen = new Set<string>();
-
-	let match: RegExpExecArray | null;
 	const regex = new RegExp(TAG_REGEX.source, "g");
 
-	while ((match = regex.exec(text)) !== null) {
+	for (let match = regex.exec(text); match !== null; match = regex.exec(text)) {
 		const tag = match[1];
 		if (!seen.has(tag)) {
 			seen.add(tag);
@@ -45,10 +43,9 @@ export function parseTags(text: string): string[] {
  */
 export function parseProject(text: string): string | null {
 	let project: string | null = null;
-	let match: RegExpExecArray | null;
 	const regex = new RegExp(PROJECT_REGEX.source, "g");
 
-	while ((match = regex.exec(text)) !== null) {
+	for (let match = regex.exec(text); match !== null; match = regex.exec(text)) {
 		project = match[1];
 	}
 

@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
-import { AppendEntry } from "../../../bindings/yanta/internal/journal/wailsservice";
+import { useCallback, useState } from "react";
 import { AppendEntryRequest } from "../../../bindings/yanta/internal/journal/models";
-import { parse, parseContent, parseTags, parseProject } from "./parser";
+import { AppendEntry } from "../../../bindings/yanta/internal/journal/wailsservice";
+import { parseContent, parseProject, parseTags } from "./parser";
 
 const LAST_PROJECT_KEY = "yanta:lastProject";
 
@@ -21,8 +21,8 @@ export interface UseQuickCaptureReturn {
 export function useQuickCapture(): UseQuickCaptureReturn {
 	const [content, setContentInternal] = useState("");
 	const [tags, setTags] = useState<string[]>([]);
-	const [selectedProject, setSelectedProjectInternal] = useState<string | null>(
-		() => localStorage.getItem(LAST_PROJECT_KEY)
+	const [selectedProject, setSelectedProjectInternal] = useState<string | null>(() =>
+		localStorage.getItem(LAST_PROJECT_KEY),
 	);
 	const [error, setError] = useState<string | null>(null);
 	const [isSaving, setIsSaving] = useState(false);
@@ -59,8 +59,7 @@ export function useQuickCapture(): UseQuickCaptureReturn {
 		setError(null);
 
 		try {
-			const projectAlias =
-				selectedProject.startsWith("@") ? selectedProject : `@${selectedProject}`;
+			const projectAlias = selectedProject.startsWith("@") ? selectedProject : `@${selectedProject}`;
 
 			const request = new AppendEntryRequest({
 				projectAlias,
@@ -92,7 +91,7 @@ export function useQuickCapture(): UseQuickCaptureReturn {
 			const newContent = content.replace(tagPattern, "$1").replace(/\s+/g, " ").trim();
 			setContent(newContent);
 		},
-		[content, setContent]
+		[content, setContent],
 	);
 
 	const clear = useCallback(() => {

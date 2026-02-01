@@ -4,10 +4,7 @@ import { cn } from "../../lib/utils";
 import type { ProjectOption } from "./ProjectPicker";
 
 function escapeHtmlForMirror(text: string): string {
-	return text
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;");
+	return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 export interface QuickEditorProps {
@@ -21,7 +18,10 @@ export interface QuickEditorProps {
 	className?: string;
 }
 
-function getProjectTrigger(value: string, cursorIndex: number): { start: number; query: string } | null {
+function getProjectTrigger(
+	value: string,
+	cursorIndex: number,
+): { start: number; query: string } | null {
 	if (cursorIndex <= 0) return null;
 	const before = value.slice(0, cursorIndex);
 	const atMatch = before.match(/@([\w-]*)$/);
@@ -49,12 +49,11 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 	const [cursorPosition, setCursorPosition] = useState(0);
 	const [highlightedIndex, setHighlightedIndex] = useState(0);
 	const [listDismissed, setListDismissed] = useState(false);
-	const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
-
-	const trigger = useMemo(
-		() => getProjectTrigger(value, cursorPosition),
-		[value, cursorPosition]
+	const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(
+		null,
 	);
+
+	const trigger = useMemo(() => getProjectTrigger(value, cursorPosition), [value, cursorPosition]);
 
 	useEffect(() => {
 		if (autoFocus && textareaRef.current) {
@@ -70,13 +69,11 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 		if (!trigger) return [];
 		const q = trigger.query.toLowerCase();
 		return projects.filter(
-			(p) =>
-				p.alias.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)
+			(p) => p.alias.toLowerCase().includes(q) || p.name.toLowerCase().includes(q),
 		);
 	}, [projects, trigger]);
 
-	const showProjectList =
-		trigger !== null && filteredProjects.length > 0 && 		!listDismissed;
+	const showProjectList = trigger !== null && filteredProjects.length > 0 && !listDismissed;
 
 	useEffect(() => {
 		setHighlightedIndex(0);
@@ -87,7 +84,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 			onChange(e.target.value);
 			setCursorPosition(e.target.selectionStart ?? 0);
 		},
-		[onChange]
+		[onChange],
 	);
 
 	const insertProject = useCallback(
@@ -103,41 +100,36 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 				textareaRef.current?.focus();
 				textareaRef.current?.setSelectionRange(
 					trigger.start + alias.length + 2,
-					trigger.start + alias.length + 2
+					trigger.start + alias.length + 2,
 				);
 			});
 		},
-		[trigger, value, cursorPosition, onChange]
+		[trigger, value, cursorPosition, onChange],
 	);
 
-	const moveHighlight = useCallback((direction: 1 | -1) => {
-		setHighlightedIndex((prev) => {
-			const len = filteredProjects.length;
-			if (len === 0) return 0;
-			const next = prev + direction;
-			if (next < 0) return len - 1;
-			if (next >= len) return 0;
-			return next;
-		});
-	}, [filteredProjects.length]);
+	const moveHighlight = useCallback(
+		(direction: 1 | -1) => {
+			setHighlightedIndex((prev) => {
+				const len = filteredProjects.length;
+				if (len === 0) return 0;
+				const next = prev + direction;
+				if (next < 0) return len - 1;
+				if (next >= len) return 0;
+				return next;
+			});
+		},
+		[filteredProjects.length],
+	);
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 			if (showProjectList) {
-				if (
-					e.key === "ArrowDown" ||
-					e.key === "j" ||
-					(e.ctrlKey && e.key === "n")
-				) {
+				if (e.key === "ArrowDown" || e.key === "j" || (e.ctrlKey && e.key === "n")) {
 					e.preventDefault();
 					moveHighlight(1);
 					return;
 				}
-				if (
-					e.key === "ArrowUp" ||
-					e.key === "k" ||
-					(e.ctrlKey && e.key === "p")
-				) {
+				if (e.key === "ArrowUp" || e.key === "k" || (e.ctrlKey && e.key === "p")) {
 					e.preventDefault();
 					moveHighlight(-1);
 					return;
@@ -159,14 +151,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 			}
 			onKeyDown?.(e);
 		},
-		[
-			showProjectList,
-			filteredProjects,
-			highlightedIndex,
-			insertProject,
-			moveHighlight,
-			onKeyDown,
-		]
+		[showProjectList, filteredProjects, highlightedIndex, insertProject, moveHighlight, onKeyDown],
 	);
 
 	const handleSelect = useCallback(() => {
@@ -176,10 +161,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 	useEffect(() => {
 		if (!showProjectList) return;
 		const handleClickOutside = (ev: MouseEvent) => {
-			if (
-				containerRef.current &&
-				!containerRef.current.contains(ev.target as Node)
-			) {
+			if (containerRef.current && !containerRef.current.contains(ev.target as Node)) {
 				setHighlightedIndex(0);
 			}
 		};
@@ -195,7 +177,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 		const mirror = mirrorRef.current;
 		const before = escapeHtmlForMirror(value.slice(0, trigger.start));
 		const after = escapeHtmlForMirror(value.slice(trigger.start));
-		mirror.innerHTML = before + '<span data-caret-marker="true"></span>' + after;
+		mirror.innerHTML = `${before}<span data-caret-marker="true"></span>${after}`;
 		const marker = mirror.querySelector("[data-caret-marker]");
 		if (marker) {
 			const rect = marker.getBoundingClientRect();
@@ -207,9 +189,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 
 	useLayoutEffect(() => {
 		if (!showProjectList || !projectListRef.current) return;
-		const highlighted = projectListRef.current.querySelector(
-			'[data-highlighted="true"]'
-		);
+		const highlighted = projectListRef.current.querySelector('[data-highlighted="true"]');
 		highlighted?.scrollIntoView({ block: "nearest", behavior: "auto" });
 	}, [showProjectList, highlightedIndex]);
 
@@ -220,10 +200,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 	return (
 		<div
 			ref={containerRef}
-			className={cn(
-				"relative h-full border border-border bg-surface",
-				className
-			)}
+			className={cn("relative h-full border border-border bg-surface", className)}
 		>
 			<div
 				data-testid="highlight-layer"
@@ -276,7 +253,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 								"w-full pr-2.5 py-1.5 text-left whitespace-nowrap transition-colors outline-none border-l-2",
 								index === highlightedIndex
 									? "pl-[10px] border-accent bg-accent/10"
-									: "pl-2.5 border-transparent hover:bg-surface/80"
+									: "pl-2.5 border-transparent hover:bg-surface/80",
 							)}
 						>
 							<span className={index === highlightedIndex ? "text-accent font-medium" : ""}>
@@ -293,10 +270,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 			{showCharCount && (
 				<div
 					data-testid="char-counter"
-					className={cn(
-						"absolute bottom-2 right-2 text-xs",
-						isNearLimit ? "text-red" : "text-text-dim"
-					)}
+					className={cn("absolute bottom-2 right-2 text-xs", isNearLimit ? "text-red" : "text-text-dim")}
 				>
 					{value.length}/{maxLength}
 				</div>
@@ -308,20 +282,11 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 function getHighlightedContent(text: string): string {
 	if (!text) return "";
 
-	let html = text
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;");
+	let html = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-	html = html.replace(
-		/(^|\s)(@[\w-]+)/g,
-		'$1<span class="text-[#61AFEF] font-medium">$2</span>'
-	);
+	html = html.replace(/(^|\s)(@[\w-]+)/g, '$1<span class="text-[#61AFEF] font-medium">$2</span>');
 
-	html = html.replace(
-		/(^|\s)(#[\w_]+)/g,
-		'$1<span class="text-[#98C379] font-medium">$2</span>'
-	);
+	html = html.replace(/(^|\s)(#[\w_]+)/g, '$1<span class="text-[#98C379] font-medium">$2</span>');
 
 	return html;
 }

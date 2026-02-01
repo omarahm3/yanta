@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useQuickCapture } from "../useQuickCapture";
 
@@ -65,9 +65,7 @@ describe("useQuickCapture", () => {
 	});
 
 	it("saves entry via JournalService", async () => {
-		const { AppendEntry } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
-		);
+		const { AppendEntry } = await import("../../../../bindings/yanta/internal/journal/wailsservice");
 		const mockAppendEntry = AppendEntry as ReturnType<typeof vi.fn>;
 		mockAppendEntry.mockResolvedValue({ id: "abc123", content: "Test" });
 
@@ -90,9 +88,7 @@ describe("useQuickCapture", () => {
 	});
 
 	it("clears content after save", async () => {
-		const { AppendEntry } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
-		);
+		const { AppendEntry } = await import("../../../../bindings/yanta/internal/journal/wailsservice");
 		const mockAppendEntry = AppendEntry as ReturnType<typeof vi.fn>;
 		mockAppendEntry.mockResolvedValue({ id: "abc123", content: "Test" });
 
@@ -111,9 +107,7 @@ describe("useQuickCapture", () => {
 	});
 
 	it("clears tags after save", async () => {
-		const { AppendEntry } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
-		);
+		const { AppendEntry } = await import("../../../../bindings/yanta/internal/journal/wailsservice");
 		const mockAppendEntry = AppendEntry as ReturnType<typeof vi.fn>;
 		mockAppendEntry.mockResolvedValue({ id: "abc123", content: "Test" });
 
@@ -132,9 +126,7 @@ describe("useQuickCapture", () => {
 	});
 
 	it("remembers last project in localStorage", async () => {
-		const { AppendEntry } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
-		);
+		const { AppendEntry } = await import("../../../../bindings/yanta/internal/journal/wailsservice");
 		const mockAppendEntry = AppendEntry as ReturnType<typeof vi.fn>;
 		mockAppendEntry.mockResolvedValue({ id: "abc123", content: "Test" });
 
@@ -149,16 +141,11 @@ describe("useQuickCapture", () => {
 			await result.current.save();
 		});
 
-		expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-			"yanta:lastProject",
-			"work"
-		);
+		expect(mockLocalStorage.setItem).toHaveBeenCalledWith("yanta:lastProject", "work");
 	});
 
 	it("handles save error", async () => {
-		const { AppendEntry } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
-		);
+		const { AppendEntry } = await import("../../../../bindings/yanta/internal/journal/wailsservice");
 		const mockAppendEntry = AppendEntry as ReturnType<typeof vi.fn>;
 		mockAppendEntry.mockRejectedValue(new Error("Network error"));
 

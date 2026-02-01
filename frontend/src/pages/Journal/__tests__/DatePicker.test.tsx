@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { DatePicker } from "../DatePicker";
 
@@ -46,11 +46,7 @@ describe("DatePicker", () => {
 	it("highlights days with entries", () => {
 		const datesWithEntries = ["2026-01-28", "2026-01-30"];
 		render(
-			<DatePicker
-				selectedDate={today}
-				onDateChange={vi.fn()}
-				datesWithEntries={datesWithEntries}
-			/>
+			<DatePicker selectedDate={today} onDateChange={vi.fn()} datesWithEntries={datesWithEntries} />,
 		);
 
 		// Open calendar
@@ -61,14 +57,8 @@ describe("DatePicker", () => {
 		const day28 = screen.getByText("28");
 		const day30 = screen.getByText("30");
 
-		expect(day28.closest("[data-has-entries]")).toHaveAttribute(
-			"data-has-entries",
-			"true"
-		);
-		expect(day30.closest("[data-has-entries]")).toHaveAttribute(
-			"data-has-entries",
-			"true"
-		);
+		expect(day28.closest("[data-has-entries]")).toHaveAttribute("data-has-entries", "true");
+		expect(day30.closest("[data-has-entries]")).toHaveAttribute("data-has-entries", "true");
 	});
 
 	it("selects date from calendar", () => {
@@ -115,8 +105,6 @@ describe("DatePicker", () => {
 		fireEvent.click(todayButton);
 
 		// Verify that onDateChange was called with a date string in correct format
-		expect(onDateChange).toHaveBeenCalledWith(
-			expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)
-		);
+		expect(onDateChange).toHaveBeenCalledWith(expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
 	});
 });
