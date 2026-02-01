@@ -33,10 +33,14 @@ func (s *Service) emitEvent(eventName string, payload any) {
 }
 
 type Result struct {
-	ID      string `json:"id"`
-	Title   string `json:"title"`
-	Snippet string `json:"snippet"`
-	Updated string `json:"updated"`
+	ID           string `json:"id"`
+	Title        string `json:"title"`
+	Snippet      string `json:"snippet"`
+	Updated      string `json:"updated"`
+	Type         string `json:"type"`                   // "document" or "note"
+	ProjectAlias string `json:"projectAlias"`           // filled for both
+	NoteID       string `json:"noteId,omitempty"`       // only for notes (entry ID within journal file)
+	rank         float64                                // internal use for sorting
 }
 
 func (s *Service) Query(ctx context.Context, q string, limit, offset int) ([]Result, error) {
@@ -78,13 +82,70 @@ func (s *Service) Query(ctx context.Context, q string, limit, offset int) ([]Res
 		return []Result{}, nil
 	}
 
+	// Search documents
+	docResults, err := s.searchDocuments(ctx, match, projectAliases, tags, hasFTSTerms)
+	if err != nil {
+		return nil, err
+	}
+
+	// Search journals (only if we have FTS terms - filter-only search not supported for journals)
+	var journalResults []Result
+	if hasFTSTerms {
+		// Generate journal-specific FTS5 query (uses content column, not title/body)
+		journalMatch := query.ToFTS5Journal()
+		if journalMatch != "" && journalMatch != `"*"` {
+			journalResults, err = s.searchJournals(ctx, journalMatch, projectAliases, tags)
+			if err != nil {
+				// Log warning but don't fail the entire search
+				logger.WithError(err).Warn("journal search failed, continuing with document results only")
+			}
+		}
+	}
+
+	// Merge results by rank (BM25 score - lower is better)
+	allResults := append(docResults, journalResults...)
+	sortResultsByRank(allResults)
+
+	// Apply pagination to combined results
+	total := len(allResults)
+	if offset >= total {
+		allResults = []Result{}
+	} else {
+		end := offset + limit
+		if end > total {
+			end = total
+		}
+		allResults = allResults[offset:end]
+	}
+
+	duration := time.Since(startTime)
+
+	s.emitEvent(events.SearchPerformed, map[string]any{
+		"query":       q,
+		"resultCount": len(allResults),
+		"duration":    duration.Milliseconds(),
+	})
+
+	logger.WithFields(logrus.Fields{
+		"query":       q,
+		"resultCount": len(allResults),
+		"docCount":    len(docResults),
+		"noteCount":   len(journalResults),
+		"duration":    duration.Milliseconds(),
+	}).Info("search completed")
+
+	return allResults, nil
+}
+
+// searchDocuments searches the fts_doc table for documents.
+func (s *Service) searchDocuments(ctx context.Context, match string, projectAliases, tags []string, hasFTSTerms bool) ([]Result, error) {
 	var sqlBuilder string
 	var args []any
 	var whereClauses []string
 
 	if hasFTSTerms {
 		sqlBuilder = `
-SELECT d.path, d.title,
+SELECT d.path, d.title, d.project_alias,
        bm25(fts_doc) AS rank,
        snippet(fts_doc, -1, '<mark>', '</mark>', ' … ', 12) AS snippet,
        d.updated_at
@@ -94,7 +155,7 @@ SELECT d.path, d.title,
 		whereClauses = []string{"fts_doc MATCH ?", "d.deleted_at IS NULL"}
 	} else {
 		sqlBuilder = `
-SELECT d.path, d.title,
+SELECT d.path, d.title, d.project_alias,
        0 AS rank,
        '' AS snippet,
        d.updated_at
@@ -131,34 +192,123 @@ SELECT d.path, d.title,
 
 	sqlBuilder += `
  WHERE ` + strings.Join(whereClauses, " AND ") + `
- ORDER BY rank ASC, d.updated_at DESC
- LIMIT ? OFFSET ?`
-
-	args = append(args, limit, offset)
+ ORDER BY rank ASC, d.updated_at DESC`
 
 	logger.WithFields(logrus.Fields{
 		"sql":  sqlBuilder,
 		"args": args,
-	}).Debug("executing search SQL")
+	}).Debug("executing document search SQL")
 
 	rows, err := s.db.QueryContext(ctx, sqlBuilder, args...)
 	if err != nil {
 		logger.WithError(err).WithFields(logrus.Fields{
 			"match": match,
 			"sql":   sqlBuilder,
-		}).Error("failed to execute search query")
-		return nil, formatSearchError(err, q)
+		}).Error("failed to execute document search query")
+		return nil, formatSearchError(err, "")
 	}
 	defer rows.Close()
 
 	var out []Result
 	for rows.Next() {
 		var r Result
+		var snippet sql.NullString
+		if err := rows.Scan(&r.ID, &r.Title, &r.ProjectAlias, &r.rank, &snippet, &r.Updated); err != nil {
+			logger.WithError(err).Error("failed to scan document search result")
+			return nil, fmt.Errorf("scanning document search result: %w", err)
+		}
+		if snippet.Valid {
+			r.Snippet = snippet.String
+		}
+		r.Type = "document"
+		out = append(out, r)
+	}
+
+	if err := rows.Err(); err != nil {
+		logger.WithError(err).Error("error iterating document search results")
+		return nil, fmt.Errorf("iterating document search results: %w", err)
+	}
+
+	return out, nil
+}
+
+// searchJournals searches the fts_journal table for journal entries.
+func (s *Service) searchJournals(ctx context.Context, match string, projectAliases, tags []string) ([]Result, error) {
+	var sqlBuilder string
+	var args []any
+	var whereClauses []string
+
+	sqlBuilder = `
+SELECT project_alias, date, entry_id, content,
+       bm25(fts_journal) AS rank,
+       snippet(fts_journal, 0, '<mark>', '</mark>', ' … ', 12) AS snippet,
+       tags
+  FROM fts_journal`
+	args = append(args, match)
+	whereClauses = []string{"fts_journal MATCH ?"}
+
+	if len(projectAliases) > 0 {
+		placeholders := make([]string, len(projectAliases))
+		for i, alias := range projectAliases {
+			placeholders[i] = "?"
+			args = append(args, alias)
+		}
+		whereClauses = append(
+			whereClauses,
+			fmt.Sprintf("project_alias IN (%s)", strings.Join(placeholders, ", ")),
+		)
+	}
+
+	if len(tags) > 0 {
+		// Use LIKE for tag filtering on space-separated tags column
+		var tagClauses []string
+		for _, tag := range tags {
+			tagClauses = append(tagClauses, "tags LIKE ?")
+			args = append(args, "% "+tag+" %")
+		}
+		whereClauses = append(whereClauses, "("+strings.Join(tagClauses, " OR ")+")")
+	}
+
+	sqlBuilder += `
+ WHERE ` + strings.Join(whereClauses, " AND ") + `
+ ORDER BY rank ASC, date DESC`
+
+	logger.WithFields(logrus.Fields{
+		"sql":  sqlBuilder,
+		"args": args,
+	}).Debug("executing journal search SQL")
+
+	rows, err := s.db.QueryContext(ctx, sqlBuilder, args...)
+	if err != nil {
+		logger.WithError(err).WithFields(logrus.Fields{
+			"match": match,
+			"sql":   sqlBuilder,
+		}).Error("failed to execute journal search query")
+		return nil, formatSearchError(err, "")
+	}
+	defer rows.Close()
+
+	var out []Result
+	for rows.Next() {
+		var projectAlias, date, entryID, content, tagsStr string
 		var rank float64
 		var snippet sql.NullString
-		if err := rows.Scan(&r.ID, &r.Title, &rank, &snippet, &r.Updated); err != nil {
-			logger.WithError(err).Error("failed to scan search result")
-			return nil, fmt.Errorf("scanning search result: %w", err)
+		if err := rows.Scan(&projectAlias, &date, &entryID, &content, &rank, &snippet, &tagsStr); err != nil {
+			logger.WithError(err).Error("failed to scan journal search result")
+			return nil, fmt.Errorf("scanning journal search result: %w", err)
+		}
+
+		// Create title from first line of content
+		title := extractTitle(content)
+
+		r := Result{
+			ID:           fmt.Sprintf("journal/%s/%s/%s", projectAlias, date, entryID),
+			Title:        title,
+			Updated:      date,
+			Type:         "note",
+			ProjectAlias: projectAlias,
+			NoteID:       entryID,
+			rank:         rank,
 		}
 		if snippet.Valid {
 			r.Snippet = snippet.String
@@ -167,25 +317,43 @@ SELECT d.path, d.title,
 	}
 
 	if err := rows.Err(); err != nil {
-		logger.WithError(err).Error("error iterating search results")
-		return nil, fmt.Errorf("iterating search results: %w", err)
+		logger.WithError(err).Error("error iterating journal search results")
+		return nil, fmt.Errorf("iterating journal search results: %w", err)
 	}
 
-	duration := time.Since(startTime)
-
-	s.emitEvent(events.SearchPerformed, map[string]any{
-		"query":       q,
-		"resultCount": len(out),
-		"duration":    duration.Milliseconds(),
-	})
-
-	logger.WithFields(logrus.Fields{
-		"query":       q,
-		"resultCount": len(out),
-		"duration":    duration.Milliseconds(),
-	}).Info("search completed")
-
 	return out, nil
+}
+
+// extractTitle extracts a title from content (first line, truncated).
+func extractTitle(content string) string {
+	// Get first line
+	firstLine := content
+	if idx := strings.Index(content, "\n"); idx != -1 {
+		firstLine = content[:idx]
+	}
+	firstLine = strings.TrimSpace(firstLine)
+
+	// Truncate if too long
+	if len(firstLine) > 60 {
+		firstLine = firstLine[:57] + "..."
+	}
+
+	if firstLine == "" {
+		return "(empty)"
+	}
+
+	return firstLine
+}
+
+// sortResultsByRank sorts results by BM25 rank (lower is better).
+func sortResultsByRank(results []Result) {
+	for i := 0; i < len(results); i++ {
+		for j := i + 1; j < len(results); j++ {
+			if results[j].rank < results[i].rank {
+				results[i], results[j] = results[j], results[i]
+			}
+		}
+	}
 }
 
 // formatSearchError converts technical database errors into user-friendly messages.

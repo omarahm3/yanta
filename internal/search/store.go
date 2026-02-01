@@ -131,3 +131,149 @@ func (s *Store) DeleteAllTx(ctx context.Context, q Queryer) error {
 
 	return nil
 }
+
+// Journal FTS methods
+
+func (s *Store) InsertJournalEntry(ctx context.Context, projectAlias, date, entryID, content string, tags []string) error {
+	return s.InsertJournalEntryTx(ctx, s.db, projectAlias, date, entryID, content, tags)
+}
+
+func (s *Store) InsertJournalEntryTx(ctx context.Context, q Queryer, projectAlias, date, entryID, content string, tags []string) error {
+	if entryID == "" {
+		return fmt.Errorf("entryID cannot be empty")
+	}
+
+	tagsStr := ""
+	if len(tags) > 0 {
+		tagsStr = " " + joinTags(tags) + " " // Space-padded for LIKE matching
+	}
+
+	query := `
+		INSERT INTO fts_journal (content, tags, project_alias, date, entry_id)
+		VALUES (?, ?, ?, ?, ?)
+	`
+
+	_, err := q.ExecContext(ctx, query, content, tagsStr, projectAlias, date, entryID)
+	if err != nil {
+		return fmt.Errorf("inserting journal entry into fts_journal: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Store) DeleteJournalEntry(ctx context.Context, projectAlias, date, entryID string) error {
+	return s.DeleteJournalEntryTx(ctx, s.db, projectAlias, date, entryID)
+}
+
+func (s *Store) DeleteJournalEntryTx(ctx context.Context, q Queryer, projectAlias, date, entryID string) error {
+	if entryID == "" {
+		return fmt.Errorf("entryID cannot be empty")
+	}
+
+	query := `DELETE FROM fts_journal WHERE project_alias = ? AND date = ? AND entry_id = ?`
+
+	result, err := q.ExecContext(ctx, query, projectAlias, date, entryID)
+	if err != nil {
+		return fmt.Errorf("deleting journal entry from fts_journal: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("checking rows affected: %w", err)
+	}
+
+	if rows == 0 {
+		return fmt.Errorf("journal entry not found in fts_journal: %s/%s/%s", projectAlias, date, entryID)
+	}
+
+	return nil
+}
+
+func (s *Store) UpdateJournalEntry(ctx context.Context, projectAlias, date, entryID, content string, tags []string) error {
+	return s.UpdateJournalEntryTx(ctx, s.db, projectAlias, date, entryID, content, tags)
+}
+
+func (s *Store) UpdateJournalEntryTx(ctx context.Context, q Queryer, projectAlias, date, entryID, content string, tags []string) error {
+	// Delete + insert pattern (FTS5 doesn't support UPDATE well)
+	_ = s.DeleteJournalEntryTx(ctx, q, projectAlias, date, entryID)
+	return s.InsertJournalEntryTx(ctx, q, projectAlias, date, entryID, content, tags)
+}
+
+func (s *Store) DeleteAllJournalEntries(ctx context.Context) error {
+	return s.DeleteAllJournalEntriesTx(ctx, s.db)
+}
+
+func (s *Store) DeleteAllJournalEntriesTx(ctx context.Context, q Queryer) error {
+	query := `DELETE FROM fts_journal`
+
+	_, err := q.ExecContext(ctx, query)
+	if err != nil {
+		return fmt.Errorf("deleting all journal entries from fts_journal: %w", err)
+	}
+
+	return nil
+}
+
+// SearchJournalEntries searches the fts_journal table and returns matching entries.
+func (s *Store) SearchJournalEntries(ctx context.Context, fts5Query string) ([]JournalSearchResult, error) {
+	return s.SearchJournalEntriesTx(ctx, s.db, fts5Query)
+}
+
+// JournalSearchResult represents a single journal search result from fts_journal.
+type JournalSearchResult struct {
+	ProjectAlias string
+	Date         string
+	EntryID      string
+	Content      string
+	Tags         string
+	Rank         float64
+	Snippet      string
+}
+
+func (s *Store) SearchJournalEntriesTx(ctx context.Context, q Queryer, fts5Query string) ([]JournalSearchResult, error) {
+	if fts5Query == "" {
+		return nil, fmt.Errorf("query cannot be empty")
+	}
+
+	query := `
+		SELECT project_alias, date, entry_id, content, tags, bm25(fts_journal) AS rank,
+		       snippet(fts_journal, 0, '<mark>', '</mark>', ' … ', 12) AS snippet
+		FROM fts_journal
+		WHERE fts_journal MATCH ?
+		ORDER BY rank
+	`
+
+	rows, err := q.QueryContext(ctx, query, fts5Query)
+	if err != nil {
+		return nil, fmt.Errorf("searching fts_journal: %w", err)
+	}
+	defer rows.Close()
+
+	var results []JournalSearchResult
+
+	for rows.Next() {
+		var r JournalSearchResult
+		if err := rows.Scan(&r.ProjectAlias, &r.Date, &r.EntryID, &r.Content, &r.Tags, &r.Rank, &r.Snippet); err != nil {
+			return nil, fmt.Errorf("scanning journal search result: %w", err)
+		}
+		results = append(results, r)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating journal search rows: %w", err)
+	}
+
+	return results, nil
+}
+
+// joinTags joins tags with spaces for FTS indexing.
+func joinTags(tags []string) string {
+	result := ""
+	for i, tag := range tags {
+		if i > 0 {
+			result += " "
+		}
+		result += tag
+	}
+	return result
+}

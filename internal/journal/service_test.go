@@ -23,7 +23,7 @@ func setupTestService(t *testing.T) (*Service, string) {
 		t.Fatalf("failed to create vault: %v", err)
 	}
 
-	svc := NewService(v, nil) // eventBus nil for tests
+	svc := NewService(v, nil, nil) // eventBus and ftsStore nil for tests
 
 	return svc, tmpDir
 }

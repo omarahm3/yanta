@@ -14,6 +14,7 @@ import (
 
 	"yanta/internal/events"
 	"yanta/internal/logger"
+	"yanta/internal/search"
 	"yanta/internal/vault"
 )
 
@@ -28,15 +29,17 @@ type Service struct {
 	store    *Store
 	eventBus *events.EventBus
 	indexer  Indexer
+	ftsStore *search.Store
 	mu       sync.Mutex // Serializes writes to prevent race conditions
 }
 
 // NewService creates a new journal service.
-func NewService(v *vault.Vault, eventBus *events.EventBus) *Service {
+func NewService(v *vault.Vault, eventBus *events.EventBus, ftsStore *search.Store) *Service {
 	return &Service{
 		vault:    v,
 		store:    NewStore(v),
 		eventBus: eventBus,
+		ftsStore: ftsStore,
 	}
 }
 
@@ -148,6 +151,17 @@ func (s *Service) AppendEntryToDate(ctx context.Context, req AppendEntryRequestW
 		"date":    date,
 		"entryId": entry.ID,
 	}).Info("journal entry appended")
+
+	// Index in FTS (non-critical - log warning on failure)
+	if s.ftsStore != nil {
+		if err := s.ftsStore.InsertJournalEntry(context.Background(), projectAlias, date, entry.ID, entry.Content, entry.Tags); err != nil {
+			logger.WithError(err).WithFields(map[string]any{
+				"project": projectAlias,
+				"date":    date,
+				"entryId": entry.ID,
+			}).Warn("failed to index journal entry in FTS")
+		}
+	}
 
 	s.emitEvent(events.EntryCreated, map[string]any{
 		"type":      "journal",
@@ -293,6 +307,17 @@ func (s *Service) DeleteEntry(ctx context.Context, projectAlias, date, entryID s
 		"entryId": entryID,
 	}).Info("journal entry deleted")
 
+	// Remove from FTS (non-critical - log warning on failure)
+	if s.ftsStore != nil {
+		if err := s.ftsStore.DeleteJournalEntry(context.Background(), projectAlias, date, entryID); err != nil {
+			logger.WithError(err).WithFields(map[string]any{
+				"project": projectAlias,
+				"date":    date,
+				"entryId": entryID,
+			}).Warn("failed to delete journal entry from FTS")
+		}
+	}
+
 	s.emitEvent(events.EntryDeleted, map[string]any{
 		"type":      "journal",
 		"projectId": projectAlias,
@@ -345,6 +370,17 @@ func (s *Service) UpdateEntry(ctx context.Context, req UpdateEntryRequest) (*Jou
 		"date":    req.Date,
 		"entryId": req.EntryID,
 	}).Info("journal entry updated")
+
+	// Update FTS (non-critical - log warning on failure)
+	if s.ftsStore != nil {
+		if err := s.ftsStore.UpdateJournalEntry(context.Background(), req.ProjectAlias, req.Date, req.EntryID, entry.Content, entry.Tags); err != nil {
+			logger.WithError(err).WithFields(map[string]any{
+				"project": req.ProjectAlias,
+				"date":    req.Date,
+				"entryId": req.EntryID,
+			}).Warn("failed to update journal entry in FTS")
+		}
+	}
 
 	s.emitEvent(events.EntryUpdated, map[string]any{
 		"type":      "journal",
@@ -482,6 +518,16 @@ func (s *Service) PromoteToDocument(ctx context.Context, req PromoteRequest) (st
 	if !req.KeepOriginal {
 		for _, entry := range entriesToPromote {
 			entry.MarkDeleted()
+			// Remove from FTS
+			if s.ftsStore != nil {
+				if err := s.ftsStore.DeleteJournalEntry(ctx, req.SourceProject, req.Date, entry.ID); err != nil {
+					logger.WithError(err).WithFields(map[string]any{
+						"project": req.SourceProject,
+						"date":    req.Date,
+						"entryId": entry.ID,
+					}).Warn("failed to delete promoted journal entry from FTS")
+				}
+			}
 		}
 		file.UpdateTimestamp()
 
@@ -636,6 +682,17 @@ func (s *Service) RestoreEntry(ctx context.Context, projectAlias, date, entryID 
 		"date":    date,
 		"entryId": entryID,
 	}).Info("journal entry restored")
+
+	// Re-add to FTS (non-critical - log warning on failure)
+	if s.ftsStore != nil {
+		if err := s.ftsStore.InsertJournalEntry(context.Background(), projectAlias, date, entry.ID, entry.Content, entry.Tags); err != nil {
+			logger.WithError(err).WithFields(map[string]any{
+				"project": projectAlias,
+				"date":    date,
+				"entryId": entryID,
+			}).Warn("failed to re-index restored journal entry in FTS")
+		}
+	}
 
 	s.emitEvent(events.EntryRestored, map[string]any{
 		"type":      "journal",

@@ -4,6 +4,7 @@ package indexer
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 	"yanta/internal/document"
 	"yanta/internal/events"
 	"yanta/internal/git"
+	"yanta/internal/journal"
 	"yanta/internal/link"
 	"yanta/internal/logger"
 	"yanta/internal/project"
@@ -224,6 +226,11 @@ func (idx *Indexer) ScanAndIndexVault(ctx context.Context) error {
 		if (i+1)%10 == 0 || i == total-1 {
 			idx.emitProgress(i+1, total, fmt.Sprintf("Indexed %d/%d documents", i+1, total))
 		}
+	}
+
+	// Index all journals
+	if err := idx.IndexAllJournals(ctx); err != nil {
+		logger.Warnf("failed to index journals: %v", err)
 	}
 
 	return nil
@@ -468,6 +475,11 @@ func (idx *Indexer) ClearIndex(ctx context.Context) error {
 		return fmt.Errorf("clearing fts_doc: %w", err)
 	}
 
+	err = idx.ftsStore.DeleteAllJournalEntriesTx(ctx, tx)
+	if err != nil {
+		return fmt.Errorf("clearing fts_journal: %w", err)
+	}
+
 	_, err = tx.ExecContext(ctx, "DELETE FROM doc")
 	if err != nil {
 		return fmt.Errorf("clearing doc table: %w", err)
@@ -477,5 +489,82 @@ func (idx *Indexer) ClearIndex(ctx context.Context) error {
 		return fmt.Errorf("committing transaction: %w", err)
 	}
 
+	return nil
+}
+
+// IndexAllJournals indexes all existing journal entries into fts_journal.
+func (idx *Indexer) IndexAllJournals(ctx context.Context) error {
+	// Clear existing journal FTS entries first
+	if err := idx.ftsStore.DeleteAllJournalEntries(ctx); err != nil {
+		return fmt.Errorf("clearing fts_journal: %w", err)
+	}
+
+	projectsPath := filepath.Join(idx.vault.RootPath(), "projects")
+
+	entries, err := os.ReadDir(projectsPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("reading projects directory: %w", err)
+	}
+
+	var totalEntries int
+	for _, entry := range entries {
+		if !entry.IsDir() || !strings.HasPrefix(entry.Name(), "@") {
+			continue
+		}
+
+		projectAlias := entry.Name()
+		journalDir := filepath.Join(projectsPath, projectAlias, "journal")
+
+		journalFiles, err := os.ReadDir(journalDir)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			logger.Warnf("failed to read journal directory for %s: %v", projectAlias, err)
+			continue
+		}
+
+		for _, journalFile := range journalFiles {
+			if journalFile.IsDir() || !strings.HasSuffix(journalFile.Name(), ".json") {
+				continue
+			}
+
+			// Extract date from filename (e.g., "2026-01-30.json" -> "2026-01-30")
+			date := strings.TrimSuffix(journalFile.Name(), ".json")
+			if journal.ValidateDate(date) != nil {
+				continue
+			}
+
+			journalPath := filepath.Join(journalDir, journalFile.Name())
+			data, err := os.ReadFile(journalPath)
+			if err != nil {
+				logger.Warnf("failed to read journal file %s: %v", journalPath, err)
+				continue
+			}
+
+			var file journal.JournalFile
+			if err := json.Unmarshal(data, &file); err != nil {
+				logger.Warnf("failed to parse journal file %s: %v", journalPath, err)
+				continue
+			}
+
+			for _, entry := range file.Entries {
+				if entry.Deleted {
+					continue
+				}
+
+				if err := idx.ftsStore.InsertJournalEntry(ctx, projectAlias, date, entry.ID, entry.Content, entry.Tags); err != nil {
+					logger.Warnf("failed to index journal entry %s/%s/%s: %v", projectAlias, date, entry.ID, err)
+					continue
+				}
+				totalEntries++
+			}
+		}
+	}
+
+	logger.WithField("totalEntries", totalEntries).Info("indexed journal entries")
 	return nil
 }

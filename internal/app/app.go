@@ -134,7 +134,7 @@ func New(cfg Config) (*App, error) {
 		SyncManager: syncManager,
 	})
 
-	journalService := journal.NewService(v, eventBus)
+	journalService := journal.NewService(v, eventBus, ftsStore)
 	journalService.SetIndexer(idx)
 	journalWailsService := journal.NewWailsService(journalService)
 	backupService := backup.NewService()

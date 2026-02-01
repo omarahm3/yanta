@@ -15,6 +15,9 @@ interface SearchResult {
 	title: string;
 	snippet: string;
 	updated: string;
+	type: "document" | "note";
+	projectAlias: string;
+	noteId?: string;
 }
 
 interface GroupedSearchResult {
@@ -23,6 +26,9 @@ interface GroupedSearchResult {
 	snippets: string[];
 	updated: string;
 	matchCount: number;
+	type: "document" | "note";
+	projectAlias: string;
+	noteId?: string;
 }
 
 interface SearchProps {
@@ -105,6 +111,9 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 								title: r.title,
 								snippet: r.snippet,
 								updated: r.updated,
+								type: (r.type as "document" | "note") || "document",
+								projectAlias: r.projectAlias || "",
+								noteId: r.noteId,
 							})),
 					);
 					setSelectedIndex(0);
@@ -156,6 +165,9 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 					snippets: [result.snippet],
 					updated: result.updated,
 					matchCount: 1,
+					type: result.type,
+					projectAlias: result.projectAlias,
+					noteId: result.noteId,
 				});
 			}
 		});
@@ -174,9 +186,8 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 			const result = groupedResults[index];
 			if (!result) return;
 
-			const pathParts = result.path.split("/");
-			const projectAlias = pathParts[1];
-
+			// Set the project context
+			const projectAlias = result.projectAlias || result.path.split("/")[1];
 			const targetProject = projects.find((p) => p.alias === projectAlias);
 			if (targetProject) {
 				setCurrentProject(targetProject);
@@ -184,7 +195,14 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 				console.warn(`Project with alias '${projectAlias}' not found in active projects`);
 			}
 
-			onNavigate?.("document", { documentPath: result.path });
+			if (result.type === "note") {
+				// Navigate to Journal page with the date and noteId
+				// result.updated contains the date (YYYY-MM-DD)
+				onNavigate?.("journal", { date: result.updated, noteId: result.noteId });
+			} else {
+				// Navigate to document page
+				onNavigate?.("document", { documentPath: result.path });
+			}
 		},
 		[groupedResults, onNavigate, projects, setCurrentProject],
 	);
@@ -336,7 +354,7 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 							<>
 								<span>
 									Found <span className="font-semibold text-text">{groupedResults.length}</span>{" "}
-									{groupedResults.length === 1 ? "document" : "documents"}
+									{groupedResults.length === 1 ? "result" : "results"}
 								</span>
 								{queryTime > 0 && <span className="text-text-dim">in {queryTime}ms</span>}
 							</>
@@ -398,7 +416,16 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 
 										<div className="flex items-center justify-between mb-2">
 											<div className="flex items-center gap-3 text-xs">
-												<span className="text-purple font-semibold">{r.path.split("/")[1] || "unknown"}</span>
+												<span
+													className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+														r.type === "note"
+															? "bg-yellow/20 text-yellow"
+															: "bg-blue/20 text-blue"
+													}`}
+												>
+													{r.type === "note" ? "Note" : "Document"}
+												</span>
+												<span className="text-purple font-semibold">{r.projectAlias || r.path.split("/")[1] || "unknown"}</span>
 												<span className="text-text-dim">{r.updated}</span>
 												{r.matchCount > 1 && (
 													<span className="px-2 py-0.5 bg-accent/10 text-accent rounded-full text-[10px] font-semibold">
