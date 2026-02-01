@@ -1,8 +1,8 @@
-import type React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Journal } from "../Journal";
 import { DialogProvider, HelpProvider, HotkeyProvider, ProjectContext } from "../../../contexts";
+import { Journal } from "../Journal";
 
 // Mock Layout to render children only (sidebar/header tested elsewhere)
 vi.mock("../../../components/Layout", () => ({
@@ -14,7 +14,14 @@ vi.mock("../../../hooks/useSidebarSections", () => ({
 }));
 
 // Test wrapper with project context and hotkey provider
-const mockProject = { id: "1", alias: "personal", name: "Personal", createdAt: "", updatedAt: "", startDate: "" };
+const mockProject = {
+	id: "1",
+	alias: "personal",
+	name: "Personal",
+	createdAt: "",
+	updatedAt: "",
+	startDate: "",
+};
 const TestWrapper = ({ children }: { children: React.ReactNode }) => (
 	<DialogProvider>
 		<HelpProvider>
@@ -52,7 +59,7 @@ vi.mock("../../../../bindings/yanta/internal/journal/wailsservice", () => ({
 				tags: [],
 				created: "2026-01-30T11:30:00Z",
 			},
-		])
+		]),
 	),
 	GetAllActiveEntries: vi.fn(() => Promise.resolve([])),
 	DeleteEntry: vi.fn(() => Promise.resolve()),
@@ -68,7 +75,7 @@ vi.mock("../../../../bindings/yanta/internal/project/service", () => ({
 		Promise.resolve([
 			{ id: "1", alias: "personal", name: "Personal" },
 			{ id: "2", alias: "work", name: "Work" },
-		])
+		]),
 	),
 }));
 
@@ -100,9 +107,7 @@ describe("Journal", () => {
 
 		await waitFor(() => {
 			// Should show current date (formatted)
-			expect(
-				screen.getByRole("button", { name: /\d+,\s*\d{4}/ })
-			).toBeInTheDocument();
+			expect(screen.getByRole("button", { name: /\d+,\s*\d{4}/ })).toBeInTheDocument();
 		});
 	});
 
@@ -177,9 +182,7 @@ describe("Journal", () => {
 	});
 
 	it("deletes selected entries", async () => {
-		const { DeleteEntry } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
-		);
+		const { DeleteEntry } = await import("../../../../bindings/yanta/internal/journal/wailsservice");
 
 		render(<Journal />, { wrapper: TestWrapper });
 
@@ -209,11 +212,7 @@ describe("Journal", () => {
 		fireEvent.click(confirmButton);
 
 		await waitFor(() => {
-			expect(DeleteEntry).toHaveBeenCalledWith(
-				"personal",
-				expect.any(String),
-				"abc123"
-			);
+			expect(DeleteEntry).toHaveBeenCalledWith("personal", expect.any(String), "abc123");
 		});
 	});
 

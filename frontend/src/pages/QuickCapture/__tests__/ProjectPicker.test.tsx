@@ -10,25 +10,13 @@ const mockProjects = [
 
 describe("ProjectPicker", () => {
 	it("shows current project", () => {
-		render(
-			<ProjectPicker
-				projects={mockProjects}
-				selectedAlias="personal"
-				onSelect={vi.fn()}
-			/>
-		);
+		render(<ProjectPicker projects={mockProjects} selectedAlias="personal" onSelect={vi.fn()} />);
 
 		expect(screen.getByText("@personal")).toBeInTheDocument();
 	});
 
 	it("opens dropdown on click", () => {
-		render(
-			<ProjectPicker
-				projects={mockProjects}
-				selectedAlias="personal"
-				onSelect={vi.fn()}
-			/>
-		);
+		render(<ProjectPicker projects={mockProjects} selectedAlias="personal" onSelect={vi.fn()} />);
 
 		const trigger = screen.getByRole("button");
 		fireEvent.click(trigger);
@@ -37,13 +25,7 @@ describe("ProjectPicker", () => {
 	});
 
 	it("filters projects on type", async () => {
-		render(
-			<ProjectPicker
-				projects={mockProjects}
-				selectedAlias="personal"
-				onSelect={vi.fn()}
-			/>
-		);
+		render(<ProjectPicker projects={mockProjects} selectedAlias="personal" onSelect={vi.fn()} />);
 
 		const trigger = screen.getByRole("button");
 		fireEvent.click(trigger);
@@ -59,13 +41,7 @@ describe("ProjectPicker", () => {
 
 	it("selects project on Enter", () => {
 		const onSelect = vi.fn();
-		render(
-			<ProjectPicker
-				projects={mockProjects}
-				selectedAlias="personal"
-				onSelect={onSelect}
-			/>
-		);
+		render(<ProjectPicker projects={mockProjects} selectedAlias="personal" onSelect={onSelect} />);
 
 		const trigger = screen.getByRole("button");
 		fireEvent.click(trigger);
@@ -77,13 +53,7 @@ describe("ProjectPicker", () => {
 	});
 
 	it("navigates with arrow keys", () => {
-		render(
-			<ProjectPicker
-				projects={mockProjects}
-				selectedAlias="personal"
-				onSelect={vi.fn()}
-			/>
-		);
+		render(<ProjectPicker projects={mockProjects} selectedAlias="personal" onSelect={vi.fn()} />);
 
 		const trigger = screen.getByRole("button");
 		fireEvent.click(trigger);
@@ -100,13 +70,7 @@ describe("ProjectPicker", () => {
 	});
 
 	it("closes on Escape", () => {
-		render(
-			<ProjectPicker
-				projects={mockProjects}
-				selectedAlias="personal"
-				onSelect={vi.fn()}
-			/>
-		);
+		render(<ProjectPicker projects={mockProjects} selectedAlias="personal" onSelect={vi.fn()} />);
 
 		const trigger = screen.getByRole("button");
 		fireEvent.click(trigger);
@@ -120,21 +84,13 @@ describe("ProjectPicker", () => {
 	});
 
 	it("shows dropdown indicator", () => {
-		render(
-			<ProjectPicker
-				projects={mockProjects}
-				selectedAlias="personal"
-				onSelect={vi.fn()}
-			/>
-		);
+		render(<ProjectPicker projects={mockProjects} selectedAlias="personal" onSelect={vi.fn()} />);
 
 		expect(screen.getByText("▾")).toBeInTheDocument();
 	});
 
 	it("handles empty projects list", () => {
-		render(
-			<ProjectPicker projects={[]} selectedAlias={null} onSelect={vi.fn()} />
-		);
+		render(<ProjectPicker projects={[]} selectedAlias={null} onSelect={vi.fn()} />);
 
 		const trigger = screen.getByRole("button");
 		fireEvent.click(trigger);

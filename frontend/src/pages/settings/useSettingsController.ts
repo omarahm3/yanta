@@ -13,8 +13,6 @@ import { SyncStatus } from "../../../bindings/yanta/internal/git/models";
 import {
 	CheckGitInstalled,
 	GetAppScale,
-	GetAvailableHotkeyKeys,
-	GetAvailableHotkeyModifiers,
 	GetCurrentDataDirectory,
 	GetGitSyncConfig,
 	GetHotkeyConfig,
@@ -40,9 +38,9 @@ import { useScale } from "../../contexts";
 import { useNotification } from "../../hooks/useNotification";
 import {
 	type GlobalHotkeyConfig,
-	type SystemInfo,
 	globalHotkeyConfigFromModel,
 	globalHotkeyConfigToModel,
+	type SystemInfo,
 	systemInfoFromModel,
 } from "../../types";
 
@@ -83,11 +81,8 @@ export const useSettingsController = () => {
 	const [backups, setBackups] = useState<BackupInfo[]>([]);
 	const [hotkeyConfig, setHotkeyConfigState] = useState<GlobalHotkeyConfig>({
 		quickCaptureEnabled: false,
-		quickCaptureModifiers: ["Ctrl", "Shift"],
-		quickCaptureKey: "N",
+		quickCaptureHotkey: "Ctrl+Shift+N",
 	});
-	const [availableKeys, setAvailableKeys] = useState<string[]>([]);
-	const [availableModifiers, setAvailableModifiers] = useState<string[]>([]);
 	const [hotkeyError, setHotkeyError] = useState<string | undefined>();
 	const [platform, setPlatform] = useState<string>("");
 
@@ -155,14 +150,6 @@ export const useSettingsController = () => {
 				setHotkeyConfigState(globalHotkeyConfigFromModel(config));
 			})
 			.catch((err) => console.error("Failed to get hotkey config:", err));
-
-		GetAvailableHotkeyKeys()
-			.then((keys) => setAvailableKeys(keys))
-			.catch((err) => console.error("Failed to get available hotkey keys:", err));
-
-		GetAvailableHotkeyModifiers()
-			.then((mods) => setAvailableModifiers(mods))
-			.catch((err) => console.error("Failed to get available hotkey modifiers:", err));
 
 		const unsubscribe = Events.On("reindex:progress", (data: unknown) => {
 			const progressData = data as { current: number; total: number; message: string };
@@ -492,15 +479,9 @@ export const useSettingsController = () => {
 	const handleHotkeyConfigChange = useCallback(
 		async (config: GlobalHotkeyConfig) => {
 			// Validate config
-			if (config.quickCaptureEnabled) {
-				if (config.quickCaptureModifiers.length === 0) {
-					setHotkeyError("At least one modifier is required");
-					return;
-				}
-				if (!config.quickCaptureKey) {
-					setHotkeyError("A key must be selected");
-					return;
-				}
+			if (config.quickCaptureEnabled && !config.quickCaptureHotkey) {
+				setHotkeyError("Please set a hotkey");
+				return;
 			}
 
 			setHotkeyError(undefined);
@@ -508,13 +489,9 @@ export const useSettingsController = () => {
 
 			try {
 				await SetHotkeyConfig(globalHotkeyConfigToModel(config));
-				const hotkeyStr = [
-					...config.quickCaptureModifiers,
-					config.quickCaptureKey,
-				].join("+");
 
 				if (config.quickCaptureEnabled) {
-					success(`Quick Capture hotkey set to ${hotkeyStr}`);
+					success(`Quick Capture hotkey set to ${config.quickCaptureHotkey}`);
 				} else {
 					success("Quick Capture hotkey disabled");
 				}
@@ -564,8 +541,6 @@ export const useSettingsController = () => {
 		backupConfig,
 		backups,
 		hotkeyConfig,
-		availableKeys,
-		availableModifiers,
 		hotkeyError,
 		platform,
 		logLevelOptions,

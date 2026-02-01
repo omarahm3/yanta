@@ -83,9 +83,7 @@ describe("QuickCapture", () => {
 	});
 
 	it("saves on Ctrl+Enter", async () => {
-		const { AppendEntry } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
-		);
+		const { AppendEntry } = await import("../../../../bindings/yanta/internal/journal/wailsservice");
 
 		// Use a project from the mock list so we don't assume a hardcoded project exists
 		localStorage.setItem("yanta:lastProject", MOCK_PROJECTS[0].alias);
@@ -153,9 +151,7 @@ describe("QuickCapture", () => {
 	});
 
 	it("saves and clears on Shift+Enter", async () => {
-		const { AppendEntry } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
-		);
+		const { AppendEntry } = await import("../../../../bindings/yanta/internal/journal/wailsservice");
 
 		// Use a project from the mock list so we don't assume a hardcoded project exists
 		localStorage.setItem("yanta:lastProject", MOCK_PROJECTS[0].alias);

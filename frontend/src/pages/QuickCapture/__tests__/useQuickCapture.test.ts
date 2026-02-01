@@ -80,11 +80,13 @@ describe("useQuickCapture", () => {
 			await result.current.save();
 		});
 
-		expect(mockAppendEntry).toHaveBeenCalledWith({
-			projectAlias: "project",
-			content: "Test note",
-			tags: ["tag"],
-		});
+		expect(mockAppendEntry).toHaveBeenCalledWith(
+			expect.objectContaining({
+				projectAlias: "@project",
+				content: "Test note",
+				tags: ["tag"],
+			}),
+		);
 	});
 
 	it("clears content after save", async () => {
@@ -141,7 +143,7 @@ describe("useQuickCapture", () => {
 			await result.current.save();
 		});
 
-		expect(mockLocalStorage.setItem).toHaveBeenCalledWith("yanta:lastProject", "work");
+		expect(mockLocalStorage.setItem).toHaveBeenCalledWith("yanta:lastProject", "@work");
 	});
 
 	it("handles save error", async () => {

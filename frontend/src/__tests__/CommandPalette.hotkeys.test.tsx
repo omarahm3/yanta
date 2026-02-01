@@ -58,7 +58,7 @@ describe("CommandPalette hotkeys", () => {
 		expect(onClose).toHaveBeenCalledTimes(1);
 	});
 
-	it("navigates down with Ctrl+N", async () => {
+	it("navigates down with ArrowDown on document", async () => {
 		render(
 			<CommandPalette
 				isOpen={true}
@@ -69,6 +69,7 @@ describe("CommandPalette hotkeys", () => {
 		);
 
 		await screen.findByText("New Document");
+		const input = getCmdkInput();
 
 		// First item should be selected by default
 		await waitFor(() => {
@@ -76,7 +77,7 @@ describe("CommandPalette hotkeys", () => {
 			expect(options[0]).toHaveAttribute("data-selected", "true");
 		});
 
-		fireEvent.keyDown(document, { key: "n", ctrlKey: true });
+		fireEvent.keyDown(input, { key: "ArrowDown" });
 
 		await waitFor(() => {
 			const options = getOptions();
@@ -84,7 +85,7 @@ describe("CommandPalette hotkeys", () => {
 		});
 	});
 
-	it("navigates up with Ctrl+P", async () => {
+	it("navigates up with ArrowUp on document", async () => {
 		render(
 			<CommandPalette
 				isOpen={true}
@@ -95,16 +96,17 @@ describe("CommandPalette hotkeys", () => {
 		);
 
 		await screen.findByText("New Document");
+		const input = getCmdkInput();
 
 		// Navigate down first
-		fireEvent.keyDown(document, { key: "n", ctrlKey: true });
+		fireEvent.keyDown(input, { key: "ArrowDown" });
 		await waitFor(() => {
 			const options = getOptions();
 			expect(options[1]).toHaveAttribute("data-selected", "true");
 		});
 
 		// Navigate back up
-		fireEvent.keyDown(document, { key: "p", ctrlKey: true });
+		fireEvent.keyDown(input, { key: "ArrowUp" });
 		await waitFor(() => {
 			const options = getOptions();
 			expect(options[0]).toHaveAttribute("data-selected", "true");
@@ -216,8 +218,8 @@ describe("CommandPalette hotkeys", () => {
 			expect(options[0]).toHaveAttribute("data-selected", "true");
 		});
 
-		// Navigate up from first item should wrap to last (using Ctrl+P which triggers ArrowUp)
-		fireEvent.keyDown(document, { key: "p", ctrlKey: true });
+		// Navigate up from first item should wrap to last
+		fireEvent.keyDown(input, { key: "ArrowUp" });
 		await waitFor(() => {
 			const options = getOptions();
 			expect(options[2]).toHaveAttribute("data-selected", "true");

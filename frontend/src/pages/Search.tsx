@@ -418,14 +418,14 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 											<div className="flex items-center gap-3 text-xs">
 												<span
 													className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-														r.type === "note"
-															? "bg-yellow/20 text-yellow"
-															: "bg-blue/20 text-blue"
+														r.type === "note" ? "bg-yellow/20 text-yellow" : "bg-blue/20 text-blue"
 													}`}
 												>
 													{r.type === "note" ? "Note" : "Document"}
 												</span>
-												<span className="text-purple font-semibold">{r.projectAlias || r.path.split("/")[1] || "unknown"}</span>
+												<span className="text-purple font-semibold">
+													{r.projectAlias || r.path.split("/")[1] || "unknown"}
+												</span>
 												<span className="text-text-dim">{r.updated}</span>
 												{r.matchCount > 1 && (
 													<span className="px-2 py-0.5 bg-accent/10 text-accent rounded-full text-[10px] font-semibold">

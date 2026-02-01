@@ -1,3 +1,5 @@
+//go:build windows
+
 // Package hotkeys provides global hotkey management for Yanta.
 package hotkeys
 

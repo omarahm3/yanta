@@ -15,17 +15,17 @@ export {
 	documentToSaveRequest,
 	documentWithTagsFromModel,
 } from "./Document";
-export type {
-	HotkeyConfig,
-	HotkeyContextValue,
-	RegisteredHotkey,
-} from "./hotkeys";
 export type { GlobalHotkeyConfig } from "./globalHotkeys";
 export {
 	formatHotkey,
 	globalHotkeyConfigFromModel,
 	globalHotkeyConfigToModel,
 } from "./globalHotkeys";
+export type {
+	HotkeyConfig,
+	HotkeyContextValue,
+	RegisteredHotkey,
+} from "./hotkeys";
 export type { ExtendedProject, Project, ProjectType } from "./Project";
 // Re-export converters for convenience
 export {

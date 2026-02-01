@@ -38,18 +38,13 @@ describe("useJournal", () => {
 		const mockGet = GetActiveEntries as ReturnType<typeof vi.fn>;
 		mockGet.mockResolvedValue(mockEntries);
 
-		const { result } = renderHook(() =>
-			useJournal({ projectAlias: "personal" })
-		);
+		const { result } = renderHook(() => useJournal({ projectAlias: "personal" }));
 
 		await waitFor(() => {
 			expect(result.current.isLoading).toBe(false);
 		});
 
-		expect(mockGet).toHaveBeenCalledWith(
-			"personal",
-			expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)
-		);
+		expect(mockGet).toHaveBeenCalledWith("personal", expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
 		expect(result.current.entries).toHaveLength(2);
 	});
 
@@ -60,9 +55,7 @@ describe("useJournal", () => {
 		const mockGet = GetActiveEntries as ReturnType<typeof vi.fn>;
 		mockGet.mockResolvedValue(mockEntries);
 
-		const { result } = renderHook(() =>
-			useJournal({ projectAlias: "personal", date: "2026-01-15" })
-		);
+		const { result } = renderHook(() => useJournal({ projectAlias: "personal", date: "2026-01-15" }));
 
 		await waitFor(() => {
 			expect(result.current.isLoading).toBe(false);
@@ -78,9 +71,7 @@ describe("useJournal", () => {
 		const mockGet = GetActiveEntries as ReturnType<typeof vi.fn>;
 		mockGet.mockResolvedValue([]);
 
-		const { result } = renderHook(() =>
-			useJournal({ projectAlias: "personal" })
-		);
+		const { result } = renderHook(() => useJournal({ projectAlias: "personal" }));
 
 		await waitFor(() => {
 			expect(result.current.isLoading).toBe(false);
@@ -100,9 +91,7 @@ describe("useJournal", () => {
 		mockGet.mockResolvedValue(mockEntries);
 		mockDelete.mockResolvedValue(undefined);
 
-		const { result } = renderHook(() =>
-			useJournal({ projectAlias: "personal", date: "2026-01-30" })
-		);
+		const { result } = renderHook(() => useJournal({ projectAlias: "personal", date: "2026-01-30" }));
 
 		await waitFor(() => {
 			expect(result.current.isLoading).toBe(false);
@@ -125,9 +114,7 @@ describe("useJournal", () => {
 		mockGet.mockResolvedValue(mockEntries);
 		mockPromote.mockResolvedValue("projects/work/doc-123.json");
 
-		const { result } = renderHook(() =>
-			useJournal({ projectAlias: "personal", date: "2026-01-30" })
-		);
+		const { result } = renderHook(() => useJournal({ projectAlias: "personal", date: "2026-01-30" }));
 
 		await waitFor(() => {
 			expect(result.current.isLoading).toBe(false);
@@ -161,9 +148,7 @@ describe("useJournal", () => {
 		const mockGet = GetActiveEntries as ReturnType<typeof vi.fn>;
 		mockGet.mockResolvedValue(mockEntries);
 
-		const { result } = renderHook(() =>
-			useJournal({ projectAlias: "personal", date: "2026-01-30" })
-		);
+		const { result } = renderHook(() => useJournal({ projectAlias: "personal", date: "2026-01-30" }));
 
 		await waitFor(() => {
 			expect(result.current.isLoading).toBe(false);
@@ -188,9 +173,7 @@ describe("useJournal", () => {
 		const mockGet = GetActiveEntries as ReturnType<typeof vi.fn>;
 		mockGet.mockResolvedValue(mockEntries);
 
-		const { result } = renderHook(() =>
-			useJournal({ projectAlias: "personal" })
-		);
+		const { result } = renderHook(() => useJournal({ projectAlias: "personal" }));
 
 		await waitFor(() => {
 			expect(result.current.isLoading).toBe(false);
@@ -216,9 +199,7 @@ describe("useJournal", () => {
 		const mockGet = GetActiveEntries as ReturnType<typeof vi.fn>;
 		mockGet.mockResolvedValue(mockEntries);
 
-		const { result } = renderHook(() =>
-			useJournal({ projectAlias: "personal" })
-		);
+		const { result } = renderHook(() => useJournal({ projectAlias: "personal" }));
 
 		await waitFor(() => {
 			expect(result.current.isLoading).toBe(false);

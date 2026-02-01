@@ -39,7 +39,7 @@ describe("TagChips", () => {
 
 	it("applies custom className", () => {
 		const { container } = render(
-			<TagChips tags={["test"]} onRemove={vi.fn()} className="custom-class" />
+			<TagChips tags={["test"]} onRemove={vi.fn()} className="custom-class" />,
 		);
 		expect(container.firstChild).toHaveClass("custom-class");
 	});

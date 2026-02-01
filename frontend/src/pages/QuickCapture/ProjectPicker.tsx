@@ -35,7 +35,7 @@ export const ProjectPicker: React.FC<ProjectPickerProps> = ({
 	const filteredProjects = projects.filter(
 		(p) =>
 			p.alias.toLowerCase().includes(searchValue.toLowerCase()) ||
-			p.name.toLowerCase().includes(searchValue.toLowerCase())
+			p.name.toLowerCase().includes(searchValue.toLowerCase()),
 	);
 
 	// Reset highlighted index when filtered list changes
@@ -72,9 +72,7 @@ export const ProjectPicker: React.FC<ProjectPickerProps> = ({
 			case "ArrowDown":
 			case "j":
 				e.preventDefault();
-				setHighlightedIndex((prev) =>
-					prev < filteredProjects.length - 1 ? prev + 1 : prev
-				);
+				setHighlightedIndex((prev) => (prev < filteredProjects.length - 1 ? prev + 1 : prev));
 				break;
 			case "ArrowUp":
 			case "k":
@@ -137,9 +135,7 @@ export const ProjectPicker: React.FC<ProjectPickerProps> = ({
 					{/* Project list */}
 					<div className="max-h-48 overflow-y-auto">
 						{filteredProjects.length === 0 ? (
-							<div className="px-3 py-2 text-sm text-[#5C6B7A]">
-								No projects found
-							</div>
+							<div className="px-3 py-2 text-sm text-[#5C6B7A]">No projects found</div>
 						) : (
 							filteredProjects.map((project, index) => (
 								<button
@@ -153,7 +149,7 @@ export const ProjectPicker: React.FC<ProjectPickerProps> = ({
 										"w-full px-3 py-2 text-left text-sm transition-colors",
 										index === highlightedIndex
 											? "bg-[#2D3F54] text-[#61AFEF]"
-											: "text-[#E8E8E8] hover:bg-[#2D3F54]"
+											: "text-[#E8E8E8] hover:bg-[#2D3F54]",
 									)}
 								>
 									<span className="text-[#61AFEF]">@{project.alias}</span>

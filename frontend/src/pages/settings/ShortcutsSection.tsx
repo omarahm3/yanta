@@ -12,41 +12,21 @@ import type { GlobalHotkeyConfig } from "../../types";
 interface ShortcutsSectionProps {
 	platform: string;
 	hotkeyConfig: GlobalHotkeyConfig;
-	availableKeys: string[];
-	availableModifiers: string[];
 	onHotkeyConfigChange: (config: GlobalHotkeyConfig) => void;
 	hotkeyError?: string;
 	shortcuts: Shortcut[];
 }
 
 export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectionProps>(
-	(
-		{
-			platform,
-			hotkeyConfig,
-			availableKeys,
-			availableModifiers,
-			onHotkeyConfigChange,
-			hotkeyError,
-			shortcuts,
-		},
-		ref,
-	) => {
+	({ platform, hotkeyConfig, onHotkeyConfigChange, hotkeyError, shortcuts }, ref) => {
 		const isWindows = platform === "windows";
 		const isLinux = platform === "linux";
 		const isMac = platform === "darwin";
 
-		const handleModifiersChange = (mods: string[]) => {
+		const handleHotkeyChange = (hotkey: string) => {
 			onHotkeyConfigChange({
 				...hotkeyConfig,
-				quickCaptureModifiers: mods,
-			});
-		};
-
-		const handleKeyChange = (key: string) => {
-			onHotkeyConfigChange({
-				...hotkeyConfig,
-				quickCaptureKey: key,
+				quickCaptureHotkey: hotkey,
 			});
 		};
 
@@ -80,17 +60,15 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 									<div className="p-4 rounded border border-border bg-bg-secondary">
 										<div className="mb-3">
 											<div className="text-sm font-medium text-text">Quick Capture</div>
-											<div className="text-xs text-text-dim">Open the Quick Capture window from anywhere</div>
+											<div className="text-xs text-text-dim">
+												Click the input below and press your desired hotkey. Press Enter to save, Esc to cancel.
+											</div>
 										</div>
 										<HotkeyEditor
-											modifiers={hotkeyConfig.quickCaptureModifiers}
-											keyName={hotkeyConfig.quickCaptureKey}
+											value={hotkeyConfig.quickCaptureHotkey}
 											enabled={hotkeyConfig.quickCaptureEnabled}
-											onModifiersChange={handleModifiersChange}
-											onKeyChange={handleKeyChange}
+											onValueChange={handleHotkeyChange}
 											onEnabledChange={handleEnabledChange}
-											availableModifiers={availableModifiers}
-											availableKeys={availableKeys}
 											error={hotkeyError}
 										/>
 									</div>

@@ -334,8 +334,6 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 						ref={shortcutsRef}
 						platform={controller.platform}
 						hotkeyConfig={controller.hotkeyConfig}
-						availableKeys={controller.availableKeys}
-						availableModifiers={controller.availableModifiers}
 						onHotkeyConfigChange={controller.handlers.handleHotkeyConfigChange}
 						hotkeyError={controller.hotkeyError}
 						shortcuts={actualShortcuts}

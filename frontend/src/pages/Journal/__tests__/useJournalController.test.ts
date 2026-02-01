@@ -43,7 +43,7 @@ vi.mock("../../../../bindings/yanta/internal/journal/wailsservice", () => ({
 				tags: [],
 				created: "2026-01-30T11:00:00Z",
 			},
-		])
+		]),
 	),
 	DeleteEntry: vi.fn(() => Promise.resolve()),
 	ListDates: vi.fn(() => Promise.resolve(["2026-01-30"])),
@@ -56,9 +56,7 @@ describe("useJournalController", () => {
 	});
 
 	it("initializes with entries", async () => {
-		const { result } = renderHook(() =>
-			useJournalController({ onNavigate: vi.fn() })
-		);
+		const { result } = renderHook(() => useJournalController({ onNavigate: vi.fn() }));
 
 		await waitFor(() => {
 			expect(result.current.entries).toHaveLength(3);
@@ -66,9 +64,7 @@ describe("useJournalController", () => {
 	});
 
 	it("highlights next entry with j key handler", async () => {
-		const { result } = renderHook(() =>
-			useJournalController({ onNavigate: vi.fn() })
-		);
+		const { result } = renderHook(() => useJournalController({ onNavigate: vi.fn() }));
 
 		await waitFor(() => {
 			expect(result.current.entries).toHaveLength(3);
@@ -84,9 +80,7 @@ describe("useJournalController", () => {
 	});
 
 	it("highlights previous entry with k key handler", async () => {
-		const { result } = renderHook(() =>
-			useJournalController({ onNavigate: vi.fn() })
-		);
+		const { result } = renderHook(() => useJournalController({ onNavigate: vi.fn() }));
 
 		await waitFor(() => {
 			expect(result.current.entries).toHaveLength(3);
@@ -107,9 +101,7 @@ describe("useJournalController", () => {
 	});
 
 	it("does not go below 0 when highlighting previous", async () => {
-		const { result } = renderHook(() =>
-			useJournalController({ onNavigate: vi.fn() })
-		);
+		const { result } = renderHook(() => useJournalController({ onNavigate: vi.fn() }));
 
 		await waitFor(() => {
 			expect(result.current.entries).toHaveLength(3);
@@ -125,9 +117,7 @@ describe("useJournalController", () => {
 	});
 
 	it("does not go above max when highlighting next", async () => {
-		const { result } = renderHook(() =>
-			useJournalController({ onNavigate: vi.fn() })
-		);
+		const { result } = renderHook(() => useJournalController({ onNavigate: vi.fn() }));
 
 		await waitFor(() => {
 			expect(result.current.entries).toHaveLength(3);
@@ -146,9 +136,7 @@ describe("useJournalController", () => {
 	});
 
 	it("toggles selection for highlighted entry", async () => {
-		const { result } = renderHook(() =>
-			useJournalController({ onNavigate: vi.fn() })
-		);
+		const { result } = renderHook(() => useJournalController({ onNavigate: vi.fn() }));
 
 		await waitFor(() => {
 			expect(result.current.entries).toHaveLength(3);
@@ -165,9 +153,7 @@ describe("useJournalController", () => {
 	});
 
 	it("toggles selection for specific entry id", async () => {
-		const { result } = renderHook(() =>
-			useJournalController({ onNavigate: vi.fn() })
-		);
+		const { result } = renderHook(() => useJournalController({ onNavigate: vi.fn() }));
 
 		await waitFor(() => {
 			expect(result.current.entries).toHaveLength(3);
@@ -182,9 +168,7 @@ describe("useJournalController", () => {
 	});
 
 	it("clears selection", async () => {
-		const { result } = renderHook(() =>
-			useJournalController({ onNavigate: vi.fn() })
-		);
+		const { result } = renderHook(() => useJournalController({ onNavigate: vi.fn() }));
 
 		await waitFor(() => {
 			expect(result.current.entries).toHaveLength(3);
@@ -205,9 +189,7 @@ describe("useJournalController", () => {
 	});
 
 	it("provides hotkey configs without selectAll and Enter", async () => {
-		const { result } = renderHook(() =>
-			useJournalController({ onNavigate: vi.fn() })
-		);
+		const { result } = renderHook(() => useJournalController({ onNavigate: vi.fn() }));
 
 		await waitFor(() => {
 			expect(result.current.entries).toHaveLength(3);
@@ -236,9 +218,7 @@ describe("useJournalController", () => {
 	});
 
 	it("updates highlighted index on entry click", async () => {
-		const { result } = renderHook(() =>
-			useJournalController({ onNavigate: vi.fn() })
-		);
+		const { result } = renderHook(() => useJournalController({ onNavigate: vi.fn() }));
 
 		await waitFor(() => {
 			expect(result.current.entries).toHaveLength(3);
@@ -252,9 +232,7 @@ describe("useJournalController", () => {
 	});
 
 	it("provides status bar data", async () => {
-		const { result } = renderHook(() =>
-			useJournalController({ onNavigate: vi.fn() })
-		);
+		const { result } = renderHook(() => useJournalController({ onNavigate: vi.fn() }));
 
 		await waitFor(() => {
 			expect(result.current.entries).toHaveLength(3);
@@ -272,9 +250,7 @@ describe("useJournalController", () => {
 	});
 
 	it("opens confirm dialog when deleting selected entries", async () => {
-		const { result } = renderHook(() =>
-			useJournalController({ onNavigate: vi.fn() })
-		);
+		const { result } = renderHook(() => useJournalController({ onNavigate: vi.fn() }));
 
 		await waitFor(() => {
 			expect(result.current.entries).toHaveLength(3);
@@ -298,9 +274,7 @@ describe("useJournalController", () => {
 	});
 
 	it("shows plural message when deleting multiple entries", async () => {
-		const { result } = renderHook(() =>
-			useJournalController({ onNavigate: vi.fn() })
-		);
+		const { result } = renderHook(() => useJournalController({ onNavigate: vi.fn() }));
 
 		await waitFor(() => {
 			expect(result.current.entries).toHaveLength(3);
@@ -323,9 +297,7 @@ describe("useJournalController", () => {
 	});
 
 	it("does not open dialog when no entries selected", async () => {
-		const { result } = renderHook(() =>
-			useJournalController({ onNavigate: vi.fn() })
-		);
+		const { result } = renderHook(() => useJournalController({ onNavigate: vi.fn() }));
 
 		await waitFor(() => {
 			expect(result.current.entries).toHaveLength(3);
@@ -340,9 +312,7 @@ describe("useJournalController", () => {
 	});
 
 	it("provides confirmDialog state", async () => {
-		const { result } = renderHook(() =>
-			useJournalController({ onNavigate: vi.fn() })
-		);
+		const { result } = renderHook(() => useJournalController({ onNavigate: vi.fn() }));
 
 		await waitFor(() => {
 			expect(result.current.entries).toHaveLength(3);

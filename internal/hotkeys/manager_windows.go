@@ -1,7 +1,8 @@
+//go:build windows
+
 package hotkeys
 
 import (
-	"runtime"
 	"sync"
 	"time"
 
@@ -37,13 +38,7 @@ func New(onQuickCapture, onRestore func()) *Manager {
 }
 
 // Start registers hotkeys based on the provided configuration.
-// Only works on Windows; returns nil without action on other platforms.
 func (m *Manager) Start(cfg config.HotkeyConfig) error {
-	if runtime.GOOS != "windows" {
-		logger.Info("global hotkey registration is only supported on Windows")
-		return nil
-	}
-
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -202,10 +197,6 @@ func (m *Manager) unregisterWithTimeout(hk *hotkey.Hotkey, name string) {
 // Reconfigure updates the hotkey configuration at runtime.
 // It stops existing hotkeys and re-registers with the new config.
 func (m *Manager) Reconfigure(cfg config.HotkeyConfig) error {
-	if runtime.GOOS != "windows" {
-		return nil
-	}
-
 	logger.Info("reconfiguring hotkeys")
 
 	// Stop current registrations

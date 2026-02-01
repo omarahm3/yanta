@@ -137,12 +137,14 @@
 
 /* Global styles for desktop app */
 @layer base {
-	html, body, #root {
+	html,
+	body,
+	#root {
 		height: 100%;
 		margin: 0;
 		padding: 0;
 	}
-	
+
 	/* Disable text selection globally for desktop app feel */
 	* {
 		-webkit-user-select: none;

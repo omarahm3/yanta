@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseTags, parseProject, parseContent, parse } from "../parser";
+import { parse, parseContent, parseProject, parseTags } from "../parser";
 
 describe("parser", () => {
 	describe("parseTags", () => {

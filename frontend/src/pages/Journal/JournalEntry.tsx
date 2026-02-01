@@ -1,6 +1,6 @@
 import type React from "react";
-import { cn } from "../../lib/utils";
 import { Button } from "../../components/ui";
+import { cn } from "../../lib/utils";
 
 export interface JournalEntryData {
 	id: string;
@@ -46,19 +46,19 @@ export const JournalEntry: React.FC<JournalEntryProps> = ({
 		"group border-b border-border px-4 py-4 transition-colors border-l-4 hover:bg-surface/60",
 		isHighlighted && "bg-surface/80",
 		borderClass,
-		className
+		className,
 	);
 
 	const indexClasses = cn(
 		"text-sm font-mono shrink-0 pt-1",
-		isSelected ? "text-green font-bold" : isHighlighted ? "text-accent" : "text-text-dim"
+		isSelected ? "text-green font-bold" : isHighlighted ? "text-accent" : "text-text-dim",
 	);
 
 	const toggleClasses = cn(
 		"mt-1 inline-flex h-5 w-5 items-center justify-center rounded border text-xs font-semibold transition-colors",
 		isSelected
 			? "border-green text-green"
-			: "border-border text-text-dim hover:text-text hover:border-text"
+			: "border-border text-text-dim hover:text-text hover:border-text",
 	);
 
 	return (
@@ -91,14 +91,9 @@ export const JournalEntry: React.FC<JournalEntryProps> = ({
 				<span className={indexClasses}>{index + 1}.</span>
 
 				{/* Content */}
-				<div
-					className="flex-1 cursor-pointer min-w-0"
-					onClick={() => onEntryClick(entry.id)}
-				>
+				<div className="flex-1 cursor-pointer min-w-0" onClick={() => onEntryClick(entry.id)}>
 					{/* Text content */}
-					<div className="text-sm text-text-primary hover:text-accent">
-						{entry.content}
-					</div>
+					<div className="text-sm text-text-primary hover:text-accent">{entry.content}</div>
 
 					{/* Project, Tags and time */}
 					<div className="flex items-center gap-2 mt-2 text-xs text-text-dim">

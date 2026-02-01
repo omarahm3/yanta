@@ -11,6 +11,8 @@ export { HeaderBar } from "./HeaderBar";
 export { Heading } from "./Heading";
 export { HelpModal } from "./HelpModal";
 export { type HelpCommand, HelpSection } from "./HelpSection";
+export { HotkeyEditor, type HotkeyEditorProps } from "./HotkeyEditor";
+export { HotkeyInput, type HotkeyInputProps } from "./HotkeyInput";
 export { Input } from "./Input";
 export { KeyDisplay } from "./KeyDisplay";
 export { Label } from "./Label";
@@ -42,4 +44,3 @@ export {
 	useToast,
 } from "./Toast";
 export { Toggle } from "./Toggle";
-export { HotkeyEditor, type HotkeyEditorProps } from "./HotkeyEditor";

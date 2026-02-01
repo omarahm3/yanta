@@ -1,8 +1,8 @@
 import type React from "react";
 import { Layout } from "../../components/Layout";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
-import { cn } from "../../lib/utils";
 import { useHotkeys } from "../../hooks";
+import { cn } from "../../lib/utils";
 import { DatePicker } from "./DatePicker";
 import { JournalEntry } from "./JournalEntry";
 import { useJournalController } from "./useJournalController";
@@ -17,10 +17,7 @@ export interface JournalProps {
  * Based on PRD Section 7.9 - Journal Entry Operations
  * Follows Dashboard pattern for consistent UX
  */
-export const Journal: React.FC<JournalProps> = ({
-	onNavigate,
-	className,
-}) => {
+export const Journal: React.FC<JournalProps> = ({ onNavigate, className }) => {
 	const controller = useJournalController({ onNavigate });
 
 	useHotkeys(controller.hotkeys);
@@ -49,11 +46,7 @@ export const Journal: React.FC<JournalProps> = ({
 
 	return (
 		<>
-			<Layout
-				sidebarSections={sidebarSections}
-				currentPage="journal"
-				showCommandLine={false}
-			>
+			<Layout sidebarSections={sidebarSections} currentPage="journal" showCommandLine={false}>
 				<div className={cn("flex flex-col h-full", className)}>
 					{/* Header with date picker */}
 					<div className="p-4 border-b border-border">
@@ -61,11 +54,7 @@ export const Journal: React.FC<JournalProps> = ({
 							<h1 className="text-lg font-semibold">Journal</h1>
 							<span className="text-sm text-text-dim">{projectAlias}</span>
 						</div>
-						<DatePicker
-							selectedDate={date}
-							onDateChange={setDate}
-							datesWithEntries={datesWithEntries}
-						/>
+						<DatePicker selectedDate={date} onDateChange={setDate} datesWithEntries={datesWithEntries} />
 					</div>
 
 					{/* Entry list */}
@@ -76,16 +65,12 @@ export const Journal: React.FC<JournalProps> = ({
 							</div>
 						)}
 
-						{error && (
-							<div className="text-center text-[#E06C75] py-8">{error}</div>
-						)}
+						{error && <div className="text-center text-[#E06C75] py-8">{error}</div>}
 
 						{isEmpty && !isLoading && (
 							<div className="text-center text-text-dim py-8">
 								<p>No entries for this day.</p>
-								<p className="mt-2 text-sm">
-									Press your quick capture hotkey to add one!
-								</p>
+								<p className="mt-2 text-sm">Press your quick capture hotkey to add one!</p>
 							</div>
 						)}
 

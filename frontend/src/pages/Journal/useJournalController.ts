@@ -4,8 +4,8 @@ import { useProjectContext } from "../../contexts";
 import { useHelp } from "../../hooks";
 import { useSidebarSections } from "../../hooks/useSidebarSections";
 import type { HotkeyConfig } from "../../types/hotkeys";
-import { useJournal } from "./useJournal";
 import type { JournalEntryData } from "./JournalEntry";
+import { useJournal } from "./useJournal";
 
 function addDays(dateStr: string, delta: number): string {
 	const d = new Date(dateStr);
@@ -184,18 +184,21 @@ export function useJournalController({
 	}, []);
 
 	// Toggle selection (uses highlighted if no id provided)
-	const toggleSelection = useCallback((id?: string) => {
-		let targetId = id;
-		if (!targetId) {
-			const entry = entriesRef.current[highlightedIndexRef.current];
-			if (entry) {
-				targetId = entry.id;
+	const toggleSelection = useCallback(
+		(id?: string) => {
+			let targetId = id;
+			if (!targetId) {
+				const entry = entriesRef.current[highlightedIndexRef.current];
+				if (entry) {
+					targetId = entry.id;
+				}
 			}
-		}
-		if (targetId) {
-			toggleSelectionById(targetId);
-		}
-	}, [toggleSelectionById]);
+			if (targetId) {
+				toggleSelectionById(targetId);
+			}
+		},
+		[toggleSelectionById],
+	);
 
 	// Entry click handler
 	const handleEntryClick = useCallback(
@@ -205,7 +208,7 @@ export function useJournalController({
 				setHighlightedIndex(index);
 			}
 		},
-		[entries]
+		[entries],
 	);
 
 	// Delete selected entries with confirmation
@@ -214,9 +217,10 @@ export function useJournalController({
 		if (ids.length === 0) return;
 
 		const count = ids.length;
-		const message = count === 1
-			? "Are you sure you want to delete this journal entry?"
-			: `Are you sure you want to delete ${count} journal entries?`;
+		const message =
+			count === 1
+				? "Are you sure you want to delete this journal entry?"
+				: `Are you sure you want to delete ${count} journal entries?`;
 
 		setConfirmDialog({
 			isOpen: true,
@@ -405,7 +409,7 @@ export function useJournalController({
 			toggleSelection,
 			handleDeleteSelected,
 			handlePromoteSelected,
-		]
+		],
 	);
 
 	return {

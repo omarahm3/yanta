@@ -6,7 +6,15 @@ const PageLoader = () => <LoadingSpinner message="Loading..." />;
 
 const Test = React.lazy(() => import("../pages/Test").then((m) => ({ default: m.Test })));
 
-type Page = "dashboard" | "document" | "projects" | "settings" | "search" | "test" | "quick-capture" | "journal";
+type Page =
+	| "dashboard"
+	| "document"
+	| "projects"
+	| "settings"
+	| "search"
+	| "test"
+	| "quick-capture"
+	| "journal";
 
 type NavigationState = Record<string, string | number | boolean | undefined>;
 
