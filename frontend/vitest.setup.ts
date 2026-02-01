@@ -71,3 +71,6 @@ Object.defineProperty(window, "matchMedia", {
     dispatchEvent: vi.fn(),
   })),
 });
+
+// Mock scrollIntoView for cmdk
+Element.prototype.scrollIntoView = vi.fn();

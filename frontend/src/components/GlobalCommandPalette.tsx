@@ -80,6 +80,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			text: "Go to Dashboard",
 			hint: "Home",
 			shortcut: getShortcutForCommand("nav-dashboard"),
+			group: "Navigation",
 			action: () => {
 				onNavigate("dashboard");
 				onClose();
@@ -92,6 +93,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			text: "Go to Projects",
 			hint: "Manage projects",
 			shortcut: getShortcutForCommand("nav-projects"),
+			group: "Navigation",
 			action: () => {
 				onNavigate("projects");
 				onClose();
@@ -104,6 +106,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			text: "Go to Search",
 			hint: "Find documents",
 			shortcut: getShortcutForCommand("nav-search"),
+			group: "Navigation",
 			action: () => {
 				onNavigate("search");
 				onClose();
@@ -116,6 +119,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			text: "Go to Journal",
 			hint: "Quick notes",
 			shortcut: getShortcutForCommand("nav-journal"),
+			group: "Navigation",
 			action: () => {
 				onNavigate("journal");
 				onClose();
@@ -128,6 +132,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			text: "Go to Settings",
 			hint: "Configure app",
 			shortcut: getShortcutForCommand("nav-settings"),
+			group: "Navigation",
 			action: () => {
 				onNavigate("settings");
 				onClose();
@@ -140,6 +145,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			text: "New Document",
 			hint: "Create new entry",
 			shortcut: getShortcutForCommand("new-document"),
+			group: "Create",
 			action: () => {
 				onNavigate("document");
 				onClose();
@@ -151,6 +157,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			icon: <FileDown className="text-lg" />,
 			text: "Export Document",
 			hint: "Export to markdown",
+			group: "Document",
 			action: async () => {
 				onClose();
 
@@ -190,6 +197,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			icon: <FileDown className="text-lg" />,
 			text: "Export Document to PDF",
 			hint: "Export to PDF",
+			group: "Document",
 			action: async () => {
 				onClose();
 
@@ -228,6 +236,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			icon: <Bug className="text-lg" />,
 			text: "Open Development Test",
 			hint: "Debug tools",
+			group: "Application",
 			action: () => {
 				onNavigate("test");
 				onClose();
@@ -240,6 +249,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			text: "Git Sync",
 			hint: "Fetch, pull, commit, push",
 			shortcut: getShortcutForCommand("git-sync"),
+			group: "Git",
 			action: async () => {
 				onClose();
 				try {
@@ -282,6 +292,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			icon: <CloudUpload className="text-lg" />,
 			text: "Git Push",
 			hint: "Push to remote",
+			group: "Git",
 			action: async () => {
 				onClose();
 				try {
@@ -298,6 +309,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			icon: <CloudDownload className="text-lg" />,
 			text: "Git Pull",
 			hint: "Pull from remote (merge)",
+			group: "Git",
 			action: async () => {
 				onClose();
 				try {
@@ -315,6 +327,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 				icon: <FileDown className="text-lg" />,
 				text: "Export Project",
 				hint: "Export project to markdown",
+				group: "Projects",
 				action: async () => {
 					onClose();
 					try {
@@ -343,6 +356,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 				icon: showArchived ? <ArchiveRestore className="text-lg" /> : <Archive className="text-lg" />,
 				text: showArchived ? "Hide Archived Documents" : "Show Archived Documents",
 				hint: `${currentProject.alias} context`,
+				group: "Projects",
 				action: () => {
 					onToggleArchived();
 					onClose();
@@ -358,6 +372,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 					icon: <ArrowRight className="text-lg" />,
 					text: `Switch to ${project.alias}`,
 					hint: project.name,
+					group: "Projects",
 					action: () => {
 						setCurrentProject(project);
 						onClose();
