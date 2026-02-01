@@ -11,6 +11,21 @@ export class Result {
     "snippet": string;
     "updated": string;
 
+    /**
+     * "document" or "note"
+     */
+    "type": string;
+
+    /**
+     * filled for both
+     */
+    "projectAlias": string;
+
+    /**
+     * only for notes (entry ID within journal file)
+     */
+    "noteId"?: string;
+
     /** Creates a new Result instance. */
     constructor($$source: Partial<Result> = {}) {
         if (!("id" in $$source)) {
@@ -24,6 +39,12 @@ export class Result {
         }
         if (!("updated" in $$source)) {
             this["updated"] = "";
+        }
+        if (!("type" in $$source)) {
+            this["type"] = "";
+        }
+        if (!("projectAlias" in $$source)) {
+            this["projectAlias"] = "";
         }
 
         Object.assign(this, $$source);

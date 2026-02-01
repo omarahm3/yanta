@@ -19,6 +19,126 @@ func (q *Query) ToFTS5() string {
 	return result
 }
 
+// ToFTS5Journal converts the query to FTS5 format for the journal table.
+// The journal table has columns: content, tags (indexed), project_alias, date, entry_id (unindexed).
+// This method searches in the content column only.
+func (q *Query) ToFTS5Journal() string {
+	logger.Debug("converting query to fts5 for journal")
+
+	if q == nil || q.Expression == nil {
+		logger.Debug("query or expression is nil, returning wildcard match")
+		return `"*"`
+	}
+
+	result := q.Expression.toFTS5Journal()
+	logger.Debugf("query converted to fts5 for journal successfully result=%s", result)
+	return result
+}
+
+func (o *OrExpression) toFTS5Journal() string {
+	if len(o.And) == 0 {
+		return `"*"`
+	}
+
+	var orParts []string
+	for _, andExpr := range o.And {
+		if part := convertItemsJournal(andExpr.Items); part != "" {
+			orParts = append(orParts, part)
+		}
+	}
+
+	if len(orParts) == 0 {
+		return `"*"`
+	}
+
+	if len(orParts) == 1 {
+		return orParts[0]
+	}
+
+	var result strings.Builder
+	for i, part := range orParts {
+		if i > 0 {
+			result.WriteString(" OR ")
+		}
+		if needsParens(part) {
+			result.WriteString("(")
+			result.WriteString(part)
+			result.WriteString(")")
+		} else {
+			result.WriteString(part)
+		}
+	}
+
+	return result.String()
+}
+
+// convertItemsJournal converts items to FTS5 for journal table (content column only)
+func convertItemsJournal(items []*Item) string {
+	if len(items) == 0 {
+		return ""
+	}
+
+	var parts []string
+
+	for _, item := range items {
+		if item.Filter != nil {
+			key := strings.ToLower(item.Filter.Key)
+
+			// Skip project/tag/in/title/body filters for journal search
+			if key == "project" || key == "tag" || key == "in" || key == "title" || key == "body" {
+				continue
+			}
+
+			if item.Filter.Value == nil || *item.Filter.Value == "" {
+				continue
+			}
+
+			// Treat other filters as search terms
+			val := *item.Filter.Value
+			sanitizedVal := sanitizeTerm(item.Filter.Key + ":" + val)
+			if sanitizedVal == "" {
+				continue
+			}
+			quoted := quoteIfNeeded(sanitizedVal)
+			parts = append(parts, quoted)
+		} else if item.Term != nil {
+			termVal := item.Term.Value()
+			termVal = strings.ReplaceAll(termVal, "'", "")
+			termVal = sanitizeTerm(termVal)
+			if termVal == "" {
+				continue
+			}
+
+			quoted := quoteIfNeeded(termVal)
+
+			if item.Term.Negated {
+				quoted = "NOT " + quoted
+			}
+
+			parts = append(parts, quoted)
+		}
+	}
+
+	if len(parts) == 0 {
+		return ""
+	}
+
+	// Join parts, handling NOT specially
+	var result strings.Builder
+	for i, part := range parts {
+		if i > 0 {
+			if strings.HasPrefix(part, "NOT ") {
+				result.WriteString(" ")
+			} else {
+				result.WriteString(" AND ")
+			}
+		}
+		result.WriteString(part)
+	}
+
+	return result.String()
+}
+
 func (o *OrExpression) toFTS5(scope string) string {
 	logger.Debugf("converting or expression to fts5 scope=%s andCount=%d", scope, len(o.And))
 

@@ -20,6 +20,12 @@ export type {
 	HotkeyContextValue,
 	RegisteredHotkey,
 } from "./hotkeys";
+export type { GlobalHotkeyConfig } from "./globalHotkeys";
+export {
+	formatHotkey,
+	globalHotkeyConfigFromModel,
+	globalHotkeyConfigToModel,
+} from "./globalHotkeys";
 export type { ExtendedProject, Project, ProjectType } from "./Project";
 // Re-export converters for convenience
 export {

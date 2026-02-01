@@ -35,24 +35,58 @@ export function GetAppScale(): $CancellablePromise<number> {
     return $Call.ByID(731302552);
 }
 
+/**
+ * GetAvailableHotkeyKeys returns the list of supported keys for hotkey configuration.
+ */
+export function GetAvailableHotkeyKeys(): $CancellablePromise<string[]> {
+    return $Call.ByID(3439795820).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
+/**
+ * GetAvailableHotkeyModifiers returns the list of supported modifiers for hotkey configuration.
+ */
+export function GetAvailableHotkeyModifiers(): $CancellablePromise<string[]> {
+    return $Call.ByID(3059828422).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
 export function GetCurrentDataDirectory(): $CancellablePromise<string> {
     return $Call.ByID(1375740355);
 }
 
 export function GetGitStatus(): $CancellablePromise<{ [_: string]: any }> {
     return $Call.ByID(1825114647).then(($result: any) => {
-        return $$createType0($result);
+        return $$createType1($result);
     });
 }
 
 export function GetGitSyncConfig(): $CancellablePromise<config$0.GitSyncConfig> {
     return $Call.ByID(1575361836).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType2($result);
+    });
+}
+
+/**
+ * GetHotkeyConfig returns the current hotkey configuration.
+ */
+export function GetHotkeyConfig(): $CancellablePromise<config$0.HotkeyConfig> {
+    return $Call.ByID(1788811887).then(($result: any) => {
+        return $$createType3($result);
     });
 }
 
 export function GetKeepInBackground(): $CancellablePromise<boolean> {
     return $Call.ByID(3067148649);
+}
+
+/**
+ * GetPlatform returns the current platform name.
+ */
+export function GetPlatform(): $CancellablePromise<string> {
+    return $Call.ByID(3548419224);
 }
 
 export function GetStartHidden(): $CancellablePromise<boolean> {
@@ -61,7 +95,7 @@ export function GetStartHidden(): $CancellablePromise<boolean> {
 
 export function GetSystemInfo(): $CancellablePromise<$models.SystemInfo | null> {
     return $Call.ByID(3308718230).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType5($result);
     });
 }
 
@@ -105,6 +139,17 @@ export function SetGitSyncConfig(cfg: config$0.GitSyncConfig): $CancellablePromi
     return $Call.ByID(3328767048, cfg);
 }
 
+/**
+ * SetHotkeyConfig updates the hotkey configuration and triggers live reconfiguration.
+ */
+export function SetHotkeyConfig(cfg: config$0.HotkeyConfig): $CancellablePromise<void> {
+    return $Call.ByID(10862067, cfg);
+}
+
+export function SetHotkeyReconfigureHandler(handler: any): $CancellablePromise<void> {
+    return $Call.ByID(888177452, handler);
+}
+
 export function SetIndexer(idx: indexer$0.Indexer | null): $CancellablePromise<void> {
     return $Call.ByID(671503490, idx);
 }
@@ -131,7 +176,7 @@ export function ShowWindow(): $CancellablePromise<void> {
 
 export function SyncNow(): $CancellablePromise<git$0.SyncResult | null> {
     return $Call.ByID(4024210634).then(($result: any) => {
-        return $$createType5($result);
+        return $$createType7($result);
     });
 }
 
@@ -140,9 +185,11 @@ export function ValidateMigrationTarget(targetPath: string): $CancellablePromise
 }
 
 // Private type creation functions
-const $$createType0 = $Create.Map($Create.Any, $Create.Any);
-const $$createType1 = config$0.GitSyncConfig.createFrom;
-const $$createType2 = $models.SystemInfo.createFrom;
-const $$createType3 = $Create.Nullable($$createType2);
-const $$createType4 = git$0.SyncResult.createFrom;
+const $$createType0 = $Create.Array($Create.Any);
+const $$createType1 = $Create.Map($Create.Any, $Create.Any);
+const $$createType2 = config$0.GitSyncConfig.createFrom;
+const $$createType3 = config$0.HotkeyConfig.createFrom;
+const $$createType4 = $models.SystemInfo.createFrom;
 const $$createType5 = $Create.Nullable($$createType4);
+const $$createType6 = git$0.SyncResult.createFrom;
+const $$createType7 = $Create.Nullable($$createType6);

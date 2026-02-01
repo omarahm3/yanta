@@ -42,3 +42,4 @@ export {
 	useToast,
 } from "./Toast";
 export { Toggle } from "./Toggle";
+export { HotkeyEditor, type HotkeyEditorProps } from "./HotkeyEditor";

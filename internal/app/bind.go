@@ -4,9 +4,11 @@ import (
 	"yanta/internal/asset"
 	"yanta/internal/backup"
 	"yanta/internal/commandline"
+	"yanta/internal/config"
 	"yanta/internal/document"
 	"yanta/internal/events"
 	"yanta/internal/export"
+	"yanta/internal/journal"
 	"yanta/internal/project"
 	"yanta/internal/search"
 	"yanta/internal/system"
@@ -20,6 +22,7 @@ type Bindings struct {
 	Search           *search.Service
 	System           *system.Service
 	Assets           *asset.Service
+	Journal          *journal.WailsService
 	Backup           *backup.Service
 	Export           *export.Service
 	ProjectCommands  *commandline.ProjectCommands
@@ -27,12 +30,16 @@ type Bindings struct {
 	DocumentCommands *commandline.DocumentCommands
 	EventBus         *events.EventBus
 
-	shutdownHandler func()
+	shutdownHandler          func()
+	hotkeyReconfigureHandler func(config.HotkeyConfig) error
 }
 
 func (b *Bindings) OnStartup() {
 	if b.shutdownHandler != nil {
 		b.System.SetShutdownHandler(b.shutdownHandler)
+	}
+	if b.hotkeyReconfigureHandler != nil {
+		b.System.SetHotkeyReconfigureHandler(b.hotkeyReconfigureHandler)
 	}
 }
 
@@ -44,6 +51,7 @@ func (b *Bindings) Bind() []any {
 		b.Search,
 		b.System,
 		b.Assets,
+		b.Journal,
 		b.Backup,
 		b.Export,
 		b.ProjectCommands,

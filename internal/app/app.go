@@ -12,20 +12,23 @@ import (
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
-	"golang.design/x/hotkey"
 
 	"yanta/internal/asset"
 	"yanta/internal/backup"
 	"yanta/internal/commandline"
+	"yanta/internal/config"
 	"yanta/internal/db"
 	"yanta/internal/document"
 	"yanta/internal/events"
 	"yanta/internal/export"
 	"yanta/internal/git"
+	"yanta/internal/hotkeys"
 	"yanta/internal/indexer"
+	"yanta/internal/journal"
 	"yanta/internal/link"
 	"yanta/internal/logger"
 	"yanta/internal/project"
+	"yanta/internal/quickcapture"
 	"yanta/internal/search"
 	"yanta/internal/seed"
 	"yanta/internal/system"
@@ -42,7 +45,7 @@ type App struct {
 
 	DBPath string
 
-	restoreHotkey *hotkey.Hotkey
+	hotkeyManager *hotkeys.Manager
 	syncManager   *git.SyncManager
 	eventBus      *events.EventBus
 
@@ -131,6 +134,9 @@ func New(cfg Config) (*App, error) {
 		SyncManager: syncManager,
 	})
 
+	journalService := journal.NewService(v, eventBus, ftsStore)
+	journalService.SetIndexer(idx)
+	journalWailsService := journal.NewWailsService(journalService)
 	backupService := backup.NewService()
 	exportService := export.NewService(export.ServiceConfig{
 		DocumentService: documentService,
@@ -161,19 +167,21 @@ func New(cfg Config) (*App, error) {
 	logger.Debugf("command handlers created")
 
 	a.Bindings = &Bindings{
-		Projects:         projectService,
-		Documents:        documentService,
-		Tags:             tagService,
-		Search:           searchService,
-		System:           systemService,
-		Assets:           assetService,
-		Backup:           backupService,
-		Export:           exportService,
-		ProjectCommands:  projectCommands,
-		GlobalCommands:   globalCommands,
-		DocumentCommands: documentCommands,
-		EventBus:         eventBus,
-		shutdownHandler:  a.OnShutdown,
+		Projects:                 projectService,
+		Documents:                documentService,
+		Tags:                     tagService,
+		Search:                   searchService,
+		System:                   systemService,
+		Assets:                   assetService,
+		Journal:                  journalWailsService,
+		Backup:                   backupService,
+		Export:                   exportService,
+		ProjectCommands:          projectCommands,
+		GlobalCommands:           globalCommands,
+		DocumentCommands:         documentCommands,
+		EventBus:                 eventBus,
+		shutdownHandler:          a.OnShutdown,
+		hotkeyReconfigureHandler: a.ReconfigureHotkeys,
 	}
 
 	logger.Debugf("bindings created")
@@ -195,6 +203,11 @@ func (a *App) SetMainWindow(window *application.WebviewWindow) {
 	if a.eventBus != nil && a.wailsApp != nil {
 		a.eventBus.Connect(a.wailsApp, window)
 	}
+}
+
+// GetMainWindow returns the main window reference.
+func (a *App) GetMainWindow() *application.WebviewWindow {
+	return a.mainWindow
 }
 
 func (a *App) Startup(ctx context.Context) {
@@ -234,14 +247,8 @@ func (a *App) Startup(ctx context.Context) {
 	sessionType := os.Getenv("XDG_SESSION_TYPE")
 	logger.Debugf("XDG_SESSION_TYPE: %s", sessionType)
 
-	switch runtime.GOOS {
-	case "darwin":
-		logger.Info("skipping global hotkey registration on macOS (disabled)")
-	case "linux":
-		logger.Info("skipping global hotkey registration on Linux (disabled)")
-	default:
-		a.registerRestoreHotkey()
-	}
+	// Initialize hotkey manager
+	a.initHotkeyManager()
 }
 
 func (a *App) BeforeClose() bool {
@@ -306,26 +313,12 @@ func (a *App) Shutdown() {
 			a.DB = nil
 		}
 
-		if a.restoreHotkey != nil {
-			logger.Debug("unregistering global hotkey...")
-			hotkeyDone := make(chan struct{})
-			go func() {
-				defer func() {
-					if r := recover(); r != nil {
-						logger.Errorf("panic during hotkey unregister: %v", r)
-					}
-					close(hotkeyDone)
-				}()
-				if err := a.restoreHotkey.Unregister(); err != nil {
-					logger.Errorf("failed to unregister hotkey: %v", err)
-				}
-			}()
-
-			select {
-			case <-hotkeyDone:
-				logger.Debug("hotkey unregistered successfully")
-			case <-time.After(500 * time.Millisecond):
-				logger.Warn("hotkey unregister timeout, continuing shutdown anyway")
+		if a.hotkeyManager != nil {
+			logger.Debug("stopping hotkey manager...")
+			if err := a.hotkeyManager.Stop(); err != nil {
+				logger.Errorf("failed to stop hotkey manager: %v", err)
+			} else {
+				logger.Debug("hotkey manager stopped successfully")
 			}
 		}
 	}()
@@ -341,31 +334,43 @@ func (a *App) Shutdown() {
 	os.Exit(0)
 }
 
-func (a *App) registerRestoreHotkey() {
+// initHotkeyManager initializes the global hotkey manager.
+func (a *App) initHotkeyManager() {
 	if runtime.GOOS != "windows" {
 		logger.Info("global hotkey registration is only supported on Windows")
 		return
 	}
 
-	go func() {
-		hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModShift}, hotkey.KeyY)
-		if err := hk.Register(); err != nil {
-			logger.Errorf("failed to register global hotkey Ctrl+Shift+Y: %v", err)
-			return
-		}
+	// Callbacks for hotkey actions
+	onQuickCapture := func() {
+		logger.Debug("Quick Capture hotkey triggered")
+		quickcapture.ShowWindow()
+	}
 
-		a.restoreHotkey = hk
-		logger.Info("registered global hotkey Ctrl+Shift+Y to restore window")
-
-		for range hk.Keydown() {
-			logger.Debug("Ctrl+Shift+Y pressed, restoring window...")
-			if a.mainWindow != nil {
-				a.mainWindow.Show()
-				a.mainWindow.Restore()
-				logger.Debug("window restored")
-			}
+	onRestore := func() {
+		logger.Debug("Restore hotkey triggered")
+		if a.mainWindow != nil {
+			a.mainWindow.Show()
+			a.mainWindow.Restore()
+			logger.Debug("window restored")
 		}
-	}()
+	}
+
+	// Create and start the manager
+	a.hotkeyManager = hotkeys.New(onQuickCapture, onRestore)
+	cfg := config.GetHotkeyConfig()
+	if err := a.hotkeyManager.Start(cfg); err != nil {
+		logger.Errorf("failed to start hotkey manager: %v", err)
+	}
+}
+
+// ReconfigureHotkeys reconfigures the global hotkeys at runtime.
+// Called from system service when hotkey settings change.
+func (a *App) ReconfigureHotkeys(cfg config.HotkeyConfig) error {
+	if a.hotkeyManager == nil {
+		return nil
+	}
+	return a.hotkeyManager.Reconfigure(cfg)
 }
 
 func (a *App) writeCrashReport(location string, panicValue any) {

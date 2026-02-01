@@ -1,7 +1,11 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { DialogProvider, HotkeyProvider } from "./contexts";
+import { QuickCapture } from "./pages/QuickCapture";
 import { enableBackendLogging } from "./utils/backendLogger";
+import "./styles/tailwind.css";
+import "./styles/yanta.css";
 
 interface YantaDebug {
 	jsLoaded?: number;
@@ -62,12 +66,31 @@ const root = createRoot(container);
 
 waitForWailsRuntime().then(() => {
 	try {
-		root.render(
-			<React.StrictMode>
-				<App />
-			</React.StrictMode>,
-		);
-		console.log("[main.tsx] App rendered successfully");
+		// Check if we're in Quick Capture window based on URL path
+		const isQuickCapture = window.location.pathname === "/quick-capture";
+		console.log("[main.tsx] Path:", window.location.pathname, "isQuickCapture:", isQuickCapture);
+
+		if (isQuickCapture) {
+			// Render minimal Quick Capture UI without main app chrome
+			root.render(
+				<React.StrictMode>
+					<DialogProvider>
+						<HotkeyProvider>
+							<QuickCapture />
+						</HotkeyProvider>
+					</DialogProvider>
+				</React.StrictMode>,
+			);
+			console.log("[main.tsx] QuickCapture rendered successfully");
+		} else {
+			// Render full application
+			root.render(
+				<React.StrictMode>
+					<App />
+				</React.StrictMode>,
+			);
+			console.log("[main.tsx] App rendered successfully");
+		}
 	} catch (error) {
 		console.error("[main.tsx] CRITICAL ERROR rendering App:", error);
 		throw error;

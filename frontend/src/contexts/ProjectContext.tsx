@@ -13,7 +13,7 @@ interface ProjectContextValue {
 	isLoading: boolean;
 }
 
-const ProjectContext = createContext<ProjectContextValue | null>(null);
+export const ProjectContext = createContext<ProjectContextValue | null>(null);
 
 interface ProjectProviderProps {
 	children: ReactNode;

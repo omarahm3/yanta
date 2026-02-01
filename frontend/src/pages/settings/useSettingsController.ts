@@ -13,9 +13,13 @@ import { SyncStatus } from "../../../bindings/yanta/internal/git/models";
 import {
 	CheckGitInstalled,
 	GetAppScale,
+	GetAvailableHotkeyKeys,
+	GetAvailableHotkeyModifiers,
 	GetCurrentDataDirectory,
 	GetGitSyncConfig,
+	GetHotkeyConfig,
 	GetKeepInBackground,
+	GetPlatform,
 	GetStartHidden,
 	GetSystemInfo,
 	MigrateToGitDirectory,
@@ -23,6 +27,7 @@ import {
 	ReindexDatabase,
 	SetAppScale,
 	SetGitSyncConfig,
+	SetHotkeyConfig,
 	SetKeepInBackground,
 	SetLogLevel,
 	SetStartHidden,
@@ -33,7 +38,13 @@ import { GetWindowMode, SetWindowMode } from "../../../bindings/yanta/internal/w
 import type { SelectOption } from "../../components/ui";
 import { useScale } from "../../contexts";
 import { useNotification } from "../../hooks/useNotification";
-import { type SystemInfo, systemInfoFromModel } from "../../types";
+import {
+	type GlobalHotkeyConfig,
+	type SystemInfo,
+	globalHotkeyConfigFromModel,
+	globalHotkeyConfigToModel,
+	systemInfoFromModel,
+} from "../../types";
 
 interface GitSyncSettings {
 	enabled: boolean;
@@ -70,6 +81,15 @@ export const useSettingsController = () => {
 		MaxBackups: 5,
 	});
 	const [backups, setBackups] = useState<BackupInfo[]>([]);
+	const [hotkeyConfig, setHotkeyConfigState] = useState<GlobalHotkeyConfig>({
+		quickCaptureEnabled: false,
+		quickCaptureModifiers: ["Ctrl", "Shift"],
+		quickCaptureKey: "N",
+	});
+	const [availableKeys, setAvailableKeys] = useState<string[]>([]);
+	const [availableModifiers, setAvailableModifiers] = useState<string[]>([]);
+	const [hotkeyError, setHotkeyError] = useState<string | undefined>();
+	const [platform, setPlatform] = useState<string>("");
 
 	const { success, error, info, warning } = useNotification();
 	const { setScale } = useScale();
@@ -124,6 +144,25 @@ export const useSettingsController = () => {
 		GetBackups()
 			.then((backupList) => setBackups(backupList))
 			.catch((err) => console.error("Failed to get backups:", err));
+
+		// Fetch hotkey configuration
+		GetPlatform()
+			.then((p) => setPlatform(p))
+			.catch((err) => console.error("Failed to get platform:", err));
+
+		GetHotkeyConfig()
+			.then((config) => {
+				setHotkeyConfigState(globalHotkeyConfigFromModel(config));
+			})
+			.catch((err) => console.error("Failed to get hotkey config:", err));
+
+		GetAvailableHotkeyKeys()
+			.then((keys) => setAvailableKeys(keys))
+			.catch((err) => console.error("Failed to get available hotkey keys:", err));
+
+		GetAvailableHotkeyModifiers()
+			.then((mods) => setAvailableModifiers(mods))
+			.catch((err) => console.error("Failed to get available hotkey modifiers:", err));
 
 		const unsubscribe = Events.On("reindex:progress", (data: unknown) => {
 			const progressData = data as { current: number; total: number; message: string };
@@ -450,6 +489,45 @@ export const useSettingsController = () => {
 		[success, error],
 	);
 
+	const handleHotkeyConfigChange = useCallback(
+		async (config: GlobalHotkeyConfig) => {
+			// Validate config
+			if (config.quickCaptureEnabled) {
+				if (config.quickCaptureModifiers.length === 0) {
+					setHotkeyError("At least one modifier is required");
+					return;
+				}
+				if (!config.quickCaptureKey) {
+					setHotkeyError("A key must be selected");
+					return;
+				}
+			}
+
+			setHotkeyError(undefined);
+			setHotkeyConfigState(config);
+
+			try {
+				await SetHotkeyConfig(globalHotkeyConfigToModel(config));
+				const hotkeyStr = [
+					...config.quickCaptureModifiers,
+					config.quickCaptureKey,
+				].join("+");
+
+				if (config.quickCaptureEnabled) {
+					success(`Quick Capture hotkey set to ${hotkeyStr}`);
+				} else {
+					success("Quick Capture hotkey disabled");
+				}
+			} catch (err) {
+				const errorMessage = String(err);
+				const cleanedMessage = errorMessage.replace(/^[A-Z_]+:\s*/, "");
+				setHotkeyError(cleanedMessage);
+				error(`Failed to update hotkey: ${cleanedMessage}`);
+			}
+		},
+		[success, error],
+	);
+
 	const logLevelOptions: SelectOption[] = [
 		{ value: "debug", label: "Debug" },
 		{ value: "info", label: "Info" },
@@ -485,6 +563,11 @@ export const useSettingsController = () => {
 		appScale,
 		backupConfig,
 		backups,
+		hotkeyConfig,
+		availableKeys,
+		availableModifiers,
+		hotkeyError,
+		platform,
 		logLevelOptions,
 		commitIntervalOptions,
 		handlers: {
@@ -506,6 +589,7 @@ export const useSettingsController = () => {
 			handleMaxBackupsChange,
 			handleRestoreBackup,
 			handleDeleteBackup,
+			handleHotkeyConfigChange,
 		},
 	};
 };

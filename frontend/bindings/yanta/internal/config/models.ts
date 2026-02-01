@@ -70,3 +70,47 @@ export class GitSyncConfig {
         return new GitSyncConfig($$parsedSource as Partial<GitSyncConfig>);
     }
 }
+
+export class HotkeyConfig {
+    "QuickCaptureEnabled": boolean;
+
+    /**
+     * e.g., ["Ctrl", "Shift"]
+     */
+    "QuickCaptureModifiers": string[];
+
+    /**
+     * e.g., "N"
+     */
+    "QuickCaptureKey": string;
+
+    /** Creates a new HotkeyConfig instance. */
+    constructor($$source: Partial<HotkeyConfig> = {}) {
+        if (!("QuickCaptureEnabled" in $$source)) {
+            this["QuickCaptureEnabled"] = false;
+        }
+        if (!("QuickCaptureModifiers" in $$source)) {
+            this["QuickCaptureModifiers"] = [];
+        }
+        if (!("QuickCaptureKey" in $$source)) {
+            this["QuickCaptureKey"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new HotkeyConfig instance from a string or object.
+     */
+    static createFrom($$source: any = {}): HotkeyConfig {
+        const $$createField1_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("QuickCaptureModifiers" in $$parsedSource) {
+            $$parsedSource["QuickCaptureModifiers"] = $$createField1_0($$parsedSource["QuickCaptureModifiers"]);
+        }
+        return new HotkeyConfig($$parsedSource as Partial<HotkeyConfig>);
+    }
+}
+
+// Private type creation functions
+const $$createType0 = $Create.Array($Create.Any);

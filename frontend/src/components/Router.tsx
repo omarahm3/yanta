@@ -1,12 +1,12 @@
 import React, { Suspense } from "react";
-import { Dashboard, Document, Projects, Search, Settings } from "../pages";
+import { Dashboard, Document, Journal, Projects, QuickCapture, Search, Settings } from "../pages";
 import { LoadingSpinner } from "./ui";
 
 const PageLoader = () => <LoadingSpinner message="Loading..." />;
 
 const Test = React.lazy(() => import("../pages/Test").then((m) => ({ default: m.Test })));
 
-type Page = "dashboard" | "document" | "projects" | "settings" | "search" | "test";
+type Page = "dashboard" | "document" | "projects" | "settings" | "search" | "test" | "quick-capture" | "journal";
 
 type NavigationState = Record<string, string | number | boolean | undefined>;
 
@@ -58,6 +58,10 @@ export const Router: React.FC<RouterProps> = ({
 		initialTitle: navigationState.initialTitle as string | undefined,
 	};
 
+	const journalProps = {
+		onNavigate: handleNavigation,
+	};
+
 	const page = currentPage as Page;
 
 	const knownPages = new Set<Page>([
@@ -67,6 +71,8 @@ export const Router: React.FC<RouterProps> = ({
 		"settings",
 		"search",
 		"test",
+		"quick-capture",
+		"journal",
 	]);
 
 	return (
@@ -77,6 +83,8 @@ export const Router: React.FC<RouterProps> = ({
 			{page === "settings" && <Settings {...settingsProps} />}
 			{page === "search" && <Search {...searchProps} />}
 			{page === "test" && <Test onNavigate={handleNavigation} />}
+			{page === "quick-capture" && <QuickCapture />}
+			{page === "journal" && <Journal {...journalProps} />}
 			{!knownPages.has(page) && <Dashboard {...dashboardPropsWithNav} />}
 		</Suspense>
 	);
