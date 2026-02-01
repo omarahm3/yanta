@@ -284,3 +284,12 @@
 ::-webkit-scrollbar-thumb:hover {
 	background: var(--color-text-dim);
 }
+
+.project-list-scroll::-webkit-scrollbar {
+	width: 4px;
+	height: 4px;
+}
+
+.project-list-scroll::-webkit-scrollbar-thumb {
+	border-radius: 2px;
+}

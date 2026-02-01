@@ -224,7 +224,11 @@ describe("useJournalController", () => {
 		expect(keys).toContain("ArrowUp");
 		expect(keys).toContain("Space");
 		expect(keys).toContain("mod+D");
-		expect(keys).toContain("mod+P");
+		expect(keys).toContain("mod+shift+p");
+		expect(keys).toContain("ctrl+n");
+		expect(keys).toContain("ctrl+p");
+		expect(keys).toContain("ArrowLeft");
+		expect(keys).toContain("ArrowRight");
 
 		// Verify removed hotkeys are not present
 		expect(keys).not.toContain("mod+A");

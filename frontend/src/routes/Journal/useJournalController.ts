@@ -7,6 +7,15 @@ import type { HotkeyConfig } from "../../types/hotkeys";
 import { useJournal } from "./useJournal";
 import type { JournalEntryData } from "./JournalEntry";
 
+function addDays(dateStr: string, delta: number): string {
+	const d = new Date(dateStr);
+	d.setDate(d.getDate() + delta);
+	const y = d.getFullYear();
+	const m = String(d.getMonth() + 1).padStart(2, "0");
+	const day = String(d.getDate()).padStart(2, "0");
+	return `${y}-${m}-${day}`;
+}
+
 const helpCommands = [
 	{
 		command: "j / ↓",
@@ -29,8 +38,16 @@ const helpCommands = [
 		description: "Delete selected entries",
 	},
 	{
-		command: "Ctrl+P",
+		command: "Ctrl+Shift+P",
 		description: "Promote selected entries to document",
+	},
+	{
+		command: "Ctrl+N / →",
+		description: "Next day",
+	},
+	{
+		command: "Ctrl+P / ←",
+		description: "Previous day",
 	},
 ];
 
@@ -259,9 +276,56 @@ export function useJournalController({
 		return () => window.removeEventListener("keydown", handleEsc);
 	}, [clearSelection, confirmDialog.isOpen]);
 
-	// Hotkeys
+	const goToPrevDay = useCallback(() => {
+		setDate(addDays(date, -1));
+	}, [date, setDate]);
+
+	const goToNextDay = useCallback(() => {
+		setDate(addDays(date, 1));
+	}, [date, setDate]);
+
 	const hotkeys: HotkeyConfig[] = useMemo(
 		() => [
+			{
+				key: "ctrl+n",
+				handler: (event: KeyboardEvent) => {
+					event.preventDefault();
+					event.stopPropagation();
+					goToNextDay();
+				},
+				allowInInput: false,
+				description: "Next day",
+			},
+			{
+				key: "ctrl+p",
+				handler: (event: KeyboardEvent) => {
+					event.preventDefault();
+					event.stopPropagation();
+					goToPrevDay();
+				},
+				allowInInput: false,
+				description: "Previous day",
+			},
+			{
+				key: "ArrowRight",
+				handler: (event: KeyboardEvent) => {
+					event.preventDefault();
+					event.stopPropagation();
+					goToNextDay();
+				},
+				allowInInput: false,
+				description: "Next day",
+			},
+			{
+				key: "ArrowLeft",
+				handler: (event: KeyboardEvent) => {
+					event.preventDefault();
+					event.stopPropagation();
+					goToPrevDay();
+				},
+				allowInInput: false,
+				description: "Previous day",
+			},
 			{
 				key: "j",
 				handler: (event: KeyboardEvent) => {
@@ -323,7 +387,7 @@ export function useJournalController({
 				description: "Delete selected entries",
 			},
 			{
-				key: "mod+P",
+				key: "mod+shift+p",
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -334,6 +398,8 @@ export function useJournalController({
 			},
 		],
 		[
+			goToPrevDay,
+			goToNextDay,
 			highlightNext,
 			highlightPrevious,
 			toggleSelection,
