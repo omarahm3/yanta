@@ -18,6 +18,7 @@ export interface CommandOption {
 	hint?: string;
 	shortcut?: string;
 	group?: string;
+	keywords?: string[];
 	action: () => void;
 }
 
@@ -112,7 +113,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 						{groupCmds.map((command) => (
 							<CommandItem
 								key={command.id}
-								value={command.text}
+								value={[command.text, ...(command.keywords || [])].join(" ")}
 								keywords={command.hint ? [command.hint] : undefined}
 								onSelect={() => handleSelect(command)}
 							>

@@ -81,6 +81,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			hint: "Home",
 			shortcut: getShortcutForCommand("nav-dashboard"),
 			group: "Navigation",
+			keywords: ["home", "main", "list", "documents"],
 			action: () => {
 				onNavigate("dashboard");
 				onClose();
@@ -107,6 +108,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			hint: "Find documents",
 			shortcut: getShortcutForCommand("nav-search"),
 			group: "Navigation",
+			keywords: ["find", "lookup"],
 			action: () => {
 				onNavigate("search");
 				onClose();
@@ -120,6 +122,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			hint: "Quick notes",
 			shortcut: getShortcutForCommand("nav-journal"),
 			group: "Navigation",
+			keywords: ["diary", "daily", "notes", "log"],
 			action: () => {
 				onNavigate("journal");
 				onClose();
@@ -133,6 +136,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			hint: "Configure app",
 			shortcut: getShortcutForCommand("nav-settings"),
 			group: "Navigation",
+			keywords: ["preferences", "config", "options"],
 			action: () => {
 				onNavigate("settings");
 				onClose();
@@ -146,6 +150,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			hint: "Create new entry",
 			shortcut: getShortcutForCommand("new-document"),
 			group: "Create",
+			keywords: ["create", "add", "note"],
 			action: () => {
 				onNavigate("document");
 				onClose();
@@ -250,6 +255,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			hint: "Fetch, pull, commit, push",
 			shortcut: getShortcutForCommand("git-sync"),
 			group: "Git",
+			keywords: ["save", "backup", "commit", "push"],
 			action: async () => {
 				onClose();
 				try {

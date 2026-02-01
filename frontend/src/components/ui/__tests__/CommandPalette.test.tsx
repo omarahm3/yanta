@@ -1,4 +1,5 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { FileIcon, FolderIcon, SettingsIcon } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
 import { CommandPalette, type CommandOption } from "../CommandPalette";
@@ -209,5 +210,157 @@ describe("CommandPalette", () => {
 		expect(screen.queryByText("Create")).not.toBeInTheDocument();
 		expect(screen.queryByText("Git")).not.toBeInTheDocument();
 		expect(screen.queryByText("Other")).not.toBeInTheDocument();
+	});
+
+	describe("keyword alias fuzzy search", () => {
+		const commandsWithKeywords: CommandOption[] = [
+			{
+				id: "nav-dashboard",
+				icon: <FolderIcon />,
+				text: "Go to Dashboard",
+				group: "Navigation",
+				keywords: ["home", "main", "list", "documents"],
+				action: vi.fn(),
+			},
+			{
+				id: "nav-journal",
+				icon: <FileIcon />,
+				text: "Go to Journal",
+				group: "Navigation",
+				keywords: ["diary", "daily", "notes", "log"],
+				action: vi.fn(),
+			},
+			{
+				id: "nav-settings",
+				icon: <SettingsIcon />,
+				text: "Go to Settings",
+				group: "Navigation",
+				keywords: ["preferences", "config", "options"],
+				action: vi.fn(),
+			},
+			{
+				id: "git-sync",
+				icon: <FileIcon />,
+				text: "Git Sync",
+				group: "Git",
+				keywords: ["save", "backup", "commit", "push"],
+				action: vi.fn(),
+			},
+		];
+
+		it("includes keywords in the value prop for fuzzy matching", () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={commandsWithKeywords}
+				/>,
+			);
+
+			// The CommandItem value should include both text and keywords
+			// We can verify this by checking the data-value attribute on the command items
+			const dashboardItem = screen.getByText("Go to Dashboard").closest('[data-slot="command-item"]');
+			expect(dashboardItem).toHaveAttribute("data-value", "Go to Dashboard home main list documents");
+		});
+
+		it("renders commands with keywords correctly", () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={commandsWithKeywords}
+				/>,
+			);
+
+			// Verify all commands render
+			expect(screen.getByText("Go to Dashboard")).toBeInTheDocument();
+			expect(screen.getByText("Go to Journal")).toBeInTheDocument();
+			expect(screen.getByText("Go to Settings")).toBeInTheDocument();
+			expect(screen.getByText("Git Sync")).toBeInTheDocument();
+		});
+
+		it("filters commands by keyword search", async () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={commandsWithKeywords}
+				/>,
+			);
+
+			const input = screen.getByPlaceholderText("Type a command...");
+
+			// Search by keyword "diary" which is only on nav-journal
+			await userEvent.type(input, "diary");
+
+			// Journal should be visible, others should be filtered out
+			expect(screen.getByText("Go to Journal")).toBeInTheDocument();
+			expect(screen.queryByText("Go to Dashboard")).not.toBeInTheDocument();
+			expect(screen.queryByText("Go to Settings")).not.toBeInTheDocument();
+			expect(screen.queryByText("Git Sync")).not.toBeInTheDocument();
+		});
+
+		it("filters commands by keyword 'save' for Git Sync", async () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={commandsWithKeywords}
+				/>,
+			);
+
+			const input = screen.getByPlaceholderText("Type a command...");
+
+			// Search by keyword "save" which is only on git-sync
+			await userEvent.type(input, "save");
+
+			// Git Sync should be visible
+			expect(screen.getByText("Git Sync")).toBeInTheDocument();
+			expect(screen.queryByText("Go to Dashboard")).not.toBeInTheDocument();
+		});
+
+		it("filters commands by keyword 'preferences' for Settings", async () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={commandsWithKeywords}
+				/>,
+			);
+
+			const input = screen.getByPlaceholderText("Type a command...");
+
+			// Search by keyword "preferences" which is only on nav-settings
+			await userEvent.type(input, "preferences");
+
+			// Settings should be visible
+			expect(screen.getByText("Go to Settings")).toBeInTheDocument();
+			expect(screen.queryByText("Go to Dashboard")).not.toBeInTheDocument();
+		});
+
+		it("still allows searching by command text", async () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={commandsWithKeywords}
+				/>,
+			);
+
+			const input = screen.getByPlaceholderText("Type a command...");
+
+			// Search by command text "Dashboard"
+			await userEvent.type(input, "Dashboard");
+
+			// Dashboard should be visible
+			expect(screen.getByText("Go to Dashboard")).toBeInTheDocument();
+			expect(screen.queryByText("Go to Journal")).not.toBeInTheDocument();
+		});
 	});
 });
