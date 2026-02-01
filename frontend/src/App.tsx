@@ -13,6 +13,7 @@ import {
 	ProjectProvider,
 	ScaleProvider,
 	TitleBarProvider,
+	useProjectContext,
 } from "./contexts";
 import { useHotkey } from "./hooks";
 import { useHelp } from "./hooks/useHelp";
@@ -115,6 +116,20 @@ const GlobalCommandHotkey = () => {
 		},
 		allowInInput: false,
 		description: "Jump to today's journal",
+	});
+
+	const { switchToLastProject, previousProject } = useProjectContext();
+
+	useHotkey({
+		key: "ctrl+Tab",
+		handler: (e) => {
+			e.preventDefault();
+			if (previousProject) {
+				switchToLastProject();
+			}
+		},
+		allowInInput: true,
+		description: "Switch to last project",
 	});
 
 	return (

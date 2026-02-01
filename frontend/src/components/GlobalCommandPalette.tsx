@@ -1,6 +1,7 @@
 import {
 	Archive,
 	ArchiveRestore,
+	ArrowLeftRight,
 	ArrowRight,
 	BookOpen,
 	Bug,
@@ -65,7 +66,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 	onToggleSidebar,
 	onShowHelp,
 }) => {
-	const { projects, currentProject, setCurrentProject } = useProjectContext();
+	const { projects, currentProject, setCurrentProject, previousProject, switchToLastProject } = useProjectContext();
 	const { getSelectedDocument } = useDocumentContext();
 	const notification = useNotification();
 	const { recentDocuments } = useRecentDocuments();
@@ -446,6 +447,22 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			});
 		}
 
+		if (previousProject) {
+			commands.push({
+				id: "switch-last",
+				icon: <ArrowLeftRight className="text-lg" />,
+				text: `Switch to @${previousProject.alias}`,
+				hint: previousProject.name,
+				shortcut: getShortcutForCommand("switch-last"),
+				group: "Projects",
+				keywords: ["quick", "switch", "toggle", "last"],
+				action: () => {
+					switchToLastProject();
+					handleClose();
+				},
+			});
+		}
+
 		if (currentPage === "dashboard" && onToggleArchived && currentProject) {
 			commands.push({
 				id: "toggle-archived",
@@ -480,8 +497,10 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 	}, [
 		projects,
 		currentProject,
+		previousProject,
 		getSelectedDocument,
 		setCurrentProject,
+		switchToLastProject,
 		onNavigate,
 		handleClose,
 		currentPage,
