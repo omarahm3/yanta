@@ -2,7 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { DialogProvider, HotkeyProvider } from "./contexts";
-import { QuickCapture } from "./routes/QuickCapture";
+import { QuickCapture } from "./pages/QuickCapture";
 import { enableBackendLogging } from "./utils/backendLogger";
 import "./styles/tailwind.css";
 import "./styles/yanta.css";
@@ -71,7 +71,7 @@ waitForWailsRuntime().then(() => {
 		console.log("[main.tsx] Path:", window.location.pathname, "isQuickCapture:", isQuickCapture);
 
 		if (isQuickCapture) {
-			// Render minimal Quick Capture UI without main app chrome (providers needed for useHotkeys)
+			// Render minimal Quick Capture UI without main app chrome
 			root.render(
 				<React.StrictMode>
 					<DialogProvider>

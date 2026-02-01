@@ -1,18 +1,10 @@
 import React, { Suspense } from "react";
-import { Dashboard, Document, Projects, Search, Settings } from "../pages";
+import { Dashboard, Document, Journal, Projects, QuickCapture, Search, Settings } from "../pages";
 import { LoadingSpinner } from "./ui";
 
 const PageLoader = () => <LoadingSpinner message="Loading..." />;
 
 const Test = React.lazy(() => import("../pages/Test").then((m) => ({ default: m.Test })));
-
-// Lazy load Quick Capture and Journal routes
-const QuickCapture = React.lazy(() =>
-	import("../routes/QuickCapture").then((m) => ({ default: m.QuickCapture }))
-);
-const Journal = React.lazy(() =>
-	import("../routes/Journal").then((m) => ({ default: m.Journal }))
-);
 
 type Page = "dashboard" | "document" | "projects" | "settings" | "search" | "test" | "quick-capture" | "journal";
 
