@@ -34,6 +34,7 @@ import { useDocumentContext } from "../contexts/DocumentContext";
 import { useProjectContext } from "../contexts/ProjectContext";
 import { useNotification } from "../hooks/useNotification";
 import { type ParsedGitError, parseGitError } from "../utils/gitErrorParser";
+import { getShortcutForCommand } from "../utils/shortcuts";
 import { type CommandOption, CommandPalette, GitErrorDialog } from "./ui";
 
 interface GlobalCommandPaletteProps {
@@ -78,6 +79,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			icon: <LayoutDashboard className="text-lg" />,
 			text: "Go to Dashboard",
 			hint: "Home",
+			shortcut: getShortcutForCommand("nav-dashboard"),
 			action: () => {
 				onNavigate("dashboard");
 				onClose();
@@ -89,6 +91,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			icon: <Folder className="text-lg" />,
 			text: "Go to Projects",
 			hint: "Manage projects",
+			shortcut: getShortcutForCommand("nav-projects"),
 			action: () => {
 				onNavigate("projects");
 				onClose();
@@ -100,6 +103,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			icon: <Search className="text-lg" />,
 			text: "Go to Search",
 			hint: "Find documents",
+			shortcut: getShortcutForCommand("nav-search"),
 			action: () => {
 				onNavigate("search");
 				onClose();
@@ -111,6 +115,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			icon: <BookOpen className="text-lg" />,
 			text: "Go to Journal",
 			hint: "Quick notes",
+			shortcut: getShortcutForCommand("nav-journal"),
 			action: () => {
 				onNavigate("journal");
 				onClose();
@@ -122,6 +127,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			icon: <Settings className="text-lg" />,
 			text: "Go to Settings",
 			hint: "Configure app",
+			shortcut: getShortcutForCommand("nav-settings"),
 			action: () => {
 				onNavigate("settings");
 				onClose();
@@ -133,6 +139,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			icon: <FilePlus className="text-lg" />,
 			text: "New Document",
 			hint: "Create new entry",
+			shortcut: getShortcutForCommand("new-document"),
 			action: () => {
 				onNavigate("document");
 				onClose();
@@ -232,6 +239,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			icon: <GitCommit className="text-lg" />,
 			text: "Git Sync",
 			hint: "Fetch, pull, commit, push",
+			shortcut: getShortcutForCommand("git-sync"),
 			action: async () => {
 				onClose();
 				try {

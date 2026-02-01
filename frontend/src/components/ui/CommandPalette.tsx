@@ -16,6 +16,7 @@ export interface CommandOption {
 	icon: React.ReactNode;
 	text: string;
 	hint?: string;
+	shortcut?: string;
 	action: () => void;
 }
 
@@ -67,7 +68,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 						>
 							<span className="w-5">{command.icon}</span>
 							<span className="flex-1">{command.text}</span>
-							{command.hint && <CommandShortcut>{command.hint}</CommandShortcut>}
+							{command.shortcut ? (
+								<kbd className="ml-auto rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground">
+									{command.shortcut}
+								</kbd>
+							) : (
+								command.hint && <CommandShortcut>{command.hint}</CommandShortcut>
+							)}
 						</CommandItem>
 					))}
 				</CommandGroup>
