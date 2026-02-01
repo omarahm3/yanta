@@ -10,9 +10,14 @@ interface DashboardProps {
 	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
 	onRegisterToggleArchived?: (handler: () => void) => void;
 	getShowArchived?: () => boolean;
+	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onRegisterToggleArchived }) => {
+export const Dashboard: React.FC<DashboardProps> = ({
+	onNavigate,
+	onRegisterToggleArchived,
+	onRegisterToggleSidebar,
+}) => {
 	const controller = useDashboardController({
 		onNavigate,
 		onRegisterToggleArchived,
@@ -50,6 +55,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onRegisterTogg
 				onCommandChange={setCommandInput}
 				onCommandSubmit={handleCommandSubmit}
 				commandInputRef={commandInputRef}
+				onRegisterToggleSidebar={onRegisterToggleSidebar}
 			>
 				{isLoading ? (
 					<div className="flex items-center justify-center py-8">

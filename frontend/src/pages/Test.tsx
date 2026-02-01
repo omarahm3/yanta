@@ -23,6 +23,7 @@ import {
 
 interface TestProps {
 	onNavigate?: (page: string) => void;
+	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
 interface ResolvedFileInfo {
@@ -280,7 +281,7 @@ const BlockNoteViewWithComponents: React.FC<BlockNoteViewWithComponentsProps> = 
 	);
 };
 
-export const Test: React.FC<TestProps> = () => {
+export const Test: React.FC<TestProps> = ({ onRegisterToggleSidebar }) => {
 	const [selectedInfo, setSelectedInfo] = React.useState<ResolvedFileInfo>();
 	const [previewUrl, setPreviewUrl] = React.useState<string>();
 	const [status, setStatus] = React.useState<string>("No file loaded");
@@ -395,7 +396,11 @@ export const Test: React.FC<TestProps> = () => {
 	}, [resetPreview]);
 
 	return (
-		<Layout currentPage="test" breadcrumb="Development Test Harness">
+		<Layout
+			currentPage="test"
+			breadcrumb="Development Test Harness"
+			onRegisterToggleSidebar={onRegisterToggleSidebar}
+		>
 			<div className="h-full p-6 overflow-auto bg-bg-dark text-text">
 				<div className="flex flex-col w-full max-w-3xl gap-6 mx-auto">
 					<header className="space-y-2">

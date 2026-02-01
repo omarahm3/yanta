@@ -26,6 +26,7 @@ interface RouterProps {
 		onRegisterToggleArchived?: (handler: () => void) => void;
 		getShowArchived?: () => boolean;
 	};
+	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
 export const Router: React.FC<RouterProps> = ({
@@ -33,6 +34,7 @@ export const Router: React.FC<RouterProps> = ({
 	navigationState = {},
 	onNavigate,
 	dashboardProps,
+	onRegisterToggleSidebar,
 }) => {
 	const handleNavigation = React.useCallback(
 		(page: string, state?: NavigationState) => {
@@ -45,29 +47,40 @@ export const Router: React.FC<RouterProps> = ({
 
 	const dashboardPropsWithNav = {
 		onNavigate: handleNavigation,
+		onRegisterToggleSidebar,
 		...dashboardProps,
 	};
 
 	const projectsProps = {
 		onNavigate: handleNavigation,
+		onRegisterToggleSidebar,
 	};
 
 	const settingsProps = {
 		onNavigate: handleNavigation,
+		onRegisterToggleSidebar,
 	};
 
 	const searchProps = {
 		onNavigate: handleNavigation,
+		onRegisterToggleSidebar,
 	};
 
 	const documentProps = {
 		onNavigate: handleNavigation,
+		onRegisterToggleSidebar,
 		documentPath: navigationState.documentPath as string | undefined,
 		initialTitle: navigationState.initialTitle as string | undefined,
 	};
 
 	const journalProps = {
 		onNavigate: handleNavigation,
+		onRegisterToggleSidebar,
+	};
+
+	const testProps = {
+		onNavigate: handleNavigation,
+		onRegisterToggleSidebar,
 	};
 
 	const page = currentPage as Page;
@@ -90,7 +103,7 @@ export const Router: React.FC<RouterProps> = ({
 			{page === "projects" && <Projects {...projectsProps} />}
 			{page === "settings" && <Settings {...settingsProps} />}
 			{page === "search" && <Search {...searchProps} />}
-			{page === "test" && <Test onNavigate={handleNavigation} />}
+			{page === "test" && <Test {...testProps} />}
 			{page === "quick-capture" && <QuickCapture />}
 			{page === "journal" && <Journal {...journalProps} />}
 			{!knownPages.has(page) && <Dashboard {...dashboardPropsWithNav} />}

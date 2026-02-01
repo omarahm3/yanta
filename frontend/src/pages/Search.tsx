@@ -33,9 +33,10 @@ interface GroupedSearchResult {
 
 interface SearchProps {
 	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
+	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
-export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
+export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
 	const [rawQuery, setRawQuery] = useState("");
 	const [results, setResults] = useState<SearchResult[]>([]);
 	const [selectedIndex, setSelectedIndex] = useState(0);
@@ -297,6 +298,7 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 				{ key: "Esc", label: "unfocus" },
 			]}
 			showCommandLine={false}
+			onRegisterToggleSidebar={onRegisterToggleSidebar}
 		>
 			<div className="flex flex-col h-full">
 				{/* Search Header */}

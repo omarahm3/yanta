@@ -10,6 +10,7 @@ import { useJournalController } from "./useJournalController";
 export interface JournalProps {
 	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
 	className?: string;
+	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
 /**
@@ -17,7 +18,11 @@ export interface JournalProps {
  * Based on PRD Section 7.9 - Journal Entry Operations
  * Follows Dashboard pattern for consistent UX
  */
-export const Journal: React.FC<JournalProps> = ({ onNavigate, className }) => {
+export const Journal: React.FC<JournalProps> = ({
+	onNavigate,
+	className,
+	onRegisterToggleSidebar,
+}) => {
 	const controller = useJournalController({ onNavigate });
 
 	useHotkeys(controller.hotkeys);
@@ -46,7 +51,12 @@ export const Journal: React.FC<JournalProps> = ({ onNavigate, className }) => {
 
 	return (
 		<>
-			<Layout sidebarSections={sidebarSections} currentPage="journal" showCommandLine={false}>
+			<Layout
+				sidebarSections={sidebarSections}
+				currentPage="journal"
+				showCommandLine={false}
+				onRegisterToggleSidebar={onRegisterToggleSidebar}
+			>
 				<div className={cn("flex flex-col h-full", className)}>
 					{/* Header with date picker */}
 					<div className="p-4 border-b border-border">

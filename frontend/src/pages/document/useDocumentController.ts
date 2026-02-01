@@ -53,6 +53,7 @@ export interface DocumentControllerOptions {
 	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
 	documentPath?: string;
 	initialTitle?: string;
+	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
 export interface DocumentControllerResult {
@@ -67,6 +68,7 @@ export function useDocumentController({
 	onNavigate,
 	documentPath,
 	initialTitle,
+	onRegisterToggleSidebar,
 }: DocumentControllerOptions): DocumentControllerResult {
 	const { currentProject } = useProjectContext();
 	const { success, error } = useNotification();
@@ -377,6 +379,7 @@ export function useDocumentController({
 		onTagRemove: removeTag,
 		onEditorReady: handleEditorReadyWithRef,
 		onRestore: isArchived ? handleRestore : undefined,
+		onRegisterToggleSidebar,
 	};
 
 	const saveNow = autoSave.saveNow;

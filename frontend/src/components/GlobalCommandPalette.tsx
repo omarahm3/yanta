@@ -11,6 +11,7 @@ import {
 	Folder,
 	GitCommit,
 	LayoutDashboard,
+	PanelLeft,
 	Search,
 	Settings,
 } from "lucide-react";
@@ -44,6 +45,7 @@ interface GlobalCommandPaletteProps {
 	currentPage?: string;
 	onToggleArchived?: () => void;
 	showArchived?: boolean;
+	onToggleSidebar?: () => void;
 }
 
 export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
@@ -53,6 +55,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 	currentPage,
 	onToggleArchived,
 	showArchived,
+	onToggleSidebar,
 }) => {
 	const { projects, currentProject, setCurrentProject } = useProjectContext();
 	const { getSelectedDocument } = useDocumentContext();
@@ -248,6 +251,20 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			},
 		});
 
+		if (onToggleSidebar) {
+			commands.push({
+				id: "toggle-sidebar",
+				icon: <PanelLeft className="text-lg" />,
+				text: "Toggle Sidebar",
+				shortcut: getShortcutForCommand("toggle-sidebar"),
+				group: "Application",
+				action: () => {
+					onToggleSidebar();
+					onClose();
+				},
+			});
+		}
+
 		commands.push({
 			id: "git-sync",
 			icon: <GitCommit className="text-lg" />,
@@ -397,6 +414,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 		currentPage,
 		onToggleArchived,
 		showArchived,
+		onToggleSidebar,
 		notification,
 		showGitError,
 	]);

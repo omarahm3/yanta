@@ -1,5 +1,5 @@
 import type React from "react";
-import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useProjectContext, useTitleBarContext } from "../contexts";
 import { useGlobalCommand, useHotkeys } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
@@ -24,6 +24,7 @@ export interface LayoutProps {
 	onCommandChange?: (value: string) => void;
 	onCommandSubmit?: (command: string) => void;
 	commandInputRef?: React.RefObject<HTMLInputElement>;
+	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
 export const Layout: React.FC<LayoutProps> = ({
@@ -41,6 +42,7 @@ export const Layout: React.FC<LayoutProps> = ({
 	onCommandChange,
 	onCommandSubmit,
 	commandInputRef: providedRef,
+	onRegisterToggleSidebar,
 }) => {
 	const internalRef = useRef<HTMLInputElement>(null);
 	const commandInputRef = providedRef || internalRef;
@@ -49,6 +51,13 @@ export const Layout: React.FC<LayoutProps> = ({
 	const [sidebarVisible, setSidebarVisible] = useState(true);
 	const { currentProject } = useProjectContext();
 	const { heightInRem } = useTitleBarContext();
+
+	// Register the toggle sidebar handler with the parent component
+	useEffect(() => {
+		if (onRegisterToggleSidebar) {
+			onRegisterToggleSidebar(() => setSidebarVisible((prev) => !prev));
+		}
+	}, [onRegisterToggleSidebar]);
 
 	const handleCommandSubmit = useCallback(
 		async (command: string) => {

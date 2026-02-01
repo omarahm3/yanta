@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FileIcon, FolderIcon, SettingsIcon } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
-import { CommandPalette, type CommandOption } from "../CommandPalette";
+import { type CommandOption, CommandPalette } from "../CommandPalette";
 
 const mockCommands: CommandOption[] = [
 	{
@@ -166,7 +166,13 @@ describe("CommandPalette", () => {
 	it("maintains group order: Navigation, Create, Document, Git, Projects, Application, Other", () => {
 		const commandsWithAllGroups: CommandOption[] = [
 			{ id: "app-1", icon: <FileIcon />, text: "App Command", group: "Application", action: vi.fn() },
-			{ id: "proj-1", icon: <FileIcon />, text: "Project Command", group: "Projects", action: vi.fn() },
+			{
+				id: "proj-1",
+				icon: <FileIcon />,
+				text: "Project Command",
+				group: "Projects",
+				action: vi.fn(),
+			},
 			{ id: "git-1", icon: <FileIcon />, text: "Git Command", group: "Git", action: vi.fn() },
 			{ id: "doc-1", icon: <FileIcon />, text: "Doc Command", group: "Document", action: vi.fn() },
 			{ id: "create-1", icon: <FileIcon />, text: "Create Command", group: "Create", action: vi.fn() },
@@ -184,11 +190,21 @@ describe("CommandPalette", () => {
 		);
 
 		// Get all group headers in order
-		const groups = screen.getAllByText(/^(Navigation|Create|Document|Git|Projects|Application|Other)$/);
+		const groups = screen.getAllByText(
+			/^(Navigation|Create|Document|Git|Projects|Application|Other)$/,
+		);
 		const groupNames = groups.map((el) => el.textContent);
 
 		// Verify order
-		const expectedOrder = ["Navigation", "Create", "Document", "Git", "Projects", "Application", "Other"];
+		const expectedOrder = [
+			"Navigation",
+			"Create",
+			"Document",
+			"Git",
+			"Projects",
+			"Application",
+			"Other",
+		];
 		expect(groupNames).toEqual(expectedOrder);
 	});
 

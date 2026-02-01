@@ -50,9 +50,10 @@ const helpCommands: HelpCommand[] = [
 
 interface ProjectsProps {
 	onNavigate?: (page: string) => void;
+	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
-export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
+export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
 	const { currentProject, setCurrentProject, projects, archivedProjects, loadProjects, isLoading } =
 		useProjectContext();
 	const [selectedProjectId, setSelectedProjectId] = useState<string>(currentProject?.id || "");
@@ -511,6 +512,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 				onCommandChange={setCommandInput}
 				onCommandSubmit={handleCommandSubmit}
 				commandInputRef={commandInputRef}
+				onRegisterToggleSidebar={onRegisterToggleSidebar}
 			>
 				<div className="p-5">
 					<div className="mb-4 text-xs font-semibold tracking-wider uppercase text-text-dim">

@@ -5,11 +5,17 @@ import { Button, type SidebarSection } from "../ui";
 interface DocumentErrorStateProps {
 	sidebarSections: SidebarSection[];
 	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
+	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
 export const DocumentErrorState: React.FC<DocumentErrorStateProps> = React.memo(
-	({ sidebarSections, onNavigate }) => (
-		<Layout sidebarSections={sidebarSections} currentPage="document" showCommandLine={false}>
+	({ sidebarSections, onNavigate, onRegisterToggleSidebar }) => (
+		<Layout
+			sidebarSections={sidebarSections}
+			currentPage="document"
+			showCommandLine={false}
+			onRegisterToggleSidebar={onRegisterToggleSidebar}
+		>
 			<div className="flex flex-col items-center justify-center h-full gap-4">
 				<div className="text-xl text-red">❌ Document Not Found</div>
 				<div className="text-text-dim">

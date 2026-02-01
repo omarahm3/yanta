@@ -34,6 +34,7 @@ export interface DocumentContentProps {
 	onEditorReady: (editor: BlockNoteEditor) => void;
 	onRestore?: () => void;
 	isRestoring?: boolean;
+	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
 export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
@@ -54,6 +55,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 		onEditorReady,
 		onRestore,
 		isRestoring = false,
+		onRegisterToggleSidebar,
 	}) => (
 		<Layout
 			sidebarSections={sidebarSections}
@@ -64,6 +66,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 			commandValue={commandInput}
 			onCommandChange={onCommandChange}
 			onCommandSubmit={onCommandSubmit}
+			onRegisterToggleSidebar={onRegisterToggleSidebar}
 		>
 			<div className="flex flex-col w-full h-full">
 				{isArchived && (

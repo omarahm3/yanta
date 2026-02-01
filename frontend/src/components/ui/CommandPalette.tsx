@@ -23,14 +23,7 @@ export interface CommandOption {
 }
 
 // Define the canonical group order
-const GROUP_ORDER = [
-	"Navigation",
-	"Create",
-	"Document",
-	"Git",
-	"Projects",
-	"Application",
-] as const;
+const GROUP_ORDER = ["Navigation", "Create", "Document", "Git", "Projects", "Application"] as const;
 
 type GroupName = (typeof GROUP_ORDER)[number];
 

@@ -145,9 +145,10 @@ const actualShortcuts: Shortcut[] = [
 
 interface SettingsProps {
 	onNavigate?: (page: string) => void;
+	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
+export const Settings: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
 	const controller = useSettingsController();
 	const { setPageContext } = useHelp();
 
@@ -293,6 +294,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 			currentPage="settings"
 			headerShortcuts={[{ key: "?", label: "help" }]}
 			showCommandLine={false}
+			onRegisterToggleSidebar={onRegisterToggleSidebar}
 		>
 			<div className="h-full p-5 overflow-y-auto">
 				<div className="max-w-4xl mx-auto">

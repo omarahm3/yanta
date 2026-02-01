@@ -67,6 +67,7 @@ const GlobalCommandHotkey = () => {
 	>({});
 	const [showArchived, setShowArchived] = React.useState(false);
 	const toggleArchivedRef = React.useRef<(() => void) | null>(null);
+	const toggleSidebarRef = React.useRef<(() => void) | null>(null);
 
 	const handleNavigate = React.useCallback(
 		(page: string, state?: Record<string, string | number | boolean | undefined>) => {
@@ -87,6 +88,16 @@ const GlobalCommandHotkey = () => {
 		}
 	}, []);
 
+	const handleRegisterToggleSidebar = React.useCallback((handler: () => void) => {
+		toggleSidebarRef.current = handler;
+	}, []);
+
+	const handleToggleSidebar = React.useCallback(() => {
+		if (toggleSidebarRef.current) {
+			toggleSidebarRef.current();
+		}
+	}, []);
+
 	useHotkey({
 		key: "mod+K",
 		handler: () => setIsOpen(true),
@@ -103,6 +114,7 @@ const GlobalCommandHotkey = () => {
 				currentPage={currentPage}
 				onToggleArchived={handleToggleArchived}
 				showArchived={showArchived}
+				onToggleSidebar={handleToggleSidebar}
 			/>
 			<Router
 				currentPage={currentPage}
@@ -111,6 +123,7 @@ const GlobalCommandHotkey = () => {
 				dashboardProps={{
 					onRegisterToggleArchived: handleRegisterToggleArchived,
 				}}
+				onRegisterToggleSidebar={handleRegisterToggleSidebar}
 			/>
 		</>
 	);
