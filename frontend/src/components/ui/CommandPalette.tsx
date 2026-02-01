@@ -1,3 +1,4 @@
+import { ArrowLeft } from "lucide-react";
 import type React from "react";
 import { useCallback, useMemo } from "react";
 
@@ -22,10 +23,16 @@ export interface CommandOption {
 	action: () => void;
 }
 
+export interface SubPaletteItem {
+	id: string;
+	icon?: React.ReactNode;
+	text: string;
+	hint?: string;
+	action: () => void;
+}
+
 // Define the canonical group order
 const GROUP_ORDER = ["Navigation", "Create", "Document", "Git", "Projects", "Application"] as const;
-
-type GroupName = (typeof GROUP_ORDER)[number];
 
 // Helper to sort commands by group
 function groupCommands(commands: CommandOption[]): Map<string, CommandOption[]> {
@@ -66,6 +73,9 @@ export interface CommandPaletteProps {
 	onCommandSelect: (command: CommandOption) => void;
 	commands: CommandOption[];
 	placeholder?: string;
+	subPaletteItems?: SubPaletteItem[];
+	subPaletteTitle?: string;
+	onSubPaletteBack?: () => void;
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
@@ -74,7 +84,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 	onCommandSelect,
 	commands,
 	placeholder = "Type a command...",
+	subPaletteItems,
+	subPaletteTitle,
+	onSubPaletteBack,
 }) => {
+	const isSubPaletteMode = !!subPaletteItems;
+
 	const handleSelect = useCallback(
 		(command: CommandOption) => {
 			command.action();
@@ -82,6 +97,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 			onClose();
 		},
 		[onCommandSelect, onClose],
+	);
+
+	const handleSubPaletteSelect = useCallback(
+		(item: SubPaletteItem) => {
+			item.action();
+			onClose();
+		},
+		[onClose],
 	);
 
 	const handleOpenChange = useCallback(
@@ -93,37 +116,86 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 		[onClose],
 	);
 
+	const handleKeyDown = useCallback(
+		(e: React.KeyboardEvent) => {
+			if (isSubPaletteMode && e.key === "Escape" && onSubPaletteBack) {
+				e.preventDefault();
+				e.stopPropagation();
+				onSubPaletteBack();
+			}
+		},
+		[isSubPaletteMode, onSubPaletteBack],
+	);
+
 	// Group commands by their group property
 	const groupedCommands = useMemo(() => groupCommands(commands), [commands]);
 
 	return (
 		<CommandDialog open={isOpen} onOpenChange={handleOpenChange}>
-			<CommandInput placeholder={placeholder} />
-			<CommandList>
-				<CommandEmpty>No commands found.</CommandEmpty>
-				{Array.from(groupedCommands.entries()).map(([groupName, groupCmds]) => (
-					<CommandGroup key={groupName} heading={groupName}>
-						{groupCmds.map((command) => (
-							<CommandItem
-								key={command.id}
-								value={[command.text, ...(command.keywords || [])].join(" ")}
-								keywords={command.hint ? [command.hint] : undefined}
-								onSelect={() => handleSelect(command)}
-							>
-								<span className="w-5">{command.icon}</span>
-								<span className="flex-1">{command.text}</span>
-								{command.shortcut ? (
-									<kbd className="ml-auto rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground">
-										{command.shortcut}
-									</kbd>
-								) : (
-									command.hint && <CommandShortcut>{command.hint}</CommandShortcut>
-								)}
-							</CommandItem>
-						))}
-					</CommandGroup>
-				))}
-			</CommandList>
+			<div onKeyDown={handleKeyDown}>
+				{isSubPaletteMode && (
+					<div className="flex items-center gap-2 px-3 py-2 border-b border-border">
+						<button
+							type="button"
+							onClick={onSubPaletteBack}
+							className="p-1 rounded hover:bg-muted transition-colors"
+							aria-label="Go back"
+						>
+							<ArrowLeft className="w-4 h-4" />
+						</button>
+						<span className="text-sm font-medium">{subPaletteTitle}</span>
+					</div>
+				)}
+				<CommandInput
+					placeholder={isSubPaletteMode ? `Search ${subPaletteTitle?.toLowerCase()}...` : placeholder}
+				/>
+				<CommandList>
+					{isSubPaletteMode ? (
+						<>
+							<CommandEmpty>No items found.</CommandEmpty>
+							<CommandGroup>
+								{subPaletteItems.map((item) => (
+									<CommandItem
+										key={item.id}
+										value={item.text}
+										onSelect={() => handleSubPaletteSelect(item)}
+									>
+										{item.icon && <span className="w-5">{item.icon}</span>}
+										<span className="flex-1">{item.text}</span>
+										{item.hint && <CommandShortcut>{item.hint}</CommandShortcut>}
+									</CommandItem>
+								))}
+							</CommandGroup>
+						</>
+					) : (
+						<>
+							<CommandEmpty>No commands found.</CommandEmpty>
+							{Array.from(groupedCommands.entries()).map(([groupName, groupCmds]) => (
+								<CommandGroup key={groupName} heading={groupName}>
+									{groupCmds.map((command) => (
+										<CommandItem
+											key={command.id}
+											value={[command.text, ...(command.keywords || [])].join(" ")}
+											keywords={command.hint ? [command.hint] : undefined}
+											onSelect={() => handleSelect(command)}
+										>
+											<span className="w-5">{command.icon}</span>
+											<span className="flex-1">{command.text}</span>
+											{command.shortcut ? (
+												<kbd className="ml-auto rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground">
+													{command.shortcut}
+												</kbd>
+											) : (
+												command.hint && <CommandShortcut>{command.hint}</CommandShortcut>
+											)}
+										</CommandItem>
+									))}
+								</CommandGroup>
+							))}
+						</>
+					)}
+				</CommandList>
+			</div>
 		</CommandDialog>
 	);
 };

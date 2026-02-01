@@ -4,6 +4,7 @@ type CommandId =
 	| "nav-search"
 	| "nav-journal"
 	| "nav-settings"
+	| "nav-recent"
 	| "new-document"
 	| "git-sync"
 	| "toggle-sidebar"
@@ -26,6 +27,7 @@ const COMMAND_SHORTCUTS: Record<CommandId, ShortcutMapping> = {
 	"nav-projects": { key: "P", ctrlKey: true, shiftKey: true },
 	"toggle-sidebar": { key: "B", ctrlKey: true },
 	"show-help": { key: "?" },
+	"nav-recent": { key: "E", ctrlKey: true },
 };
 
 function isMacOS(): boolean {

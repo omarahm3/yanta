@@ -1,8 +1,8 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FileIcon, FolderIcon, SettingsIcon } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
-import { type CommandOption, CommandPalette } from "../CommandPalette";
+import { type CommandOption, CommandPalette, type SubPaletteItem } from "../CommandPalette";
 
 const mockCommands: CommandOption[] = [
 	{
@@ -377,6 +377,164 @@ describe("CommandPalette", () => {
 			// Dashboard should be visible
 			expect(screen.getByText("Go to Dashboard")).toBeInTheDocument();
 			expect(screen.queryByText("Go to Journal")).not.toBeInTheDocument();
+		});
+	});
+
+	describe("sub-palette mode", () => {
+		const mockSubPaletteItems: SubPaletteItem[] = [
+			{
+				id: "recent-1",
+				icon: <FileIcon />,
+				text: "Recent Document 1",
+				hint: "2 min ago",
+				action: vi.fn(),
+			},
+			{
+				id: "recent-2",
+				icon: <FileIcon />,
+				text: "Recent Document 2",
+				hint: "yesterday",
+				action: vi.fn(),
+			},
+		];
+
+		it("renders sub-palette items when subPaletteItems is provided", () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={mockCommands}
+					subPaletteItems={mockSubPaletteItems}
+					subPaletteTitle="Recent Documents"
+					onSubPaletteBack={vi.fn()}
+				/>,
+			);
+
+			expect(screen.getByText("Recent Document 1")).toBeInTheDocument();
+			expect(screen.getByText("Recent Document 2")).toBeInTheDocument();
+			expect(screen.getByText("2 min ago")).toBeInTheDocument();
+		});
+
+		it("renders sub-palette title and back button", () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={mockCommands}
+					subPaletteItems={mockSubPaletteItems}
+					subPaletteTitle="Recent Documents"
+					onSubPaletteBack={vi.fn()}
+				/>,
+			);
+
+			expect(screen.getByText("Recent Documents")).toBeInTheDocument();
+			expect(screen.getByRole("button", { name: "Go back" })).toBeInTheDocument();
+		});
+
+		it("hides main commands when in sub-palette mode", () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={mockCommands}
+					subPaletteItems={mockSubPaletteItems}
+					subPaletteTitle="Recent Documents"
+					onSubPaletteBack={vi.fn()}
+				/>,
+			);
+
+			expect(screen.queryByText("Go to Dashboard")).not.toBeInTheDocument();
+			expect(screen.queryByText("Go to Settings")).not.toBeInTheDocument();
+		});
+
+		it("calls onSubPaletteBack when back button is clicked", async () => {
+			const onBackMock = vi.fn();
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={mockCommands}
+					subPaletteItems={mockSubPaletteItems}
+					subPaletteTitle="Recent Documents"
+					onSubPaletteBack={onBackMock}
+				/>,
+			);
+
+			const backButton = screen.getByRole("button", { name: "Go back" });
+			await userEvent.click(backButton);
+
+			expect(onBackMock).toHaveBeenCalledTimes(1);
+		});
+
+		it("calls action and onClose when sub-palette item is selected", async () => {
+			const onCloseMock = vi.fn();
+			const itemAction = vi.fn();
+			const itemsWithAction: SubPaletteItem[] = [
+				{
+					id: "recent-1",
+					text: "Recent Document 1",
+					hint: "2 min ago",
+					action: itemAction,
+				},
+			];
+
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={onCloseMock}
+					onCommandSelect={vi.fn()}
+					commands={mockCommands}
+					subPaletteItems={itemsWithAction}
+					subPaletteTitle="Recent Documents"
+					onSubPaletteBack={vi.fn()}
+				/>,
+			);
+
+			const item = screen.getByText("Recent Document 1");
+			await userEvent.click(item);
+
+			expect(itemAction).toHaveBeenCalledTimes(1);
+			expect(onCloseMock).toHaveBeenCalledTimes(1);
+		});
+
+		it("uses sub-palette specific placeholder", () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={mockCommands}
+					subPaletteItems={mockSubPaletteItems}
+					subPaletteTitle="Recent Documents"
+					onSubPaletteBack={vi.fn()}
+				/>,
+			);
+
+			expect(screen.getByPlaceholderText("Search recent documents...")).toBeInTheDocument();
+		});
+
+		it("filters sub-palette items by search", async () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={mockCommands}
+					subPaletteItems={mockSubPaletteItems}
+					subPaletteTitle="Recent Documents"
+					onSubPaletteBack={vi.fn()}
+				/>,
+			);
+
+			const input = screen.getByPlaceholderText("Search recent documents...");
+			await userEvent.type(input, "Document 1");
+
+			expect(screen.getByText("Recent Document 1")).toBeInTheDocument();
+			expect(screen.queryByText("Recent Document 2")).not.toBeInTheDocument();
 		});
 	});
 });

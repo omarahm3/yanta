@@ -4,10 +4,12 @@ import {
 	ArrowRight,
 	BookOpen,
 	Bug,
+	Clock,
 	CloudDownload,
 	CloudUpload,
 	FileDown,
 	FilePlus,
+	FileText,
 	Folder,
 	GitCommit,
 	HelpCircle,
@@ -17,7 +19,7 @@ import {
 	Settings,
 } from "lucide-react";
 import type React from "react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
 	ExportDocumentRequest,
 	ExportProjectRequest,
@@ -35,9 +37,11 @@ import {
 import { useDocumentContext } from "../contexts/DocumentContext";
 import { useProjectContext } from "../contexts/ProjectContext";
 import { useNotification } from "../hooks/useNotification";
+import { useRecentDocuments } from "../hooks/useRecentDocuments";
+import { formatRelativeTimeFromTimestamp } from "../utils/dateUtils";
 import { type ParsedGitError, parseGitError } from "../utils/gitErrorParser";
 import { getShortcutForCommand } from "../utils/shortcuts";
-import { type CommandOption, CommandPalette, GitErrorDialog } from "./ui";
+import { type CommandOption, CommandPalette, GitErrorDialog, type SubPaletteItem } from "./ui";
 
 interface GlobalCommandPaletteProps {
 	isOpen: boolean;
@@ -63,8 +67,10 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 	const { projects, currentProject, setCurrentProject } = useProjectContext();
 	const { getSelectedDocument } = useDocumentContext();
 	const notification = useNotification();
+	const { recentDocuments } = useRecentDocuments();
 	const [gitError, setGitError] = useState<ParsedGitError | null>(null);
 	const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
+	const [showRecentDocuments, setShowRecentDocuments] = useState(false);
 
 	const showGitError = (error: unknown) => {
 		const parsed = parseGitError(error);
@@ -76,6 +82,28 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 		setIsErrorDialogOpen(false);
 		setTimeout(() => setGitError(null), 300);
 	};
+
+	const handleClose = useCallback(() => {
+		setShowRecentDocuments(false);
+		onClose();
+	}, [onClose]);
+
+	const handleSubPaletteBack = useCallback(() => {
+		setShowRecentDocuments(false);
+	}, []);
+
+	const recentDocumentItems: SubPaletteItem[] = useMemo(() => {
+		return recentDocuments.map((doc) => ({
+			id: `recent-${doc.path}`,
+			icon: <FileText className="w-4 h-4" />,
+			text: doc.title || "Untitled",
+			hint: formatRelativeTimeFromTimestamp(doc.lastOpened),
+			action: () => {
+				onNavigate("document", { path: doc.path, projectAlias: doc.projectAlias });
+				handleClose();
+			},
+		}));
+	}, [recentDocuments, onNavigate, handleClose]);
 
 	const commandOptions: CommandOption[] = useMemo(() => {
 		const commands: CommandOption[] = [];
@@ -90,7 +118,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			keywords: ["home", "main", "list", "documents"],
 			action: () => {
 				onNavigate("dashboard");
-				onClose();
+				handleClose();
 			},
 		});
 
@@ -103,7 +131,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			group: "Navigation",
 			action: () => {
 				onNavigate("projects");
-				onClose();
+				handleClose();
 			},
 		});
 
@@ -117,7 +145,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			keywords: ["find", "lookup"],
 			action: () => {
 				onNavigate("search");
-				onClose();
+				handleClose();
 			},
 		});
 
@@ -131,7 +159,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			keywords: ["diary", "daily", "notes", "log"],
 			action: () => {
 				onNavigate("journal");
-				onClose();
+				handleClose();
 			},
 		});
 
@@ -145,7 +173,19 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			keywords: ["preferences", "config", "options"],
 			action: () => {
 				onNavigate("settings");
-				onClose();
+				handleClose();
+			},
+		});
+
+		commands.push({
+			id: "nav-recent",
+			icon: <Clock className="text-lg" />,
+			text: "Recent Documents",
+			shortcut: getShortcutForCommand("nav-recent"),
+			group: "Navigation",
+			keywords: ["recent", "history", "opened"],
+			action: () => {
+				setShowRecentDocuments(true);
 			},
 		});
 
@@ -159,7 +199,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			keywords: ["create", "add", "note"],
 			action: () => {
 				onNavigate("document");
-				onClose();
+				handleClose();
 			},
 		});
 
@@ -170,7 +210,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			hint: "Export to markdown",
 			group: "Document",
 			action: async () => {
-				onClose();
+				handleClose();
 
 				// Get current document using the method from context
 				const currentDocument = getSelectedDocument();
@@ -210,7 +250,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			hint: "Export to PDF",
 			group: "Document",
 			action: async () => {
-				onClose();
+				handleClose();
 
 				const currentDocument = getSelectedDocument();
 
@@ -250,7 +290,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			group: "Application",
 			action: () => {
 				onNavigate("test");
-				onClose();
+				handleClose();
 			},
 		});
 
@@ -263,7 +303,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 				group: "Application",
 				action: () => {
 					onToggleSidebar();
-					onClose();
+					handleClose();
 				},
 			});
 		}
@@ -278,7 +318,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 				keywords: ["help", "shortcuts", "hotkeys", "keys"],
 				action: () => {
 					onShowHelp();
-					onClose();
+					handleClose();
 				},
 			});
 		}
@@ -292,7 +332,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			group: "Git",
 			keywords: ["save", "backup", "commit", "push"],
 			action: async () => {
-				onClose();
+				handleClose();
 				try {
 					const result = await SyncNow();
 					if (!result) {
@@ -335,7 +375,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			hint: "Push to remote",
 			group: "Git",
 			action: async () => {
-				onClose();
+				handleClose();
 				try {
 					await GitPush();
 					notification.success("Pushed to remote successfully");
@@ -352,7 +392,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			hint: "Pull from remote (merge)",
 			group: "Git",
 			action: async () => {
-				onClose();
+				handleClose();
 				try {
 					await GitPull();
 					notification.success("Pulled from remote successfully");
@@ -370,7 +410,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 				hint: "Export project to markdown",
 				group: "Projects",
 				action: async () => {
-					onClose();
+					handleClose();
 					try {
 						const outputDir = await OpenDirectoryDialog();
 						if (!outputDir) {
@@ -400,7 +440,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 				group: "Projects",
 				action: () => {
 					onToggleArchived();
-					onClose();
+					handleClose();
 				},
 			});
 		}
@@ -416,7 +456,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 					group: "Projects",
 					action: () => {
 						setCurrentProject(project);
-						onClose();
+						handleClose();
 					},
 				});
 			});
@@ -428,7 +468,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 		getSelectedDocument,
 		setCurrentProject,
 		onNavigate,
-		onClose,
+		handleClose,
 		currentPage,
 		onToggleArchived,
 		showArchived,
@@ -442,10 +482,13 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 		<>
 			<CommandPalette
 				isOpen={isOpen}
-				onClose={onClose}
+				onClose={handleClose}
 				onCommandSelect={() => {}}
 				commands={commandOptions}
 				placeholder="Type a command or search..."
+				subPaletteItems={showRecentDocuments ? recentDocumentItems : undefined}
+				subPaletteTitle={showRecentDocuments ? "Recent Documents" : undefined}
+				onSubPaletteBack={handleSubPaletteBack}
 			/>
 			<GitErrorDialog isOpen={isErrorDialogOpen} onClose={closeErrorDialog} error={gitError} />
 		</>
