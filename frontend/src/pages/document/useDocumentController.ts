@@ -16,6 +16,7 @@ import { useDocumentForm } from "../../hooks/useDocumentForm";
 import { useDocumentInitialization } from "../../hooks/useDocumentInitialization";
 import { useDocumentPersistence } from "../../hooks/useDocumentPersistence";
 import { useNotification } from "../../hooks/useNotification";
+import { useRecentDocuments } from "../../hooks/useRecentDocuments";
 import { useSidebarSections } from "../../hooks/useSidebarSections";
 import { DocumentServiceWrapper } from "../../services/DocumentService";
 import type { HelpCommand } from "../../types";
@@ -98,6 +99,7 @@ export function useDocumentController({
 	});
 
 	const { handleEditorReady } = useDocumentEditor();
+	const { addRecentDocument } = useRecentDocuments();
 
 	const [commandInput, setCommandInput] = useState("");
 	const commandInputRef = useRef<HTMLInputElement>(null);
@@ -131,6 +133,17 @@ export function useDocumentController({
 	useEffect(() => {
 		setPageContext(helpCommands, "Document");
 	}, [setPageContext]);
+
+	// Track recently opened documents
+	useEffect(() => {
+		if (data && documentPath && !isLoading && !loadError && currentProject) {
+			addRecentDocument({
+				path: documentPath,
+				title: data.title || "Untitled",
+				projectAlias: currentProject.alias,
+			});
+		}
+	}, [data, documentPath, isLoading, loadError, currentProject, addRecentDocument]);
 
 	const { autoSave } = useDocumentPersistence({
 		formData,

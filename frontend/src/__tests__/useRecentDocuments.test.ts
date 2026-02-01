@@ -1,0 +1,271 @@
+import { act, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useRecentDocuments } from "../hooks/useRecentDocuments";
+
+const STORAGE_KEY = "yanta_recent_documents";
+
+describe("useRecentDocuments", () => {
+	beforeEach(() => {
+		localStorage.clear();
+		vi.useFakeTimers();
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+		vi.useRealTimers();
+	});
+
+	describe("initialization", () => {
+		it("should return empty array when no data in localStorage", () => {
+			const { result } = renderHook(() => useRecentDocuments());
+
+			expect(result.current.recentDocuments).toEqual([]);
+		});
+
+		it("should load existing documents from localStorage", () => {
+			const existingDocs = [
+				{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 },
+				{ path: "/doc2", title: "Doc 2", projectAlias: "proj2", lastOpened: 2000 },
+			];
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingDocs));
+
+			const { result } = renderHook(() => useRecentDocuments());
+
+			expect(result.current.recentDocuments).toEqual(existingDocs);
+		});
+
+		it("should handle invalid JSON in localStorage", () => {
+			localStorage.setItem(STORAGE_KEY, "not valid json");
+
+			const { result } = renderHook(() => useRecentDocuments());
+
+			expect(result.current.recentDocuments).toEqual([]);
+		});
+
+		it("should filter out invalid documents from localStorage", () => {
+			const mixedDocs = [
+				{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 },
+				{ path: 123, title: "Invalid", projectAlias: "proj1", lastOpened: 2000 }, // invalid path
+				{ path: "/doc2", title: "Doc 2", projectAlias: "proj2", lastOpened: 3000 },
+				null, // null entry
+				{ path: "/doc3" }, // missing fields
+			];
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(mixedDocs));
+
+			const { result } = renderHook(() => useRecentDocuments());
+
+			expect(result.current.recentDocuments).toHaveLength(2);
+			expect(result.current.recentDocuments[0].path).toBe("/doc1");
+			expect(result.current.recentDocuments[1].path).toBe("/doc2");
+		});
+
+		it("should handle non-array data in localStorage", () => {
+			localStorage.setItem(STORAGE_KEY, JSON.stringify({ not: "an array" }));
+
+			const { result } = renderHook(() => useRecentDocuments());
+
+			expect(result.current.recentDocuments).toEqual([]);
+		});
+	});
+
+	describe("addRecentDocument", () => {
+		it("should add a new document to the front of the list", () => {
+			vi.setSystemTime(new Date(5000));
+			const { result } = renderHook(() => useRecentDocuments());
+
+			act(() => {
+				result.current.addRecentDocument({
+					path: "/doc1",
+					title: "Doc 1",
+					projectAlias: "proj1",
+				});
+			});
+
+			expect(result.current.recentDocuments).toHaveLength(1);
+			expect(result.current.recentDocuments[0]).toEqual({
+				path: "/doc1",
+				title: "Doc 1",
+				projectAlias: "proj1",
+				lastOpened: 5000,
+			});
+		});
+
+		it("should persist to localStorage", () => {
+			vi.setSystemTime(new Date(5000));
+			const { result } = renderHook(() => useRecentDocuments());
+
+			act(() => {
+				result.current.addRecentDocument({
+					path: "/doc1",
+					title: "Doc 1",
+					projectAlias: "proj1",
+				});
+			});
+
+			const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+			expect(stored).toHaveLength(1);
+			expect(stored[0].path).toBe("/doc1");
+		});
+
+		it("should move existing document to front when re-opened", () => {
+			vi.setSystemTime(new Date(1000));
+			const { result } = renderHook(() => useRecentDocuments());
+
+			act(() => {
+				result.current.addRecentDocument({
+					path: "/doc1",
+					title: "Doc 1",
+					projectAlias: "proj1",
+				});
+			});
+
+			vi.setSystemTime(new Date(2000));
+			act(() => {
+				result.current.addRecentDocument({
+					path: "/doc2",
+					title: "Doc 2",
+					projectAlias: "proj2",
+				});
+			});
+
+			vi.setSystemTime(new Date(3000));
+			act(() => {
+				result.current.addRecentDocument({
+					path: "/doc1",
+					title: "Doc 1 Updated",
+					projectAlias: "proj1",
+				});
+			});
+
+			expect(result.current.recentDocuments).toHaveLength(2);
+			expect(result.current.recentDocuments[0].path).toBe("/doc1");
+			expect(result.current.recentDocuments[0].title).toBe("Doc 1 Updated");
+			expect(result.current.recentDocuments[0].lastOpened).toBe(3000);
+			expect(result.current.recentDocuments[1].path).toBe("/doc2");
+		});
+
+		it("should trim list to 10 items maximum", () => {
+			const { result } = renderHook(() => useRecentDocuments());
+
+			for (let i = 0; i < 15; i++) {
+				vi.setSystemTime(new Date(i * 1000));
+				act(() => {
+					result.current.addRecentDocument({
+						path: `/doc${i}`,
+						title: `Doc ${i}`,
+						projectAlias: "proj1",
+					});
+				});
+			}
+
+			expect(result.current.recentDocuments).toHaveLength(10);
+			// Most recent should be first
+			expect(result.current.recentDocuments[0].path).toBe("/doc14");
+			// Oldest kept should be doc5
+			expect(result.current.recentDocuments[9].path).toBe("/doc5");
+		});
+
+		it("should update title when same document is opened", () => {
+			vi.setSystemTime(new Date(1000));
+			const { result } = renderHook(() => useRecentDocuments());
+
+			act(() => {
+				result.current.addRecentDocument({
+					path: "/doc1",
+					title: "Original Title",
+					projectAlias: "proj1",
+				});
+			});
+
+			vi.setSystemTime(new Date(2000));
+			act(() => {
+				result.current.addRecentDocument({
+					path: "/doc1",
+					title: "Updated Title",
+					projectAlias: "proj1",
+				});
+			});
+
+			expect(result.current.recentDocuments).toHaveLength(1);
+			expect(result.current.recentDocuments[0].title).toBe("Updated Title");
+		});
+	});
+
+	describe("clearRecentDocuments", () => {
+		it("should clear all documents", () => {
+			const existingDocs = [
+				{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 },
+				{ path: "/doc2", title: "Doc 2", projectAlias: "proj2", lastOpened: 2000 },
+			];
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingDocs));
+
+			const { result } = renderHook(() => useRecentDocuments());
+			expect(result.current.recentDocuments).toHaveLength(2);
+
+			act(() => {
+				result.current.clearRecentDocuments();
+			});
+
+			expect(result.current.recentDocuments).toEqual([]);
+		});
+
+		it("should remove data from localStorage", () => {
+			const existingDocs = [
+				{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 },
+			];
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingDocs));
+
+			const { result } = renderHook(() => useRecentDocuments());
+
+			act(() => {
+				result.current.clearRecentDocuments();
+			});
+
+			expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+		});
+	});
+
+	describe("cross-tab synchronization", () => {
+		it("should update when storage event is fired", () => {
+			const { result } = renderHook(() => useRecentDocuments());
+
+			expect(result.current.recentDocuments).toEqual([]);
+
+			const newDocs = [
+				{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 },
+			];
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(newDocs));
+
+			act(() => {
+				window.dispatchEvent(
+					new StorageEvent("storage", {
+						key: STORAGE_KEY,
+						newValue: JSON.stringify(newDocs),
+					}),
+				);
+			});
+
+			expect(result.current.recentDocuments).toEqual(newDocs);
+		});
+
+		it("should ignore storage events for other keys", () => {
+			const existingDocs = [
+				{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 },
+			];
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingDocs));
+
+			const { result } = renderHook(() => useRecentDocuments());
+
+			act(() => {
+				window.dispatchEvent(
+					new StorageEvent("storage", {
+						key: "some_other_key",
+						newValue: "[]",
+					}),
+				);
+			});
+
+			expect(result.current.recentDocuments).toEqual(existingDocs);
+		});
+	});
+});

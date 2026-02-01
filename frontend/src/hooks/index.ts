@@ -9,4 +9,6 @@ export { useHelp } from "./useHelp";
 export { useHotkey, useHotkeys } from "./useHotkey";
 export type { NotificationOptions, NotificationType } from "./useNotification";
 export { useNotification } from "./useNotification";
+export type { RecentDocument, UseRecentDocumentsReturn } from "./useRecentDocuments";
+export { useRecentDocuments } from "./useRecentDocuments";
 export { useSidebarSections } from "./useSidebarSections";
