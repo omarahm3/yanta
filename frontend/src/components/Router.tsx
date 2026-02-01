@@ -76,6 +76,7 @@ export const Router: React.FC<RouterProps> = ({
 	const journalProps = {
 		onNavigate: handleNavigation,
 		onRegisterToggleSidebar,
+		initialDate: navigationState.date as string | undefined,
 	};
 
 	const testProps = {

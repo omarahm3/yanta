@@ -53,6 +53,14 @@ export function useJournal({
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 	const [date, setDateInternal] = useState(() => initialDate || getTodayString());
 
+	// Update date when initialDate prop changes (e.g., from navigation)
+	useEffect(() => {
+		if (initialDate && initialDate !== date) {
+			setDateInternal(initialDate);
+			setSelectedIds(new Set());
+		}
+	}, [initialDate]);
+
 	// Convert backend entry to frontend format
 	const mapEntry = (entry: {
 		id: string;

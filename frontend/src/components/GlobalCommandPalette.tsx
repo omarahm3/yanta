@@ -4,6 +4,7 @@ import {
 	ArrowRight,
 	BookOpen,
 	Bug,
+	Calendar,
 	Clock,
 	CloudDownload,
 	CloudUpload,
@@ -186,6 +187,20 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			keywords: ["recent", "history", "opened"],
 			action: () => {
 				setShowRecentDocuments(true);
+			},
+		});
+
+		commands.push({
+			id: "nav-today",
+			icon: <Calendar className="text-lg" />,
+			text: "Jump to Today's Journal",
+			shortcut: getShortcutForCommand("nav-today"),
+			group: "Navigation",
+			keywords: ["today", "daily", "current"],
+			action: () => {
+				const today = new Date().toISOString().split("T")[0];
+				onNavigate("journal", { date: today });
+				handleClose();
 			},
 		});
 

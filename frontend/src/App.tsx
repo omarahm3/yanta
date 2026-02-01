@@ -106,6 +106,17 @@ const GlobalCommandHotkey = () => {
 		description: "Open command palette",
 	});
 
+	useHotkey({
+		key: "mod+T",
+		handler: (e) => {
+			e.preventDefault();
+			const today = new Date().toISOString().split("T")[0];
+			handleNavigate("journal", { date: today });
+		},
+		allowInInput: false,
+		description: "Jump to today's journal",
+	});
+
 	return (
 		<>
 			<GlobalCommandPalette

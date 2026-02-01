@@ -11,6 +11,7 @@ export interface JournalProps {
 	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
 	className?: string;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
+	initialDate?: string;
 }
 
 /**
@@ -22,8 +23,9 @@ export const Journal: React.FC<JournalProps> = ({
 	onNavigate,
 	className,
 	onRegisterToggleSidebar,
+	initialDate,
 }) => {
-	const controller = useJournalController({ onNavigate });
+	const controller = useJournalController({ onNavigate, initialDate });
 
 	useHotkeys(controller.hotkeys);
 

@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { FileIcon, FolderIcon, SettingsIcon } from "lucide-react";
+import { CalendarIcon, FileIcon, FolderIcon, SettingsIcon } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
 import { type CommandOption, CommandPalette, type SubPaletteItem } from "../CommandPalette";
 
@@ -247,6 +247,15 @@ describe("CommandPalette", () => {
 				action: vi.fn(),
 			},
 			{
+				id: "nav-today",
+				icon: <CalendarIcon />,
+				text: "Jump to Today's Journal",
+				shortcut: "Ctrl+T",
+				group: "Navigation",
+				keywords: ["today", "daily", "current"],
+				action: vi.fn(),
+			},
+			{
 				id: "nav-settings",
 				icon: <SettingsIcon />,
 				text: "Go to Settings",
@@ -377,6 +386,27 @@ describe("CommandPalette", () => {
 			// Dashboard should be visible
 			expect(screen.getByText("Go to Dashboard")).toBeInTheDocument();
 			expect(screen.queryByText("Go to Journal")).not.toBeInTheDocument();
+		});
+
+		it("filters commands by keyword 'today' for Jump to Today's Journal", async () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={commandsWithKeywords}
+				/>,
+			);
+
+			const input = screen.getByPlaceholderText("Type a command...");
+
+			// Search by keyword "today" which is only on nav-today
+			await userEvent.type(input, "today");
+
+			// Jump to Today's Journal should be visible
+			expect(screen.getByText("Jump to Today's Journal")).toBeInTheDocument();
+			expect(screen.queryByText("Go to Dashboard")).not.toBeInTheDocument();
+			expect(screen.queryByText("Git Sync")).not.toBeInTheDocument();
 		});
 	});
 
