@@ -10,7 +10,8 @@ type CommandId =
 	| "git-sync"
 	| "toggle-sidebar"
 	| "show-help"
-	| "switch-last";
+	| "switch-last"
+	| "save-document";
 
 interface ShortcutMapping {
 	key: string;
@@ -32,6 +33,7 @@ const COMMAND_SHORTCUTS: Record<CommandId, ShortcutMapping> = {
 	"nav-recent": { key: "E", ctrlKey: true },
 	"nav-today": { key: "T", ctrlKey: true },
 	"switch-last": { key: "Tab", ctrlKey: true },
+	"save-document": { key: "S", ctrlKey: true },
 };
 
 function isMacOS(): boolean {

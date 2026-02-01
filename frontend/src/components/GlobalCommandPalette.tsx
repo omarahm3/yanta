@@ -17,6 +17,7 @@ import {
 	HelpCircle,
 	LayoutDashboard,
 	PanelLeft,
+	Save,
 	Search,
 	Settings,
 } from "lucide-react";
@@ -218,6 +219,21 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 				handleClose();
 			},
 		});
+
+		if (currentPage === "document") {
+			commands.push({
+				id: "save-document",
+				icon: <Save className="text-lg" />,
+				text: "Save Document",
+				shortcut: getShortcutForCommand("save-document"),
+				group: "Document",
+				keywords: ["save", "persist"],
+				action: () => {
+					handleClose();
+					window.dispatchEvent(new CustomEvent("yanta:document:save"));
+				},
+			});
+		}
 
 		commands.push({
 			id: "export-document",

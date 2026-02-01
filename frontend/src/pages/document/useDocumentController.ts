@@ -183,6 +183,26 @@ export function useDocumentController({
 		};
 	}, []);
 
+	// Listen for save event from command palette
+	useEffect(() => {
+		const handleSaveEvent = () => {
+			if (isArchivedRef.current) {
+				error("Restore the document before saving.");
+				return;
+			}
+			autoSaveRef.current.saveNow().catch((err) => {
+				console.error("[Document] Failed to save from command palette:", err);
+				error("Failed to save document");
+			});
+		};
+
+		window.addEventListener("yanta:document:save", handleSaveEvent);
+
+		return () => {
+			window.removeEventListener("yanta:document:save", handleSaveEvent);
+		};
+	}, [error]);
+
 	const handleCancel = useCallback(() => {
 		if (autoSave.hasUnsavedChanges && !isEditMode) {
 			return;
