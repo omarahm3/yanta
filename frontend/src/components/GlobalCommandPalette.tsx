@@ -10,6 +10,7 @@ import {
 	FilePlus,
 	Folder,
 	GitCommit,
+	HelpCircle,
 	LayoutDashboard,
 	PanelLeft,
 	Search,
@@ -46,6 +47,7 @@ interface GlobalCommandPaletteProps {
 	onToggleArchived?: () => void;
 	showArchived?: boolean;
 	onToggleSidebar?: () => void;
+	onShowHelp?: () => void;
 }
 
 export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
@@ -56,6 +58,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 	onToggleArchived,
 	showArchived,
 	onToggleSidebar,
+	onShowHelp,
 }) => {
 	const { projects, currentProject, setCurrentProject } = useProjectContext();
 	const { getSelectedDocument } = useDocumentContext();
@@ -265,6 +268,21 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			});
 		}
 
+		if (onShowHelp) {
+			commands.push({
+				id: "show-help",
+				icon: <HelpCircle className="text-lg" />,
+				text: "Show Keyboard Shortcuts",
+				shortcut: getShortcutForCommand("show-help"),
+				group: "Application",
+				keywords: ["help", "shortcuts", "hotkeys", "keys"],
+				action: () => {
+					onShowHelp();
+					onClose();
+				},
+			});
+		}
+
 		commands.push({
 			id: "git-sync",
 			icon: <GitCommit className="text-lg" />,
@@ -415,6 +433,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 		onToggleArchived,
 		showArchived,
 		onToggleSidebar,
+		onShowHelp,
 		notification,
 		showGitError,
 	]);

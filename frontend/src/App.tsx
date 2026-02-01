@@ -60,6 +60,7 @@ const QuitHotkeys = () => {
 };
 
 const GlobalCommandHotkey = () => {
+	const { openHelp } = useHelp();
 	const [isOpen, setIsOpen] = React.useState(false);
 	const [currentPage, setCurrentPage] = React.useState<string>("dashboard");
 	const [navigationState, setNavigationState] = React.useState<
@@ -115,6 +116,7 @@ const GlobalCommandHotkey = () => {
 				onToggleArchived={handleToggleArchived}
 				showArchived={showArchived}
 				onToggleSidebar={handleToggleSidebar}
+				onShowHelp={openHelp}
 			/>
 			<Router
 				currentPage={currentPage}
