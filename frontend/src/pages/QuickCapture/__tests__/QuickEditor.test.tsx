@@ -82,6 +82,6 @@ describe("QuickEditor", () => {
 		render(<QuickEditor value={longText} onChange={vi.fn()} maxLength={10000} />);
 
 		const counter = screen.getByTestId("char-counter");
-		expect(counter).toHaveClass("text-[#E06C75]");
+		expect(counter).toHaveClass("text-red");
 	});
 });

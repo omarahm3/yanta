@@ -54,7 +54,7 @@ func CreateWindow(app *application.App) *application.WebviewWindow {
 		AlwaysOnTop:   true,
 		Hidden:        false,
 		DisableResize: true,
-		URL:           "/quick-capture",
+		URL:           "/?mode=quick-capture",
 		// Transparent background to allow CSS rounded corners
 		BackgroundColour: application.NewRGBA(0, 0, 0, 0),
 		Mac: application.MacWindow{

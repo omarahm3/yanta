@@ -190,7 +190,9 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 	useLayoutEffect(() => {
 		if (!showProjectList || !projectListRef.current) return;
 		const highlighted = projectListRef.current.querySelector('[data-highlighted="true"]');
-		highlighted?.scrollIntoView({ block: "nearest", behavior: "auto" });
+		if (highlighted && typeof highlighted.scrollIntoView === "function") {
+			highlighted.scrollIntoView({ block: "nearest", behavior: "auto" });
+		}
 	}, [showProjectList, highlightedIndex]);
 
 	const highlightedContent = getHighlightedContent(value);

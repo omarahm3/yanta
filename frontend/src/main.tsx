@@ -67,8 +67,9 @@ const root = createRoot(container);
 waitForWailsRuntime().then(() => {
 	try {
 		// Check if we're in Quick Capture window based on URL path
-		const isQuickCapture = window.location.pathname === "/quick-capture";
-		console.log("[main.tsx] Path:", window.location.pathname, "isQuickCapture:", isQuickCapture);
+		const isQuickCapture =
+			new URLSearchParams(window.location.search).get("mode") === "quick-capture";
+		console.log("[main.tsx] Mode:", window.location.search, "isQuickCapture:", isQuickCapture);
 
 		if (isQuickCapture) {
 			// Render minimal Quick Capture UI without main app chrome
