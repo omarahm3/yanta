@@ -32,6 +32,8 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => (
 						projects: [mockProject],
 						archivedProjects: [],
 						setCurrentProject: vi.fn(),
+						previousProject: undefined,
+						switchToLastProject: vi.fn(),
 						loadProjects: vi.fn(),
 						isLoading: false,
 					}}
