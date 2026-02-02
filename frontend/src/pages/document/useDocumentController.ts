@@ -13,6 +13,7 @@ import { useDocumentEscapeHandling } from "../../hooks/useDocumentEscapeHandling
 import { useDocumentForm } from "../../hooks/useDocumentForm";
 import { useDocumentInitialization } from "../../hooks/useDocumentInitialization";
 import { useDocumentPersistence } from "../../hooks/useDocumentPersistence";
+import { useHelp } from "../../hooks/useHelp";
 import { useNotification } from "../../hooks/useNotification";
 import { useRecentDocuments } from "../../hooks/useRecentDocuments";
 import { useSidebarSections } from "../../hooks/useSidebarSections";
@@ -43,7 +44,13 @@ export function useDocumentController({
 }: DocumentControllerOptions): DocumentControllerResult {
 	const { currentProject } = useProjectContext();
 	const { success, error } = useNotification();
+	const { setPageContext } = useHelp();
 	const isEditMode = !!documentPath;
+
+	// Set page context for help modal
+	useEffect(() => {
+		setPageContext([], "Document");
+	}, [setPageContext]);
 
 	const initialFormData = useMemo(
 		() => (initialTitle ? createEmptyDocument(initialTitle) : undefined),

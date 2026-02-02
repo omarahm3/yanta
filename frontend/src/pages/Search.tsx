@@ -7,6 +7,7 @@ import { ListActive as ListActiveTags } from "../../bindings/yanta/internal/tag/
 import { Layout } from "../components/Layout";
 import { Button, Input } from "../components/ui";
 import { useProjectContext } from "../contexts";
+import { useHelp } from "../hooks/useHelp";
 import { useNotification } from "../hooks/useNotification";
 import { useSidebarSections } from "../hooks/useSidebarSections";
 
@@ -46,11 +47,17 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 
 	const { error: notifyError } = useNotification();
 	const { projects, setCurrentProject } = useProjectContext();
+	const { setPageContext } = useHelp();
 
 	const [availableTags, setAvailableTags] = useState<string[]>([]);
 
 	const searchInputRef = useRef<HTMLInputElement | null>(null);
 	const searchTimeoutRef = useRef<number | null>(null);
+
+	// Set page context for help modal
+	useEffect(() => {
+		setPageContext([], "Search");
+	}, [setPageContext]);
 
 	useEffect(() => {
 		searchInputRef.current?.focus();
