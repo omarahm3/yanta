@@ -3,8 +3,38 @@ import { type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import { useProjectContext, useTitleBarContext } from "../contexts";
 import { useGlobalCommand, useHotkeys, useSidebarSetting } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
-import { HeaderBar, type SidebarSection, Sidebar as UISidebar } from "./ui";
+import { ContextBar, HeaderBar, type SidebarSection, Sidebar as UISidebar } from "./ui";
 import { CommandLine } from "./ui/commandline";
+
+/**
+ * Converts the current page identifier to a display-friendly page name.
+ */
+const getPageDisplayName = (page: string): string => {
+	switch (page) {
+		case "dashboard":
+			return "Documents";
+		case "document":
+			return "Document";
+		case "journal":
+			return "Journal";
+		case "settings":
+			return "Settings";
+		case "projects":
+			return "Projects";
+		case "search":
+			return "Search";
+		default:
+			return page.charAt(0).toUpperCase() + page.slice(1);
+	}
+};
+
+/**
+ * Checks if the current page should show the ContextBar.
+ * ContextBar appears on content pages: dashboard, document, journal.
+ */
+const shouldShowContextBar = (page: string): boolean => {
+	return ["dashboard", "document", "journal"].includes(page);
+};
 
 export interface LayoutProps {
 	sidebarTitle?: string;
@@ -206,6 +236,15 @@ export const Layout: React.FC<LayoutProps> = ({
 					currentPage={currentPage}
 					shortcuts={headerShortcuts}
 				/>
+
+				{/* Context bar for content pages - shows mode, page name, project, and command hint */}
+				{shouldShowContextBar(currentPage) && (
+					<ContextBar
+						mode={dataMode}
+						pageName={getPageDisplayName(currentPage)}
+						projectAlias={currentProject?.alias}
+					/>
+				)}
 
 				<div className="flex-1 overflow-hidden">{children}</div>
 

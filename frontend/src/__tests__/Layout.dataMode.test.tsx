@@ -41,6 +41,7 @@ vi.mock("../components/ui", () => ({
 		<div data-testid="header">{currentPage}</div>
 	),
 	Sidebar: ({ title }: { title?: string }) => <div data-testid="sidebar">{title ?? "Sidebar"}</div>,
+	ContextBar: () => <div data-testid="context-bar-mock" />,
 }));
 
 import { Layout } from "../components/Layout";

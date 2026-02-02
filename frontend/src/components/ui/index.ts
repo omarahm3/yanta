@@ -1,11 +1,7 @@
 export { Button } from "./Button";
 export { type CommandOption, CommandPalette, type SubPaletteItem } from "./CommandPalette";
 export { ConfirmDialog, type ConfirmDialogProps } from "./ConfirmDialog";
-export {
-	ContextBar,
-	type ContextItem,
-	type Shortcut as ContextShortcut,
-} from "./ContextBar";
+export { ContextBar, type ContextBarProps, type DataMode } from "./ContextBar";
 export { GitErrorDialog } from "./GitErrorDialog";
 export { HeaderBar } from "./HeaderBar";
 export { Heading } from "./Heading";
