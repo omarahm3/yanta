@@ -1,7 +1,7 @@
 import React, { useCallback, useRef } from "react";
 import { Layout } from "../components/Layout";
 import { ConfirmDialog, type Shortcut } from "../components/ui";
-import { useHotkeys } from "../hooks";
+import { useHotkeys, useSidebarSetting } from "../hooks";
 import { useHelp } from "../hooks/useHelp";
 import { useSidebarSections } from "../hooks/useSidebarSections";
 import { AboutSection } from "./settings/AboutSection";
@@ -151,6 +151,7 @@ interface SettingsProps {
 export const Settings: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
 	const controller = useSettingsController();
 	const { setPageContext } = useHelp();
+	const { sidebarVisible, setSidebarVisible, isLoading: sidebarLoading } = useSidebarSetting();
 
 	const generalRef = useRef<HTMLDivElement>(null);
 	const appearanceRef = useRef<HTMLDivElement>(null);
@@ -322,6 +323,9 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggle
 						ref={appearanceRef}
 						appScale={controller.appScale}
 						onAppScaleChange={controller.handlers.handleAppScaleChange}
+						sidebarVisible={sidebarVisible}
+						onSidebarVisibleChange={setSidebarVisible}
+						sidebarLoading={sidebarLoading}
 					/>
 
 					<DatabaseSection

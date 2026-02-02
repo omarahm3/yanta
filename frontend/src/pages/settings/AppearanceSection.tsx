@@ -1,13 +1,16 @@
 import React from "react";
-import { Label, Select, type SelectOption, SettingsSection } from "../../components/ui";
+import { Label, Select, type SelectOption, SettingsSection, Toggle } from "../../components/ui";
 
 interface AppearanceSectionProps {
 	appScale: number;
 	onAppScaleChange: (scale: number) => void;
+	sidebarVisible: boolean;
+	onSidebarVisibleChange: (visible: boolean) => void;
+	sidebarLoading?: boolean;
 }
 
 export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSectionProps>(
-	({ appScale, onAppScaleChange }, ref) => {
+	({ appScale, onAppScaleChange, sidebarVisible, onSidebarVisibleChange, sidebarLoading = false }, ref) => {
 		const scaleOptions: SelectOption[] = [
 			{ value: "0.75", label: "Small (75%)" },
 			{ value: "0.85", label: "Medium-Small (85%)" },
@@ -29,6 +32,20 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 			<div ref={ref}>
 				<SettingsSection title="Appearance" subtitle="Customize the look and feel of the application">
 					<div className="space-y-4">
+						<div className="flex items-center justify-between">
+							<div>
+								<div className="text-sm text-text">Show Sidebar</div>
+								<div className="text-xs text-text-dim">
+									Display the navigation sidebar. Use Ctrl+B to toggle.
+								</div>
+							</div>
+							<Toggle
+								checked={sidebarVisible}
+								onChange={onSidebarVisibleChange}
+								disabled={sidebarLoading}
+							/>
+						</div>
+
 						<div className="space-y-2">
 							<Label variant="uppercase">Interface Scale</Label>
 							<Select
