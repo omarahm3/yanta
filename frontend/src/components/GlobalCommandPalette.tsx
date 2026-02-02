@@ -40,7 +40,7 @@ import {
 import { useDocumentContext } from "../contexts/DocumentContext";
 import { useProjectContext } from "../contexts/ProjectContext";
 import { useCommandUsage } from "../hooks/useCommandUsage";
-import { sortCommandsByUsage } from "../utils/commandSorting";
+import { getTopRecentCommandIds, sortCommandsByUsage } from "../utils/commandSorting";
 import { useNotification } from "../hooks/useNotification";
 import { useRecentDocuments } from "../hooks/useRecentDocuments";
 import { formatRelativeTimeFromTimestamp } from "../utils/dateUtils";
@@ -539,9 +539,19 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 	]);
 
 	// Sort commands by usage (recency + frequency) for better UX
+	// Also mark the top 5 recently used commands with isRecent for visual indicator
 	const sortedCommands = useMemo(() => {
 		const usage = getAllCommandUsage();
-		return sortCommandsByUsage(commandOptions, usage);
+		const sorted = sortCommandsByUsage(commandOptions, usage);
+
+		// Get top 5 recently used command IDs (used within last hour)
+		const recentIds = getTopRecentCommandIds(usage, 5);
+
+		// Apply isRecent flag to commands
+		return sorted.map((cmd) => ({
+			...cmd,
+			isRecent: recentIds.has(cmd.id),
+		}));
 	}, [commandOptions, getAllCommandUsage]);
 
 	return (

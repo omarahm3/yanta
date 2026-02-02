@@ -21,6 +21,8 @@ export interface CommandOption {
 	group?: string;
 	keywords?: string[];
 	action: () => void;
+	/** When true, displays a subtle "Recent" indicator for this command */
+	isRecent?: boolean;
 }
 
 export interface SubPaletteItem {
@@ -181,6 +183,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 										>
 											<span className="w-5">{command.icon}</span>
 											<span className="flex-1">{command.text}</span>
+											{command.isRecent && (
+												<span
+													className="ml-1 inline-flex h-1.5 w-1.5 rounded-full bg-primary/60"
+													aria-label="Recently used"
+													data-testid="recent-indicator"
+												/>
+											)}
 											{command.shortcut ? (
 												<kbd className="ml-auto rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground">
 													{command.shortcut}

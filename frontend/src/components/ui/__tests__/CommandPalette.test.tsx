@@ -548,6 +548,135 @@ describe("CommandPalette", () => {
 		});
 	});
 
+	describe("recent indicator", () => {
+		const commandsWithRecent: CommandOption[] = [
+			{
+				id: "nav-dashboard",
+				icon: <FolderIcon />,
+				text: "Go to Dashboard",
+				group: "Navigation",
+				action: vi.fn(),
+				isRecent: true,
+			},
+			{
+				id: "nav-settings",
+				icon: <SettingsIcon />,
+				text: "Go to Settings",
+				group: "Navigation",
+				action: vi.fn(),
+				isRecent: false,
+			},
+			{
+				id: "new-document",
+				icon: <FileIcon />,
+				text: "New Document",
+				group: "Create",
+				action: vi.fn(),
+				isRecent: true,
+			},
+			{
+				id: "git-sync",
+				icon: <FileIcon />,
+				text: "Git Sync",
+				group: "Git",
+				action: vi.fn(),
+				// isRecent not set (undefined)
+			},
+		];
+
+		it("renders recent indicator for commands with isRecent=true", () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={commandsWithRecent}
+				/>,
+			);
+
+			// Find the recent indicators
+			const recentIndicators = screen.getAllByTestId("recent-indicator");
+
+			// Should have 2 recent indicators (Dashboard and New Document)
+			expect(recentIndicators).toHaveLength(2);
+		});
+
+		it("does not render recent indicator for commands with isRecent=false", () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={commandsWithRecent}
+				/>,
+			);
+
+			// Settings has isRecent=false, should not have indicator
+			const settingsItem = screen.getByText("Go to Settings").closest('[data-slot="command-item"]');
+			expect(settingsItem).not.toBeNull();
+			if (settingsItem) {
+				const indicator = settingsItem.querySelector('[data-testid="recent-indicator"]');
+				expect(indicator).toBeNull();
+			}
+		});
+
+		it("does not render recent indicator for commands without isRecent property", () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={commandsWithRecent}
+				/>,
+			);
+
+			// Git Sync has no isRecent property, should not have indicator
+			const gitSyncItem = screen.getByText("Git Sync").closest('[data-slot="command-item"]');
+			expect(gitSyncItem).not.toBeNull();
+			if (gitSyncItem) {
+				const indicator = gitSyncItem.querySelector('[data-testid="recent-indicator"]');
+				expect(indicator).toBeNull();
+			}
+		});
+
+		it("recent indicator has accessible label", () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={commandsWithRecent}
+				/>,
+			);
+
+			const recentIndicators = screen.getAllByTestId("recent-indicator");
+
+			// Each indicator should have an aria-label for accessibility
+			for (const indicator of recentIndicators) {
+				expect(indicator).toHaveAttribute("aria-label", "Recently used");
+			}
+		});
+
+		it("recent indicator appears alongside command text", () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={commandsWithRecent}
+				/>,
+			);
+
+			// Dashboard has isRecent=true
+			const dashboardItem = screen.getByText("Go to Dashboard").closest('[data-slot="command-item"]');
+			expect(dashboardItem).not.toBeNull();
+			if (dashboardItem) {
+				const indicator = dashboardItem.querySelector('[data-testid="recent-indicator"]');
+				expect(indicator).not.toBeNull();
+			}
+		});
+	});
+
 	describe("sub-palette mode", () => {
 		const mockSubPaletteItems: SubPaletteItem[] = [
 			{

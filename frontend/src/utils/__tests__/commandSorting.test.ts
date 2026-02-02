@@ -3,6 +3,7 @@ import {
 	sortCommandsByUsage,
 	getRecentlyUsedCommands,
 	isRecentlyUsed,
+	getTopRecentCommandIds,
 } from "../commandSorting";
 import type { CommandUsageRecord } from "../../hooks/useCommandUsage";
 import type { CommandOption } from "../../components/ui/CommandPalette";
@@ -322,5 +323,107 @@ describe("isRecentlyUsed", () => {
 		};
 
 		expect(isRecentlyUsed("cmd-a", usage)).toBe(false);
+	});
+});
+
+describe("getTopRecentCommandIds", () => {
+	const now = 1700000000000;
+
+	beforeEach(() => {
+		vi.useFakeTimers();
+		vi.setSystemTime(now);
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it("returns empty set when no usage data exists", () => {
+		const usage: CommandUsageRecord = {};
+
+		const recentIds = getTopRecentCommandIds(usage);
+
+		expect(recentIds.size).toBe(0);
+	});
+
+	it("returns empty set when no commands were used within the last hour", () => {
+		const usage: CommandUsageRecord = {
+			"cmd-a": { lastUsed: now - 2 * HOUR_MS, useCount: 1 },
+			"cmd-b": { lastUsed: now - 3 * HOUR_MS, useCount: 1 },
+		};
+
+		const recentIds = getTopRecentCommandIds(usage);
+
+		expect(recentIds.size).toBe(0);
+	});
+
+	it("returns IDs of commands used within the last hour", () => {
+		const usage: CommandUsageRecord = {
+			"cmd-a": { lastUsed: now - 10 * 60 * 1000, useCount: 1 }, // 10 min ago
+			"cmd-b": { lastUsed: now - 2 * HOUR_MS, useCount: 1 }, // 2 hours ago
+			"cmd-c": { lastUsed: now - 30 * 60 * 1000, useCount: 1 }, // 30 min ago
+		};
+
+		const recentIds = getTopRecentCommandIds(usage);
+
+		expect(recentIds.has("cmd-a")).toBe(true);
+		expect(recentIds.has("cmd-c")).toBe(true);
+		expect(recentIds.has("cmd-b")).toBe(false);
+	});
+
+	it("limits results to the specified number", () => {
+		const usage: CommandUsageRecord = {
+			"cmd-a": { lastUsed: now - 5 * 60 * 1000, useCount: 1 },
+			"cmd-b": { lastUsed: now - 10 * 60 * 1000, useCount: 1 },
+			"cmd-c": { lastUsed: now - 15 * 60 * 1000, useCount: 1 },
+			"cmd-d": { lastUsed: now - 20 * 60 * 1000, useCount: 1 },
+			"cmd-e": { lastUsed: now - 25 * 60 * 1000, useCount: 1 },
+			"cmd-f": { lastUsed: now - 30 * 60 * 1000, useCount: 1 },
+		};
+
+		const recentIds = getTopRecentCommandIds(usage, 3);
+
+		expect(recentIds.size).toBe(3);
+		// Should contain the 3 most recent
+		expect(recentIds.has("cmd-a")).toBe(true);
+		expect(recentIds.has("cmd-b")).toBe(true);
+		expect(recentIds.has("cmd-c")).toBe(true);
+		expect(recentIds.has("cmd-d")).toBe(false);
+	});
+
+	it("uses default limit of 5", () => {
+		const usage: CommandUsageRecord = {};
+		for (let i = 0; i < 10; i++) {
+			usage[`cmd-${i}`] = { lastUsed: now - i * 5 * 60 * 1000, useCount: 1 };
+		}
+
+		const recentIds = getTopRecentCommandIds(usage);
+
+		expect(recentIds.size).toBe(5);
+	});
+
+	it("returns the most recently used commands first", () => {
+		const usage: CommandUsageRecord = {
+			"cmd-old": { lastUsed: now - 50 * 60 * 1000, useCount: 1 },
+			"cmd-new": { lastUsed: now - 5 * 60 * 1000, useCount: 1 },
+			"cmd-mid": { lastUsed: now - 25 * 60 * 1000, useCount: 1 },
+		};
+
+		const recentIds = getTopRecentCommandIds(usage, 2);
+
+		// Should contain the 2 most recent
+		expect(recentIds.has("cmd-new")).toBe(true);
+		expect(recentIds.has("cmd-mid")).toBe(true);
+		expect(recentIds.has("cmd-old")).toBe(false);
+	});
+
+	it("returns a Set for O(1) lookup", () => {
+		const usage: CommandUsageRecord = {
+			"cmd-a": { lastUsed: now - 5 * 60 * 1000, useCount: 1 },
+		};
+
+		const recentIds = getTopRecentCommandIds(usage);
+
+		expect(recentIds).toBeInstanceOf(Set);
 	});
 });

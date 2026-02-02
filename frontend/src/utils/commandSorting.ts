@@ -163,3 +163,27 @@ export function isRecentlyUsed(
 	}
 	return Date.now() - usageData.lastUsed < HOUR_MS;
 }
+
+/**
+ * Get the IDs of the top N most recently used commands for visual indicators.
+ * Only returns commands that were used within the current session (last hour).
+ *
+ * @param usage - The command usage record
+ * @param limit - Maximum number of command IDs to return (default: 5)
+ * @returns Set of command IDs that should show the recent indicator
+ */
+export function getTopRecentCommandIds(
+	usage: CommandUsageRecord,
+	limit = 5,
+): Set<string> {
+	const now = Date.now();
+
+	// Get all entries used within the last hour (session-level recency)
+	const recentEntries = Object.entries(usage)
+		.filter(([, data]) => now - data.lastUsed < HOUR_MS)
+		.sort((a, b) => b[1].lastUsed - a[1].lastUsed);
+
+	// Return the top N as a Set for O(1) lookups
+	const topIds = recentEntries.slice(0, limit).map(([id]) => id);
+	return new Set(topIds);
+}
