@@ -13,7 +13,7 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: "./vitest.setup.ts",
     globals: true,
-    css: true,
+    css: false,
     fileParallelism: false,
   },
 });
