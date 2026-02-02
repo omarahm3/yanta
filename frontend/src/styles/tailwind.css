@@ -312,4 +312,14 @@
 	.main-content-transition {
 		transition: flex 200ms ease-out;
 	}
+
+	/* Footer hint bar transition styles */
+	.footer-hint-bar-transition {
+		transition: left 200ms ease-out;
+	}
+
+	.footer-hint-bar-sidebar-visible {
+		/* Offset by sidebar width (w-48 = 12rem = 192px) */
+		left: 12rem;
+	}
 }

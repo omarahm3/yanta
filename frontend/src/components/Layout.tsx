@@ -1,9 +1,9 @@
 import type React from "react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import { useProjectContext, useTitleBarContext } from "../contexts";
-import { useGlobalCommand, useHotkeys, useSidebarSetting } from "../hooks";
+import { useFooterHints, useGlobalCommand, useHotkeys, useSidebarSetting } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
-import { ContextBar, HeaderBar, type SidebarSection, Sidebar as UISidebar } from "./ui";
+import { ContextBar, FooterHintBar, HeaderBar, type SidebarSection, Sidebar as UISidebar } from "./ui";
 import { CommandLine } from "./ui/commandline";
 
 /**
@@ -99,6 +99,7 @@ export const Layout: React.FC<LayoutProps> = ({
 	const { sidebarVisible, toggleSidebar, isLoading: sidebarLoading } = useSidebarSetting();
 	const { currentProject } = useProjectContext();
 	const { heightInRem } = useTitleBarContext();
+	const { hints: footerHints } = useFooterHints({ currentPage });
 
 	// Register the toggle sidebar handler with the parent component
 	useEffect(() => {
@@ -259,6 +260,14 @@ export const Layout: React.FC<LayoutProps> = ({
 					/>
 				)}
 			</div>
+
+			{/* Footer hint bar with context-aware keyboard shortcuts */}
+			<FooterHintBar
+				hints={footerHints}
+				className={`footer-hint-bar-transition ${
+					!sidebarLoading && sidebarVisible ? "footer-hint-bar-sidebar-visible" : ""
+				}`}
+			/>
 		</div>
 	);
 };

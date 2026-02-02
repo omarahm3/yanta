@@ -25,6 +25,12 @@ vi.mock("../hooks/useSidebarSetting", () => ({
 	}),
 }));
 
+vi.mock("../hooks/useFooterHints", () => ({
+	useFooterHints: () => ({
+		hints: [{ key: "Ctrl+K", label: "Commands" }],
+	}),
+}));
+
 vi.mock("../contexts", async () => {
 	const actual = await vi.importActual<typeof import("../contexts")>("../contexts");
 	return {
@@ -42,6 +48,9 @@ vi.mock("../components/ui", () => ({
 	),
 	Sidebar: ({ title }: { title?: string }) => <div data-testid="sidebar">{title ?? "Sidebar"}</div>,
 	ContextBar: () => <div data-testid="context-bar-mock" />,
+	FooterHintBar: ({ hints }: { hints: { key: string; label: string }[] }) => (
+		<div data-testid="footer-hint-bar-mock">{hints.length} hints</div>
+	),
 }));
 
 import { Layout } from "../components/Layout";
