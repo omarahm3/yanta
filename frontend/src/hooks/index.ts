@@ -30,3 +30,14 @@ export type { OnboardingData, UseOnboardingReturn } from "./useOnboarding";
 export { useOnboarding } from "./useOnboarding";
 export type { UserProgressData, UseUserProgressReturn } from "./useUserProgress";
 export { useUserProgress } from "./useUserProgress";
+export type {
+	MilestoneHint,
+	MilestoneHintId,
+	UseMilestoneHintsOptions,
+	UseMilestoneHintsReturn,
+} from "./useMilestoneHints";
+export {
+	useMilestoneHints,
+	MILESTONE_HINTS,
+	MILESTONE_HINT_IDS,
+} from "./useMilestoneHints";
