@@ -40,6 +40,7 @@ import {
 import { useDocumentContext } from "../contexts/DocumentContext";
 import { useProjectContext } from "../contexts/ProjectContext";
 import { useCommandUsage } from "../hooks/useCommandUsage";
+import { sortCommandsByUsage } from "../utils/commandSorting";
 import { useNotification } from "../hooks/useNotification";
 import { useRecentDocuments } from "../hooks/useRecentDocuments";
 import { formatRelativeTimeFromTimestamp } from "../utils/dateUtils";
@@ -72,7 +73,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 	const { getSelectedDocument } = useDocumentContext();
 	const notification = useNotification();
 	const { recentDocuments } = useRecentDocuments();
-	const { recordCommandUsage } = useCommandUsage();
+	const { recordCommandUsage, getAllCommandUsage } = useCommandUsage();
 	const [gitError, setGitError] = useState<ParsedGitError | null>(null);
 	const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
 	const [showRecentDocuments, setShowRecentDocuments] = useState(false);
@@ -537,13 +538,19 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 		showGitError,
 	]);
 
+	// Sort commands by usage (recency + frequency) for better UX
+	const sortedCommands = useMemo(() => {
+		const usage = getAllCommandUsage();
+		return sortCommandsByUsage(commandOptions, usage);
+	}, [commandOptions, getAllCommandUsage]);
+
 	return (
 		<>
 			<CommandPalette
 				isOpen={isOpen}
 				onClose={handleClose}
 				onCommandSelect={handleCommandSelect}
-				commands={commandOptions}
+				commands={sortedCommands}
 				placeholder="Type a command or search..."
 				subPaletteItems={showRecentDocuments ? recentDocumentItems : undefined}
 				subPaletteTitle={showRecentDocuments ? "Recent Documents" : undefined}

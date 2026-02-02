@@ -16,3 +16,8 @@ export { getProjectAliasColor } from "./colorUtils";
 export { formatRelativeTime, formatShortDate } from "./dateUtils";
 export { getShortcutForCommand } from "./shortcuts";
 export { announceForScreenReaders } from "./accessibility";
+export {
+	sortCommandsByUsage,
+	getRecentlyUsedCommands,
+	isRecentlyUsed,
+} from "./commandSorting";
