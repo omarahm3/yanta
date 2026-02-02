@@ -89,6 +89,13 @@ export function GetPlatform(): $CancellablePromise<string> {
     return $Call.ByID(3548419224);
 }
 
+/**
+ * GetSidebarVisible returns the current sidebar visibility setting.
+ */
+export function GetSidebarVisible(): $CancellablePromise<boolean> {
+    return $Call.ByID(2793125877);
+}
+
 export function GetStartHidden(): $CancellablePromise<boolean> {
     return $Call.ByID(2907183281);
 }
@@ -164,6 +171,13 @@ export function SetLogLevel(level: string): $CancellablePromise<void> {
 
 export function SetShutdownHandler(handler: any): $CancellablePromise<void> {
     return $Call.ByID(2494822927, handler);
+}
+
+/**
+ * SetSidebarVisible updates the sidebar visibility setting.
+ */
+export function SetSidebarVisible(visible: boolean): $CancellablePromise<void> {
+    return $Call.ByID(4066415849, visible);
 }
 
 export function SetStartHidden(hidden: boolean): $CancellablePromise<void> {
