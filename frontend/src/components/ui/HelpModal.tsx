@@ -191,7 +191,7 @@ const HelpSection: React.FC<HelpSectionProps> = ({
 			<button
 				type="button"
 				onClick={onToggle}
-				className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-bg/50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-inset"
+				className="w-full flex items-center gap-2 py-3 px-4 text-left select-none cursor-pointer hover:bg-surface transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-inset"
 				aria-expanded={isExpanded}
 				aria-controls={`help-section-content-${sectionId}`}
 			>
@@ -200,7 +200,7 @@ const HelpSection: React.FC<HelpSectionProps> = ({
 						isExpanded ? "rotate-90" : ""
 					}`}
 				/>
-				<span className="font-medium text-text-bright text-sm tracking-wide">
+				<span className="font-medium text-text-bright text-sm">
 					{title}
 				</span>
 			</button>
