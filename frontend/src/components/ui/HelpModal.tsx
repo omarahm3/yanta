@@ -222,6 +222,12 @@ const HelpSection: React.FC<HelpSectionProps> = ({
 
 /**
  * Shortcut row component
+ *
+ * Two-column layout with:
+ * - Key on left: monospace, muted color, min-width for alignment
+ * - Description on right: normal text color
+ * - Subtle padding between rows
+ * - Consistent indentation under section headers (handled by parent)
  */
 interface ShortcutRowProps {
 	shortcutKey: string;
@@ -234,20 +240,20 @@ const ShortcutRow: React.FC<ShortcutRowProps> = ({
 	description,
 	variant = "purple",
 }) => {
-	const colorClasses = {
-		accent: "border-accent/20 text-accent group-hover:border-accent/40 group-hover:bg-accent/5",
-		green: "border-green/20 text-green group-hover:border-green/40 group-hover:bg-green/5",
-		purple: "border-purple/20 text-purple group-hover:border-purple/40 group-hover:bg-purple/5",
+	const keyColorClasses = {
+		accent: "text-accent",
+		green: "text-green",
+		purple: "text-text-dim",
 	};
 
 	return (
-		<div className="grid grid-cols-[minmax(120px,auto)_1fr] items-baseline gap-4 font-mono text-sm group py-1.5 rounded hover:bg-bg/30 transition-colors">
+		<div className="flex items-center gap-4 py-1.5">
 			<code
-				className={`px-2 py-1 bg-bg border rounded font-medium transition-all duration-200 text-xs w-fit ${colorClasses[variant]}`}
+				className={`font-mono text-xs min-w-[120px] ${keyColorClasses[variant]}`}
 			>
 				{shortcutKey}
 			</code>
-			<span className="text-text text-xs sm:text-sm">{description}</span>
+			<span className="text-text text-[13px]">{description}</span>
 		</div>
 	);
 };
