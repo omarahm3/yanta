@@ -1,7 +1,16 @@
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { QuickCreateInput } from "../QuickCreateInput";
+
+// Mock navigator.platform for platform detection tests
+const mockNavigatorPlatform = (platform: string) => {
+	Object.defineProperty(navigator, "platform", {
+		value: platform,
+		writable: true,
+		configurable: true,
+	});
+};
 
 describe("QuickCreateInput", () => {
 	const defaultProps = {
@@ -39,9 +48,13 @@ describe("QuickCreateInput", () => {
 			const kbdElements = container.querySelectorAll("kbd");
 			expect(kbdElements.length).toBe(2);
 			expect(screen.getByText("Enter")).toBeInTheDocument();
-			expect(screen.getByText("⇧Enter")).toBeInTheDocument();
 			expect(screen.getByText("doc")).toBeInTheDocument();
 			expect(screen.getByText("journal")).toBeInTheDocument();
+			// Shift badge will be either "⇧Enter" (Mac) or "Shift+Enter" (Windows/Linux)
+			const shiftBadge = Array.from(kbdElements).find(
+				(kbd) => kbd.textContent?.includes("Enter") && kbd.textContent !== "Enter",
+			);
+			expect(shiftBadge).toBeInTheDocument();
 		});
 
 		it("has aria-label for accessibility", () => {
@@ -399,6 +412,187 @@ describe("QuickCreateInput", () => {
 			for (const kbd of kbdElements) {
 				expect(kbd).toHaveClass("px-1.5", "py-0.5", "rounded");
 			}
+		});
+	});
+
+	describe("Platform-specific Shift key symbol", () => {
+		const originalPlatform = navigator.platform;
+
+		afterEach(() => {
+			mockNavigatorPlatform(originalPlatform);
+		});
+
+		it("shows ⇧Enter on macOS", () => {
+			mockNavigatorPlatform("MacIntel");
+			const { container } = render(<QuickCreateInput {...defaultProps} />);
+			const kbdElements = container.querySelectorAll("kbd");
+			const shiftBadge = Array.from(kbdElements).find(
+				(kbd) => kbd.textContent?.includes("Enter") && kbd.textContent !== "Enter",
+			);
+			expect(shiftBadge).toHaveTextContent("⇧Enter");
+		});
+
+		it("shows Shift+Enter on Windows/Linux", () => {
+			mockNavigatorPlatform("Win32");
+			const { container } = render(<QuickCreateInput {...defaultProps} />);
+			const kbdElements = container.querySelectorAll("kbd");
+			const shiftBadge = Array.from(kbdElements).find(
+				(kbd) => kbd.textContent?.includes("Enter") && kbd.textContent !== "Enter",
+			);
+			expect(shiftBadge).toHaveTextContent("Shift+Enter");
+		});
+	});
+
+	describe("Focus visual feedback", () => {
+		it("applies accent border color when input is focused", () => {
+			const { container } = render(<QuickCreateInput {...defaultProps} />);
+			const wrapper = container.firstChild as HTMLElement;
+			const input = screen.getByRole("textbox");
+
+			expect(wrapper).not.toHaveClass("border-t-accent");
+
+			fireEvent.focus(input);
+			expect(wrapper).toHaveClass("border-t-accent");
+		});
+
+		it("applies accent color to project prefix when focused", () => {
+			const { container } = render(<QuickCreateInput {...defaultProps} />);
+			const input = screen.getByRole("textbox");
+			const prefix = container.querySelector(".font-mono.font-semibold");
+
+			expect(prefix).not.toHaveClass("text-accent");
+
+			fireEvent.focus(input);
+			expect(prefix).toHaveClass("text-accent");
+		});
+
+		it("removes accent styling when input is blurred", () => {
+			const { container } = render(<QuickCreateInput {...defaultProps} />);
+			const wrapper = container.firstChild as HTMLElement;
+			const input = screen.getByRole("textbox");
+			const prefix = container.querySelector(".font-mono.font-semibold");
+
+			fireEvent.focus(input);
+			expect(wrapper).toHaveClass("border-t-accent");
+			expect(prefix).toHaveClass("text-accent");
+
+			fireEvent.blur(input);
+			expect(wrapper).not.toHaveClass("border-t-accent");
+			expect(prefix).not.toHaveClass("text-accent");
+		});
+
+		it("has transition classes for smooth animation", () => {
+			const { container } = render(<QuickCreateInput {...defaultProps} />);
+			const wrapper = container.firstChild as HTMLElement;
+			expect(wrapper).toHaveClass("transition-colors", "duration-200");
+		});
+	});
+
+	describe("Empty input hint behavior", () => {
+		it("shows gentle hint placeholder when Enter is pressed with empty input", async () => {
+			const user = userEvent.setup();
+			render(<QuickCreateInput {...defaultProps} />);
+			const input = screen.getByRole("textbox");
+
+			input.focus();
+			await user.keyboard("{Enter}");
+
+			expect(input).toHaveAttribute("placeholder", "Type a title to create a document");
+		});
+
+		it("shows gentle hint placeholder when Shift+Enter is pressed with empty input", async () => {
+			const user = userEvent.setup();
+			render(<QuickCreateInput {...defaultProps} />);
+			const input = screen.getByRole("textbox");
+
+			input.focus();
+			await user.keyboard("{Shift>}{Enter}{/Shift}");
+
+			expect(input).toHaveAttribute("placeholder", "Type a title to create a document");
+		});
+
+		it("does not show error toast for empty input", async () => {
+			const user = userEvent.setup();
+			render(<QuickCreateInput {...defaultProps} />);
+			const input = screen.getByRole("textbox");
+
+			input.focus();
+			await user.keyboard("{Enter}");
+
+			// Should not call any create function
+			expect(defaultProps.onCreateDocument).not.toHaveBeenCalled();
+			expect(defaultProps.onCreateJournalEntry).not.toHaveBeenCalled();
+		});
+
+		it("clears hint when user starts typing", async () => {
+			const user = userEvent.setup();
+			render(<QuickCreateInput {...defaultProps} />);
+			const input = screen.getByRole("textbox");
+
+			input.focus();
+			await user.keyboard("{Enter}");
+			expect(input).toHaveAttribute("placeholder", "Type a title to create a document");
+
+			await user.type(input, "a");
+			expect(input).toHaveAttribute("placeholder", "Type to create...");
+		});
+
+		it("clears hint on blur", async () => {
+			const user = userEvent.setup();
+			render(<QuickCreateInput {...defaultProps} />);
+			const input = screen.getByRole("textbox");
+
+			input.focus();
+			await user.keyboard("{Enter}");
+			expect(input).toHaveAttribute("placeholder", "Type a title to create a document");
+
+			fireEvent.blur(input);
+			expect(input).toHaveAttribute("placeholder", "Type to create...");
+		});
+
+		it("calls onEmptyHint callback if provided instead of showing inline hint", async () => {
+			const onEmptyHint = vi.fn();
+			const user = userEvent.setup();
+			render(<QuickCreateInput {...defaultProps} onEmptyHint={onEmptyHint} />);
+			const input = screen.getByRole("textbox");
+
+			input.focus();
+			await user.keyboard("{Enter}");
+
+			expect(onEmptyHint).toHaveBeenCalled();
+			// Should still have the default placeholder since we're using callback
+			expect(input).toHaveAttribute("placeholder", "Type to create...");
+		});
+
+		it("auto-hides hint after 3 seconds", async () => {
+			vi.useFakeTimers();
+			render(<QuickCreateInput {...defaultProps} />);
+			const input = screen.getByRole("textbox");
+
+			// Use fireEvent instead of userEvent with fake timers
+			fireEvent.focus(input);
+			fireEvent.keyDown(input, { key: "Enter" });
+
+			expect(input).toHaveAttribute("placeholder", "Type a title to create a document");
+
+			// Advance timers by 3 seconds
+			act(() => {
+				vi.advanceTimersByTime(3000);
+			});
+
+			expect(input).toHaveAttribute("placeholder", "Type to create...");
+			vi.useRealTimers();
+		});
+
+		it("applies yellow-tinted placeholder styling when showing hint", async () => {
+			render(<QuickCreateInput {...defaultProps} />);
+			const input = screen.getByRole("textbox");
+
+			// Use fireEvent instead of userEvent for synchronous test
+			fireEvent.focus(input);
+			fireEvent.keyDown(input, { key: "Enter" });
+
+			expect(input).toHaveClass("placeholder:text-yellow/70");
 		});
 	});
 });
