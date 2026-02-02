@@ -1,6 +1,7 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight } from "lucide-react";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { GLOBAL_COMMANDS } from "../../constants/globalCommands";
 import { useHotkeyContext } from "../../contexts/HotkeyContext";
 import { useHelp } from "../../hooks/useHelp";
@@ -175,6 +176,7 @@ interface HelpSectionProps {
 	onToggle: () => void;
 	children: React.ReactNode;
 	sectionId: string;
+	shortcutCount: number;
 }
 
 const HelpSection: React.FC<HelpSectionProps> = ({
@@ -183,31 +185,41 @@ const HelpSection: React.FC<HelpSectionProps> = ({
 	onToggle,
 	children,
 	sectionId,
+	shortcutCount,
 }) => {
 	const contentRef = useRef<HTMLDivElement>(null);
+	const headerId = `help-section-header-${sectionId}`;
+	const contentId = `help-section-content-${sectionId}`;
 
 	return (
-		<div className="border-b border-border/30 last:border-b-0">
+		<div className="border-b border-border/30 last:border-b-0" role="group">
 			<button
 				type="button"
+				id={headerId}
 				onClick={onToggle}
 				className="w-full flex items-center gap-2 py-3 px-4 text-left select-none cursor-pointer hover:bg-surface transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-inset"
 				aria-expanded={isExpanded}
-				aria-controls={`help-section-content-${sectionId}`}
+				aria-controls={contentId}
+				aria-label={`${title}, ${shortcutCount} shortcuts, ${isExpanded ? "expanded" : "collapsed"}. Press Enter or Space to ${isExpanded ? "collapse" : "expand"}.`}
 			>
 				<ChevronRight
 					className={`w-4 h-4 text-text-dim transition-transform duration-150 ease-out ${
 						isExpanded ? "rotate-90" : ""
 					}`}
+					aria-hidden="true"
 				/>
 				<span className="font-medium text-text-bright text-sm">
 					{title}
 				</span>
+				<span className="text-text-dim text-xs ml-auto" aria-hidden="true">
+					{shortcutCount}
+				</span>
 			</button>
 			<div
-				id={`help-section-content-${sectionId}`}
+				id={contentId}
 				role="region"
-				aria-labelledby={`help-section-header-${sectionId}`}
+				aria-labelledby={headerId}
+				aria-hidden={!isExpanded}
 				className={`overflow-hidden transition-all duration-150 ease-out ${
 					isExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
 				}`}
@@ -268,13 +280,23 @@ export const HelpModal: React.FC = () => {
 	const [expandedSections, setExpandedSections] = useState<Set<HelpSectionId>>(
 		new Set(),
 	);
+	const [announcement, setAnnouncement] = useState("");
 	const searchInputRef = useRef<HTMLInputElement>(null);
+	const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+	// Announce state changes to screen readers
+	const announce = useCallback((message: string) => {
+		setAnnouncement("");
+		// Small delay to ensure announcement is triggered even for same message
+		setTimeout(() => setAnnouncement(message), 50);
+	}, []);
 
 	// Reset expanded sections and search when modal opens
 	useEffect(() => {
 		if (isOpen) {
 			setExpandedSections(getDefaultExpandedSections(pageName));
 			setSearchQuery("");
+			setAnnouncement("");
 			setTimeout(() => {
 				searchInputRef.current?.focus();
 			}, 100);
@@ -295,13 +317,15 @@ export const HelpModal: React.FC = () => {
 					e.stopPropagation();
 					setSearchQuery("");
 					searchInputRef.current?.focus();
+					announce("Search cleared");
 				}
+				// Radix Dialog handles Escape to close when no search query
 			}
 		};
 
 		document.addEventListener("keydown", handleKeyDown);
 		return () => document.removeEventListener("keydown", handleKeyDown);
-	}, [isOpen, closeHelp, searchQuery]);
+	}, [isOpen, closeHelp, searchQuery, announce]);
 
 	// Get all registered hotkeys
 	const allHotkeys = useMemo(() => {
@@ -448,17 +472,20 @@ export const HelpModal: React.FC = () => {
 		}
 	}, [hasSearchQuery, filteredSections]);
 
-	const toggleSection = useCallback((sectionId: HelpSectionId) => {
+	const toggleSection = useCallback((sectionId: HelpSectionId, sectionTitle: string) => {
 		setExpandedSections((prev) => {
 			const next = new Set(prev);
-			if (next.has(sectionId)) {
-				next.delete(sectionId);
-			} else {
+			const willExpand = !next.has(sectionId);
+			if (willExpand) {
 				next.add(sectionId);
+				announce(`${sectionTitle} section expanded`);
+			} else {
+				next.delete(sectionId);
+				announce(`${sectionTitle} section collapsed`);
 			}
 			return next;
 		});
-	}, []);
+	}, [announce]);
 
 	const handleOpenChange = (open: boolean) => {
 		if (!open) {
@@ -479,16 +506,33 @@ export const HelpModal: React.FC = () => {
 					boxShadow: "0 16px 48px rgba(0, 0, 0, 0.24)",
 				}}
 				showCloseButton={false}
+				aria-label="Keyboard shortcuts help modal"
+				aria-describedby="help-modal-description"
 			>
+				{/* Screen reader live region for announcements */}
+				<VisuallyHidden>
+					<div
+						role="status"
+						aria-live="polite"
+						aria-atomic="true"
+					>
+						{announcement}
+					</div>
+					<p id="help-modal-description">
+						Press Tab to navigate between elements. Press Enter or Space on section headers to expand or collapse. Press Escape to close.
+					</p>
+				</VisuallyHidden>
+
 				<DialogHeader className="flex flex-row items-center justify-between px-4 py-4 border-b border-border/40">
 					<DialogTitle className="text-base font-semibold text-text">
 						Keyboard Shortcuts
 					</DialogTitle>
 					<button
+						ref={closeButtonRef}
 						type="button"
 						onClick={closeHelp}
-						className="text-text-dim hover:text-text transition-colors text-xs font-mono"
-						aria-label="Close"
+						className="text-text-dim hover:text-text transition-colors text-xs font-mono focus:outline-none focus:ring-2 focus:ring-accent/50 rounded px-1"
+						aria-label="Close dialog (Escape)"
 					>
 						ESC
 					</button>
@@ -497,19 +541,25 @@ export const HelpModal: React.FC = () => {
 				{/* Search input */}
 				<div className="px-4 pt-4 pb-2">
 					<div className="relative">
+						<label htmlFor="help-search-input" className="sr-only">
+							Search shortcuts
+						</label>
 						<input
+							id="help-search-input"
 							ref={searchInputRef}
-							type="text"
+							type="search"
 							placeholder="Search shortcuts..."
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
 							className="w-full px-3 py-2 bg-surface border border-border/40 rounded-md text-text placeholder-text-dim focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/30 transition-all text-sm"
+							aria-describedby="help-search-results"
+							autoComplete="off"
 						/>
 						{searchQuery && (
 							<button
 								type="button"
 								onClick={handleClearSearch}
-								className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-xs text-text-dim hover:text-text transition-colors rounded hover:bg-bg-dim"
+								className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-xs text-text-dim hover:text-text transition-colors rounded hover:bg-bg-dim focus:outline-none focus:ring-2 focus:ring-accent/50"
 								aria-label="Clear search"
 							>
 								Clear
@@ -517,7 +567,7 @@ export const HelpModal: React.FC = () => {
 						)}
 					</div>
 					{hasSearchQuery && (
-						<div className="mt-2 text-xs text-text-dim">
+						<div id="help-search-results" className="mt-2 text-xs text-text-dim" role="status" aria-live="polite">
 							{totalResults === 0 ? (
 								<span className="text-red">
 									No shortcuts found for "{searchQuery}"
@@ -534,12 +584,13 @@ export const HelpModal: React.FC = () => {
 				</div>
 
 				{/* Content */}
-				<div className="overflow-y-auto max-h-[calc(70vh-140px)]">
+				<div className="overflow-y-auto max-h-[calc(70vh-140px)]" role="document">
 					{/* Global commands section (colon commands) */}
 					{filteredGlobalCommands.length > 0 && (
-						<div className="px-4 py-3 border-b border-border/30">
+						<section className="px-4 py-3 border-b border-border/30" aria-labelledby="global-commands-heading">
 							<Heading
 								as="h3"
+								id="global-commands-heading"
 								variant="dim"
 								size="sm"
 								weight="bold"
@@ -547,24 +598,26 @@ export const HelpModal: React.FC = () => {
 							>
 								COMMANDS
 							</Heading>
-							<div className="space-y-1">
+							<ul className="space-y-1" role="list" aria-label="Global commands">
 								{filteredGlobalCommands.map((cmd) => (
-									<ShortcutRow
-										key={cmd.command}
-										shortcutKey={`:${cmd.command}`}
-										description={cmd.description}
-										variant="green"
-									/>
+									<li key={cmd.command}>
+										<ShortcutRow
+											shortcutKey={`:${cmd.command}`}
+											description={cmd.description}
+											variant="green"
+										/>
+									</li>
 								))}
-							</div>
-						</div>
+							</ul>
+						</section>
 					)}
 
 					{/* Page-specific commands */}
 					{filteredPageCommands.length > 0 && (
-						<div className="px-4 py-3 border-b border-border/30">
+						<section className="px-4 py-3 border-b border-border/30" aria-labelledby="page-commands-heading">
 							<Heading
 								as="h3"
+								id="page-commands-heading"
 								variant="dim"
 								size="sm"
 								weight="bold"
@@ -572,40 +625,43 @@ export const HelpModal: React.FC = () => {
 							>
 								{pageName} COMMANDS
 							</Heading>
-							<div className="space-y-1">
+							<ul className="space-y-1" role="list" aria-label={`${pageName} commands`}>
 								{filteredPageCommands.map((cmd) => (
-									<ShortcutRow
-										key={cmd.command}
-										shortcutKey={cmd.command}
-										description={cmd.description}
-										variant="accent"
-									/>
+									<li key={cmd.command}>
+										<ShortcutRow
+											shortcutKey={cmd.command}
+											description={cmd.description}
+											variant="accent"
+										/>
+									</li>
 								))}
-							</div>
-						</div>
+							</ul>
+						</section>
 					)}
 
 					{/* Collapsible shortcut sections */}
 					{filteredSections.length > 0 && (
-						<div>
+						<div role="group" aria-label="Keyboard shortcut categories">
 							{filteredSections.map((section) => (
 								<HelpSection
 									key={section.id}
 									sectionId={section.id}
 									title={section.title}
 									isExpanded={expandedSections.has(section.id)}
-									onToggle={() => toggleSection(section.id)}
+									onToggle={() => toggleSection(section.id, section.title)}
+									shortcutCount={section.shortcuts.length}
 								>
-									<div className="space-y-1">
+									<ul className="space-y-1" role="list" aria-label={`${section.title} shortcuts`}>
 										{section.shortcuts.map((shortcut) => (
-											<ShortcutRow
-												key={`${section.id}-${shortcut.key}`}
-												shortcutKey={shortcut.key}
-												description={shortcut.description}
-												variant="purple"
-											/>
+											<li key={`${section.id}-${shortcut.key}`}>
+												<ShortcutRow
+													shortcutKey={shortcut.key}
+													description={shortcut.description}
+													variant="purple"
+												/>
+											</li>
 										))}
-									</div>
+									</ul>
 								</HelpSection>
 							))}
 						</div>
