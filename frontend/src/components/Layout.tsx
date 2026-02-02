@@ -167,11 +167,17 @@ export const Layout: React.FC<LayoutProps> = ({
 			className="flex overflow-hidden font-mono text-sm leading-relaxed bg-bg text-text"
 			style={{ height: `calc(100vh - ${heightInRem}rem)` }}
 		>
-			{/* Hide sidebar during loading (default is hidden) and when sidebarVisible is false */}
-			{!sidebarLoading && sidebarVisible &&
-				(sidebarContent ? sidebarContent : <UISidebar sections={sidebarSections || []} />)}
+			{/* Sidebar with CSS transition - always rendered for smooth animation */}
+			<div
+				className={`sidebar-transition ${
+					!sidebarLoading && sidebarVisible ? "sidebar-visible" : "sidebar-hidden"
+				}`}
+			>
+				{sidebarContent ? sidebarContent : <UISidebar sections={sidebarSections || []} />}
+			</div>
 
-			<div className="flex flex-col flex-1 overflow-hidden">
+			{/* Main content area with transition for smooth expansion when sidebar toggles */}
+			<div className="flex flex-col flex-1 overflow-hidden main-content-transition">
 				<HeaderBar
 					breadcrumb={
 						breadcrumb || (currentPage === "settings" ? "Settings" : currentProject?.name || "No Project")

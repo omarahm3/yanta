@@ -248,4 +248,33 @@
 	.highlight-todo {
 		@apply text-orange;
 	}
+
+	/* Sidebar transition styles */
+	.sidebar-transition {
+		/* Base transition for smooth show/hide */
+		transition:
+			transform 200ms ease-out,
+			opacity 150ms ease-out;
+		/* Ensure sidebar is positioned for transform */
+		flex-shrink: 0;
+	}
+
+	.sidebar-visible {
+		transform: translateX(0);
+		opacity: 1;
+	}
+
+	.sidebar-hidden {
+		transform: translateX(-100%);
+		opacity: 0;
+		pointer-events: none;
+		/* Collapse width when hidden to allow content to expand */
+		width: 0;
+		overflow: hidden;
+	}
+
+	/* Main content transition for smooth expansion when sidebar toggles */
+	.main-content-transition {
+		transition: flex 200ms ease-out;
+	}
 }
