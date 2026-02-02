@@ -34,6 +34,27 @@ vi.mock("../../services/DocumentService", () => ({
 	saveDocument: (...args: unknown[]) => mockSaveDocument(...args),
 }));
 
+// Mock journal service
+const mockAppendEntry = vi.fn();
+
+vi.mock("../../../bindings/yanta/internal/journal/wailsservice", () => ({
+	AppendEntry: (...args: unknown[]) => mockAppendEntry(...args),
+}));
+
+// Mock AppendEntryRequest
+vi.mock("../../../bindings/yanta/internal/journal/models", () => ({
+	AppendEntryRequest: class AppendEntryRequest {
+		projectAlias: string;
+		content: string;
+		tags: string[];
+		constructor(data: { projectAlias: string; content: string; tags: string[] }) {
+			this.projectAlias = data.projectAlias;
+			this.content = data.content;
+			this.tags = data.tags;
+		}
+	},
+}));
+
 // Mock createEmptyDocument utility
 vi.mock("../../utils/documentBlockUtils", () => ({
 	createEmptyDocument: (title?: string) => ({
@@ -57,6 +78,7 @@ describe("useQuickCreate", () => {
 		vi.clearAllMocks();
 		currentProjectMock = mockCurrentProject;
 		mockSaveDocument.mockResolvedValue("/projects/@personal/doc-123.json");
+		mockAppendEntry.mockResolvedValue({ id: "entry-123", content: "Test entry", tags: [] });
 	});
 
 	describe("initialization", () => {
@@ -221,11 +243,122 @@ describe("useQuickCreate", () => {
 	});
 
 	describe("handleCreateJournalEntry", () => {
-		it("is defined (placeholder for Task 4)", () => {
+		it("creates journal entry with correct parameters", async () => {
 			const { result } = renderHook(() => useQuickCreate());
 
-			expect(result.current.handleCreateJournalEntry).toBeDefined();
-			expect(typeof result.current.handleCreateJournalEntry).toBe("function");
+			await act(async () => {
+				await result.current.handleCreateJournalEntry("My journal note");
+			});
+
+			expect(mockAppendEntry).toHaveBeenCalledWith(
+				expect.objectContaining({
+					projectAlias: "personal",
+					content: "My journal note",
+					tags: [],
+				}),
+			);
+		});
+
+		it("trims whitespace from content", async () => {
+			const { result } = renderHook(() => useQuickCreate());
+
+			await act(async () => {
+				await result.current.handleCreateJournalEntry("  My journal note  ");
+			});
+
+			expect(mockAppendEntry).toHaveBeenCalledWith(
+				expect.objectContaining({
+					content: "My journal note",
+				}),
+			);
+		});
+
+		it("shows success notification after creating journal entry", async () => {
+			const { result } = renderHook(() => useQuickCreate());
+
+			await act(async () => {
+				await result.current.handleCreateJournalEntry("Test entry");
+			});
+
+			expect(mockSuccess).toHaveBeenCalledWith("Journal entry added");
+		});
+
+		it("does nothing for empty content", async () => {
+			const { result } = renderHook(() => useQuickCreate());
+
+			await act(async () => {
+				await result.current.handleCreateJournalEntry("");
+			});
+
+			expect(mockAppendEntry).not.toHaveBeenCalled();
+			expect(mockSuccess).not.toHaveBeenCalled();
+		});
+
+		it("does nothing for whitespace-only content", async () => {
+			const { result } = renderHook(() => useQuickCreate());
+
+			await act(async () => {
+				await result.current.handleCreateJournalEntry("   ");
+			});
+
+			expect(mockAppendEntry).not.toHaveBeenCalled();
+			expect(mockSuccess).not.toHaveBeenCalled();
+		});
+
+		it("shows error when no project selected", async () => {
+			currentProjectMock = null;
+			const { result } = renderHook(() => useQuickCreate());
+
+			await act(async () => {
+				await result.current.handleCreateJournalEntry("Test entry");
+			});
+
+			expect(mockError).toHaveBeenCalledWith("No project selected");
+			expect(mockAppendEntry).not.toHaveBeenCalled();
+		});
+
+		it("shows error when AppendEntry fails", async () => {
+			mockAppendEntry.mockRejectedValue(new Error("Journal save failed"));
+			const { result } = renderHook(() => useQuickCreate());
+
+			await act(async () => {
+				await result.current.handleCreateJournalEntry("Test entry");
+			});
+
+			expect(mockError).toHaveBeenCalledWith("Failed to create journal entry: Journal save failed");
+		});
+
+		it("handles non-Error rejection", async () => {
+			mockAppendEntry.mockRejectedValue("Some string error");
+			const { result } = renderHook(() => useQuickCreate());
+
+			await act(async () => {
+				await result.current.handleCreateJournalEntry("Test entry");
+			});
+
+			expect(mockError).toHaveBeenCalledWith("Failed to create journal entry: Unknown error");
+		});
+
+		it("does not navigate after journal entry creation", async () => {
+			const onNavigate = vi.fn();
+			const { result } = renderHook(() => useQuickCreate({ onNavigate }));
+
+			await act(async () => {
+				await result.current.handleCreateJournalEntry("Test entry");
+			});
+
+			expect(onNavigate).not.toHaveBeenCalled();
+		});
+
+		it("does not show success notification when AppendEntry fails", async () => {
+			mockAppendEntry.mockRejectedValue(new Error("Failed"));
+			const { result } = renderHook(() => useQuickCreate());
+
+			await act(async () => {
+				await result.current.handleCreateJournalEntry("Test entry");
+			});
+
+			expect(mockSuccess).not.toHaveBeenCalled();
 		});
 	});
 });

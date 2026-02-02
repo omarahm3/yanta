@@ -1,4 +1,6 @@
 import { useCallback, useRef } from "react";
+import { AppendEntryRequest } from "../../bindings/yanta/internal/journal/models";
+import { AppendEntry } from "../../bindings/yanta/internal/journal/wailsservice";
 import { useProjectContext } from "../contexts";
 import { saveDocument } from "../services/DocumentService";
 import type { BlockNoteBlock } from "../types/Document";
@@ -87,11 +89,39 @@ export function useQuickCreate({ onNavigate }: UseQuickCreateOptions = {}): UseQ
 	);
 
 	const handleCreateJournalEntry = useCallback(
-		async (_content: string) => {
-			// Journal entry creation will be implemented in Task 4
-			// For now, this is a placeholder
+		async (content: string) => {
+			const project = currentProjectRef.current;
+
+			// Validate content is not empty
+			if (!content.trim()) {
+				return;
+			}
+
+			// Validate project is selected
+			if (!project) {
+				error("No project selected");
+				return;
+			}
+
+			try {
+				// Create journal entry request
+				const request = new AppendEntryRequest({
+					projectAlias: project.alias,
+					content: content.trim(),
+					tags: [],
+				});
+
+				// Append entry to today's journal
+				await AppendEntry(request);
+
+				success("Journal entry added");
+			} catch (err) {
+				error(
+					`Failed to create journal entry: ${err instanceof Error ? err.message : "Unknown error"}`,
+				);
+			}
 		},
-		[],
+		[success, error],
 	);
 
 	return {
