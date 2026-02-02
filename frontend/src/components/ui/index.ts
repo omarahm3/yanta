@@ -28,7 +28,7 @@ export { Select, type SelectOption } from "./Select";
 export { SettingsSection } from "./SettingsSection";
 export { ShortcutSearch, type ShortcutSearchProps } from "./ShortcutSearch";
 export { type Shortcut, ShortcutsTable } from "./ShortcutsTable";
-export { Sidebar, type SidebarItem, type SidebarSection } from "./Sidebar";
+export { Sidebar, type SidebarItem, type SidebarItemTooltip, type SidebarSection } from "./Sidebar";
 export { StatusBar } from "./StatusBar";
 export { StatusMessage } from "./StatusMessage";
 export { Table, type TableColumn, type TableRow } from "./Table";
