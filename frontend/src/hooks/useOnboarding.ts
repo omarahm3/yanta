@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const STORAGE_KEY = "yanta_onboarding";
 const CURRENT_VERSION = "1.0.0";
+const WELCOME_DELAY_MS = 500;
 
 export interface OnboardingData {
 	completedWelcome: boolean;
@@ -14,6 +15,8 @@ export interface UseOnboardingReturn {
 	completeOnboarding: () => void;
 	resetOnboarding: () => void;
 	onboardingData: OnboardingData | null;
+	shouldShowWelcome: boolean;
+	dismissWelcome: () => void;
 }
 
 function getDefaultOnboardingData(): OnboardingData {
@@ -73,6 +76,8 @@ export function useOnboarding(): UseOnboardingReturn {
 	const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(
 		() => loadOnboardingData()
 	);
+	const [shouldShowWelcome, setShouldShowWelcome] = useState(false);
+	const welcomeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	useEffect(() => {
 		const handleStorageChange = (event: StorageEvent) => {
@@ -84,6 +89,24 @@ export function useOnboarding(): UseOnboardingReturn {
 		window.addEventListener("storage", handleStorageChange);
 		return () => {
 			window.removeEventListener("storage", handleStorageChange);
+		};
+	}, []);
+
+	// Startup check: show welcome overlay after delay if onboarding not complete
+	useEffect(() => {
+		const currentData = loadOnboardingData();
+		const hasCompleted = currentData?.completedWelcome ?? false;
+
+		if (!hasCompleted) {
+			welcomeTimerRef.current = setTimeout(() => {
+				setShouldShowWelcome(true);
+			}, WELCOME_DELAY_MS);
+		}
+
+		return () => {
+			if (welcomeTimerRef.current) {
+				clearTimeout(welcomeTimerRef.current);
+			}
 		};
 	}, []);
 
@@ -104,6 +127,18 @@ export function useOnboarding(): UseOnboardingReturn {
 	const resetOnboarding = useCallback(() => {
 		clearOnboardingData();
 		setOnboardingData(null);
+		setShouldShowWelcome(false);
+	}, []);
+
+	const dismissWelcome = useCallback(() => {
+		setShouldShowWelcome(false);
+		const data: OnboardingData = {
+			completedWelcome: true,
+			completedAt: Date.now(),
+			version: CURRENT_VERSION,
+		};
+		saveOnboardingData(data);
+		setOnboardingData(data);
 	}, []);
 
 	return {
@@ -111,5 +146,7 @@ export function useOnboarding(): UseOnboardingReturn {
 		completeOnboarding,
 		resetOnboarding,
 		onboardingData,
+		shouldShowWelcome,
+		dismissWelcome,
 	};
 }

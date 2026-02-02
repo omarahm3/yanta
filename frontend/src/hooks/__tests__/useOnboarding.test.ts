@@ -310,4 +310,143 @@ describe("useOnboarding", () => {
 			expect(result.current.onboardingData?.completedAt).toBe(2000);
 		});
 	});
+
+	describe("startup welcome overlay trigger", () => {
+		it("does not show welcome immediately on mount", () => {
+			const { result } = renderHook(() => useOnboarding());
+
+			expect(result.current.shouldShowWelcome).toBe(false);
+		});
+
+		it("shows welcome after 500ms delay when onboarding not complete", () => {
+			const { result } = renderHook(() => useOnboarding());
+
+			expect(result.current.shouldShowWelcome).toBe(false);
+
+			act(() => {
+				vi.advanceTimersByTime(500);
+			});
+
+			expect(result.current.shouldShowWelcome).toBe(true);
+		});
+
+		it("does not show welcome if onboarding was already completed", () => {
+			const existingData = {
+				completedWelcome: true,
+				completedAt: 1000,
+				version: "1.0.0",
+			};
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+
+			const { result } = renderHook(() => useOnboarding());
+
+			expect(result.current.shouldShowWelcome).toBe(false);
+
+			act(() => {
+				vi.advanceTimersByTime(500);
+			});
+
+			expect(result.current.shouldShowWelcome).toBe(false);
+		});
+
+		it("does not show welcome before 500ms delay", () => {
+			const { result } = renderHook(() => useOnboarding());
+
+			act(() => {
+				vi.advanceTimersByTime(499);
+			});
+
+			expect(result.current.shouldShowWelcome).toBe(false);
+		});
+
+		it("cleans up timer on unmount", () => {
+			const { result, unmount } = renderHook(() => useOnboarding());
+
+			expect(result.current.shouldShowWelcome).toBe(false);
+
+			unmount();
+
+			act(() => {
+				vi.advanceTimersByTime(500);
+			});
+
+			// Should not throw or cause issues after unmount
+		});
+	});
+
+	describe("dismissWelcome", () => {
+		it("hides the welcome overlay", () => {
+			const { result } = renderHook(() => useOnboarding());
+
+			act(() => {
+				vi.advanceTimersByTime(500);
+			});
+
+			expect(result.current.shouldShowWelcome).toBe(true);
+
+			act(() => {
+				result.current.dismissWelcome();
+			});
+
+			expect(result.current.shouldShowWelcome).toBe(false);
+		});
+
+		it("marks onboarding as complete when dismissed", () => {
+			vi.setSystemTime(new Date(5000));
+			const { result } = renderHook(() => useOnboarding());
+
+			act(() => {
+				vi.advanceTimersByTime(500);
+			});
+
+			expect(result.current.hasCompletedOnboarding()).toBe(false);
+
+			act(() => {
+				result.current.dismissWelcome();
+			});
+
+			expect(result.current.hasCompletedOnboarding()).toBe(true);
+			// Time has advanced by 500ms (from 5000 to 5500)
+			expect(result.current.onboardingData?.completedAt).toBe(5500);
+		});
+
+		it("persists completion to localStorage when dismissed", () => {
+			vi.setSystemTime(new Date(5000));
+			const { result } = renderHook(() => useOnboarding());
+
+			act(() => {
+				vi.advanceTimersByTime(500);
+			});
+
+			act(() => {
+				result.current.dismissWelcome();
+			});
+
+			const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+			// Time has advanced by 500ms (from 5000 to 5500)
+			expect(stored).toEqual({
+				completedWelcome: true,
+				completedAt: 5500,
+				version: "1.0.0",
+			});
+		});
+	});
+
+	describe("resetOnboarding with welcome state", () => {
+		it("resets shouldShowWelcome to false", () => {
+			const { result } = renderHook(() => useOnboarding());
+
+			act(() => {
+				vi.advanceTimersByTime(500);
+			});
+
+			expect(result.current.shouldShowWelcome).toBe(true);
+
+			act(() => {
+				result.current.resetOnboarding();
+			});
+
+			expect(result.current.shouldShowWelcome).toBe(false);
+		});
+	});
 });
