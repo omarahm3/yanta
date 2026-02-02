@@ -3,6 +3,7 @@ import {
 	GetSidebarVisible,
 	SetSidebarVisible,
 } from "../../bindings/yanta/internal/system/service";
+import { announceForScreenReaders } from "../utils/accessibility";
 
 export interface UseSidebarSettingReturn {
 	sidebarVisible: boolean;
@@ -44,7 +45,14 @@ export function useSidebarSetting(): UseSidebarSettingReturn {
 	}, [sidebarVisible]);
 
 	const toggleSidebar = useCallback(async () => {
-		await setSidebarVisible(!sidebarVisible);
+		const newVisible = !sidebarVisible;
+		await setSidebarVisible(newVisible);
+		// Announce the state change for screen readers
+		if (newVisible) {
+			announceForScreenReaders("Sidebar shown.");
+		} else {
+			announceForScreenReaders("Sidebar hidden. Press Ctrl+B to show.");
+		}
 	}, [sidebarVisible, setSidebarVisible]);
 
 	return {

@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { vi, describe, it, expect, beforeEach } from "vitest";
+import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import { useSidebarSetting } from "../useSidebarSetting";
+import { _resetLiveRegion } from "../../utils/accessibility";
 
 const mockGetSidebarVisible = vi.fn();
 const mockSetSidebarVisible = vi.fn();
@@ -14,6 +15,11 @@ describe("useSidebarSetting", () => {
 	beforeEach(() => {
 		mockGetSidebarVisible.mockReset();
 		mockSetSidebarVisible.mockReset();
+		_resetLiveRegion();
+	});
+
+	afterEach(() => {
+		_resetLiveRegion();
 	});
 
 	it("loads initial sidebar visibility from backend", async () => {
@@ -118,5 +124,36 @@ describe("useSidebarSetting", () => {
 
 		expect(result.current.sidebarVisible).toBe(false);
 		expect(mockSetSidebarVisible).toHaveBeenCalledWith(false);
+	});
+
+	it("toggleSidebar announces state changes for screen readers", async () => {
+		mockGetSidebarVisible.mockResolvedValue(false);
+		mockSetSidebarVisible.mockResolvedValue(undefined);
+
+		const { result } = renderHook(() => useSidebarSetting());
+
+		await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+		// Toggle from false to true - should announce "Sidebar shown."
+		await act(async () => {
+			await result.current.toggleSidebar();
+		});
+
+		// Wait for requestAnimationFrame to complete
+		await new Promise((resolve) => requestAnimationFrame(resolve));
+
+		let liveRegion = document.querySelector('[role="status"][aria-live]');
+		expect(liveRegion?.textContent).toBe("Sidebar shown.");
+
+		// Toggle from true to false - should announce "Sidebar hidden. Press Ctrl+B to show."
+		await act(async () => {
+			await result.current.toggleSidebar();
+		});
+
+		// Wait for requestAnimationFrame to complete
+		await new Promise((resolve) => requestAnimationFrame(resolve));
+
+		liveRegion = document.querySelector('[role="status"][aria-live]');
+		expect(liveRegion?.textContent).toBe("Sidebar hidden. Press Ctrl+B to show.");
 	});
 });

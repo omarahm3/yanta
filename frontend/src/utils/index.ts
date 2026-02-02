@@ -15,3 +15,4 @@ export {
 export { getProjectAliasColor } from "./colorUtils";
 export { formatRelativeTime, formatShortDate } from "./dateUtils";
 export { getShortcutForCommand } from "./shortcuts";
+export { announceForScreenReaders } from "./accessibility";
