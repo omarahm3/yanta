@@ -18,6 +18,8 @@ export type { PageContext, UseFooterHintsOptions, UseFooterHintsReturn } from ".
 export { useFooterHints, getHintsForPage } from "./useFooterHints";
 export type { UseFooterHintsSettingReturn } from "./useFooterHintsSetting";
 export { useFooterHintsSetting } from "./useFooterHintsSetting";
+export type { UseShortcutTooltipsSettingReturn } from "./useShortcutTooltipsSetting";
+export { useShortcutTooltipsSetting } from "./useShortcutTooltipsSetting";
 export type { UseCommandDeprecationReturn } from "./useCommandDeprecation";
 export { useCommandDeprecation, DEPRECATED_COMMAND_MAPPINGS } from "./useCommandDeprecation";
 export type { UseQuickCreateOptions, UseQuickCreateReturn } from "./useQuickCreate";

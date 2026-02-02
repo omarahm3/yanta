@@ -32,17 +32,18 @@ type HotkeyConfig struct {
 }
 
 type Config struct {
-	LogLevel         string        `toml:"log_level"`
-	KeepInBackground bool          `toml:"keep_in_background"`
-	StartHidden      bool          `toml:"start_hidden"`
-	DataDirectory    string        `toml:"data_directory"`
-	GitSync          GitSyncConfig `toml:"git_sync"`
-	Backup           BackupConfig  `toml:"backup"`
-	LinuxWindowMode  string        `toml:"linux_window_mode"`
-	AppScale         float64       `toml:"app_scale"`
-	Hotkey           HotkeyConfig  `toml:"hotkey"`
-	SidebarVisible   bool          `toml:"sidebar_visible"`
-	ShowFooterHints  bool          `toml:"show_footer_hints"`
+	LogLevel             string        `toml:"log_level"`
+	KeepInBackground     bool          `toml:"keep_in_background"`
+	StartHidden          bool          `toml:"start_hidden"`
+	DataDirectory        string        `toml:"data_directory"`
+	GitSync              GitSyncConfig `toml:"git_sync"`
+	Backup               BackupConfig  `toml:"backup"`
+	LinuxWindowMode      string        `toml:"linux_window_mode"`
+	AppScale             float64       `toml:"app_scale"`
+	Hotkey               HotkeyConfig  `toml:"hotkey"`
+	SidebarVisible       bool          `toml:"sidebar_visible"`
+	ShowFooterHints      bool          `toml:"show_footer_hints"`
+	ShowShortcutTooltips bool          `toml:"show_shortcut_tooltips"`
 }
 
 const (
@@ -415,5 +416,21 @@ func SetShowFooterHints(show bool) error {
 	}
 
 	instance.ShowFooterHints = show
+	return save(instance)
+}
+
+func GetShowShortcutTooltips() bool {
+	return Get().ShowShortcutTooltips
+}
+
+func SetShowShortcutTooltips(show bool) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if instance == nil {
+		instance = &Config{}
+	}
+
+	instance.ShowShortcutTooltips = show
 	return save(instance)
 }

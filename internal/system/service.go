@@ -714,3 +714,19 @@ func (s *Service) SetShowFooterHints(ctx context.Context, show bool) error {
 	logger.Infof("show_footer_hints setting changed to %v", show)
 	return nil
 }
+
+// GetShowShortcutTooltips returns the current shortcut tooltips visibility setting.
+func (s *Service) GetShowShortcutTooltips(ctx context.Context) bool {
+	return config.GetShowShortcutTooltips()
+}
+
+// SetShowShortcutTooltips updates the shortcut tooltips visibility setting.
+func (s *Service) SetShowShortcutTooltips(ctx context.Context, show bool) error {
+	if err := config.SetShowShortcutTooltips(show); err != nil {
+		logger.Errorf("failed to set show_shortcut_tooltips: %v", err)
+		return err
+	}
+
+	logger.Infof("show_shortcut_tooltips setting changed to %v", show)
+	return nil
+}

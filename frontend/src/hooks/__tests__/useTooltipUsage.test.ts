@@ -278,6 +278,42 @@ describe("useTooltipUsage", () => {
 		});
 	});
 
+	describe("globalDisabled option", () => {
+		it("shouldShowTooltip returns false when globalDisabled is true", () => {
+			const { result } = renderHook(() => useTooltipUsage({ globalDisabled: true }));
+
+			// Even for a new tooltip that hasn't been seen, should return false
+			expect(result.current.shouldShowTooltip("new-tooltip")).toBe(false);
+		});
+
+		it("shouldShowTooltip works normally when globalDisabled is false", () => {
+			const { result } = renderHook(() => useTooltipUsage({ globalDisabled: false }));
+
+			expect(result.current.shouldShowTooltip("new-tooltip")).toBe(true);
+		});
+
+		it("shouldShowTooltip works normally when no options provided", () => {
+			const { result } = renderHook(() => useTooltipUsage());
+
+			expect(result.current.shouldShowTooltip("new-tooltip")).toBe(true);
+		});
+
+		it("recordTooltipView still works when globalDisabled is true", () => {
+			vi.setSystemTime(new Date(1000));
+			const { result } = renderHook(() => useTooltipUsage({ globalDisabled: true }));
+
+			act(() => {
+				result.current.recordTooltipView("test-tooltip");
+			});
+
+			// The view should still be recorded
+			expect(result.current.getTooltipUsage("test-tooltip")).toEqual({
+				seenCount: 1,
+				lastSeen: 1000,
+			});
+		});
+	});
+
 	describe("storage event handling", () => {
 		it("updates state when storage changes from another tab", () => {
 			const { result } = renderHook(() => useTooltipUsage());

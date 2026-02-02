@@ -7,6 +7,7 @@ import React, {
 	useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { useShortcutTooltipsSetting } from "../../hooks/useShortcutTooltipsSetting";
 import { useTooltipUsage } from "../../hooks/useTooltipUsage";
 import { cn } from "../../lib/utils";
 
@@ -145,7 +146,10 @@ export const ShortcutTooltip: React.FC<ShortcutTooltipProps> = ({
 	const generatedId = useId();
 	const ariaId = `tooltip-${generatedId}`;
 
-	const { shouldShowTooltip, recordTooltipView } = useTooltipUsage();
+	const { showShortcutTooltips } = useShortcutTooltipsSetting();
+	const { shouldShowTooltip, recordTooltipView } = useTooltipUsage({
+		globalDisabled: !showShortcutTooltips,
+	});
 
 	// Check for reduced motion preference
 	useEffect(() => {

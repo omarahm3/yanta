@@ -12,6 +12,11 @@ export interface TooltipUsageData {
 
 export type TooltipUsageRecord = Record<string, TooltipUsageData>;
 
+export interface UseTooltipUsageOptions {
+	/** If true, tooltips are globally disabled regardless of usage tracking */
+	globalDisabled?: boolean;
+}
+
 export interface UseTooltipUsageReturn {
 	shouldShowTooltip: (tooltipId: string) => boolean;
 	recordTooltipView: (tooltipId: string) => void;
@@ -56,7 +61,9 @@ function saveTooltipUsage(usage: TooltipUsageRecord): void {
 	}
 }
 
-export function useTooltipUsage(): UseTooltipUsageReturn {
+export function useTooltipUsage(options: UseTooltipUsageOptions = {}): UseTooltipUsageReturn {
+	const { globalDisabled = false } = options;
+
 	const [usageData, setUsageData] = useState<TooltipUsageRecord>(() => {
 		return loadTooltipUsage();
 	});
@@ -76,6 +83,11 @@ export function useTooltipUsage(): UseTooltipUsageReturn {
 
 	const shouldShowTooltip = useCallback(
 		(tooltipId: string): boolean => {
+			// If tooltips are globally disabled, always return false
+			if (globalDisabled) {
+				return false;
+			}
+
 			const tooltipData = usageData[tooltipId];
 
 			// If tooltip hasn't been seen before, show it
@@ -97,7 +109,7 @@ export function useTooltipUsage(): UseTooltipUsageReturn {
 			// Tooltip has been seen enough times recently, don't show it
 			return false;
 		},
-		[usageData],
+		[usageData, globalDisabled],
 	);
 
 	const recordTooltipView = useCallback((tooltipId: string) => {
