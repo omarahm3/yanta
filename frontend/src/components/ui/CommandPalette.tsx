@@ -175,7 +175,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 									{groupCmds.map((command) => (
 										<CommandItem
 											key={command.id}
-											value={[command.text, ...(command.keywords || [])].join(" ")}
+											value={[command.text, ...(command.keywords || []), command.shortcut].filter(Boolean).join(" ")}
 											keywords={command.hint ? [command.hint] : undefined}
 											onSelect={() => handleSelect(command)}
 										>

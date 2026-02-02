@@ -410,6 +410,144 @@ describe("CommandPalette", () => {
 		});
 	});
 
+	describe("keyboard shortcut search", () => {
+		const commandsWithShortcuts: CommandOption[] = [
+			{
+				id: "new-document",
+				icon: <FileIcon />,
+				text: "New Document",
+				shortcut: "Ctrl+N",
+				group: "Create",
+				action: vi.fn(),
+			},
+			{
+				id: "nav-journal",
+				icon: <CalendarIcon />,
+				text: "Go to Journal",
+				shortcut: "Ctrl+J",
+				group: "Navigation",
+				action: vi.fn(),
+			},
+			{
+				id: "nav-settings",
+				icon: <SettingsIcon />,
+				text: "Go to Settings",
+				shortcut: "Ctrl+,",
+				group: "Navigation",
+				action: vi.fn(),
+			},
+			{
+				id: "git-sync",
+				icon: <FileIcon />,
+				text: "Git Sync",
+				group: "Git",
+				action: vi.fn(),
+			},
+		];
+
+		it("includes shortcut in the value prop for fuzzy matching", () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={commandsWithShortcuts}
+				/>,
+			);
+
+			// The CommandItem value should include text and shortcut
+			const newDocItem = screen.getByText("New Document").closest('[data-slot="command-item"]');
+			expect(newDocItem).toHaveAttribute("data-value", "New Document Ctrl+N");
+		});
+
+		it("filters commands by searching 'Ctrl+N' (exact shortcut)", async () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={commandsWithShortcuts}
+				/>,
+			);
+
+			const input = screen.getByPlaceholderText("Type a command...");
+			await userEvent.type(input, "Ctrl+N");
+
+			// New Document should be visible since its shortcut is Ctrl+N
+			expect(screen.getByText("New Document")).toBeInTheDocument();
+			expect(screen.queryByText("Go to Journal")).not.toBeInTheDocument();
+			expect(screen.queryByText("Git Sync")).not.toBeInTheDocument();
+		});
+
+		it("filters commands by searching 'ctrl+n' (with plus sign)", async () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={commandsWithShortcuts}
+				/>,
+			);
+
+			const input = screen.getByPlaceholderText("Type a command...");
+			await userEvent.type(input, "ctrl+n");
+
+			// New Document should be visible
+			expect(screen.getByText("New Document")).toBeInTheDocument();
+			expect(screen.queryByText("Go to Journal")).not.toBeInTheDocument();
+		});
+
+		it("filters commands by searching 'Ctrl+J' for Go to Journal", async () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={commandsWithShortcuts}
+				/>,
+			);
+
+			const input = screen.getByPlaceholderText("Type a command...");
+			await userEvent.type(input, "Ctrl+J");
+
+			// Go to Journal should be visible
+			expect(screen.getByText("Go to Journal")).toBeInTheDocument();
+			expect(screen.queryByText("New Document")).not.toBeInTheDocument();
+		});
+
+		it("search by shortcut is case-insensitive", async () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={commandsWithShortcuts}
+				/>,
+			);
+
+			const input = screen.getByPlaceholderText("Type a command...");
+			await userEvent.type(input, "CTRL+N");
+
+			// New Document should still be visible
+			expect(screen.getByText("New Document")).toBeInTheDocument();
+		});
+
+		it("command without shortcut does not include shortcut in value", () => {
+			render(
+				<CommandPalette
+					isOpen={true}
+					onClose={vi.fn()}
+					onCommandSelect={vi.fn()}
+					commands={commandsWithShortcuts}
+				/>,
+			);
+
+			// Git Sync has no shortcut
+			const gitSyncItem = screen.getByText("Git Sync").closest('[data-slot="command-item"]');
+			expect(gitSyncItem).toHaveAttribute("data-value", "Git Sync");
+		});
+	});
+
 	describe("sub-palette mode", () => {
 		const mockSubPaletteItems: SubPaletteItem[] = [
 			{
