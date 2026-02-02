@@ -39,6 +39,7 @@ import {
 } from "../../bindings/yanta/internal/system/service";
 import { useDocumentContext } from "../contexts/DocumentContext";
 import { useProjectContext } from "../contexts/ProjectContext";
+import { useCommandUsage } from "../hooks/useCommandUsage";
 import { useNotification } from "../hooks/useNotification";
 import { useRecentDocuments } from "../hooks/useRecentDocuments";
 import { formatRelativeTimeFromTimestamp } from "../utils/dateUtils";
@@ -71,6 +72,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 	const { getSelectedDocument } = useDocumentContext();
 	const notification = useNotification();
 	const { recentDocuments } = useRecentDocuments();
+	const { recordCommandUsage } = useCommandUsage();
 	const [gitError, setGitError] = useState<ParsedGitError | null>(null);
 	const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
 	const [showRecentDocuments, setShowRecentDocuments] = useState(false);
@@ -94,6 +96,13 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 	const handleSubPaletteBack = useCallback(() => {
 		setShowRecentDocuments(false);
 	}, []);
+
+	const handleCommandSelect = useCallback(
+		(command: CommandOption) => {
+			recordCommandUsage(command.id);
+		},
+		[recordCommandUsage],
+	);
 
 	const recentDocumentItems: SubPaletteItem[] = useMemo(() => {
 		return recentDocuments.map((doc) => ({
@@ -533,7 +542,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			<CommandPalette
 				isOpen={isOpen}
 				onClose={handleClose}
-				onCommandSelect={() => {}}
+				onCommandSelect={handleCommandSelect}
 				commands={commandOptions}
 				placeholder="Type a command or search..."
 				subPaletteItems={showRecentDocuments ? recentDocumentItems : undefined}
