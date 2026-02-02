@@ -468,7 +468,7 @@ export const HelpModal: React.FC = () => {
 	return (
 		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
 			<DialogContent
-				className="w-[480px] max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-hidden bg-bg border border-border rounded-xl p-0"
+				className="w-[480px] max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-hidden bg-bg border border-border rounded-[12px] p-0"
 				style={{
 					boxShadow: "0 16px 48px rgba(0, 0, 0, 0.24)",
 				}}
