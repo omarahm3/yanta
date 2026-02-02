@@ -170,6 +170,25 @@
 	}
 }
 
+/* Mode-specific accent colors for visual differentiation */
+/* Documents mode: Blue accent (#58a6ff) */
+[data-mode="documents"] {
+	--mode-accent: var(--color-accent);
+	--mode-accent-muted: rgba(88, 166, 255, 0.15);
+}
+
+/* Journal mode: Purple accent (#a371f7) */
+[data-mode="journal"] {
+	--mode-accent: var(--color-purple);
+	--mode-accent-muted: rgba(163, 113, 247, 0.15);
+}
+
+/* Neutral mode: Default theme accent (falls back to blue) */
+[data-mode="neutral"] {
+	--mode-accent: var(--color-accent);
+	--mode-accent-muted: rgba(88, 166, 255, 0.15);
+}
+
 /* Custom component styles */
 @layer components {
 	.btn {

@@ -27,6 +27,24 @@ export interface LayoutProps {
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
+/**
+ * Determines the mode based on the current page.
+ * - "documents": Dashboard and document pages
+ * - "journal": Journal page
+ * - "neutral": Settings, projects, search, and other pages
+ */
+const getDataMode = (page: string): "documents" | "journal" | "neutral" => {
+	switch (page) {
+		case "dashboard":
+		case "document":
+			return "documents";
+		case "journal":
+			return "journal";
+		default:
+			return "neutral";
+	}
+};
+
 export const Layout: React.FC<LayoutProps> = ({
 	sidebarTitle: _sidebarTitle,
 	sidebarSections,
@@ -160,10 +178,13 @@ export const Layout: React.FC<LayoutProps> = ({
 
 	useHotkeys(commandLineHotkeys);
 
+	const dataMode = getDataMode(currentPage);
+
 	return (
 		<div
 			data-testid="layout-root"
 			data-sidebar-visible={sidebarVisible ? "true" : "false"}
+			data-mode={dataMode}
 			className="flex overflow-hidden font-mono text-sm leading-relaxed bg-bg text-text"
 			style={{ height: `calc(100vh - ${heightInRem}rem)` }}
 		>
