@@ -26,3 +26,5 @@ export type { UseQuickCreateOptions, UseQuickCreateReturn } from "./useQuickCrea
 export { useQuickCreate } from "./useQuickCreate";
 export type { CommandUsageData, CommandUsageRecord, UseCommandUsageReturn } from "./useCommandUsage";
 export { useCommandUsage } from "./useCommandUsage";
+export type { OnboardingData, UseOnboardingReturn } from "./useOnboarding";
+export { useOnboarding } from "./useOnboarding";
