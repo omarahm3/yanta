@@ -18,3 +18,5 @@ export type { PageContext, UseFooterHintsOptions, UseFooterHintsReturn } from ".
 export { useFooterHints, getHintsForPage } from "./useFooterHints";
 export type { UseFooterHintsSettingReturn } from "./useFooterHintsSetting";
 export { useFooterHintsSetting } from "./useFooterHintsSetting";
+export type { UseCommandDeprecationReturn } from "./useCommandDeprecation";
+export { useCommandDeprecation, DEPRECATED_COMMAND_MAPPINGS } from "./useCommandDeprecation";

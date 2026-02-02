@@ -1,8 +1,15 @@
 import type React from "react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import { useProjectContext, useTitleBarContext } from "../contexts";
-import { useFooterHints, useFooterHintsSetting, useGlobalCommand, useHotkeys, useSidebarSetting } from "../hooks";
-import { useNotification } from "../hooks/useNotification";
+import {
+	useCommandDeprecation,
+	useFooterHints,
+	useFooterHintsSetting,
+	useGlobalCommand,
+	useHotkeys,
+	useNotification,
+	useSidebarSetting,
+} from "../hooks";
 import { ContextBar, FooterHintBar, HeaderBar, type SidebarSection, Sidebar as UISidebar } from "./ui";
 import { CommandLine } from "./ui/commandline";
 
@@ -96,6 +103,7 @@ export const Layout: React.FC<LayoutProps> = ({
 	const commandInputRef = providedRef || internalRef;
 	const { executeGlobalCommand } = useGlobalCommand();
 	const { success, error } = useNotification();
+	const { checkAndWarnDeprecation } = useCommandDeprecation();
 	const { sidebarVisible, toggleSidebar, isLoading: sidebarLoading } = useSidebarSetting();
 	const { showFooterHints, isLoading: footerHintsLoading } = useFooterHintsSetting();
 	const { currentProject } = useProjectContext();
@@ -113,6 +121,9 @@ export const Layout: React.FC<LayoutProps> = ({
 
 	const handleCommandSubmit = useCallback(
 		async (command: string) => {
+			// Show deprecation warning for :command syntax
+			checkAndWarnDeprecation(command);
+
 			const globalResult = await executeGlobalCommand(command);
 
 			if (globalResult.handled) {
@@ -138,7 +149,7 @@ export const Layout: React.FC<LayoutProps> = ({
 				commandInputRef.current?.blur();
 			}
 		},
-		[executeGlobalCommand, onCommandSubmit, onCommandChange, success, error, commandInputRef],
+		[executeGlobalCommand, onCommandSubmit, onCommandChange, success, error, commandInputRef, checkAndWarnDeprecation],
 	);
 
 	const sidebarToggleHotkeys = useMemo(
