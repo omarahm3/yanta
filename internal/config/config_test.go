@@ -219,6 +219,52 @@ func TestConfig_ExistingFields(t *testing.T) {
 	})
 }
 
+func TestConfig_SidebarVisible(t *testing.T) {
+	tempDir := t.TempDir()
+	cleanup := testenv.SetTestHome(t, tempDir)
+	defer cleanup()
+
+	instance = nil
+	instanceOnce = newOnce()
+
+	err := Init()
+	require.NoError(t, err)
+
+	t.Run("default sidebar visible is false", func(t *testing.T) {
+		cfg := Get()
+		assert.NotNil(t, cfg)
+		assert.False(t, cfg.SidebarVisible, "SidebarVisible should default to false")
+		assert.False(t, GetSidebarVisible(), "GetSidebarVisible should return false by default")
+	})
+
+	t.Run("set sidebar visible to true", func(t *testing.T) {
+		err := SetSidebarVisible(true)
+		require.NoError(t, err)
+
+		assert.True(t, GetSidebarVisible())
+	})
+
+	t.Run("set sidebar visible to false", func(t *testing.T) {
+		err := SetSidebarVisible(false)
+		require.NoError(t, err)
+
+		assert.False(t, GetSidebarVisible())
+	})
+
+	t.Run("persist sidebar visible setting", func(t *testing.T) {
+		err := SetSidebarVisible(true)
+		require.NoError(t, err)
+
+		instance = nil
+		instanceOnce = newOnce()
+
+		err = Init()
+		require.NoError(t, err)
+
+		assert.True(t, GetSidebarVisible(), "SidebarVisible should persist after reload")
+	})
+}
+
 func newOnce() sync.Once {
 	return sync.Once{}
 }

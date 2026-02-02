@@ -41,6 +41,7 @@ type Config struct {
 	LinuxWindowMode  string        `toml:"linux_window_mode"`
 	AppScale         float64       `toml:"app_scale"`
 	Hotkey           HotkeyConfig  `toml:"hotkey"`
+	SidebarVisible   bool          `toml:"sidebar_visible"`
 }
 
 const (
@@ -381,5 +382,21 @@ func SetHotkeyConfig(hotkeyCfg HotkeyConfig) error {
 	}
 
 	instance.Hotkey = hotkeyCfg
+	return save(instance)
+}
+
+func GetSidebarVisible() bool {
+	return Get().SidebarVisible
+}
+
+func SetSidebarVisible(visible bool) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if instance == nil {
+		instance = &Config{}
+	}
+
+	instance.SidebarVisible = visible
 	return save(instance)
 }
