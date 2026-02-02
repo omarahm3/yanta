@@ -26,9 +26,6 @@ export interface DocumentContentProps {
 		saveError: Error | null;
 		saveNow: () => Promise<void>;
 	};
-	commandInput: string;
-	onCommandChange: (value: string) => void;
-	onCommandSubmit: (command: string) => void;
 	onTitleChange: (title: string) => void;
 	onBlocksChange: (blocks: BlockNoteBlock[]) => void;
 	onTagRemove: (tag: string) => void;
@@ -47,9 +44,6 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 		isLoading,
 		isArchived = false,
 		autoSave,
-		commandInput,
-		onCommandChange,
-		onCommandSubmit,
 		onTitleChange,
 		onBlocksChange,
 		onTagRemove,
@@ -61,12 +55,6 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 		<Layout
 			sidebarSections={sidebarSections}
 			currentPage={currentProject?.alias ?? "document"}
-			showCommandLine={true}
-			commandContext="document"
-			commandPlaceholder=":tag web frontend | :untag react | :tags"
-			commandValue={commandInput}
-			onCommandChange={onCommandChange}
-			onCommandSubmit={onCommandSubmit}
 			onRegisterToggleSidebar={onRegisterToggleSidebar}
 		>
 			<div className="flex flex-col w-full h-full">

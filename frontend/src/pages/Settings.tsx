@@ -295,7 +295,6 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggle
 			sidebarSections={sidebarSections}
 			currentPage="settings"
 			headerShortcuts={[{ key: "?", label: "help" }]}
-			showCommandLine={false}
 			onRegisterToggleSidebar={onRegisterToggleSidebar}
 		>
 			<div className="h-full p-5 overflow-y-auto">

@@ -1,19 +1,8 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import React, { useRef, useState } from "react";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import React, { useRef } from "react";
 import { vi } from "vitest";
 import { DialogProvider, HotkeyProvider, TitleBarProvider, useHotkeyContext } from "../contexts";
 import type { HotkeyContextValue } from "../types/hotkeys";
-
-const executeGlobalCommand = vi.fn();
-
-vi.mock("../hooks/useGlobalCommand", () => ({
-	useGlobalCommand: () => ({
-		executeGlobalCommand: async (command: string) => {
-			executeGlobalCommand(command);
-			return { handled: false };
-		},
-	}),
-}));
 
 const mockSuccess = vi.fn();
 const mockError = vi.fn();
@@ -47,12 +36,24 @@ vi.mock("../hooks/useFooterHints", () => ({
 	}),
 }));
 
+const mockHandleCreateDocument = vi.fn();
+const mockHandleCreateJournalEntry = vi.fn();
+
+vi.mock("../hooks/useQuickCreate", () => ({
+	useQuickCreate: () => ({
+		handleCreateDocument: mockHandleCreateDocument,
+		handleCreateJournalEntry: mockHandleCreateJournalEntry,
+		currentProjectAlias: "test-project",
+		isDisabled: false,
+	}),
+}));
+
 vi.mock("../contexts", async () => {
 	const actual = await vi.importActual<typeof import("../contexts")>("../contexts");
 	return {
 		...actual,
 		useProjectContext: () => ({
-			currentProject: { name: "Test Project" },
+			currentProject: { name: "Test Project", alias: "test-project" },
 		}),
 	};
 });
@@ -66,6 +67,23 @@ vi.mock("../components/ui", () => ({
 	ContextBar: () => <div data-testid="context-bar-mock" />,
 	FooterHintBar: ({ hints }: { hints: { key: string; label: string }[] }) => (
 		<div data-testid="footer-hint-bar-mock">{hints.length} hints</div>
+	),
+	QuickCreateInput: ({
+		projectAlias,
+		disabled,
+	}: {
+		projectAlias: string;
+		disabled?: boolean;
+	}) => (
+		<div data-testid="quick-create-input">
+			<span data-testid="project-alias">{projectAlias}</span>
+			<input
+				type="text"
+				placeholder="Type to create..."
+				disabled={disabled}
+				data-testid="quick-create-input-field"
+			/>
+		</div>
 	),
 }));
 
@@ -81,18 +99,19 @@ const HotkeyProbe: React.FC<{ onReady: (ctx: HotkeyContextValue) => void }> = ({
 
 describe("Layout hotkeys", () => {
 	beforeEach(() => {
-		executeGlobalCommand.mockClear();
 		mockSuccess.mockClear();
 		mockError.mockClear();
 		mockToggleSidebar.mockClear();
+		mockHandleCreateDocument.mockClear();
+		mockHandleCreateJournalEntry.mockClear();
 		mockSidebarVisible = true; // Reset sidebar to visible state for each test
 	});
 
 	const Wrapper: React.FC<{
 		onContext: (ctx: HotkeyContextValue) => void;
-	}> = ({ onContext }) => {
-		const [value, setValue] = useState("");
-		const commandInputRef = useRef<HTMLInputElement>(null);
+		showQuickCreate?: boolean;
+	}> = ({ onContext, showQuickCreate = true }) => {
+		const quickCreateInputRef = useRef<HTMLInputElement>(null);
 
 		return (
 			<DialogProvider>
@@ -102,13 +121,8 @@ describe("Layout hotkeys", () => {
 						<Layout
 							sidebarTitle="Test Sidebar"
 							currentPage="dashboard"
-							showCommandLine
-							commandContext="test"
-							commandPlaceholder="command"
-							commandValue={value}
-							onCommandChange={setValue}
-							onCommandSubmit={vi.fn()}
-							commandInputRef={commandInputRef}
+							showQuickCreate={showQuickCreate}
+							quickCreateInputRef={quickCreateInputRef}
 						>
 							<div data-testid="content">content</div>
 						</Layout>
@@ -118,10 +132,10 @@ describe("Layout hotkeys", () => {
 		);
 	};
 
-	const setup = async () => {
+	const setup = async (showQuickCreate = true) => {
 		let context: HotkeyContextValue | null = null;
 		// biome-ignore lint/suspicious/noAssignInExpressions: Test callback pattern
-		render(<Wrapper onContext={(ctx) => (context = ctx)} />);
+		render(<Wrapper onContext={(ctx) => (context = ctx)} showQuickCreate={showQuickCreate} />);
 		await waitFor(() => expect(context).not.toBeNull());
 		// biome-ignore lint/style/noNonNullAssertion: Test utility function ensures non-null
 		return context!;
@@ -154,40 +168,21 @@ describe("Layout hotkeys", () => {
 		expect(mockToggleSidebar).toHaveBeenCalledTimes(2);
 	});
 
-	it("focuses command line with shift+;", async () => {
-		const ctx = await setup();
-		const commandInput = screen.getByPlaceholderText("command");
-
-		const hotkey = ctx.getRegisteredHotkeys().find((h) => h.key === "shift+;");
-		expect(hotkey).toBeDefined();
-
-		await act(async () => {
-			hotkey?.handler(
-				new KeyboardEvent("keydown", {
-					key: ":",
-					shiftKey: true,
-					code: "Semicolon",
-				}),
-			);
-		});
-
-		await waitFor(() => expect(commandInput).toHaveFocus());
+	it("renders QuickCreateInput when showQuickCreate is true", async () => {
+		await setup(true);
+		expect(screen.getByTestId("quick-create-input")).toBeInTheDocument();
+		expect(screen.getByTestId("project-alias")).toHaveTextContent("test-project");
 	});
 
-	it("blurs command line and clears value on Escape", async () => {
-		const _ctx = await setup();
-		const commandInput = screen.getByPlaceholderText("command") as HTMLInputElement;
+	it("does not render QuickCreateInput when showQuickCreate is false", async () => {
+		await setup(false);
+		expect(screen.queryByTestId("quick-create-input")).not.toBeInTheDocument();
+	});
 
-		commandInput.focus();
-		fireEvent.change(commandInput, { target: { value: "something" } });
-
-		// Dispatch the Escape key event directly on the input element
-		// so that event.target is set correctly for the handler
-		await act(async () => {
-			fireEvent.keyDown(commandInput, { key: "Escape", code: "Escape" });
-		});
-
-		await waitFor(() => expect(commandInput).not.toHaveFocus());
-		expect(commandInput.value).toBe("");
+	it("registers Escape hotkey for QuickCreateInput blur when showQuickCreate is true", async () => {
+		const ctx = await setup(true);
+		const escapeHotkey = ctx.getRegisteredHotkeys().find((h) => h.key === "Escape");
+		expect(escapeHotkey).toBeDefined();
+		expect(escapeHotkey?.description).toBe("Exit quick create input");
 	});
 });

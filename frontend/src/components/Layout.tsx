@@ -1,17 +1,14 @@
 import type React from "react";
-import { type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
+import { type ReactNode, useEffect, useMemo, useRef } from "react";
 import { useProjectContext, useTitleBarContext } from "../contexts";
 import {
-	useCommandDeprecation,
 	useFooterHints,
 	useFooterHintsSetting,
-	useGlobalCommand,
 	useHotkeys,
-	useNotification,
+	useQuickCreate,
 	useSidebarSetting,
 } from "../hooks";
-import { ContextBar, FooterHintBar, HeaderBar, type SidebarSection, Sidebar as UISidebar } from "./ui";
-import { CommandLine } from "./ui/commandline";
+import { ContextBar, FooterHintBar, HeaderBar, QuickCreateInput, type SidebarSection, Sidebar as UISidebar } from "./ui";
 
 /**
  * Converts the current page identifier to a display-friendly page name.
@@ -54,13 +51,12 @@ export interface LayoutProps {
 		label: string;
 	}>;
 	children: ReactNode;
-	showCommandLine?: boolean;
-	commandContext?: string;
-	commandPlaceholder?: string;
-	commandValue?: string;
-	onCommandChange?: (value: string) => void;
-	onCommandSubmit?: (command: string) => void;
-	commandInputRef?: React.RefObject<HTMLInputElement>;
+	/** Show the QuickCreateInput at the bottom of the layout */
+	showQuickCreate?: boolean;
+	/** Callback when navigation is needed after document creation */
+	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
+	/** Reference to the QuickCreateInput element for focus management */
+	quickCreateInputRef?: React.RefObject<HTMLInputElement>;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
@@ -90,25 +86,19 @@ export const Layout: React.FC<LayoutProps> = ({
 	currentPage,
 	headerShortcuts = [],
 	children,
-	showCommandLine = false,
-	commandContext = "YANTA",
-	commandPlaceholder = "type command or press / for help",
-	commandValue = "",
-	onCommandChange,
-	onCommandSubmit,
-	commandInputRef: providedRef,
+	showQuickCreate = false,
+	onNavigate,
+	quickCreateInputRef: providedRef,
 	onRegisterToggleSidebar,
 }) => {
 	const internalRef = useRef<HTMLInputElement>(null);
-	const commandInputRef = providedRef || internalRef;
-	const { executeGlobalCommand } = useGlobalCommand();
-	const { success, error } = useNotification();
-	const { checkAndWarnDeprecation } = useCommandDeprecation();
+	const quickCreateInputRef = providedRef || internalRef;
 	const { sidebarVisible, toggleSidebar, isLoading: sidebarLoading } = useSidebarSetting();
 	const { showFooterHints, isLoading: footerHintsLoading } = useFooterHintsSetting();
 	const { currentProject } = useProjectContext();
 	const { heightInRem } = useTitleBarContext();
 	const { hints: footerHints } = useFooterHints({ currentPage });
+	const { handleCreateDocument, handleCreateJournalEntry, currentProjectAlias, isDisabled } = useQuickCreate({ onNavigate });
 
 	// Register the toggle sidebar handler with the parent component
 	useEffect(() => {
@@ -118,39 +108,6 @@ export const Layout: React.FC<LayoutProps> = ({
 			});
 		}
 	}, [onRegisterToggleSidebar, toggleSidebar]);
-
-	const handleCommandSubmit = useCallback(
-		async (command: string) => {
-			// Show deprecation warning for :command syntax
-			checkAndWarnDeprecation(command);
-
-			const globalResult = await executeGlobalCommand(command);
-
-			if (globalResult.handled) {
-				if (globalResult.success) {
-					if (globalResult.message) {
-						success(globalResult.message);
-					}
-				} else {
-					if (globalResult.message) {
-						error(globalResult.message);
-					}
-				}
-
-				if (onCommandChange) {
-					onCommandChange("");
-				}
-				commandInputRef.current?.blur();
-				return;
-			}
-
-			if (onCommandSubmit) {
-				onCommandSubmit(command);
-				commandInputRef.current?.blur();
-			}
-		},
-		[executeGlobalCommand, onCommandSubmit, onCommandChange, success, error, commandInputRef, checkAndWarnDeprecation],
-	);
 
 	const sidebarToggleHotkeys = useMemo(
 		() => [
@@ -178,48 +135,34 @@ export const Layout: React.FC<LayoutProps> = ({
 
 	useHotkeys(sidebarToggleHotkeys);
 
-	const commandLineHotkeys = useMemo(
+	const quickCreateHotkeys = useMemo(
 		() =>
-			showCommandLine
+			showQuickCreate
 				? [
-						{
-							key: "shift+;",
-							handler: () => {
-								if (commandInputRef.current) {
-									commandInputRef.current.focus();
-								}
-							},
-							allowInInput: false,
-							description: "Focus command line",
-							category: "navigation",
-						},
 						{
 							key: "Escape",
 							handler: (event: KeyboardEvent) => {
 								const target = event.target as HTMLElement;
-								if (target === commandInputRef.current) {
+								if (target === quickCreateInputRef.current) {
 									event.preventDefault();
 									event.stopPropagation();
-									commandInputRef.current?.blur();
-									if (onCommandChange) {
-										onCommandChange("");
-									}
+									quickCreateInputRef.current?.blur();
 									return true;
 								}
 								return false;
 							},
 							allowInInput: true,
 							priority: 100,
-							description: "Exit command line",
+							description: "Exit quick create input",
 							capture: true,
 							category: "navigation",
 						},
 					]
 				: [],
-		[showCommandLine, commandInputRef, onCommandChange],
+		[showQuickCreate, quickCreateInputRef],
 	);
 
-	useHotkeys(commandLineHotkeys);
+	useHotkeys(quickCreateHotkeys);
 
 	const dataMode = getDataMode(currentPage);
 
@@ -261,14 +204,13 @@ export const Layout: React.FC<LayoutProps> = ({
 
 				<div className="flex-1 overflow-hidden">{children}</div>
 
-				{showCommandLine && onCommandChange && (
-					<CommandLine
-						ref={commandInputRef}
-						context={commandContext}
-						placeholder={commandPlaceholder}
-						value={commandValue}
-						onChange={onCommandChange}
-						onSubmit={handleCommandSubmit}
+				{showQuickCreate && (
+					<QuickCreateInput
+						ref={quickCreateInputRef}
+						projectAlias={currentProjectAlias ?? ""}
+						onCreateDocument={handleCreateDocument}
+						onCreateJournalEntry={handleCreateJournalEntry}
+						disabled={isDisabled}
 					/>
 				)}
 			</div>

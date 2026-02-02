@@ -297,7 +297,6 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 				{ key: "Enter", label: "open" },
 				{ key: "Esc", label: "unfocus" },
 			]}
-			showCommandLine={false}
 			onRegisterToggleSidebar={onRegisterToggleSidebar}
 		>
 			<div className="flex flex-col h-full">

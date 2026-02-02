@@ -30,10 +30,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
 	const {
 		documents,
 		sidebarSections,
-		commandInput,
-		setCommandInput,
-		commandInputRef,
-		handleCommandSubmit,
 		handleDocumentClick,
 		documentList,
 		showArchived,
@@ -41,7 +37,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
 		confirmDialog,
 		setConfirmDialog,
 		statusBar,
-		currentProjectAlias,
 	} = controller;
 
 	return (
@@ -49,13 +44,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 			<Layout
 				sidebarSections={sidebarSections}
 				currentPage="dashboard"
-				showCommandLine={true}
-				commandContext={currentProjectAlias ?? undefined}
-				commandPlaceholder="what did you ship today?"
-				commandValue={commandInput}
-				onCommandChange={setCommandInput}
-				onCommandSubmit={handleCommandSubmit}
-				commandInputRef={commandInputRef}
+				showQuickCreate={true}
+				onNavigate={onNavigate}
 				onRegisterToggleSidebar={onRegisterToggleSidebar}
 			>
 				{isLoading ? (

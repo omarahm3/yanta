@@ -13,7 +13,6 @@ export const DocumentErrorState: React.FC<DocumentErrorStateProps> = React.memo(
 		<Layout
 			sidebarSections={sidebarSections}
 			currentPage="document"
-			showCommandLine={false}
 			onRegisterToggleSidebar={onRegisterToggleSidebar}
 		>
 			<div className="flex flex-col items-center justify-center h-full gap-4">

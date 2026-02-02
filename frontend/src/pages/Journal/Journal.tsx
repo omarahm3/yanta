@@ -57,7 +57,6 @@ export const Journal: React.FC<JournalProps> = ({
 			<Layout
 				sidebarSections={sidebarSections}
 				currentPage="journal"
-				showCommandLine={false}
 				onRegisterToggleSidebar={onRegisterToggleSidebar}
 			>
 				<div className={cn("flex flex-col h-full", className)}>
