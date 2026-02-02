@@ -9,3 +9,4 @@ export { HotkeyProvider, useHotkeyContext } from "./HotkeyContext";
 export { ProjectContext, ProjectProvider, useProjectContext } from "./ProjectContext";
 export { ScaleProvider, useScale } from "./ScaleContext";
 export { TitleBarProvider, useTitleBarContext } from "./TitleBarContext";
+export { UserProgressProvider, useUserProgressContext } from "./UserProgressContext";

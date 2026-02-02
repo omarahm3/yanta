@@ -6,9 +6,17 @@ import { useQuickCreate } from "../useQuickCreate";
 const mockCurrentProject = { alias: "personal", name: "Personal" };
 let currentProjectMock: typeof mockCurrentProject | null = mockCurrentProject;
 
+// Mock user progress context
+const mockIncrementDocumentsCreated = vi.fn();
+const mockIncrementJournalEntriesCreated = vi.fn();
+
 vi.mock("../../contexts", () => ({
 	useProjectContext: () => ({
 		currentProject: currentProjectMock,
+	}),
+	useUserProgressContext: () => ({
+		incrementDocumentsCreated: mockIncrementDocumentsCreated,
+		incrementJournalEntriesCreated: mockIncrementJournalEntriesCreated,
 	}),
 }));
 
@@ -79,6 +87,8 @@ describe("useQuickCreate", () => {
 		currentProjectMock = mockCurrentProject;
 		mockSaveDocument.mockResolvedValue("/projects/@personal/doc-123.json");
 		mockAppendEntry.mockResolvedValue({ id: "entry-123", content: "Test entry", tags: [] });
+		mockIncrementDocumentsCreated.mockClear();
+		mockIncrementJournalEntriesCreated.mockClear();
 	});
 
 	describe("initialization", () => {
@@ -240,6 +250,27 @@ describe("useQuickCreate", () => {
 
 			expect(mockSuccess).toHaveBeenCalledWith("Document created");
 		});
+
+		it("tracks document creation for onboarding milestones", async () => {
+			const { result } = renderHook(() => useQuickCreate());
+
+			await act(async () => {
+				await result.current.handleCreateDocument("Test Document");
+			});
+
+			expect(mockIncrementDocumentsCreated).toHaveBeenCalledTimes(1);
+		});
+
+		it("does not track document creation when save fails", async () => {
+			mockSaveDocument.mockRejectedValue(new Error("Save failed"));
+			const { result } = renderHook(() => useQuickCreate());
+
+			await act(async () => {
+				await result.current.handleCreateDocument("Test Document");
+			});
+
+			expect(mockIncrementDocumentsCreated).not.toHaveBeenCalled();
+		});
 	});
 
 	describe("handleCreateJournalEntry", () => {
@@ -359,6 +390,27 @@ describe("useQuickCreate", () => {
 			});
 
 			expect(mockSuccess).not.toHaveBeenCalled();
+		});
+
+		it("tracks journal entry creation for onboarding milestones", async () => {
+			const { result } = renderHook(() => useQuickCreate());
+
+			await act(async () => {
+				await result.current.handleCreateJournalEntry("Test entry");
+			});
+
+			expect(mockIncrementJournalEntriesCreated).toHaveBeenCalledTimes(1);
+		});
+
+		it("does not track journal entry creation when AppendEntry fails", async () => {
+			mockAppendEntry.mockRejectedValue(new Error("Failed"));
+			const { result } = renderHook(() => useQuickCreate());
+
+			await act(async () => {
+				await result.current.handleCreateJournalEntry("Test entry");
+			});
+
+			expect(mockIncrementJournalEntriesCreated).not.toHaveBeenCalled();
 		});
 	});
 });

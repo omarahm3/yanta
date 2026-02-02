@@ -13,7 +13,9 @@ import {
 	ProjectProvider,
 	ScaleProvider,
 	TitleBarProvider,
+	UserProgressProvider,
 	useProjectContext,
+	useUserProgressContext,
 } from "./contexts";
 import { useHotkey } from "./hooks";
 import { useHelp } from "./hooks/useHelp";
@@ -178,6 +180,34 @@ const WindowEventListener = () => {
 	return null;
 };
 
+const ProjectSwitchTracker = () => {
+	const { currentProject } = useProjectContext();
+	const { incrementProjectsSwitched } = useUserProgressContext();
+	const previousProjectIdRef = React.useRef<string | undefined>(undefined);
+	const isFirstRenderRef = React.useRef(true);
+
+	React.useEffect(() => {
+		const currentId = currentProject?.id;
+		const previousId = previousProjectIdRef.current;
+
+		// Skip the first render (initial project load)
+		if (isFirstRenderRef.current) {
+			isFirstRenderRef.current = false;
+			previousProjectIdRef.current = currentId;
+			return;
+		}
+
+		// Track when project changes (not on initial load)
+		if (currentId && previousId && currentId !== previousId) {
+			incrementProjectsSwitched();
+		}
+
+		previousProjectIdRef.current = currentId;
+	}, [currentProject?.id, incrementProjectsSwitched]);
+
+	return null;
+};
+
 function App() {
 	React.useEffect(() => {
 		const handleError = (event: ErrorEvent) => {
@@ -216,18 +246,21 @@ function App() {
 						<HotkeyProvider>
 							<HelpProvider>
 								<ProjectProvider>
-									<DocumentCountProvider>
-										<DocumentProvider>
-											<ResizeHandles />
-											<TitleBar />
-											<HelpHotkey />
-											<QuitHotkeys />
-											<GlobalCommandHotkey />
-											<WindowEventListener />
-											<HelpModal />
-											<WelcomeOverlay />
-										</DocumentProvider>
-									</DocumentCountProvider>
+									<UserProgressProvider>
+										<DocumentCountProvider>
+											<DocumentProvider>
+												<ResizeHandles />
+												<TitleBar />
+												<HelpHotkey />
+												<QuitHotkeys />
+												<GlobalCommandHotkey />
+												<WindowEventListener />
+												<ProjectSwitchTracker />
+												<HelpModal />
+												<WelcomeOverlay />
+											</DocumentProvider>
+										</DocumentCountProvider>
+									</UserProgressProvider>
 								</ProjectProvider>
 							</HelpProvider>
 						</HotkeyProvider>

@@ -1,7 +1,7 @@
 import { useCallback, useRef } from "react";
 import { AppendEntryRequest } from "../../bindings/yanta/internal/journal/models";
 import { AppendEntry } from "../../bindings/yanta/internal/journal/wailsservice";
-import { useProjectContext } from "../contexts";
+import { useProjectContext, useUserProgressContext } from "../contexts";
 import { saveDocument } from "../services/DocumentService";
 import type { BlockNoteBlock } from "../types/Document";
 import { createEmptyDocument } from "../utils/documentBlockUtils";
@@ -42,6 +42,7 @@ export interface UseQuickCreateReturn {
 export function useQuickCreate({ onNavigate }: UseQuickCreateOptions = {}): UseQuickCreateReturn {
 	const { currentProject } = useProjectContext();
 	const { success, error } = useNotification();
+	const { incrementDocumentsCreated, incrementJournalEntriesCreated } = useUserProgressContext();
 	const currentProjectRef = useRef(currentProject);
 	currentProjectRef.current = currentProject;
 
@@ -75,6 +76,9 @@ export function useQuickCreate({ onNavigate }: UseQuickCreateOptions = {}): UseQ
 
 				success("Document created");
 
+				// Track document creation for onboarding milestones
+				incrementDocumentsCreated();
+
 				// Navigate to the new document
 				onNavigate?.("document", {
 					documentPath: documentPath,
@@ -85,7 +89,7 @@ export function useQuickCreate({ onNavigate }: UseQuickCreateOptions = {}): UseQ
 				);
 			}
 		},
-		[onNavigate, success, error],
+		[onNavigate, success, error, incrementDocumentsCreated],
 	);
 
 	const handleCreateJournalEntry = useCallback(
@@ -114,6 +118,9 @@ export function useQuickCreate({ onNavigate }: UseQuickCreateOptions = {}): UseQ
 				// Append entry to today's journal
 				await AppendEntry(request);
 
+				// Track journal entry creation for onboarding milestones
+				incrementJournalEntriesCreated();
+
 				success("Journal entry added");
 			} catch (err) {
 				error(
@@ -121,7 +128,7 @@ export function useQuickCreate({ onNavigate }: UseQuickCreateOptions = {}): UseQ
 				);
 			}
 		},
-		[success, error],
+		[success, error, incrementJournalEntriesCreated],
 	);
 
 	return {

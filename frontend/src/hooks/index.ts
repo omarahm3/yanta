@@ -28,3 +28,5 @@ export type { CommandUsageData, CommandUsageRecord, UseCommandUsageReturn } from
 export { useCommandUsage } from "./useCommandUsage";
 export type { OnboardingData, UseOnboardingReturn } from "./useOnboarding";
 export { useOnboarding } from "./useOnboarding";
+export type { UserProgressData, UseUserProgressReturn } from "./useUserProgress";
+export { useUserProgress } from "./useUserProgress";
