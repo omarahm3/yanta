@@ -17,47 +17,55 @@ export type PageContext =
 /**
  * Hint configurations for each page context.
  * Each configuration provides the most relevant keyboard shortcuts for that page.
+ *
+ * Priority levels:
+ * - 1: Always shown (even on narrow viewports < 768px)
+ * - 2: Hidden on narrow viewports (default)
+ * - 3: Lowest priority, hidden on narrow viewports
+ *
+ * Ctrl+K (Commands) is always priority 1 to ensure users can always access the command palette.
+ * Navigation hints (↑↓, ←→) are typically priority 1 as they're essential for keyboard users.
  */
 const HINT_CONFIGS: Record<PageContext, FooterHint[]> = {
 	dashboard: [
-		{ key: "↑↓", label: "Navigate" },
-		{ key: "Enter", label: "Open" },
-		{ key: "Ctrl+N", label: "New" },
-		{ key: "Ctrl+K", label: "Commands" },
+		{ key: "↑↓", label: "Navigate", priority: 1 },
+		{ key: "Enter", label: "Open", priority: 2 },
+		{ key: "Ctrl+N", label: "New", priority: 2 },
+		{ key: "Ctrl+K", label: "Commands", priority: 1 },
 	],
 	document: [
-		{ key: "Ctrl+S", label: "Save" },
-		{ key: "Esc", label: "Back" },
-		{ key: "Ctrl+K", label: "Commands" },
+		{ key: "Ctrl+S", label: "Save", priority: 1 },
+		{ key: "Esc", label: "Back", priority: 2 },
+		{ key: "Ctrl+K", label: "Commands", priority: 1 },
 	],
 	journal: [
-		{ key: "←→", label: "Change date" },
-		{ key: "↑↓", label: "Navigate" },
-		{ key: "Ctrl+T", label: "Today" },
-		{ key: "Ctrl+K", label: "Commands" },
+		{ key: "←→", label: "Change date", priority: 1 },
+		{ key: "↑↓", label: "Navigate", priority: 2 },
+		{ key: "Ctrl+T", label: "Today", priority: 2 },
+		{ key: "Ctrl+K", label: "Commands", priority: 1 },
 	],
 	search: [
-		{ key: "↑↓", label: "Navigate" },
-		{ key: "Enter", label: "Open" },
-		{ key: "Esc", label: "Clear" },
-		{ key: "Ctrl+K", label: "Commands" },
+		{ key: "↑↓", label: "Navigate", priority: 1 },
+		{ key: "Enter", label: "Open", priority: 2 },
+		{ key: "Esc", label: "Clear", priority: 2 },
+		{ key: "Ctrl+K", label: "Commands", priority: 1 },
 	],
 	settings: [
-		{ key: "Esc", label: "Back" },
-		{ key: "Ctrl+K", label: "Commands" },
+		{ key: "Esc", label: "Back", priority: 1 },
+		{ key: "Ctrl+K", label: "Commands", priority: 1 },
 	],
 	projects: [
-		{ key: "↑↓", label: "Navigate" },
-		{ key: "Enter", label: "Open" },
-		{ key: "Ctrl+K", label: "Commands" },
+		{ key: "↑↓", label: "Navigate", priority: 1 },
+		{ key: "Enter", label: "Open", priority: 2 },
+		{ key: "Ctrl+K", label: "Commands", priority: 1 },
 	],
 	"quick-capture": [
-		{ key: "Ctrl+Enter", label: "Save" },
-		{ key: "Esc", label: "Cancel" },
-		{ key: "Ctrl+K", label: "Commands" },
+		{ key: "Ctrl+Enter", label: "Save", priority: 1 },
+		{ key: "Esc", label: "Cancel", priority: 2 },
+		{ key: "Ctrl+K", label: "Commands", priority: 1 },
 	],
 	test: [
-		{ key: "Ctrl+K", label: "Commands" },
+		{ key: "Ctrl+K", label: "Commands", priority: 1 },
 	],
 };
 
@@ -65,7 +73,7 @@ const HINT_CONFIGS: Record<PageContext, FooterHint[]> = {
  * Default hints shown when page context is unknown
  */
 const DEFAULT_HINTS: FooterHint[] = [
-	{ key: "Ctrl+K", label: "Commands" },
+	{ key: "Ctrl+K", label: "Commands", priority: 1 },
 ];
 
 export interface UseFooterHintsOptions {

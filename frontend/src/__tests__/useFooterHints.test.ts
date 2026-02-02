@@ -7,10 +7,10 @@ describe("useFooterHints", () => {
 		it("returns correct hints for dashboard", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "dashboard" }));
 			expect(result.current.hints).toEqual([
-				{ key: "↑↓", label: "Navigate" },
-				{ key: "Enter", label: "Open" },
-				{ key: "Ctrl+N", label: "New" },
-				{ key: "Ctrl+K", label: "Commands" },
+				{ key: "↑↓", label: "Navigate", priority: 1 },
+				{ key: "Enter", label: "Open", priority: 2 },
+				{ key: "Ctrl+N", label: "New", priority: 2 },
+				{ key: "Ctrl+K", label: "Commands", priority: 1 },
 			]);
 		});
 
@@ -29,9 +29,9 @@ describe("useFooterHints", () => {
 		it("returns correct hints for document", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "document" }));
 			expect(result.current.hints).toEqual([
-				{ key: "Ctrl+S", label: "Save" },
-				{ key: "Esc", label: "Back" },
-				{ key: "Ctrl+K", label: "Commands" },
+				{ key: "Ctrl+S", label: "Save", priority: 1 },
+				{ key: "Esc", label: "Back", priority: 2 },
+				{ key: "Ctrl+K", label: "Commands", priority: 1 },
 			]);
 		});
 
@@ -50,10 +50,10 @@ describe("useFooterHints", () => {
 		it("returns correct hints for journal", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "journal" }));
 			expect(result.current.hints).toEqual([
-				{ key: "←→", label: "Change date" },
-				{ key: "↑↓", label: "Navigate" },
-				{ key: "Ctrl+T", label: "Today" },
-				{ key: "Ctrl+K", label: "Commands" },
+				{ key: "←→", label: "Change date", priority: 1 },
+				{ key: "↑↓", label: "Navigate", priority: 2 },
+				{ key: "Ctrl+T", label: "Today", priority: 2 },
+				{ key: "Ctrl+K", label: "Commands", priority: 1 },
 			]);
 		});
 
@@ -72,10 +72,10 @@ describe("useFooterHints", () => {
 		it("returns correct hints for search", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "search" }));
 			expect(result.current.hints).toEqual([
-				{ key: "↑↓", label: "Navigate" },
-				{ key: "Enter", label: "Open" },
-				{ key: "Esc", label: "Clear" },
-				{ key: "Ctrl+K", label: "Commands" },
+				{ key: "↑↓", label: "Navigate", priority: 1 },
+				{ key: "Enter", label: "Open", priority: 2 },
+				{ key: "Esc", label: "Clear", priority: 2 },
+				{ key: "Ctrl+K", label: "Commands", priority: 1 },
 			]);
 		});
 
@@ -89,8 +89,8 @@ describe("useFooterHints", () => {
 		it("returns correct hints for settings", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "settings" }));
 			expect(result.current.hints).toEqual([
-				{ key: "Esc", label: "Back" },
-				{ key: "Ctrl+K", label: "Commands" },
+				{ key: "Esc", label: "Back", priority: 1 },
+				{ key: "Ctrl+K", label: "Commands", priority: 1 },
 			]);
 		});
 
@@ -104,9 +104,9 @@ describe("useFooterHints", () => {
 		it("returns correct hints for projects", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "projects" }));
 			expect(result.current.hints).toEqual([
-				{ key: "↑↓", label: "Navigate" },
-				{ key: "Enter", label: "Open" },
-				{ key: "Ctrl+K", label: "Commands" },
+				{ key: "↑↓", label: "Navigate", priority: 1 },
+				{ key: "Enter", label: "Open", priority: 2 },
+				{ key: "Ctrl+K", label: "Commands", priority: 1 },
 			]);
 		});
 	});
@@ -115,9 +115,9 @@ describe("useFooterHints", () => {
 		it("returns correct hints for quick-capture", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "quick-capture" }));
 			expect(result.current.hints).toEqual([
-				{ key: "Ctrl+Enter", label: "Save" },
-				{ key: "Esc", label: "Cancel" },
-				{ key: "Ctrl+K", label: "Commands" },
+				{ key: "Ctrl+Enter", label: "Save", priority: 1 },
+				{ key: "Esc", label: "Cancel", priority: 2 },
+				{ key: "Ctrl+K", label: "Commands", priority: 1 },
 			]);
 		});
 	});
@@ -126,7 +126,7 @@ describe("useFooterHints", () => {
 		it("returns correct hints for test", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "test" }));
 			expect(result.current.hints).toEqual([
-				{ key: "Ctrl+K", label: "Commands" },
+				{ key: "Ctrl+K", label: "Commands", priority: 1 },
 			]);
 		});
 	});
@@ -145,14 +145,14 @@ describe("useFooterHints", () => {
 		it("returns default hints for unknown page", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "unknown-page" }));
 			expect(result.current.hints).toEqual([
-				{ key: "Ctrl+K", label: "Commands" },
+				{ key: "Ctrl+K", label: "Commands", priority: 1 },
 			]);
 		});
 
 		it("returns default hints for empty page string", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "" }));
 			expect(result.current.hints).toEqual([
-				{ key: "Ctrl+K", label: "Commands" },
+				{ key: "Ctrl+K", label: "Commands", priority: 1 },
 			]);
 		});
 	});
@@ -183,49 +183,84 @@ describe("useFooterHints", () => {
 describe("getHintsForPage", () => {
 	it("returns hints for dashboard", () => {
 		expect(getHintsForPage("dashboard")).toEqual([
-			{ key: "↑↓", label: "Navigate" },
-			{ key: "Enter", label: "Open" },
-			{ key: "Ctrl+N", label: "New" },
-			{ key: "Ctrl+K", label: "Commands" },
+			{ key: "↑↓", label: "Navigate", priority: 1 },
+			{ key: "Enter", label: "Open", priority: 2 },
+			{ key: "Ctrl+N", label: "New", priority: 2 },
+			{ key: "Ctrl+K", label: "Commands", priority: 1 },
 		]);
 	});
 
 	it("returns hints for document", () => {
 		expect(getHintsForPage("document")).toEqual([
-			{ key: "Ctrl+S", label: "Save" },
-			{ key: "Esc", label: "Back" },
-			{ key: "Ctrl+K", label: "Commands" },
+			{ key: "Ctrl+S", label: "Save", priority: 1 },
+			{ key: "Esc", label: "Back", priority: 2 },
+			{ key: "Ctrl+K", label: "Commands", priority: 1 },
 		]);
 	});
 
 	it("returns hints for journal", () => {
 		expect(getHintsForPage("journal")).toEqual([
-			{ key: "←→", label: "Change date" },
-			{ key: "↑↓", label: "Navigate" },
-			{ key: "Ctrl+T", label: "Today" },
-			{ key: "Ctrl+K", label: "Commands" },
+			{ key: "←→", label: "Change date", priority: 1 },
+			{ key: "↑↓", label: "Navigate", priority: 2 },
+			{ key: "Ctrl+T", label: "Today", priority: 2 },
+			{ key: "Ctrl+K", label: "Commands", priority: 1 },
 		]);
 	});
 
 	it("returns hints for search", () => {
 		expect(getHintsForPage("search")).toEqual([
-			{ key: "↑↓", label: "Navigate" },
-			{ key: "Enter", label: "Open" },
-			{ key: "Esc", label: "Clear" },
-			{ key: "Ctrl+K", label: "Commands" },
+			{ key: "↑↓", label: "Navigate", priority: 1 },
+			{ key: "Enter", label: "Open", priority: 2 },
+			{ key: "Esc", label: "Clear", priority: 2 },
+			{ key: "Ctrl+K", label: "Commands", priority: 1 },
 		]);
 	});
 
 	it("returns hints for settings", () => {
 		expect(getHintsForPage("settings")).toEqual([
-			{ key: "Esc", label: "Back" },
-			{ key: "Ctrl+K", label: "Commands" },
+			{ key: "Esc", label: "Back", priority: 1 },
+			{ key: "Ctrl+K", label: "Commands", priority: 1 },
 		]);
 	});
 
 	it("returns default hints for unknown page", () => {
 		expect(getHintsForPage("unknown")).toEqual([
-			{ key: "Ctrl+K", label: "Commands" },
+			{ key: "Ctrl+K", label: "Commands", priority: 1 },
 		]);
+	});
+});
+
+describe("Priority assignments", () => {
+	it("assigns priority 1 to Ctrl+K on all pages", () => {
+		const pages = ["dashboard", "document", "journal", "search", "settings", "projects", "quick-capture", "test"];
+		for (const page of pages) {
+			const hints = getHintsForPage(page);
+			const ctrlKHint = hints.find((h) => h.key === "Ctrl+K");
+			expect(ctrlKHint?.priority).toBe(1);
+		}
+	});
+
+	it("assigns priority 1 to navigation hints on appropriate pages", () => {
+		const navigationPages = ["dashboard", "search", "projects"];
+		for (const page of navigationPages) {
+			const hints = getHintsForPage(page);
+			const navHint = hints.find((h) => h.key === "↑↓");
+			expect(navHint?.priority).toBe(1);
+		}
+	});
+
+	it("assigns priority 1 to essential action on each page", () => {
+		// Dashboard: Navigate
+		expect(getHintsForPage("dashboard").find((h) => h.label === "Navigate")?.priority).toBe(1);
+		// Document: Save
+		expect(getHintsForPage("document").find((h) => h.label === "Save")?.priority).toBe(1);
+		// Journal: Change date
+		expect(getHintsForPage("journal").find((h) => h.label === "Change date")?.priority).toBe(1);
+		// Search: Navigate
+		expect(getHintsForPage("search").find((h) => h.label === "Navigate")?.priority).toBe(1);
+		// Settings: Back
+		expect(getHintsForPage("settings").find((h) => h.label === "Back")?.priority).toBe(1);
+		// Quick-capture: Save
+		expect(getHintsForPage("quick-capture").find((h) => h.label === "Save")?.priority).toBe(1);
 	});
 });
