@@ -1,7 +1,7 @@
 import type React from "react";
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import { useProjectContext, useTitleBarContext } from "../contexts";
-import { useGlobalCommand, useHotkeys } from "../hooks";
+import { useGlobalCommand, useHotkeys, useSidebarSetting } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
 import { HeaderBar, type SidebarSection, Sidebar as UISidebar } from "./ui";
 import { CommandLine } from "./ui/commandline";
@@ -48,16 +48,18 @@ export const Layout: React.FC<LayoutProps> = ({
 	const commandInputRef = providedRef || internalRef;
 	const { executeGlobalCommand } = useGlobalCommand();
 	const { success, error } = useNotification();
-	const [sidebarVisible, setSidebarVisible] = useState(true);
+	const { sidebarVisible, toggleSidebar, isLoading: sidebarLoading } = useSidebarSetting();
 	const { currentProject } = useProjectContext();
 	const { heightInRem } = useTitleBarContext();
 
 	// Register the toggle sidebar handler with the parent component
 	useEffect(() => {
 		if (onRegisterToggleSidebar) {
-			onRegisterToggleSidebar(() => setSidebarVisible((prev) => !prev));
+			onRegisterToggleSidebar(() => {
+				toggleSidebar();
+			});
 		}
-	}, [onRegisterToggleSidebar]);
+	}, [onRegisterToggleSidebar, toggleSidebar]);
 
 	const handleCommandSubmit = useCallback(
 		async (command: string) => {
@@ -94,7 +96,7 @@ export const Layout: React.FC<LayoutProps> = ({
 			{
 				key: "ctrl+b",
 				handler: () => {
-					setSidebarVisible((prev) => !prev);
+					toggleSidebar();
 				},
 				allowInInput: false,
 				description: "Toggle sidebar",
@@ -103,14 +105,14 @@ export const Layout: React.FC<LayoutProps> = ({
 			{
 				key: "mod+e",
 				handler: () => {
-					setSidebarVisible((prev) => !prev);
+					toggleSidebar();
 				},
 				allowInInput: false,
 				description: "Toggle sidebar",
 				category: "navigation",
 			},
 		],
-		[],
+		[toggleSidebar],
 	);
 
 	useHotkeys(sidebarToggleHotkeys);
@@ -165,7 +167,8 @@ export const Layout: React.FC<LayoutProps> = ({
 			className="flex overflow-hidden font-mono text-sm leading-relaxed bg-bg text-text"
 			style={{ height: `calc(100vh - ${heightInRem}rem)` }}
 		>
-			{sidebarVisible &&
+			{/* Hide sidebar during loading (default is hidden) and when sidebarVisible is false */}
+			{!sidebarLoading && sidebarVisible &&
 				(sidebarContent ? sidebarContent : <UISidebar sections={sidebarSections || []} />)}
 
 			<div className="flex flex-col flex-1 overflow-hidden">

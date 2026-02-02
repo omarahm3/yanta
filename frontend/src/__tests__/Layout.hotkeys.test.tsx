@@ -25,6 +25,22 @@ vi.mock("../hooks/useNotification", () => ({
 	}),
 }));
 
+// Mock useSidebarSetting to start with sidebar visible for testing
+const mockToggleSidebar = vi.fn();
+let mockSidebarVisible = true;
+
+vi.mock("../hooks/useSidebarSetting", () => ({
+	useSidebarSetting: () => ({
+		sidebarVisible: mockSidebarVisible,
+		isLoading: false,
+		setSidebarVisible: vi.fn(),
+		toggleSidebar: () => {
+			mockSidebarVisible = !mockSidebarVisible;
+			mockToggleSidebar();
+		},
+	}),
+}));
+
 vi.mock("../contexts", async () => {
 	const actual = await vi.importActual<typeof import("../contexts")>("../contexts");
 	return {
@@ -58,6 +74,8 @@ describe("Layout hotkeys", () => {
 		executeGlobalCommand.mockClear();
 		mockSuccess.mockClear();
 		mockError.mockClear();
+		mockToggleSidebar.mockClear();
+		mockSidebarVisible = true; // Reset sidebar to visible state for each test
 	});
 
 	const Wrapper: React.FC<{
@@ -102,6 +120,7 @@ describe("Layout hotkeys", () => {
 	it("toggles sidebar with ctrl+b", async () => {
 		const ctx = await setup();
 		const root = screen.getByTestId("layout-root");
+		// Initial state should be visible (from mock)
 		expect(root).toHaveAttribute("data-sidebar-visible", "true");
 
 		const hotkey = ctx.getRegisteredHotkeys().find((h) => h.key === "ctrl+b");
@@ -111,16 +130,18 @@ describe("Layout hotkeys", () => {
 			hotkey?.handler(new KeyboardEvent("keydown", { key: "b", ctrlKey: true, code: "KeyB" }));
 		});
 
-		await waitFor(() => expect(root).toHaveAttribute("data-sidebar-visible", "false"));
+		// Verify toggleSidebar was called
+		expect(mockToggleSidebar).toHaveBeenCalledTimes(1);
 
-		const toggleSidebar = ctx.getRegisteredHotkeys().find((h) => h.key === "mod+e");
-		expect(toggleSidebar).toBeDefined();
+		const toggleSidebarHotkey = ctx.getRegisteredHotkeys().find((h) => h.key === "mod+e");
+		expect(toggleSidebarHotkey).toBeDefined();
 
 		await act(async () => {
-			toggleSidebar?.handler(new KeyboardEvent("keydown", { key: "e", ctrlKey: true, code: "KeyE" }));
+			toggleSidebarHotkey?.handler(new KeyboardEvent("keydown", { key: "e", ctrlKey: true, code: "KeyE" }));
 		});
 
-		await waitFor(() => expect(root).toHaveAttribute("data-sidebar-visible", "true"));
+		// Verify toggleSidebar was called again
+		expect(mockToggleSidebar).toHaveBeenCalledTimes(2);
 	});
 
 	it("focuses command line with shift+;", async () => {
