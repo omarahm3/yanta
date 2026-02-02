@@ -1,7 +1,7 @@
 import { Events } from "@wailsio/runtime";
 import React from "react";
 import { BackgroundQuit, ForceQuit } from "../bindings/yanta/internal/system/service";
-import { GlobalCommandPalette } from "./components";
+import { GlobalCommandPalette, WelcomeOverlay } from "./components";
 import { Router } from "./components/Router";
 import { HelpModal, ResizeHandles, TitleBar, ToastProvider, useToast } from "./components/ui";
 import {
@@ -225,6 +225,7 @@ function App() {
 											<GlobalCommandHotkey />
 											<WindowEventListener />
 											<HelpModal />
+											<WelcomeOverlay />
 										</DocumentProvider>
 									</DocumentCountProvider>
 								</ProjectProvider>
