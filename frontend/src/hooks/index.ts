@@ -20,3 +20,5 @@ export type { UseFooterHintsSettingReturn } from "./useFooterHintsSetting";
 export { useFooterHintsSetting } from "./useFooterHintsSetting";
 export type { UseCommandDeprecationReturn } from "./useCommandDeprecation";
 export { useCommandDeprecation, DEPRECATED_COMMAND_MAPPINGS } from "./useCommandDeprecation";
+export type { UseQuickCreateOptions, UseQuickCreateReturn } from "./useQuickCreate";
+export { useQuickCreate } from "./useQuickCreate";
