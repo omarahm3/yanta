@@ -85,18 +85,25 @@ describe("JournalEntry", () => {
 		expect(screen.getByText("✓")).toBeInTheDocument();
 	});
 
-	it("applies highlighted styling", () => {
+	it("applies highlighted styling via mode-accent CSS variables", () => {
 		render(<JournalEntry entry={mockEntry} index={0} onEntryClick={vi.fn()} isHighlighted />);
 
 		const entry = screen.getByTestId("journal-entry");
-		expect(entry).toHaveClass("border-l-accent");
+		// Now uses mode-accent CSS variables for border and background
+		expect(entry).toHaveStyle({
+			borderLeftColor: "var(--mode-accent)",
+			backgroundColor: "var(--mode-accent-muted)",
+		});
 	});
 
-	it("applies selected styling", () => {
+	it("applies selected styling via mode-accent CSS variable", () => {
 		render(<JournalEntry entry={mockEntry} index={0} onEntryClick={vi.fn()} isSelected />);
 
 		const entry = screen.getByTestId("journal-entry");
-		expect(entry).toHaveClass("border-l-green");
+		// Now uses mode-accent CSS variable for border color
+		expect(entry).toHaveStyle({
+			borderLeftColor: "var(--mode-accent)",
+		});
 	});
 
 	it("renders project alias when present", () => {

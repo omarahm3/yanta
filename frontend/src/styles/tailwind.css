@@ -189,6 +189,22 @@
 	--mode-accent-muted: rgba(88, 166, 255, 0.15);
 }
 
+/* Mode-aware focus ring styles for interactive elements */
+[data-mode="documents"] :focus-visible {
+	outline: 2px solid var(--color-accent);
+	outline-offset: 2px;
+}
+
+[data-mode="journal"] :focus-visible {
+	outline: 2px solid var(--color-purple);
+	outline-offset: 2px;
+}
+
+[data-mode="neutral"] :focus-visible {
+	outline: 2px solid var(--color-accent);
+	outline-offset: 2px;
+}
+
 /* Custom component styles */
 @layer components {
 	.btn {
