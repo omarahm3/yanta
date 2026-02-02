@@ -42,6 +42,7 @@ type Config struct {
 	AppScale         float64       `toml:"app_scale"`
 	Hotkey           HotkeyConfig  `toml:"hotkey"`
 	SidebarVisible   bool          `toml:"sidebar_visible"`
+	ShowFooterHints  bool          `toml:"show_footer_hints"`
 }
 
 const (
@@ -398,5 +399,21 @@ func SetSidebarVisible(visible bool) error {
 	}
 
 	instance.SidebarVisible = visible
+	return save(instance)
+}
+
+func GetShowFooterHints() bool {
+	return Get().ShowFooterHints
+}
+
+func SetShowFooterHints(show bool) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if instance == nil {
+		instance = &Config{}
+	}
+
+	instance.ShowFooterHints = show
 	return save(instance)
 }

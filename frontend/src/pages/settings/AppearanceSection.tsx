@@ -7,10 +7,13 @@ interface AppearanceSectionProps {
 	sidebarVisible: boolean;
 	onSidebarVisibleChange: (visible: boolean) => void;
 	sidebarLoading?: boolean;
+	showFooterHints: boolean;
+	onShowFooterHintsChange: (show: boolean) => void;
+	footerHintsLoading?: boolean;
 }
 
 export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSectionProps>(
-	({ appScale, onAppScaleChange, sidebarVisible, onSidebarVisibleChange, sidebarLoading = false }, ref) => {
+	({ appScale, onAppScaleChange, sidebarVisible, onSidebarVisibleChange, sidebarLoading = false, showFooterHints, onShowFooterHintsChange, footerHintsLoading = false }, ref) => {
 		const scaleOptions: SelectOption[] = [
 			{ value: "0.75", label: "Small (75%)" },
 			{ value: "0.85", label: "Medium-Small (85%)" },
@@ -43,6 +46,20 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 								checked={sidebarVisible}
 								onChange={onSidebarVisibleChange}
 								disabled={sidebarLoading}
+							/>
+						</div>
+
+						<div className="flex items-center justify-between">
+							<div>
+								<div className="text-sm text-text">Show Keyboard Hints</div>
+								<div className="text-xs text-text-dim">
+									Display context-aware keyboard shortcuts at the bottom of the screen.
+								</div>
+							</div>
+							<Toggle
+								checked={showFooterHints}
+								onChange={onShowFooterHintsChange}
+								disabled={footerHintsLoading}
 							/>
 						</div>
 

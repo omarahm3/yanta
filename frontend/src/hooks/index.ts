@@ -16,3 +16,5 @@ export type { UseSidebarSettingReturn } from "./useSidebarSetting";
 export { useSidebarSetting } from "./useSidebarSetting";
 export type { PageContext, UseFooterHintsOptions, UseFooterHintsReturn } from "./useFooterHints";
 export { useFooterHints, getHintsForPage } from "./useFooterHints";
+export type { UseFooterHintsSettingReturn } from "./useFooterHintsSetting";
+export { useFooterHintsSetting } from "./useFooterHintsSetting";

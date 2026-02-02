@@ -1,7 +1,7 @@
 import React, { useCallback, useRef } from "react";
 import { Layout } from "../components/Layout";
 import { ConfirmDialog, type Shortcut } from "../components/ui";
-import { useHotkeys, useSidebarSetting } from "../hooks";
+import { useHotkeys, useSidebarSetting, useFooterHintsSetting } from "../hooks";
 import { useHelp } from "../hooks/useHelp";
 import { useSidebarSections } from "../hooks/useSidebarSections";
 import { AboutSection } from "./settings/AboutSection";
@@ -152,6 +152,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggle
 	const controller = useSettingsController();
 	const { setPageContext } = useHelp();
 	const { sidebarVisible, setSidebarVisible, isLoading: sidebarLoading } = useSidebarSetting();
+	const { showFooterHints, setShowFooterHints, isLoading: footerHintsLoading } = useFooterHintsSetting();
 
 	const generalRef = useRef<HTMLDivElement>(null);
 	const appearanceRef = useRef<HTMLDivElement>(null);
@@ -326,6 +327,9 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggle
 						sidebarVisible={sidebarVisible}
 						onSidebarVisibleChange={setSidebarVisible}
 						sidebarLoading={sidebarLoading}
+						showFooterHints={showFooterHints}
+						onShowFooterHintsChange={setShowFooterHints}
+						footerHintsLoading={footerHintsLoading}
 					/>
 
 					<DatabaseSection

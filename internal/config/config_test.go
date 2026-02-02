@@ -265,6 +265,52 @@ func TestConfig_SidebarVisible(t *testing.T) {
 	})
 }
 
+func TestConfig_ShowFooterHints(t *testing.T) {
+	tempDir := t.TempDir()
+	cleanup := testenv.SetTestHome(t, tempDir)
+	defer cleanup()
+
+	instance = nil
+	instanceOnce = newOnce()
+
+	err := Init()
+	require.NoError(t, err)
+
+	t.Run("default show footer hints is false", func(t *testing.T) {
+		cfg := Get()
+		assert.NotNil(t, cfg)
+		assert.False(t, cfg.ShowFooterHints, "ShowFooterHints should default to false")
+		assert.False(t, GetShowFooterHints(), "GetShowFooterHints should return false by default")
+	})
+
+	t.Run("set show footer hints to true", func(t *testing.T) {
+		err := SetShowFooterHints(true)
+		require.NoError(t, err)
+
+		assert.True(t, GetShowFooterHints())
+	})
+
+	t.Run("set show footer hints to false", func(t *testing.T) {
+		err := SetShowFooterHints(false)
+		require.NoError(t, err)
+
+		assert.False(t, GetShowFooterHints())
+	})
+
+	t.Run("persist show footer hints setting", func(t *testing.T) {
+		err := SetShowFooterHints(true)
+		require.NoError(t, err)
+
+		instance = nil
+		instanceOnce = newOnce()
+
+		err = Init()
+		require.NoError(t, err)
+
+		assert.True(t, GetShowFooterHints(), "ShowFooterHints should persist after reload")
+	})
+}
+
 func newOnce() sync.Once {
 	return sync.Once{}
 }

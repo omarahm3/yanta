@@ -698,3 +698,19 @@ func (s *Service) SetSidebarVisible(ctx context.Context, visible bool) error {
 	logger.Infof("sidebar_visible setting changed to %v", visible)
 	return nil
 }
+
+// GetShowFooterHints returns the current footer hints visibility setting.
+func (s *Service) GetShowFooterHints(ctx context.Context) bool {
+	return config.GetShowFooterHints()
+}
+
+// SetShowFooterHints updates the footer hints visibility setting.
+func (s *Service) SetShowFooterHints(ctx context.Context, show bool) error {
+	if err := config.SetShowFooterHints(show); err != nil {
+		logger.Errorf("failed to set show_footer_hints: %v", err)
+		return err
+	}
+
+	logger.Infof("show_footer_hints setting changed to %v", show)
+	return nil
+}
