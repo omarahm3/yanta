@@ -543,7 +543,7 @@ describe("Shortcut Registration Validation", () => {
 
 		for (const hotkey of hotkeys) {
 			expect(hotkey.description).toBeDefined();
-			expect(hotkey.description!.length).toBeGreaterThan(0);
+			expect(hotkey.description?.length).toBeGreaterThan(0);
 		}
 	});
 

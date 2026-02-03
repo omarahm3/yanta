@@ -19,8 +19,9 @@ export function useCommandLineEnabled(): UseCommandLineEnabledReturn {
 
 	useEffect(() => {
 		// Check if the function exists (may not be available until bindings are regenerated)
-		const isCommandLineEnabled = (SystemService as Record<string, unknown>)
-			.IsCommandLineEnabled as (() => Promise<boolean>) | undefined;
+		const isCommandLineEnabled = (SystemService as Record<string, unknown>).IsCommandLineEnabled as
+			| (() => Promise<boolean>)
+			| undefined;
 
 		if (typeof isCommandLineEnabled === "function") {
 			isCommandLineEnabled()
