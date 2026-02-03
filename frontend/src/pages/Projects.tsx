@@ -4,12 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProjectResult } from "../../bindings/yanta/internal/commandline/models";
 import { Parse } from "../../bindings/yanta/internal/commandline/projectcommands";
 import {
+	Create as CreateProject,
 	GetAllDocumentCounts,
 	GetAllLastDocumentDates,
 } from "../../bindings/yanta/internal/project/service";
 import { Layout } from "../components/Layout";
 import { Table, type TableColumn, type TableRow } from "../components/ui";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { NewProjectDialog } from "../components/ui/NewProjectDialog";
 import { useProjectContext } from "../contexts";
 import { useHotkeys } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
@@ -43,6 +45,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 		message: "",
 		onConfirm: () => {},
 	});
+	const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
 	const { success, error } = useNotification();
 	const projectsRef = useRef(projects);
 	const archivedProjectsRef = useRef(archivedProjects);
@@ -342,8 +345,30 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 		}
 	}, [setCurrentProject, success]);
 
+	const handleCreateProject = useCallback(
+		async (data: { name: string; alias: string; startDate: string; endDate: string }) => {
+			try {
+				const projectId = await CreateProject(data.name, data.alias, data.startDate, data.endDate);
+				await loadProjects();
+				await fetchDocumentData();
+				setSelectedProjectId(projectId);
+				setIsNewProjectDialogOpen(false);
+				success(`Created project: ${data.name}`);
+			} catch (err) {
+				error(err instanceof Error ? err.message : "Failed to create project");
+			}
+		},
+		[loadProjects, fetchDocumentData, success, error],
+	);
+
 	const projectHotkeys = useMemo(
 		() => [
+			{
+				key: "mod+N",
+				handler: () => setIsNewProjectDialogOpen(true),
+				allowInInput: false,
+				description: "Create new project",
+			},
 			{
 				key: "j",
 				handler: selectNext,
@@ -487,6 +512,11 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 				inputPrompt={confirmDialog.inputPrompt}
 				expectedInput={confirmDialog.expectedInput}
 				showCheckbox={confirmDialog.showCheckbox}
+			/>
+			<NewProjectDialog
+				isOpen={isNewProjectDialogOpen}
+				onClose={() => setIsNewProjectDialogOpen(false)}
+				onSubmit={handleCreateProject}
 			/>
 		</>
 	);
