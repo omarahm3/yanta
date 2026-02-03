@@ -1,5 +1,6 @@
 import React from "react";
 import { Label, Select, type SelectOption, SettingsSection, Toggle } from "../../components/ui";
+import { ENABLE_TOOLTIP_HINTS } from "../../config/featureFlags";
 
 interface AppearanceSectionProps {
 	appScale: number;
@@ -16,7 +17,22 @@ interface AppearanceSectionProps {
 }
 
 export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSectionProps>(
-	({ appScale, onAppScaleChange, sidebarVisible, onSidebarVisibleChange, sidebarLoading = false, showFooterHints, onShowFooterHintsChange, footerHintsLoading = false, showShortcutTooltips, onShowShortcutTooltipsChange, shortcutTooltipsLoading = false }, ref) => {
+	(
+		{
+			appScale,
+			onAppScaleChange,
+			sidebarVisible,
+			onSidebarVisibleChange,
+			sidebarLoading = false,
+			showFooterHints,
+			onShowFooterHintsChange,
+			footerHintsLoading = false,
+			showShortcutTooltips,
+			onShowShortcutTooltipsChange,
+			shortcutTooltipsLoading = false,
+		},
+		ref,
+	) => {
 		const scaleOptions: SelectOption[] = [
 			{ value: "0.75", label: "Small (75%)" },
 			{ value: "0.85", label: "Medium-Small (85%)" },
@@ -66,19 +82,21 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 							/>
 						</div>
 
-						<div className="flex items-center justify-between">
-							<div>
-								<div className="text-sm text-text">Show Shortcut Tooltips</div>
-								<div className="text-xs text-text-dim">
-									Display helpful tooltips showing keyboard shortcuts when hovering over buttons.
+						{ENABLE_TOOLTIP_HINTS && (
+							<div className="flex items-center justify-between">
+								<div>
+									<div className="text-sm text-text">Show Shortcut Tooltips</div>
+									<div className="text-xs text-text-dim">
+										Display helpful tooltips showing keyboard shortcuts when hovering over buttons.
+									</div>
 								</div>
+								<Toggle
+									checked={showShortcutTooltips}
+									onChange={onShowShortcutTooltipsChange}
+									disabled={shortcutTooltipsLoading}
+								/>
 							</div>
-							<Toggle
-								checked={showShortcutTooltips}
-								onChange={onShowShortcutTooltipsChange}
-								disabled={shortcutTooltipsLoading}
-							/>
-						</div>
+						)}
 
 						<div className="space-y-2">
 							<Label variant="uppercase">Interface Scale</Label>

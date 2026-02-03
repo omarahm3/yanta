@@ -6,6 +6,11 @@ import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  define: {
+    "import.meta.env.YANTA_ENABLE_TOOLTIP_HINTS": JSON.stringify(
+      process.env.YANTA_ENABLE_TOOLTIP_HINTS === "true",
+    ),
+  },
   plugins: [
     react(),
     tailwindcss(),

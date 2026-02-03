@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { vi, describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useShortcutTooltipsSetting } from "../useShortcutTooltipsSetting";
 
 const mockGetShowShortcutTooltips = vi.fn();
@@ -9,6 +9,8 @@ vi.mock("../../../bindings/yanta/internal/system/service.js", () => ({
 	GetShowShortcutTooltips: () => mockGetShowShortcutTooltips(),
 	SetShowShortcutTooltips: (show: boolean) => mockSetShowShortcutTooltips(show),
 }));
+
+vi.mock("../../config/featureFlags", () => ({ ENABLE_TOOLTIP_HINTS: true }));
 
 describe("useShortcutTooltipsSetting", () => {
 	beforeEach(() => {
