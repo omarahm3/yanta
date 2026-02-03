@@ -2,6 +2,7 @@ import { ArrowLeft } from "lucide-react";
 import type React from "react";
 import { useCallback, useMemo } from "react";
 
+import { getCommandIdForKeyboardEvent } from "../../utils/shortcuts";
 import {
 	CommandDialog,
 	CommandEmpty,
@@ -124,9 +125,19 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 				e.preventDefault();
 				e.stopPropagation();
 				onSubPaletteBack();
+				return;
+			}
+			const commandId = getCommandIdForKeyboardEvent(e.nativeEvent);
+			if (commandId) {
+				const command = commands.find((c) => c.id === commandId);
+				if (command) {
+					e.preventDefault();
+					e.stopPropagation();
+					handleSelect(command);
+				}
 			}
 		},
-		[isSubPaletteMode, onSubPaletteBack],
+		[isSubPaletteMode, onSubPaletteBack, commands, handleSelect],
 	);
 
 	// Group commands by their group property

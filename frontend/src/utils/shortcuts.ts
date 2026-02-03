@@ -66,3 +66,20 @@ export function getShortcutForCommand(commandId: string): string | undefined {
 	}
 	return formatShortcut(mapping);
 }
+
+export function getCommandIdForKeyboardEvent(event: KeyboardEvent): CommandId | undefined {
+	const mod = event.ctrlKey || event.metaKey;
+	for (const [id, mapping] of Object.entries(COMMAND_SHORTCUTS) as [CommandId, ShortcutMapping][]) {
+		const modMatch = mapping.ctrlKey ? mod : !mod;
+		const shiftMatch =
+			mapping.shiftKey === undefined ? true : !!mapping.shiftKey === event.shiftKey;
+		const keyMatch =
+			event.key.toUpperCase() === mapping.key ||
+			(event.key === "?" && mapping.key === "?") ||
+			(event.key === "," && mapping.key === ",");
+		if (modMatch && shiftMatch && keyMatch) {
+			return id;
+		}
+	}
+	return undefined;
+}
