@@ -409,6 +409,18 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 				allowInInput: false,
 				description: "Delete selected project",
 			},
+			{
+				key: "mod+shift+D",
+				handler: () => {
+					const allProjects = [...projectsRef.current, ...archivedProjectsRef.current];
+					const selected = allProjects.find((p) => p.id === selectedProjectIdRef.current);
+					if (selected) {
+						void executeProjectCommand(`delete ${selected.alias} --hard`);
+					}
+				},
+				allowInInput: false,
+				description: "Permanently delete selected project",
+			},
 		],
 		[selectNext, selectPrevious, selectCurrentProject, executeProjectCommand],
 	);

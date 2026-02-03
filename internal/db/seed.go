@@ -13,7 +13,7 @@ import (
 
 func SeedProjects(db *sql.DB) error {
 	var count int
-	if err := db.QueryRow("SELECT COUNT(*) FROM project WHERE deleted_at IS NULL").Scan(&count); err != nil {
+	if err := db.QueryRow("SELECT COUNT(*) FROM project").Scan(&count); err != nil {
 		return fmt.Errorf("failed to check project count: %w", err)
 	}
 
