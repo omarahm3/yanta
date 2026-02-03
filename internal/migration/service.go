@@ -2,6 +2,7 @@
 package migration
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"io"
@@ -14,10 +15,10 @@ import (
 type GitService interface {
 	CheckInstalled() (bool, error)
 	IsRepository(path string) (bool, error)
-	Init(path string) error
+	Init(ctx context.Context, path string) error
 	CreateGitIgnore(path string, patterns []string) error
-	AddAll(path string) error
-	Commit(path, message string) error
+	AddAll(ctx context.Context, path string) error
+	Commit(ctx context.Context, path, message string) error
 }
 
 type Service struct {
@@ -203,6 +204,8 @@ func (s *Service) initializeFreshVault(targetPath string) error {
 }
 
 func (s *Service) setupGitRepository(targetPath, originalDataDir string) error {
+	ctx := context.Background()
+
 	isRepo, err := s.gitService.IsRepository(targetPath)
 	if err != nil {
 		if originalDataDir != "" {
@@ -213,7 +216,7 @@ func (s *Service) setupGitRepository(targetPath, originalDataDir string) error {
 
 	if !isRepo {
 		logger.Info("initializing git repository")
-		if err := s.gitService.Init(targetPath); err != nil {
+		if err := s.gitService.Init(ctx, targetPath); err != nil {
 			if originalDataDir != "" {
 				_ = s.rollback(targetPath, originalDataDir)
 			}
@@ -237,7 +240,7 @@ func (s *Service) setupGitRepository(targetPath, originalDataDir string) error {
 	}
 
 	logger.Info("staging files for initial commit")
-	if err := s.gitService.AddAll(targetPath); err != nil {
+	if err := s.gitService.AddAll(ctx, targetPath); err != nil {
 		if originalDataDir != "" {
 			_ = s.rollback(targetPath, originalDataDir)
 		}
@@ -246,7 +249,7 @@ func (s *Service) setupGitRepository(targetPath, originalDataDir string) error {
 
 	logger.Info("creating initial commit")
 	commitMsg := "chore: init YANTA directory"
-	if err := s.gitService.Commit(targetPath, commitMsg); err != nil {
+	if err := s.gitService.Commit(ctx, targetPath, commitMsg); err != nil {
 		// If nothing to commit, that's okay
 		if err.Error() != "nothing to commit" {
 			if originalDataDir != "" {

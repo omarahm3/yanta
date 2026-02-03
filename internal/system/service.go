@@ -326,14 +326,14 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 		)
 	}
 
-	branch, err := gitService.GetCurrentBranch(dataDir)
+	branch, err := gitService.GetCurrentBranch(ctx, dataDir)
 	if err != nil {
 		logger.WithError(err).Warn("could not determine current branch, defaulting to master")
 		branch = "master"
 	}
 	logger.WithField("branch", branch).Debug("current branch")
 
-	hasRemote, err := gitService.HasRemote(dataDir, "origin")
+	hasRemote, err := gitService.HasRemote(ctx, dataDir, "origin")
 	if err != nil {
 		logger.WithError(err).Warn("failed to check for remote")
 		hasRemote = false
@@ -346,12 +346,12 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 
 	if hasRemote {
 		logger.Info("fetching from remote")
-		if err := gitService.Fetch(dataDir, "origin"); err != nil {
+		if err := gitService.Fetch(ctx, dataDir, "origin"); err != nil {
 			logger.WithError(err).Warn("fetch failed, continuing with local sync")
 		}
 
 		logger.Info("pulling from remote")
-		if err := gitService.Pull(dataDir, "origin", branch); err != nil {
+		if err := gitService.Pull(ctx, dataDir, "origin", branch); err != nil {
 			errStr := err.Error()
 			if strings.Contains(errStr, "MERGE_CONFLICT") {
 				return &git.SyncResult{
@@ -366,11 +366,11 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 	}
 
 	logger.Info("staging changes")
-	if err := gitService.AddAll(dataDir); err != nil {
+	if err := gitService.AddAll(ctx, dataDir); err != nil {
 		return nil, fmt.Errorf("STAGING_FAILED:\nFailed to stage changes: %v\n\nDirectory: %s", err, dataDir)
 	}
 
-	status, err := gitService.GetStatus(dataDir)
+	status, err := gitService.GetStatus(ctx, dataDir)
 	if err != nil {
 		return nil, fmt.Errorf("STATUS_FAILED:\nFailed to read git status: %v\n\nDirectory: %s", err, dataDir)
 	}
@@ -396,7 +396,7 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 
 	logger.Info("committing changes")
 	commitMsg := fmt.Sprintf("sync: %d file(s) at %s", filesChanged, time.Now().Format("2006-01-02 15:04:05"))
-	if err := gitService.Commit(dataDir, commitMsg); err != nil {
+	if err := gitService.Commit(ctx, dataDir, commitMsg); err != nil {
 		if strings.Contains(err.Error(), "nothing to commit") {
 			logger.Info("nothing to commit after staging")
 			result.Status = git.SyncStatusNoChanges
@@ -406,14 +406,14 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 		return nil, fmt.Errorf("COMMIT_FAILED:\nFailed to commit changes: %v\n\nDirectory: %s", err, dataDir)
 	}
 
-	commitHash, _ := gitService.GetLastCommitHash(dataDir)
+	commitHash, _ := gitService.GetLastCommitHash(ctx, dataDir)
 	result.CommitHash = commitHash
 	result.Status = git.SyncStatusCommitted
 	result.Message = fmt.Sprintf("Committed %d file(s)", filesChanged)
 
 	if hasRemote {
 		logger.Info("pushing to remote")
-		if err := gitService.Push(dataDir, "origin", branch); err != nil {
+		if err := gitService.Push(ctx, dataDir, "origin", branch); err != nil {
 			errStr := err.Error()
 			result.Status = git.SyncStatusPushFailed
 			result.PushError = errStr
@@ -447,7 +447,7 @@ func (s *Service) GetGitStatus(ctx context.Context) (map[string]any, error) {
 	dataDir := config.GetDataDirectory()
 	gitService := git.NewService()
 
-	status, err := gitService.GetStatus(dataDir)
+	status, err := gitService.GetStatus(ctx, dataDir)
 	if err != nil {
 		return nil, fmt.Errorf("getting git status: %w", err)
 	}
@@ -489,8 +489,14 @@ func (s *Service) GitPush(ctx context.Context) error {
 		)
 	}
 
+	branch, err := gitService.GetCurrentBranch(ctx, dataDir)
+	if err != nil {
+		logger.WithError(err).Warn("could not determine current branch, defaulting to master")
+		branch = "master"
+	}
+
 	logger.Info("pushing to remote")
-	if err := gitService.Push(dataDir, "origin", "master"); err != nil {
+	if err := gitService.Push(ctx, dataDir, "origin", branch); err != nil {
 		errMsg := err.Error()
 		if strings.Contains(errMsg, "rejected") && strings.Contains(errMsg, "non-fast-forward") {
 			return fmt.Errorf(
@@ -500,8 +506,9 @@ func (s *Service) GitPush(ctx context.Context) error {
 		}
 		if strings.Contains(errMsg, "failed to push") || strings.Contains(errMsg, "Connection") {
 			return fmt.Errorf(
-				"PUSH_FAILED:\n%v\n\nBranch: master\n\nPossible causes:\n- Network connectivity issues\n- Authentication problems (check SSH keys or credentials)\n- Remote repository doesn't exist or is unreachable",
+				"PUSH_FAILED:\n%v\n\nBranch: %s\n\nPossible causes:\n- Network connectivity issues\n- Authentication problems (check SSH keys or credentials)\n- Remote repository doesn't exist or is unreachable",
 				err,
+				branch,
 			)
 		}
 		return err
@@ -539,8 +546,14 @@ func (s *Service) GitPull(ctx context.Context) error {
 		)
 	}
 
+	branch, err := gitService.GetCurrentBranch(ctx, dataDir)
+	if err != nil {
+		logger.WithError(err).Warn("could not determine current branch, defaulting to master")
+		branch = "master"
+	}
+
 	logger.Info("pulling from remote")
-	if err := gitService.Pull(dataDir, "origin", "master"); err != nil {
+	if err := gitService.Pull(ctx, dataDir, "origin", branch); err != nil {
 		return err
 	}
 

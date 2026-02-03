@@ -94,17 +94,23 @@ func (s *Service) IsRepository(path string) (bool, error) {
 	return info.IsDir(), nil
 }
 
-func (s *Service) Init(path string) error {
-	cmd := s.newGitCmd(context.Background(), path, "init")
+func (s *Service) Init(ctx context.Context, path string) error {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	cmd := s.newGitCmd(ctx, path, "init")
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return fmt.Errorf("git init timed out after 30s")
+		}
 		return fmt.Errorf("git init failed: %w: %s", err, stderr.String())
 	}
 
-	s.ensureLFConfig(path)
+	s.ensureLFConfig(ctx, path)
 	return nil
 }
 
@@ -123,14 +129,14 @@ func (s *Service) CreateGitIgnore(path string, patterns []string) error {
 	return nil
 }
 
-func (s *Service) AddAll(path string) error {
+func (s *Service) AddAll(ctx context.Context, path string) error {
 	if err := s.validateRepoPath(path); err != nil {
 		return fmt.Errorf("git add: %w", err)
 	}
 
-	s.ensureLFConfig(path)
+	s.ensureLFConfig(ctx, path)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	logger.WithField("path", path).Debug("git add: staging all changes")
@@ -161,10 +167,10 @@ func (s *Service) AddAll(path string) error {
 	return nil
 }
 
-func (s *Service) Commit(path, message string) error {
-	s.ensureLFConfig(path)
+func (s *Service) Commit(ctx context.Context, path, message string) error {
+	s.ensureLFConfig(ctx, path)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	cmd := s.newGitCmd(ctx, path, "commit", "-m", message)
@@ -194,18 +200,24 @@ func (s *Service) Commit(path, message string) error {
 	return nil
 }
 
-func (s *Service) SetRemote(path, name, url string) error {
-	s.ensureLFConfig(path)
+func (s *Service) SetRemote(ctx context.Context, path, name, url string) error {
+	s.ensureLFConfig(ctx, path)
 
-	cmd := s.newGitCmd(context.Background(), path, "remote", "add", name, url)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	cmd := s.newGitCmd(ctx, path, "remote", "add", name, url)
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return fmt.Errorf("git remote add timed out")
+		}
 		errMsg := stderr.String()
 		if strings.Contains(errMsg, "already exists") {
-			cmd = s.newGitCmd(context.Background(), path, "remote", "set-url", name, url)
+			cmd = s.newGitCmd(ctx, path, "remote", "set-url", name, url)
 			cmd.Stderr = &stderr
 			if err := cmd.Run(); err != nil {
 				return fmt.Errorf("git remote set-url failed: %w: %s", err, stderr.String())
@@ -218,10 +230,10 @@ func (s *Service) SetRemote(path, name, url string) error {
 	return nil
 }
 
-func (s *Service) Push(path, remote, branch string) error {
-	s.ensureLFConfig(path)
+func (s *Service) Push(ctx context.Context, path, remote, branch string) error {
+	s.ensureLFConfig(ctx, path)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	cmd := s.newGitCmd(ctx, path, "push", remote, branch)
@@ -242,14 +254,14 @@ func (s *Service) Push(path, remote, branch string) error {
 	return nil
 }
 
-func (s *Service) Fetch(path, remote string) error {
+func (s *Service) Fetch(ctx context.Context, path, remote string) error {
 	if err := s.validateRepoPath(path); err != nil {
 		return fmt.Errorf("git fetch: %w", err)
 	}
 
-	s.ensureLFConfig(path)
+	s.ensureLFConfig(ctx, path)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	logger.WithFields(map[string]any{
@@ -275,12 +287,12 @@ func (s *Service) Fetch(path, remote string) error {
 	return nil
 }
 
-func (s *Service) HasRemote(path, remote string) (bool, error) {
+func (s *Service) HasRemote(ctx context.Context, path, remote string) (bool, error) {
 	if err := s.validateRepoPath(path); err != nil {
 		return false, fmt.Errorf("git remote: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	cmd := s.newGitCmd(ctx, path, "remote", "get-url", remote)
@@ -301,12 +313,12 @@ func (s *Service) HasRemote(path, remote string) (bool, error) {
 	return true, nil
 }
 
-func (s *Service) GetCurrentBranch(path string) (string, error) {
+func (s *Service) GetCurrentBranch(ctx context.Context, path string) (string, error) {
 	if err := s.validateRepoPath(path); err != nil {
 		return "", fmt.Errorf("git branch: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	cmd := s.newGitCmd(ctx, path, "rev-parse", "--abbrev-ref", "HEAD")
@@ -322,12 +334,12 @@ func (s *Service) GetCurrentBranch(path string) (string, error) {
 	return strings.TrimSpace(stdout.String()), nil
 }
 
-func (s *Service) GetLastCommitHash(path string) (string, error) {
+func (s *Service) GetLastCommitHash(ctx context.Context, path string) (string, error) {
 	if err := s.validateRepoPath(path); err != nil {
 		return "", fmt.Errorf("git log: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	cmd := s.newGitCmd(ctx, path, "rev-parse", "--short", "HEAD")
@@ -348,10 +360,10 @@ func (s *Service) GetLastCommitHash(path string) (string, error) {
 	return strings.TrimSpace(stdout.String()), nil
 }
 
-func (s *Service) Pull(path, remote, branch string) error {
-	s.ensureLFConfig(path)
+func (s *Service) Pull(ctx context.Context, path, remote, branch string) error {
+	s.ensureLFConfig(ctx, path)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	cmd := s.newGitCmd(ctx, path, "pull", remote, branch)
@@ -390,10 +402,10 @@ func (s *Service) Pull(path, remote, branch string) error {
 	return nil
 }
 
-func (s *Service) GetStatus(path string) (*Status, error) {
-	s.ensureLFConfig(path)
+func (s *Service) GetStatus(ctx context.Context, path string) (*Status, error) {
+	s.ensureLFConfig(ctx, path)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	cmd := s.newGitCmd(ctx, path, "status", "--porcelain")
@@ -449,7 +461,7 @@ func (s *Service) GetStatus(path string) (*Status, error) {
 	return status, nil
 }
 
-func (s *Service) ensureLFConfig(path string) {
+func (s *Service) ensureLFConfig(ctx context.Context, path string) {
 	cleanPath := filepath.Clean(path)
 	if cleanPath == "" {
 		return
@@ -466,19 +478,25 @@ func (s *Service) ensureLFConfig(path string) {
 	}
 
 	for _, cfg := range configs {
-		if err := s.setGitConfig(cleanPath, cfg[0], cfg[1]); err != nil {
+		if err := s.setGitConfig(ctx, cleanPath, cfg[0], cfg[1]); err != nil {
 			logger.WithError(err).Warnf("failed to set git config %s", cfg[0])
 		}
 	}
 }
 
-func (s *Service) setGitConfig(path, key, value string) error {
-	cmd := s.newGitCmd(context.Background(), path, "config", key, value)
+func (s *Service) setGitConfig(ctx context.Context, path, key, value string) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	cmd := s.newGitCmd(ctx, path, "config", key, value)
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return fmt.Errorf("git config %s timed out", key)
+		}
 		return fmt.Errorf("git config %s failed: %w: %s", key, err, strings.TrimSpace(stderr.String()))
 	}
 

@@ -1,6 +1,7 @@
 package migration
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -269,7 +270,7 @@ func (m *mockGitService) IsRepository(path string) (bool, error) {
 	return false, nil
 }
 
-func (m *mockGitService) Init(path string) error {
+func (m *mockGitService) Init(_ context.Context, path string) error {
 	m.initCalled = true
 	return nil
 }
@@ -279,11 +280,11 @@ func (m *mockGitService) CreateGitIgnore(path string, patterns []string) error {
 	return nil
 }
 
-func (m *mockGitService) AddAll(path string) error {
+func (m *mockGitService) AddAll(_ context.Context, path string) error {
 	return nil
 }
 
-func (m *mockGitService) Commit(path, message string) error {
+func (m *mockGitService) Commit(_ context.Context, path, message string) error {
 	m.commitCalled = true
 	return nil
 }

@@ -1,6 +1,7 @@
 package git
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -36,7 +37,7 @@ func TestIsRepository(t *testing.T) {
 	t.Run("is a repository after init", func(t *testing.T) {
 		skipIfNoGit(t)
 
-		err := service.Init(tempDir)
+		err := service.Init(context.Background(), tempDir)
 		require.NoError(t, err)
 
 		isRepo, err := service.IsRepository(tempDir)
@@ -50,9 +51,10 @@ func TestInit(t *testing.T) {
 
 	service := NewService()
 	tempDir := t.TempDir()
+	ctx := context.Background()
 
 	t.Run("initialize repository", func(t *testing.T) {
-		err := service.Init(tempDir)
+		err := service.Init(ctx, tempDir)
 		require.NoError(t, err)
 
 		gitDir := filepath.Join(tempDir, ".git")
@@ -60,7 +62,7 @@ func TestInit(t *testing.T) {
 	})
 
 	t.Run("init already initialized repo", func(t *testing.T) {
-		err := service.Init(tempDir)
+		err := service.Init(ctx, tempDir)
 		assert.NoError(t, err)
 	})
 }
@@ -70,8 +72,9 @@ func TestCreateGitIgnore(t *testing.T) {
 
 	service := NewService()
 	tempDir := t.TempDir()
+	ctx := context.Background()
 
-	err := service.Init(tempDir)
+	err := service.Init(ctx, tempDir)
 	require.NoError(t, err)
 
 	t.Run("create gitignore", func(t *testing.T) {
@@ -101,8 +104,9 @@ func TestAddAll(t *testing.T) {
 
 	service := NewService()
 	tempDir := t.TempDir()
+	ctx := context.Background()
 
-	err := service.Init(tempDir)
+	err := service.Init(ctx, tempDir)
 	require.NoError(t, err)
 
 	configureGitUser(t, tempDir)
@@ -112,7 +116,7 @@ func TestAddAll(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("add all files", func(t *testing.T) {
-		err := service.AddAll(tempDir)
+		err := service.AddAll(ctx, tempDir)
 		require.NoError(t, err)
 
 		status, err := getGitStatus(tempDir)
@@ -126,8 +130,9 @@ func TestCommit(t *testing.T) {
 
 	service := NewService()
 	tempDir := t.TempDir()
+	ctx := context.Background()
 
-	err := service.Init(tempDir)
+	err := service.Init(ctx, tempDir)
 	require.NoError(t, err)
 
 	configureGitUser(t, tempDir)
@@ -136,11 +141,11 @@ func TestCommit(t *testing.T) {
 	err = os.WriteFile(testFile, []byte("test content"), 0644)
 	require.NoError(t, err)
 
-	err = service.AddAll(tempDir)
+	err = service.AddAll(ctx, tempDir)
 	require.NoError(t, err)
 
 	t.Run("commit changes", func(t *testing.T) {
-		err := service.Commit(tempDir, "test commit")
+		err := service.Commit(ctx, tempDir, "test commit")
 		require.NoError(t, err)
 
 		log, err := getGitLog(tempDir)
@@ -149,7 +154,7 @@ func TestCommit(t *testing.T) {
 	})
 
 	t.Run("commit with no changes", func(t *testing.T) {
-		err := service.Commit(tempDir, "another commit")
+		err := service.Commit(ctx, tempDir, "another commit")
 		assert.Error(t, err)
 	})
 }
@@ -159,12 +164,13 @@ func TestSetRemote(t *testing.T) {
 
 	service := NewService()
 	tempDir := t.TempDir()
+	ctx := context.Background()
 
-	err := service.Init(tempDir)
+	err := service.Init(ctx, tempDir)
 	require.NoError(t, err)
 
 	t.Run("set remote", func(t *testing.T) {
-		err := service.SetRemote(tempDir, "origin", "https://github.com/user/repo.git")
+		err := service.SetRemote(ctx, tempDir, "origin", "https://github.com/user/repo.git")
 		require.NoError(t, err)
 
 		remotes, err := getGitRemotes(tempDir)
@@ -183,12 +189,13 @@ func TestPush(t *testing.T) {
 
 	service := NewService()
 	tempDir := t.TempDir()
+	ctx := context.Background()
 
-	err := service.Init(tempDir)
+	err := service.Init(ctx, tempDir)
 	require.NoError(t, err)
 
 	t.Run("push without remote fails", func(t *testing.T) {
-		err := service.Push(tempDir, "origin", "master")
+		err := service.Push(ctx, tempDir, "origin", "master")
 		assert.Error(t, err)
 	})
 }
@@ -198,14 +205,15 @@ func TestGetStatus(t *testing.T) {
 
 	service := NewService()
 	tempDir := t.TempDir()
+	ctx := context.Background()
 
-	err := service.Init(tempDir)
+	err := service.Init(ctx, tempDir)
 	require.NoError(t, err)
 
 	configureGitUser(t, tempDir)
 
 	t.Run("clean status", func(t *testing.T) {
-		status, err := service.GetStatus(tempDir)
+		status, err := service.GetStatus(ctx, tempDir)
 		require.NoError(t, err)
 		assert.NotNil(t, status)
 		assert.True(t, status.Clean)
@@ -218,7 +226,7 @@ func TestGetStatus(t *testing.T) {
 		err = os.WriteFile(testFile, []byte("test content"), 0644)
 		require.NoError(t, err)
 
-		status, err := service.GetStatus(tempDir)
+		status, err := service.GetStatus(ctx, tempDir)
 		require.NoError(t, err)
 		assert.False(t, status.Clean)
 		assert.Contains(t, status.Untracked, "test.txt")
@@ -272,8 +280,9 @@ func TestGetCurrentBranch(t *testing.T) {
 
 	service := NewService()
 	tempDir := t.TempDir()
+	ctx := context.Background()
 
-	err := service.Init(tempDir)
+	err := service.Init(ctx, tempDir)
 	require.NoError(t, err)
 
 	configureGitUser(t, tempDir)
@@ -282,13 +291,13 @@ func TestGetCurrentBranch(t *testing.T) {
 	testFile := filepath.Join(tempDir, "test.txt")
 	err = os.WriteFile(testFile, []byte("test content"), 0644)
 	require.NoError(t, err)
-	err = service.AddAll(tempDir)
+	err = service.AddAll(ctx, tempDir)
 	require.NoError(t, err)
-	err = service.Commit(tempDir, "initial commit")
+	err = service.Commit(ctx, tempDir, "initial commit")
 	require.NoError(t, err)
 
 	t.Run("get current branch", func(t *testing.T) {
-		branch, err := service.GetCurrentBranch(tempDir)
+		branch, err := service.GetCurrentBranch(ctx, tempDir)
 		require.NoError(t, err)
 		// Could be "master" or "main" depending on git config
 		assert.True(t, branch == "master" || branch == "main", "Expected master or main, got: %s", branch)
@@ -300,21 +309,22 @@ func TestHasRemote(t *testing.T) {
 
 	service := NewService()
 	tempDir := t.TempDir()
+	ctx := context.Background()
 
-	err := service.Init(tempDir)
+	err := service.Init(ctx, tempDir)
 	require.NoError(t, err)
 
 	t.Run("no remote", func(t *testing.T) {
-		hasRemote, err := service.HasRemote(tempDir, "origin")
+		hasRemote, err := service.HasRemote(ctx, tempDir, "origin")
 		require.NoError(t, err)
 		assert.False(t, hasRemote)
 	})
 
 	t.Run("with remote", func(t *testing.T) {
-		err := service.SetRemote(tempDir, "origin", "https://github.com/user/repo.git")
+		err := service.SetRemote(ctx, tempDir, "origin", "https://github.com/user/repo.git")
 		require.NoError(t, err)
 
-		hasRemote, err := service.HasRemote(tempDir, "origin")
+		hasRemote, err := service.HasRemote(ctx, tempDir, "origin")
 		require.NoError(t, err)
 		assert.True(t, hasRemote)
 	})
@@ -325,14 +335,15 @@ func TestGetLastCommitHash(t *testing.T) {
 
 	service := NewService()
 	tempDir := t.TempDir()
+	ctx := context.Background()
 
-	err := service.Init(tempDir)
+	err := service.Init(ctx, tempDir)
 	require.NoError(t, err)
 
 	configureGitUser(t, tempDir)
 
 	t.Run("no commits yet", func(t *testing.T) {
-		hash, err := service.GetLastCommitHash(tempDir)
+		hash, err := service.GetLastCommitHash(ctx, tempDir)
 		require.NoError(t, err)
 		assert.Empty(t, hash)
 	})
@@ -341,12 +352,12 @@ func TestGetLastCommitHash(t *testing.T) {
 		testFile := filepath.Join(tempDir, "test.txt")
 		err = os.WriteFile(testFile, []byte("test content"), 0644)
 		require.NoError(t, err)
-		err = service.AddAll(tempDir)
+		err = service.AddAll(ctx, tempDir)
 		require.NoError(t, err)
-		err = service.Commit(tempDir, "test commit")
+		err = service.Commit(ctx, tempDir, "test commit")
 		require.NoError(t, err)
 
-		hash, err := service.GetLastCommitHash(tempDir)
+		hash, err := service.GetLastCommitHash(ctx, tempDir)
 		require.NoError(t, err)
 		assert.NotEmpty(t, hash)
 		assert.Len(t, hash, 7) // Short hash is typically 7 characters
@@ -358,12 +369,13 @@ func TestFetch(t *testing.T) {
 
 	service := NewService()
 	tempDir := t.TempDir()
+	ctx := context.Background()
 
-	err := service.Init(tempDir)
+	err := service.Init(ctx, tempDir)
 	require.NoError(t, err)
 
 	t.Run("fetch without remote fails", func(t *testing.T) {
-		err := service.Fetch(tempDir, "origin")
+		err := service.Fetch(ctx, tempDir, "origin")
 		assert.Error(t, err)
 	})
 }
@@ -394,15 +406,16 @@ func TestAddAllWithPathValidation(t *testing.T) {
 	skipIfNoGit(t)
 
 	service := NewService()
+	ctx := context.Background()
 
 	t.Run("fails with empty path", func(t *testing.T) {
-		err := service.AddAll("")
+		err := service.AddAll(ctx, "")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "empty")
 	})
 
 	t.Run("fails with non-existent path", func(t *testing.T) {
-		err := service.AddAll("/non/existent/path")
+		err := service.AddAll(ctx, "/non/existent/path")
 		assert.Error(t, err)
 	})
 }

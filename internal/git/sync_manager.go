@@ -1,6 +1,7 @@
 package git
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"sync"
@@ -26,6 +27,7 @@ type SyncManager struct {
 	ticker         *time.Ticker
 	done           chan struct{}
 	closed         atomic.Bool
+	syncing        atomic.Bool // prevents concurrent sync operations
 }
 
 func NewSyncManager(db *sql.DB) *SyncManager {
@@ -60,6 +62,13 @@ func (sm *SyncManager) runLoop() {
 }
 
 func (sm *SyncManager) checkAndSync() {
+	// Prevent concurrent sync operations
+	if !sm.syncing.CompareAndSwap(false, true) {
+		logger.Debug("auto-sync: sync already in progress, skipping")
+		return
+	}
+	defer sm.syncing.Store(false)
+
 	gitCfg := config.GetGitSyncConfig()
 	if !gitCfg.Enabled || !gitCfg.AutoCommit {
 		return
@@ -73,7 +82,9 @@ func (sm *SyncManager) checkAndSync() {
 	hasPending := sm.hasPending
 	timeSinceLastCommit := time.Since(sm.lastCommitTime)
 	commitInterval := time.Duration(gitCfg.CommitInterval) * time.Minute
-	reasons := sm.reasons
+	// Deep copy reasons slice to avoid race condition
+	reasons := make([]string, len(sm.reasons))
+	copy(reasons, sm.reasons)
 	sm.mu.Unlock()
 
 	if !hasPending {
@@ -126,6 +137,10 @@ func (sm *SyncManager) performSync(reasons []string) {
 		return
 	}
 
+	// Create a context with timeout for the entire sync operation
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
 	dataDir := config.GetDataDirectory()
 
 	isRepo, err := sm.gitService.IsRepository(dataDir)
@@ -137,16 +152,20 @@ func (sm *SyncManager) performSync(reasons []string) {
 		return
 	}
 
-	branch, err := sm.gitService.GetCurrentBranch(dataDir)
+	branch, err := sm.gitService.GetCurrentBranch(ctx, dataDir)
 	if err != nil {
 		logger.WithError(err).Debug("auto-sync: could not determine branch, using master")
 		branch = "master"
 	}
 
-	hasRemote, _ := sm.gitService.HasRemote(dataDir, "origin")
+	hasRemote, err := sm.gitService.HasRemote(ctx, dataDir, "origin")
+	if err != nil {
+		logger.WithError(err).Debug("auto-sync: failed to check remote, assuming none")
+		hasRemote = false
+	}
 
 	if hasRemote {
-		if err := sm.gitService.Fetch(dataDir, "origin"); err != nil {
+		if err := sm.gitService.Fetch(ctx, dataDir, "origin"); err != nil {
 			logger.WithField("error", err).Debug("auto-sync: fetch failed, continuing")
 		}
 	}
@@ -167,12 +186,12 @@ func (sm *SyncManager) performSync(reasons []string) {
 		}
 	}
 
-	if err := sm.gitService.AddAll(dataDir); err != nil {
+	if err := sm.gitService.AddAll(ctx, dataDir); err != nil {
 		logger.WithField("error", err).Warn("auto-sync: git add failed")
 		return
 	}
 
-	status, err := sm.gitService.GetStatus(dataDir)
+	status, err := sm.gitService.GetStatus(ctx, dataDir)
 	if err != nil {
 		logger.WithField("error", err).Warn("auto-sync: failed to read git status after staging")
 		return
@@ -193,7 +212,7 @@ func (sm *SyncManager) performSync(reasons []string) {
 	}).Debug("auto-sync: git status after staging")
 
 	commitMsg := sm.buildCommitMessage(reasons)
-	if err := sm.gitService.Commit(dataDir, commitMsg); err != nil {
+	if err := sm.gitService.Commit(ctx, dataDir, commitMsg); err != nil {
 		if err.Error() == "nothing to commit" {
 			logger.Debug("auto-sync: nothing to commit")
 			sm.clearPendingState(false)
@@ -205,7 +224,7 @@ func (sm *SyncManager) performSync(reasons []string) {
 
 	sm.clearPendingState(true)
 
-	commitHash, _ := sm.gitService.GetLastCommitHash(dataDir)
+	commitHash, _ := sm.gitService.GetLastCommitHash(ctx, dataDir)
 	logger.WithFields(map[string]any{
 		"operations": len(reasons),
 		"files":      filesChanged,
@@ -216,7 +235,7 @@ func (sm *SyncManager) performSync(reasons []string) {
 	gitCfg := config.GetGitSyncConfig()
 	if gitCfg.AutoPush && hasRemote {
 		logger.Debug("auto-sync: pushing to remote")
-		if err := sm.gitService.Push(dataDir, "origin", branch); err != nil {
+		if err := sm.gitService.Push(ctx, dataDir, "origin", branch); err != nil {
 			logger.WithField("error", err).Warn("auto-sync: push failed (commit was successful locally)")
 		} else {
 			logger.WithFields(map[string]any{
@@ -322,8 +341,17 @@ func (sm *SyncManager) HasPendingChanges() bool {
 }
 
 func (sm *SyncManager) ForceSync() {
+	// Prevent concurrent sync operations
+	if !sm.syncing.CompareAndSwap(false, true) {
+		logger.Debug("force-sync: sync already in progress, skipping")
+		return
+	}
+	defer sm.syncing.Store(false)
+
 	sm.mu.Lock()
-	reasons := sm.reasons
+	// Deep copy reasons slice to avoid race condition
+	reasons := make([]string, len(sm.reasons))
+	copy(reasons, sm.reasons)
 	sm.mu.Unlock()
 
 	if len(reasons) > 0 {

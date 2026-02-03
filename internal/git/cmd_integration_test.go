@@ -1,6 +1,7 @@
 package git
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -14,6 +15,7 @@ func TestServiceCommandsUseHideConsoleWindow(t *testing.T) {
 	// Create a temporary directory for testing
 	tmpDir := t.TempDir()
 	service := NewService()
+	ctx := context.Background()
 
 	t.Run("Init command works with hidden console", func(t *testing.T) {
 		testDir := filepath.Join(tmpDir, "test-init")
@@ -22,7 +24,7 @@ func TestServiceCommandsUseHideConsoleWindow(t *testing.T) {
 		}
 
 		// This internally calls hideConsoleWindow
-		err := service.Init(testDir)
+		err := service.Init(ctx, testDir)
 		if err != nil {
 			t.Fatalf("Init failed: %v", err)
 		}
@@ -44,7 +46,7 @@ func TestServiceCommandsUseHideConsoleWindow(t *testing.T) {
 		}
 
 		// Initialize repo
-		if err := service.Init(testDir); err != nil {
+		if err := service.Init(ctx, testDir); err != nil {
 			t.Fatal(err)
 		}
 
@@ -55,13 +57,13 @@ func TestServiceCommandsUseHideConsoleWindow(t *testing.T) {
 		}
 
 		// This internally calls hideConsoleWindow
-		err := service.AddAll(testDir)
+		err := service.AddAll(ctx, testDir)
 		if err != nil {
 			t.Fatalf("AddAll failed: %v", err)
 		}
 
 		// Verify file was staged
-		status, err := service.GetStatus(testDir)
+		status, err := service.GetStatus(ctx, testDir)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -77,7 +79,7 @@ func TestServiceCommandsUseHideConsoleWindow(t *testing.T) {
 		}
 
 		// Initialize repo and create a file
-		if err := service.Init(testDir); err != nil {
+		if err := service.Init(ctx, testDir); err != nil {
 			t.Fatal(err)
 		}
 
@@ -89,18 +91,18 @@ func TestServiceCommandsUseHideConsoleWindow(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if err := service.AddAll(testDir); err != nil {
+		if err := service.AddAll(ctx, testDir); err != nil {
 			t.Fatal(err)
 		}
 
 		// This internally calls hideConsoleWindow
-		err := service.Commit(testDir, "Test commit")
+		err := service.Commit(ctx, testDir, "Test commit")
 		if err != nil {
 			t.Fatalf("Commit failed: %v", err)
 		}
 
 		// Verify repository is clean after commit
-		status, err := service.GetStatus(testDir)
+		status, err := service.GetStatus(ctx, testDir)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -115,18 +117,18 @@ func TestServiceCommandsUseHideConsoleWindow(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if err := service.Init(testDir); err != nil {
+		if err := service.Init(ctx, testDir); err != nil {
 			t.Fatal(err)
 		}
 
 		// This internally calls hideConsoleWindow
-		err := service.SetRemote(testDir, "origin", "https://github.com/test/repo.git")
+		err := service.SetRemote(ctx, testDir, "origin", "https://github.com/test/repo.git")
 		if err != nil {
 			t.Fatalf("SetRemote failed: %v", err)
 		}
 
 		// Update the remote (tests the set-url path which also uses hideConsoleWindow)
-		err = service.SetRemote(testDir, "origin", "https://github.com/test/repo2.git")
+		err = service.SetRemote(ctx, testDir, "origin", "https://github.com/test/repo2.git")
 		if err != nil {
 			t.Fatalf("SetRemote (update) failed: %v", err)
 		}
@@ -138,12 +140,12 @@ func TestServiceCommandsUseHideConsoleWindow(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if err := service.Init(testDir); err != nil {
+		if err := service.Init(ctx, testDir); err != nil {
 			t.Fatal(err)
 		}
 
 		// This internally calls hideConsoleWindow
-		status, err := service.GetStatus(testDir)
+		status, err := service.GetStatus(ctx, testDir)
 		if err != nil {
 			t.Fatalf("GetStatus failed: %v", err)
 		}

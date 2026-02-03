@@ -1,6 +1,7 @@
 package git
 
 import (
+	"context"
 	"database/sql"
 	"os"
 	"os/exec"
@@ -553,8 +554,9 @@ func TestSyncManager_LoadsLastCommitTimeOnStartup(t *testing.T) {
 func setupGitRepo(t *testing.T, repoPath string) {
 	t.Helper()
 
+	ctx := context.Background()
 	gitService := NewService()
-	require.NoError(t, gitService.Init(repoPath))
+	require.NoError(t, gitService.Init(ctx, repoPath))
 
 	cmd := exec.Command("git", "config", "user.email", "test@example.com")
 	cmd.Dir = repoPath
@@ -567,8 +569,8 @@ func setupGitRepo(t *testing.T, repoPath string) {
 	initialFile := filepath.Join(repoPath, "README.md")
 	require.NoError(t, os.WriteFile(initialFile, []byte("# Test Repo"), 0644))
 
-	require.NoError(t, gitService.AddAll(repoPath))
-	require.NoError(t, gitService.Commit(repoPath, "initial commit"))
+	require.NoError(t, gitService.AddAll(ctx, repoPath))
+	require.NoError(t, gitService.Commit(ctx, repoPath, "initial commit"))
 }
 
 func TestSyncManager_BackupBeforeSync(t *testing.T) {
