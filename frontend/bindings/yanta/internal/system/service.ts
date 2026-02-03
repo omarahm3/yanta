@@ -100,7 +100,7 @@ export function GetShowFooterHints(): $CancellablePromise<boolean> {
  * GetShowShortcutTooltips returns the current shortcut tooltips visibility setting.
  */
 export function GetShowShortcutTooltips(): $CancellablePromise<boolean> {
-    return $Call.ByName("yanta/internal/system.Service.GetShowShortcutTooltips");
+    return $Call.ByID(1811891940);
 }
 
 /**
@@ -194,7 +194,7 @@ export function SetShowFooterHints(show: boolean): $CancellablePromise<void> {
  * SetShowShortcutTooltips updates the shortcut tooltips visibility setting.
  */
 export function SetShowShortcutTooltips(show: boolean): $CancellablePromise<void> {
-    return $Call.ByName("yanta/internal/system.Service.SetShowShortcutTooltips", show);
+    return $Call.ByID(2030692744, show);
 }
 
 export function SetShutdownHandler(handler: any): $CancellablePromise<void> {
