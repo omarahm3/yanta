@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { vi, describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HelpModal } from "../components/ui/HelpModal";
 
 const closeHelp = vi.fn();
@@ -43,13 +43,11 @@ describe("HelpModal keyboard navigation", () => {
 
 		const sectionHeaders = screen.getAllByRole("button");
 		const sectionButton = sectionHeaders.find((btn) =>
-			btn.getAttribute("aria-controls")?.startsWith("help-section-content-")
+			btn.getAttribute("aria-controls")?.startsWith("help-section-content-"),
 		);
 
 		expect(sectionButton).toBeDefined();
-		expect(sectionButton?.getAttribute("aria-controls")).toMatch(
-			/^help-section-content-/
-		);
+		expect(sectionButton?.getAttribute("aria-controls")).toMatch(/^help-section-content-/);
 	});
 
 	it("toggles section with Enter key", () => {
@@ -58,7 +56,7 @@ describe("HelpModal keyboard navigation", () => {
 		// Find the first section header button
 		const sectionHeaders = screen.getAllByRole("button");
 		const sectionButton = sectionHeaders.find((btn) =>
-			btn.getAttribute("aria-controls")?.startsWith("help-section-content-")
+			btn.getAttribute("aria-controls")?.startsWith("help-section-content-"),
 		);
 
 		expect(sectionButton).toBeDefined();
@@ -84,7 +82,7 @@ describe("HelpModal keyboard navigation", () => {
 		// Find the first section header button
 		const sectionHeaders = screen.getAllByRole("button");
 		const sectionButton = sectionHeaders.find((btn) =>
-			btn.getAttribute("aria-controls")?.startsWith("help-section-content-")
+			btn.getAttribute("aria-controls")?.startsWith("help-section-content-"),
 		);
 
 		expect(sectionButton).toBeDefined();

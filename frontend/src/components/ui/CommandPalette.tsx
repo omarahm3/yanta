@@ -1,8 +1,6 @@
 import { ArrowLeft } from "lucide-react";
 import type React from "react";
 import { useCallback, useMemo } from "react";
-
-import { getCommandIdForKeyboardEvent } from "../../utils/shortcuts";
 import {
 	CommandDialog,
 	CommandEmpty,
@@ -12,6 +10,7 @@ import {
 	CommandList,
 	CommandShortcut,
 } from "@/components/ui/command";
+import { getCommandIdForKeyboardEvent } from "../../utils/shortcuts";
 
 export interface CommandOption {
 	id: string;
@@ -186,11 +185,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 							<CommandEmpty>No items found.</CommandEmpty>
 							<CommandGroup>
 								{subPaletteItems.map((item) => (
-									<CommandItem
-										key={item.id}
-										value={item.text}
-										onSelect={() => handleSubPaletteSelect(item)}
-									>
+									<CommandItem key={item.id} value={item.text} onSelect={() => handleSubPaletteSelect(item)}>
 										{item.icon && <span className="w-5">{item.icon}</span>}
 										<span className="flex-1">{item.text}</span>
 										{item.hint && <CommandShortcut>{item.hint}</CommandShortcut>}
@@ -206,7 +201,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 									{groupCmds.map((command) => (
 										<CommandItem
 											key={command.id}
-											value={[command.text, ...(command.keywords || []), command.shortcut].filter(Boolean).join(" ")}
+											value={[command.text, ...(command.keywords || []), command.shortcut]
+												.filter(Boolean)
+												.join(" ")}
 											keywords={command.hint ? [command.hint] : undefined}
 											onSelect={() => handleSelect(command)}
 										>

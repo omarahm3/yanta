@@ -1,17 +1,15 @@
 import { act, renderHook } from "@testing-library/react";
-import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-	useMilestoneHints,
-	MILESTONE_HINTS,
 	MILESTONE_HINT_IDS,
+	MILESTONE_HINTS,
 	type MilestoneHintId,
+	useMilestoneHints,
 } from "../useMilestoneHints";
 import type { UserProgressData } from "../useUserProgress";
 
 describe("useMilestoneHints", () => {
-	const createMockProgressData = (
-		overrides: Partial<UserProgressData> = {},
-	): UserProgressData => ({
+	const createMockProgressData = (overrides: Partial<UserProgressData> = {}): UserProgressData => ({
 		documentsCreated: 0,
 		journalEntriesCreated: 0,
 		projectsSwitched: 0,
@@ -55,45 +53,45 @@ describe("useMilestoneHints", () => {
 			const hint = MILESTONE_HINTS.find((h) => h.id === "first-save");
 			expect(hint).toBeDefined();
 
-			expect(hint!.shouldShow(createMockProgressData({ documentsCreated: 0 }))).toBe(false);
-			expect(hint!.shouldShow(createMockProgressData({ documentsCreated: 1 }))).toBe(true);
-			expect(hint!.shouldShow(createMockProgressData({ documentsCreated: 2 }))).toBe(false);
+			expect(hint?.shouldShow(createMockProgressData({ documentsCreated: 0 }))).toBe(false);
+			expect(hint?.shouldShow(createMockProgressData({ documentsCreated: 1 }))).toBe(true);
+			expect(hint?.shouldShow(createMockProgressData({ documentsCreated: 2 }))).toBe(false);
 		});
 
 		it("recent-docs hint triggers on 5+ documents", () => {
 			const hint = MILESTONE_HINTS.find((h) => h.id === "recent-docs");
 			expect(hint).toBeDefined();
 
-			expect(hint!.shouldShow(createMockProgressData({ documentsCreated: 4 }))).toBe(false);
-			expect(hint!.shouldShow(createMockProgressData({ documentsCreated: 5 }))).toBe(true);
-			expect(hint!.shouldShow(createMockProgressData({ documentsCreated: 100 }))).toBe(true);
+			expect(hint?.shouldShow(createMockProgressData({ documentsCreated: 4 }))).toBe(false);
+			expect(hint?.shouldShow(createMockProgressData({ documentsCreated: 5 }))).toBe(true);
+			expect(hint?.shouldShow(createMockProgressData({ documentsCreated: 100 }))).toBe(true);
 		});
 
 		it("journal-nav hint triggers on exactly 1 journal entry", () => {
 			const hint = MILESTONE_HINTS.find((h) => h.id === "journal-nav");
 			expect(hint).toBeDefined();
 
-			expect(hint!.shouldShow(createMockProgressData({ journalEntriesCreated: 0 }))).toBe(false);
-			expect(hint!.shouldShow(createMockProgressData({ journalEntriesCreated: 1 }))).toBe(true);
-			expect(hint!.shouldShow(createMockProgressData({ journalEntriesCreated: 2 }))).toBe(false);
+			expect(hint?.shouldShow(createMockProgressData({ journalEntriesCreated: 0 }))).toBe(false);
+			expect(hint?.shouldShow(createMockProgressData({ journalEntriesCreated: 1 }))).toBe(true);
+			expect(hint?.shouldShow(createMockProgressData({ journalEntriesCreated: 2 }))).toBe(false);
 		});
 
 		it("journal-select hint triggers on 10+ journal entries", () => {
 			const hint = MILESTONE_HINTS.find((h) => h.id === "journal-select");
 			expect(hint).toBeDefined();
 
-			expect(hint!.shouldShow(createMockProgressData({ journalEntriesCreated: 9 }))).toBe(false);
-			expect(hint!.shouldShow(createMockProgressData({ journalEntriesCreated: 10 }))).toBe(true);
-			expect(hint!.shouldShow(createMockProgressData({ journalEntriesCreated: 50 }))).toBe(true);
+			expect(hint?.shouldShow(createMockProgressData({ journalEntriesCreated: 9 }))).toBe(false);
+			expect(hint?.shouldShow(createMockProgressData({ journalEntriesCreated: 10 }))).toBe(true);
+			expect(hint?.shouldShow(createMockProgressData({ journalEntriesCreated: 50 }))).toBe(true);
 		});
 
 		it("quick-switch hint triggers on exactly 1 project switch", () => {
 			const hint = MILESTONE_HINTS.find((h) => h.id === "quick-switch");
 			expect(hint).toBeDefined();
 
-			expect(hint!.shouldShow(createMockProgressData({ projectsSwitched: 0 }))).toBe(false);
-			expect(hint!.shouldShow(createMockProgressData({ projectsSwitched: 1 }))).toBe(true);
-			expect(hint!.shouldShow(createMockProgressData({ projectsSwitched: 2 }))).toBe(false);
+			expect(hint?.shouldShow(createMockProgressData({ projectsSwitched: 0 }))).toBe(false);
+			expect(hint?.shouldShow(createMockProgressData({ projectsSwitched: 1 }))).toBe(true);
+			expect(hint?.shouldShow(createMockProgressData({ projectsSwitched: 2 }))).toBe(false);
 		});
 
 		it("each hint has correct text", () => {
@@ -383,7 +381,9 @@ describe("useMilestoneHints", () => {
 
 		it("returns empty array when all hints have been shown", () => {
 			const mocks = createMockFunctions();
-			MILESTONE_HINTS.forEach((h) => mocks.shownHints.add(h.id));
+			MILESTONE_HINTS.forEach((h) => {
+				mocks.shownHints.add(h.id);
+			});
 
 			const { result } = renderHook(() =>
 				useMilestoneHints({

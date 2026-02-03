@@ -16,10 +16,8 @@
  * Document creation from Document page would be via command palette or navigation.
  */
 
-import { renderHook, act } from "@testing-library/react";
-import React from "react";
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import type { Mock } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HotkeyConfig } from "../types/hotkeys";
 
 // ============================================
@@ -535,7 +533,12 @@ describe("Document Context Shortcuts - Context Isolation", () => {
 		 * are registered at the same time.
 		 */
 		const escapeUsages = [
-			{ context: "document", description: "Navigate back when editor is not focused", capture: false, priority: undefined },
+			{
+				context: "document",
+				description: "Navigate back when editor is not focused",
+				capture: false,
+				priority: undefined,
+			},
 			{ context: "search", description: "Unfocus/clear", capture: false, priority: undefined },
 		];
 
@@ -605,7 +608,7 @@ describe("Document Context Shortcuts - Registration Lifecycle", () => {
 
 	it("should register hotkeys on Document mount", () => {
 		const mockRegister = vi.fn().mockReturnValue("hotkey-1");
-		const mockUnregister = vi.fn();
+		const _mockUnregister = vi.fn();
 
 		// Simulate what useHotkeys does when Document mounts
 		const documentHotkeys: HotkeyConfig[] = [
@@ -633,7 +636,9 @@ describe("Document Context Shortcuts - Registration Lifecycle", () => {
 		const ids = documentHotkeys.map((config) => mockRegister(config));
 
 		// Simulate unmount - unregister hotkeys
-		ids.forEach((id) => mockUnregister(id));
+		ids.forEach((id) => {
+			mockUnregister(id);
+		});
 
 		expect(mockUnregister).toHaveBeenCalledTimes(2);
 	});

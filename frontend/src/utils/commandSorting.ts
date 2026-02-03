@@ -1,5 +1,5 @@
-import type { CommandUsageRecord } from "../hooks/useCommandUsage";
 import type { CommandOption } from "../components/ui/CommandPalette";
+import type { CommandUsageRecord } from "../hooks/useCommandUsage";
 
 /**
  * Time constants for recency scoring
@@ -55,11 +55,7 @@ function calculateFrequencyScore(useCount: number): number {
 /**
  * Calculate total usage score for a command.
  */
-function calculateUsageScore(
-	commandId: string,
-	usage: CommandUsageRecord,
-	now: number,
-): number {
+function calculateUsageScore(commandId: string, usage: CommandUsageRecord, now: number): number {
 	const usageData = usage[commandId];
 	if (!usageData) {
 		return 0;
@@ -153,10 +149,7 @@ export function getRecentlyUsedCommands(
  * @param usage - The command usage record
  * @returns True if the command was used within the last hour
  */
-export function isRecentlyUsed(
-	commandId: string,
-	usage: CommandUsageRecord,
-): boolean {
+export function isRecentlyUsed(commandId: string, usage: CommandUsageRecord): boolean {
 	const usageData = usage[commandId];
 	if (!usageData) {
 		return false;
@@ -172,10 +165,7 @@ export function isRecentlyUsed(
  * @param limit - Maximum number of command IDs to return (default: 5)
  * @returns Set of command IDs that should show the recent indicator
  */
-export function getTopRecentCommandIds(
-	usage: CommandUsageRecord,
-	limit = 5,
-): Set<string> {
+export function getTopRecentCommandIds(usage: CommandUsageRecord, limit = 5): Set<string> {
 	const now = Date.now();
 
 	// Get all entries used within the last hour (session-level recency)

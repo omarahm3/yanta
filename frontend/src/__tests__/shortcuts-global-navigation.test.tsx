@@ -17,7 +17,7 @@
  */
 
 import { act, render, screen, waitFor } from "@testing-library/react";
-import React from "react";
+import type React from "react";
 import { vi } from "vitest";
 import type { HotkeyContextValue } from "../types/hotkeys";
 
@@ -51,7 +51,7 @@ vi.mock("../components/ui/ResizeHandles", () => ({
 
 const mockNavigate = vi.fn();
 const commandPaletteRender = vi.fn();
-let mockCommandPaletteOpen = false;
+const __mockCommandPaletteOpen = false;
 
 vi.mock("../components", async () => {
 	const actual = await vi.importActual<typeof import("../components")>("../components");
@@ -60,13 +60,17 @@ vi.mock("../components", async () => {
 		GlobalCommandPalette: (props: {
 			isOpen: boolean;
 			onClose: () => void;
-			onNavigate: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
+			onNavigate: (
+				page: string,
+				state?: Record<string, string | number | boolean | undefined>,
+			) => void;
 		}) => {
-			mockCommandPaletteOpen = props.isOpen;
+			_mockCommandPaletteOpen = props.isOpen;
 			commandPaletteRender(props);
 			// Expose navigate for tests
 			if (props.isOpen) {
-				(window as unknown as { __testNavigate: typeof props.onNavigate }).__testNavigate = props.onNavigate;
+				(window as unknown as { __testNavigate: typeof props.onNavigate }).__testNavigate =
+					props.onNavigate;
 			}
 			return (
 				<div data-testid="command-palette" data-open={props.isOpen}>
@@ -166,14 +170,13 @@ import App from "../App";
 // Test Utilities
 // ============================================
 
-const findHotkey = (key: string): ReturnType<HotkeyContextValue["getRegisteredHotkeys"]>[0] | undefined => {
+const findHotkey = (
+	key: string,
+): ReturnType<HotkeyContextValue["getRegisteredHotkeys"]>[0] | undefined => {
 	return capturedHotkeyContext?.getRegisteredHotkeys().find((h) => h.key === key);
 };
 
-const triggerHotkey = async (
-	key: string,
-	event: Partial<KeyboardEvent> = {},
-): Promise<void> => {
+const triggerHotkey = async (key: string, event: Partial<KeyboardEvent> = {}): Promise<void> => {
 	const hotkey = findHotkey(key);
 	if (!hotkey) {
 		throw new Error(`Hotkey "${key}" not found in registered hotkeys`);
@@ -195,7 +198,7 @@ describe("Global Navigation Shortcuts", () => {
 		mockNavigate.mockClear();
 		commandPaletteRender.mockClear();
 		capturedHotkeyContext = null;
-		mockCommandPaletteOpen = false;
+		_mockCommandPaletteOpen = false;
 	});
 
 	describe("Command Palette (Ctrl+K / mod+K)", () => {
@@ -278,7 +281,7 @@ describe("Global Navigation Shortcuts", () => {
 			expect(hotkey).toBeDefined();
 			expect(hotkey?.description).toBe("Jump to today's journal");
 
-			const today = new Date().toISOString().split("T")[0];
+			const _today = new Date().toISOString().split("T")[0];
 
 			await act(async () => {
 				const event = new KeyboardEvent("keydown", { key: "t", ctrlKey: true });
@@ -512,7 +515,8 @@ describe("Command Palette Navigation Commands", () => {
 		// We verify the palette renders with the navigate callback
 		await triggerHotkey("mod+K", { ctrlKey: true });
 
-		const paletteProps = commandPaletteRender.mock.calls[commandPaletteRender.mock.calls.length - 1][0];
+		const paletteProps =
+			commandPaletteRender.mock.calls[commandPaletteRender.mock.calls.length - 1][0];
 		expect(paletteProps.onNavigate).toBeDefined();
 		expect(typeof paletteProps.onNavigate).toBe("function");
 	});

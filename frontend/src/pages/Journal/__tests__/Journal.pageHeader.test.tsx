@@ -1,6 +1,5 @@
 import { render, screen } from "@testing-library/react";
 import { BookOpen } from "lucide-react";
-import type React from "react";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -46,11 +45,7 @@ describe("Journal page header visual elements", () => {
 			<div className="p-4 border-b border-border">
 				<div className="flex items-center justify-between mb-3">
 					<div className="flex items-center gap-2" data-testid="header-container">
-						<BookOpen
-							className="w-5 h-5"
-							style={{ color: "var(--mode-accent)" }}
-							aria-hidden="true"
-						/>
+						<BookOpen className="w-5 h-5" style={{ color: "var(--mode-accent)" }} aria-hidden="true" />
 						<h1 className="text-lg font-semibold">Journal</h1>
 					</div>
 					<span className="text-sm text-text-dim">personal</span>

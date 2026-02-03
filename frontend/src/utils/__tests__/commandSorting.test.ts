@@ -1,12 +1,12 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-	sortCommandsByUsage,
-	getRecentlyUsedCommands,
-	isRecentlyUsed,
-	getTopRecentCommandIds,
-} from "../commandSorting";
-import type { CommandUsageRecord } from "../../hooks/useCommandUsage";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CommandOption } from "../../components/ui/CommandPalette";
+import type { CommandUsageRecord } from "../../hooks/useCommandUsage";
+import {
+	getRecentlyUsedCommands,
+	getTopRecentCommandIds,
+	isRecentlyUsed,
+	sortCommandsByUsage,
+} from "../commandSorting";
 
 // Helper to create a mock command
 function createCommand(id: string, group?: string): CommandOption {
@@ -37,11 +37,7 @@ describe("sortCommandsByUsage", () => {
 	});
 
 	it("returns commands in original order when no usage data exists", () => {
-		const commands = [
-			createCommand("cmd-a"),
-			createCommand("cmd-b"),
-			createCommand("cmd-c"),
-		];
+		const commands = [createCommand("cmd-a"), createCommand("cmd-b"), createCommand("cmd-c")];
 		const usage: CommandUsageRecord = {};
 
 		const sorted = sortCommandsByUsage(commands, usage);
@@ -50,11 +46,7 @@ describe("sortCommandsByUsage", () => {
 	});
 
 	it("boosts recently used commands to the top", () => {
-		const commands = [
-			createCommand("cmd-a"),
-			createCommand("cmd-b"),
-			createCommand("cmd-c"),
-		];
+		const commands = [createCommand("cmd-a"), createCommand("cmd-b"), createCommand("cmd-c")];
 		const usage: CommandUsageRecord = {
 			"cmd-c": { lastUsed: now - 5 * 60 * 1000, useCount: 1 }, // 5 minutes ago
 		};
@@ -65,11 +57,7 @@ describe("sortCommandsByUsage", () => {
 	});
 
 	it("prioritizes more recently used commands over older ones", () => {
-		const commands = [
-			createCommand("cmd-a"),
-			createCommand("cmd-b"),
-			createCommand("cmd-c"),
-		];
+		const commands = [createCommand("cmd-a"), createCommand("cmd-b"), createCommand("cmd-c")];
 		const usage: CommandUsageRecord = {
 			"cmd-a": { lastUsed: now - 2 * DAY_MS, useCount: 1 }, // 2 days ago
 			"cmd-b": { lastUsed: now - 30 * 60 * 1000, useCount: 1 }, // 30 minutes ago
@@ -83,10 +71,7 @@ describe("sortCommandsByUsage", () => {
 	});
 
 	it("factors in frequency when recency is similar", () => {
-		const commands = [
-			createCommand("cmd-a"),
-			createCommand("cmd-b"),
-		];
+		const commands = [createCommand("cmd-a"), createCommand("cmd-b")];
 		const usage: CommandUsageRecord = {
 			// Both used within the same time bracket (last hour)
 			"cmd-a": { lastUsed: now - 10 * 60 * 1000, useCount: 2 },
@@ -100,10 +85,7 @@ describe("sortCommandsByUsage", () => {
 	});
 
 	it("caps frequency boost to prevent domination", () => {
-		const commands = [
-			createCommand("cmd-a"),
-			createCommand("cmd-b"),
-		];
+		const commands = [createCommand("cmd-a"), createCommand("cmd-b")];
 		const usage: CommandUsageRecord = {
 			// cmd-a: used recently with moderate frequency
 			"cmd-a": { lastUsed: now - 5 * 60 * 1000, useCount: 5 },
@@ -118,11 +100,7 @@ describe("sortCommandsByUsage", () => {
 	});
 
 	it("preserves original order for commands with equal scores", () => {
-		const commands = [
-			createCommand("cmd-a"),
-			createCommand("cmd-b"),
-			createCommand("cmd-c"),
-		];
+		const commands = [createCommand("cmd-a"), createCommand("cmd-b"), createCommand("cmd-c")];
 		// All commands have equal usage data
 		const usage: CommandUsageRecord = {
 			"cmd-a": { lastUsed: now - 5 * 60 * 1000, useCount: 3 },
@@ -137,10 +115,7 @@ describe("sortCommandsByUsage", () => {
 	});
 
 	it("does not mutate the original commands array", () => {
-		const commands = [
-			createCommand("cmd-a"),
-			createCommand("cmd-b"),
-		];
+		const commands = [createCommand("cmd-a"), createCommand("cmd-b")];
 		const originalOrder = [...commands];
 		const usage: CommandUsageRecord = {
 			"cmd-b": { lastUsed: now - 5 * 60 * 1000, useCount: 1 },
@@ -163,11 +138,7 @@ describe("sortCommandsByUsage", () => {
 	});
 
 	it("handles commands with mixed usage data (some with, some without)", () => {
-		const commands = [
-			createCommand("cmd-a"),
-			createCommand("cmd-b"),
-			createCommand("cmd-c"),
-		];
+		const commands = [createCommand("cmd-a"), createCommand("cmd-b"), createCommand("cmd-c")];
 		const usage: CommandUsageRecord = {
 			"cmd-b": { lastUsed: now - 5 * 60 * 1000, useCount: 1 },
 		};
@@ -203,11 +174,7 @@ describe("getRecentlyUsedCommands", () => {
 	});
 
 	it("returns commands used within the last week", () => {
-		const commands = [
-			createCommand("cmd-a"),
-			createCommand("cmd-b"),
-			createCommand("cmd-c"),
-		];
+		const commands = [createCommand("cmd-a"), createCommand("cmd-b"), createCommand("cmd-c")];
 		const usage: CommandUsageRecord = {
 			"cmd-a": { lastUsed: now - 2 * DAY_MS, useCount: 1 }, // 2 days ago (include)
 			"cmd-b": { lastUsed: now - 2 * WEEK_MS, useCount: 1 }, // 2 weeks ago (exclude)
@@ -222,11 +189,7 @@ describe("getRecentlyUsedCommands", () => {
 	});
 
 	it("sorts by most recently used first", () => {
-		const commands = [
-			createCommand("cmd-a"),
-			createCommand("cmd-b"),
-			createCommand("cmd-c"),
-		];
+		const commands = [createCommand("cmd-a"), createCommand("cmd-b"), createCommand("cmd-c")];
 		const usage: CommandUsageRecord = {
 			"cmd-a": { lastUsed: now - 3 * DAY_MS, useCount: 1 },
 			"cmd-b": { lastUsed: now - HOUR_MS, useCount: 1 },
@@ -261,9 +224,7 @@ describe("getRecentlyUsedCommands", () => {
 	});
 
 	it("uses default limit of 5", () => {
-		const commands = Array.from({ length: 10 }, (_, i) =>
-			createCommand(`cmd-${i}`),
-		);
+		const commands = Array.from({ length: 10 }, (_, i) => createCommand(`cmd-${i}`));
 		const usage: CommandUsageRecord = {};
 		commands.forEach((cmd, i) => {
 			usage[cmd.id] = { lastUsed: now - i * HOUR_MS, useCount: 1 };

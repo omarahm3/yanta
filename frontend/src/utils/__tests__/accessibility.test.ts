@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { announceForScreenReaders, _resetLiveRegion } from "../accessibility";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { _resetLiveRegion, announceForScreenReaders } from "../accessibility";
 
 describe("announceForScreenReaders", () => {
 	beforeEach(() => {

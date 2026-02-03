@@ -612,7 +612,7 @@ describe("Shortcut Conflict Detection", () => {
 		const globalShortcuts = allShortcuts.filter((s) => isGlobalContext(s.context));
 		const groupedByKey = groupByKey(globalShortcuts);
 
-		for (const [key, shortcuts] of groupedByKey) {
+		for (const [_key, shortcuts] of groupedByKey) {
 			const actions = shortcuts.map((s) => s.description);
 			const uniqueActions = new Set(actions);
 
@@ -666,7 +666,16 @@ describe("Shortcut Conflict Detection", () => {
 		);
 
 		// Check that mod+ is used for common cross-platform shortcuts
-		const crossPlatformKeys = ["mod+k", "mod+t", "mod+s", "mod+n", "mod+e", "mod+a", "mod+u", "mod+d"];
+		const crossPlatformKeys = [
+			"mod+k",
+			"mod+t",
+			"mod+s",
+			"mod+n",
+			"mod+e",
+			"mod+a",
+			"mod+u",
+			"mod+d",
+		];
 
 		for (const expectedKey of crossPlatformKeys) {
 			const found = allShortcuts.some((s) => normalizeKey(s.key) === expectedKey);
@@ -693,7 +702,6 @@ describe("Shortcut Conflict Detection", () => {
 		expect(contexts.has("layout")).toBe(false);
 		expect(contexts.has("document")).toBe(true);
 	});
-
 });
 
 describe("Platform-Specific Shortcut Resolution", () => {
@@ -771,7 +779,9 @@ describe("Shortcut Coverage Validation", () => {
 		// Document operations
 		expect(descriptions.some((d) => d.includes("save"))).toBe(true);
 		expect(descriptions.some((d) => d.includes("export"))).toBe(true);
-		expect(descriptions.some((d) => d.includes("new document") || d.includes("create document"))).toBe(true);
+		expect(
+			descriptions.some((d) => d.includes("new document") || d.includes("create document")),
+		).toBe(true);
 
 		// List navigation
 		expect(descriptions.some((d) => d.includes("next") || d.includes("down"))).toBe(true);

@@ -16,12 +16,12 @@ describe("useFooterHints", () => {
 
 		it("includes navigation hint for dashboard", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "dashboard" }));
-			expect(result.current.hints.some(h => h.key === "↑↓" && h.label === "Navigate")).toBe(true);
+			expect(result.current.hints.some((h) => h.key === "↑↓" && h.label === "Navigate")).toBe(true);
 		});
 
 		it("includes new document hint for dashboard", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "dashboard" }));
-			expect(result.current.hints.some(h => h.key === "Ctrl+N" && h.label === "New")).toBe(true);
+			expect(result.current.hints.some((h) => h.key === "Ctrl+N" && h.label === "New")).toBe(true);
 		});
 	});
 
@@ -37,12 +37,12 @@ describe("useFooterHints", () => {
 
 		it("includes save hint for document", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "document" }));
-			expect(result.current.hints.some(h => h.key === "Ctrl+S" && h.label === "Save")).toBe(true);
+			expect(result.current.hints.some((h) => h.key === "Ctrl+S" && h.label === "Save")).toBe(true);
 		});
 
 		it("includes back/escape hint for document", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "document" }));
-			expect(result.current.hints.some(h => h.key === "Esc" && h.label === "Back")).toBe(true);
+			expect(result.current.hints.some((h) => h.key === "Esc" && h.label === "Back")).toBe(true);
 		});
 	});
 
@@ -59,12 +59,12 @@ describe("useFooterHints", () => {
 
 		it("includes date change hint for journal", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "journal" }));
-			expect(result.current.hints.some(h => h.key === "←→" && h.label === "Change date")).toBe(true);
+			expect(result.current.hints.some((h) => h.key === "←→" && h.label === "Change date")).toBe(true);
 		});
 
 		it("includes today shortcut hint for journal", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "journal" }));
-			expect(result.current.hints.some(h => h.key === "Ctrl+T" && h.label === "Today")).toBe(true);
+			expect(result.current.hints.some((h) => h.key === "Ctrl+T" && h.label === "Today")).toBe(true);
 		});
 	});
 
@@ -81,7 +81,7 @@ describe("useFooterHints", () => {
 
 		it("includes clear hint for search", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "search" }));
-			expect(result.current.hints.some(h => h.key === "Esc" && h.label === "Clear")).toBe(true);
+			expect(result.current.hints.some((h) => h.key === "Esc" && h.label === "Clear")).toBe(true);
 		});
 	});
 
@@ -96,7 +96,7 @@ describe("useFooterHints", () => {
 
 		it("includes back hint for settings", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "settings" }));
-			expect(result.current.hints.some(h => h.key === "Esc" && h.label === "Back")).toBe(true);
+			expect(result.current.hints.some((h) => h.key === "Esc" && h.label === "Back")).toBe(true);
 		});
 	});
 
@@ -125,18 +125,27 @@ describe("useFooterHints", () => {
 	describe("Test page hints", () => {
 		it("returns correct hints for test", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "test" }));
-			expect(result.current.hints).toEqual([
-				{ key: "Ctrl+K", label: "Commands", priority: 1 },
-			]);
+			expect(result.current.hints).toEqual([{ key: "Ctrl+K", label: "Commands", priority: 1 }]);
 		});
 	});
 
 	describe("Commands hint (Ctrl+K)", () => {
 		it("always includes Ctrl+K Commands hint in all pages", () => {
-			const pages = ["dashboard", "document", "journal", "search", "settings", "projects", "quick-capture", "test"];
+			const pages = [
+				"dashboard",
+				"document",
+				"journal",
+				"search",
+				"settings",
+				"projects",
+				"quick-capture",
+				"test",
+			];
 			for (const page of pages) {
 				const { result } = renderHook(() => useFooterHints({ currentPage: page }));
-				expect(result.current.hints.some(h => h.key === "Ctrl+K" && h.label === "Commands")).toBe(true);
+				expect(result.current.hints.some((h) => h.key === "Ctrl+K" && h.label === "Commands")).toBe(
+					true,
+				);
 			}
 		});
 	});
@@ -144,35 +153,29 @@ describe("useFooterHints", () => {
 	describe("Unknown page handling", () => {
 		it("returns default hints for unknown page", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "unknown-page" }));
-			expect(result.current.hints).toEqual([
-				{ key: "Ctrl+K", label: "Commands", priority: 1 },
-			]);
+			expect(result.current.hints).toEqual([{ key: "Ctrl+K", label: "Commands", priority: 1 }]);
 		});
 
 		it("returns default hints for empty page string", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "" }));
-			expect(result.current.hints).toEqual([
-				{ key: "Ctrl+K", label: "Commands", priority: 1 },
-			]);
+			expect(result.current.hints).toEqual([{ key: "Ctrl+K", label: "Commands", priority: 1 }]);
 		});
 	});
 
 	describe("Memoization", () => {
 		it("returns same hints object when page does not change", () => {
-			const { result, rerender } = renderHook(
-				({ currentPage }) => useFooterHints({ currentPage }),
-				{ initialProps: { currentPage: "dashboard" } }
-			);
+			const { result, rerender } = renderHook(({ currentPage }) => useFooterHints({ currentPage }), {
+				initialProps: { currentPage: "dashboard" },
+			});
 			const firstHints = result.current.hints;
 			rerender({ currentPage: "dashboard" });
 			expect(result.current.hints).toBe(firstHints);
 		});
 
 		it("returns new hints object when page changes", () => {
-			const { result, rerender } = renderHook(
-				({ currentPage }) => useFooterHints({ currentPage }),
-				{ initialProps: { currentPage: "dashboard" } }
-			);
+			const { result, rerender } = renderHook(({ currentPage }) => useFooterHints({ currentPage }), {
+				initialProps: { currentPage: "dashboard" },
+			});
 			const firstHints = result.current.hints;
 			rerender({ currentPage: "document" });
 			expect(result.current.hints).not.toBe(firstHints);
@@ -224,15 +227,22 @@ describe("getHintsForPage", () => {
 	});
 
 	it("returns default hints for unknown page", () => {
-		expect(getHintsForPage("unknown")).toEqual([
-			{ key: "Ctrl+K", label: "Commands", priority: 1 },
-		]);
+		expect(getHintsForPage("unknown")).toEqual([{ key: "Ctrl+K", label: "Commands", priority: 1 }]);
 	});
 });
 
 describe("Priority assignments", () => {
 	it("assigns priority 1 to Ctrl+K on all pages", () => {
-		const pages = ["dashboard", "document", "journal", "search", "settings", "projects", "quick-capture", "test"];
+		const pages = [
+			"dashboard",
+			"document",
+			"journal",
+			"search",
+			"settings",
+			"projects",
+			"quick-capture",
+			"test",
+		];
 		for (const page of pages) {
 			const hints = getHintsForPage(page);
 			const ctrlKHint = hints.find((h) => h.key === "Ctrl+K");

@@ -1,6 +1,6 @@
-import { act, renderHook } from "@testing-library/react";
-import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
-import { useCommandDeprecation, DEPRECATED_COMMAND_MAPPINGS } from "../useCommandDeprecation";
+import { renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DEPRECATED_COMMAND_MAPPINGS, useCommandDeprecation } from "../useCommandDeprecation";
 
 const mockInfo = vi.fn();
 
@@ -152,8 +152,8 @@ describe("useCommandDeprecation", () => {
 
 		it("shows shorter reminder when user has seen warning in previous session", () => {
 			// Simulate previous session warning
-			localStorageStore["yanta_command_line_deprecation_warned"] = "true";
-			sessionStorageStore["yanta_command_line_deprecation_session"] = "shown";
+			localStorageStore.yanta_command_line_deprecation_warned = "true";
+			sessionStorageStore.yanta_command_line_deprecation_session = "shown";
 
 			const { result } = renderHook(() => useCommandDeprecation());
 
@@ -203,7 +203,7 @@ describe("useCommandDeprecation", () => {
 
 			result.current.checkAndWarnDeprecation(":sync");
 
-			expect(localStorageStore["yanta_command_line_deprecation_warned"]).toBe("true");
+			expect(localStorageStore.yanta_command_line_deprecation_warned).toBe("true");
 		});
 
 		it("sets sessionStorage after showing warning", () => {
@@ -211,7 +211,7 @@ describe("useCommandDeprecation", () => {
 
 			result.current.checkAndWarnDeprecation(":sync");
 
-			expect(sessionStorageStore["yanta_command_line_deprecation_session"]).toBe("shown");
+			expect(sessionStorageStore.yanta_command_line_deprecation_session).toBe("shown");
 		});
 	});
 

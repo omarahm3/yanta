@@ -1,5 +1,5 @@
-import { act, render, screen, fireEvent } from "@testing-library/react";
-import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WithTooltip } from "../WithTooltip";
 
 // Mock the useTooltipUsage hook
@@ -53,7 +53,7 @@ describe("WithTooltip", () => {
 		it("renders children correctly", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -63,7 +63,7 @@ describe("WithTooltip", () => {
 		it("does not render tooltip by default", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -73,7 +73,7 @@ describe("WithTooltip", () => {
 		it("preserves child element props", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip">
-					<button className="custom-class" data-testid="custom-btn">
+					<button type="button" className="custom-class" data-testid="custom-btn">
 						Click me
 					</button>
 				</WithTooltip>,
@@ -88,7 +88,7 @@ describe("WithTooltip", () => {
 		it("shows tooltip after hover delay (500ms)", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -115,7 +115,7 @@ describe("WithTooltip", () => {
 		it("shows tooltip after focus delay (800ms)", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -142,7 +142,7 @@ describe("WithTooltip", () => {
 		it("hides tooltip immediately on mouse leave", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -164,7 +164,7 @@ describe("WithTooltip", () => {
 		it("hides tooltip immediately on blur", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -186,7 +186,7 @@ describe("WithTooltip", () => {
 		it("cancels show timeout when mouse leaves before delay", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -211,7 +211,7 @@ describe("WithTooltip", () => {
 		it("displays description text", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Save your work">
-					<button>Save</button>
+					<button type="button">Save</button>
 				</WithTooltip>,
 			);
 
@@ -227,7 +227,7 @@ describe("WithTooltip", () => {
 		it("displays keyboard shortcut badge when provided", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Save" shortcut="Ctrl+S">
-					<button>Save</button>
+					<button type="button">Save</button>
 				</WithTooltip>,
 			);
 
@@ -244,7 +244,7 @@ describe("WithTooltip", () => {
 		it("parses multi-key shortcuts correctly", () => {
 			render(
 				<WithTooltip tooltipId="test" description="New Document" shortcut="Ctrl+Shift+N">
-					<button>New</button>
+					<button type="button">New</button>
 				</WithTooltip>,
 			);
 
@@ -262,7 +262,7 @@ describe("WithTooltip", () => {
 		it("renders tooltip without shortcut badge when shortcut not provided", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Open menu">
-					<button>Menu</button>
+					<button type="button">Menu</button>
 				</WithTooltip>,
 			);
 
@@ -286,7 +286,7 @@ describe("WithTooltip", () => {
 
 			render(
 				<WithTooltip tooltipId="faded-tooltip" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -302,7 +302,7 @@ describe("WithTooltip", () => {
 		it("calls recordTooltipView when tooltip is shown", () => {
 			render(
 				<WithTooltip tooltipId="test-tooltip" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -318,7 +318,7 @@ describe("WithTooltip", () => {
 		it("only calls recordTooltipView once per session", () => {
 			render(
 				<WithTooltip tooltipId="test-tooltip" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -348,7 +348,7 @@ describe("WithTooltip", () => {
 		it("checks shouldShowTooltip with correct tooltipId", () => {
 			render(
 				<WithTooltip tooltipId="specific-tooltip-id" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -363,7 +363,7 @@ describe("WithTooltip", () => {
 		it("does not show tooltip when disabled", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip" disabled>
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -379,7 +379,7 @@ describe("WithTooltip", () => {
 		it("does not call recordTooltipView when disabled", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip" disabled>
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -397,7 +397,7 @@ describe("WithTooltip", () => {
 		it("accepts top placement", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test" placement="top">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -413,7 +413,7 @@ describe("WithTooltip", () => {
 		it("accepts bottom placement", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test" placement="bottom">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -429,7 +429,7 @@ describe("WithTooltip", () => {
 		it("accepts left placement", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test" placement="left">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -445,7 +445,7 @@ describe("WithTooltip", () => {
 		it("accepts right placement", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test" placement="right">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -463,7 +463,7 @@ describe("WithTooltip", () => {
 		it("has role=tooltip on tooltip element", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -479,7 +479,7 @@ describe("WithTooltip", () => {
 		it("associates tooltip with trigger via aria-describedby when visible", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -497,7 +497,7 @@ describe("WithTooltip", () => {
 		it("removes aria-describedby when tooltip is hidden", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -537,7 +537,7 @@ describe("WithTooltip", () => {
 
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
@@ -559,7 +559,9 @@ describe("WithTooltip", () => {
 			const originalHandler = vi.fn();
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip">
-					<button onMouseEnter={originalHandler}>Click me</button>
+					<button type="button" onMouseEnter={originalHandler}>
+						Click me
+					</button>
 				</WithTooltip>,
 			);
 
@@ -573,7 +575,9 @@ describe("WithTooltip", () => {
 			const originalHandler = vi.fn();
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip">
-					<button onMouseLeave={originalHandler}>Click me</button>
+					<button type="button" onMouseLeave={originalHandler}>
+						Click me
+					</button>
 				</WithTooltip>,
 			);
 
@@ -587,7 +591,9 @@ describe("WithTooltip", () => {
 			const originalHandler = vi.fn();
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip">
-					<button onFocus={originalHandler}>Click me</button>
+					<button type="button" onFocus={originalHandler}>
+						Click me
+					</button>
 				</WithTooltip>,
 			);
 
@@ -601,7 +607,9 @@ describe("WithTooltip", () => {
 			const originalHandler = vi.fn();
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip">
-					<button onBlur={originalHandler}>Click me</button>
+					<button type="button" onBlur={originalHandler}>
+						Click me
+					</button>
 				</WithTooltip>,
 			);
 
@@ -616,7 +624,7 @@ describe("WithTooltip", () => {
 		it("works with button elements", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip">
-					<button>Button</button>
+					<button type="button">Button</button>
 				</WithTooltip>,
 			);
 
@@ -632,7 +640,7 @@ describe("WithTooltip", () => {
 		it("works with anchor elements", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip">
-					<a href="#">Link</a>
+					<a href="/">Link</a>
 				</WithTooltip>,
 			);
 

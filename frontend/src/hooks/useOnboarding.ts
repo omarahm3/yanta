@@ -19,7 +19,7 @@ export interface UseOnboardingReturn {
 	dismissWelcome: () => void;
 }
 
-function getDefaultOnboardingData(): OnboardingData {
+function _getDefaultOnboardingData(): OnboardingData {
 	return {
 		completedWelcome: false,
 		version: CURRENT_VERSION,
@@ -37,17 +37,11 @@ function loadOnboardingData(): OnboardingData | null {
 			return null;
 		}
 		// Validate the structure
-		if (
-			typeof parsed.completedWelcome !== "boolean" ||
-			typeof parsed.version !== "string"
-		) {
+		if (typeof parsed.completedWelcome !== "boolean" || typeof parsed.version !== "string") {
 			return null;
 		}
 		// Optional completedAt field
-		if (
-			parsed.completedAt !== undefined &&
-			typeof parsed.completedAt !== "number"
-		) {
+		if (parsed.completedAt !== undefined && typeof parsed.completedAt !== "number") {
 			return null;
 		}
 		return parsed as OnboardingData;
@@ -73,8 +67,8 @@ function clearOnboardingData(): void {
 }
 
 export function useOnboarding(): UseOnboardingReturn {
-	const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(
-		() => loadOnboardingData()
+	const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(() =>
+		loadOnboardingData(),
 	);
 	const [shouldShowWelcome, setShouldShowWelcome] = useState(false);
 	const welcomeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

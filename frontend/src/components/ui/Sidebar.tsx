@@ -36,7 +36,9 @@ export interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ sections, className }) => {
 	return (
-		<aside className={cn("h-full w-48 bg-surface border-r border-border p-5 overflow-y-auto", className)}>
+		<aside
+			className={cn("h-full w-48 bg-surface border-r border-border p-5 overflow-y-auto", className)}
+		>
 			<div className="mb-8 flex items-center justify-center">
 				<img src={logoImage} alt="YANTA" className="h-12 w-auto object-contain" />
 			</div>

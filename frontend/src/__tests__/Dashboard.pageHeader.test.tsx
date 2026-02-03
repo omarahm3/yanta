@@ -1,6 +1,5 @@
 import { render, screen } from "@testing-library/react";
 import { FileText } from "lucide-react";
-import type React from "react";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -42,11 +41,7 @@ describe("Dashboard page header visual elements", () => {
 		const TestComponent = () => (
 			<div className="p-4 border-b border-border">
 				<div className="flex items-center gap-2" data-testid="header-container">
-					<FileText
-						className="w-5 h-5"
-						style={{ color: "var(--mode-accent)" }}
-						aria-hidden="true"
-					/>
+					<FileText className="w-5 h-5" style={{ color: "var(--mode-accent)" }} aria-hidden="true" />
 					<h1 className="text-lg font-semibold">Documents</h1>
 				</div>
 			</div>

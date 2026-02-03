@@ -71,8 +71,7 @@ export function getCommandIdForKeyboardEvent(event: KeyboardEvent): CommandId | 
 	const mod = event.ctrlKey || event.metaKey;
 	for (const [id, mapping] of Object.entries(COMMAND_SHORTCUTS) as [CommandId, ShortcutMapping][]) {
 		const modMatch = mapping.ctrlKey ? mod : !mod;
-		const shiftMatch =
-			mapping.shiftKey === undefined ? true : !!mapping.shiftKey === event.shiftKey;
+		const shiftMatch = mapping.shiftKey === undefined ? true : !!mapping.shiftKey === event.shiftKey;
 		const keyMatch =
 			event.key.toUpperCase() === mapping.key ||
 			(event.key === "?" && mapping.key === "?") ||

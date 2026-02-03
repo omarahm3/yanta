@@ -114,5 +114,4 @@ describe("Layout hotkeys", () => {
 		// Verify toggleSidebar was called
 		expect(mockToggleSidebar).toHaveBeenCalledTimes(1);
 	});
-
 });

@@ -40,9 +40,9 @@ import {
 import { useDocumentContext } from "../contexts/DocumentContext";
 import { useProjectContext } from "../contexts/ProjectContext";
 import { useCommandUsage } from "../hooks/useCommandUsage";
-import { getTopRecentCommandIds, sortCommandsByUsage } from "../utils/commandSorting";
 import { useNotification } from "../hooks/useNotification";
 import { useRecentDocuments } from "../hooks/useRecentDocuments";
+import { getTopRecentCommandIds, sortCommandsByUsage } from "../utils/commandSorting";
 import { formatRelativeTimeFromTimestamp } from "../utils/dateUtils";
 import { type ParsedGitError, parseGitError } from "../utils/gitErrorParser";
 import { getShortcutForCommand } from "../utils/shortcuts";
@@ -69,7 +69,8 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 	onToggleSidebar,
 	onShowHelp,
 }) => {
-	const { projects, currentProject, setCurrentProject, previousProject, switchToLastProject } = useProjectContext();
+	const { projects, currentProject, setCurrentProject, previousProject, switchToLastProject } =
+		useProjectContext();
 	const { getSelectedDocument } = useDocumentContext();
 	const notification = useNotification();
 	const { recentDocuments } = useRecentDocuments();

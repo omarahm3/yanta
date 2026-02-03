@@ -64,17 +64,13 @@ const HINT_CONFIGS: Record<PageContext, FooterHint[]> = {
 		{ key: "Esc", label: "Cancel", priority: 2 },
 		{ key: "Ctrl+K", label: "Commands", priority: 1 },
 	],
-	test: [
-		{ key: "Ctrl+K", label: "Commands", priority: 1 },
-	],
+	test: [{ key: "Ctrl+K", label: "Commands", priority: 1 }],
 };
 
 /**
  * Default hints shown when page context is unknown
  */
-const DEFAULT_HINTS: FooterHint[] = [
-	{ key: "Ctrl+K", label: "Commands", priority: 1 },
-];
+const DEFAULT_HINTS: FooterHint[] = [{ key: "Ctrl+K", label: "Commands", priority: 1 }];
 
 export interface UseFooterHintsOptions {
 	/**

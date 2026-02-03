@@ -2,6 +2,7 @@
  * Utils - Re-export all utility functions
  */
 
+export { announceForScreenReaders } from "./accessibility";
 export {
 	blocksFromJson,
 	blocksToJson,
@@ -11,13 +12,11 @@ export {
 	isEmptyContent,
 	removeHashtags,
 } from "./blocknote";
-
 export { getProjectAliasColor } from "./colorUtils";
-export { formatRelativeTime, formatShortDate } from "./dateUtils";
-export { getShortcutForCommand } from "./shortcuts";
-export { announceForScreenReaders } from "./accessibility";
 export {
-	sortCommandsByUsage,
 	getRecentlyUsedCommands,
 	isRecentlyUsed,
+	sortCommandsByUsage,
 } from "./commandSorting";
+export { formatRelativeTime, formatShortDate } from "./dateUtils";
+export { getShortcutForCommand } from "./shortcuts";

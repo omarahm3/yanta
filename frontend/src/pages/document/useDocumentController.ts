@@ -393,7 +393,16 @@ export function useDocumentController({
 				description: "Focus editor when unfocused",
 			},
 		],
-		[saveNow, error, focusEditor, handleEscape, handleUnfocus, isArchived, handleExportToMarkdown, handleExportToPDF],
+		[
+			saveNow,
+			error,
+			focusEditor,
+			handleEscape,
+			handleUnfocus,
+			isArchived,
+			handleExportToMarkdown,
+			handleExportToPDF,
+		],
 	);
 
 	return {

@@ -1,5 +1,5 @@
-import { act, render, screen, fireEvent } from "@testing-library/react";
-import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Sidebar, type SidebarSection } from "../Sidebar";
 
 // Mock the useTooltipUsage hook
@@ -172,9 +172,10 @@ describe("Sidebar", () => {
 
 			const searchItem = screen.getByText("search").closest("li");
 			expect(searchItem).toBeInTheDocument();
+			if (!searchItem) throw new Error("search item not found");
 
 			// Hover over the search item
-			fireEvent.mouseEnter(searchItem!);
+			fireEvent.mouseEnter(searchItem);
 
 			// Advance timers past the hover delay
 			act(() => {
@@ -190,7 +191,8 @@ describe("Sidebar", () => {
 			render(<Sidebar sections={sectionsWithTooltips} />);
 
 			const journalItem = screen.getByText("journal").closest("li");
-			fireEvent.mouseEnter(journalItem!);
+			if (!journalItem) throw new Error("journal item not found");
+			fireEvent.mouseEnter(journalItem);
 
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY + 10);
@@ -205,7 +207,8 @@ describe("Sidebar", () => {
 			render(<Sidebar sections={sectionsWithTooltips} />);
 
 			const searchItem = screen.getByText("search").closest("li");
-			fireEvent.mouseEnter(searchItem!);
+			if (!searchItem) throw new Error("search item not found");
+			fireEvent.mouseEnter(searchItem);
 
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY + 10);
@@ -214,7 +217,7 @@ describe("Sidebar", () => {
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
 
 			// Leave the item
-			fireEvent.mouseLeave(searchItem!);
+			fireEvent.mouseLeave(searchItem);
 
 			// Tooltip should be hidden
 			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
@@ -224,7 +227,8 @@ describe("Sidebar", () => {
 			render(<Sidebar sections={sectionsWithTooltips} />);
 
 			const dashboardItem = screen.getByText("dashboard").closest("li");
-			fireEvent.mouseEnter(dashboardItem!);
+			if (!dashboardItem) throw new Error("dashboard item not found");
+			fireEvent.mouseEnter(dashboardItem);
 
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY + 10);
@@ -240,7 +244,8 @@ describe("Sidebar", () => {
 			render(<Sidebar sections={sectionsWithTooltips} />);
 
 			const searchItem = screen.getByText("search").closest("li");
-			fireEvent.mouseEnter(searchItem!);
+			if (!searchItem) throw new Error("search item not found");
+			fireEvent.mouseEnter(searchItem);
 
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY + 10);
@@ -254,7 +259,8 @@ describe("Sidebar", () => {
 			render(<Sidebar sections={sectionsWithTooltips} />);
 
 			const journalItem = screen.getByText("journal").closest("li");
-			fireEvent.mouseEnter(journalItem!);
+			if (!journalItem) throw new Error("journal item not found");
+			fireEvent.mouseEnter(journalItem);
 
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY + 10);

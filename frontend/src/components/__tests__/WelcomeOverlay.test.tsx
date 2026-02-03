@@ -1,5 +1,5 @@
-import { render, screen, fireEvent, act } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WelcomeOverlay } from "../WelcomeOverlay";
 
 const STORAGE_KEY = "yanta_onboarding";
@@ -100,7 +100,9 @@ describe("WelcomeOverlay", () => {
 				vi.advanceTimersByTime(500);
 			});
 
-			expect(screen.getByText("The command palette shows keyboard shortcuts for each action.")).toBeInTheDocument();
+			expect(
+				screen.getByText("The command palette shows keyboard shortcuts for each action."),
+			).toBeInTheDocument();
 		});
 
 		it("displays the dismiss button", () => {
@@ -228,11 +230,7 @@ describe("WelcomeOverlay", () => {
 
 			fireEvent.click(screen.getByTestId("welcome-dismiss-button"));
 
-			expect(removeEventListenerSpy).toHaveBeenCalledWith(
-				"keydown",
-				expect.any(Function),
-				true
-			);
+			expect(removeEventListenerSpy).toHaveBeenCalledWith("keydown", expect.any(Function), true);
 
 			removeEventListenerSpy.mockRestore();
 		});
@@ -248,11 +246,7 @@ describe("WelcomeOverlay", () => {
 
 			unmount();
 
-			expect(removeEventListenerSpy).toHaveBeenCalledWith(
-				"keydown",
-				expect.any(Function),
-				true
-			);
+			expect(removeEventListenerSpy).toHaveBeenCalledWith("keydown", expect.any(Function), true);
 
 			removeEventListenerSpy.mockRestore();
 		});

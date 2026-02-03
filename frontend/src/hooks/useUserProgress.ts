@@ -40,12 +40,10 @@ function loadProgressData(): UserProgressData {
 		}
 		// Validate and merge with defaults for forward compatibility
 		return {
-			documentsCreated:
-				typeof parsed.documentsCreated === "number" ? parsed.documentsCreated : 0,
+			documentsCreated: typeof parsed.documentsCreated === "number" ? parsed.documentsCreated : 0,
 			journalEntriesCreated:
 				typeof parsed.journalEntriesCreated === "number" ? parsed.journalEntriesCreated : 0,
-			projectsSwitched:
-				typeof parsed.projectsSwitched === "number" ? parsed.projectsSwitched : 0,
+			projectsSwitched: typeof parsed.projectsSwitched === "number" ? parsed.projectsSwitched : 0,
 			hintsShown: Array.isArray(parsed.hintsShown) ? parsed.hintsShown : [],
 		};
 	} catch {

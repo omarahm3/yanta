@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { vi, describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useFooterHintsSetting } from "../useFooterHintsSetting";
 
 const mockGetShowFooterHints = vi.fn();

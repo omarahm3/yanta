@@ -31,10 +31,6 @@ export const MilestoneHintManager: React.FC = () => {
 	}
 
 	return (
-		<MilestoneHint
-			hintId={currentHint.id}
-			text={currentHint.text}
-			onDismiss={dismissCurrentHint}
-		/>
+		<MilestoneHint hintId={currentHint.id} text={currentHint.text} onDismiss={dismissCurrentHint} />
 	);
 };

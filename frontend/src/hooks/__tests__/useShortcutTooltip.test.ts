@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useShortcutTooltip } from "../useShortcutTooltip";
 
 // Mock the useTooltipUsage hook

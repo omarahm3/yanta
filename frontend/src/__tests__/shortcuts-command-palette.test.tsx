@@ -12,9 +12,9 @@
  * not opening multiple instances.
  */
 
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import React from "react";
+import type { Mock } from "vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type CommandOption, CommandPalette } from "../components/ui/CommandPalette";
 
@@ -106,13 +106,13 @@ const waitForOptions = async () => {
 
 describe("Command Palette Shortcuts", () => {
 	let mockCommands: CommandOption[];
-	let onClose: ReturnType<typeof vi.fn>;
-	let onCommandSelect: ReturnType<typeof vi.fn>;
+	let onClose: Mock<() => void>;
+	let onCommandSelect: Mock<(command: CommandOption) => void>;
 
 	beforeEach(() => {
 		mockCommands = createMockCommands();
-		onClose = vi.fn();
-		onCommandSelect = vi.fn();
+		onClose = vi.fn() as Mock<() => void>;
+		onCommandSelect = vi.fn() as Mock<(command: CommandOption) => void>;
 	});
 
 	afterEach(() => {
@@ -331,9 +331,11 @@ describe("Command Palette Shortcuts", () => {
 			fireEvent.keyDown(input, { key: "Enter" });
 
 			await waitFor(() => {
-				expect(onCommandSelect).toHaveBeenCalledWith(expect.objectContaining({
-					id: "nav-dashboard",
-				}));
+				expect(onCommandSelect).toHaveBeenCalledWith(
+					expect.objectContaining({
+						id: "nav-dashboard",
+					}),
+				);
 			});
 		});
 
@@ -668,8 +670,20 @@ describe("Command Palette Shortcuts", () => {
 
 	describe("Sub-Palette Mode (Recent Documents)", () => {
 		const subPaletteItems = [
-			{ id: "recent-1", icon: <span>📄</span>, text: "Document 1", hint: "2 hours ago", action: vi.fn() },
-			{ id: "recent-2", icon: <span>📄</span>, text: "Document 2", hint: "Yesterday", action: vi.fn() },
+			{
+				id: "recent-1",
+				icon: <span>📄</span>,
+				text: "Document 1",
+				hint: "2 hours ago",
+				action: vi.fn(),
+			},
+			{
+				id: "recent-2",
+				icon: <span>📄</span>,
+				text: "Document 2",
+				hint: "Yesterday",
+				action: vi.fn(),
+			},
 		];
 
 		it("shows sub-palette items when in sub-palette mode", async () => {
@@ -713,7 +727,7 @@ describe("Command Palette Shortcuts", () => {
 
 			// Press Escape - this should trigger the handleKeyDown handler
 			// which calls onSubPaletteBack and stopPropagation
-			const wrapper = document.body.querySelector('[data-slot="command-input"]')?.closest('div');
+			const wrapper = document.body.querySelector('[data-slot="command-input"]')?.closest("div");
 			if (wrapper) {
 				fireEvent.keyDown(wrapper, { key: "Escape" });
 			}
@@ -932,7 +946,7 @@ describe("Command Palette - Command Groups", () => {
 		await waitFor(() => {
 			// Groups should appear in this order: Navigation, Create, Document, Git, Projects, Application
 			// Our mock commands have: Navigation, Create, Git, Application
-			const groupHeadings = document.body.querySelectorAll('[cmdk-group-heading]');
+			const groupHeadings = document.body.querySelectorAll("[cmdk-group-heading]");
 			const headingTexts = Array.from(groupHeadings).map((h) => h.textContent);
 
 			// Check that Navigation comes before Create comes before Git comes before Application
@@ -973,7 +987,7 @@ describe("Command Palette - Shortcut Display", () => {
 			// Toggle Sidebar has shortcut "Ctrl+B"
 			// Find all kbd elements in the listbox (excluding the ESC badge in the input)
 			const listbox = document.body.querySelector('[role="listbox"]');
-			const kbdElements = listbox?.querySelectorAll('kbd');
+			const kbdElements = listbox?.querySelectorAll("kbd");
 			expect(kbdElements?.length).toBeGreaterThan(0);
 			// Check that one of them contains the shortcut
 			const kbdTexts = Array.from(kbdElements || []).map((k) => k.textContent);

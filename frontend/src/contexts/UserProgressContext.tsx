@@ -1,6 +1,6 @@
 import type React from "react";
 import { createContext, type ReactNode, useContext } from "react";
-import { useUserProgress, type UseUserProgressReturn } from "../hooks/useUserProgress";
+import { type UseUserProgressReturn, useUserProgress } from "../hooks/useUserProgress";
 
 const UserProgressContext = createContext<UseUserProgressReturn | null>(null);
 
@@ -11,9 +11,7 @@ interface UserProgressProviderProps {
 export const UserProgressProvider: React.FC<UserProgressProviderProps> = ({ children }) => {
 	const progress = useUserProgress();
 
-	return (
-		<UserProgressContext.Provider value={progress}>{children}</UserProgressContext.Provider>
-	);
+	return <UserProgressContext.Provider value={progress}>{children}</UserProgressContext.Provider>;
 };
 
 export const useUserProgressContext = (): UseUserProgressReturn => {

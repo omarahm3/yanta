@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-	GetSidebarVisible,
-	SetSidebarVisible,
-} from "../../bindings/yanta/internal/system/service";
+import { GetSidebarVisible, SetSidebarVisible } from "../../bindings/yanta/internal/system/service";
 import { announceForScreenReaders } from "../utils/accessibility";
 
 export interface UseSidebarSettingReturn {
@@ -29,20 +26,23 @@ export function useSidebarSetting(): UseSidebarSettingReturn {
 			});
 	}, []);
 
-	const setSidebarVisible = useCallback(async (visible: boolean) => {
-		const previousValue = sidebarVisible;
-		// Optimistic update
-		setSidebarVisibleState(visible);
+	const setSidebarVisible = useCallback(
+		async (visible: boolean) => {
+			const previousValue = sidebarVisible;
+			// Optimistic update
+			setSidebarVisibleState(visible);
 
-		try {
-			await SetSidebarVisible(visible);
-		} catch (err) {
-			console.error("[useSidebarSetting] Failed to set sidebar visibility:", err);
-			// Revert on error
-			setSidebarVisibleState(previousValue);
-			throw err;
-		}
-	}, [sidebarVisible]);
+			try {
+				await SetSidebarVisible(visible);
+			} catch (err) {
+				console.error("[useSidebarSetting] Failed to set sidebar visibility:", err);
+				// Revert on error
+				setSidebarVisibleState(previousValue);
+				throw err;
+			}
+		},
+		[sidebarVisible],
+	);
 
 	const toggleSidebar = useCallback(async () => {
 		const newVisible = !sidebarVisible;

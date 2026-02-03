@@ -1,11 +1,4 @@
-import React, {
-	type ReactNode,
-	useCallback,
-	useEffect,
-	useId,
-	useRef,
-	useState,
-} from "react";
+import React, { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useShortcutTooltipsSetting } from "../../hooks/useShortcutTooltipsSetting";
 import { useTooltipUsage } from "../../hooks/useTooltipUsage";
@@ -255,11 +248,9 @@ export const ShortcutTooltip: React.FC<ShortcutTooltipProps> = ({
 							"transition-all duration-150 ease-out",
 							isVisible ? "opacity-100" : "opacity-0",
 							position?.placement === "top" && (isVisible ? "translate-y-0" : "translate-y-1"),
-							position?.placement === "bottom" &&
-								(isVisible ? "translate-y-0" : "-translate-y-1"),
+							position?.placement === "bottom" && (isVisible ? "translate-y-0" : "-translate-y-1"),
 							position?.placement === "left" && (isVisible ? "translate-x-0" : "translate-x-1"),
-							position?.placement === "right" &&
-								(isVisible ? "translate-x-0" : "-translate-x-1"),
+							position?.placement === "right" && (isVisible ? "translate-x-0" : "-translate-x-1"),
 						],
 			)}
 			style={

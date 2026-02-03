@@ -1,5 +1,5 @@
-import { render, screen, fireEvent, act } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MilestoneHint } from "../MilestoneHint";
 
 describe("MilestoneHint", () => {
@@ -15,11 +15,7 @@ describe("MilestoneHint", () => {
 		it("renders the hint with correct content", () => {
 			const onDismiss = vi.fn();
 			render(
-				<MilestoneHint
-					hintId="test-hint"
-					text="Press Ctrl+S to save quickly"
-					onDismiss={onDismiss}
-				/>
+				<MilestoneHint hintId="test-hint" text="Press Ctrl+S to save quickly" onDismiss={onDismiss} />,
 			);
 
 			expect(screen.getByTestId("milestone-hint")).toBeInTheDocument();
@@ -29,13 +25,7 @@ describe("MilestoneHint", () => {
 
 		it("renders with the correct hint id attribute", () => {
 			const onDismiss = vi.fn();
-			render(
-				<MilestoneHint
-					hintId="first-save"
-					text="Test hint"
-					onDismiss={onDismiss}
-				/>
-			);
+			render(<MilestoneHint hintId="first-save" text="Test hint" onDismiss={onDismiss} />);
 
 			const hint = screen.getByTestId("milestone-hint");
 			expect(hint).toHaveAttribute("data-hint-id", "first-save");
@@ -43,13 +33,7 @@ describe("MilestoneHint", () => {
 
 		it("renders the dismiss button", () => {
 			const onDismiss = vi.fn();
-			render(
-				<MilestoneHint
-					hintId="test-hint"
-					text="Test hint"
-					onDismiss={onDismiss}
-				/>
-			);
+			render(<MilestoneHint hintId="test-hint" text="Test hint" onDismiss={onDismiss} />);
 
 			expect(screen.getByTestId("milestone-hint-dismiss")).toBeInTheDocument();
 			expect(screen.getByRole("button", { name: "Dismiss hint" })).toBeInTheDocument();
@@ -63,7 +47,7 @@ describe("MilestoneHint", () => {
 					text="Test hint"
 					onDismiss={onDismiss}
 					className="custom-class"
-				/>
+				/>,
 			);
 
 			const hint = screen.getByTestId("milestone-hint");
@@ -74,13 +58,7 @@ describe("MilestoneHint", () => {
 	describe("accessibility", () => {
 		it("has correct aria attributes", () => {
 			const onDismiss = vi.fn();
-			render(
-				<MilestoneHint
-					hintId="test-hint"
-					text="Test hint"
-					onDismiss={onDismiss}
-				/>
-			);
+			render(<MilestoneHint hintId="test-hint" text="Test hint" onDismiss={onDismiss} />);
 
 			const hint = screen.getByTestId("milestone-hint");
 			expect(hint).toHaveAttribute("role", "status");
@@ -89,13 +67,7 @@ describe("MilestoneHint", () => {
 
 		it("dismiss button has accessible name", () => {
 			const onDismiss = vi.fn();
-			render(
-				<MilestoneHint
-					hintId="test-hint"
-					text="Test hint"
-					onDismiss={onDismiss}
-				/>
-			);
+			render(<MilestoneHint hintId="test-hint" text="Test hint" onDismiss={onDismiss} />);
 
 			const dismissButton = screen.getByTestId("milestone-hint-dismiss");
 			expect(dismissButton).toHaveAttribute("aria-label", "Dismiss hint");
@@ -105,13 +77,7 @@ describe("MilestoneHint", () => {
 	describe("dismissal on click", () => {
 		it("calls onDismiss with hintId after clicking dismiss button", () => {
 			const onDismiss = vi.fn();
-			render(
-				<MilestoneHint
-					hintId="test-hint"
-					text="Test hint"
-					onDismiss={onDismiss}
-				/>
-			);
+			render(<MilestoneHint hintId="test-hint" text="Test hint" onDismiss={onDismiss} />);
 
 			fireEvent.click(screen.getByTestId("milestone-hint-dismiss"));
 
@@ -126,13 +92,7 @@ describe("MilestoneHint", () => {
 
 		it("removes from DOM after dismiss animation", () => {
 			const onDismiss = vi.fn();
-			render(
-				<MilestoneHint
-					hintId="test-hint"
-					text="Test hint"
-					onDismiss={onDismiss}
-				/>
-			);
+			render(<MilestoneHint hintId="test-hint" text="Test hint" onDismiss={onDismiss} />);
 
 			expect(screen.getByTestId("milestone-hint")).toBeInTheDocument();
 
@@ -148,13 +108,7 @@ describe("MilestoneHint", () => {
 
 		it("starts exit animation immediately on click", () => {
 			const onDismiss = vi.fn();
-			render(
-				<MilestoneHint
-					hintId="test-hint"
-					text="Test hint"
-					onDismiss={onDismiss}
-				/>
-			);
+			render(<MilestoneHint hintId="test-hint" text="Test hint" onDismiss={onDismiss} />);
 
 			fireEvent.click(screen.getByTestId("milestone-hint-dismiss"));
 
@@ -168,13 +122,7 @@ describe("MilestoneHint", () => {
 	describe("auto-dismiss", () => {
 		it("auto-dismisses after 8 seconds by default", () => {
 			const onDismiss = vi.fn();
-			render(
-				<MilestoneHint
-					hintId="test-hint"
-					text="Test hint"
-					onDismiss={onDismiss}
-				/>
-			);
+			render(<MilestoneHint hintId="test-hint" text="Test hint" onDismiss={onDismiss} />);
 
 			expect(screen.getByTestId("milestone-hint")).toBeInTheDocument();
 
@@ -206,7 +154,7 @@ describe("MilestoneHint", () => {
 					text="Test hint"
 					onDismiss={onDismiss}
 					autoDismissMs={3000}
-				/>
+				/>,
 			);
 
 			act(() => {
@@ -230,12 +178,7 @@ describe("MilestoneHint", () => {
 		it("does not auto-dismiss when autoDismissMs is 0", () => {
 			const onDismiss = vi.fn();
 			render(
-				<MilestoneHint
-					hintId="test-hint"
-					text="Test hint"
-					onDismiss={onDismiss}
-					autoDismissMs={0}
-				/>
+				<MilestoneHint hintId="test-hint" text="Test hint" onDismiss={onDismiss} autoDismissMs={0} />,
 			);
 
 			act(() => {
@@ -249,12 +192,7 @@ describe("MilestoneHint", () => {
 		it("does not auto-dismiss when autoDismissMs is negative", () => {
 			const onDismiss = vi.fn();
 			render(
-				<MilestoneHint
-					hintId="test-hint"
-					text="Test hint"
-					onDismiss={onDismiss}
-					autoDismissMs={-1}
-				/>
+				<MilestoneHint hintId="test-hint" text="Test hint" onDismiss={onDismiss} autoDismissMs={-1} />,
 			);
 
 			act(() => {
@@ -270,11 +208,7 @@ describe("MilestoneHint", () => {
 		it("clears auto-dismiss timer on unmount", () => {
 			const onDismiss = vi.fn();
 			const { unmount } = render(
-				<MilestoneHint
-					hintId="test-hint"
-					text="Test hint"
-					onDismiss={onDismiss}
-				/>
+				<MilestoneHint hintId="test-hint" text="Test hint" onDismiss={onDismiss} />,
 			);
 
 			unmount();
@@ -289,13 +223,7 @@ describe("MilestoneHint", () => {
 
 		it("clears auto-dismiss timer when manually dismissed", () => {
 			const onDismiss = vi.fn();
-			render(
-				<MilestoneHint
-					hintId="test-hint"
-					text="Test hint"
-					onDismiss={onDismiss}
-				/>
-			);
+			render(<MilestoneHint hintId="test-hint" text="Test hint" onDismiss={onDismiss} />);
 
 			fireEvent.click(screen.getByTestId("milestone-hint-dismiss"));
 
@@ -319,13 +247,7 @@ describe("MilestoneHint", () => {
 	describe("styling", () => {
 		it("has correct base positioning classes", () => {
 			const onDismiss = vi.fn();
-			render(
-				<MilestoneHint
-					hintId="test-hint"
-					text="Test hint"
-					onDismiss={onDismiss}
-				/>
-			);
+			render(<MilestoneHint hintId="test-hint" text="Test hint" onDismiss={onDismiss} />);
 
 			const hint = screen.getByTestId("milestone-hint");
 			expect(hint).toHaveClass("fixed");
@@ -336,13 +258,7 @@ describe("MilestoneHint", () => {
 
 		it("has correct visual styling classes", () => {
 			const onDismiss = vi.fn();
-			render(
-				<MilestoneHint
-					hintId="test-hint"
-					text="Test hint"
-					onDismiss={onDismiss}
-				/>
-			);
+			render(<MilestoneHint hintId="test-hint" text="Test hint" onDismiss={onDismiss} />);
 
 			const hint = screen.getByTestId("milestone-hint");
 			expect(hint).toHaveClass("bg-surface");
@@ -354,13 +270,7 @@ describe("MilestoneHint", () => {
 
 		it("tip label has accent color", () => {
 			const onDismiss = vi.fn();
-			render(
-				<MilestoneHint
-					hintId="test-hint"
-					text="Test hint"
-					onDismiss={onDismiss}
-				/>
-			);
+			render(<MilestoneHint hintId="test-hint" text="Test hint" onDismiss={onDismiss} />);
 
 			const tipLabel = screen.getByText("Tip:");
 			expect(tipLabel).toHaveClass("text-accent");

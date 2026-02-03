@@ -231,9 +231,7 @@ describe("useRecentDocuments", () => {
 
 			expect(result.current.recentDocuments).toEqual([]);
 
-			const newDocs = [
-				{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 },
-			];
+			const newDocs = [{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 }];
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(newDocs));
 
 			act(() => {

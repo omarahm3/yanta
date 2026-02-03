@@ -22,7 +22,7 @@
  * - / → Focus search input
  */
 
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HotkeyConfig } from "../types/hotkeys";
 
 // ============================================
@@ -267,13 +267,13 @@ describe("Dashboard List Navigation - Navigation Behavior", () => {
 
 describe("Dashboard List Navigation - Document Selection", () => {
 	let mockToggleSelection: ReturnType<typeof vi.fn>;
-	let highlightedIndex: number;
-	let documentsLength: number;
+	let _highlightedIndex: number;
+	let _documentsLength: number;
 
 	beforeEach(() => {
 		mockToggleSelection = vi.fn();
-		highlightedIndex = 0;
-		documentsLength = 5;
+		_highlightedIndex = 0;
+		_documentsLength = 5;
 	});
 
 	const createToggleSelectionHandler = () => {
@@ -968,10 +968,18 @@ describe("List Navigation - Context Isolation", () => {
 		 * The behavior is similar but operates on different items.
 		 */
 		const jkUsageByContext = [
-			{ context: "dashboard", jMeaning: "Highlight next document", kMeaning: "Highlight previous document" },
+			{
+				context: "dashboard",
+				jMeaning: "Highlight next document",
+				kMeaning: "Highlight previous document",
+			},
 			{ context: "projects", jMeaning: "Select next project", kMeaning: "Select previous project" },
 			{ context: "journal", jMeaning: "Highlight next entry", kMeaning: "Highlight previous entry" },
-			{ context: "search", jMeaning: "Navigate to next result", kMeaning: "Navigate to previous result" },
+			{
+				context: "search",
+				jMeaning: "Navigate to next result",
+				kMeaning: "Navigate to previous result",
+			},
 		];
 
 		// All contexts use j/k for similar navigation purposes
@@ -1063,7 +1071,9 @@ describe("List Navigation - Registration Lifecycle", () => {
 		];
 
 		const ids = dashboardHotkeys.map((config) => mockRegister(config));
-		ids.forEach((id) => mockUnregister(id));
+		ids.forEach((id) => {
+			mockUnregister(id);
+		});
 
 		expect(mockUnregister).toHaveBeenCalledTimes(2);
 	});

@@ -1,8 +1,8 @@
-import { render, screen, fireEvent, act } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { MilestoneHintManager } from "../MilestoneHintManager";
-import { UserProgressProvider, useUserProgressContext } from "../../contexts";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { FC, ReactNode } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { UserProgressProvider, useUserProgressContext } from "../../contexts";
+import { MilestoneHintManager } from "../MilestoneHintManager";
 
 // Helper to wrap component with context
 const TestWrapper: FC<{ children: ReactNode }> = ({ children }) => (
@@ -34,7 +34,7 @@ describe("MilestoneHintManager", () => {
 			render(
 				<TestWrapper>
 					<MilestoneHintManager />
-				</TestWrapper>
+				</TestWrapper>,
 			);
 
 			expect(screen.queryByTestId("milestone-hint")).not.toBeInTheDocument();
@@ -45,9 +45,13 @@ describe("MilestoneHintManager", () => {
 
 			render(
 				<TestWrapper>
-					<ProgressController onReady={(c) => (controls = c)} />
+					<ProgressController
+						onReady={(c) => {
+							controls = c;
+						}}
+					/>
 					<MilestoneHintManager />
-				</TestWrapper>
+				</TestWrapper>,
 			);
 
 			act(() => {
@@ -63,9 +67,13 @@ describe("MilestoneHintManager", () => {
 
 			render(
 				<TestWrapper>
-					<ProgressController onReady={(c) => (controls = c)} />
+					<ProgressController
+						onReady={(c) => {
+							controls = c;
+						}}
+					/>
 					<MilestoneHintManager />
-				</TestWrapper>
+				</TestWrapper>,
 			);
 
 			act(() => {
@@ -81,9 +89,13 @@ describe("MilestoneHintManager", () => {
 
 			render(
 				<TestWrapper>
-					<ProgressController onReady={(c) => (controls = c)} />
+					<ProgressController
+						onReady={(c) => {
+							controls = c;
+						}}
+					/>
 					<MilestoneHintManager />
-				</TestWrapper>
+				</TestWrapper>,
 			);
 
 			act(() => {
@@ -92,7 +104,7 @@ describe("MilestoneHintManager", () => {
 
 			expect(screen.getByTestId("milestone-hint")).toBeInTheDocument();
 			expect(
-				screen.getByText("Quick switch with Ctrl+Tab to toggle between projects")
+				screen.getByText("Quick switch with Ctrl+Tab to toggle between projects"),
 			).toBeInTheDocument();
 		});
 	});
@@ -103,9 +115,13 @@ describe("MilestoneHintManager", () => {
 
 			render(
 				<TestWrapper>
-					<ProgressController onReady={(c) => (controls = c)} />
+					<ProgressController
+						onReady={(c) => {
+							controls = c;
+						}}
+					/>
 					<MilestoneHintManager />
-				</TestWrapper>
+				</TestWrapper>,
 			);
 
 			act(() => {
@@ -130,9 +146,13 @@ describe("MilestoneHintManager", () => {
 
 			const { rerender } = render(
 				<TestWrapper>
-					<ProgressController onReady={(c) => (controls = c)} />
+					<ProgressController
+						onReady={(c) => {
+							controls = c;
+						}}
+					/>
 					<MilestoneHintManager />
-				</TestWrapper>
+				</TestWrapper>,
 			);
 
 			// Increment documents and dismiss hint
@@ -149,9 +169,13 @@ describe("MilestoneHintManager", () => {
 			// Rerender component
 			rerender(
 				<TestWrapper>
-					<ProgressController onReady={(c) => (controls = c)} />
+					<ProgressController
+						onReady={(c) => {
+							controls = c;
+						}}
+					/>
 					<MilestoneHintManager />
-				</TestWrapper>
+				</TestWrapper>,
 			);
 
 			// Hint should not appear again (documentsCreated is still 1)
@@ -165,9 +189,13 @@ describe("MilestoneHintManager", () => {
 
 			render(
 				<TestWrapper>
-					<ProgressController onReady={(c) => (controls = c)} />
+					<ProgressController
+						onReady={(c) => {
+							controls = c;
+						}}
+					/>
 					<MilestoneHintManager />
-				</TestWrapper>
+				</TestWrapper>,
 			);
 
 			// Create 5 documents, dismissing first-save hint along the way
@@ -189,9 +217,7 @@ describe("MilestoneHintManager", () => {
 			});
 
 			expect(screen.getByTestId("milestone-hint")).toBeInTheDocument();
-			expect(
-				screen.getByText("Power tip: Ctrl+E opens your recent documents")
-			).toBeInTheDocument();
+			expect(screen.getByText("Power tip: Ctrl+E opens your recent documents")).toBeInTheDocument();
 		});
 
 		it("shows journal-select hint when journalEntriesCreated reaches 10", () => {
@@ -199,9 +225,13 @@ describe("MilestoneHintManager", () => {
 
 			render(
 				<TestWrapper>
-					<ProgressController onReady={(c) => (controls = c)} />
+					<ProgressController
+						onReady={(c) => {
+							controls = c;
+						}}
+					/>
 					<MilestoneHintManager />
-				</TestWrapper>
+				</TestWrapper>,
 			);
 
 			// Create first entry
@@ -224,7 +254,7 @@ describe("MilestoneHintManager", () => {
 
 			expect(screen.getByTestId("milestone-hint")).toBeInTheDocument();
 			expect(
-				screen.getByText("Select entries with Space to promote or delete in bulk")
+				screen.getByText("Select entries with Space to promote or delete in bulk"),
 			).toBeInTheDocument();
 		});
 	});
@@ -235,9 +265,13 @@ describe("MilestoneHintManager", () => {
 
 			render(
 				<TestWrapper>
-					<ProgressController onReady={(c) => (controls = c)} />
+					<ProgressController
+						onReady={(c) => {
+							controls = c;
+						}}
+					/>
 					<MilestoneHintManager />
-				</TestWrapper>
+				</TestWrapper>,
 			);
 
 			// Trigger both milestones at once
@@ -248,9 +282,7 @@ describe("MilestoneHintManager", () => {
 
 			// First-save hint should appear first (it's earlier in MILESTONE_HINTS array)
 			expect(screen.getByText("Press Ctrl+S to save quickly")).toBeInTheDocument();
-			expect(
-				screen.queryByText("Navigate days with Ctrl+← and Ctrl+→")
-			).not.toBeInTheDocument();
+			expect(screen.queryByText("Navigate days with Ctrl+← and Ctrl+→")).not.toBeInTheDocument();
 		});
 
 		it("shows journal-nav hint when first-save already shown", () => {
@@ -262,13 +294,13 @@ describe("MilestoneHintManager", () => {
 					journalEntriesCreated: 1,
 					projectsSwitched: 0,
 					hintsShown: ["first-save"],
-				})
+				}),
 			);
 
 			render(
 				<TestWrapper>
 					<MilestoneHintManager />
-				</TestWrapper>
+				</TestWrapper>,
 			);
 
 			// Journal-nav hint should appear since first-save is already shown
@@ -283,9 +315,13 @@ describe("MilestoneHintManager", () => {
 
 			render(
 				<TestWrapper>
-					<ProgressController onReady={(c) => (controls = c)} />
+					<ProgressController
+						onReady={(c) => {
+							controls = c;
+						}}
+					/>
 					<MilestoneHintManager />
-				</TestWrapper>
+				</TestWrapper>,
 			);
 
 			// Trigger milestone

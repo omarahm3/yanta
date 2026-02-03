@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
-import { useSidebarSetting } from "../useSidebarSetting";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { _resetLiveRegion } from "../../utils/accessibility";
+import { useSidebarSetting } from "../useSidebarSetting";
 
 const mockGetSidebarVisible = vi.fn();
 const mockSetSidebarVisible = vi.fn();

@@ -1,3 +1,4 @@
+import { formatRelative } from "date-fns";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProjectResult } from "../../bindings/yanta/internal/commandline/models";
@@ -14,7 +15,6 @@ import { useHotkeys } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
 import { useSidebarSections } from "../hooks/useSidebarSections";
 import { type ExtendedProject, extendProject } from "../types";
-import { formatRelative } from "date-fns";
 import { getProjectAliasColor } from "../utils/colorUtils";
 
 interface ProjectsProps {
@@ -388,7 +388,9 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 			{
 				key: "mod+U",
 				handler: () => {
-					const selected = archivedProjectsRef.current.find((p) => p.id === selectedProjectIdRef.current);
+					const selected = archivedProjectsRef.current.find(
+						(p) => p.id === selectedProjectIdRef.current,
+					);
 					if (selected) {
 						void executeProjectCommand(`unarchive ${selected.alias}`);
 					}

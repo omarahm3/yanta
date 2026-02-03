@@ -1,7 +1,7 @@
 import type React from "react";
 import { useCallback, useEffect, useRef } from "react";
-import { cn } from "../lib/utils";
 import { useOnboarding } from "../hooks/useOnboarding";
+import { cn } from "../lib/utils";
 
 export interface WelcomeOverlayProps {
 	className?: string;
@@ -68,17 +68,11 @@ export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ className }) => 
 
 	return (
 		<div
-			className={cn(
-				"fixed inset-0 z-50 flex items-center justify-center",
-				className,
-			)}
+			className={cn("fixed inset-0 z-50 flex items-center justify-center", className)}
 			data-testid="welcome-overlay"
 		>
 			{/* Semi-transparent dark backdrop - not clickable to dismiss */}
-			<div
-				className="absolute inset-0 bg-black/70"
-				aria-hidden="true"
-			/>
+			<div className="absolute inset-0 bg-black/70" aria-hidden="true" />
 
 			{/* Centered card */}
 			<div
@@ -90,30 +84,18 @@ export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ className }) => 
 			>
 				{/* Header */}
 				<div className="text-center mb-6">
-					<h1
-						id="welcome-title"
-						className="text-2xl font-bold text-text-bright mb-2"
-					>
+					<h1 id="welcome-title" className="text-2xl font-bold text-text-bright mb-2">
 						Welcome to YANTA
 					</h1>
-					<p
-						id="welcome-description"
-						className="text-text-dim"
-					>
+					<p id="welcome-description" className="text-text-dim">
 						Your keyboard-first note-taking companion
 					</p>
 				</div>
 
 				{/* Keyboard shortcuts */}
 				<div className="space-y-3 mb-6">
-					<ShortcutBadge
-						keys={["Ctrl", "K"]}
-						label="Open Command Palette"
-					/>
-					<ShortcutBadge
-						keys={["?"]}
-						label="View All Shortcuts"
-					/>
+					<ShortcutBadge keys={["Ctrl", "K"]} label="Open Command Palette" />
+					<ShortcutBadge keys={["?"]} label="View All Shortcuts" />
 				</div>
 
 				{/* Tip */}

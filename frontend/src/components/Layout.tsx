@@ -2,7 +2,13 @@ import type React from "react";
 import { type ReactNode, useEffect, useMemo } from "react";
 import { useProjectContext, useTitleBarContext } from "../contexts";
 import { useFooterHints, useFooterHintsSetting, useHotkeys, useSidebarSetting } from "../hooks";
-import { ContextBar, FooterHintBar, HeaderBar, type SidebarSection, Sidebar as UISidebar } from "./ui";
+import {
+	ContextBar,
+	FooterHintBar,
+	HeaderBar,
+	type SidebarSection,
+	Sidebar as UISidebar,
+} from "./ui";
 
 /**
  * Converts the current page identifier to a display-friendly page name.

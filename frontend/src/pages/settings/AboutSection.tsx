@@ -1,8 +1,8 @@
 import React from "react";
-import { Button, ConfirmDialog, Label, SettingsSection } from "../../components/ui";
+import { Button, ConfirmDialog, SettingsSection } from "../../components/ui";
+import { useNotification } from "../../hooks/useNotification";
 import { useOnboarding } from "../../hooks/useOnboarding";
 import { useUserProgress } from "../../hooks/useUserProgress";
-import { useNotification } from "../../hooks/useNotification";
 import type { SystemInfo } from "../../types";
 
 interface AboutSectionProps {
@@ -79,20 +79,17 @@ export const AboutSection = React.forwardRef<HTMLDivElement, AboutSectionProps>(
 					)}
 				</SettingsSection>
 
-				<SettingsSection title="Onboarding & Hints" subtitle="Reset onboarding experience and milestone hints">
+				<SettingsSection
+					title="Onboarding & Hints"
+					subtitle="Reset onboarding experience and milestone hints"
+				>
 					<div className="space-y-4">
 						<div className="flex items-center justify-between">
 							<div>
 								<div className="text-sm text-text">Reset Onboarding</div>
-								<div className="text-xs text-text-dim">
-									Show the welcome overlay again on next launch
-								</div>
+								<div className="text-xs text-text-dim">Show the welcome overlay again on next launch</div>
 							</div>
-							<Button
-								variant="secondary"
-								size="sm"
-								onClick={() => setShowResetOnboardingConfirm(true)}
-							>
+							<Button variant="secondary" size="sm" onClick={() => setShowResetOnboardingConfirm(true)}>
 								Reset Onboarding
 							</Button>
 						</div>
@@ -107,11 +104,7 @@ export const AboutSection = React.forwardRef<HTMLDivElement, AboutSectionProps>(
 									)}
 								</div>
 							</div>
-							<Button
-								variant="secondary"
-								size="sm"
-								onClick={() => setShowResetHintsConfirm(true)}
-							>
+							<Button variant="secondary" size="sm" onClick={() => setShowResetHintsConfirm(true)}>
 								Reset Hints
 							</Button>
 						</div>

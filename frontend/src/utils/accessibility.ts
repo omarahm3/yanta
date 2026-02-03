@@ -9,7 +9,7 @@ let liveRegion: HTMLElement | null = null;
  * Resets the internal live region state. Used for testing purposes.
  */
 export function _resetLiveRegion(): void {
-	if (liveRegion && liveRegion.parentNode) {
+	if (liveRegion?.parentNode) {
 		liveRegion.parentNode.removeChild(liveRegion);
 	}
 	liveRegion = null;
@@ -27,7 +27,7 @@ export function _resetLiveRegion(): void {
  */
 export function announceForScreenReaders(
 	message: string,
-	politeness: "polite" | "assertive" = "polite"
+	politeness: "polite" | "assertive" = "polite",
 ): void {
 	// Create the live region if it doesn't exist
 	if (!liveRegion) {

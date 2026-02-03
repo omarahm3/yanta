@@ -85,9 +85,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 					: isSelected
 						? { borderLeftColor: "var(--mode-accent)", borderLeftWidth: "2px" }
 						: {};
-				const backgroundStyle = isHighlighted
-					? { backgroundColor: "var(--mode-accent-muted)" }
-					: {};
+				const backgroundStyle = isHighlighted ? { backgroundColor: "var(--mode-accent-muted)" } : {};
 				const itemClasses = cn(
 					"group border-b border-border px-4 py-4 transition-colors border-l-4 border-l-transparent hover:bg-surface/60",
 				);
@@ -137,7 +135,9 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 							>
 								{isSelected ? "✓" : ""}
 							</Button>
-							<span className={indexClasses} style={indexStyle}>{index + 1}.</span>
+							<span className={indexClasses} style={indexStyle}>
+								{index + 1}.
+							</span>
 							<div
 								className="flex-1 cursor-pointer"
 								onClick={() => {

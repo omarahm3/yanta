@@ -1,5 +1,5 @@
-import { act, render, screen, fireEvent } from "@testing-library/react";
-import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ShortcutTooltip } from "../ShortcutTooltip";
 
 // Mock the useTooltipUsage hook
@@ -53,7 +53,7 @@ describe("ShortcutTooltip", () => {
 		it("renders children correctly", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
@@ -63,7 +63,7 @@ describe("ShortcutTooltip", () => {
 		it("does not render tooltip by default", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
@@ -73,7 +73,7 @@ describe("ShortcutTooltip", () => {
 		it("applies custom className to wrapper", () => {
 			const { container } = render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip" className="custom-class">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
@@ -85,11 +85,12 @@ describe("ShortcutTooltip", () => {
 		it("shows tooltip after hover delay (500ms)", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 			fireEvent.mouseEnter(trigger);
 
 			// Tooltip should not be visible immediately
@@ -112,11 +113,12 @@ describe("ShortcutTooltip", () => {
 		it("shows tooltip after focus delay (800ms)", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 			fireEvent.focus(trigger);
 
 			// Tooltip should not be visible immediately
@@ -139,11 +141,12 @@ describe("ShortcutTooltip", () => {
 		it("hides tooltip immediately on mouse leave", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 
 			// Show tooltip
 			fireEvent.mouseEnter(trigger);
@@ -161,11 +164,12 @@ describe("ShortcutTooltip", () => {
 		it("hides tooltip immediately on blur", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 
 			// Show tooltip
 			fireEvent.focus(trigger);
@@ -183,11 +187,12 @@ describe("ShortcutTooltip", () => {
 		it("cancels show timeout when mouse leaves before delay", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 
 			fireEvent.mouseEnter(trigger);
 			act(() => {
@@ -208,11 +213,12 @@ describe("ShortcutTooltip", () => {
 		it("displays description text", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Save your work">
-					<button>Save</button>
+					<button type="button">Save</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Save" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Save" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 			fireEvent.mouseEnter(trigger);
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY);
@@ -224,11 +230,12 @@ describe("ShortcutTooltip", () => {
 		it("displays keyboard shortcut badge when provided", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Save" shortcut="Ctrl+S">
-					<button>Save</button>
+					<button type="button">Save</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Save" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Save" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 			fireEvent.mouseEnter(trigger);
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY);
@@ -241,11 +248,12 @@ describe("ShortcutTooltip", () => {
 		it("parses multi-key shortcuts correctly", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="New Document" shortcut="Ctrl+Shift+N">
-					<button>New</button>
+					<button type="button">New</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "New" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "New" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 			fireEvent.mouseEnter(trigger);
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY);
@@ -259,11 +267,12 @@ describe("ShortcutTooltip", () => {
 		it("renders tooltip without shortcut badge when shortcut not provided", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Open menu">
-					<button>Menu</button>
+					<button type="button">Menu</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Menu" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Menu" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 			fireEvent.mouseEnter(trigger);
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY);
@@ -283,11 +292,12 @@ describe("ShortcutTooltip", () => {
 
 			render(
 				<ShortcutTooltip tooltipId="faded-tooltip" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 			fireEvent.mouseEnter(trigger);
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY);
@@ -299,11 +309,12 @@ describe("ShortcutTooltip", () => {
 		it("calls recordTooltipView when tooltip is shown", () => {
 			render(
 				<ShortcutTooltip tooltipId="test-tooltip" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 			fireEvent.mouseEnter(trigger);
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY);
@@ -315,11 +326,12 @@ describe("ShortcutTooltip", () => {
 		it("only calls recordTooltipView once per session", () => {
 			render(
 				<ShortcutTooltip tooltipId="test-tooltip" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 
 			// First hover
 			fireEvent.mouseEnter(trigger);
@@ -345,11 +357,12 @@ describe("ShortcutTooltip", () => {
 		it("checks shouldShowTooltip with correct tooltipId", () => {
 			render(
 				<ShortcutTooltip tooltipId="specific-tooltip-id" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 			fireEvent.mouseEnter(trigger);
 
 			expect(mockShouldShowTooltip).toHaveBeenCalledWith("specific-tooltip-id");
@@ -360,11 +373,12 @@ describe("ShortcutTooltip", () => {
 		it("does not show tooltip when disabled", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip" disabled>
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 			fireEvent.mouseEnter(trigger);
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY);
@@ -376,11 +390,12 @@ describe("ShortcutTooltip", () => {
 		it("does not call recordTooltipView when disabled", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip" disabled>
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 			fireEvent.mouseEnter(trigger);
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY);
@@ -394,11 +409,12 @@ describe("ShortcutTooltip", () => {
 		it("accepts top placement", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test" placement="top">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 			fireEvent.mouseEnter(trigger);
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY);
@@ -410,11 +426,12 @@ describe("ShortcutTooltip", () => {
 		it("accepts bottom placement", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test" placement="bottom">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 			fireEvent.mouseEnter(trigger);
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY);
@@ -426,11 +443,12 @@ describe("ShortcutTooltip", () => {
 		it("accepts left placement", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test" placement="left">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 			fireEvent.mouseEnter(trigger);
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY);
@@ -442,11 +460,12 @@ describe("ShortcutTooltip", () => {
 		it("accepts right placement", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test" placement="right">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 			fireEvent.mouseEnter(trigger);
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY);
@@ -460,11 +479,12 @@ describe("ShortcutTooltip", () => {
 		it("has role=tooltip on tooltip element", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 			fireEvent.mouseEnter(trigger);
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY);
@@ -476,11 +496,12 @@ describe("ShortcutTooltip", () => {
 		it("associates tooltip with trigger via aria-describedby when visible", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 			fireEvent.mouseEnter(trigger);
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY);
@@ -494,11 +515,12 @@ describe("ShortcutTooltip", () => {
 		it("removes aria-describedby when tooltip is hidden", () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 
 			// Show tooltip
 			fireEvent.mouseEnter(trigger);
@@ -534,11 +556,12 @@ describe("ShortcutTooltip", () => {
 
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip">
-					<button>Click me</button>
+					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement!;
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 			fireEvent.mouseEnter(trigger);
 			act(() => {
 				vi.advanceTimersByTime(HOVER_DELAY);

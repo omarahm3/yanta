@@ -1,6 +1,6 @@
 import React, {
-	type ReactElement,
 	cloneElement,
+	type ReactElement,
 	useCallback,
 	useEffect,
 	useId,
@@ -318,11 +318,9 @@ export const WithTooltip: React.FC<WithTooltipProps> = ({
 							"transition-all duration-150 ease-out",
 							isVisible ? "opacity-100" : "opacity-0",
 							position?.placement === "top" && (isVisible ? "translate-y-0" : "translate-y-1"),
-							position?.placement === "bottom" &&
-								(isVisible ? "translate-y-0" : "-translate-y-1"),
+							position?.placement === "bottom" && (isVisible ? "translate-y-0" : "-translate-y-1"),
 							position?.placement === "left" && (isVisible ? "translate-x-0" : "translate-x-1"),
-							position?.placement === "right" &&
-								(isVisible ? "translate-x-0" : "-translate-x-1"),
+							position?.placement === "right" && (isVisible ? "translate-x-0" : "-translate-x-1"),
 						],
 			)}
 			style={

@@ -16,7 +16,7 @@
  * not a journal-specific one.
  */
 
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HotkeyConfig } from "../types/hotkeys";
 
 // ============================================
@@ -757,7 +757,9 @@ describe("Journal Context Shortcuts - Registration Lifecycle", () => {
 		const ids = journalHotkeys.map((config) => mockRegister(config));
 
 		// Simulate unmount - unregister hotkeys
-		ids.forEach((id) => mockUnregister(id));
+		ids.forEach((id) => {
+			mockUnregister(id);
+		});
 
 		expect(mockUnregister).toHaveBeenCalledTimes(2);
 	});

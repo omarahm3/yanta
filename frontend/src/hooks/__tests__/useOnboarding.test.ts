@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useOnboarding } from "../useOnboarding";
 
 describe("useOnboarding", () => {
@@ -59,10 +59,7 @@ describe("useOnboarding", () => {
 		});
 
 		it("handles invalid completedWelcome type gracefully", () => {
-			localStorage.setItem(
-				STORAGE_KEY,
-				JSON.stringify({ completedWelcome: "yes", version: "1.0.0" })
-			);
+			localStorage.setItem(STORAGE_KEY, JSON.stringify({ completedWelcome: "yes", version: "1.0.0" }));
 
 			const { result } = renderHook(() => useOnboarding());
 
@@ -70,10 +67,7 @@ describe("useOnboarding", () => {
 		});
 
 		it("handles invalid version type gracefully", () => {
-			localStorage.setItem(
-				STORAGE_KEY,
-				JSON.stringify({ completedWelcome: true, version: 123 })
-			);
+			localStorage.setItem(STORAGE_KEY, JSON.stringify({ completedWelcome: true, version: 123 }));
 
 			const { result } = renderHook(() => useOnboarding());
 
@@ -87,7 +81,7 @@ describe("useOnboarding", () => {
 					completedWelcome: true,
 					version: "1.0.0",
 					completedAt: "not-a-number",
-				})
+				}),
 			);
 
 			const { result } = renderHook(() => useOnboarding());
@@ -248,7 +242,7 @@ describe("useOnboarding", () => {
 					new StorageEvent("storage", {
 						key: STORAGE_KEY,
 						newValue: JSON.stringify(newData),
-					})
+					}),
 				);
 			});
 
@@ -271,7 +265,7 @@ describe("useOnboarding", () => {
 					new StorageEvent("storage", {
 						key: "other_key",
 						newValue: "something",
-					})
+					}),
 				);
 			});
 

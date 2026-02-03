@@ -1,7 +1,7 @@
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { ChevronRight } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronRight } from "lucide-react";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { GLOBAL_COMMANDS } from "../../constants/globalCommands";
 import { useHotkeyContext } from "../../contexts/HotkeyContext";
 import { useHelp } from "../../hooks/useHelp";
@@ -77,10 +77,7 @@ const getDefaultExpandedSections = (pageName: string): Set<HelpSectionId> => {
 /**
  * Categorize a hotkey into a section
  */
-const categorizeHotkey = (
-	hotkeyKey: string,
-	description: string,
-): HelpSectionId => {
+const categorizeHotkey = (hotkeyKey: string, description: string): HelpSectionId => {
 	const key = hotkeyKey.toLowerCase();
 	const desc = description.toLowerCase();
 
@@ -208,9 +205,7 @@ const HelpSection: React.FC<HelpSectionProps> = ({
 					}`}
 					aria-hidden="true"
 				/>
-				<span className="font-medium text-text-bright text-sm">
-					{title}
-				</span>
+				<span className="font-medium text-text-bright text-sm">{title}</span>
 				<span className="text-text-dim text-xs ml-auto" aria-hidden="true">
 					{shortcutCount}
 				</span>
@@ -260,9 +255,7 @@ const ShortcutRow: React.FC<ShortcutRowProps> = ({
 
 	return (
 		<div className="flex items-center gap-4 py-1.5">
-			<code
-				className={`font-mono text-xs min-w-[120px] ${keyColorClasses[variant]}`}
-			>
+			<code className={`font-mono text-xs min-w-[120px] ${keyColorClasses[variant]}`}>
 				{shortcutKey}
 			</code>
 			<span className="text-text text-[13px]">{description}</span>
@@ -277,9 +270,7 @@ export const HelpModal: React.FC = () => {
 	const { isOpen, closeHelp, pageCommands, pageName } = useHelp();
 	const { getRegisteredHotkeys } = useHotkeyContext();
 	const [searchQuery, setSearchQuery] = useState("");
-	const [expandedSections, setExpandedSections] = useState<Set<HelpSectionId>>(
-		new Set(),
-	);
+	const [expandedSections, setExpandedSections] = useState<Set<HelpSectionId>>(new Set());
 	const [announcement, setAnnouncement] = useState("");
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -330,9 +321,7 @@ export const HelpModal: React.FC = () => {
 	// Get all registered hotkeys
 	const allHotkeys = useMemo(() => {
 		if (pageName === "SETTINGS") return [];
-		return getRegisteredHotkeys().filter(
-			(h) => h.description && h.description !== "Toggle help",
-		);
+		return getRegisteredHotkeys().filter((h) => h.description && h.description !== "Toggle help");
 	}, [getRegisteredHotkeys, pageName]);
 
 	// Build sections data
@@ -377,10 +366,7 @@ export const HelpModal: React.FC = () => {
 			const normalizedKey = formatted.toLowerCase().replace(/\s/g, "");
 
 			if (!existingKeys.has(normalizedKey)) {
-				const category = categorizeHotkey(
-					hotkey.key,
-					hotkey.description || "",
-				);
+				const category = categorizeHotkey(hotkey.key, hotkey.description || "");
 				sectionMap[category].push({
 					key: formatted,
 					description: hotkey.description || "",
@@ -426,9 +412,7 @@ export const HelpModal: React.FC = () => {
 			.map((section) => ({
 				...section,
 				shortcuts: section.shortcuts.filter(
-					(s) =>
-						s.key.toLowerCase().includes(query) ||
-						s.description.toLowerCase().includes(query),
+					(s) => s.key.toLowerCase().includes(query) || s.description.toLowerCase().includes(query),
 				),
 			}))
 			.filter((section) => section.shortcuts.length > 0);
@@ -440,8 +424,7 @@ export const HelpModal: React.FC = () => {
 		const query = searchQuery.toLowerCase();
 		return GLOBAL_COMMANDS.filter(
 			(cmd) =>
-				cmd.command.toLowerCase().includes(query) ||
-				cmd.description.toLowerCase().includes(query),
+				cmd.command.toLowerCase().includes(query) || cmd.description.toLowerCase().includes(query),
 		);
 	}, [searchQuery]);
 
@@ -451,19 +434,14 @@ export const HelpModal: React.FC = () => {
 		const query = searchQuery.toLowerCase();
 		return pageCommands.filter(
 			(cmd) =>
-				cmd.command.toLowerCase().includes(query) ||
-				cmd.description.toLowerCase().includes(query),
+				cmd.command.toLowerCase().includes(query) || cmd.description.toLowerCase().includes(query),
 		);
 	}, [pageCommands, searchQuery]);
 
 	// Calculate totals for search results
 	const hasSearchQuery = searchQuery.trim().length > 0;
-	const totalShortcuts = filteredSections.reduce(
-		(acc, s) => acc + s.shortcuts.length,
-		0,
-	);
-	const totalResults =
-		filteredGlobalCommands.length + filteredPageCommands.length + totalShortcuts;
+	const totalShortcuts = filteredSections.reduce((acc, s) => acc + s.shortcuts.length, 0);
+	const totalResults = filteredGlobalCommands.length + filteredPageCommands.length + totalShortcuts;
 
 	// When searching, expand all sections with matches
 	useEffect(() => {
@@ -472,20 +450,23 @@ export const HelpModal: React.FC = () => {
 		}
 	}, [hasSearchQuery, filteredSections]);
 
-	const toggleSection = useCallback((sectionId: HelpSectionId, sectionTitle: string) => {
-		setExpandedSections((prev) => {
-			const next = new Set(prev);
-			const willExpand = !next.has(sectionId);
-			if (willExpand) {
-				next.add(sectionId);
-				announce(`${sectionTitle} section expanded`);
-			} else {
-				next.delete(sectionId);
-				announce(`${sectionTitle} section collapsed`);
-			}
-			return next;
-		});
-	}, [announce]);
+	const toggleSection = useCallback(
+		(sectionId: HelpSectionId, sectionTitle: string) => {
+			setExpandedSections((prev) => {
+				const next = new Set(prev);
+				const willExpand = !next.has(sectionId);
+				if (willExpand) {
+					next.add(sectionId);
+					announce(`${sectionTitle} section expanded`);
+				} else {
+					next.delete(sectionId);
+					announce(`${sectionTitle} section collapsed`);
+				}
+				return next;
+			});
+		},
+		[announce],
+	);
 
 	const handleOpenChange = (open: boolean) => {
 		if (!open) {
@@ -511,22 +492,17 @@ export const HelpModal: React.FC = () => {
 			>
 				{/* Screen reader live region for announcements */}
 				<VisuallyHidden>
-					<div
-						role="status"
-						aria-live="polite"
-						aria-atomic="true"
-					>
+					<div role="status" aria-live="polite" aria-atomic="true">
 						{announcement}
 					</div>
 					<p id="help-modal-description">
-						Press Tab to navigate between elements. Press Enter or Space on section headers to expand or collapse. Press Escape to close.
+						Press Tab to navigate between elements. Press Enter or Space on section headers to expand or
+						collapse. Press Escape to close.
 					</p>
 				</VisuallyHidden>
 
 				<DialogHeader className="flex flex-row items-center justify-between px-4 py-4 border-b border-border/40">
-					<DialogTitle className="text-base font-semibold text-text">
-						Keyboard Shortcuts
-					</DialogTitle>
+					<DialogTitle className="text-base font-semibold text-text">Keyboard Shortcuts</DialogTitle>
 					<button
 						ref={closeButtonRef}
 						type="button"
@@ -567,16 +543,18 @@ export const HelpModal: React.FC = () => {
 						)}
 					</div>
 					{hasSearchQuery && (
-						<div id="help-search-results" className="mt-2 text-xs text-text-dim" role="status" aria-live="polite">
+						<div
+							id="help-search-results"
+							className="mt-2 text-xs text-text-dim"
+							role="status"
+							aria-live="polite"
+						>
 							{totalResults === 0 ? (
-								<span className="text-red">
-									No shortcuts found for "{searchQuery}"
-								</span>
+								<span className="text-red">No shortcuts found for "{searchQuery}"</span>
 							) : (
 								<span>
 									Showing results for "{searchQuery}" (
-									<span className="text-accent font-semibold">{totalResults}</span>{" "}
-									found)
+									<span className="text-accent font-semibold">{totalResults}</span> found)
 								</span>
 							)}
 						</div>
@@ -587,7 +565,10 @@ export const HelpModal: React.FC = () => {
 				<div className="overflow-y-auto max-h-[calc(70vh-140px)]" role="document">
 					{/* Global commands section (colon commands) */}
 					{filteredGlobalCommands.length > 0 && (
-						<section className="px-4 py-3 border-b border-border/30" aria-labelledby="global-commands-heading">
+						<section
+							className="px-4 py-3 border-b border-border/30"
+							aria-labelledby="global-commands-heading"
+						>
 							<Heading
 								as="h3"
 								id="global-commands-heading"
@@ -598,7 +579,7 @@ export const HelpModal: React.FC = () => {
 							>
 								COMMANDS
 							</Heading>
-							<ul className="space-y-1" role="list" aria-label="Global commands">
+							<ul className="space-y-1" aria-label="Global commands">
 								{filteredGlobalCommands.map((cmd) => (
 									<li key={cmd.command}>
 										<ShortcutRow
@@ -614,7 +595,10 @@ export const HelpModal: React.FC = () => {
 
 					{/* Page-specific commands */}
 					{filteredPageCommands.length > 0 && (
-						<section className="px-4 py-3 border-b border-border/30" aria-labelledby="page-commands-heading">
+						<section
+							className="px-4 py-3 border-b border-border/30"
+							aria-labelledby="page-commands-heading"
+						>
 							<Heading
 								as="h3"
 								id="page-commands-heading"
@@ -625,14 +609,10 @@ export const HelpModal: React.FC = () => {
 							>
 								{pageName} COMMANDS
 							</Heading>
-							<ul className="space-y-1" role="list" aria-label={`${pageName} commands`}>
+							<ul className="space-y-1" aria-label={`${pageName} commands`}>
 								{filteredPageCommands.map((cmd) => (
 									<li key={cmd.command}>
-										<ShortcutRow
-											shortcutKey={cmd.command}
-											description={cmd.description}
-											variant="accent"
-										/>
+										<ShortcutRow shortcutKey={cmd.command} description={cmd.description} variant="accent" />
 									</li>
 								))}
 							</ul>
@@ -651,7 +631,7 @@ export const HelpModal: React.FC = () => {
 									onToggle={() => toggleSection(section.id, section.title)}
 									shortcutCount={section.shortcuts.length}
 								>
-									<ul className="space-y-1" role="list" aria-label={`${section.title} shortcuts`}>
+									<ul className="space-y-1" aria-label={`${section.title} shortcuts`}>
 										{section.shortcuts.map((shortcut) => (
 											<li key={`${section.id}-${shortcut.key}`}>
 												<ShortcutRow
@@ -672,12 +652,8 @@ export const HelpModal: React.FC = () => {
 						<div className="py-12 px-6 text-center">
 							<div className="space-y-4">
 								<div className="text-4xl">🔍</div>
-								<div className="text-sm font-medium text-text">
-									No shortcuts found for "{searchQuery}"
-								</div>
-								<div className="text-xs text-text-dim">
-									Try a different search term
-								</div>
+								<div className="text-sm font-medium text-text">No shortcuts found for "{searchQuery}"</div>
+								<div className="text-xs text-text-dim">Try a different search term</div>
 							</div>
 						</div>
 					)}
