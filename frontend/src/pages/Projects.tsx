@@ -14,6 +14,7 @@ import { useHotkeys } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
 import { useSidebarSections } from "../hooks/useSidebarSections";
 import { type ExtendedProject, extendProject } from "../types";
+import { formatRelative } from "date-fns";
 import { getProjectAliasColor } from "../utils/colorUtils";
 
 interface ProjectsProps {
@@ -103,41 +104,55 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 
 	const tableColumns: TableColumn[] = [
 		{ key: "number", label: "", width: "30px" },
-		{ key: "name", label: "NAME", width: "200px" },
-		{ key: "alias", label: "ALIAS", width: "100px" },
-		{ key: "type", label: "TYPE", width: "150px" },
-		{ key: "entryCount", label: "ENTRIES", width: "100px", align: "right" },
-		{ key: "lastEntry", label: "LAST ENTRY", width: "150px" },
-		{ key: "status", label: "STATUS", width: "auto" },
+		{ key: "name", label: "NAME", width: "minmax(100px, 2fr)" },
+		{ key: "alias", label: "ALIAS", width: "minmax(80px, 1fr)" },
+		{ key: "type", label: "TYPE", width: "minmax(80px, 0.8fr)" },
+		{ key: "entryCount", label: "ENTRIES", width: "minmax(60px, 0.5fr)", align: "right" },
+		{ key: "lastEntry", label: "LAST ENTRY", width: "minmax(120px, 1.2fr)" },
+		{ key: "status", label: "STATUS", width: "minmax(5rem, 0.8fr)" },
 	];
 
 	const formatTableRows = (projects: ExtendedProject[]): TableRow[] => {
-		return projects.map((project, index) => ({
-			id: project.id,
-			number: index + 1,
-			name: project.name,
-			alias: (
-				<span className="font-mono" style={{ color: getProjectAliasColor(project.alias) }}>
-					{project.alias}
-				</span>
-			),
-			type: "Project",
-			entryCount: project.entryCount,
-			lastEntry: project.lastEntry,
-			status: (
-				<span
-					className={`text-xs ${
-						project.status === "current"
-							? "text-green"
-							: project.status === "active"
-								? "text-green"
-								: "text-text-dim"
-					}`}
-				>
-					{project.status}
-				</span>
-			),
-		}));
+		return projects.map((project, index) => {
+			const raw = String(project.lastEntry).replace(/\s+/g, " ").trim();
+			let lastEntryDisplay: string;
+			if (!raw || raw === "-") lastEntryDisplay = "-";
+			else {
+				const date = new Date(raw);
+				lastEntryDisplay = Number.isNaN(date.getTime()) ? raw : formatRelative(date, new Date());
+			}
+			const statusActive = project.status === "current" || project.status === "active";
+			return {
+				id: project.id,
+				number: index + 1,
+				name: (
+					<span className="block truncate" title={project.name}>
+						{project.name}
+					</span>
+				),
+				alias: (
+					<span
+						className="block truncate font-mono"
+						style={{ color: getProjectAliasColor(project.alias) }}
+						title={project.alias}
+					>
+						{project.alias}
+					</span>
+				),
+				type: "Project",
+				entryCount: project.entryCount,
+				lastEntry: <span title={lastEntryDisplay}>{lastEntryDisplay}</span>,
+				status: (
+					<span
+						className={`inline-block shrink-0 rounded px-2 py-0.5 text-xs font-medium ${
+							statusActive ? "bg-green/20 text-green" : "bg-border text-text-dim"
+						}`}
+					>
+						{project.status}
+					</span>
+				),
+			};
+		});
 	};
 
 	const handleRowSelect = useCallback(
@@ -410,7 +425,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 				currentPage="projects"
 				onRegisterToggleSidebar={onRegisterToggleSidebar}
 			>
-				<div className="p-5">
+				<div className="min-w-0 w-full p-5">
 					<div className="mb-4 text-xs font-semibold tracking-wider uppercase text-text-dim">
 						ACTIVE PROJECTS
 					</div>
@@ -426,7 +441,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 							selectedRowId={selectedProjectId}
 							onRowSelect={handleRowSelect}
 							onRowDoubleClick={handleRowDoubleClick}
-							className="max-w-4xl"
+							className="w-full"
 						/>
 					)}
 
@@ -442,7 +457,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 								selectedRowId={selectedProjectId}
 								onRowSelect={handleRowSelect}
 								onRowDoubleClick={handleRowDoubleClick}
-								className="max-w-4xl opacity-60"
+								className="w-full opacity-60"
 							/>
 						</>
 					)}

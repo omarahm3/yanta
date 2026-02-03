@@ -40,17 +40,26 @@ export const Table: React.FC<TableProps> = ({
 		return cn(baseStyles, alignStyles[column.align || "left"]);
 	};
 
-	const gridTemplateColumns = columns.map((c) => c.width || "1fr").join(" ");
+	const gridTemplateColumns = columns
+		.map((col) => {
+			const w = col.width ?? "1fr";
+			if (w === "auto") return "minmax(5rem, 1fr)";
+			if (w.endsWith("px")) {
+				const n = Number.parseFloat(w);
+				return Number.isFinite(n) && n <= 48 ? w : `minmax(0, ${w})`;
+			}
+			return w;
+		})
+		.join(" ");
 
 	return (
-		<div className={cn("w-full", className)}>
-			{/* Table Header */}
+		<div className={cn("w-full min-w-0 overflow-x-auto", className)}>
 			<div className="grid mb-2 border-b border-border" style={{ gridTemplateColumns }}>
 				{columns.map((column) => (
 					<div
 						key={column.key}
 						className={cn(
-							"px-3 py-2 text-text-dim text-xs uppercase tracking-wider font-medium",
+							"min-w-0 overflow-hidden px-3 py-2 text-text-dim text-xs uppercase tracking-wider font-medium",
 							getColumnStyles(column),
 						)}
 					>
@@ -59,13 +68,12 @@ export const Table: React.FC<TableProps> = ({
 				))}
 			</div>
 
-			{/* Table Rows */}
 			<div className="space-y-0.5">
 				{rows.map((row) => (
 					<div
 						key={row.id}
 						className={cn(
-							"grid rounded cursor-pointer transition-all duration-100 items-center",
+							"grid rounded cursor-pointer transition-all duration-100 items-start",
 							"hover:bg-surface focus:outline-none focus:ring-2 focus:ring-accent focus:ring-opacity-50",
 							selectedRowId === row.id && "bg-surface border-l-2 border-accent",
 						)}
@@ -74,8 +82,14 @@ export const Table: React.FC<TableProps> = ({
 						onDoubleClick={() => onRowDoubleClick?.(row)}
 					>
 						{columns.map((column) => (
-							<div key={column.key} className={cn("px-3 py-2.5 text-sm", getColumnStyles(column))}>
-								{row[column.key]}
+							<div
+								key={column.key}
+								className={cn(
+									"min-w-0 min-h-[2rem] flex items-center overflow-hidden px-3 py-2.5 text-sm",
+									getColumnStyles(column),
+								)}
+							>
+								<div className="min-w-0 overflow-hidden w-full">{row[column.key]}</div>
 							</div>
 						))}
 					</div>
