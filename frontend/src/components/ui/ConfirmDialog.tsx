@@ -118,10 +118,11 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 						{cancelText}
 					</Button>
 					<Button
-						variant={danger ? "destructive" : "primary"}
+						variant={canConfirm && danger ? "destructive" : canConfirm ? "primary" : "secondary"}
 						onClick={handleConfirm}
 						disabled={!canConfirm}
 						ref={confirmButtonRef}
+						className={cn(!canConfirm && "opacity-50 cursor-not-allowed")}
 					>
 						{confirmText}
 					</Button>
