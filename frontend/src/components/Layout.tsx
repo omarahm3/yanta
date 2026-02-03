@@ -174,16 +174,14 @@ export const Layout: React.FC<LayoutProps> = ({
 			className="flex overflow-hidden font-mono text-sm leading-relaxed bg-bg text-text"
 			style={{ height: `calc(100vh - ${heightInRem}rem)` }}
 		>
-			{/* Sidebar with CSS transition - always rendered for smooth animation */}
 			<div
-				className={`sidebar-transition ${
+				className={`sidebar-transition h-full ${
 					!sidebarLoading && sidebarVisible ? "sidebar-visible" : "sidebar-hidden"
 				}`}
 			>
 				{sidebarContent ? sidebarContent : <UISidebar sections={sidebarSections || []} />}
 			</div>
 
-			{/* Main content area with transition for smooth expansion when sidebar toggles */}
 			<div className="flex flex-col flex-1 overflow-hidden main-content-transition">
 				<HeaderBar
 					breadcrumb={
@@ -193,7 +191,6 @@ export const Layout: React.FC<LayoutProps> = ({
 					shortcuts={headerShortcuts}
 				/>
 
-				{/* Context bar for content pages - shows mode, page name, project, and command hint */}
 				{shouldShowContextBar(currentPage) && (
 					<ContextBar
 						mode={dataMode}
@@ -215,7 +212,6 @@ export const Layout: React.FC<LayoutProps> = ({
 				)}
 			</div>
 
-			{/* Footer hint bar with context-aware keyboard shortcuts (only when enabled) */}
 			{!footerHintsLoading && showFooterHints && (
 				<FooterHintBar
 					hints={footerHints}
