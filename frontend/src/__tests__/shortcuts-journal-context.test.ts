@@ -204,7 +204,7 @@ describe("Journal Context Shortcuts - Hotkey Configuration", () => {
 // ============================================
 
 describe("Journal Context Shortcuts - Day Navigation", () => {
-	let mockSetDate: ReturnType<typeof vi.fn>;
+	let mockSetDate: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
 	let currentDate: string;
 
 	beforeEach(() => {
@@ -335,8 +335,8 @@ describe("Journal Context Shortcuts - Day Navigation", () => {
 // ============================================
 
 describe("Journal Context Shortcuts - Entry Navigation", () => {
-	let mockHighlightNext: ReturnType<typeof vi.fn>;
-	let mockHighlightPrevious: ReturnType<typeof vi.fn>;
+	let mockHighlightNext: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
+	let mockHighlightPrevious: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
 
 	beforeEach(() => {
 		mockHighlightNext = vi.fn();
@@ -409,7 +409,7 @@ describe("Journal Context Shortcuts - Entry Navigation", () => {
 // ============================================
 
 describe("Journal Context Shortcuts - Entry Selection", () => {
-	let mockToggleSelection: ReturnType<typeof vi.fn>;
+	let mockToggleSelection: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
 
 	beforeEach(() => {
 		mockToggleSelection = vi.fn();
@@ -453,7 +453,7 @@ describe("Journal Context Shortcuts - Entry Selection", () => {
 // ============================================
 
 describe("Journal Context Shortcuts - Delete Selected Entries", () => {
-	let mockHandleDeleteSelected: ReturnType<typeof vi.fn>;
+	let mockHandleDeleteSelected: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
 
 	beforeEach(() => {
 		mockHandleDeleteSelected = vi.fn();
@@ -493,7 +493,7 @@ describe("Journal Context Shortcuts - Delete Selected Entries", () => {
 // ============================================
 
 describe("Journal Context Shortcuts - Promote to Document", () => {
-	let mockHandlePromoteSelected: ReturnType<typeof vi.fn>;
+	let mockHandlePromoteSelected: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
 
 	beforeEach(() => {
 		mockHandlePromoteSelected = vi.fn().mockResolvedValue(undefined);
@@ -531,8 +531,8 @@ describe("Journal Context Shortcuts - Escape Behavior", () => {
 	 * clearing selection.
 	 */
 
-	let mockClearSelection: ReturnType<typeof vi.fn>;
-	let mockSetConfirmDialog: ReturnType<typeof vi.fn>;
+	let mockClearSelection: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
+	let mockSetConfirmDialog: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
 	let confirmDialogIsOpen: boolean;
 	let hasSelectedItems: boolean;
 

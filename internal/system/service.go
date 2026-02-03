@@ -730,3 +730,9 @@ func (s *Service) SetShowShortcutTooltips(ctx context.Context, show bool) error 
 	logger.Infof("show_shortcut_tooltips setting changed to %v", show)
 	return nil
 }
+
+// IsCommandLineEnabled returns whether the command line feature is enabled.
+// Controlled by YANTA_ENABLE_COMMAND_LINE environment variable.
+func (s *Service) IsCommandLineEnabled(ctx context.Context) bool {
+	return os.Getenv("YANTA_ENABLE_COMMAND_LINE") == "true" || os.Getenv("YANTA_ENABLE_COMMAND_LINE") == "1"
+}

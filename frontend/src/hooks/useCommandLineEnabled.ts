@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { IsCommandLineEnabled } from "../../bindings/yanta/internal/system/service";
+// IsCommandLineEnabled will be available after regenerating bindings
+// For now, we'll use a dynamic import pattern that handles the missing export gracefully
+import * as SystemService from "../../bindings/yanta/internal/system/service";
 
 export interface UseCommandLineEnabledReturn {
 	enabled: boolean;
@@ -16,17 +18,27 @@ export function useCommandLineEnabled(): UseCommandLineEnabledReturn {
 	const [isLoading, setIsLoading] = useState<boolean>(true);
 
 	useEffect(() => {
-		IsCommandLineEnabled()
-			.then((isEnabled) => {
-				setEnabled(isEnabled);
-			})
-			.catch((err) => {
-				console.error("[useCommandLineEnabled] Failed to check command line enabled:", err);
-				setEnabled(false);
-			})
-			.finally(() => {
-				setIsLoading(false);
-			});
+		// Check if the function exists (may not be available until bindings are regenerated)
+		const isCommandLineEnabled = (SystemService as Record<string, unknown>)
+			.IsCommandLineEnabled as (() => Promise<boolean>) | undefined;
+
+		if (typeof isCommandLineEnabled === "function") {
+			isCommandLineEnabled()
+				.then((isEnabled: boolean) => {
+					setEnabled(isEnabled);
+				})
+				.catch((err: Error) => {
+					console.error("[useCommandLineEnabled] Failed to check command line enabled:", err);
+					setEnabled(false);
+				})
+				.finally(() => {
+					setIsLoading(false);
+				});
+		} else {
+			// Function not available yet, default to disabled
+			setEnabled(false);
+			setIsLoading(false);
+		}
 	}, []);
 
 	return {

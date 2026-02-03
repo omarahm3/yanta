@@ -41,7 +41,7 @@ describe("MilestoneHintManager", () => {
 		});
 
 		it("renders first-save hint when documentsCreated === 1", () => {
-			let controls: ReturnType<typeof useUserProgressContext>;
+			let controls!: ReturnType<typeof useUserProgressContext>;
 
 			render(
 				<TestWrapper>
@@ -63,7 +63,7 @@ describe("MilestoneHintManager", () => {
 		});
 
 		it("renders journal-nav hint when journalEntriesCreated === 1", () => {
-			let controls: ReturnType<typeof useUserProgressContext>;
+			let controls!: ReturnType<typeof useUserProgressContext>;
 
 			render(
 				<TestWrapper>
@@ -85,7 +85,7 @@ describe("MilestoneHintManager", () => {
 		});
 
 		it("renders quick-switch hint when projectsSwitched === 1", () => {
-			let controls: ReturnType<typeof useUserProgressContext>;
+			let controls!: ReturnType<typeof useUserProgressContext>;
 
 			render(
 				<TestWrapper>
@@ -111,7 +111,7 @@ describe("MilestoneHintManager", () => {
 
 	describe("hint dismissal", () => {
 		it("marks hint as shown when dismissed", () => {
-			let controls: ReturnType<typeof useUserProgressContext>;
+			let controls!: ReturnType<typeof useUserProgressContext>;
 
 			render(
 				<TestWrapper>
@@ -142,7 +142,7 @@ describe("MilestoneHintManager", () => {
 		});
 
 		it("does not show same hint again after dismissal", () => {
-			let controls: ReturnType<typeof useUserProgressContext>;
+			let controls!: ReturnType<typeof useUserProgressContext>;
 
 			const { rerender } = render(
 				<TestWrapper>
@@ -185,7 +185,7 @@ describe("MilestoneHintManager", () => {
 
 	describe("milestone progression", () => {
 		it("shows recent-docs hint when documentsCreated reaches 5", () => {
-			let controls: ReturnType<typeof useUserProgressContext>;
+			let controls!: ReturnType<typeof useUserProgressContext>;
 
 			render(
 				<TestWrapper>
@@ -221,7 +221,7 @@ describe("MilestoneHintManager", () => {
 		});
 
 		it("shows journal-select hint when journalEntriesCreated reaches 10", () => {
-			let controls: ReturnType<typeof useUserProgressContext>;
+			let controls!: ReturnType<typeof useUserProgressContext>;
 
 			render(
 				<TestWrapper>
@@ -261,7 +261,7 @@ describe("MilestoneHintManager", () => {
 
 	describe("hint priority", () => {
 		it("shows first-save hint before journal-nav when both milestones are met", () => {
-			let controls: ReturnType<typeof useUserProgressContext>;
+			let controls!: ReturnType<typeof useUserProgressContext>;
 
 			render(
 				<TestWrapper>
@@ -311,7 +311,7 @@ describe("MilestoneHintManager", () => {
 
 	describe("auto-dismiss", () => {
 		it("auto-dismisses after 8 seconds and marks hint as shown", () => {
-			let controls: ReturnType<typeof useUserProgressContext>;
+			let controls!: ReturnType<typeof useUserProgressContext>;
 
 			render(
 				<TestWrapper>

@@ -51,7 +51,7 @@ vi.mock("../components/ui/ResizeHandles", () => ({
 
 const mockNavigate = vi.fn();
 const commandPaletteRender = vi.fn();
-const __mockCommandPaletteOpen = false;
+let __mockCommandPaletteOpen = false;
 
 vi.mock("../components", async () => {
 	const actual = await vi.importActual<typeof import("../components")>("../components");
@@ -65,7 +65,7 @@ vi.mock("../components", async () => {
 				state?: Record<string, string | number | boolean | undefined>,
 			) => void;
 		}) => {
-			_mockCommandPaletteOpen = props.isOpen;
+			__mockCommandPaletteOpen = props.isOpen;
 			commandPaletteRender(props);
 			// Expose navigate for tests
 			if (props.isOpen) {
@@ -198,7 +198,7 @@ describe("Global Navigation Shortcuts", () => {
 		mockNavigate.mockClear();
 		commandPaletteRender.mockClear();
 		capturedHotkeyContext = null;
-		_mockCommandPaletteOpen = false;
+		__mockCommandPaletteOpen = false;
 	});
 
 	describe("Command Palette (Ctrl+K / mod+K)", () => {
@@ -543,7 +543,7 @@ describe("Shortcut Registration Validation", () => {
 
 		for (const hotkey of hotkeys) {
 			expect(hotkey.description).toBeDefined();
-			expect(hotkey.description.length).toBeGreaterThan(0);
+			expect(hotkey.description!.length).toBeGreaterThan(0);
 		}
 	});
 

@@ -29,6 +29,8 @@ const mockSystemInfo: SystemInfo = {
 		buildDate: "2024-01-01",
 		platform: "windows",
 		goVersion: "1.21",
+		databasePath: "/path/to/db",
+		logLevel: "info",
 	},
 	database: {
 		entriesCount: 10,

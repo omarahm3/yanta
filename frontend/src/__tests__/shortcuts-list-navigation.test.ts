@@ -192,8 +192,8 @@ describe("Dashboard List Navigation - Hotkey Configuration", () => {
 // ============================================
 
 describe("Dashboard List Navigation - Navigation Behavior", () => {
-	let mockHighlightNext: ReturnType<typeof vi.fn>;
-	let mockHighlightPrevious: ReturnType<typeof vi.fn>;
+	let mockHighlightNext: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
+	let mockHighlightPrevious: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
 
 	beforeEach(() => {
 		mockHighlightNext = vi.fn();
@@ -266,7 +266,7 @@ describe("Dashboard List Navigation - Navigation Behavior", () => {
 // ============================================
 
 describe("Dashboard List Navigation - Document Selection", () => {
-	let mockToggleSelection: ReturnType<typeof vi.fn>;
+	let mockToggleSelection: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
 	let _highlightedIndex: number;
 	let _documentsLength: number;
 
@@ -314,7 +314,7 @@ describe("Dashboard List Navigation - Document Selection", () => {
 // ============================================
 
 describe("Dashboard List Navigation - Open Document", () => {
-	let mockHandleDocumentClick: ReturnType<typeof vi.fn>;
+	let mockHandleDocumentClick: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
 	let highlightedIndex: number;
 	let documents: { path: string; title: string }[];
 
@@ -389,8 +389,8 @@ describe("Dashboard List Navigation - Open Document", () => {
 // ============================================
 
 describe("Dashboard List Navigation - Create New Document", () => {
-	let mockOnNavigate: ReturnType<typeof vi.fn>;
-	let mockError: ReturnType<typeof vi.fn>;
+	let mockOnNavigate: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
+	let mockError: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
 	let currentProject: { alias: string } | null;
 
 	beforeEach(() => {
@@ -447,8 +447,8 @@ describe("Dashboard List Navigation - Escape Behavior", () => {
 	 * clearing selection.
 	 */
 
-	let mockClearSelection: ReturnType<typeof vi.fn>;
-	let mockSetConfirmDialog: ReturnType<typeof vi.fn>;
+	let mockClearSelection: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
+	let mockSetConfirmDialog: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
 	let confirmDialogIsOpen: boolean;
 	let hasSelectedDocuments: boolean;
 
@@ -628,8 +628,8 @@ describe("Projects Page List Navigation - Hotkey Configuration", () => {
 // ============================================
 
 describe("Projects Page List Navigation - Navigation Behavior", () => {
-	let mockSelectNext: ReturnType<typeof vi.fn>;
-	let mockSelectPrevious: ReturnType<typeof vi.fn>;
+	let mockSelectNext: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
+	let mockSelectPrevious: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
 	let selectedProjectId: string;
 	let projects: { id: string; name: string }[];
 
@@ -699,8 +699,8 @@ describe("Projects Page List Navigation - Navigation Behavior", () => {
 // ============================================
 
 describe("Projects Page List Navigation - Switch Project", () => {
-	let mockSetCurrentProject: ReturnType<typeof vi.fn>;
-	let mockSuccess: ReturnType<typeof vi.fn>;
+	let mockSetCurrentProject: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
+	let mockSuccess: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
 	let selectedProjectId: string;
 	let projects: { id: string; name: string }[];
 
@@ -758,8 +758,8 @@ describe("Search Page List Navigation - Behavior", () => {
 
 	let selectedIndex: number;
 	let groupedResultsLength: number;
-	let mockOpenResult: ReturnType<typeof vi.fn>;
-	let mockSetSelectedIndex: ReturnType<typeof vi.fn>;
+	let mockOpenResult: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
+	let mockSetSelectedIndex: ReturnType<typeof vi.fn<(...args: unknown[]) => unknown>>;
 	let isSearchInputFocused: boolean;
 
 	beforeEach(() => {
