@@ -560,6 +560,32 @@ func (pc *ProjectCommands) handleDeleteWithFlags(
 	}
 
 	if hasHard {
+		// If --hard without --force, require confirmation first
+		if !hasForce {
+			entryCount, err := pc.projectService.GetDocumentCount(context.Background(), proj.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			message := fmt.Sprintf("Confirm permanently deleting project '%s'", proj.Name)
+			if entryCount > 0 {
+				message += fmt.Sprintf(" (hard delete %d entries and all files)", entryCount)
+			}
+
+			return &Result{
+				Success: true,
+				Message: message,
+				Data: ProjectResultData{
+					Project:              proj,
+					Alias:                alias,
+					Flags:                []string{"--hard"},
+					RequiresConfirmation: true,
+					ConfirmationCommand:  fmt.Sprintf("delete %s --force --hard", alias),
+				},
+			}, nil
+		}
+
+		// Has both --force and --hard, perform the deletion
 		if err := pc.documentService.HardDeleteByProject(context.Background(), proj.Alias); err != nil {
 			return nil, err
 		}
@@ -578,11 +604,6 @@ func (pc *ProjectCommands) handleDeleteWithFlags(
 			"permanently deleted project: %s (with all documents and files)",
 			proj.Name,
 		)
-		flags := []string{}
-		if hasForce {
-			flags = append(flags, "--force")
-		}
-		flags = append(flags, "--hard")
 
 		return &Result{
 			Success: true,
@@ -590,7 +611,7 @@ func (pc *ProjectCommands) handleDeleteWithFlags(
 			Data: ProjectResultData{
 				Project: proj,
 				Alias:   alias,
-				Flags:   flags,
+				Flags:   []string{"--force", "--hard"},
 			},
 		}, nil
 	}
