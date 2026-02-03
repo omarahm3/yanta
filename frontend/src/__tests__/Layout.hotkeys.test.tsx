@@ -1,5 +1,5 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
-import React, { useRef } from "react";
+import React from "react";
 import { vi } from "vitest";
 import { DialogProvider, HotkeyProvider, TitleBarProvider, useHotkeyContext } from "../contexts";
 import type { HotkeyContextValue } from "../types/hotkeys";
@@ -36,18 +36,6 @@ vi.mock("../hooks/useFooterHints", () => ({
 	}),
 }));
 
-const mockHandleCreateDocument = vi.fn();
-const mockHandleCreateJournalEntry = vi.fn();
-
-vi.mock("../hooks/useQuickCreate", () => ({
-	useQuickCreate: () => ({
-		handleCreateDocument: mockHandleCreateDocument,
-		handleCreateJournalEntry: mockHandleCreateJournalEntry,
-		currentProjectAlias: "test-project",
-		isDisabled: false,
-	}),
-}));
-
 vi.mock("../contexts", async () => {
 	const actual = await vi.importActual<typeof import("../contexts")>("../contexts");
 	return {
@@ -68,23 +56,6 @@ vi.mock("../components/ui", () => ({
 	FooterHintBar: ({ hints }: { hints: { key: string; label: string }[] }) => (
 		<div data-testid="footer-hint-bar-mock">{hints.length} hints</div>
 	),
-	QuickCreateInput: ({
-		projectAlias,
-		disabled,
-	}: {
-		projectAlias: string;
-		disabled?: boolean;
-	}) => (
-		<div data-testid="quick-create-input">
-			<span data-testid="project-alias">{projectAlias}</span>
-			<input
-				type="text"
-				placeholder="Type to create..."
-				disabled={disabled}
-				data-testid="quick-create-input-field"
-			/>
-		</div>
-	),
 }));
 
 import { Layout } from "../components/Layout";
@@ -102,40 +73,26 @@ describe("Layout hotkeys", () => {
 		mockSuccess.mockClear();
 		mockError.mockClear();
 		mockToggleSidebar.mockClear();
-		mockHandleCreateDocument.mockClear();
-		mockHandleCreateJournalEntry.mockClear();
 		mockSidebarVisible = true; // Reset sidebar to visible state for each test
 	});
 
-	const Wrapper: React.FC<{
-		onContext: (ctx: HotkeyContextValue) => void;
-		showQuickCreate?: boolean;
-	}> = ({ onContext, showQuickCreate = true }) => {
-		const quickCreateInputRef = useRef<HTMLInputElement>(null);
+	const Wrapper: React.FC<{ onContext: (ctx: HotkeyContextValue) => void }> = ({ onContext }) => (
+		<DialogProvider>
+			<HotkeyProvider>
+				<TitleBarProvider>
+					<HotkeyProbe onReady={onContext} />
+					<Layout sidebarTitle="Test Sidebar" currentPage="dashboard">
+						<div data-testid="content">content</div>
+					</Layout>
+				</TitleBarProvider>
+			</HotkeyProvider>
+		</DialogProvider>
+	);
 
-		return (
-			<DialogProvider>
-				<HotkeyProvider>
-					<TitleBarProvider>
-						<HotkeyProbe onReady={onContext} />
-						<Layout
-							sidebarTitle="Test Sidebar"
-							currentPage="dashboard"
-							showQuickCreate={showQuickCreate}
-							quickCreateInputRef={quickCreateInputRef}
-						>
-							<div data-testid="content">content</div>
-						</Layout>
-					</TitleBarProvider>
-				</HotkeyProvider>
-			</DialogProvider>
-		);
-	};
-
-	const setup = async (showQuickCreate = true) => {
+	const setup = async () => {
 		let context: HotkeyContextValue | null = null;
 		// biome-ignore lint/suspicious/noAssignInExpressions: Test callback pattern
-		render(<Wrapper onContext={(ctx) => (context = ctx)} showQuickCreate={showQuickCreate} />);
+		render(<Wrapper onContext={(ctx) => (context = ctx)} />);
 		await waitFor(() => expect(context).not.toBeNull());
 		// biome-ignore lint/style/noNonNullAssertion: Test utility function ensures non-null
 		return context!;
@@ -156,33 +113,6 @@ describe("Layout hotkeys", () => {
 
 		// Verify toggleSidebar was called
 		expect(mockToggleSidebar).toHaveBeenCalledTimes(1);
-
-		const toggleSidebarHotkey = ctx.getRegisteredHotkeys().find((h) => h.key === "mod+e");
-		expect(toggleSidebarHotkey).toBeDefined();
-
-		await act(async () => {
-			toggleSidebarHotkey?.handler(new KeyboardEvent("keydown", { key: "e", ctrlKey: true, code: "KeyE" }));
-		});
-
-		// Verify toggleSidebar was called again
-		expect(mockToggleSidebar).toHaveBeenCalledTimes(2);
 	});
 
-	it("renders QuickCreateInput when showQuickCreate is true", async () => {
-		await setup(true);
-		expect(screen.getByTestId("quick-create-input")).toBeInTheDocument();
-		expect(screen.getByTestId("project-alias")).toHaveTextContent("test-project");
-	});
-
-	it("does not render QuickCreateInput when showQuickCreate is false", async () => {
-		await setup(false);
-		expect(screen.queryByTestId("quick-create-input")).not.toBeInTheDocument();
-	});
-
-	it("registers Escape hotkey for QuickCreateInput blur when showQuickCreate is true", async () => {
-		const ctx = await setup(true);
-		const escapeHotkey = ctx.getRegisteredHotkeys().find((h) => h.key === "Escape");
-		expect(escapeHotkey).toBeDefined();
-		expect(escapeHotkey?.description).toBe("Exit quick create input");
-	});
 });

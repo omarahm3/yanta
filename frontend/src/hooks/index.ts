@@ -22,8 +22,6 @@ export type { UseShortcutTooltipsSettingReturn } from "./useShortcutTooltipsSett
 export { useShortcutTooltipsSetting } from "./useShortcutTooltipsSetting";
 export type { UseCommandDeprecationReturn } from "./useCommandDeprecation";
 export { useCommandDeprecation, DEPRECATED_COMMAND_MAPPINGS } from "./useCommandDeprecation";
-export type { UseQuickCreateOptions, UseQuickCreateReturn } from "./useQuickCreate";
-export { useQuickCreate } from "./useQuickCreate";
 export type { CommandUsageData, CommandUsageRecord, UseCommandUsageReturn } from "./useCommandUsage";
 export { useCommandUsage } from "./useCommandUsage";
 export type { OnboardingData, UseOnboardingReturn } from "./useOnboarding";

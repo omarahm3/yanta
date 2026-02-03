@@ -116,24 +116,6 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 		allowInInput: false,
 	});
 
-	shortcuts.push({
-		key: "mod+e",
-		description: "Toggle sidebar",
-		context: "layout",
-		source: "Layout.tsx - sidebarToggleHotkeys",
-		allowInInput: false,
-	});
-
-	shortcuts.push({
-		key: "Escape",
-		description: "Exit quick create input",
-		context: "layout",
-		source: "Layout.tsx - quickCreateHotkeys",
-		allowInInput: true,
-		capture: true,
-		priority: 100,
-	});
-
 	// ============================================
 	// DASHBOARD SHORTCUTS (useDashboardController.ts)
 	// ============================================
@@ -537,34 +519,6 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 		allowInInput: false,
 	});
 
-	// ============================================
-	// QUICK CREATE INPUT SHORTCUTS (QuickCreateInput.tsx - event listeners)
-	// ============================================
-
-	shortcuts.push({
-		key: "Enter",
-		description: "Create document",
-		context: "quick-create",
-		source: "QuickCreateInput.tsx",
-		allowInInput: true,
-	});
-
-	shortcuts.push({
-		key: "Shift+Enter",
-		description: "Create journal entry",
-		context: "quick-create",
-		source: "QuickCreateInput.tsx",
-		allowInInput: true,
-	});
-
-	shortcuts.push({
-		key: "Ctrl+D",
-		description: "Focus input (global)",
-		context: "quick-create",
-		source: "QuickCreateInput.tsx",
-		allowInInput: false,
-	});
-
 	return shortcuts;
 }
 
@@ -620,10 +574,9 @@ describe("Shortcut Conflict Detection", () => {
 		expect(sources.has("Projects.tsx")).toBe(true);
 		expect(sources.has("Search.tsx")).toBe(true);
 		expect(sources.has("Settings.tsx")).toBe(true);
-		expect(sources.has("QuickCreateInput.tsx")).toBe(true);
 
 		// We should have a reasonable number of shortcuts
-		expect(allShortcuts.length).toBeGreaterThan(40);
+		expect(allShortcuts.length).toBeGreaterThan(35);
 	});
 
 	it("should have no conflicting global shortcuts", () => {
@@ -728,40 +681,19 @@ describe("Shortcut Conflict Detection", () => {
 		expect(modShortcuts.length).toBeGreaterThan(0);
 	});
 
-	it("should not have mod+e conflict between Layout and Document context", () => {
-		// mod+e is used in both Layout (toggle sidebar) and Document (export to markdown)
-		// This is a known conflict that should be documented
+	it("documents mod+e usage (Recent Documents in palette, Export in document)", () => {
 		const modEShortcuts = allShortcuts.filter((s) => normalizeKey(s.key) === "mod+e");
 
-		// Log for visibility
 		console.log("\n=== mod+e shortcut usage ===");
 		for (const s of modEShortcuts) {
 			console.log(`  ${s.context}: ${s.description} (${s.source})`);
 		}
 
-		// This test documents the known conflict - in practice, the Document context
-		// uses capture:true which takes precedence when on the Document page
 		const contexts = new Set(modEShortcuts.map((s) => s.context));
-		expect(contexts.has("layout")).toBe(true);
+		expect(contexts.has("layout")).toBe(false);
 		expect(contexts.has("document")).toBe(true);
 	});
 
-	it("should have Ctrl+D conflict documented between QuickCreateInput and browser default", () => {
-		// Ctrl+D is used by QuickCreateInput to focus input
-		// This intentionally overrides browser's bookmark shortcut
-		const ctrlDShortcuts = allShortcuts.filter(
-			(s) => normalizeKey(s.key) === "ctrl+d" || normalizeKey(s.key) === "mod+d",
-		);
-
-		console.log("\n=== Ctrl+D / mod+D shortcut usage ===");
-		for (const s of ctrlDShortcuts) {
-			console.log(`  ${s.context}: ${s.description} (${s.source})`);
-		}
-
-		// Verify mod+D is used for delete operations and Ctrl+D for QuickCreate focus
-		const quickCreateCtrlD = ctrlDShortcuts.find((s) => s.context === "quick-create");
-		expect(quickCreateCtrlD).toBeDefined();
-	});
 });
 
 describe("Platform-Specific Shortcut Resolution", () => {

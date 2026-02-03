@@ -21,7 +21,6 @@ export {
 	MetadataSidebar,
 } from "./MetadataSidebar";
 export { Modal } from "./Modal";
-export { QuickCreateInput, type QuickCreateInputProps } from "./QuickCreateInput";
 export { RelatedEntries, type RelatedEntry } from "./RelatedEntries";
 export { ResizeHandles } from "./ResizeHandles";
 export { Select, type SelectOption } from "./Select";

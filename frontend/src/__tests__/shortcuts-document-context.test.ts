@@ -19,6 +19,7 @@
 import { renderHook, act } from "@testing-library/react";
 import React from "react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import type { Mock } from "vitest";
 import type { HotkeyConfig } from "../types/hotkeys";
 
 // ============================================
@@ -145,8 +146,8 @@ describe("Document Context Shortcuts - Hotkey Configuration", () => {
 // ============================================
 
 describe("Document Context Shortcuts - Save (Ctrl+S / mod+s)", () => {
-	let mockSaveNow: ReturnType<typeof vi.fn>;
-	let mockError: ReturnType<typeof vi.fn>;
+	let mockSaveNow: Mock<() => Promise<void>>;
+	let mockError: Mock<(message: string) => void>;
 	let isArchived: boolean;
 
 	beforeEach(() => {
@@ -208,8 +209,8 @@ describe("Document Context Shortcuts - Save (Ctrl+S / mod+s)", () => {
 // ============================================
 
 describe("Document Context Shortcuts - Escape Navigation", () => {
-	let mockOnNavigateBack: ReturnType<typeof vi.fn>;
-	let mockEditorIsFocused: ReturnType<typeof vi.fn>;
+	let mockOnNavigateBack: Mock<() => void>;
+	let mockEditorIsFocused: Mock<() => boolean>;
 
 	beforeEach(() => {
 		mockOnNavigateBack = vi.fn();
@@ -271,9 +272,9 @@ describe("Document Context Shortcuts - Escape Navigation", () => {
 // ============================================
 
 describe("Document Context Shortcuts - Export", () => {
-	let mockExportToMarkdown: ReturnType<typeof vi.fn>;
-	let mockExportToPDF: ReturnType<typeof vi.fn>;
-	let mockError: ReturnType<typeof vi.fn>;
+	let mockExportToMarkdown: Mock<() => Promise<void>>;
+	let mockExportToPDF: Mock<() => Promise<void>>;
+	let mockError: Mock<(message: string) => void>;
 	let isArchived: boolean;
 	let hasDocumentPath: boolean;
 
@@ -366,9 +367,9 @@ describe("Document Context Shortcuts - Export", () => {
 // ============================================
 
 describe("Document Context Shortcuts - Editor Focus Control", () => {
-	let mockEditorFocus: ReturnType<typeof vi.fn>;
-	let mockEditorBlur: ReturnType<typeof vi.fn>;
-	let mockEditorIsFocused: ReturnType<typeof vi.fn>;
+	let mockEditorFocus: Mock<() => void>;
+	let mockEditorBlur: Mock<() => void>;
+	let mockEditorIsFocused: Mock<() => boolean>;
 
 	beforeEach(() => {
 		mockEditorFocus = vi.fn();
@@ -527,7 +528,6 @@ describe("Document Context Shortcuts - Context Isolation", () => {
 		 *
 		 * - Document: Navigate back when editor is not focused
 		 * - Search: Unfocus/clear search
-		 * - Layout (QuickCreate): Exit quick create input (capture:true, priority:100)
 		 * - Help Modal: Close modal
 		 * - Command Palette: Close palette
 		 *
@@ -537,13 +537,7 @@ describe("Document Context Shortcuts - Context Isolation", () => {
 		const escapeUsages = [
 			{ context: "document", description: "Navigate back when editor is not focused", capture: false, priority: undefined },
 			{ context: "search", description: "Unfocus/clear", capture: false, priority: undefined },
-			{ context: "layout", description: "Exit quick create input", capture: true, priority: 100 },
 		];
-
-		// Layout's Escape has highest priority (capture + priority 100)
-		const layoutEscape = escapeUsages.find((e) => e.context === "layout");
-		expect(layoutEscape?.capture).toBe(true);
-		expect(layoutEscape?.priority).toBe(100);
 
 		// Document's Escape does not use capture (lower priority)
 		const docEscape = escapeUsages.find((e) => e.context === "document");

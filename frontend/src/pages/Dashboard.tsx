@@ -44,8 +44,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
 			<Layout
 				sidebarSections={sidebarSections}
 				currentPage="dashboard"
-				showQuickCreate={true}
-				onNavigate={onNavigate}
 				onRegisterToggleSidebar={onRegisterToggleSidebar}
 			>
 				{isLoading ? (

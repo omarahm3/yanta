@@ -1,14 +1,8 @@
 import type React from "react";
-import { type ReactNode, useEffect, useMemo, useRef } from "react";
+import { type ReactNode, useEffect, useMemo } from "react";
 import { useProjectContext, useTitleBarContext } from "../contexts";
-import {
-	useFooterHints,
-	useFooterHintsSetting,
-	useHotkeys,
-	useQuickCreate,
-	useSidebarSetting,
-} from "../hooks";
-import { ContextBar, FooterHintBar, HeaderBar, QuickCreateInput, type SidebarSection, Sidebar as UISidebar } from "./ui";
+import { useFooterHints, useFooterHintsSetting, useHotkeys, useSidebarSetting } from "../hooks";
+import { ContextBar, FooterHintBar, HeaderBar, type SidebarSection, Sidebar as UISidebar } from "./ui";
 
 /**
  * Converts the current page identifier to a display-friendly page name.
@@ -51,12 +45,6 @@ export interface LayoutProps {
 		label: string;
 	}>;
 	children: ReactNode;
-	/** Show the QuickCreateInput at the bottom of the layout */
-	showQuickCreate?: boolean;
-	/** Callback when navigation is needed after document creation */
-	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
-	/** Reference to the QuickCreateInput element for focus management */
-	quickCreateInputRef?: React.RefObject<HTMLInputElement>;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
@@ -86,19 +74,13 @@ export const Layout: React.FC<LayoutProps> = ({
 	currentPage,
 	headerShortcuts = [],
 	children,
-	showQuickCreate = false,
-	onNavigate,
-	quickCreateInputRef: providedRef,
 	onRegisterToggleSidebar,
 }) => {
-	const internalRef = useRef<HTMLInputElement>(null);
-	const quickCreateInputRef = providedRef || internalRef;
 	const { sidebarVisible, toggleSidebar, isLoading: sidebarLoading } = useSidebarSetting();
 	const { showFooterHints, isLoading: footerHintsLoading } = useFooterHintsSetting();
 	const { currentProject } = useProjectContext();
 	const { heightInRem } = useTitleBarContext();
 	const { hints: footerHints } = useFooterHints({ currentPage });
-	const { handleCreateDocument, handleCreateJournalEntry, currentProjectAlias, isDisabled } = useQuickCreate({ onNavigate });
 
 	// Register the toggle sidebar handler with the parent component
 	useEffect(() => {
@@ -120,49 +102,11 @@ export const Layout: React.FC<LayoutProps> = ({
 				description: "Toggle sidebar",
 				category: "navigation",
 			},
-			{
-				key: "mod+e",
-				handler: () => {
-					toggleSidebar();
-				},
-				allowInInput: false,
-				description: "Toggle sidebar",
-				category: "navigation",
-			},
 		],
 		[toggleSidebar],
 	);
 
 	useHotkeys(sidebarToggleHotkeys);
-
-	const quickCreateHotkeys = useMemo(
-		() =>
-			showQuickCreate
-				? [
-						{
-							key: "Escape",
-							handler: (event: KeyboardEvent) => {
-								const target = event.target as HTMLElement;
-								if (target === quickCreateInputRef.current) {
-									event.preventDefault();
-									event.stopPropagation();
-									quickCreateInputRef.current?.blur();
-									return true;
-								}
-								return false;
-							},
-							allowInInput: true,
-							priority: 100,
-							description: "Exit quick create input",
-							capture: true,
-							category: "navigation",
-						},
-					]
-				: [],
-		[showQuickCreate, quickCreateInputRef],
-	);
-
-	useHotkeys(quickCreateHotkeys);
 
 	const dataMode = getDataMode(currentPage);
 
@@ -200,16 +144,6 @@ export const Layout: React.FC<LayoutProps> = ({
 				)}
 
 				<div className="flex-1 overflow-hidden">{children}</div>
-
-				{showQuickCreate && (
-					<QuickCreateInput
-						ref={quickCreateInputRef}
-						projectAlias={currentProjectAlias ?? ""}
-						onCreateDocument={handleCreateDocument}
-						onCreateJournalEntry={handleCreateJournalEntry}
-						disabled={isDisabled}
-					/>
-				)}
 			</div>
 
 			{!footerHintsLoading && showFooterHints && (
