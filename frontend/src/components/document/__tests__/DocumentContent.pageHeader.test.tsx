@@ -1,55 +1,83 @@
 import { render, screen } from "@testing-library/react";
-import { FileText } from "lucide-react";
-import { describe, expect, it } from "vitest";
+import type React from "react";
+import { describe, expect, it, vi } from "vitest";
 
 /**
  * Tests for DocumentContent page header with mode icon
  * These tests verify the visual elements added for mode differentiation
+ * by rendering the ACTUAL DocumentContent component
  */
 
+// Mock Layout to render children (header is part of children)
+vi.mock("../../Layout", () => ({
+	Layout: ({ children }: { children: React.ReactNode }) => <div data-testid="layout">{children}</div>,
+}));
+
+// Mock child components that aren't relevant to header testing
+vi.mock("../DocumentEditorForm", () => ({
+	DocumentEditorForm: () => <div data-testid="document-editor-form" />,
+}));
+
+vi.mock("../DocumentEditorActions", () => ({
+	DocumentEditorActions: () => <div data-testid="document-editor-actions" />,
+}));
+
+// Import after mocks
+import { DocumentContent } from "../DocumentContent";
+
+const mockProps = {
+	sidebarSections: [],
+	currentProject: { id: "1", alias: "proj", name: "Project", createdAt: "", updatedAt: "", startDate: "" },
+	formData: {
+		blocks: [],
+		tags: [],
+	},
+	isEditMode: true,
+	isLoading: false,
+	isArchived: false,
+	autoSave: {
+		saveState: "idle" as const,
+		lastSaved: null,
+		hasUnsavedChanges: false,
+		saveError: null,
+		saveNow: vi.fn(),
+	},
+	onTitleChange: vi.fn(),
+	onBlocksChange: vi.fn(),
+	onTagRemove: vi.fn(),
+	onEditorReady: vi.fn(),
+};
+
 describe("DocumentContent page header visual elements", () => {
-	// Test the FileText icon renders with proper styling
-	it("FileText icon renders with mode accent color", () => {
-		const TestComponent = () => (
-			<div className="px-4 pt-4 pb-2 border-b border-border">
-				<div className="flex items-center gap-2">
-					<FileText
-						className="w-5 h-5"
-						style={{ color: "var(--mode-accent)" }}
-						aria-hidden="true"
-						data-testid="mode-icon"
-					/>
-					<span className="text-sm text-text-dim">Document</span>
-				</div>
-			</div>
-		);
+	it("renders the actual DocumentContent with Document label", () => {
+		render(<DocumentContent {...mockProps} />);
 
-		render(<TestComponent />);
-
-		// Check the label
 		const label = screen.getByText("Document");
 		expect(label).toBeInTheDocument();
+	});
 
-		// Check the icon
-		const icon = screen.getByTestId("mode-icon");
+	it("renders page header icon with mode accent styling", () => {
+		render(<DocumentContent {...mockProps} />);
+
+		const icon = screen.getByTestId("page-header-icon");
 		expect(icon).toBeInTheDocument();
 		expect(icon).toHaveAttribute("aria-hidden", "true");
 		expect(icon).toHaveStyle({ color: "var(--mode-accent)" });
 	});
 
-	it("icon and title are visually aligned", () => {
-		const TestComponent = () => (
-			<div className="px-4 pt-4 pb-2 border-b border-border">
-				<div className="flex items-center gap-2" data-testid="header-container">
-					<FileText className="w-5 h-5" style={{ color: "var(--mode-accent)" }} aria-hidden="true" />
-					<span className="text-sm text-text-dim">Document</span>
-				</div>
-			</div>
-		);
+	it("icon and label are rendered together in the header", () => {
+		render(<DocumentContent {...mockProps} />);
 
-		render(<TestComponent />);
+		const icon = screen.getByTestId("page-header-icon");
+		const label = screen.getByText("Document");
 
-		const container = screen.getByTestId("header-container");
-		expect(container).toHaveClass("flex", "items-center", "gap-2");
+		// Both should be in the document
+		expect(icon).toBeInTheDocument();
+		expect(label).toBeInTheDocument();
+
+		// They should share a common parent container
+		const iconParent = icon.parentElement;
+		const labelParent = label.parentElement;
+		expect(iconParent).toBe(labelParent);
 	});
 });

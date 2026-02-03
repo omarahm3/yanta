@@ -64,7 +64,7 @@ export const Journal: React.FC<JournalProps> = ({
 					<div className="p-4 border-b border-border">
 						<div className="flex items-center justify-between mb-3">
 							<div className="flex items-center gap-2">
-								<BookOpen className="w-5 h-5" style={{ color: "var(--mode-accent)" }} aria-hidden="true" />
+								<BookOpen className="w-5 h-5" style={{ color: "var(--mode-accent)" }} aria-hidden="true" data-testid="page-header-icon" />
 								<h1 className="text-lg font-semibold">Journal</h1>
 							</div>
 							<span className="text-sm text-text-dim">{projectAlias}</span>
