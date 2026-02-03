@@ -127,6 +127,25 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 				onSubPaletteBack();
 				return;
 			}
+			const mod = e.ctrlKey || e.metaKey;
+			if (mod && e.key === "n") {
+				e.preventDefault();
+				e.stopPropagation();
+				const el = e.currentTarget as HTMLElement;
+				el.dispatchEvent(
+					new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }),
+				);
+				return;
+			}
+			if (mod && e.key === "p") {
+				e.preventDefault();
+				e.stopPropagation();
+				const el = e.currentTarget as HTMLElement;
+				el.dispatchEvent(
+					new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }),
+				);
+				return;
+			}
 			const commandId = getCommandIdForKeyboardEvent(e.nativeEvent);
 			if (commandId) {
 				const command = commands.find((c) => c.id === commandId);
@@ -140,7 +159,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 		[isSubPaletteMode, onSubPaletteBack, commands, handleSelect],
 	);
 
-	// Group commands by their group property
 	const groupedCommands = useMemo(() => groupCommands(commands), [commands]);
 
 	return (

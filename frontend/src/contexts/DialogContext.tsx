@@ -1,5 +1,5 @@
 import type React from "react";
-import { createContext, type ReactNode, useContext, useState } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useState } from "react";
 
 interface DialogContextValue {
 	isDialogOpen: boolean;
@@ -14,10 +14,17 @@ interface DialogProviderProps {
 }
 
 export const DialogProvider: React.FC<DialogProviderProps> = ({ children }) => {
-	const [isDialogOpen, setIsDialogOpen] = useState(false);
+	const [openCount, setOpenCount] = useState(0);
 
-	const openDialog = () => setIsDialogOpen(true);
-	const closeDialog = () => setIsDialogOpen(false);
+	const openDialog = useCallback(() => {
+		setOpenCount((c) => c + 1);
+	}, []);
+
+	const closeDialog = useCallback(() => {
+		setOpenCount((c) => Math.max(0, c - 1));
+	}, []);
+
+	const isDialogOpen = openCount > 0;
 
 	const value: DialogContextValue = {
 		isDialogOpen,

@@ -14,6 +14,7 @@ import {
 	ScaleProvider,
 	TitleBarProvider,
 	UserProgressProvider,
+	useDialog,
 	useProjectContext,
 	useUserProgressContext,
 } from "./contexts";
@@ -64,7 +65,16 @@ const QuitHotkeys = () => {
 
 const GlobalCommandHotkey = () => {
 	const { openHelp } = useHelp();
+	const { openDialog, closeDialog } = useDialog();
 	const [isOpen, setIsOpen] = React.useState(false);
+
+	React.useEffect(() => {
+		if (isOpen) openDialog();
+		else closeDialog();
+		return () => {
+			if (isOpen) closeDialog();
+		};
+	}, [isOpen, openDialog, closeDialog]);
 	const [currentPage, setCurrentPage] = React.useState<string>("dashboard");
 	const [navigationState, setNavigationState] = React.useState<
 		Record<string, string | number | boolean | undefined>
