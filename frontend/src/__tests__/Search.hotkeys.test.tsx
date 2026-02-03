@@ -14,6 +14,10 @@ vi.mock("../hooks/useSidebarSections", () => ({
 	useSidebarSections: () => [],
 }));
 
+vi.mock("../hooks/useHelp", () => ({
+	useHelp: () => ({ setPageContext: vi.fn() }),
+}));
+
 vi.mock("../contexts", async () => {
 	const actual = await vi.importActual<typeof import("../contexts")>("../contexts");
 	return {

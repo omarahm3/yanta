@@ -682,3 +682,57 @@ func (s *Service) GetAvailableHotkeyModifiers(ctx context.Context) []string {
 func (s *Service) GetPlatform(ctx context.Context) string {
 	return runtime.GOOS
 }
+
+// GetSidebarVisible returns the current sidebar visibility setting.
+func (s *Service) GetSidebarVisible(ctx context.Context) bool {
+	return config.GetSidebarVisible()
+}
+
+// SetSidebarVisible updates the sidebar visibility setting.
+func (s *Service) SetSidebarVisible(ctx context.Context, visible bool) error {
+	if err := config.SetSidebarVisible(visible); err != nil {
+		logger.Errorf("failed to set sidebar_visible: %v", err)
+		return err
+	}
+
+	logger.Infof("sidebar_visible setting changed to %v", visible)
+	return nil
+}
+
+// GetShowFooterHints returns the current footer hints visibility setting.
+func (s *Service) GetShowFooterHints(ctx context.Context) bool {
+	return config.GetShowFooterHints()
+}
+
+// SetShowFooterHints updates the footer hints visibility setting.
+func (s *Service) SetShowFooterHints(ctx context.Context, show bool) error {
+	if err := config.SetShowFooterHints(show); err != nil {
+		logger.Errorf("failed to set show_footer_hints: %v", err)
+		return err
+	}
+
+	logger.Infof("show_footer_hints setting changed to %v", show)
+	return nil
+}
+
+// GetShowShortcutTooltips returns the current shortcut tooltips visibility setting.
+func (s *Service) GetShowShortcutTooltips(ctx context.Context) bool {
+	return config.GetShowShortcutTooltips()
+}
+
+// SetShowShortcutTooltips updates the shortcut tooltips visibility setting.
+func (s *Service) SetShowShortcutTooltips(ctx context.Context, show bool) error {
+	if err := config.SetShowShortcutTooltips(show); err != nil {
+		logger.Errorf("failed to set show_shortcut_tooltips: %v", err)
+		return err
+	}
+
+	logger.Infof("show_shortcut_tooltips setting changed to %v", show)
+	return nil
+}
+
+// IsCommandLineEnabled returns whether the command line feature is enabled.
+// Controlled by YANTA_ENABLE_COMMAND_LINE environment variable.
+func (s *Service) IsCommandLineEnabled(ctx context.Context) bool {
+	return os.Getenv("YANTA_ENABLE_COMMAND_LINE") == "true" || os.Getenv("YANTA_ENABLE_COMMAND_LINE") == "1"
+}

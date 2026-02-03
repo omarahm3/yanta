@@ -61,6 +61,7 @@ export interface ConfirmDialogState {
 
 export interface JournalControllerOptions {
 	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
+	initialDate?: string;
 }
 
 export interface JournalControllerResult {
@@ -104,6 +105,7 @@ export interface JournalControllerResult {
 
 export function useJournalController({
 	onNavigate,
+	initialDate,
 }: JournalControllerOptions): JournalControllerResult {
 	const { currentProject } = useProjectContext();
 	const projectAlias = currentProject?.alias || "@personal";
@@ -130,7 +132,7 @@ export function useJournalController({
 		promoteToDocument,
 		toggleSelection: toggleSelectionById,
 		clearSelection,
-	} = useJournal({ projectAlias });
+	} = useJournal({ projectAlias, date: initialDate });
 
 	// Set help context for Journal page
 	useEffect(() => {

@@ -1,7 +1,7 @@
 import { Events } from "@wailsio/runtime";
 import React from "react";
 import { BackgroundQuit, ForceQuit } from "../bindings/yanta/internal/system/service";
-import { GlobalCommandPalette } from "./components";
+import { GlobalCommandPalette, MilestoneHintManager, WelcomeOverlay } from "./components";
 import { Router } from "./components/Router";
 import { HelpModal, ResizeHandles, TitleBar, ToastProvider, useToast } from "./components/ui";
 import {
@@ -13,6 +13,10 @@ import {
 	ProjectProvider,
 	ScaleProvider,
 	TitleBarProvider,
+	UserProgressProvider,
+	useDialog,
+	useProjectContext,
+	useUserProgressContext,
 } from "./contexts";
 import { useHotkey } from "./hooks";
 import { useHelp } from "./hooks/useHelp";
@@ -60,13 +64,24 @@ const QuitHotkeys = () => {
 };
 
 const GlobalCommandHotkey = () => {
+	const { openHelp } = useHelp();
+	const { openDialog, closeDialog } = useDialog();
 	const [isOpen, setIsOpen] = React.useState(false);
+
+	React.useEffect(() => {
+		if (isOpen) openDialog();
+		else closeDialog();
+		return () => {
+			if (isOpen) closeDialog();
+		};
+	}, [isOpen, openDialog, closeDialog]);
 	const [currentPage, setCurrentPage] = React.useState<string>("dashboard");
 	const [navigationState, setNavigationState] = React.useState<
 		Record<string, string | number | boolean | undefined>
 	>({});
 	const [showArchived, setShowArchived] = React.useState(false);
 	const toggleArchivedRef = React.useRef<(() => void) | null>(null);
+	const toggleSidebarRef = React.useRef<(() => void) | null>(null);
 
 	const handleNavigate = React.useCallback(
 		(page: string, state?: Record<string, string | number | boolean | undefined>) => {
@@ -87,11 +102,46 @@ const GlobalCommandHotkey = () => {
 		}
 	}, []);
 
+	const handleRegisterToggleSidebar = React.useCallback((handler: () => void) => {
+		toggleSidebarRef.current = handler;
+	}, []);
+
+	const handleToggleSidebar = React.useCallback(() => {
+		if (toggleSidebarRef.current) {
+			toggleSidebarRef.current();
+		}
+	}, []);
+
 	useHotkey({
 		key: "mod+K",
 		handler: () => setIsOpen(true),
 		allowInInput: false,
 		description: "Open command palette",
+	});
+
+	useHotkey({
+		key: "mod+T",
+		handler: (e) => {
+			e.preventDefault();
+			const today = new Date().toISOString().split("T")[0];
+			handleNavigate("journal", { date: today });
+		},
+		allowInInput: false,
+		description: "Jump to today's journal",
+	});
+
+	const { switchToLastProject, previousProject } = useProjectContext();
+
+	useHotkey({
+		key: "ctrl+Tab",
+		handler: (e) => {
+			e.preventDefault();
+			if (previousProject) {
+				switchToLastProject();
+			}
+		},
+		allowInInput: true,
+		description: "Switch to last project",
 	});
 
 	return (
@@ -103,6 +153,8 @@ const GlobalCommandHotkey = () => {
 				currentPage={currentPage}
 				onToggleArchived={handleToggleArchived}
 				showArchived={showArchived}
+				onToggleSidebar={handleToggleSidebar}
+				onShowHelp={openHelp}
 			/>
 			<Router
 				currentPage={currentPage}
@@ -111,6 +163,7 @@ const GlobalCommandHotkey = () => {
 				dashboardProps={{
 					onRegisterToggleArchived: handleRegisterToggleArchived,
 				}}
+				onRegisterToggleSidebar={handleRegisterToggleSidebar}
 			/>
 		</>
 	);
@@ -133,6 +186,34 @@ const WindowEventListener = () => {
 			}
 		};
 	}, [toast]);
+
+	return null;
+};
+
+const ProjectSwitchTracker = () => {
+	const { currentProject } = useProjectContext();
+	const { incrementProjectsSwitched } = useUserProgressContext();
+	const previousProjectIdRef = React.useRef<string | undefined>(undefined);
+	const isFirstRenderRef = React.useRef(true);
+
+	React.useEffect(() => {
+		const currentId = currentProject?.id;
+		const previousId = previousProjectIdRef.current;
+
+		// Skip the first render (initial project load)
+		if (isFirstRenderRef.current) {
+			isFirstRenderRef.current = false;
+			previousProjectIdRef.current = currentId;
+			return;
+		}
+
+		// Track when project changes (not on initial load)
+		if (currentId && previousId && currentId !== previousId) {
+			incrementProjectsSwitched();
+		}
+
+		previousProjectIdRef.current = currentId;
+	}, [currentProject?.id, incrementProjectsSwitched]);
 
 	return null;
 };
@@ -175,17 +256,22 @@ function App() {
 						<HotkeyProvider>
 							<HelpProvider>
 								<ProjectProvider>
-									<DocumentCountProvider>
-										<DocumentProvider>
-											<ResizeHandles />
-											<TitleBar />
-											<HelpHotkey />
-											<QuitHotkeys />
-											<GlobalCommandHotkey />
-											<WindowEventListener />
-											<HelpModal />
-										</DocumentProvider>
-									</DocumentCountProvider>
+									<UserProgressProvider>
+										<DocumentCountProvider>
+											<DocumentProvider>
+												<ResizeHandles />
+												<TitleBar />
+												<HelpHotkey />
+												<QuitHotkeys />
+												<GlobalCommandHotkey />
+												<WindowEventListener />
+												<ProjectSwitchTracker />
+												<HelpModal />
+												<WelcomeOverlay />
+												<MilestoneHintManager />
+											</DocumentProvider>
+										</DocumentCountProvider>
+									</UserProgressProvider>
 								</ProjectProvider>
 							</HelpProvider>
 						</HotkeyProvider>

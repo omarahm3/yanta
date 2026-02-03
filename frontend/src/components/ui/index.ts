@@ -1,11 +1,8 @@
 export { Button } from "./Button";
-export { type CommandOption, CommandPalette } from "./CommandPalette";
+export { type CommandOption, CommandPalette, type SubPaletteItem } from "./CommandPalette";
 export { ConfirmDialog, type ConfirmDialogProps } from "./ConfirmDialog";
-export {
-	ContextBar,
-	type ContextItem,
-	type Shortcut as ContextShortcut,
-} from "./ContextBar";
+export { ContextBar, type ContextBarProps, type DataMode } from "./ContextBar";
+export { type FooterHint, FooterHintBar, type FooterHintBarProps } from "./FooterHintBar";
 export { GitErrorDialog } from "./GitErrorDialog";
 export { HeaderBar } from "./HeaderBar";
 export { Heading } from "./Heading";
@@ -30,7 +27,7 @@ export { Select, type SelectOption } from "./Select";
 export { SettingsSection } from "./SettingsSection";
 export { ShortcutSearch, type ShortcutSearchProps } from "./ShortcutSearch";
 export { type Shortcut, ShortcutsTable } from "./ShortcutsTable";
-export { Sidebar, type SidebarItem, type SidebarSection } from "./Sidebar";
+export { Sidebar, type SidebarItem, type SidebarItemTooltip, type SidebarSection } from "./Sidebar";
 export { StatusBar } from "./StatusBar";
 export { StatusMessage } from "./StatusMessage";
 export { Table, type TableColumn, type TableRow } from "./Table";

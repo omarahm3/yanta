@@ -79,30 +79,39 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 			{documents.map((doc, index) => {
 				const isHighlighted = index === highlightedIndex;
 				const isSelected = selectedDocuments.has(doc.path);
-				const borderClass = isHighlighted
-					? "border-l-accent"
+				// Use mode-accent colors for highlighting (via CSS variables)
+				const borderStyle = isHighlighted
+					? { borderLeftColor: "var(--mode-accent)", borderLeftWidth: "2px" }
 					: isSelected
-						? "border-l-green"
-						: "border-l-transparent";
+						? { borderLeftColor: "var(--mode-accent)", borderLeftWidth: "2px" }
+						: {};
+				const backgroundStyle = isHighlighted ? { backgroundColor: "var(--mode-accent-muted)" } : {};
 				const itemClasses = cn(
-					"group border-b border-border px-4 py-4 transition-colors border-l-4 hover:bg-surface/60",
-					isHighlighted && "bg-surface/80",
-					borderClass,
+					"group border-b border-border px-4 py-4 transition-colors border-l-4 border-l-transparent hover:bg-surface/60",
 				);
+				// Use mode-accent for index text color when highlighted
+				const indexStyle = isSelected
+					? { color: "var(--mode-accent)", fontWeight: "bold" }
+					: isHighlighted
+						? { color: "var(--mode-accent)" }
+						: {};
 				const indexClasses = cn(
 					"text-sm font-mono shrink-0 pt-1",
-					isSelected ? "text-green font-bold" : isHighlighted ? "text-accent" : "text-text-dim",
+					!isSelected && !isHighlighted && "text-text-dim",
 				);
+				// Selection toggle button styling with mode-accent
+				const toggleStyle = isSelected
+					? { borderColor: "var(--mode-accent)", color: "var(--mode-accent)" }
+					: {};
 				const toggleClasses = cn(
 					"mt-1 inline-flex h-5 w-5 items-center justify-center rounded border text-xs font-semibold transition-colors",
-					isSelected
-						? "border-green text-green"
-						: "border-border text-text-dim hover:text-text hover:border-text",
+					!isSelected && "border-border text-text-dim hover:text-text hover:border-text",
 				);
 				return (
 					<div
 						key={doc.path}
 						className={itemClasses}
+						style={{ ...borderStyle, ...backgroundStyle }}
 						role="listitem"
 						aria-selected={isSelected}
 						data-highlighted={isHighlighted}
@@ -113,6 +122,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 								variant="ghost"
 								size="sm"
 								className={toggleClasses}
+								style={toggleStyle}
 								data-selected={isSelected}
 								aria-pressed={isSelected}
 								aria-label={
@@ -125,7 +135,9 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 							>
 								{isSelected ? "✓" : ""}
 							</Button>
-							<span className={indexClasses}>{index + 1}.</span>
+							<span className={indexClasses} style={indexStyle}>
+								{index + 1}.
+							</span>
 							<div
 								className="flex-1 cursor-pointer"
 								onClick={() => {

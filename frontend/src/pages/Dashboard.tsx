@@ -1,3 +1,4 @@
+import { FileText } from "lucide-react";
 import type React from "react";
 import { DocumentList } from "../components/DocumentList";
 import { Layout } from "../components/Layout";
@@ -10,9 +11,14 @@ interface DashboardProps {
 	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
 	onRegisterToggleArchived?: (handler: () => void) => void;
 	getShowArchived?: () => boolean;
+	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onRegisterToggleArchived }) => {
+export const Dashboard: React.FC<DashboardProps> = ({
+	onNavigate,
+	onRegisterToggleArchived,
+	onRegisterToggleSidebar,
+}) => {
 	const controller = useDashboardController({
 		onNavigate,
 		onRegisterToggleArchived,
@@ -24,10 +30,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onRegisterTogg
 	const {
 		documents,
 		sidebarSections,
-		commandInput,
-		setCommandInput,
-		commandInputRef,
-		handleCommandSubmit,
 		handleDocumentClick,
 		documentList,
 		showArchived,
@@ -35,7 +37,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onRegisterTogg
 		confirmDialog,
 		setConfirmDialog,
 		statusBar,
-		currentProjectAlias,
 	} = controller;
 
 	return (
@@ -43,13 +44,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onRegisterTogg
 			<Layout
 				sidebarSections={sidebarSections}
 				currentPage="dashboard"
-				showCommandLine={true}
-				commandContext={currentProjectAlias ?? undefined}
-				commandPlaceholder="what did you ship today?"
-				commandValue={commandInput}
-				onCommandChange={setCommandInput}
-				onCommandSubmit={handleCommandSubmit}
-				commandInputRef={commandInputRef}
+				onRegisterToggleSidebar={onRegisterToggleSidebar}
 			>
 				{isLoading ? (
 					<div className="flex items-center justify-center py-8">
@@ -57,6 +52,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onRegisterTogg
 					</div>
 				) : (
 					<div className="flex h-full flex-col overflow-hidden">
+						{/* Page header with mode icon */}
+						<div className="p-4 border-b border-border">
+							<div className="flex items-center gap-2">
+								<FileText className="w-5 h-5" style={{ color: "var(--mode-accent)" }} aria-hidden="true" />
+								<h1 className="text-lg font-semibold">Documents</h1>
+							</div>
+						</div>
 						<div className="flex-1 overflow-y-auto p-5">
 							<DocumentList
 								documents={documents}

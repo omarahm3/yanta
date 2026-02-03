@@ -1,7 +1,6 @@
 import type { BlockNoteEditor } from "@blocknote/core";
 import { Dialogs, Events } from "@wailsio/runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ParseWithDocument } from "../../../bindings/yanta/internal/commandline/documentcommands";
 import { ExportDocumentRequest } from "../../../bindings/yanta/internal/document/models";
 import { ExportDocument } from "../../../bindings/yanta/internal/document/service";
 import { ExportRequest } from "../../../bindings/yanta/internal/export/models";
@@ -9,50 +8,24 @@ import { ExportToPDF } from "../../../bindings/yanta/internal/export/service";
 import { GetDocumentTags } from "../../../bindings/yanta/internal/tag/service";
 import type { DocumentContentProps } from "../../components/document/DocumentContent";
 import { useProjectContext } from "../../contexts";
-import { useHelp } from "../../hooks";
 import { useDocumentEditor } from "../../hooks/useDocumentEditor";
 import { useDocumentEscapeHandling } from "../../hooks/useDocumentEscapeHandling";
 import { useDocumentForm } from "../../hooks/useDocumentForm";
 import { useDocumentInitialization } from "../../hooks/useDocumentInitialization";
 import { useDocumentPersistence } from "../../hooks/useDocumentPersistence";
+import { useHelp } from "../../hooks/useHelp";
 import { useNotification } from "../../hooks/useNotification";
+import { useRecentDocuments } from "../../hooks/useRecentDocuments";
 import { useSidebarSections } from "../../hooks/useSidebarSections";
 import { DocumentServiceWrapper } from "../../services/DocumentService";
-import type { HelpCommand } from "../../types";
 import type { HotkeyConfig } from "../../types/hotkeys";
 import { createEmptyDocument } from "../../utils/documentBlockUtils";
-
-const helpCommands: HelpCommand[] = [
-	{
-		command: "tag <tag1> [tag2] [tag3...]",
-		description: "Add tags to the current document (space or comma-separated)",
-	},
-	{
-		command: "untag <tag>",
-		description: "Remove a specific tag from the current document",
-	},
-	{
-		command: "untag *",
-		description: "Remove all tags from the current document",
-	},
-	{
-		command: "tags",
-		description: "List all tags on the current document",
-	},
-	{
-		command: "export-md",
-		description: "Export the current document to Markdown",
-	},
-	{
-		command: "export-pdf",
-		description: "Export the current document to PDF",
-	},
-];
 
 export interface DocumentControllerOptions {
 	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
 	documentPath?: string;
 	initialTitle?: string;
+	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
 export interface DocumentControllerResult {
@@ -67,11 +40,17 @@ export function useDocumentController({
 	onNavigate,
 	documentPath,
 	initialTitle,
+	onRegisterToggleSidebar,
 }: DocumentControllerOptions): DocumentControllerResult {
 	const { currentProject } = useProjectContext();
 	const { success, error } = useNotification();
 	const { setPageContext } = useHelp();
 	const isEditMode = !!documentPath;
+
+	// Set page context for help modal
+	useEffect(() => {
+		setPageContext([], "Document");
+	}, [setPageContext]);
 
 	const initialFormData = useMemo(
 		() => (initialTitle ? createEmptyDocument(initialTitle) : undefined),
@@ -96,9 +75,8 @@ export function useDocumentController({
 	});
 
 	const { handleEditorReady } = useDocumentEditor();
+	const { addRecentDocument } = useRecentDocuments();
 
-	const [commandInput, setCommandInput] = useState("");
-	const commandInputRef = useRef<HTMLInputElement>(null);
 	const editorRef = useRef<BlockNoteEditor | null>(null);
 	const [hasRestored, setHasRestored] = useState(false);
 	const [isRestoring, setIsRestoring] = useState(false);
@@ -126,9 +104,16 @@ export function useDocumentController({
 		[handleEditorReady],
 	);
 
+	// Track recently opened documents
 	useEffect(() => {
-		setPageContext(helpCommands, "Document");
-	}, [setPageContext]);
+		if (data && documentPath && !isLoading && !loadError && currentProject) {
+			addRecentDocument({
+				path: documentPath,
+				title: data.title || "Untitled",
+				projectAlias: currentProject.alias,
+			});
+		}
+	}, [data, documentPath, isLoading, loadError, currentProject, addRecentDocument]);
 
 	const { autoSave } = useDocumentPersistence({
 		formData,
@@ -168,6 +153,26 @@ export function useDocumentController({
 		};
 	}, []);
 
+	// Listen for save event from command palette
+	useEffect(() => {
+		const handleSaveEvent = () => {
+			if (isArchivedRef.current) {
+				error("Restore the document before saving.");
+				return;
+			}
+			autoSaveRef.current.saveNow().catch((err) => {
+				console.error("[Document] Failed to save from command palette:", err);
+				error("Failed to save document");
+			});
+		};
+
+		window.addEventListener("yanta:document:save", handleSaveEvent);
+
+		return () => {
+			window.removeEventListener("yanta:document:save", handleSaveEvent);
+		};
+	}, [error]);
+
 	const handleCancel = useCallback(() => {
 		if (autoSave.hasUnsavedChanges && !isEditMode) {
 			return;
@@ -187,132 +192,75 @@ export function useDocumentController({
 		}
 	}, []);
 
-	const handleCommandSubmit = useCallback(
-		async (command: string) => {
-			const trimmedCommand = command.trim();
-			if (!documentPath) {
-				error("No document open");
+	const handleExportToMarkdown = useCallback(async () => {
+		if (!documentPath) {
+			error("No document open");
+			return;
+		}
+		try {
+			const defaultFilename = `${formData.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.md`;
+			const outputPath = await Dialogs.SaveFile({
+				Title: "Export to Markdown",
+				Filename: defaultFilename,
+				Filters: [
+					{
+						DisplayName: "Markdown Files",
+						Pattern: "*.md",
+					},
+				],
+			});
+
+			if (!outputPath) {
 				return;
 			}
-			const withoutPrefix = trimmedCommand.startsWith(":")
-				? trimmedCommand.slice(1).trimStart()
-				: trimmedCommand;
-			if (!withoutPrefix) {
-				error("Empty command");
+
+			await ExportDocument(
+				new ExportDocumentRequest({
+					DocumentPath: documentPath,
+					OutputPath: outputPath,
+				}),
+			);
+
+			success("Document exported to Markdown successfully");
+		} catch (err) {
+			error(err instanceof Error ? err.message : "Failed to export Markdown");
+		}
+	}, [documentPath, error, formData.title, success]);
+
+	const handleExportToPDF = useCallback(async () => {
+		if (!documentPath) {
+			error("No document open");
+			return;
+		}
+		try {
+			const defaultFilename = `${formData.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`;
+			const outputPath = await Dialogs.SaveFile({
+				Title: "Export to PDF",
+				Filename: defaultFilename,
+				Filters: [
+					{
+						DisplayName: "PDF Files",
+						Pattern: "*.pdf",
+					},
+				],
+			});
+
+			if (!outputPath) {
 				return;
 			}
-			const normalizedCommand = withoutPrefix.toLowerCase();
-			const isUnarchiveCommand =
-				normalizedCommand === "unarchive" || normalizedCommand.startsWith("unarchive ");
-			if (isArchived && !isUnarchiveCommand) {
-				error("Restore the document before running commands.");
-				return;
-			}
 
-			try {
-				const result = await ParseWithDocument(withoutPrefix, documentPath);
+			await ExportToPDF(
+				new ExportRequest({
+					DocumentPath: documentPath,
+					OutputPath: outputPath,
+				}),
+			);
 
-				if (!result) {
-					error("Command returned null");
-					return;
-				}
-
-				if (!result.success) {
-					if (result.message) error(result.message);
-					return;
-				}
-
-				const actions: Record<string, () => void | Promise<void>> = {
-					"tags added": () => {
-						success(result.message || "Tags added");
-					},
-					"tags removed": () => {
-						success(result.message || "Tags removed");
-					},
-					"current tags": () => {
-						success(result.message || "Current tags");
-					},
-					"document unarchived": () => {
-						setHasRestored(true);
-						success("Document unarchived");
-					},
-					"export document": async () => {
-						try {
-							const defaultFilename = `${formData.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.md`;
-							const outputPath = await Dialogs.SaveFile({
-								Title: "Export to Markdown",
-								Filename: defaultFilename,
-								Filters: [
-									{
-										DisplayName: "Markdown Files",
-										Pattern: "*.md",
-									},
-								],
-							});
-
-							if (!outputPath) {
-								return;
-							}
-
-							await ExportDocument(
-								new ExportDocumentRequest({
-									DocumentPath: documentPath || "",
-									OutputPath: outputPath,
-								}),
-							);
-
-							success("Document exported to Markdown successfully");
-						} catch (err) {
-							error(err instanceof Error ? err.message : "Failed to export Markdown");
-						}
-					},
-					"export to PDF": async () => {
-						try {
-							const defaultFilename = `${formData.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`;
-							const outputPath = await Dialogs.SaveFile({
-								Title: "Export to PDF",
-								Filename: defaultFilename,
-								Filters: [
-									{
-										DisplayName: "PDF Files",
-										Pattern: "*.pdf",
-									},
-								],
-							});
-
-							if (!outputPath) {
-								return;
-							}
-
-							await ExportToPDF(
-								new ExportRequest({
-									DocumentPath: documentPath || "",
-									OutputPath: outputPath,
-								}),
-							);
-
-							success("Document exported to PDF successfully");
-						} catch (err) {
-							error(err instanceof Error ? err.message : "Failed to export PDF");
-						}
-					},
-				};
-
-				const action = result.message ? actions[result.message] : undefined;
-				if (action) {
-					await action();
-				} else if (result.message) {
-					success(result.message);
-				}
-			} catch (err) {
-				error(err instanceof Error ? err.message : "Command failed");
-			} finally {
-				setCommandInput("");
-				commandInputRef.current?.blur();
-			}
-		},
-		[documentPath, error, isArchived, success],
-	);
+			success("Document exported to PDF successfully");
+		} catch (err) {
+			error(err instanceof Error ? err.message : "Failed to export PDF");
+		}
+	}, [documentPath, error, formData.title, success]);
 
 	const handleRestore = useCallback(async () => {
 		if (!documentPath || isRestoring) {
@@ -369,14 +317,12 @@ export function useDocumentController({
 		isArchived,
 		isRestoring,
 		autoSave,
-		commandInput,
-		onCommandChange: setCommandInput,
-		onCommandSubmit: handleCommandSubmit,
 		onTitleChange: setTitle,
 		onBlocksChange: setBlocks,
 		onTagRemove: removeTag,
 		onEditorReady: handleEditorReadyWithRef,
 		onRestore: isArchived ? handleRestore : undefined,
+		onRegisterToggleSidebar,
 	};
 
 	const saveNow = autoSave.saveNow;
@@ -407,7 +353,7 @@ export function useDocumentController({
 						error("Restore the document before exporting.");
 						return;
 					}
-					void handleCommandSubmit(":export-md");
+					void handleExportToMarkdown();
 				},
 				allowInInput: true,
 				description: "Export to Markdown",
@@ -422,7 +368,7 @@ export function useDocumentController({
 						error("Restore the document before exporting.");
 						return;
 					}
-					void handleCommandSubmit(":export-pdf");
+					void handleExportToPDF();
 				},
 				allowInInput: true,
 				description: "Export to PDF",
@@ -447,7 +393,16 @@ export function useDocumentController({
 				description: "Focus editor when unfocused",
 			},
 		],
-		[saveNow, error, focusEditor, handleEscape, handleUnfocus, isArchived, handleCommandSubmit],
+		[
+			saveNow,
+			error,
+			focusEditor,
+			handleEscape,
+			handleUnfocus,
+			isArchived,
+			handleExportToMarkdown,
+			handleExportToPDF,
+		],
 	);
 
 	return {

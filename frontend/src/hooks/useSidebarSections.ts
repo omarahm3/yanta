@@ -61,12 +61,22 @@ export const useSidebarSections = ({
 					label: "search",
 					active: currentPage === "search",
 					onClick: () => onNavigate?.("search"),
+					tooltip: {
+						tooltipId: "sidebar-search",
+						description: "Search",
+						shortcut: "Ctrl+Shift+F",
+					},
 				},
 				{
 					id: "journal",
 					label: "journal",
 					active: currentPage === "journal",
 					onClick: () => onNavigate?.("journal"),
+					tooltip: {
+						tooltipId: "sidebar-journal",
+						description: "Journal",
+						shortcut: "Ctrl+J",
+					},
 				},
 				{
 					id: "settings",

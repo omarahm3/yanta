@@ -1,7 +1,12 @@
 import React, { useCallback, useRef } from "react";
 import { Layout } from "../components/Layout";
 import { ConfirmDialog, type Shortcut } from "../components/ui";
-import { useHotkeys } from "../hooks";
+import {
+	useFooterHintsSetting,
+	useHotkeys,
+	useShortcutTooltipsSetting,
+	useSidebarSetting,
+} from "../hooks";
 import { useHelp } from "../hooks/useHelp";
 import { useSidebarSections } from "../hooks/useSidebarSections";
 import { AboutSection } from "./settings/AboutSection";
@@ -145,11 +150,23 @@ const actualShortcuts: Shortcut[] = [
 
 interface SettingsProps {
 	onNavigate?: (page: string) => void;
+	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
+export const Settings: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
 	const controller = useSettingsController();
 	const { setPageContext } = useHelp();
+	const { sidebarVisible, setSidebarVisible, isLoading: sidebarLoading } = useSidebarSetting();
+	const {
+		showFooterHints,
+		setShowFooterHints,
+		isLoading: footerHintsLoading,
+	} = useFooterHintsSetting();
+	const {
+		showShortcutTooltips,
+		setShowShortcutTooltips,
+		isLoading: shortcutTooltipsLoading,
+	} = useShortcutTooltipsSetting();
 
 	const generalRef = useRef<HTMLDivElement>(null);
 	const appearanceRef = useRef<HTMLDivElement>(null);
@@ -292,7 +309,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 			sidebarSections={sidebarSections}
 			currentPage="settings"
 			headerShortcuts={[{ key: "?", label: "help" }]}
-			showCommandLine={false}
+			onRegisterToggleSidebar={onRegisterToggleSidebar}
 		>
 			<div className="h-full p-5 overflow-y-auto">
 				<div className="max-w-4xl mx-auto">
@@ -320,6 +337,15 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 						ref={appearanceRef}
 						appScale={controller.appScale}
 						onAppScaleChange={controller.handlers.handleAppScaleChange}
+						sidebarVisible={sidebarVisible}
+						onSidebarVisibleChange={setSidebarVisible}
+						sidebarLoading={sidebarLoading}
+						showFooterHints={showFooterHints}
+						onShowFooterHintsChange={setShowFooterHints}
+						footerHintsLoading={footerHintsLoading}
+						showShortcutTooltips={showShortcutTooltips}
+						onShowShortcutTooltipsChange={setShowShortcutTooltips}
+						shortcutTooltipsLoading={shortcutTooltipsLoading}
 					/>
 
 					<DatabaseSection

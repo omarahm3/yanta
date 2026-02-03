@@ -7,6 +7,8 @@ import { type Project, projectsFromModels } from "../types";
 interface ProjectContextValue {
 	currentProject: Project | undefined;
 	setCurrentProject: (project: Project | undefined) => void;
+	previousProject: Project | undefined;
+	switchToLastProject: () => void;
 	projects: Project[];
 	archivedProjects: Project[];
 	loadProjects: () => Promise<void>;
@@ -20,10 +22,29 @@ interface ProjectProviderProps {
 }
 
 export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) => {
-	const [currentProject, setCurrentProject] = useState<Project | undefined>();
+	const [currentProject, setCurrentProjectInternal] = useState<Project | undefined>();
+	const [previousProject, setPreviousProject] = useState<Project | undefined>();
 	const [projects, setProjects] = useState<Project[]>([]);
 	const [archivedProjects, setArchivedProjects] = useState<Project[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
+
+	const setCurrentProject = useCallback((project: Project | undefined) => {
+		setCurrentProjectInternal((prev) => {
+			if (prev && prev.id !== project?.id) {
+				setPreviousProject(prev);
+			}
+			return project;
+		});
+	}, []);
+
+	const switchToLastProject = useCallback(() => {
+		if (previousProject) {
+			setCurrentProjectInternal((current) => {
+				setPreviousProject(current);
+				return previousProject;
+			});
+		}
+	}, [previousProject]);
 
 	const loadProjects = useCallback(async () => {
 		try {
@@ -37,7 +58,7 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
 			setProjects(activeProjects);
 			setArchivedProjects(archived);
 
-			setCurrentProject((prev) => {
+			setCurrentProjectInternal((prev) => {
 				if (!prev && activeProjects.length > 0) {
 					return activeProjects[0];
 				}
@@ -76,6 +97,8 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
 	const value: ProjectContextValue = {
 		currentProject,
 		setCurrentProject,
+		previousProject,
+		switchToLastProject,
 		projects,
 		archivedProjects,
 		loadProjects,

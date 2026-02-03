@@ -1,59 +1,75 @@
+import { BookOpen, FileText } from "lucide-react";
 import type React from "react";
 import { cn } from "../../lib/utils";
 
-export interface ContextItem {
-	label: string;
-	value: string;
-	color?: string;
-}
-
-export interface Shortcut {
-	key: string;
-	label: string;
-}
+export type DataMode = "documents" | "journal" | "neutral";
 
 export interface ContextBarProps {
-	contextItems: ContextItem[];
-	shortcuts?: Shortcut[];
+	mode: DataMode;
+	pageName: string;
+	projectAlias?: string;
 	className?: string;
 }
 
+/**
+ * ContextBar displays a persistent location indicator showing:
+ * - Current mode icon (FileText for documents, BookOpen for journal)
+ * - Current page name
+ * - Current project alias (prefixed with @)
+ * - Keyboard hint showing "Ctrl+K" to open command palette
+ */
 export const ContextBar: React.FC<ContextBarProps> = ({
-	contextItems,
-	shortcuts = [],
+	mode,
+	pageName,
+	projectAlias,
 	className,
 }) => {
+	const ModeIcon = mode === "journal" ? BookOpen : FileText;
+
 	return (
 		<div
+			data-testid="context-bar"
 			className={cn(
-				"bg-bg border-b border-border px-5 py-2 flex items-center justify-between text-xs text-text-dim",
+				"bg-bg border-b border-border px-5 py-1.5 flex items-center justify-between text-text-dim",
 				className,
 			)}
+			style={{ fontSize: "12px" }}
 		>
-			<div className="flex items-center gap-4">
-				{contextItems.map((item) => (
-					<div key={item.label} className="flex items-center gap-2">
-						<div
-							className="w-1.5 h-1.5 rounded-full"
-							style={{ backgroundColor: item.color || "#a371f7" }}
-						/>
-						<span className="text-text font-medium text-sm">{item.value}</span>
-					</div>
-				))}
+			<div className="flex items-center gap-3">
+				{/* Mode icon */}
+				<ModeIcon
+					className="w-3.5 h-3.5"
+					style={{ color: "var(--mode-accent)" }}
+					aria-hidden="true"
+					data-testid="context-bar-mode-icon"
+				/>
+
+				{/* Page name */}
+				<span data-testid="context-bar-page-name" className="font-medium">
+					{pageName}
+				</span>
+
+				{/* Project alias */}
+				{projectAlias && (
+					<span data-testid="context-bar-project-alias" className="text-text-dim">
+						@{projectAlias}
+					</span>
+				)}
 			</div>
 
-			{shortcuts.length > 0 && (
-				<div className="flex gap-4">
-					{shortcuts.map((shortcut) => (
-						<div key={shortcut.key} className="flex items-center gap-1">
-							<kbd className="bg-surface px-1.5 py-0.5 rounded text-xs font-mono border border-border">
-								{shortcut.key}
-							</kbd>
-							<span className="font-mono opacity-50 text-xs">{shortcut.label}</span>
-						</div>
-					))}
-				</div>
-			)}
+			{/* Keyboard hint for command palette */}
+			<div className="flex items-center gap-1.5">
+				<kbd
+					data-testid="context-bar-keyboard-hint"
+					className="bg-surface px-1.5 py-0.5 rounded font-mono border border-border"
+					style={{ fontSize: "11px" }}
+				>
+					Ctrl+K
+				</kbd>
+				<span className="opacity-50" style={{ fontSize: "11px" }}>
+					command
+				</span>
+			</div>
 		</div>
 	);
 };

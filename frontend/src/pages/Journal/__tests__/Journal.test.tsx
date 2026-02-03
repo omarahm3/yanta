@@ -32,6 +32,8 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => (
 						projects: [mockProject],
 						archivedProjects: [],
 						setCurrentProject: vi.fn(),
+						previousProject: undefined,
+						switchToLastProject: vi.fn(),
 						loadProjects: vi.fn(),
 						isLoading: false,
 					}}
@@ -224,6 +226,20 @@ describe("Journal", () => {
 			// "personal" appears twice (header and status bar), use getAllByText
 			const personalTexts = screen.getAllByText("personal");
 			expect(personalTexts.length).toBeGreaterThan(0);
+		});
+	});
+
+	it("loads journal for initialDate when provided", async () => {
+		const { GetActiveEntries } = await import(
+			"../../../../bindings/yanta/internal/journal/wailsservice"
+		);
+
+		// Render with a specific initial date
+		render(<Journal initialDate="2026-01-15" />, { wrapper: TestWrapper });
+
+		await waitFor(() => {
+			// Verify that GetActiveEntries was called with the initial date
+			expect(GetActiveEntries).toHaveBeenCalledWith("personal", "2026-01-15");
 		});
 	});
 });

@@ -1,19 +1,8 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import React, { useRef, useState } from "react";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import React from "react";
 import { vi } from "vitest";
 import { DialogProvider, HotkeyProvider, TitleBarProvider, useHotkeyContext } from "../contexts";
 import type { HotkeyContextValue } from "../types/hotkeys";
-
-const executeGlobalCommand = vi.fn();
-
-vi.mock("../hooks/useGlobalCommand", () => ({
-	useGlobalCommand: () => ({
-		executeGlobalCommand: async (command: string) => {
-			executeGlobalCommand(command);
-			return { handled: false };
-		},
-	}),
-}));
 
 const mockSuccess = vi.fn();
 const mockError = vi.fn();
@@ -25,12 +14,34 @@ vi.mock("../hooks/useNotification", () => ({
 	}),
 }));
 
+// Mock useSidebarSetting to start with sidebar visible for testing
+const mockToggleSidebar = vi.fn();
+let mockSidebarVisible = true;
+
+vi.mock("../hooks/useSidebarSetting", () => ({
+	useSidebarSetting: () => ({
+		sidebarVisible: mockSidebarVisible,
+		isLoading: false,
+		setSidebarVisible: vi.fn(),
+		toggleSidebar: () => {
+			mockSidebarVisible = !mockSidebarVisible;
+			mockToggleSidebar();
+		},
+	}),
+}));
+
+vi.mock("../hooks/useFooterHints", () => ({
+	useFooterHints: () => ({
+		hints: [{ key: "Ctrl+K", label: "Commands" }],
+	}),
+}));
+
 vi.mock("../contexts", async () => {
 	const actual = await vi.importActual<typeof import("../contexts")>("../contexts");
 	return {
 		...actual,
 		useProjectContext: () => ({
-			currentProject: { name: "Test Project" },
+			currentProject: { name: "Test Project", alias: "test-project" },
 		}),
 	};
 });
@@ -41,6 +52,10 @@ vi.mock("../components/ui", () => ({
 		<div data-testid="header">{currentPage}</div>
 	),
 	Sidebar: ({ title }: { title?: string }) => <div data-testid="sidebar">{title ?? "Sidebar"}</div>,
+	ContextBar: () => <div data-testid="context-bar-mock" />,
+	FooterHintBar: ({ hints }: { hints: { key: string; label: string }[] }) => (
+		<div data-testid="footer-hint-bar-mock">{hints.length} hints</div>
+	),
 }));
 
 import { Layout } from "../components/Layout";
@@ -55,40 +70,24 @@ const HotkeyProbe: React.FC<{ onReady: (ctx: HotkeyContextValue) => void }> = ({
 
 describe("Layout hotkeys", () => {
 	beforeEach(() => {
-		executeGlobalCommand.mockClear();
 		mockSuccess.mockClear();
 		mockError.mockClear();
+		mockToggleSidebar.mockClear();
+		mockSidebarVisible = true; // Reset sidebar to visible state for each test
 	});
 
-	const Wrapper: React.FC<{
-		onContext: (ctx: HotkeyContextValue) => void;
-	}> = ({ onContext }) => {
-		const [value, setValue] = useState("");
-		const commandInputRef = useRef<HTMLInputElement>(null);
-
-		return (
-			<DialogProvider>
-				<HotkeyProvider>
-					<TitleBarProvider>
-						<HotkeyProbe onReady={onContext} />
-						<Layout
-							sidebarTitle="Test Sidebar"
-							currentPage="dashboard"
-							showCommandLine
-							commandContext="test"
-							commandPlaceholder="command"
-							commandValue={value}
-							onCommandChange={setValue}
-							onCommandSubmit={vi.fn()}
-							commandInputRef={commandInputRef}
-						>
-							<div data-testid="content">content</div>
-						</Layout>
-					</TitleBarProvider>
-				</HotkeyProvider>
-			</DialogProvider>
-		);
-	};
+	const Wrapper: React.FC<{ onContext: (ctx: HotkeyContextValue) => void }> = ({ onContext }) => (
+		<DialogProvider>
+			<HotkeyProvider>
+				<TitleBarProvider>
+					<HotkeyProbe onReady={onContext} />
+					<Layout sidebarTitle="Test Sidebar" currentPage="dashboard">
+						<div data-testid="content">content</div>
+					</Layout>
+				</TitleBarProvider>
+			</HotkeyProvider>
+		</DialogProvider>
+	);
 
 	const setup = async () => {
 		let context: HotkeyContextValue | null = null;
@@ -102,6 +101,7 @@ describe("Layout hotkeys", () => {
 	it("toggles sidebar with ctrl+b", async () => {
 		const ctx = await setup();
 		const root = screen.getByTestId("layout-root");
+		// Initial state should be visible (from mock)
 		expect(root).toHaveAttribute("data-sidebar-visible", "true");
 
 		const hotkey = ctx.getRegisteredHotkeys().find((h) => h.key === "ctrl+b");
@@ -111,52 +111,7 @@ describe("Layout hotkeys", () => {
 			hotkey?.handler(new KeyboardEvent("keydown", { key: "b", ctrlKey: true, code: "KeyB" }));
 		});
 
-		await waitFor(() => expect(root).toHaveAttribute("data-sidebar-visible", "false"));
-
-		const toggleSidebar = ctx.getRegisteredHotkeys().find((h) => h.key === "mod+e");
-		expect(toggleSidebar).toBeDefined();
-
-		await act(async () => {
-			toggleSidebar?.handler(new KeyboardEvent("keydown", { key: "e", ctrlKey: true, code: "KeyE" }));
-		});
-
-		await waitFor(() => expect(root).toHaveAttribute("data-sidebar-visible", "true"));
-	});
-
-	it("focuses command line with shift+;", async () => {
-		const ctx = await setup();
-		const commandInput = screen.getByPlaceholderText("command");
-
-		const hotkey = ctx.getRegisteredHotkeys().find((h) => h.key === "shift+;");
-		expect(hotkey).toBeDefined();
-
-		await act(async () => {
-			hotkey?.handler(
-				new KeyboardEvent("keydown", {
-					key: ":",
-					shiftKey: true,
-					code: "Semicolon",
-				}),
-			);
-		});
-
-		await waitFor(() => expect(commandInput).toHaveFocus());
-	});
-
-	it("blurs command line and clears value on Escape", async () => {
-		const _ctx = await setup();
-		const commandInput = screen.getByPlaceholderText("command") as HTMLInputElement;
-
-		commandInput.focus();
-		fireEvent.change(commandInput, { target: { value: "something" } });
-
-		// Dispatch the Escape key event directly on the input element
-		// so that event.target is set correctly for the handler
-		await act(async () => {
-			fireEvent.keyDown(commandInput, { key: "Escape", code: "Escape" });
-		});
-
-		await waitFor(() => expect(commandInput).not.toHaveFocus());
-		expect(commandInput.value).toBe("");
+		// Verify toggleSidebar was called
+		expect(mockToggleSidebar).toHaveBeenCalledTimes(1);
 	});
 });

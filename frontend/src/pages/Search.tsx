@@ -7,6 +7,7 @@ import { ListActive as ListActiveTags } from "../../bindings/yanta/internal/tag/
 import { Layout } from "../components/Layout";
 import { Button, Input } from "../components/ui";
 import { useProjectContext } from "../contexts";
+import { useHelp } from "../hooks/useHelp";
 import { useNotification } from "../hooks/useNotification";
 import { useSidebarSections } from "../hooks/useSidebarSections";
 
@@ -33,9 +34,10 @@ interface GroupedSearchResult {
 
 interface SearchProps {
 	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
+	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
-export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
+export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
 	const [rawQuery, setRawQuery] = useState("");
 	const [results, setResults] = useState<SearchResult[]>([]);
 	const [selectedIndex, setSelectedIndex] = useState(0);
@@ -45,11 +47,17 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 
 	const { error: notifyError } = useNotification();
 	const { projects, setCurrentProject } = useProjectContext();
+	const { setPageContext } = useHelp();
 
 	const [availableTags, setAvailableTags] = useState<string[]>([]);
 
 	const searchInputRef = useRef<HTMLInputElement | null>(null);
 	const searchTimeoutRef = useRef<number | null>(null);
+
+	// Set page context for help modal
+	useEffect(() => {
+		setPageContext([], "Search");
+	}, [setPageContext]);
 
 	useEffect(() => {
 		searchInputRef.current?.focus();
@@ -296,7 +304,7 @@ export const Search: React.FC<SearchProps> = ({ onNavigate }) => {
 				{ key: "Enter", label: "open" },
 				{ key: "Esc", label: "unfocus" },
 			]}
-			showCommandLine={false}
+			onRegisterToggleSidebar={onRegisterToggleSidebar}
 		>
 			<div className="flex flex-col h-full">
 				{/* Search Header */}

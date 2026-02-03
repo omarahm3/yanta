@@ -1,3 +1,4 @@
+import { formatRelative } from "date-fns";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProjectResult } from "../../bindings/yanta/internal/commandline/models";
@@ -9,54 +10,22 @@ import {
 import { Layout } from "../components/Layout";
 import { Table, type TableColumn, type TableRow } from "../components/ui";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
-import { ProjectCommand } from "../constants";
 import { useProjectContext } from "../contexts";
-import { useHelp, useHotkeys } from "../hooks";
+import { useHotkeys } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
 import { useSidebarSections } from "../hooks/useSidebarSections";
-import { type ExtendedProject, extendProject, type HelpCommand } from "../types";
+import { type ExtendedProject, extendProject } from "../types";
 import { getProjectAliasColor } from "../utils/colorUtils";
-
-const helpCommands: HelpCommand[] = [
-	{
-		command: `${ProjectCommand.ProjectCommandNew} [name] [alias] [start-date] [end-date]`,
-		description: "Create a new project (name: no spaces, dates: DD-MM-YYYY or YYYY-MM-DD)",
-	},
-	{
-		command: `${ProjectCommand.ProjectCommandArchive} [alias]`,
-		description: "Archive a project",
-	},
-	{
-		command: `${ProjectCommand.ProjectCommandUnarchive} [alias]`,
-		description: "Restore archived project",
-	},
-	{
-		command: `${ProjectCommand.ProjectCommandRename} [alias] [new-name]`,
-		description: "Rename a project",
-	},
-	{
-		command: `${ProjectCommand.ProjectCommandDelete} [alias]`,
-		description: "Delete a project (safe - warns if has entries)",
-	},
-	{
-		command: `${ProjectCommand.ProjectCommandDelete} [alias] --force`,
-		description: "Soft delete project and all entries (can be restored)",
-	},
-	{
-		command: `${ProjectCommand.ProjectCommandDelete} [alias] --force --hard`,
-		description: "PERMANENT deletion - removes ALL files from vault (⚠️ cannot be undone)",
-	},
-];
 
 interface ProjectsProps {
 	onNavigate?: (page: string) => void;
+	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
-export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
+export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
 	const { currentProject, setCurrentProject, projects, archivedProjects, loadProjects, isLoading } =
 		useProjectContext();
 	const [selectedProjectId, setSelectedProjectId] = useState<string>(currentProject?.id || "");
-	const [commandInput, setCommandInput] = useState("");
 	const [documentCounts, setDocumentCounts] = useState<{ [id: string]: number }>({});
 	const [lastDocumentDates, setLastDocumentDates] = useState<{ [id: string]: string }>({});
 	const [confirmDialog, setConfirmDialog] = useState<{
@@ -75,8 +44,6 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 		onConfirm: () => {},
 	});
 	const { success, error } = useNotification();
-	const { setPageContext } = useHelp();
-	const commandInputRef = useRef<HTMLInputElement>(null);
 	const projectsRef = useRef(projects);
 	const archivedProjectsRef = useRef(archivedProjects);
 	const selectedProjectIdRef = useRef(selectedProjectId);
@@ -102,10 +69,6 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 			fetchDocumentData();
 		}
 	}, [projects, archivedProjects, fetchDocumentData]);
-
-	useEffect(() => {
-		setPageContext(helpCommands, "Projects");
-	}, [setPageContext]);
 
 	useEffect(() => {
 		if (currentProject) {
@@ -141,41 +104,55 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 
 	const tableColumns: TableColumn[] = [
 		{ key: "number", label: "", width: "30px" },
-		{ key: "name", label: "NAME", width: "200px" },
-		{ key: "alias", label: "ALIAS", width: "100px" },
-		{ key: "type", label: "TYPE", width: "150px" },
-		{ key: "entryCount", label: "ENTRIES", width: "100px", align: "right" },
-		{ key: "lastEntry", label: "LAST ENTRY", width: "150px" },
-		{ key: "status", label: "STATUS", width: "auto" },
+		{ key: "name", label: "NAME", width: "minmax(100px, 2fr)" },
+		{ key: "alias", label: "ALIAS", width: "minmax(80px, 1fr)" },
+		{ key: "type", label: "TYPE", width: "minmax(80px, 0.8fr)" },
+		{ key: "entryCount", label: "ENTRIES", width: "minmax(60px, 0.5fr)", align: "right" },
+		{ key: "lastEntry", label: "LAST ENTRY", width: "minmax(120px, 1.2fr)" },
+		{ key: "status", label: "STATUS", width: "minmax(5rem, 0.8fr)" },
 	];
 
 	const formatTableRows = (projects: ExtendedProject[]): TableRow[] => {
-		return projects.map((project, index) => ({
-			id: project.id,
-			number: index + 1,
-			name: project.name,
-			alias: (
-				<span className="font-mono" style={{ color: getProjectAliasColor(project.alias) }}>
-					{project.alias}
-				</span>
-			),
-			type: "Project",
-			entryCount: project.entryCount,
-			lastEntry: project.lastEntry,
-			status: (
-				<span
-					className={`text-xs ${
-						project.status === "current"
-							? "text-green"
-							: project.status === "active"
-								? "text-green"
-								: "text-text-dim"
-					}`}
-				>
-					{project.status}
-				</span>
-			),
-		}));
+		return projects.map((project, index) => {
+			const raw = String(project.lastEntry).replace(/\s+/g, " ").trim();
+			let lastEntryDisplay: string;
+			if (!raw || raw === "-") lastEntryDisplay = "-";
+			else {
+				const date = new Date(raw);
+				lastEntryDisplay = Number.isNaN(date.getTime()) ? raw : formatRelative(date, new Date());
+			}
+			const statusActive = project.status === "current" || project.status === "active";
+			return {
+				id: project.id,
+				number: index + 1,
+				name: (
+					<span className="block truncate" title={project.name}>
+						{project.name}
+					</span>
+				),
+				alias: (
+					<span
+						className="block truncate font-mono"
+						style={{ color: getProjectAliasColor(project.alias) }}
+						title={project.alias}
+					>
+						{project.alias}
+					</span>
+				),
+				type: "Project",
+				entryCount: project.entryCount,
+				lastEntry: <span title={lastEntryDisplay}>{lastEntryDisplay}</span>,
+				status: (
+					<span
+						className={`inline-block shrink-0 rounded px-2 py-0.5 text-xs font-medium ${
+							statusActive ? "bg-green/20 text-green" : "bg-border text-text-dim"
+						}`}
+					>
+						{project.status}
+					</span>
+				),
+			};
+		});
 	};
 
 	const handleRowSelect = useCallback(
@@ -200,43 +177,40 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 		[projects, setCurrentProject, success],
 	);
 
-	const handleCommandSubmit = useCallback(
-		async (command: string) => {
-			const normalized = command.startsWith(":") ? command.slice(1).trimStart() : command;
+	const applyResult = useCallback(
+		async (result: ProjectResult | undefined | null) => {
+			if (!result) return;
 
+			if (!result.success) {
+				if (result.message) {
+					error(result.message);
+				}
+				return;
+			}
+
+			await loadProjects();
+			await fetchDocumentData();
+
+			if (result.data?.project?.id) {
+				setSelectedProjectId(result.data.project.id);
+			}
+
+			if (result.message) {
+				success(result.message, { duration: 6000 });
+			}
+		},
+		[loadProjects, fetchDocumentData, error, success],
+	);
+
+	const executeProjectCommand = useCallback(
+		async (command: string) => {
 			const allProjects = [...projects, ...archivedProjects];
 
-			const applyResult = async (result: ProjectResult | undefined | null) => {
-				if (!result) return;
-
-				if (!result.success) {
-					if (result.message) {
-						error(result.message);
-					}
-					return;
-				}
-
-				await loadProjects();
-				await fetchDocumentData();
-
-				if (result.data?.project?.id) {
-					setSelectedProjectId(result.data.project.id);
-				}
-
-				if (result.message) {
-					success(result.message, { duration: 6000 });
-				}
-
-				setCommandInput("");
-				commandInputRef.current?.blur();
-			};
-
-			const hardForceMatch = normalized.match(/^delete\s+(@[\w-]+)\s+--force\s+--hard$/);
+			const hardForceMatch = command.match(/^delete\s+(@[\w-]+)\s+--force\s+--hard$/);
 			if (hardForceMatch) {
 				const alias = hardForceMatch[1];
 				const project = allProjects.find((p) => p.alias === alias);
 				if (project) {
-					commandInputRef.current?.blur();
 					setConfirmDialog({
 						isOpen: true,
 						title: "Permanently Delete Project",
@@ -245,10 +219,9 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 						expectedInput: alias,
 						onConfirm: () => {
 							void (async () => {
-								const result = await Parse(normalized);
+								const result = await Parse(command);
 								await applyResult(result);
 								setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
-								setTimeout(() => commandInputRef.current?.focus(), 0);
 							})();
 						},
 						danger: true,
@@ -259,7 +232,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 			}
 
 			try {
-				const preview = await Parse(normalized);
+				const preview = await Parse(command);
 
 				if (!preview) {
 					error("Command returned null");
@@ -281,8 +254,8 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 					const projectName = project ? project.name : alias;
 					const isHard = data.flags?.includes("--hard") ?? false;
 					const confirmationCommand = data.confirmationCommand;
-					const isArchive = normalized.startsWith("archive ");
-					const isDelete = normalized.startsWith("delete ");
+					const isArchive = command.startsWith("archive ");
+					const isDelete = command.startsWith("delete ");
 
 					let title = "Confirm Action";
 					let message = preview.message || "Confirm this action?";
@@ -315,7 +288,6 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 						}
 					}
 
-					commandInputRef.current?.blur();
 					setConfirmDialog({
 						isOpen: true,
 						title,
@@ -329,7 +301,6 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 								const result = await Parse(confirmationCommand);
 								await applyResult(result);
 								setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
-								setTimeout(() => commandInputRef.current?.focus(), 0);
 							})();
 						},
 					});
@@ -341,7 +312,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 				error(err instanceof Error ? err.message : "Command failed");
 			}
 		},
-		[projects, archivedProjects, loadProjects, fetchDocumentData, error, success],
+		[projects, archivedProjects, applyResult, error],
 	);
 
 	const selectNext = useCallback(() => {
@@ -404,92 +375,42 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 				description: "Switch to selected project",
 			},
 			{
-				key: "mod+N",
-				handler: () => {
-					setCommandInput("new ");
-					setTimeout(() => {
-						commandInputRef.current?.focus();
-						const len = "new ".length;
-						commandInputRef.current?.setSelectionRange(len, len);
-					}, 0);
-				},
-				allowInInput: false,
-				description: "Create a new project",
-			},
-			{
 				key: "mod+A",
 				handler: () => {
 					const selected = projectsRef.current.find((p) => p.id === selectedProjectIdRef.current);
 					if (selected) {
-						setCommandInput(`archive `);
-						setTimeout(() => {
-							commandInputRef.current?.focus();
-							const len = `archive `.length;
-							commandInputRef.current?.setSelectionRange(len, len);
-						}, 0);
+						void executeProjectCommand(`archive ${selected.alias}`);
 					}
 				},
 				allowInInput: false,
-				description: "Archive a project",
+				description: "Archive selected project",
 			},
 			{
 				key: "mod+U",
 				handler: () => {
-					const selected = projectsRef.current.find((p) => p.id === selectedProjectIdRef.current);
+					const selected = archivedProjectsRef.current.find(
+						(p) => p.id === selectedProjectIdRef.current,
+					);
 					if (selected) {
-						setCommandInput(`unarchive `);
-						setTimeout(() => {
-							commandInputRef.current?.focus();
-							const len = `unarchive `.length;
-							commandInputRef.current?.setSelectionRange(len, len);
-						}, 0);
+						void executeProjectCommand(`unarchive ${selected.alias}`);
 					}
 				},
 				allowInInput: false,
 				description: "Restore archived project",
 			},
 			{
-				key: "mod+R",
-				handler: () => {
-					const selected = projectsRef.current.find((p) => p.id === selectedProjectIdRef.current);
-					if (selected) {
-						setCommandInput(`rename ${selected.alias} `);
-						setTimeout(() => {
-							commandInputRef.current?.focus();
-							const len = `rename ${selected.alias} `.length;
-							commandInputRef.current?.setSelectionRange(len, len);
-						}, 0);
-					}
-				},
-				allowInInput: false,
-				description: "Rename a project",
-			},
-			{
 				key: "mod+D",
 				handler: () => {
 					const selected = projectsRef.current.find((p) => p.id === selectedProjectIdRef.current);
 					if (selected) {
-						setCommandInput(`delete ${selected.alias}`);
-						setTimeout(() => {
-							commandInputRef.current?.focus();
-							const len = `delete ${selected.alias}`.length;
-							commandInputRef.current?.setSelectionRange(len, len);
-						}, 0);
+						void executeProjectCommand(`delete ${selected.alias}`);
 					}
 				},
 				allowInInput: false,
-				description: "Delete a project",
+				description: "Delete selected project",
 			},
 		],
-		[
-			selectNext,
-			selectPrevious,
-			selectCurrentProject,
-			setCommandInput,
-			commandInputRef,
-			projectsRef,
-			selectedProjectIdRef,
-		],
+		[selectNext, selectPrevious, selectCurrentProject, executeProjectCommand],
 	);
 
 	useHotkeys(projectHotkeys);
@@ -504,15 +425,9 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 			<Layout
 				sidebarSections={sidebarSections}
 				currentPage="projects"
-				showCommandLine={true}
-				commandContext="project"
-				commandPlaceholder="type command or press / for help"
-				commandValue={commandInput}
-				onCommandChange={setCommandInput}
-				onCommandSubmit={handleCommandSubmit}
-				commandInputRef={commandInputRef}
+				onRegisterToggleSidebar={onRegisterToggleSidebar}
 			>
-				<div className="p-5">
+				<div className="min-w-0 w-full p-5">
 					<div className="mb-4 text-xs font-semibold tracking-wider uppercase text-text-dim">
 						ACTIVE PROJECTS
 					</div>
@@ -528,7 +443,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 							selectedRowId={selectedProjectId}
 							onRowSelect={handleRowSelect}
 							onRowDoubleClick={handleRowDoubleClick}
-							className="max-w-4xl"
+							className="w-full"
 						/>
 					)}
 
@@ -544,7 +459,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 								selectedRowId={selectedProjectId}
 								onRowSelect={handleRowSelect}
 								onRowDoubleClick={handleRowDoubleClick}
-								className="max-w-4xl opacity-60"
+								className="w-full opacity-60"
 							/>
 						</>
 					)}
@@ -555,10 +470,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate }) => {
 				title={confirmDialog.title}
 				message={confirmDialog.message}
 				onConfirm={confirmDialog.onConfirm}
-				onCancel={() => {
-					setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
-					setTimeout(() => commandInputRef.current?.focus(), 0);
-				}}
+				onCancel={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
 				danger={confirmDialog.danger}
 				inputPrompt={confirmDialog.inputPrompt}
 				expectedInput={confirmDialog.expectedInput}

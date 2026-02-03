@@ -7,13 +7,20 @@ export interface DocumentProps {
 	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
 	documentPath?: string;
 	initialTitle?: string;
+	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
-export const Document: React.FC<DocumentProps> = ({ onNavigate, documentPath, initialTitle }) => {
+export const Document: React.FC<DocumentProps> = ({
+	onNavigate,
+	documentPath,
+	initialTitle,
+	onRegisterToggleSidebar,
+}) => {
 	const controller = useDocumentController({
 		onNavigate,
 		documentPath,
 		initialTitle,
+		onRegisterToggleSidebar,
 	});
 
 	useHotkeys(controller.hotkeys);
@@ -24,7 +31,11 @@ export const Document: React.FC<DocumentProps> = ({ onNavigate, documentPath, in
 
 	if (controller.showError) {
 		return (
-			<DocumentErrorState sidebarSections={controller.sidebarSections} onNavigate={onNavigate} />
+			<DocumentErrorState
+				sidebarSections={controller.sidebarSections}
+				onNavigate={onNavigate}
+				onRegisterToggleSidebar={onRegisterToggleSidebar}
+			/>
 		);
 	}
 

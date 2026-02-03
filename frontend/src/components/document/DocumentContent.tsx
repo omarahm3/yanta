@@ -1,4 +1,5 @@
 import type { BlockNoteEditor } from "@blocknote/core";
+import { FileText } from "lucide-react";
 import React from "react";
 import type { SaveState } from "../../hooks/useAutoSave";
 import type { BlockNoteBlock } from "../../types/Document";
@@ -25,15 +26,13 @@ export interface DocumentContentProps {
 		saveError: Error | null;
 		saveNow: () => Promise<void>;
 	};
-	commandInput: string;
-	onCommandChange: (value: string) => void;
-	onCommandSubmit: (command: string) => void;
 	onTitleChange: (title: string) => void;
 	onBlocksChange: (blocks: BlockNoteBlock[]) => void;
 	onTagRemove: (tag: string) => void;
 	onEditorReady: (editor: BlockNoteEditor) => void;
 	onRestore?: () => void;
 	isRestoring?: boolean;
+	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
 export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
@@ -45,27 +44,27 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 		isLoading,
 		isArchived = false,
 		autoSave,
-		commandInput,
-		onCommandChange,
-		onCommandSubmit,
 		onTitleChange,
 		onBlocksChange,
 		onTagRemove,
 		onEditorReady,
 		onRestore,
 		isRestoring = false,
+		onRegisterToggleSidebar,
 	}) => (
 		<Layout
 			sidebarSections={sidebarSections}
 			currentPage={currentProject?.alias ?? "document"}
-			showCommandLine={true}
-			commandContext="document"
-			commandPlaceholder=":tag web frontend | :untag react | :tags"
-			commandValue={commandInput}
-			onCommandChange={onCommandChange}
-			onCommandSubmit={onCommandSubmit}
+			onRegisterToggleSidebar={onRegisterToggleSidebar}
 		>
 			<div className="flex flex-col w-full h-full">
+				{/* Page header with mode icon */}
+				<div className="px-4 pt-4 pb-2 border-b border-border">
+					<div className="flex items-center gap-2">
+						<FileText className="w-5 h-5" style={{ color: "var(--mode-accent)" }} aria-hidden="true" />
+						<span className="text-sm text-text-dim">Document</span>
+					</div>
+				</div>
 				{isArchived && (
 					<div className="flex flex-wrap items-center gap-3 border-b border-accent/30 bg-accent/10 px-6 py-3 text-xs uppercase tracking-widest text-accent">
 						<span className="font-semibold">Archived Document</span>
