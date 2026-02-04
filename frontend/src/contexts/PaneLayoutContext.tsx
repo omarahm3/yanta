@@ -79,11 +79,7 @@ function paneLayoutReducer(state: PaneLayoutState, action: PaneLayoutAction): Pa
 			return { ...state, root: newRoot };
 		}
 		case "UPDATE_SCROLL_POSITION": {
-			const newRoot = updateScrollPositionUtil(
-				state.root,
-				action.paneId,
-				action.scrollPosition,
-			);
+			const newRoot = updateScrollPositionUtil(state.root, action.paneId, action.scrollPosition);
 			if (newRoot === state.root) return state;
 			return { ...state, root: newRoot };
 		}
@@ -155,12 +151,9 @@ export const PaneLayoutProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 		dispatch({ type: "SWAP_DOCUMENTS", paneIdA, paneIdB });
 	}, []);
 
-	const updateScrollPosition = useCallback(
-		(paneId: string, scrollPosition: ScrollPosition) => {
-			dispatch({ type: "UPDATE_SCROLL_POSITION", paneId, scrollPosition });
-		},
-		[],
-	);
+	const updateScrollPosition = useCallback((paneId: string, scrollPosition: ScrollPosition) => {
+		dispatch({ type: "UPDATE_SCROLL_POSITION", paneId, scrollPosition });
+	}, []);
 
 	const resetLayout = useCallback(() => {
 		clearPaneLayout();

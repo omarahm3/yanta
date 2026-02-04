@@ -10,12 +10,12 @@ import type { DocumentContentProps } from "../../components/document/DocumentCon
 import { useProjectContext } from "../../contexts";
 import { useDocumentEditor } from "../../hooks/useDocumentEditor";
 import { useDocumentEscapeHandling } from "../../hooks/useDocumentEscapeHandling";
-import { usePaneLayout } from "../../hooks/usePaneLayout";
 import { useDocumentForm } from "../../hooks/useDocumentForm";
 import { useDocumentInitialization } from "../../hooks/useDocumentInitialization";
 import { useDocumentPersistence } from "../../hooks/useDocumentPersistence";
 import { useHelp } from "../../hooks/useHelp";
 import { useNotification } from "../../hooks/useNotification";
+import { usePaneLayout } from "../../hooks/usePaneLayout";
 import { useRecentDocuments } from "../../hooks/useRecentDocuments";
 import { useSidebarSections } from "../../hooks/useSidebarSections";
 import { DocumentServiceWrapper } from "../../services/DocumentService";

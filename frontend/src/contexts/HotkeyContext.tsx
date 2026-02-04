@@ -81,9 +81,7 @@ const createHotkeyMatcher = (combo: string) => {
 		const key = event.key.length === 1 ? event.key.toLowerCase() : event.key.toLowerCase();
 
 		if (requireKey) {
-			const keyMatches =
-				key === requireKey ||
-				(requireKey === "\\" && requireShift && key === "|");
+			const keyMatches = key === requireKey || (requireKey === "\\" && requireShift && key === "|");
 			if (!keyMatches) {
 				return false;
 			}

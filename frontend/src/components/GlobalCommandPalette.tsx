@@ -39,11 +39,12 @@ import {
 	SyncNow,
 } from "../../bindings/yanta/internal/system/service";
 import { useDocumentContext } from "../contexts/DocumentContext";
-import { usePaneLayout } from "../hooks/usePaneLayout";
 import { useProjectContext } from "../contexts/ProjectContext";
 import { useCommandUsage } from "../hooks/useCommandUsage";
 import { useNotification } from "../hooks/useNotification";
+import { usePaneLayout } from "../hooks/usePaneLayout";
 import { useRecentDocuments } from "../hooks/useRecentDocuments";
+import { DocumentServiceWrapper } from "../services/DocumentService";
 import { getTopRecentCommandIds, sortCommandsByUsage } from "../utils/commandSorting";
 import { formatRelativeTimeFromTimestamp } from "../utils/dateUtils";
 import { type ParsedGitError, parseGitError } from "../utils/gitErrorParser";
@@ -228,9 +229,27 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			shortcut: getShortcutForCommand("new-document"),
 			group: "Create",
 			keywords: ["create", "add", "note"],
-			action: () => {
-				onNavigate("document");
+			action: async () => {
 				handleClose();
+				if (!currentProject) return;
+				try {
+					const newPath = await DocumentServiceWrapper.save({
+						projectAlias: currentProject.alias,
+						title: "Untitled",
+						blocks: [
+							{
+								id: "initial-heading",
+								type: "heading",
+								props: { level: 1 },
+								content: [{ type: "text", text: "", styles: {} }],
+							},
+						],
+						tags: [],
+					});
+					onNavigate("document", { documentPath: newPath, newDocument: true });
+				} catch (err) {
+					notification.error(`Failed to create document: ${err}`);
+				}
 			},
 		});
 

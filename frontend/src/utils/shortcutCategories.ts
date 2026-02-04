@@ -184,11 +184,7 @@ export function inferCategory(hotkey: RegisteredHotkey): ShortcutCategory {
 	}
 
 	// Pane patterns
-	if (
-		key.includes("\\") ||
-		description.includes("pane") ||
-		description.includes("split")
-	) {
+	if (key.includes("\\") || description.includes("pane") || description.includes("split")) {
 		return "panes";
 	}
 

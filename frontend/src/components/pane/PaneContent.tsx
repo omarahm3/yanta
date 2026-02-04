@@ -108,11 +108,7 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 			onDrop={handleDrop}
 		>
 			{documentPath ? (
-				<PaneDocumentView
-					paneId={paneId}
-					documentPath={documentPath}
-					onNavigate={handlePaneNavigate}
-				/>
+				<PaneDocumentView paneId={paneId} documentPath={documentPath} onNavigate={handlePaneNavigate} />
 			) : (
 				<>
 					<PaneHeader paneId={paneId} documentPath={null} />

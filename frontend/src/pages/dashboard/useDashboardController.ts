@@ -14,6 +14,7 @@ import { useDocumentContext, useProjectContext } from "../../contexts";
 import { useHelp } from "../../hooks";
 import { useNotification } from "../../hooks/useNotification";
 import { useSidebarSections } from "../../hooks/useSidebarSections";
+import { DocumentServiceWrapper } from "../../services/DocumentService";
 import type { Document } from "../../types/Document";
 import type { HotkeyConfig } from "../../types/hotkeys";
 import { useDashboardCommandHandler } from "./useDashboardCommandHandler";
@@ -173,12 +174,29 @@ export function useDashboardController({
 		[onNavigate],
 	);
 
-	const handleNewDocument = useCallback(() => {
+	const handleNewDocument = useCallback(async () => {
 		if (!currentProjectRef.current) {
 			error("No project selected");
 			return;
 		}
-		onNavigate?.("document");
+		try {
+			const newPath = await DocumentServiceWrapper.save({
+				projectAlias: currentProjectRef.current.alias,
+				title: "Untitled",
+				blocks: [
+					{
+						id: "initial-heading",
+						type: "heading",
+						props: { level: 1 },
+						content: [{ type: "text", text: "", styles: {} }],
+					},
+				],
+				tags: [],
+			});
+			onNavigate?.("document", { documentPath: newPath, newDocument: true });
+		} catch (err) {
+			error(`Failed to create document: ${err}`);
+		}
 	}, [onNavigate, error]);
 
 	const handleToggleArchived = useCallback(() => {

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { HotkeyConfig } from "../types/hotkeys";
-import { type PaneDirection, countLeaves, getPaneInDirection } from "../utils/paneLayoutUtils";
+import { countLeaves, getPaneInDirection, type PaneDirection } from "../utils/paneLayoutUtils";
 import { useHotkeys } from "./useHotkey";
 import { usePaneLayout } from "./usePaneLayout";
 

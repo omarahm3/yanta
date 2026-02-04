@@ -27,7 +27,12 @@ const MIME_PANE_ID = "application/x-yanta-pane-id";
  * When a document is loaded, the header is draggable. Dropping it
  * on another pane swaps the documents between the two panes.
  */
-export const PaneHeader: React.FC<PaneHeaderProps> = ({ paneId, documentPath, title: titleProp, className }) => {
+export const PaneHeader: React.FC<PaneHeaderProps> = ({
+	paneId,
+	documentPath,
+	title: titleProp,
+	className,
+}) => {
 	const { layout, activePaneId, splitPane, closePane } = usePaneLayout();
 
 	const isActive = activePaneId === paneId;

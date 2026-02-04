@@ -83,6 +83,12 @@ vi.mock("../../bindings/yanta/internal/document/service", () => ({
 	Restore: vi.fn(),
 }));
 
+vi.mock("../services/DocumentService", () => ({
+	DocumentServiceWrapper: {
+		save: vi.fn(async () => "proj/new-doc-path"),
+	},
+}));
+
 const softDeleteMock = SoftDelete as unknown as ReturnType<typeof vi.fn>;
 const restoreMock = Restore as unknown as ReturnType<typeof vi.fn>;
 
@@ -178,7 +184,12 @@ describe("Dashboard hotkeys", () => {
 		await act(async () => {
 			modN.handler(new KeyboardEvent("keydown", { key: "n", ctrlKey: true }));
 		});
-		expect(onNavigate).toHaveBeenCalledWith("document");
+		await waitFor(() =>
+			expect(onNavigate).toHaveBeenCalledWith("document", {
+				documentPath: "proj/new-doc-path",
+				newDocument: true,
+			}),
+		);
 	});
 
 	it("toggles archived view with mod+shift+A", async () => {
