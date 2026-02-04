@@ -26,6 +26,8 @@ interface GitSyncSectionProps {
 	setMigrationTarget: (value: string) => void;
 	isMigrating: boolean;
 	migrationProgress: string;
+	dataDirOverridden: boolean;
+	dataDirEnvVar: string;
 	gitSyncEnabled: boolean;
 	commitInterval: number;
 	autoPush: boolean;
@@ -165,6 +167,8 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 			setMigrationTarget,
 			isMigrating,
 			migrationProgress,
+			dataDirOverridden,
+			dataDirEnvVar,
 			gitSyncEnabled,
 			commitInterval,
 			autoPush,
@@ -185,6 +189,7 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 		},
 		ref,
 	) => {
+		const migrationDisabled = isMigrating || !gitInstalled || dataDirOverridden;
 		const branchOptions: SelectOption[] = React.useMemo(() => {
 			const options: SelectOption[] = [
 				{
@@ -225,6 +230,27 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 							<div className="text-xs text-text-dim">
 								Move your data to a different directory. YANTA will restart after migration.
 							</div>
+
+							{dataDirOverridden && (
+								<div className="p-4 border border-blue-700 rounded bg-blue-900/30">
+									<div className="flex items-start gap-2">
+										<AlertTriangle className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+										<div>
+											<div className="mb-1 font-medium text-blue-400">Environment Override Active</div>
+											<div className="text-sm text-blue-300">
+												The <code className="px-1 py-0.5 bg-blue-800/50 rounded">YANTA_DATA_DIR</code> environment variable is set to:
+											</div>
+											<div className="mt-1 text-xs font-mono text-blue-200 break-all">
+												{dataDirEnvVar}
+											</div>
+											<div className="mt-2 text-sm text-blue-300">
+												Migration is disabled while this variable is set. Unset the environment variable and restart YANTA to change the data directory.
+											</div>
+										</div>
+									</div>
+								</div>
+							)}
+
 							<div className="space-y-2">
 								<div className="flex gap-2">
 									<Input
@@ -232,14 +258,14 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 										placeholder="/path/to/your/git/repo"
 										value={migrationTarget}
 										onChange={(e) => setMigrationTarget(e.target.value)}
-										disabled={isMigrating || !gitInstalled}
+										disabled={migrationDisabled}
 										className="flex-1"
 									/>
 									<Button
 										variant="ghost"
 										size="sm"
 										onClick={onPickDirectory}
-										disabled={isMigrating || !gitInstalled}
+										disabled={migrationDisabled}
 										title="Browse for folder"
 									>
 										<FolderOpen className="w-4 h-4" />
@@ -249,7 +275,7 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 									variant="primary"
 									size="sm"
 									onClick={onMigration}
-									disabled={isMigrating || !gitInstalled || !migrationTarget}
+									disabled={migrationDisabled || !migrationTarget}
 									className="w-full"
 								>
 									{isMigrating ? "Migrating..." : "Migrate Data"}

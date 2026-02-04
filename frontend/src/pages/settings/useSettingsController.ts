@@ -15,6 +15,7 @@ import {
 	GetAppScale,
 	GetCurrentDataDirectory,
 	GetCurrentGitBranch,
+	GetDataDirectoryEnvVar,
 	GetGitBranches,
 	GetGitSyncConfig,
 	GetHotkeyConfig,
@@ -22,6 +23,7 @@ import {
 	GetPlatform,
 	GetStartHidden,
 	GetSystemInfo,
+	IsDataDirectoryOverridden,
 	MigrateToGitDirectory,
 	OpenDirectoryDialog,
 	ReindexDatabase,
@@ -63,6 +65,8 @@ export const useSettingsController = () => {
 	const [migrationTarget, setMigrationTarget] = useState("");
 	const [isMigrating, setIsMigrating] = useState(false);
 	const [migrationProgress, setMigrationProgress] = useState("");
+	const [dataDirOverridden, setDataDirOverridden] = useState(false);
+	const [dataDirEnvVar, setDataDirEnvVar] = useState("");
 	const [gitSync, setGitSync] = useState<GitSyncSettings>({
 		enabled: false,
 		commitInterval: 10, // default 10 minutes
@@ -119,6 +123,14 @@ export const useSettingsController = () => {
 		GetCurrentDataDirectory()
 			.then((dir) => setCurrentDataDir(dir))
 			.catch((err) => console.error("Failed to get current data directory:", err));
+
+		IsDataDirectoryOverridden()
+			.then((overridden) => setDataDirOverridden(overridden))
+			.catch((err) => console.error("Failed to check data directory override:", err));
+
+		GetDataDirectoryEnvVar()
+			.then((envVar) => setDataDirEnvVar(envVar))
+			.catch((err) => console.error("Failed to get data directory env var:", err));
 
 		GetGitSyncConfig()
 			.then((config) => {
@@ -575,6 +587,8 @@ export const useSettingsController = () => {
 		setMigrationTarget,
 		isMigrating,
 		migrationProgress,
+		dataDirOverridden,
+		dataDirEnvVar,
 		gitSync,
 		gitBranches,
 		currentGitBranch,

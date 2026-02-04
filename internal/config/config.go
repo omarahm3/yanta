@@ -243,6 +243,18 @@ func GetDataDirectory() string {
 	return filepath.Join(home, ".yanta")
 }
 
+// IsDataDirectoryOverridden returns true if YANTA_DATA_DIR env var is set,
+// which overrides any config file setting. This is useful for warning users
+// that changing the data directory via the UI won't take effect.
+func IsDataDirectoryOverridden() bool {
+	return os.Getenv("YANTA_DATA_DIR") != ""
+}
+
+// GetDataDirectoryEnvVar returns the value of YANTA_DATA_DIR if set, empty string otherwise.
+func GetDataDirectoryEnvVar() string {
+	return os.Getenv("YANTA_DATA_DIR")
+}
+
 func SetDataDirectory(dir string) error {
 	mu.Lock()
 	defer mu.Unlock()

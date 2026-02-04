@@ -83,6 +83,14 @@ export function GetCurrentGitBranch() {
 }
 
 /**
+ * GetDataDirectoryEnvVar returns the YANTA_DATA_DIR value if set, empty string otherwise.
+ * @returns {$CancellablePromise<string>}
+ */
+export function GetDataDirectoryEnvVar() {
+    return $Call.ByID(2317422642);
+}
+
+/**
  * @returns {$CancellablePromise<string[]>}
  */
 export function GetGitBranches() {
@@ -195,6 +203,16 @@ export function GitPush() {
  */
 export function IsCommandLineEnabled() {
     return $Call.ByID(3125444353);
+}
+
+/**
+ * IsDataDirectoryOverridden returns true if YANTA_DATA_DIR environment variable is set,
+ * which means any changes to the data directory via the UI won't take effect until
+ * the env var is unset.
+ * @returns {$CancellablePromise<boolean>}
+ */
+export function IsDataDirectoryOverridden() {
+    return $Call.ByID(1956272108);
 }
 
 /**
