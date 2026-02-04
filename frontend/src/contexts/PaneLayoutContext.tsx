@@ -1,7 +1,8 @@
 import type React from "react";
 import { createContext, useCallback, useMemo, useReducer } from "react";
-import { loadPaneLayout, usePanePersistence } from "../hooks/usePanePersistence";
+import { clearPaneLayout, loadPaneLayout, usePanePersistence } from "../hooks/usePanePersistence";
 import type { PaneLayoutState, ScrollPosition, SplitDirection } from "../types/PaneLayout";
+import { createDefaultPaneLayout } from "../types/PaneLayout";
 import {
 	closePane as closePaneUtil,
 	findPane,
@@ -25,7 +26,8 @@ type PaneLayoutAction =
 	| { type: "MOVE_DOCUMENT"; sourcePaneId: string; targetPaneId: string }
 	| { type: "SWAP_DOCUMENTS"; paneIdA: string; paneIdB: string }
 	| { type: "UPDATE_SCROLL_POSITION"; paneId: string; scrollPosition: ScrollPosition }
-	| { type: "RESTORE_LAYOUT"; state: PaneLayoutState };
+	| { type: "RESTORE_LAYOUT"; state: PaneLayoutState }
+	| { type: "RESET_LAYOUT" };
 
 // --- Reducer ---
 
@@ -88,6 +90,9 @@ function paneLayoutReducer(state: PaneLayoutState, action: PaneLayoutAction): Pa
 		case "RESTORE_LAYOUT": {
 			return action.state;
 		}
+		case "RESET_LAYOUT": {
+			return createDefaultPaneLayout();
+		}
 		default:
 			return state;
 	}
@@ -106,6 +111,7 @@ export interface PaneLayoutContextValue {
 	moveDocumentBetweenPanes: (sourcePaneId: string, targetPaneId: string) => void;
 	swapPaneDocuments: (paneIdA: string, paneIdB: string) => void;
 	updateScrollPosition: (paneId: string, scrollPosition: ScrollPosition) => void;
+	resetLayout: () => void;
 }
 
 export const PaneLayoutContext = createContext<PaneLayoutContextValue | undefined>(undefined);
@@ -156,6 +162,11 @@ export const PaneLayoutProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 		[],
 	);
 
+	const resetLayout = useCallback(() => {
+		clearPaneLayout();
+		dispatch({ type: "RESET_LAYOUT" });
+	}, []);
+
 	const value = useMemo<PaneLayoutContextValue>(
 		() => ({
 			layout: state,
@@ -168,6 +179,7 @@ export const PaneLayoutProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 			moveDocumentBetweenPanes,
 			swapPaneDocuments,
 			updateScrollPosition,
+			resetLayout,
 		}),
 		[
 			state,
@@ -179,6 +191,7 @@ export const PaneLayoutProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 			moveDocumentBetweenPanes,
 			swapPaneDocuments,
 			updateScrollPosition,
+			resetLayout,
 		],
 	);
 

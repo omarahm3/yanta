@@ -15,6 +15,7 @@ interface PersistedPaneLayout {
 
 /**
  * Load pane layout from localStorage, validating and falling back to default on failure.
+ * Handles corrupted data (JSON parse errors), version mismatches, and invalid tree structures.
  */
 export function loadPaneLayout(): PaneLayoutState {
 	try {
@@ -22,8 +23,14 @@ export function loadPaneLayout(): PaneLayoutState {
 		if (!stored) {
 			return createDefaultPaneLayout();
 		}
-		const parsed = JSON.parse(stored) as PersistedPaneLayout;
+		const parsed = JSON.parse(stored);
+		if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+			return createDefaultPaneLayout();
+		}
 		if (parsed.version !== PERSISTENCE_VERSION) {
+			return createDefaultPaneLayout();
+		}
+		if (!parsed.root || typeof parsed.activePaneId !== "string") {
 			return createDefaultPaneLayout();
 		}
 		return restoreLayout({
@@ -46,8 +53,19 @@ function savePaneLayout(state: PaneLayoutState): void {
 			activePaneId: state.activePaneId,
 		};
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-	} catch {
-		// Silently fail on localStorage errors (quota exceeded, etc.)
+	} catch (err) {
+		console.error("[usePanePersistence] Failed to save to localStorage:", err);
+	}
+}
+
+/**
+ * Clear pane layout from localStorage, resetting to default single pane.
+ */
+export function clearPaneLayout(): void {
+	try {
+		localStorage.removeItem(STORAGE_KEY);
+	} catch (err) {
+		console.error("[usePanePersistence] Failed to clear localStorage:", err);
 	}
 }
 

@@ -17,6 +17,7 @@ import {
 	HelpCircle,
 	LayoutDashboard,
 	PanelLeft,
+	RotateCcw,
 	Save,
 	Search,
 	Settings,
@@ -38,6 +39,7 @@ import {
 	SyncNow,
 } from "../../bindings/yanta/internal/system/service";
 import { useDocumentContext } from "../contexts/DocumentContext";
+import { usePaneLayout } from "../hooks/usePaneLayout";
 import { useProjectContext } from "../contexts/ProjectContext";
 import { useCommandUsage } from "../hooks/useCommandUsage";
 import { useNotification } from "../hooks/useNotification";
@@ -72,6 +74,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 	const { projects, currentProject, setCurrentProject, previousProject, switchToLastProject } =
 		useProjectContext();
 	const { getSelectedDocument } = useDocumentContext();
+	const { resetLayout } = usePaneLayout();
 	const notification = useNotification();
 	const { recentDocuments } = useRecentDocuments();
 	const { recordCommandUsage, getAllCommandUsage } = useCommandUsage();
@@ -367,6 +370,19 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 		}
 
 		commands.push({
+			id: "reset-panes",
+			icon: <RotateCcw className="text-lg" />,
+			text: "Reset Panes",
+			hint: "Single pane layout",
+			group: "Application",
+			keywords: ["reset", "pane", "split", "layout", "default", "single"],
+			action: () => {
+				resetLayout();
+				handleClose();
+			},
+		});
+
+		commands.push({
 			id: "git-sync",
 			icon: <GitCommit className="text-lg" />,
 			text: "Git Sync",
@@ -528,6 +544,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 		getSelectedDocument,
 		setCurrentProject,
 		switchToLastProject,
+		resetLayout,
 		onNavigate,
 		handleClose,
 		currentPage,
