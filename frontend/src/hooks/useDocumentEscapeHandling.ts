@@ -4,6 +4,8 @@ import { type MutableRefObject, useCallback } from "react";
 interface UseDocumentEscapeHandlingProps {
 	editorRef: MutableRefObject<BlockNoteEditor | null>;
 	onNavigateBack: () => void;
+	/** When false (e.g. another pane is active), only blur; do not navigate back. Default true. */
+	isActivePane?: boolean;
 }
 
 interface UseDocumentEscapeHandlingReturn {
@@ -11,9 +13,18 @@ interface UseDocumentEscapeHandlingReturn {
 	handleUnfocus: (e: KeyboardEvent) => void;
 }
 
+/** Blur the BlockNote editor if it's focused. Returns true if blur happened. */
+function blurEditor(editor: BlockNoteEditor): boolean {
+	if (!editor.isFocused()) return false;
+	const domEditor = editor.domElement;
+	if (domEditor) domEditor.blur();
+	return true;
+}
+
 export const useDocumentEscapeHandling = ({
 	editorRef,
 	onNavigateBack,
+	isActivePane = true,
 }: UseDocumentEscapeHandlingProps): UseDocumentEscapeHandlingReturn => {
 	const handleEscape = useCallback(
 		(e: KeyboardEvent) => {
@@ -22,13 +33,16 @@ export const useDocumentEscapeHandling = ({
 				return;
 			}
 
-			if (!editor.isFocused()) {
+			if (blurEditor(editor)) {
+				e.preventDefault();
+				e.stopPropagation();
+			} else if (isActivePane) {
 				e.preventDefault();
 				e.stopPropagation();
 				onNavigateBack();
 			}
 		},
-		[editorRef, onNavigateBack],
+		[editorRef, onNavigateBack, isActivePane],
 	);
 
 	const handleUnfocus = useCallback(
@@ -37,16 +51,7 @@ export const useDocumentEscapeHandling = ({
 			e.stopPropagation();
 
 			const editor = editorRef.current;
-			if (!editor) {
-				return;
-			}
-
-			if (editor.isFocused()) {
-				const domEditor = editor.domElement;
-				if (domEditor) {
-					domEditor.blur();
-				}
-			}
+			if (editor) blurEditor(editor);
 		},
 		[editorRef],
 	);

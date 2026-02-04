@@ -26,6 +26,15 @@ export type {
 	HotkeyContextValue,
 	RegisteredHotkey,
 } from "./hotkeys";
+export type {
+	PaneLayoutState,
+	PaneLeaf,
+	PaneNode,
+	PaneSplit,
+	ScrollPosition,
+	SplitDirection,
+} from "./PaneLayout";
+export { createDefaultPaneLayout, MAX_PANES } from "./PaneLayout";
 export type { ExtendedProject, Project, ProjectType } from "./Project";
 // Re-export converters for convenience
 export {

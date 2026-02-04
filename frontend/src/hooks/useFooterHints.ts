@@ -35,6 +35,9 @@ const HINT_CONFIGS: Record<PageContext, FooterHint[]> = {
 	],
 	document: [
 		{ key: "Ctrl+S", label: "Save", priority: 1 },
+		{ key: "Ctrl+\\", label: "Split", priority: 3 },
+		{ key: "Alt+X", label: "Close pane", priority: 3 },
+		{ key: "Alt+H/J/K/L", label: "Focus panes", priority: 3 },
 		{ key: "Esc", label: "Back", priority: 2 },
 		{ key: "Ctrl+K", label: "Commands", priority: 1 },
 	],

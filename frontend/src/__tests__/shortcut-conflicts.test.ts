@@ -233,6 +233,73 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 	});
 
 	// ============================================
+	// PANE SHORTCUTS (usePaneHotkeys.ts)
+	// ============================================
+
+	shortcuts.push({
+		key: "mod+\\",
+		description: "Split pane right",
+		context: "document",
+		source: "usePaneHotkeys.ts",
+		allowInInput: true,
+		capture: true,
+	});
+
+	shortcuts.push({
+		key: "mod+shift+\\",
+		description: "Split pane down",
+		context: "document",
+		source: "usePaneHotkeys.ts",
+		allowInInput: true,
+		capture: true,
+	});
+
+	shortcuts.push({
+		key: "alt+x",
+		description: "Close active pane",
+		context: "document",
+		source: "usePaneHotkeys.ts",
+		allowInInput: true,
+		capture: true,
+	});
+
+	shortcuts.push({
+		key: "alt+h",
+		description: "Focus pane left",
+		context: "document",
+		source: "usePaneHotkeys.ts",
+		allowInInput: true,
+		capture: true,
+	});
+
+	shortcuts.push({
+		key: "alt+j",
+		description: "Focus pane down",
+		context: "document",
+		source: "usePaneHotkeys.ts",
+		allowInInput: true,
+		capture: true,
+	});
+
+	shortcuts.push({
+		key: "alt+k",
+		description: "Focus pane up",
+		context: "document",
+		source: "usePaneHotkeys.ts",
+		allowInInput: true,
+		capture: true,
+	});
+
+	shortcuts.push({
+		key: "alt+l",
+		description: "Focus pane right",
+		context: "document",
+		source: "usePaneHotkeys.ts",
+		allowInInput: true,
+		capture: true,
+	});
+
+	// ============================================
 	// DOCUMENT SHORTCUTS (useDocumentController.ts)
 	// ============================================
 

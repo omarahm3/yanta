@@ -1,0 +1,120 @@
+import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { usePaneLayout } from "../../hooks/usePaneLayout";
+import { cn } from "../../lib/utils";
+import { countLeaves } from "../../utils/paneLayoutUtils";
+import { EmptyPane } from "./EmptyPane";
+import { PaneDocumentView } from "./PaneDocumentView";
+import { PaneHeader } from "./PaneHeader";
+import { usePaneNavigateContext } from "./PaneNavigateContext";
+
+export interface PaneContentProps {
+	paneId: string;
+	documentPath: string | null;
+}
+
+const MIME_DOCUMENT_PATH = "application/x-yanta-document-path";
+const MIME_PANE_ID = "application/x-yanta-pane-id";
+
+export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }) => {
+	const { layout, openDocumentInPane, swapPaneDocuments, setActivePane, closePane, activePaneId } =
+		usePaneLayout();
+	const appOnNavigate = usePaneNavigateContext();
+	const [isDragOver, setIsDragOver] = useState(false);
+
+	const activePaneIdRef = useRef(activePaneId);
+	activePaneIdRef.current = activePaneId;
+	const layoutRef = useRef(layout);
+	layoutRef.current = layout;
+
+	useEffect(() => {
+		if (documentPath) return;
+
+		const onKeyDown = (e: KeyboardEvent) => {
+			if (e.key !== "Escape") return;
+			if (activePaneIdRef.current !== paneId) return;
+			e.preventDefault();
+			e.stopPropagation();
+			e.stopImmediatePropagation();
+
+			if (countLeaves(layoutRef.current.root) > 1) {
+				closePane(paneId);
+			} else {
+				appOnNavigate?.("dashboard");
+			}
+		};
+
+		window.addEventListener("keydown", onKeyDown, true);
+		return () => window.removeEventListener("keydown", onKeyDown, true);
+	}, [documentPath, paneId, appOnNavigate, closePane]);
+
+	const handlePaneNavigate = useCallback(
+		(page: string, state?: Record<string, string | number | boolean | undefined>) => {
+			if (page === "document" && state?.documentPath) {
+				openDocumentInPane(paneId, state.documentPath as string);
+			}
+			appOnNavigate?.(page, state);
+		},
+		[paneId, openDocumentInPane, appOnNavigate],
+	);
+
+	const handleDragOver = useCallback((e: React.DragEvent) => {
+		const types = e.dataTransfer.types;
+		if (types.includes(MIME_DOCUMENT_PATH) || types.includes(MIME_PANE_ID)) {
+			e.preventDefault();
+			e.dataTransfer.dropEffect = "move";
+			setIsDragOver(true);
+		}
+	}, []);
+
+	const handleDragLeave = useCallback((e: React.DragEvent) => {
+		// Only reset when leaving the container entirely, not entering a child
+		if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+			setIsDragOver(false);
+		}
+	}, []);
+
+	const handleDrop = useCallback(
+		(e: React.DragEvent) => {
+			e.preventDefault();
+			setIsDragOver(false);
+
+			// Handle document dragged from sidebar DocumentList
+			const droppedDocumentPath = e.dataTransfer.getData(MIME_DOCUMENT_PATH);
+			if (droppedDocumentPath) {
+				openDocumentInPane(paneId, droppedDocumentPath);
+				setActivePane(paneId);
+				return;
+			}
+
+			// Handle pane header dragged from another pane (swap documents)
+			const sourcePaneId = e.dataTransfer.getData(MIME_PANE_ID);
+			if (sourcePaneId && sourcePaneId !== paneId) {
+				swapPaneDocuments(sourcePaneId, paneId);
+				setActivePane(paneId);
+			}
+		},
+		[paneId, openDocumentInPane, swapPaneDocuments, setActivePane],
+	);
+
+	return (
+		<div
+			className={cn(
+				"flex flex-col h-full w-full transition-colors",
+				isDragOver && "ring-2 ring-accent ring-inset",
+			)}
+			onDragOver={handleDragOver}
+			onDragLeave={handleDragLeave}
+			onDrop={handleDrop}
+		>
+			{documentPath ? (
+				<PaneDocumentView paneId={paneId} documentPath={documentPath} onNavigate={handlePaneNavigate} />
+			) : (
+				<>
+					<PaneHeader paneId={paneId} documentPath={null} />
+					<EmptyPane isDragOver={isDragOver} />
+				</>
+			)}
+		</div>
+	);
+};

@@ -10,6 +10,7 @@ import {
 	DocumentProvider,
 	HelpProvider,
 	HotkeyProvider,
+	PaneLayoutProvider,
 	ProjectProvider,
 	ScaleProvider,
 	TitleBarProvider,
@@ -18,7 +19,7 @@ import {
 	useProjectContext,
 	useUserProgressContext,
 } from "./contexts";
-import { useHotkey } from "./hooks";
+import { useHotkey, usePaneLayout } from "./hooks";
 import { useHelp } from "./hooks/useHelp";
 
 import "./styles/tailwind.css";
@@ -66,7 +67,14 @@ const QuitHotkeys = () => {
 const GlobalCommandHotkey = () => {
 	const { openHelp } = useHelp();
 	const { openDialog, closeDialog } = useDialog();
+	const { openDocumentInPane, activePaneId, resetLayout } = usePaneLayout();
 	const [isOpen, setIsOpen] = React.useState(false);
+
+	// Use ref for activePaneId to keep handleNavigate callback stable
+	const activePaneIdRef = React.useRef(activePaneId);
+	React.useEffect(() => {
+		activePaneIdRef.current = activePaneId;
+	}, [activePaneId]);
 
 	React.useEffect(() => {
 		if (isOpen) openDialog();
@@ -87,8 +95,17 @@ const GlobalCommandHotkey = () => {
 		(page: string, state?: Record<string, string | number | boolean | undefined>) => {
 			setCurrentPage(page);
 			setNavigationState(state || {});
+			if (page === "document") {
+				if (state?.newDocument) {
+					resetLayout();
+				}
+				if (state?.documentPath) {
+					const paneId = state?.newDocument ? "pane-1" : activePaneIdRef.current;
+					openDocumentInPane(paneId, state.documentPath as string);
+				}
+			}
 		},
-		[],
+		[openDocumentInPane, resetLayout],
 	);
 
 	const handleRegisterToggleArchived = React.useCallback((handler: () => void) => {
@@ -259,16 +276,18 @@ function App() {
 									<UserProgressProvider>
 										<DocumentCountProvider>
 											<DocumentProvider>
-												<ResizeHandles />
-												<TitleBar />
-												<HelpHotkey />
-												<QuitHotkeys />
-												<GlobalCommandHotkey />
-												<WindowEventListener />
-												<ProjectSwitchTracker />
-												<HelpModal />
-												<WelcomeOverlay />
-												<MilestoneHintManager />
+												<PaneLayoutProvider>
+													<ResizeHandles />
+													<TitleBar />
+													<HelpHotkey />
+													<QuitHotkeys />
+													<GlobalCommandHotkey />
+													<WindowEventListener />
+													<ProjectSwitchTracker />
+													<HelpModal />
+													<WelcomeOverlay />
+													<MilestoneHintManager />
+												</PaneLayoutProvider>
 											</DocumentProvider>
 										</DocumentCountProvider>
 									</UserProgressProvider>

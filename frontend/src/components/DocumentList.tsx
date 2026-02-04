@@ -116,6 +116,11 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 						aria-selected={isSelected}
 						data-highlighted={isHighlighted}
 						data-selected={isSelected}
+						draggable
+						onDragStart={(e) => {
+							e.dataTransfer.setData("application/x-yanta-document-path", doc.path);
+							e.dataTransfer.effectAllowed = "copyMove";
+						}}
 					>
 						<div className="flex items-start gap-3">
 							<Button

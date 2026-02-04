@@ -17,6 +17,7 @@ import {
 	HelpCircle,
 	LayoutDashboard,
 	PanelLeft,
+	RotateCcw,
 	Save,
 	Search,
 	Settings,
@@ -41,7 +42,9 @@ import { useDocumentContext } from "../contexts/DocumentContext";
 import { useProjectContext } from "../contexts/ProjectContext";
 import { useCommandUsage } from "../hooks/useCommandUsage";
 import { useNotification } from "../hooks/useNotification";
+import { usePaneLayout } from "../hooks/usePaneLayout";
 import { useRecentDocuments } from "../hooks/useRecentDocuments";
+import { DocumentServiceWrapper } from "../services/DocumentService";
 import { getTopRecentCommandIds, sortCommandsByUsage } from "../utils/commandSorting";
 import { formatRelativeTimeFromTimestamp } from "../utils/dateUtils";
 import { type ParsedGitError, parseGitError } from "../utils/gitErrorParser";
@@ -72,6 +75,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 	const { projects, currentProject, setCurrentProject, previousProject, switchToLastProject } =
 		useProjectContext();
 	const { getSelectedDocument } = useDocumentContext();
+	const { resetLayout } = usePaneLayout();
 	const notification = useNotification();
 	const { recentDocuments } = useRecentDocuments();
 	const { recordCommandUsage, getAllCommandUsage } = useCommandUsage();
@@ -225,9 +229,27 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			shortcut: getShortcutForCommand("new-document"),
 			group: "Create",
 			keywords: ["create", "add", "note"],
-			action: () => {
-				onNavigate("document");
+			action: async () => {
 				handleClose();
+				if (!currentProject) return;
+				try {
+					const newPath = await DocumentServiceWrapper.save({
+						projectAlias: currentProject.alias,
+						title: "Untitled",
+						blocks: [
+							{
+								id: "initial-heading",
+								type: "heading",
+								props: { level: 1 },
+								content: [{ type: "text", text: "", styles: {} }],
+							},
+						],
+						tags: [],
+					});
+					onNavigate("document", { documentPath: newPath, newDocument: true });
+				} catch (err) {
+					notification.error(`Failed to create document: ${err}`);
+				}
 			},
 		});
 
@@ -365,6 +387,19 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 				},
 			});
 		}
+
+		commands.push({
+			id: "reset-panes",
+			icon: <RotateCcw className="text-lg" />,
+			text: "Reset Panes",
+			hint: "Single pane layout",
+			group: "Application",
+			keywords: ["reset", "pane", "split", "layout", "default", "single"],
+			action: () => {
+				resetLayout();
+				handleClose();
+			},
+		});
 
 		commands.push({
 			id: "git-sync",
@@ -528,6 +563,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 		getSelectedDocument,
 		setCurrentProject,
 		switchToLastProject,
+		resetLayout,
 		onNavigate,
 		handleClose,
 		currentPage,
