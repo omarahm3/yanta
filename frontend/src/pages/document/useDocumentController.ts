@@ -36,6 +36,8 @@ export interface DocumentControllerResult {
 	sidebarSections: ReturnType<typeof useSidebarSections>;
 	contentProps: DocumentContentProps;
 	hotkeys: HotkeyConfig[];
+	/** The document title from the form state. */
+	documentTitle: string;
 	/** Used by PaneDocumentView for direct Escape listener (double-ESC → dashboard). */
 	escapeHandler: (e: KeyboardEvent) => void;
 }
@@ -420,6 +422,7 @@ export function useDocumentController({
 		sidebarSections,
 		contentProps,
 		hotkeys,
+		documentTitle: formData.title,
 		escapeHandler: handleEscape,
 	};
 }

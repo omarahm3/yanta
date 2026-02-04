@@ -9,6 +9,8 @@ import { countLeaves } from "../../utils/paneLayoutUtils";
 export interface PaneHeaderProps {
 	paneId: string;
 	documentPath: string | null;
+	/** Document title to display. Falls back to filename derived from documentPath. */
+	title?: string;
 	className?: string;
 }
 
@@ -25,7 +27,7 @@ const MIME_PANE_ID = "application/x-yanta-pane-id";
  * When a document is loaded, the header is draggable. Dropping it
  * on another pane swaps the documents between the two panes.
  */
-export const PaneHeader: React.FC<PaneHeaderProps> = ({ paneId, documentPath, className }) => {
+export const PaneHeader: React.FC<PaneHeaderProps> = ({ paneId, documentPath, title: titleProp, className }) => {
 	const { layout, activePaneId, splitPane, closePane } = usePaneLayout();
 
 	const isActive = activePaneId === paneId;
@@ -34,12 +36,13 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({ paneId, documentPath, cl
 	const canClose = leafCount > 1;
 
 	const title = useMemo(() => {
+		if (titleProp) return titleProp;
 		if (!documentPath) return "Empty";
-		// Extract filename without extension from path
+		// Fallback: extract filename without extension from path
 		const segments = documentPath.split("/");
 		const fileName = segments[segments.length - 1] ?? documentPath;
 		return fileName.replace(/\.md$/, "");
-	}, [documentPath]);
+	}, [titleProp, documentPath]);
 
 	const handleSplitHorizontal = useCallback(() => {
 		splitPane(paneId, "horizontal");

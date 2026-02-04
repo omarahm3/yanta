@@ -139,7 +139,7 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 
 		return (
 			<div className="flex flex-col h-full w-full">
-				<PaneHeader paneId={paneId} documentPath={documentPath} />
+				<PaneHeader paneId={paneId} documentPath={documentPath} title={controller.documentTitle} />
 				{contentProps.isArchived && (
 					<div className="flex flex-wrap items-center gap-3 border-b border-accent/30 bg-accent/10 px-4 py-2 text-xs uppercase tracking-widest text-accent">
 						<span className="font-semibold">Archived</span>
