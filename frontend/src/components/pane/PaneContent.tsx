@@ -5,6 +5,7 @@ import { cn } from "../../lib/utils";
 import { EmptyPane } from "./EmptyPane";
 import { PaneDocumentView } from "./PaneDocumentView";
 import { PaneHeader } from "./PaneHeader";
+import { usePaneNavigateContext } from "./PaneNavigateContext";
 
 export interface PaneContentProps {
 	paneId: string;
@@ -28,18 +29,18 @@ const MIME_PANE_ID = "application/x-yanta-pane-id";
  */
 export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }) => {
 	const { openDocumentInPane, swapPaneDocuments, setActivePane } = usePaneLayout();
+	const appOnNavigate = usePaneNavigateContext();
 	const [isDragOver, setIsDragOver] = useState(false);
 
-	// Pane-scoped navigation: intercept document navigation and open in this pane.
-	// Non-document navigation (e.g., Escape → dashboard) is intentionally a no-op
-	// in pane mode — panes don't navigate away from the document page.
+	// Document opens in this pane; all navigations (including dashboard) go to app so double-ESC works.
 	const handlePaneNavigate = useCallback(
 		(page: string, state?: Record<string, string | number | boolean | undefined>) => {
 			if (page === "document" && state?.documentPath) {
 				openDocumentInPane(paneId, state.documentPath as string);
 			}
+			appOnNavigate?.(page, state);
 		},
-		[paneId, openDocumentInPane],
+		[paneId, openDocumentInPane, appOnNavigate],
 	);
 
 	const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -81,26 +82,6 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 		[paneId, openDocumentInPane, swapPaneDocuments, setActivePane],
 	);
 
-	if (documentPath) {
-		return (
-			<div
-				className={cn(
-					"flex flex-col h-full w-full transition-colors",
-					isDragOver && "ring-2 ring-accent ring-inset",
-				)}
-				onDragOver={handleDragOver}
-				onDragLeave={handleDragLeave}
-				onDrop={handleDrop}
-			>
-				<PaneDocumentView
-					paneId={paneId}
-					documentPath={documentPath}
-					onNavigate={handlePaneNavigate}
-				/>
-			</div>
-		);
-	}
-
 	return (
 		<div
 			className={cn(
@@ -111,8 +92,18 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 			onDragLeave={handleDragLeave}
 			onDrop={handleDrop}
 		>
-			<PaneHeader paneId={paneId} documentPath={null} />
-			<EmptyPane isDragOver={isDragOver} />
+			{documentPath ? (
+				<PaneDocumentView
+					paneId={paneId}
+					documentPath={documentPath}
+					onNavigate={handlePaneNavigate}
+				/>
+			) : (
+				<>
+					<PaneHeader paneId={paneId} documentPath={null} />
+					<EmptyPane isDragOver={isDragOver} />
+				</>
+			)}
 		</div>
 	);
 };

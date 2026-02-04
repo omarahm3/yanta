@@ -10,6 +10,7 @@ import type { DocumentContentProps } from "../../components/document/DocumentCon
 import { useProjectContext } from "../../contexts";
 import { useDocumentEditor } from "../../hooks/useDocumentEditor";
 import { useDocumentEscapeHandling } from "../../hooks/useDocumentEscapeHandling";
+import { usePaneLayout } from "../../hooks/usePaneLayout";
 import { useDocumentForm } from "../../hooks/useDocumentForm";
 import { useDocumentInitialization } from "../../hooks/useDocumentInitialization";
 import { useDocumentPersistence } from "../../hooks/useDocumentPersistence";
@@ -26,6 +27,7 @@ export interface DocumentControllerOptions {
 	documentPath?: string;
 	initialTitle?: string;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
+	paneId?: string;
 }
 
 export interface DocumentControllerResult {
@@ -34,6 +36,8 @@ export interface DocumentControllerResult {
 	sidebarSections: ReturnType<typeof useSidebarSections>;
 	contentProps: DocumentContentProps;
 	hotkeys: HotkeyConfig[];
+	/** Used by PaneDocumentView for direct Escape listener (double-ESC → dashboard). */
+	escapeHandler: (e: KeyboardEvent) => void;
 }
 
 export function useDocumentController({
@@ -41,8 +45,11 @@ export function useDocumentController({
 	documentPath,
 	initialTitle,
 	onRegisterToggleSidebar,
+	paneId,
 }: DocumentControllerOptions): DocumentControllerResult {
 	const { currentProject } = useProjectContext();
+	const { activePaneId } = usePaneLayout();
+	const isActivePane = !paneId || activePaneId === paneId;
 	const { success, error } = useNotification();
 	const { setPageContext } = useHelp();
 	const isEditMode = !!documentPath;
@@ -183,6 +190,7 @@ export function useDocumentController({
 	const { handleEscape, handleUnfocus } = useDocumentEscapeHandling({
 		editorRef,
 		onNavigateBack: handleCancel,
+		isActivePane,
 	});
 
 	const focusEditor = useCallback(() => {
@@ -377,8 +385,9 @@ export function useDocumentController({
 			{
 				key: "Escape",
 				handler: handleEscape,
-				allowInInput: false,
-				description: "Navigate back when editor is not focused",
+				allowInInput: true,
+				capture: true,
+				description: "Unfocus editor, or go back to dashboard",
 			},
 			{
 				key: "mod+C",
@@ -411,5 +420,6 @@ export function useDocumentController({
 		sidebarSections,
 		contentProps,
 		hotkeys,
+		escapeHandler: handleEscape,
 	};
 }

@@ -4,6 +4,7 @@ import { usePaneLayout, useSidebarSections } from "../../hooks";
 import { usePaneHotkeys } from "../../hooks/usePaneHotkeys";
 import { Layout } from "../Layout";
 import { PaneContainer } from "./PaneContainer";
+import { PaneNavigateProvider } from "./PaneNavigateContext";
 
 export interface PaneLayoutViewProps {
 	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
@@ -35,9 +36,7 @@ export const PaneLayoutView: React.FC<PaneLayoutViewProps> = ({
 
 	// Use ref for activePaneId to keep the sidebar onNavigate handler stable
 	const activePaneIdRef = useRef(activePaneId);
-	useEffect(() => {
-		activePaneIdRef.current = activePaneId;
-	}, [activePaneId]);
+	activePaneIdRef.current = activePaneId;
 
 	// Pane-aware navigation handler for sidebar interactions.
 	// When a sidebar item triggers document navigation, open in the active pane.
@@ -72,14 +71,16 @@ export const PaneLayoutView: React.FC<PaneLayoutViewProps> = ({
 	}, [documentPath, activePaneId, openDocumentInPane]);
 
 	return (
-		<Layout
-			sidebarSections={sidebarSections}
-			currentPage="document"
-			onRegisterToggleSidebar={onRegisterToggleSidebar}
-		>
-			<div className="flex flex-col w-full h-full">
-				<PaneContainer node={layout.root} />
-			</div>
-		</Layout>
+		<PaneNavigateProvider value={onNavigate ?? (() => {})}>
+			<Layout
+				sidebarSections={sidebarSections}
+				currentPage="document"
+				onRegisterToggleSidebar={onRegisterToggleSidebar}
+			>
+				<div className="flex flex-col w-full h-full">
+					<PaneContainer node={layout.root} />
+				</div>
+			</Layout>
+		</PaneNavigateProvider>
 	);
 };

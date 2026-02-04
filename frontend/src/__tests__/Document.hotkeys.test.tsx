@@ -93,6 +93,10 @@ vi.mock("../hooks/useHelp", () => ({
 	useHelp: () => ({ setPageContext: vi.fn() }),
 }));
 
+vi.mock("../hooks/usePaneLayout", () => ({
+	usePaneLayout: () => ({ activePaneId: "pane-1" }),
+}));
+
 vi.mock("../contexts", async () => {
 	const actual = await vi.importActual<typeof import("../contexts")>("../contexts");
 	return {

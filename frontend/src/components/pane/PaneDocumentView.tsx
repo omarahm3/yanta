@@ -27,9 +27,27 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 		const controller = useDocumentController({
 			documentPath,
 			onNavigate,
+			paneId,
 		});
 
-		const { layout, updateScrollPosition } = usePaneLayout();
+		const { layout, updateScrollPosition, activePaneId } = usePaneLayout();
+		const layoutRef = useRef(layout);
+		layoutRef.current = layout;
+		const activePaneIdRef = useRef(activePaneId);
+		activePaneIdRef.current = activePaneId;
+
+		// Direct Escape: only active pane handles (blur on 1st, go to dashboard on 2nd).
+		useEffect(() => {
+			const onKeyDown = (e: KeyboardEvent) => {
+				if (e.key !== "Escape") return;
+				if (activePaneIdRef.current !== paneId) return;
+				controller.escapeHandler(e);
+				e.stopPropagation();
+				e.stopImmediatePropagation();
+			};
+			window.addEventListener("keydown", onKeyDown, true);
+			return () => window.removeEventListener("keydown", onKeyDown, true);
+		}, [paneId, controller.escapeHandler]);
 
 		const scrollContainerRef = useRef<HTMLDivElement>(null);
 		const hasRestoredScrollRef = useRef(false);
@@ -70,7 +88,7 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 			const container = scrollContainerRef.current;
 			if (!container) return;
 
-			const pane = findPane(layout.root, paneId);
+			const pane = findPane(layoutRef.current.root, paneId);
 			if (!pane || pane.type !== "leaf" || !pane.scrollPosition) return;
 
 			const { top, left } = pane.scrollPosition;
@@ -83,7 +101,7 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 			});
 
 			return () => cancelAnimationFrame(rafId);
-		}, [controller.isLoading, layout.root, paneId]);
+		}, [controller.isLoading, paneId]);
 
 		// Reset scroll restoration flag when document changes
 		useEffect(() => {

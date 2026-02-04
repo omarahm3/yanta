@@ -1,13 +1,15 @@
 import { useMemo } from "react";
 import type { HotkeyConfig } from "../types/hotkeys";
-import {
-	countLeaves,
-	getNextLeafId,
-	getPaneInDirection,
-	getPreviousLeafId,
-} from "../utils/paneLayoutUtils";
+import { type PaneDirection, countLeaves, getPaneInDirection } from "../utils/paneLayoutUtils";
 import { useHotkeys } from "./useHotkey";
 import { usePaneLayout } from "./usePaneLayout";
+
+const directionKeys: { key: string; direction: PaneDirection }[] = [
+	{ key: "alt+h", direction: "left" },
+	{ key: "alt+j", direction: "down" },
+	{ key: "alt+k", direction: "up" },
+	{ key: "alt+l", direction: "right" },
+];
 
 /**
  * Registers keyboard shortcuts for pane management.
@@ -17,8 +19,6 @@ import { usePaneLayout } from "./usePaneLayout";
  * - Ctrl+\  : Split active pane horizontally (right)
  * - Ctrl+Shift+\  : Split active pane vertically (down)
  * - Alt+X : Close active pane (when multiple panes exist)
- * - Ctrl+Alt+ArrowLeft : Navigate to previous pane
- * - Ctrl+Alt+ArrowRight : Navigate to next pane
  * - Alt+H/J/K/L : Vim-style focus pane (left / down / up / right)
  */
 export const usePaneHotkeys = (): void => {
@@ -63,82 +63,18 @@ export const usePaneHotkeys = (): void => {
 				description: "Close active pane",
 				category: "Panes",
 			},
-			{
-				key: "mod+alt+arrowleft",
+			...directionKeys.map(({ key, direction }) => ({
+				key,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
-					const prevId = getPreviousLeafId(layout.root, activePaneId);
-					if (prevId) {
-						setActivePane(prevId);
-					}
-				},
-				allowInInput: true,
-				capture: true,
-				description: "Focus previous pane",
-				category: "Panes",
-			},
-			{
-				key: "mod+alt+arrowright",
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					const nextId = getNextLeafId(layout.root, activePaneId);
-					if (nextId) {
-						setActivePane(nextId);
-					}
-				},
-				allowInInput: true,
-				capture: true,
-				description: "Focus next pane",
-				category: "Panes",
-			},
-			{
-				key: "alt+h",
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					const id = getPaneInDirection(layout.root, activePaneId, "left");
+					const id = getPaneInDirection(layout.root, activePaneId, direction);
 					if (id) setActivePane(id);
 				},
 				allowInInput: true,
 				capture: true,
-				description: "Focus pane left",
+				description: `Focus pane ${direction}`,
 				category: "Panes",
-			},
-			{
-				key: "alt+j",
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					const id = getPaneInDirection(layout.root, activePaneId, "down");
-					if (id) setActivePane(id);
-				},
-				allowInInput: true,
-				capture: true,
-				description: "Focus pane down",
-				category: "Panes",
-			},
-			{
-				key: "alt+k",
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					const id = getPaneInDirection(layout.root, activePaneId, "up");
-					if (id) setActivePane(id);
-				},
-				allowInInput: true,
-				capture: true,
-				description: "Focus pane up",
-				category: "Panes",
-			},
-			{
-				key: "alt+l",
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					const id = getPaneInDirection(layout.root, activePaneId, "right");
-					if (id) setActivePane(id);
-				},
-				allowInInput: true,
-				capture: true,
-				description: "Focus pane right",
-				category: "Panes",
-			},
+			})),
 		],
 		[layout.root, activePaneId, splitPane, closePane, setActivePane],
 	);
