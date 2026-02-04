@@ -36,6 +36,8 @@ export type { NotificationOptions, NotificationType } from "./useNotification";
 export { useNotification } from "./useNotification";
 export type { OnboardingData, UseOnboardingReturn } from "./useOnboarding";
 export { useOnboarding } from "./useOnboarding";
+export { usePaneLayout } from "./usePaneLayout";
+export { loadPaneLayout, usePanePersistence } from "./usePanePersistence";
 export type { RecentDocument, UseRecentDocumentsReturn } from "./useRecentDocuments";
 export { useRecentDocuments } from "./useRecentDocuments";
 export type { UseShortcutTooltipsSettingReturn } from "./useShortcutTooltipsSetting";
