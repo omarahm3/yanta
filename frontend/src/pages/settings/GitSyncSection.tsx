@@ -190,10 +190,12 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 		ref,
 	) => {
 		const migrationDisabled = isMigrating || !gitInstalled || dataDirOverridden;
+		// Use a sentinel value since Radix Select doesn't allow empty string values
+		const CURRENT_BRANCH_VALUE = "__current__";
 		const branchOptions: SelectOption[] = React.useMemo(() => {
 			const options: SelectOption[] = [
 				{
-					value: "",
+					value: CURRENT_BRANCH_VALUE,
 					label: currentBranch ? `Current branch (${currentBranch})` : "Current branch",
 				},
 			];
@@ -202,6 +204,12 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 			}
 			return options;
 		}, [branches, currentBranch]);
+
+		// Convert between internal representation (empty string) and UI representation (sentinel)
+		const selectedBranchValue = branch === "" ? CURRENT_BRANCH_VALUE : branch;
+		const handleBranchSelect = (value: string) => {
+			onBranchChange(value === CURRENT_BRANCH_VALUE ? "" : value);
+		};
 		return (
 			<div ref={ref}>
 				<SettingsSection title="Git Sync" subtitle="Sync your data with a Git repository">
@@ -331,8 +339,8 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 									<div className="space-y-2 pt-2">
 										<Label variant="uppercase">Sync Branch</Label>
 										<Select
-											value={branch}
-											onChange={onBranchChange}
+											value={selectedBranchValue}
+											onChange={handleBranchSelect}
 											options={branchOptions}
 										/>
 										<div className="text-xs text-text-dim">
