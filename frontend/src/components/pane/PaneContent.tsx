@@ -1,7 +1,8 @@
 import type React from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePaneLayout } from "../../hooks/usePaneLayout";
 import { cn } from "../../lib/utils";
+import { countLeaves } from "../../utils/paneLayoutUtils";
 import { EmptyPane } from "./EmptyPane";
 import { PaneDocumentView } from "./PaneDocumentView";
 import { PaneHeader } from "./PaneHeader";
@@ -12,27 +13,41 @@ export interface PaneContentProps {
 	documentPath: string | null;
 }
 
-/** Custom MIME types for drag & drop identification */
 const MIME_DOCUMENT_PATH = "application/x-yanta-document-path";
 const MIME_PANE_ID = "application/x-yanta-pane-id";
 
-/**
- * Wrapper component that chooses between PaneDocumentView (when a document
- * is loaded) and EmptyPane (when no document is selected in the pane).
- *
- * Provides a pane-scoped navigation handler: document navigations open
- * in this specific pane, while non-document navigations are ignored
- * (handled at the App level).
- *
- * Also serves as the drop zone for drag-and-drop: accepts documents dragged
- * from the sidebar DocumentList and pane headers dragged from other panes.
- */
 export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }) => {
-	const { openDocumentInPane, swapPaneDocuments, setActivePane } = usePaneLayout();
+	const { layout, openDocumentInPane, swapPaneDocuments, setActivePane, closePane, activePaneId } =
+		usePaneLayout();
 	const appOnNavigate = usePaneNavigateContext();
 	const [isDragOver, setIsDragOver] = useState(false);
 
-	// Document opens in this pane; all navigations (including dashboard) go to app so double-ESC works.
+	const activePaneIdRef = useRef(activePaneId);
+	activePaneIdRef.current = activePaneId;
+	const layoutRef = useRef(layout);
+	layoutRef.current = layout;
+
+	useEffect(() => {
+		if (documentPath) return;
+
+		const onKeyDown = (e: KeyboardEvent) => {
+			if (e.key !== "Escape") return;
+			if (activePaneIdRef.current !== paneId) return;
+			e.preventDefault();
+			e.stopPropagation();
+			e.stopImmediatePropagation();
+
+			if (countLeaves(layoutRef.current.root) > 1) {
+				closePane(paneId);
+			} else {
+				appOnNavigate?.("dashboard");
+			}
+		};
+
+		window.addEventListener("keydown", onKeyDown, true);
+		return () => window.removeEventListener("keydown", onKeyDown, true);
+	}, [documentPath, paneId, appOnNavigate, closePane]);
+
 	const handlePaneNavigate = useCallback(
 		(page: string, state?: Record<string, string | number | boolean | undefined>) => {
 			if (page === "document" && state?.documentPath) {
