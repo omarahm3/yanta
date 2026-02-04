@@ -30,6 +30,8 @@ describe("useFooterHints", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "document" }));
 			expect(result.current.hints).toEqual([
 				{ key: "Ctrl+S", label: "Save", priority: 1 },
+				{ key: "Ctrl+\\", label: "Split", priority: 3 },
+				{ key: "Ctrl+W", label: "Close pane", priority: 3 },
 				{ key: "Esc", label: "Back", priority: 2 },
 				{ key: "Ctrl+K", label: "Commands", priority: 1 },
 			]);
@@ -196,6 +198,8 @@ describe("getHintsForPage", () => {
 	it("returns hints for document", () => {
 		expect(getHintsForPage("document")).toEqual([
 			{ key: "Ctrl+S", label: "Save", priority: 1 },
+			{ key: "Ctrl+\\", label: "Split", priority: 3 },
+			{ key: "Ctrl+W", label: "Close pane", priority: 3 },
 			{ key: "Esc", label: "Back", priority: 2 },
 			{ key: "Ctrl+K", label: "Commands", priority: 1 },
 		]);
