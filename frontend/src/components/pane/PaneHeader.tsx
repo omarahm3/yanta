@@ -12,12 +12,18 @@ export interface PaneHeaderProps {
 	className?: string;
 }
 
+/** Custom MIME type for pane drag identification */
+const MIME_PANE_ID = "application/x-yanta-pane-id";
+
 /**
  * PaneHeader displays a compact title bar for each pane with:
  * - Document title (derived from path) or "Empty"
  * - Split horizontal button (Columns icon)
  * - Split vertical button (Rows icon)
  * - Close pane button (X icon, only when multiple panes exist)
+ *
+ * When a document is loaded, the header is draggable. Dropping it
+ * on another pane swaps the documents between the two panes.
  */
 export const PaneHeader: React.FC<PaneHeaderProps> = ({ paneId, documentPath, className }) => {
 	const { layout, activePaneId, splitPane, closePane } = usePaneLayout();
@@ -47,14 +53,29 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({ paneId, documentPath, cl
 		closePane(paneId);
 	}, [paneId, closePane]);
 
+	const handleDragStart = useCallback(
+		(e: React.DragEvent) => {
+			if (!documentPath) {
+				e.preventDefault();
+				return;
+			}
+			e.dataTransfer.setData(MIME_PANE_ID, paneId);
+			e.dataTransfer.effectAllowed = "move";
+		},
+		[paneId, documentPath],
+	);
+
 	return (
 		<div
 			className={cn(
 				"bg-surface border-b border-border px-3 flex items-center justify-between h-8 shrink-0",
 				isActive && "border-t-2 border-t-accent",
 				!isActive && "border-t-2 border-t-transparent",
+				documentPath && "cursor-grab active:cursor-grabbing",
 				className,
 			)}
+			draggable={!!documentPath}
+			onDragStart={handleDragStart}
 		>
 			{/* Title */}
 			<span
