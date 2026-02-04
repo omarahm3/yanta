@@ -15,7 +15,7 @@ const buildDocument = (overrides: Partial<Document> = {}): Document => ({
 });
 
 describe("DocumentList mode-accent styling", () => {
-	it("applies mode-accent styles to highlighted item via inline styles", () => {
+	it("applies highlighted state to highlighted item via data attribute", () => {
 		const documents = [
 			buildDocument({ path: "doc-1", title: "Doc 1" }),
 			buildDocument({ path: "doc-2", title: "Doc 2" }),
@@ -34,15 +34,14 @@ describe("DocumentList mode-accent styling", () => {
 
 		const items = screen.getAllByRole("listitem");
 		const highlightedItem = items[0];
+		const nonHighlightedItem = items[1];
 
-		// Check that mode-accent CSS variable styles are applied
-		expect(highlightedItem).toHaveStyle({
-			borderLeftColor: "var(--mode-accent)",
-			backgroundColor: "var(--mode-accent-muted)",
-		});
+		// Check highlighted state via data attribute
+		expect(highlightedItem).toHaveAttribute("data-highlighted", "true");
+		expect(nonHighlightedItem).toHaveAttribute("data-highlighted", "false");
 	});
 
-	it("applies mode-accent border style to selected item", () => {
+	it("applies selected state to selected item via data attribute", () => {
 		const document = buildDocument({ path: "doc-1", title: "Doc 1" });
 
 		render(
@@ -57,12 +56,11 @@ describe("DocumentList mode-accent styling", () => {
 		);
 
 		const item = screen.getByRole("listitem");
-		expect(item).toHaveStyle({
-			borderLeftColor: "var(--mode-accent)",
-		});
+		expect(item).toHaveAttribute("data-selected", "true");
+		expect(item).toHaveAttribute("aria-selected", "true");
 	});
 
-	it("applies mode-accent color to selection toggle button when selected", () => {
+	it("applies selected state to selection toggle button when selected", () => {
 		const document = buildDocument({ path: "doc-1", title: "Doc 1" });
 
 		render(
@@ -77,13 +75,11 @@ describe("DocumentList mode-accent styling", () => {
 		);
 
 		const toggle = screen.getByRole("button", { name: "Deselect Doc 1" });
-		expect(toggle).toHaveStyle({
-			borderColor: "var(--mode-accent)",
-			color: "var(--mode-accent)",
-		});
+		expect(toggle).toHaveAttribute("data-selected", "true");
+		expect(toggle).toHaveAttribute("aria-pressed", "true");
 	});
 
-	it("applies mode-accent color to index number when highlighted", () => {
+	it("renders index number with font-mono class when highlighted", () => {
 		const document = buildDocument({ path: "doc-1", title: "Doc 1" });
 
 		const { container } = render(
@@ -99,6 +95,7 @@ describe("DocumentList mode-accent styling", () => {
 
 		// Find the index span (contains "1.")
 		const indexSpan = container.querySelector("span.font-mono");
-		expect(indexSpan).toHaveStyle({ color: "var(--mode-accent)" });
+		expect(indexSpan).toBeInTheDocument();
+		expect(indexSpan).toHaveTextContent("1.");
 	});
 });

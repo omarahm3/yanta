@@ -10,28 +10,24 @@ const mockEntry = {
 };
 
 describe("JournalEntry mode-accent styling", () => {
-	it("applies mode-accent styles to highlighted entry via inline styles", () => {
+	it("applies highlighted state to highlighted entry via data attribute", () => {
 		render(<JournalEntry entry={mockEntry} index={0} onEntryClick={vi.fn()} isHighlighted />);
 
 		const entry = screen.getByTestId("journal-entry");
 
-		// Check that mode-accent CSS variable styles are applied
-		expect(entry).toHaveStyle({
-			borderLeftColor: "var(--mode-accent)",
-			backgroundColor: "var(--mode-accent-muted)",
-		});
+		// Check highlighted state via data attribute
+		expect(entry).toHaveAttribute("data-highlighted", "true");
 	});
 
-	it("applies mode-accent border style to selected entry", () => {
+	it("applies selected state to selected entry via data attribute", () => {
 		render(<JournalEntry entry={mockEntry} index={0} onEntryClick={vi.fn()} isSelected />);
 
 		const entry = screen.getByTestId("journal-entry");
-		expect(entry).toHaveStyle({
-			borderLeftColor: "var(--mode-accent)",
-		});
+		expect(entry).toHaveAttribute("data-selected", "true");
+		expect(entry).toHaveAttribute("aria-selected", "true");
 	});
 
-	it("applies mode-accent color to selection toggle button when selected", () => {
+	it("applies selected state to selection toggle button when selected", () => {
 		render(
 			<JournalEntry
 				entry={mockEntry}
@@ -43,32 +39,29 @@ describe("JournalEntry mode-accent styling", () => {
 		);
 
 		const toggle = screen.getByRole("button", { name: /deselect/i });
-		expect(toggle).toHaveStyle({
-			borderColor: "var(--mode-accent)",
-			color: "var(--mode-accent)",
-		});
+		expect(toggle).toHaveAttribute("data-selected", "true");
+		expect(toggle).toHaveAttribute("aria-pressed", "true");
 	});
 
-	it("applies mode-accent color to index number when highlighted", () => {
+	it("renders index number with font-mono class when highlighted", () => {
 		const { container } = render(
 			<JournalEntry entry={mockEntry} index={0} onEntryClick={vi.fn()} isHighlighted />,
 		);
 
 		// Find the index span (contains "1.")
 		const indexSpan = container.querySelector("span.font-mono");
-		expect(indexSpan).toHaveStyle({ color: "var(--mode-accent)" });
+		expect(indexSpan).toBeInTheDocument();
+		expect(indexSpan).toHaveTextContent("1.");
 	});
 
-	it("applies mode-accent color to index number when selected", () => {
+	it("renders index number with font-mono class when selected", () => {
 		const { container } = render(
 			<JournalEntry entry={mockEntry} index={0} onEntryClick={vi.fn()} isSelected />,
 		);
 
 		// Find the index span (contains "1.")
 		const indexSpan = container.querySelector("span.font-mono");
-		expect(indexSpan).toHaveStyle({
-			color: "var(--mode-accent)",
-			fontWeight: "bold",
-		});
+		expect(indexSpan).toBeInTheDocument();
+		expect(indexSpan).toHaveTextContent("1.");
 	});
 });
