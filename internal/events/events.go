@@ -1,6 +1,46 @@
 // Package events defines event types and provides an event bus for inter-component communication.
 package events
 
+import "github.com/wailsapp/wails/v3/pkg/application"
+
+// Typed event payload structs for high-traffic events.
+// These are registered with the Wails binding generator to produce
+// type-safe event helpers on the frontend.
+
+// EntryCreatedData is the payload for entry creation events.
+// Fields are optional (pointers) because documents and journal entries
+// emit different subsets: documents use Path/Title, journals use Date/EntryID.
+type EntryCreatedData struct {
+	Path      string `json:"path,omitempty"`
+	ProjectID string `json:"projectId"`
+	Title     string `json:"title,omitempty"`
+	Type      string `json:"type,omitempty"`  // "journal" or "document"
+	Date      string `json:"date,omitempty"`  // journal entries only
+	EntryID   string `json:"entryId,omitempty"` // journal entries only
+}
+
+// EntryUpdatedData is the payload for entry update events.
+type EntryUpdatedData struct {
+	Path      string `json:"path,omitempty"`
+	ProjectID string `json:"projectId"`
+	Title     string `json:"title,omitempty"`
+	Type      string `json:"type,omitempty"`
+	Date      string `json:"date,omitempty"`
+	EntryID   string `json:"entryId,omitempty"`
+}
+
+// ProjectChangedData is the payload for project lifecycle events.
+type ProjectChangedData struct {
+	ID string `json:"id"`
+	Op string `json:"op"` // "create", "update", "delete", "restore"
+}
+
+func init() {
+	application.RegisterEvent[EntryCreatedData](EntryCreated)
+	application.RegisterEvent[EntryUpdatedData](EntryUpdated)
+	application.RegisterEvent[ProjectChangedData](ProjectChanged)
+}
+
 const (
 	AppReady            = "yanta/app/ready"
 	ToastEvent          = "yanta/ui/toast"

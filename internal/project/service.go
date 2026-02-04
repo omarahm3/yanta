@@ -106,9 +106,9 @@ func (s *Service) Create(
 		"name":  p.Name,
 		"alias": p.Alias,
 	})
-	s.emitEvent(events.ProjectChanged, map[string]any{
-		"id": p.ID,
-		"op": "create",
+	s.emitEvent(events.ProjectChanged, events.ProjectChangedData{
+		ID: p.ID,
+		Op: "create",
 	})
 
 	logger.WithFields(map[string]any{
@@ -160,9 +160,9 @@ func (s *Service) Update(ctx context.Context, p *Project) error {
 		"name":  p.Name,
 		"alias": p.Alias,
 	})
-	s.emitEvent(events.ProjectChanged, map[string]any{
-		"id": p.ID,
-		"op": "update",
+	s.emitEvent(events.ProjectChanged, events.ProjectChangedData{
+		ID: p.ID,
+		Op: "update",
 	})
 
 	logger.WithFields(map[string]any{
@@ -248,9 +248,9 @@ func (s *Service) SoftDelete(ctx context.Context, id string) error {
 	s.cache.InvalidateDocumentCount(id)
 
 	s.emitEvent(events.ProjectDeleted, map[string]any{"id": id})
-	s.emitEvent(events.ProjectChanged, map[string]any{
-		"id": id,
-		"op": "delete",
+	s.emitEvent(events.ProjectChanged, events.ProjectChangedData{
+		ID: id,
+		Op: "delete",
 	})
 
 	logger.WithField("id", id).Info("project soft deleted")
@@ -271,9 +271,9 @@ func (s *Service) Restore(ctx context.Context, id string) error {
 	s.cache.Invalidate(id)
 
 	s.emitEvent(events.ProjectRestored, map[string]any{"id": id})
-	s.emitEvent(events.ProjectChanged, map[string]any{
-		"id": id,
-		"op": "restore",
+	s.emitEvent(events.ProjectChanged, events.ProjectChangedData{
+		ID: id,
+		Op: "restore",
 	})
 
 	logger.WithField("id", id).Info("project restored")
@@ -328,9 +328,9 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	s.cache.InvalidateLastDocumentDate(id)
 
 	s.emitEvent(events.ProjectDeleted, map[string]any{"id": id})
-	s.emitEvent(events.ProjectChanged, map[string]any{
-		"id": id,
-		"op": "delete",
+	s.emitEvent(events.ProjectChanged, events.ProjectChangedData{
+		ID: id,
+		Op: "delete",
 	})
 
 	logger.WithFields(map[string]any{
@@ -375,9 +375,9 @@ func (s *Service) HardDelete(ctx context.Context, id string) error {
 		"id":   id,
 		"hard": true,
 	})
-	s.emitEvent(events.ProjectChanged, map[string]any{
-		"id": id,
-		"op": "delete",
+	s.emitEvent(events.ProjectChanged, events.ProjectChangedData{
+		ID: id,
+		Op: "delete",
 	})
 
 	logger.WithFields(map[string]any{

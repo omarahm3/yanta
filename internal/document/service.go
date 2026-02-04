@@ -159,17 +159,17 @@ func (s *Service) Save(ctx context.Context, req SaveRequest) (string, error) {
 	}
 
 	if isNew {
-		s.emitEvent(events.EntryCreated, map[string]any{
-			"path":      docPath,
-			"projectId": projectID,
-			"title":     req.Title,
+		s.emitEvent(events.EntryCreated, events.EntryCreatedData{
+			Path:      docPath,
+			ProjectID: projectID,
+			Title:     req.Title,
 		})
 		s.emitDocumentCountChange(ctx, req.ProjectAlias)
 	} else {
-		s.emitEvent(events.EntryUpdated, map[string]any{
-			"path":      docPath,
-			"projectId": projectID,
-			"title":     req.Title,
+		s.emitEvent(events.EntryUpdated, events.EntryUpdatedData{
+			Path:      docPath,
+			ProjectID: projectID,
+			Title:     req.Title,
 		})
 	}
 
