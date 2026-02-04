@@ -1,7 +1,5 @@
 export type { SaveState } from "./useAutoSave";
 export { useAutoSave } from "./useAutoSave";
-export type { GitStatus, UseGitStatusReturn } from "./useGitStatus";
-export { useGitStatus } from "./useGitStatus";
 export type { UseCommandDeprecationReturn } from "./useCommandDeprecation";
 export { DEPRECATED_COMMAND_MAPPINGS, useCommandDeprecation } from "./useCommandDeprecation";
 export type {
@@ -18,6 +16,8 @@ export type { PageContext, UseFooterHintsOptions, UseFooterHintsReturn } from ".
 export { getHintsForPage, useFooterHints } from "./useFooterHints";
 export type { UseFooterHintsSettingReturn } from "./useFooterHintsSetting";
 export { useFooterHintsSetting } from "./useFooterHintsSetting";
+export type { GitStatus, UseGitStatusReturn } from "./useGitStatus";
+export { useGitStatus } from "./useGitStatus";
 export { useGlobalCommand } from "./useGlobalCommand";
 export { useHelp } from "./useHelp";
 export { useHotkey, useHotkeys } from "./useHotkey";

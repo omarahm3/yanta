@@ -49,10 +49,7 @@ export const GitStatusIndicator: React.FC<GitStatusIndicatorProps> = ({
 		}
 		if (hasChanges) {
 			const total =
-				status.modified.length +
-				status.untracked.length +
-				status.deleted.length +
-				status.staged.length;
+				status.modified.length + status.untracked.length + status.deleted.length + status.staged.length;
 			return `${total} change${total > 1 ? "s" : ""}`;
 		}
 		return "Clean";

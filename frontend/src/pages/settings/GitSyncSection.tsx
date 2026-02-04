@@ -55,10 +55,7 @@ const GitStatusDisplay: React.FC<{
 	const hasConflicts = status.conflicted.length > 0;
 	const hasChanges = !status.clean;
 	const totalChanges =
-		status.modified.length +
-		status.untracked.length +
-		status.deleted.length +
-		status.staged.length;
+		status.modified.length + status.untracked.length + status.deleted.length + status.staged.length;
 
 	const getStatusColor = () => {
 		if (hasConflicts) return "border-red bg-red/10";
@@ -129,29 +126,17 @@ const GitStatusDisplay: React.FC<{
 
 			{hasConflicts && (
 				<div className="mt-2 pt-2 border-t border-border/50">
-					<div className="text-xs text-red">
-						Conflicted files: {status.conflicted.join(", ")}
-					</div>
+					<div className="text-xs text-red">Conflicted files: {status.conflicted.join(", ")}</div>
 				</div>
 			)}
 
 			{hasChanges && !hasConflicts && (
 				<div className="mt-2 pt-2 border-t border-border/50 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-text-dim">
-					{status.modified.length > 0 && (
-						<span>Modified: {status.modified.length}</span>
-					)}
-					{status.untracked.length > 0 && (
-						<span>Untracked: {status.untracked.length}</span>
-					)}
-					{status.staged.length > 0 && (
-						<span>Staged: {status.staged.length}</span>
-					)}
-					{status.deleted.length > 0 && (
-						<span>Deleted: {status.deleted.length}</span>
-					)}
-					{status.renamed.length > 0 && (
-						<span>Renamed: {status.renamed.length}</span>
-					)}
+					{status.modified.length > 0 && <span>Modified: {status.modified.length}</span>}
+					{status.untracked.length > 0 && <span>Untracked: {status.untracked.length}</span>}
+					{status.staged.length > 0 && <span>Staged: {status.staged.length}</span>}
+					{status.deleted.length > 0 && <span>Deleted: {status.deleted.length}</span>}
+					{status.renamed.length > 0 && <span>Renamed: {status.renamed.length}</span>}
 				</div>
 			)}
 		</div>
@@ -246,13 +231,13 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 										<div>
 											<div className="mb-1 font-medium text-blue-400">Environment Override Active</div>
 											<div className="text-sm text-blue-300">
-												The <code className="px-1 py-0.5 bg-blue-800/50 rounded">YANTA_DATA_DIR</code> environment variable is set to:
+												The <code className="px-1 py-0.5 bg-blue-800/50 rounded">YANTA_DATA_DIR</code>{" "}
+												environment variable is set to:
 											</div>
-											<div className="mt-1 text-xs font-mono text-blue-200 break-all">
-												{dataDirEnvVar}
-											</div>
+											<div className="mt-1 text-xs font-mono text-blue-200 break-all">{dataDirEnvVar}</div>
 											<div className="mt-2 text-sm text-blue-300">
-												Migration is disabled while this variable is set. Unset the environment variable and restart YANTA to change the data directory.
+												Migration is disabled while this variable is set. Unset the environment variable and
+												restart YANTA to change the data directory.
 											</div>
 										</div>
 									</div>
