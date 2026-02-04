@@ -29,6 +29,7 @@ export const ContextBar: React.FC<ContextBarProps> = ({
 	return (
 		<div
 			data-testid="context-bar"
+			data-mode={mode}
 			className={cn(
 				"bg-bg border-b border-border px-5 py-1.5 flex items-center justify-between text-text-dim",
 				className,

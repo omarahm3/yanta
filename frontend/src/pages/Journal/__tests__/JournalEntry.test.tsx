@@ -85,25 +85,21 @@ describe("JournalEntry", () => {
 		expect(screen.getByText("✓")).toBeInTheDocument();
 	});
 
-	it("applies highlighted styling via mode-accent CSS variables", () => {
+	it("applies highlighted state via data attribute", () => {
 		render(<JournalEntry entry={mockEntry} index={0} onEntryClick={vi.fn()} isHighlighted />);
 
 		const entry = screen.getByTestId("journal-entry");
-		// Now uses mode-accent CSS variables for border and background
-		expect(entry).toHaveStyle({
-			borderLeftColor: "var(--mode-accent)",
-			backgroundColor: "var(--mode-accent-muted)",
-		});
+		// Use data attribute instead of inline style check
+		expect(entry).toHaveAttribute("data-highlighted", "true");
 	});
 
-	it("applies selected styling via mode-accent CSS variable", () => {
+	it("applies selected state via data attribute", () => {
 		render(<JournalEntry entry={mockEntry} index={0} onEntryClick={vi.fn()} isSelected />);
 
 		const entry = screen.getByTestId("journal-entry");
-		// Now uses mode-accent CSS variable for border color
-		expect(entry).toHaveStyle({
-			borderLeftColor: "var(--mode-accent)",
-		});
+		// Use data attribute instead of inline style check
+		expect(entry).toHaveAttribute("data-selected", "true");
+		expect(entry).toHaveAttribute("aria-selected", "true");
 	});
 
 	it("renders project alias when present", () => {

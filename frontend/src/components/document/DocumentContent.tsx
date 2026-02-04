@@ -61,7 +61,12 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 				{/* Page header with mode icon */}
 				<div className="px-4 pt-4 pb-2 border-b border-border">
 					<div className="flex items-center gap-2">
-						<FileText className="w-5 h-5" style={{ color: "var(--mode-accent)" }} aria-hidden="true" />
+						<FileText
+							className="w-5 h-5"
+							style={{ color: "var(--mode-accent)" }}
+							aria-hidden="true"
+							data-testid="page-header-icon"
+						/>
 						<span className="text-sm text-text-dim">Document</span>
 					</div>
 				</div>
