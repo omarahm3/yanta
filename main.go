@@ -21,6 +21,7 @@ import (
 	"yanta/internal/db"
 	"yanta/internal/logger"
 	"yanta/internal/quickcapture"
+	"yanta/internal/transport"
 	"yanta/internal/vault"
 	windowcfg "yanta/internal/window"
 )
@@ -71,6 +72,18 @@ func run() {
 
 	customAssetHandler := createCustomAssetHandler(a.Bindings.Assets)
 
+	// Browser dev mode: serve the app over HTTP+WebSocket so it can be
+	// accessed from a regular browser alongside the desktop window.
+	var browserTransport application.Transport
+	if os.Getenv("YANTA_BROWSER_DEV") == "true" {
+		browserPort := os.Getenv("YANTA_BROWSER_PORT")
+		if browserPort == "" {
+			browserPort = "34116"
+		}
+		browserTransport = transport.NewWebSocketTransport(":" + browserPort)
+		logger.Infof("browser dev mode enabled on port %s", browserPort)
+	}
+
 	// Check if this is a quick capture launch
 	isQuickLaunch := hasQuickFlag(os.Args)
 	logger.Infof("quick launch mode: %v", isQuickLaunch)
@@ -79,6 +92,7 @@ func run() {
 		Name:        "YANTA",
 		Description: "Your Advanced Note Taking Application",
 		Icon:        appIcon,
+		Transport:   browserTransport, // nil in production, WebSocket transport in browser dev mode
 
 		// SingleInstance ensures only one Yanta instance runs.
 		// Second instance launches trigger OnSecondInstanceLaunch.

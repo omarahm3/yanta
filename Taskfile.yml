@@ -57,15 +57,29 @@ tasks:
       Runs development mode with YANTA_DATA_DIR set to ~/.yanta-dev, providing
       complete isolation from production data in ~/.yanta. This allows developers
       to test freely without affecting their real notes.
+
+      Browser dev mode is enabled by default — the app is also accessible at
+      http://localhost:34116 (or the port set via YANTA_BROWSER_PORT).
     deps:
       - build:ensure:wails
     env:
       YANTA_DATA_DIR: '{{if eq OS "windows"}}{{.USERPROFILE}}{{else}}{{.HOME}}{{end}}/.yanta-dev'
+      YANTA_BROWSER_DEV: "true"
+      YANTA_BROWSER_PORT: '{{.YANTA_BROWSER_PORT | default "34116"}}'
     cmds:
       - task: common:log:info
         vars:
           MSG: "Using isolated data directory: {{if eq OS \"windows\"}}%YANTA_DATA_DIR%{{else}}$YANTA_DATA_DIR{{end}}"
+      - task: common:log:info
+        vars:
+          MSG: "Browser dev mode: http://localhost:{{.YANTA_BROWSER_PORT | default \"34116\"}}"
       - wails3 dev -config ./build/config.yml -port {{.DEV_PORT}}
+
+  dev:browser-url:
+    summary: Print the browser dev mode URL
+    silent: true
+    cmds:
+      - echo "http://localhost:{{.YANTA_BROWSER_PORT | default \"34116\"}}"
 
   # ============================================================================
   # Frontend Tasks
