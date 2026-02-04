@@ -1,6 +1,6 @@
 import React, { useCallback, useRef } from "react";
 import { Layout } from "../components/Layout";
-import { ConfirmDialog, type Shortcut } from "../components/ui";
+import { ConfirmDialog, MigrationConflictDialog, type Shortcut } from "../components/ui";
 import {
 	useFooterHintsSetting,
 	useGitStatus,
@@ -430,6 +430,14 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggle
 				message="This will rebuild the entire search index from your JSON files. The operation may take a few moments depending on the number of documents."
 				confirmText="Reindex"
 				cancelText="Cancel"
+			/>
+
+			<MigrationConflictDialog
+				isOpen={controller.showConflictDialog}
+				conflictInfo={controller.conflictInfo}
+				onCancel={controller.handlers.handleConflictCancel}
+				onConfirm={controller.handlers.handleConflictConfirm}
+				isLoading={controller.isMigrating}
 			/>
 		</Layout>
 	);

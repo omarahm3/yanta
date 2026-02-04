@@ -77,8 +77,125 @@ func (s *Service) ValidateTargetDirectory(targetPath string) error {
 	return nil
 }
 
-func (s *Service) MigrateData(targetPath string) error {
-	logger.Infof("starting data migration to %s", targetPath)
+// CheckMigrationConflicts detects if both local and target have vault data,
+// and returns statistics for both vaults.
+func (s *Service) CheckMigrationConflicts(targetPath string) (*MigrationConflictInfo, error) {
+	absTarget, err := filepath.Abs(targetPath)
+	if err != nil {
+		return nil, fmt.Errorf("resolving target path: %w", err)
+	}
+
+	currentDataDir := config.GetDataDirectory()
+	currentAbs, err := filepath.Abs(currentDataDir)
+	if err != nil {
+		return nil, fmt.Errorf("resolving current data directory: %w", err)
+	}
+
+	info := &MigrationConflictInfo{
+		HasConflict: false,
+		LocalPath:   currentAbs,
+		TargetPath:  absTarget,
+	}
+
+	// Check local vault
+	localVaultPath := filepath.Join(currentAbs, "vault")
+	hasLocalVault := false
+	if _, err := os.Stat(localVaultPath); err == nil {
+		hasLocalVault = true
+		stats, err := s.getVaultStats(localVaultPath)
+		if err != nil {
+			logger.Warnf("failed to get local vault stats: %v", err)
+		} else {
+			info.LocalVault = stats
+		}
+	}
+
+	// Check target vault
+	targetVaultPath := filepath.Join(absTarget, "vault")
+	hasTargetVault := false
+	if _, err := os.Stat(targetVaultPath); err == nil {
+		hasTargetVault = true
+		stats, err := s.getVaultStats(targetVaultPath)
+		if err != nil {
+			logger.Warnf("failed to get target vault stats: %v", err)
+		} else {
+			info.TargetVault = stats
+		}
+	}
+
+	// Conflict exists when both have vault data
+	info.HasConflict = hasLocalVault && hasTargetVault
+
+	return info, nil
+}
+
+// getVaultStats calculates statistics for a vault directory.
+func (s *Service) getVaultStats(vaultPath string) (*VaultStats, error) {
+	stats := &VaultStats{}
+
+	projectsPath := filepath.Join(vaultPath, "projects")
+	if _, err := os.Stat(projectsPath); err == nil {
+		// Count projects (directories in projects/)
+		entries, err := os.ReadDir(projectsPath)
+		if err == nil {
+			for _, entry := range entries {
+				if entry.IsDir() {
+					stats.ProjectCount++
+					// Count documents in each project
+					projectPath := filepath.Join(projectsPath, entry.Name())
+					docEntries, err := os.ReadDir(projectPath)
+					if err == nil {
+						for _, docEntry := range docEntries {
+							if !docEntry.IsDir() {
+								stats.DocumentCount++
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Calculate total size
+	err := filepath.Walk(vaultPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // Skip files we can't access
+		}
+		if !info.IsDir() {
+			stats.TotalSize += info.Size()
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("walking vault directory: %w", err)
+	}
+
+	stats.TotalSizeHuman = formatBytes(stats.TotalSize)
+
+	return stats, nil
+}
+
+// formatBytes converts bytes to human-readable format.
+func formatBytes(bytes int64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+	div, exp := int64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
+func (s *Service) MigrateData(targetPath string, strategy MigrationStrategy) error {
+	logger.Infof("starting data migration to %s with strategy %s", targetPath, strategy)
+
+	// Validate strategy if provided
+	if strategy != "" && !strategy.IsValid() {
+		return fmt.Errorf("invalid migration strategy: %s", strategy)
+	}
 
 	absTarget, err := filepath.Abs(targetPath)
 	if err != nil {
@@ -126,6 +243,11 @@ func (s *Service) MigrateData(targetPath string) error {
 		return fmt.Errorf("creating target directory: %w", err)
 	}
 
+	// Handle conflict scenario with strategy
+	if hasCurrentData && hasTargetVault {
+		return s.migrateWithStrategy(currentAbs, absTarget, strategy)
+	}
+
 	if hasCurrentData {
 		return s.migrateExistingData(currentAbs, absTarget)
 	}
@@ -135,6 +257,168 @@ func (s *Service) MigrateData(targetPath string) error {
 	}
 
 	return s.initializeFreshVault(absTarget)
+}
+
+// migrateWithStrategy handles migration when both local and target have vault data.
+func (s *Service) migrateWithStrategy(currentDataDir, targetPath string, strategy MigrationStrategy) error {
+	logger.Infof("resolving vault conflict with strategy: %s", strategy)
+
+	switch strategy {
+	case StrategyUseRemote:
+		return s.strategyUseRemote(currentDataDir, targetPath)
+	case StrategyUseLocal:
+		return s.strategyUseLocal(currentDataDir, targetPath)
+	case StrategyMergeBoth:
+		return s.strategyMergeBoth(currentDataDir, targetPath)
+	default:
+		// Default to use_remote for backwards compatibility
+		logger.Info("no strategy specified, defaulting to use_remote")
+		return s.strategyUseRemote(currentDataDir, targetPath)
+	}
+}
+
+// strategyUseRemote keeps the target vault and discards local data.
+func (s *Service) strategyUseRemote(currentDataDir, targetPath string) error {
+	logger.Info("strategy: use_remote - keeping target vault, discarding local")
+
+	// Remove database in target (will be rebuilt from vault)
+	targetDBPath := filepath.Join(targetPath, "yanta.db")
+	if _, err := os.Stat(targetDBPath); err == nil {
+		logger.Info("removing existing database from target - will rebuild from vault files")
+		if err := os.Remove(targetDBPath); err != nil {
+			logger.Warnf("failed to remove existing database: %v", err)
+		}
+	}
+
+	return s.setupGitRepository(targetPath, currentDataDir)
+}
+
+// strategyUseLocal copies local vault to target, overwriting target data.
+func (s *Service) strategyUseLocal(currentDataDir, targetPath string) error {
+	logger.Info("strategy: use_local - copying local vault to target")
+
+	targetVaultPath := filepath.Join(targetPath, "vault")
+	backupPath := filepath.Join(targetPath, "vault.backup")
+
+	// Backup target vault
+	if _, err := os.Stat(targetVaultPath); err == nil {
+		logger.Infof("backing up target vault to %s", backupPath)
+		// Remove old backup if exists
+		if _, err := os.Stat(backupPath); err == nil {
+			if err := os.RemoveAll(backupPath); err != nil {
+				return fmt.Errorf("removing old backup: %w", err)
+			}
+		}
+		if err := os.Rename(targetVaultPath, backupPath); err != nil {
+			return fmt.Errorf("backing up target vault: %w", err)
+		}
+	}
+
+	// Copy local vault to target
+	localVaultPath := filepath.Join(currentDataDir, "vault")
+	logger.Infof("copying local vault: %s -> %s", localVaultPath, targetVaultPath)
+	if err := s.copyDirectory(localVaultPath, targetVaultPath); err != nil {
+		// Attempt to restore backup
+		if _, err := os.Stat(backupPath); err == nil {
+			_ = os.RemoveAll(targetVaultPath)
+			_ = os.Rename(backupPath, targetVaultPath)
+		}
+		return fmt.Errorf("copying local vault: %w", err)
+	}
+
+	// Verify integrity
+	logger.Info("verifying vault integrity")
+	if err := s.verifyIntegrity(localVaultPath, targetVaultPath); err != nil {
+		// Attempt to restore backup
+		if _, err := os.Stat(backupPath); err == nil {
+			_ = os.RemoveAll(targetVaultPath)
+			_ = os.Rename(backupPath, targetVaultPath)
+		}
+		return fmt.Errorf("integrity verification failed: %w", err)
+	}
+
+	// Remove backup after successful copy
+	if _, err := os.Stat(backupPath); err == nil {
+		logger.Info("removing vault backup after successful migration")
+		if err := os.RemoveAll(backupPath); err != nil {
+			logger.Warnf("failed to remove backup: %v", err)
+		}
+	}
+
+	// Remove database in target (will be rebuilt from vault)
+	targetDBPath := filepath.Join(targetPath, "yanta.db")
+	if _, err := os.Stat(targetDBPath); err == nil {
+		logger.Info("removing existing database from target - will rebuild from vault files")
+		if err := os.Remove(targetDBPath); err != nil {
+			logger.Warnf("failed to remove existing database: %v", err)
+		}
+	}
+
+	return s.setupGitRepository(targetPath, currentDataDir)
+}
+
+// strategyMergeBoth copies local files that don't exist in target.
+func (s *Service) strategyMergeBoth(currentDataDir, targetPath string) error {
+	logger.Info("strategy: merge_both - merging local files into target")
+
+	localVaultPath := filepath.Join(currentDataDir, "vault")
+	targetVaultPath := filepath.Join(targetPath, "vault")
+
+	// Walk local vault and copy files that don't exist in target
+	err := filepath.Walk(localVaultPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Get relative path from vault root
+		relPath, err := filepath.Rel(localVaultPath, path)
+		if err != nil {
+			return err
+		}
+
+		targetFilePath := filepath.Join(targetVaultPath, relPath)
+
+		if info.IsDir() {
+			// Create directory if it doesn't exist
+			if _, err := os.Stat(targetFilePath); os.IsNotExist(err) {
+				logger.Debugf("creating directory: %s", targetFilePath)
+				if err := os.MkdirAll(targetFilePath, info.Mode()); err != nil {
+					return fmt.Errorf("creating directory %s: %w", targetFilePath, err)
+				}
+			}
+		} else {
+			// Copy file only if it doesn't exist in target
+			if _, err := os.Stat(targetFilePath); os.IsNotExist(err) {
+				logger.Debugf("copying file: %s -> %s", path, targetFilePath)
+				// Ensure parent directory exists
+				parentDir := filepath.Dir(targetFilePath)
+				if err := os.MkdirAll(parentDir, 0755); err != nil {
+					return fmt.Errorf("creating parent directory: %w", err)
+				}
+				if err := s.copyFile(path, targetFilePath); err != nil {
+					return fmt.Errorf("copying file %s: %w", path, err)
+				}
+			} else {
+				logger.Debugf("skipping existing file: %s", targetFilePath)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("merging vaults: %w", err)
+	}
+
+	// Remove database in target (will be rebuilt from vault)
+	targetDBPath := filepath.Join(targetPath, "yanta.db")
+	if _, err := os.Stat(targetDBPath); err == nil {
+		logger.Info("removing existing database from target - will rebuild from vault files")
+		if err := os.Remove(targetDBPath); err != nil {
+			logger.Warnf("failed to remove existing database: %v", err)
+		}
+	}
+
+	return s.setupGitRepository(targetPath, currentDataDir)
 }
 
 func (s *Service) migrateExistingData(currentDataDir, targetPath string) error {

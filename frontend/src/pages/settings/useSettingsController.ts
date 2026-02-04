@@ -10,8 +10,11 @@ import {
 } from "../../../bindings/yanta/internal/backup/service";
 import type { BackupConfig } from "../../../bindings/yanta/internal/config/models";
 import { SyncStatus } from "../../../bindings/yanta/internal/git/models";
+import type { MigrationConflictInfo } from "../../../bindings/yanta/internal/migration/models";
+import { MigrationStrategy } from "../../../bindings/yanta/internal/migration/models";
 import {
 	CheckGitInstalled,
+	CheckMigrationConflicts,
 	GetAppScale,
 	GetCurrentDataDirectory,
 	GetCurrentGitBranch,
@@ -95,6 +98,8 @@ export const useSettingsController = () => {
 	});
 	const [hotkeyError, setHotkeyError] = useState<string | undefined>();
 	const [platform, setPlatform] = useState<string>("");
+	const [conflictInfo, setConflictInfo] = useState<MigrationConflictInfo | null>(null);
+	const [showConflictDialog, setShowConflictDialog] = useState(false);
 
 	const { success, error, info, warning } = useNotification();
 	const { setScale } = useScale();
@@ -373,6 +378,27 @@ export const useSettingsController = () => {
 		}
 	}, [error]);
 
+	const performMigration = useCallback(
+		async (strategy: MigrationStrategy) => {
+			try {
+				setIsMigrating(true);
+				setMigrationProgress("Migrating data...");
+
+				await MigrateToGitDirectory(migrationTarget, strategy);
+
+				setMigrationProgress("Migration complete! App will exit in 2 seconds...");
+				success("Migration completed! Please restart YANTA to use the new location.");
+			} catch (err) {
+				const errorMessage = String(err);
+				const cleanedMessage = errorMessage.replace(/^[A-Z_]+:\s*/, "");
+				error(`Migration failed:\n\n${cleanedMessage}`);
+				setIsMigrating(false);
+				setMigrationProgress("");
+			}
+		},
+		[migrationTarget, success, error],
+	);
+
 	const handleMigration = useCallback(async () => {
 		if (!migrationTarget) {
 			error("Please enter a target directory");
@@ -385,11 +411,20 @@ export const useSettingsController = () => {
 
 			await ValidateMigrationTarget(migrationTarget);
 
-			setMigrationProgress("Migrating data...");
-			await MigrateToGitDirectory(migrationTarget);
+			setMigrationProgress("Checking for conflicts...");
+			const conflict = await CheckMigrationConflicts(migrationTarget);
 
-			setMigrationProgress("Migration complete! App will exit in 2 seconds...");
-			success("Migration completed! Please restart YANTA to use the new location.");
+			if (conflict?.hasConflict) {
+				// Show conflict dialog and wait for user decision
+				setConflictInfo(conflict);
+				setShowConflictDialog(true);
+				setIsMigrating(false);
+				setMigrationProgress("");
+				return;
+			}
+
+			// No conflict - proceed with default strategy
+			await performMigration(MigrationStrategy.StrategyUseRemote);
 		} catch (err) {
 			const errorMessage = String(err);
 			const cleanedMessage = errorMessage.replace(/^[A-Z_]+:\s*/, "");
@@ -397,7 +432,20 @@ export const useSettingsController = () => {
 			setIsMigrating(false);
 			setMigrationProgress("");
 		}
-	}, [migrationTarget, success, error]);
+	}, [migrationTarget, error, performMigration]);
+
+	const handleConflictConfirm = useCallback(
+		async (strategy: MigrationStrategy) => {
+			setShowConflictDialog(false);
+			await performMigration(strategy);
+		},
+		[performMigration],
+	);
+
+	const handleConflictCancel = useCallback(() => {
+		setShowConflictDialog(false);
+		setConflictInfo(null);
+	}, []);
 
 	const handleSyncNow = useCallback(async () => {
 		try {
@@ -601,6 +649,8 @@ export const useSettingsController = () => {
 		hotkeyConfig,
 		hotkeyError,
 		platform,
+		conflictInfo,
+		showConflictDialog,
 		logLevelOptions,
 		commitIntervalOptions,
 		handlers: {
@@ -624,6 +674,8 @@ export const useSettingsController = () => {
 			handleRestoreBackup,
 			handleDeleteBackup,
 			handleHotkeyConfigChange,
+			handleConflictConfirm,
+			handleConflictCancel,
 		},
 	};
 };

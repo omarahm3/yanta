@@ -280,13 +280,21 @@ func (s *Service) ValidateMigrationTarget(ctx context.Context, targetPath string
 	return migrationService.ValidateTargetDirectory(targetPath)
 }
 
-func (s *Service) MigrateToGitDirectory(ctx context.Context, targetPath string) error {
-	logger.Infof("starting migration to %s", targetPath)
+// CheckMigrationConflicts detects if both local and target have vault data,
+// and returns statistics for both vaults.
+func (s *Service) CheckMigrationConflicts(ctx context.Context, targetPath string) (*migration.MigrationConflictInfo, error) {
+	gitService := git.NewService()
+	migrationService := migration.NewService(s.db, gitService)
+	return migrationService.CheckMigrationConflicts(targetPath)
+}
+
+func (s *Service) MigrateToGitDirectory(ctx context.Context, targetPath string, strategy migration.MigrationStrategy) error {
+	logger.Infof("starting migration to %s with strategy %s", targetPath, strategy)
 
 	gitService := git.NewService()
 	migrationService := migration.NewService(s.db, gitService)
 
-	if err := migrationService.MigrateData(targetPath); err != nil {
+	if err := migrationService.MigrateData(targetPath, strategy); err != nil {
 		logger.Errorf("migration failed: %v", err)
 		return err
 	}

@@ -21,6 +21,7 @@ export {
 	type EntryMetadata,
 	MetadataSidebar,
 } from "./MetadataSidebar";
+export { MigrationConflictDialog } from "./MigrationConflictDialog";
 export { Modal } from "./Modal";
 export { RelatedEntries, type RelatedEntry } from "./RelatedEntries";
 export { ResizeHandles } from "./ResizeHandles";
