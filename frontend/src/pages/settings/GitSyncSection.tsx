@@ -29,12 +29,16 @@ interface GitSyncSectionProps {
 	gitSyncEnabled: boolean;
 	commitInterval: number;
 	autoPush: boolean;
+	branch: string;
+	branches: string[];
+	currentBranch: string;
 	commitIntervalOptions: SelectOption[];
 	gitStatus?: GitStatus | null;
 	gitStatusLoading?: boolean;
 	onGitSyncToggle: (enabled: boolean) => void;
 	onCommitIntervalChange: (interval: number) => void;
 	onAutoPushToggle: (enabled: boolean) => void;
+	onBranchChange: (branch: string) => void;
 	onPickDirectory: () => void;
 	onMigration: () => void;
 	onSyncNow: () => void;
@@ -164,12 +168,16 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 			gitSyncEnabled,
 			commitInterval,
 			autoPush,
+			branch,
+			branches,
+			currentBranch,
 			commitIntervalOptions,
 			gitStatus,
 			gitStatusLoading = false,
 			onGitSyncToggle,
 			onCommitIntervalChange,
 			onAutoPushToggle,
+			onBranchChange,
 			onPickDirectory,
 			onMigration,
 			onSyncNow,
@@ -177,6 +185,18 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 		},
 		ref,
 	) => {
+		const branchOptions: SelectOption[] = React.useMemo(() => {
+			const options: SelectOption[] = [
+				{
+					value: "",
+					label: currentBranch ? `Current branch (${currentBranch})` : "Current branch",
+				},
+			];
+			for (const b of branches) {
+				options.push({ value: b, label: b });
+			}
+			return options;
+		}, [branches, currentBranch]);
 		return (
 			<div ref={ref}>
 				<SettingsSection title="Git Sync" subtitle="Sync your data with a Git repository">
@@ -280,6 +300,20 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 									</div>
 									<Toggle checked={autoPush} onChange={onAutoPushToggle} disabled={!gitInstalled} />
 								</div>
+
+								{branches.length > 0 && (
+									<div className="space-y-2 pt-2">
+										<Label variant="uppercase">Sync Branch</Label>
+										<Select
+											value={branch}
+											onChange={onBranchChange}
+											options={branchOptions}
+										/>
+										<div className="text-xs text-text-dim">
+											Select a specific branch to sync, or use the current branch
+										</div>
+									</div>
+								)}
 
 								<div className="space-y-2">
 									<Button variant="primary" size="sm" onClick={onSyncNow} disabled={!gitInstalled}>

@@ -149,10 +149,15 @@ func (sm *SyncManager) performSync(reasons []string) {
 		return
 	}
 
-	branch, err := sm.gitService.GetCurrentBranch(ctx, dataDir)
-	if err != nil {
-		logger.WithError(err).Debug("auto-sync: could not determine branch, using master")
-		branch = "master"
+	gitCfg := config.GetGitSyncConfig()
+	branch := gitCfg.Branch
+	if branch == "" {
+		var err error
+		branch, err = sm.gitService.GetCurrentBranch(ctx, dataDir)
+		if err != nil {
+			logger.WithError(err).Debug("auto-sync: could not determine branch, using master")
+			branch = "master"
+		}
 	}
 
 	hasRemote, err := sm.gitService.HasRemote(ctx, dataDir, "origin")
@@ -227,7 +232,6 @@ func (sm *SyncManager) performSync(reasons []string) {
 		"message":    commitMsg,
 	}).Info("auto-sync: committed successfully")
 
-	gitCfg := config.GetGitSyncConfig()
 	if gitCfg.AutoPush && hasRemote {
 		logger.Debug("auto-sync: pushing to remote")
 		if err := sm.gitService.Push(ctx, dataDir, "origin", branch); err != nil {

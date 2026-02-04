@@ -14,10 +14,11 @@ import (
 )
 
 type GitSyncConfig struct {
-	Enabled        bool `toml:"enabled"`
-	AutoCommit     bool `toml:"auto_commit"`
-	AutoPush       bool `toml:"auto_push"`
-	CommitInterval int  `toml:"commit_interval"` // minutes between auto-commits, 0 = manual only
+	Enabled        bool   `toml:"enabled"`
+	AutoCommit     bool   `toml:"auto_commit"`
+	AutoPush       bool   `toml:"auto_push"`
+	CommitInterval int    `toml:"commit_interval"` // minutes between auto-commits, 0 = manual only
+	Branch         string `toml:"branch"`          // branch to sync, empty = use current branch
 }
 
 type BackupConfig struct {

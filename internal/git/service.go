@@ -337,6 +337,41 @@ func (s *Service) GetCurrentBranch(ctx context.Context, path string) (string, er
 	return strings.TrimSpace(stdout.String()), nil
 }
 
+func (s *Service) GetBranches(ctx context.Context, path string) ([]string, error) {
+	if err := s.validateRepoPath(path); err != nil {
+		return nil, fmt.Errorf("git branch: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	cmd := s.newGitCmd(ctx, path, "branch", "--format=%(refname:short)")
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("git branch failed: %w: %s", err, stderr.String())
+	}
+
+	output := strings.TrimSpace(stdout.String())
+	if output == "" {
+		return []string{}, nil
+	}
+
+	branches := strings.Split(output, "\n")
+	result := make([]string, 0, len(branches))
+	for _, branch := range branches {
+		branch = strings.TrimSpace(branch)
+		if branch != "" {
+			result = append(result, branch)
+		}
+	}
+
+	return result, nil
+}
+
 func (s *Service) GetLastCommitHash(ctx context.Context, path string) (string, error) {
 	if err := s.validateRepoPath(path); err != nil {
 		return "", fmt.Errorf("git log: %w", err)

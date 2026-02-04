@@ -564,3 +564,38 @@ func TestServiceInstanceIsolation(t *testing.T) {
 	// They should be different instances
 	assert.NotSame(t, service1, service2)
 }
+
+func TestGetBranches(t *testing.T) {
+	skipIfNoGit(t)
+
+	service := NewService()
+	tempDir := t.TempDir()
+	ctx := context.Background()
+
+	err := service.Init(ctx, tempDir)
+	require.NoError(t, err)
+
+	configureGitUser(t, tempDir)
+
+	// Create initial commit on master/main
+	initialFile := filepath.Join(tempDir, "initial.txt")
+	err = os.WriteFile(initialFile, []byte("initial"), 0644)
+	require.NoError(t, err)
+	require.NoError(t, service.AddAll(ctx, tempDir))
+	require.NoError(t, service.Commit(ctx, tempDir, "initial commit"))
+
+	t.Run("returns at least one branch", func(t *testing.T) {
+		branches, err := service.GetBranches(ctx, tempDir)
+		require.NoError(t, err)
+		assert.GreaterOrEqual(t, len(branches), 1)
+	})
+
+	t.Run("returns current branch in list", func(t *testing.T) {
+		currentBranch, err := service.GetCurrentBranch(ctx, tempDir)
+		require.NoError(t, err)
+
+		branches, err := service.GetBranches(ctx, tempDir)
+		require.NoError(t, err)
+		assert.Contains(t, branches, currentBranch)
+	})
+}

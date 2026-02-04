@@ -478,6 +478,40 @@ func (s *Service) GetGitStatus(ctx context.Context) (map[string]any, error) {
 	return result, nil
 }
 
+func (s *Service) GetGitBranches(ctx context.Context) ([]string, error) {
+	dataDir := config.GetDataDirectory()
+	gitService := git.NewService()
+
+	isRepo, err := gitService.IsRepository(dataDir)
+	if err != nil || !isRepo {
+		return []string{}, nil
+	}
+
+	branches, err := gitService.GetBranches(ctx, dataDir)
+	if err != nil {
+		return nil, fmt.Errorf("getting git branches: %w", err)
+	}
+
+	return branches, nil
+}
+
+func (s *Service) GetCurrentGitBranch(ctx context.Context) (string, error) {
+	dataDir := config.GetDataDirectory()
+	gitService := git.NewService()
+
+	isRepo, err := gitService.IsRepository(dataDir)
+	if err != nil || !isRepo {
+		return "", nil
+	}
+
+	branch, err := gitService.GetCurrentBranch(ctx, dataDir)
+	if err != nil {
+		return "", fmt.Errorf("getting current branch: %w", err)
+	}
+
+	return branch, nil
+}
+
 func (s *Service) GitPush(ctx context.Context) error {
 	gitCfg := config.GetGitSyncConfig()
 	if !gitCfg.Enabled {

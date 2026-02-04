@@ -14,6 +14,8 @@ import {
 	CheckGitInstalled,
 	GetAppScale,
 	GetCurrentDataDirectory,
+	GetCurrentGitBranch,
+	GetGitBranches,
 	GetGitSyncConfig,
 	GetHotkeyConfig,
 	GetKeepInBackground,
@@ -48,6 +50,7 @@ interface GitSyncSettings {
 	enabled: boolean;
 	commitInterval: number; // minutes, 0 = manual only
 	autoPush: boolean;
+	branch: string; // empty = use current branch
 }
 
 export const useSettingsController = () => {
@@ -64,7 +67,10 @@ export const useSettingsController = () => {
 		enabled: false,
 		commitInterval: 10, // default 10 minutes
 		autoPush: true,
+		branch: "", // empty = use current branch
 	});
+	const [gitBranches, setGitBranches] = useState<string[]>([]);
+	const [currentGitBranch, setCurrentGitBranch] = useState<string>("");
 	const [linuxWindowMode, setLinuxWindowModeState] = useState<string>("normal");
 	const [isReindexing, setIsReindexing] = useState(false);
 	const [reindexProgress, setReindexProgress] = useState<{
@@ -120,9 +126,18 @@ export const useSettingsController = () => {
 					enabled: config.Enabled,
 					commitInterval: config.CommitInterval || 10,
 					autoPush: config.AutoPush !== undefined ? config.AutoPush : true,
+					branch: config.Branch || "",
 				});
 			})
 			.catch((err) => console.error("Failed to get git sync config:", err));
+
+		GetGitBranches()
+			.then((branches) => setGitBranches(branches || []))
+			.catch((err) => console.error("Failed to get git branches:", err));
+
+		GetCurrentGitBranch()
+			.then((branch) => setCurrentGitBranch(branch || ""))
+			.catch((err) => console.error("Failed to get current git branch:", err));
 
 		GetWindowMode()
 			.then((mode) => setLinuxWindowModeState(mode))
@@ -255,6 +270,7 @@ export const useSettingsController = () => {
 					AutoCommit: gitSync.commitInterval > 0,
 					AutoPush: gitSync.autoPush,
 					CommitInterval: gitSync.commitInterval,
+					Branch: gitSync.branch,
 				};
 				await SetGitSyncConfig(config);
 				setGitSync((prev) => ({ ...prev, enabled }));
@@ -274,6 +290,7 @@ export const useSettingsController = () => {
 					AutoCommit: interval > 0,
 					AutoPush: gitSync.autoPush,
 					CommitInterval: interval,
+					Branch: gitSync.branch,
 				};
 				await SetGitSyncConfig(config);
 				setGitSync((prev) => ({ ...prev, commitInterval: interval }));
@@ -297,12 +314,37 @@ export const useSettingsController = () => {
 					AutoCommit: gitSync.commitInterval > 0,
 					AutoPush: enabled,
 					CommitInterval: gitSync.commitInterval,
+					Branch: gitSync.branch,
 				};
 				await SetGitSyncConfig(config);
 				setGitSync((prev) => ({ ...prev, autoPush: enabled }));
 				success(enabled ? "Auto-push enabled" : "Auto-push disabled");
 			} catch (err) {
 				error(`Failed to update auto-push: ${err}`);
+			}
+		},
+		[gitSync, success, error],
+	);
+
+	const handleBranchChange = useCallback(
+		async (branch: string) => {
+			try {
+				const config = {
+					Enabled: gitSync.enabled,
+					AutoCommit: gitSync.commitInterval > 0,
+					AutoPush: gitSync.autoPush,
+					CommitInterval: gitSync.commitInterval,
+					Branch: branch,
+				};
+				await SetGitSyncConfig(config);
+				setGitSync((prev) => ({ ...prev, branch }));
+				if (branch) {
+					success(`Sync branch set to "${branch}"`);
+				} else {
+					success("Sync branch set to current branch");
+				}
+			} catch (err) {
+				error(`Failed to update sync branch: ${err}`);
 			}
 		},
 		[gitSync, success, error],
@@ -534,6 +576,8 @@ export const useSettingsController = () => {
 		isMigrating,
 		migrationProgress,
 		gitSync,
+		gitBranches,
+		currentGitBranch,
 		isReindexing,
 		reindexProgress,
 		showReindexConfirm,
@@ -554,6 +598,7 @@ export const useSettingsController = () => {
 			handleGitSyncToggle,
 			handleCommitIntervalChange,
 			handleAutoPushToggle,
+			handleBranchChange,
 			handlePickDirectory,
 			handleMigration,
 			handleSyncNow,
