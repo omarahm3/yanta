@@ -314,6 +314,77 @@ export function getPreviousLeafId(root: PaneNode, currentId: string): string | n
 	return leaves[prevIndex].id;
 }
 
+/** Path step from root to a leaf: which split and which child (0 = first, 1 = second) */
+export interface PathStep {
+	split: PaneSplit;
+	childIndex: 0 | 1;
+}
+
+/**
+ * Get the path from root to the leaf with the given id.
+ * Each step is the split and which child (0 or 1) was taken.
+ * Returns null if the leaf is not found.
+ */
+export function getPathToLeaf(root: PaneNode, leafId: string): PathStep[] | null {
+	if (root.type === "leaf") {
+		return root.id === leafId ? [] : null;
+	}
+	const path0 = getPathToLeaf(root.children[0], leafId);
+	if (path0 !== null) return [{ split: root, childIndex: 0 }, ...path0];
+	const path1 = getPathToLeaf(root.children[1], leafId);
+	if (path1 !== null) return [{ split: root, childIndex: 1 }, ...path1];
+	return null;
+}
+
+export type PaneDirection = "left" | "right" | "up" | "down";
+
+/**
+ * Get the pane ID in the given spatial direction from the current pane (vim-style).
+ * - left: pane immediately to the left
+ * - right: pane immediately to the right
+ * - up: pane immediately above
+ * - down: pane immediately below
+ * Returns null if there is no pane in that direction.
+ */
+export function getPaneInDirection(
+	root: PaneNode,
+	currentPaneId: string,
+	direction: PaneDirection,
+): string | null {
+	const path = getPathToLeaf(root, currentPaneId);
+	if (!path || path.length === 0) return null;
+
+	if (direction === "left") {
+		const step = path.find((s) => s.split.direction === "horizontal" && s.childIndex === 1);
+		if (!step) return null;
+		const leftSubtree = step.split.children[0];
+		const leaves = getLeaves(leftSubtree);
+		return leaves.at(-1)?.id ?? null;
+	}
+	if (direction === "right") {
+		const step = path.find((s) => s.split.direction === "horizontal" && s.childIndex === 0);
+		if (!step) return null;
+		const rightSubtree = step.split.children[1];
+		const leaves = getLeaves(rightSubtree);
+		return leaves[0]?.id ?? null;
+	}
+	if (direction === "up") {
+		const step = path.find((s) => s.split.direction === "vertical" && s.childIndex === 1);
+		if (!step) return null;
+		const topSubtree = step.split.children[0];
+		const leaves = getLeaves(topSubtree);
+		return leaves.at(-1)?.id ?? null;
+	}
+	if (direction === "down") {
+		const step = path.find((s) => s.split.direction === "vertical" && s.childIndex === 0);
+		if (!step) return null;
+		const bottomSubtree = step.split.children[1];
+		const leaves = getLeaves(bottomSubtree);
+		return leaves[0]?.id ?? null;
+	}
+	return null;
+}
+
 // --- Internal helpers ---
 
 /**

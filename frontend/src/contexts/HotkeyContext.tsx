@@ -80,8 +80,13 @@ const createHotkeyMatcher = (combo: string) => {
 	return (event: KeyboardEvent) => {
 		const key = event.key.length === 1 ? event.key.toLowerCase() : event.key.toLowerCase();
 
-		if (requireKey && key !== requireKey) {
-			return false;
+		if (requireKey) {
+			const keyMatches =
+				key === requireKey ||
+				(requireKey === "\\" && requireShift && key === "|");
+			if (!keyMatches) {
+				return false;
+			}
 		}
 
 		if (event.ctrlKey !== requireCtrl) return false;

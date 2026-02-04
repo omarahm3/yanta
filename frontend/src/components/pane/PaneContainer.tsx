@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { Group, type Layout, Panel, Separator } from "react-resizable-panels";
 import { usePaneLayout } from "../../hooks/usePaneLayout";
 import { cn } from "../../lib/utils";
@@ -32,19 +32,42 @@ interface PaneLeafViewProps {
 /**
  * Renders a leaf pane with active pane tracking.
  * Clicking or focusing within a pane sets it as the active pane.
+ * When this pane becomes active (e.g. via Ctrl+H/J/K/L), focus is moved here
+ * so the cursor and keyboard input follow.
  */
 const PaneLeafView: React.FC<PaneLeafViewProps> = React.memo(({ node }) => {
 	const { activePaneId, setActivePane } = usePaneLayout();
 	const isActive = activePaneId === node.id;
+	const containerRef = useRef<HTMLDivElement>(null);
 
 	const handleFocus = useCallback(() => {
 		setActivePane(node.id);
 	}, [node.id, setActivePane]);
 
+	// When this pane becomes the active pane (e.g. via keyboard navigation),
+	// move DOM focus here so the user can type in this pane immediately.
+	useEffect(() => {
+		if (!isActive || !containerRef.current) return;
+		containerRef.current.focus();
+		// Focus the editor's contenteditable if present so typing works without an extra click
+		let rafId: number;
+		rafId = requestAnimationFrame(() => {
+			const editable = containerRef.current?.querySelector(
+				'[contenteditable="true"]',
+			) as HTMLElement | null;
+			if (editable) {
+				editable.focus();
+			}
+		});
+		return () => cancelAnimationFrame(rafId);
+	}, [isActive]);
+
 	return (
 		<div
+			ref={containerRef}
+			tabIndex={-1}
 			className={cn(
-				"flex flex-col h-full w-full overflow-hidden",
+				"flex flex-col h-full w-full overflow-hidden outline-none",
 				isActive && "ring-1 ring-accent/30",
 			)}
 			onMouseDown={handleFocus}
