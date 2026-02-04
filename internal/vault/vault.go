@@ -99,6 +99,35 @@ func (v *Vault) ensureRootExists() error {
 	return nil
 }
 
+// HasDocuments checks if the vault already has document files in any project directory.
+func (v *Vault) HasDocuments() bool {
+	projectsDir := filepath.Join(v.rootPath, "projects")
+	entries, err := os.ReadDir(projectsDir)
+	if err != nil {
+		return false
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() || !strings.HasPrefix(entry.Name(), "@") {
+			continue
+		}
+
+		projectDir := filepath.Join(projectsDir, entry.Name())
+		files, err := os.ReadDir(projectDir)
+		if err != nil {
+			continue
+		}
+
+		for _, f := range files {
+			if !f.IsDir() && strings.HasSuffix(f.Name(), ".json") && f.Name() != ".meta.json" {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func validateRootPath(path string) error {
 	if path == "" {
 		return fmt.Errorf("vault root path cannot be empty")

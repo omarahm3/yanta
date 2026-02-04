@@ -425,6 +425,97 @@ func TestVault_ListProjects(t *testing.T) {
 	}
 }
 
+func TestVault_HasDocuments(t *testing.T) {
+	t.Run("empty vault returns false", func(t *testing.T) {
+		tempDir := t.TempDir()
+		v, err := New(Config{RootPath: tempDir})
+		if err != nil {
+			t.Fatalf("Failed to create vault: %v", err)
+		}
+
+		if v.HasDocuments() {
+			t.Error("HasDocuments() should return false for empty vault")
+		}
+	})
+
+	t.Run("vault with project dirs but no docs returns false", func(t *testing.T) {
+		tempDir := t.TempDir()
+		v, err := New(Config{RootPath: tempDir})
+		if err != nil {
+			t.Fatalf("Failed to create vault: %v", err)
+		}
+
+		if err := v.EnsureProjectDir("@test"); err != nil {
+			t.Fatalf("Failed to create project: %v", err)
+		}
+
+		if v.HasDocuments() {
+			t.Error("HasDocuments() should return false with only project dirs")
+		}
+	})
+
+	t.Run("vault with .meta.json only returns false", func(t *testing.T) {
+		tempDir := t.TempDir()
+		v, err := New(Config{RootPath: tempDir})
+		if err != nil {
+			t.Fatalf("Failed to create vault: %v", err)
+		}
+
+		if err := v.EnsureProjectDir("@test"); err != nil {
+			t.Fatalf("Failed to create project: %v", err)
+		}
+		metaPath := filepath.Join(v.ProjectPath("@test"), ".meta.json")
+		if err := os.WriteFile(metaPath, []byte(`{}`), 0644); err != nil {
+			t.Fatalf("Failed to write meta: %v", err)
+		}
+
+		if v.HasDocuments() {
+			t.Error("HasDocuments() should return false with only .meta.json")
+		}
+	})
+
+	t.Run("vault with document files returns true", func(t *testing.T) {
+		tempDir := t.TempDir()
+		v, err := New(Config{RootPath: tempDir})
+		if err != nil {
+			t.Fatalf("Failed to create vault: %v", err)
+		}
+
+		if err := v.EnsureProjectDir("@test"); err != nil {
+			t.Fatalf("Failed to create project: %v", err)
+		}
+		docPath := filepath.Join(v.ProjectPath("@test"), "doc-test-123.json")
+		if err := os.WriteFile(docPath, []byte(`{"title":"test"}`), 0644); err != nil {
+			t.Fatalf("Failed to write doc: %v", err)
+		}
+
+		if !v.HasDocuments() {
+			t.Error("HasDocuments() should return true with document files")
+		}
+	})
+
+	t.Run("ignores non-@ directories", func(t *testing.T) {
+		tempDir := t.TempDir()
+		v, err := New(Config{RootPath: tempDir})
+		if err != nil {
+			t.Fatalf("Failed to create vault: %v", err)
+		}
+
+		// Create a non-project directory with a json file
+		nonProjectDir := filepath.Join(v.RootPath(), "projects", "notaproject")
+		if err := os.MkdirAll(nonProjectDir, 0755); err != nil {
+			t.Fatalf("Failed to create dir: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(nonProjectDir, "doc.json"), []byte(`{}`), 0644); err != nil {
+			t.Fatalf("Failed to write file: %v", err)
+		}
+
+		if v.HasDocuments() {
+			t.Error("HasDocuments() should ignore non-@ directories")
+		}
+	})
+}
+
 func TestVault_DeleteProjectDir(t *testing.T) {
 	tempDir := t.TempDir()
 	v, err := New(Config{RootPath: tempDir})
