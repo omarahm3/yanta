@@ -3,6 +3,7 @@ import { Group, type Layout, Panel, Separator } from "react-resizable-panels";
 import { usePaneLayout } from "../../hooks/usePaneLayout";
 import { cn } from "../../lib/utils";
 import type { PaneLeaf, PaneNode, PaneSplit, SplitDirection } from "../../types/PaneLayout";
+import { PaneContent } from "./PaneContent";
 
 // --- Resize Handle ---
 
@@ -29,8 +30,8 @@ interface PaneLeafViewProps {
 }
 
 /**
- * Renders a leaf pane. Currently a placeholder that will be replaced
- * by PaneContent in subtask 2-3 (PaneDocumentView + EmptyPane).
+ * Renders a leaf pane with active pane tracking.
+ * Clicking or focusing within a pane sets it as the active pane.
  */
 const PaneLeafView: React.FC<PaneLeafViewProps> = React.memo(({ node }) => {
 	const { activePaneId, setActivePane } = usePaneLayout();
@@ -49,10 +50,7 @@ const PaneLeafView: React.FC<PaneLeafViewProps> = React.memo(({ node }) => {
 			onMouseDown={handleFocus}
 			onFocusCapture={handleFocus}
 		>
-			{/* Placeholder for PaneContent (subtask 2-3) */}
-			<div className="flex flex-1 items-center justify-center text-text-dim text-sm">
-				{node.documentPath ? `Document: ${node.documentPath}` : "Empty pane"}
-			</div>
+			<PaneContent paneId={node.id} documentPath={node.documentPath} />
 		</div>
 	);
 });
@@ -120,7 +118,7 @@ export interface PaneContainerProps {
  * Recursively renders the pane layout tree.
  * For PaneSplit nodes, renders a Group with orientation and two children
  * separated by a Separator resize handle.
- * For PaneLeaf nodes, renders pane content (placeholder until subtask 2-3).
+ * For PaneLeaf nodes, renders PaneContent (document editor or empty pane).
  */
 export const PaneContainer: React.FC<PaneContainerProps> = React.memo(({ node }) => {
 	if (node.type === "split") {

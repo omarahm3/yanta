@@ -19,7 +19,7 @@ import {
 	useProjectContext,
 	useUserProgressContext,
 } from "./contexts";
-import { useHotkey } from "./hooks";
+import { useHotkey, usePaneLayout } from "./hooks";
 import { useHelp } from "./hooks/useHelp";
 
 import "./styles/tailwind.css";
@@ -67,7 +67,14 @@ const QuitHotkeys = () => {
 const GlobalCommandHotkey = () => {
 	const { openHelp } = useHelp();
 	const { openDialog, closeDialog } = useDialog();
+	const { openDocumentInPane, activePaneId } = usePaneLayout();
 	const [isOpen, setIsOpen] = React.useState(false);
+
+	// Use ref for activePaneId to keep handleNavigate callback stable
+	const activePaneIdRef = React.useRef(activePaneId);
+	React.useEffect(() => {
+		activePaneIdRef.current = activePaneId;
+	}, [activePaneId]);
 
 	React.useEffect(() => {
 		if (isOpen) openDialog();
@@ -88,8 +95,12 @@ const GlobalCommandHotkey = () => {
 		(page: string, state?: Record<string, string | number | boolean | undefined>) => {
 			setCurrentPage(page);
 			setNavigationState(state || {});
+			// When navigating to document page with a specific document, open it in the active pane
+			if (page === "document" && state?.documentPath) {
+				openDocumentInPane(activePaneIdRef.current, state.documentPath as string);
+			}
 		},
-		[],
+		[openDocumentInPane],
 	);
 
 	const handleRegisterToggleArchived = React.useCallback((handler: () => void) => {

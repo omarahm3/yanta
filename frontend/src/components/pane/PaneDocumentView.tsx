@@ -9,6 +9,7 @@ import { PaneHeader } from "./PaneHeader";
 export interface PaneDocumentViewProps {
 	paneId: string;
 	documentPath: string;
+	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
 }
 
 /**
@@ -17,9 +18,10 @@ export interface PaneDocumentViewProps {
  * Each instance is independent with its own editor, auto-save, and scroll position.
  */
 export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
-	({ paneId, documentPath }) => {
+	({ paneId, documentPath, onNavigate }) => {
 		const controller = useDocumentController({
 			documentPath,
+			onNavigate,
 		});
 
 		useHotkeys(controller.hotkeys);
