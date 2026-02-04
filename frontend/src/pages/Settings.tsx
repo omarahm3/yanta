@@ -3,6 +3,7 @@ import { Layout } from "../components/Layout";
 import { ConfirmDialog, type Shortcut } from "../components/ui";
 import {
 	useFooterHintsSetting,
+	useGitStatus,
 	useHotkeys,
 	useShortcutTooltipsSetting,
 	useSidebarSetting,
@@ -167,6 +168,11 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggle
 		setShowShortcutTooltips,
 		isLoading: shortcutTooltipsLoading,
 	} = useShortcutTooltipsSetting();
+	const {
+		status: gitStatus,
+		isLoading: gitStatusLoading,
+		refresh: refreshGitStatus,
+	} = useGitStatus(controller.gitSync.enabled ? 30000 : 0);
 
 	const generalRef = useRef<HTMLDivElement>(null);
 	const appearanceRef = useRef<HTMLDivElement>(null);
@@ -395,12 +401,15 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggle
 						commitInterval={controller.gitSync.commitInterval}
 						autoPush={controller.gitSync.autoPush}
 						commitIntervalOptions={controller.commitIntervalOptions}
+						gitStatus={gitStatus}
+						gitStatusLoading={gitStatusLoading}
 						onGitSyncToggle={controller.handlers.handleGitSyncToggle}
 						onCommitIntervalChange={controller.handlers.handleCommitIntervalChange}
 						onAutoPushToggle={controller.handlers.handleAutoPushToggle}
 						onPickDirectory={controller.handlers.handlePickDirectory}
 						onMigration={controller.handlers.handleMigration}
 						onSyncNow={controller.handlers.handleSyncNow}
+						onRefreshStatus={refreshGitStatus}
 					/>
 
 					<AboutSection ref={aboutRef} systemInfo={controller.systemInfo} />

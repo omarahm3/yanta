@@ -1,4 +1,12 @@
-import { AlertTriangle, FolderOpen } from "lucide-react";
+import {
+	AlertTriangle,
+	ArrowDown,
+	ArrowUp,
+	Check,
+	Cloud,
+	FolderOpen,
+	RefreshCw,
+} from "lucide-react";
 import React from "react";
 import {
 	Button,
@@ -9,6 +17,7 @@ import {
 	SettingsSection,
 	Toggle,
 } from "../../components/ui";
+import type { GitStatus } from "../../hooks/useGitStatus";
 
 interface GitSyncSectionProps {
 	gitInstalled: boolean;
@@ -21,13 +30,127 @@ interface GitSyncSectionProps {
 	commitInterval: number;
 	autoPush: boolean;
 	commitIntervalOptions: SelectOption[];
+	gitStatus?: GitStatus | null;
+	gitStatusLoading?: boolean;
 	onGitSyncToggle: (enabled: boolean) => void;
 	onCommitIntervalChange: (interval: number) => void;
 	onAutoPushToggle: (enabled: boolean) => void;
 	onPickDirectory: () => void;
 	onMigration: () => void;
 	onSyncNow: () => void;
+	onRefreshStatus?: () => void;
 }
+
+const GitStatusDisplay: React.FC<{
+	status: GitStatus;
+	isLoading: boolean;
+	onRefresh?: () => void;
+}> = ({ status, isLoading, onRefresh }) => {
+	const hasConflicts = status.conflicted.length > 0;
+	const hasChanges = !status.clean;
+	const totalChanges =
+		status.modified.length +
+		status.untracked.length +
+		status.deleted.length +
+		status.staged.length;
+
+	const getStatusColor = () => {
+		if (hasConflicts) return "border-red bg-red/10";
+		if (hasChanges) return "border-yellow bg-yellow/10";
+		return "border-green bg-green/10";
+	};
+
+	const getStatusIcon = () => {
+		if (isLoading) {
+			return <RefreshCw className="w-4 h-4 animate-spin text-text-dim" />;
+		}
+		if (hasConflicts) {
+			return <AlertTriangle className="w-4 h-4 text-red" />;
+		}
+		if (hasChanges) {
+			return <Cloud className="w-4 h-4 text-yellow" />;
+		}
+		return <Check className="w-4 h-4 text-green" />;
+	};
+
+	const getStatusText = () => {
+		if (hasConflicts) {
+			return `${status.conflicted.length} conflict${status.conflicted.length > 1 ? "s" : ""} detected`;
+		}
+		if (hasChanges) {
+			return `${totalChanges} uncommitted change${totalChanges > 1 ? "s" : ""}`;
+		}
+		return "Working directory clean";
+	};
+
+	return (
+		<div className={`p-3 rounded border ${getStatusColor()}`}>
+			<div className="flex items-center justify-between">
+				<div className="flex items-center gap-2">
+					{getStatusIcon()}
+					<span className="text-sm font-medium text-text">{getStatusText()}</span>
+				</div>
+				{onRefresh && (
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={onRefresh}
+						disabled={isLoading}
+						className="p-1"
+						title="Refresh status"
+					>
+						<RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
+					</Button>
+				)}
+			</div>
+
+			{(status.ahead > 0 || status.behind > 0) && (
+				<div className="flex items-center gap-3 mt-2 pt-2 border-t border-border/50">
+					{status.ahead > 0 && (
+						<span className="flex items-center gap-1 text-xs text-text-dim">
+							<ArrowUp className="w-3 h-3" />
+							<span>{status.ahead} ahead</span>
+						</span>
+					)}
+					{status.behind > 0 && (
+						<span className="flex items-center gap-1 text-xs text-text-dim">
+							<ArrowDown className="w-3 h-3" />
+							<span>{status.behind} behind</span>
+						</span>
+					)}
+				</div>
+			)}
+
+			{hasConflicts && (
+				<div className="mt-2 pt-2 border-t border-border/50">
+					<div className="text-xs text-red">
+						Conflicted files: {status.conflicted.join(", ")}
+					</div>
+				</div>
+			)}
+
+			{hasChanges && !hasConflicts && (
+				<div className="mt-2 pt-2 border-t border-border/50 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-text-dim">
+					{status.modified.length > 0 && (
+						<span>Modified: {status.modified.length}</span>
+					)}
+					{status.untracked.length > 0 && (
+						<span>Untracked: {status.untracked.length}</span>
+					)}
+					{status.staged.length > 0 && (
+						<span>Staged: {status.staged.length}</span>
+					)}
+					{status.deleted.length > 0 && (
+						<span>Deleted: {status.deleted.length}</span>
+					)}
+					{status.renamed.length > 0 && (
+						<span>Renamed: {status.renamed.length}</span>
+					)}
+				</div>
+			)}
+		</div>
+	);
+};
 
 export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionProps>(
 	(
@@ -42,12 +165,15 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 			commitInterval,
 			autoPush,
 			commitIntervalOptions,
+			gitStatus,
+			gitStatusLoading = false,
 			onGitSyncToggle,
 			onCommitIntervalChange,
 			onAutoPushToggle,
 			onPickDirectory,
 			onMigration,
 			onSyncNow,
+			onRefreshStatus,
 		},
 		ref,
 	) => {
@@ -122,6 +248,17 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 
 						{gitSyncEnabled && (
 							<>
+								{gitStatus && (
+									<div className="space-y-2">
+										<Label variant="uppercase">Repository Status</Label>
+										<GitStatusDisplay
+											status={gitStatus}
+											isLoading={gitStatusLoading}
+											onRefresh={onRefreshStatus}
+										/>
+									</div>
+								)}
+
 								<div className="space-y-2">
 									<Label variant="uppercase">Auto-commit Interval</Label>
 									<Select

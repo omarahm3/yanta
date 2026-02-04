@@ -4,6 +4,7 @@ export { ConfirmDialog, type ConfirmDialogProps } from "./ConfirmDialog";
 export { ContextBar, type ContextBarProps, type DataMode } from "./ContextBar";
 export { type FooterHint, FooterHintBar, type FooterHintBarProps } from "./FooterHintBar";
 export { GitErrorDialog } from "./GitErrorDialog";
+export { GitStatusIndicator } from "./GitStatusIndicator";
 export { HeaderBar } from "./HeaderBar";
 export { Heading } from "./Heading";
 export { HelpModal } from "./HelpModal";
