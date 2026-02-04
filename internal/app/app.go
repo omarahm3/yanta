@@ -85,9 +85,6 @@ func New(cfg Config) (*App, error) {
 		return nil, err
 	}
 
-	// Only seed demo data if the vault has no existing documents.
-	// After migration the DB is fresh but the vault already has real data,
-	// so we must check the vault to avoid writing unwanted seed files.
 	if !v.HasDocuments() {
 		if err := db.SeedProjects(a.DB); err != nil {
 			logger.Errorf("failed to seed demo projects: %v", err)
@@ -416,9 +413,6 @@ func (a *App) writeCrashReport(location string, panicValue any) {
 func seedDemoDocuments(v *vault.Vault, docStore *document.Store, idx *indexer.Indexer) error {
 	ctx := context.Background()
 
-	// Check vault first - if it already has documents on disk, skip seeding entirely.
-	// This prevents seed documents from being written after a migration where the DB
-	// is fresh but the vault already has real data.
 	if v.HasDocuments() {
 		logger.Debug("vault already has documents on disk, skipping seed")
 		return nil
