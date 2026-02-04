@@ -19,9 +19,7 @@ describe("useDocumentEscapeHandling", () => {
 		const editorRef = { current: editor as any };
 		const onNavigateBack = vi.fn();
 
-		const { result } = renderHook(() =>
-			useDocumentEscapeHandling({ editorRef, onNavigateBack }),
-		);
+		const { result } = renderHook(() => useDocumentEscapeHandling({ editorRef, onNavigateBack }));
 
 		const event = new KeyboardEvent("keydown", { key: "Escape" });
 		result.current.handleEscape(event);
@@ -35,9 +33,7 @@ describe("useDocumentEscapeHandling", () => {
 		const editorRef = { current: editor as any };
 		const onNavigateBack = vi.fn();
 
-		const { result } = renderHook(() =>
-			useDocumentEscapeHandling({ editorRef, onNavigateBack }),
-		);
+		const { result } = renderHook(() => useDocumentEscapeHandling({ editorRef, onNavigateBack }));
 
 		const event = new KeyboardEvent("keydown", { key: "Escape" });
 		result.current.handleEscape(event);
@@ -81,9 +77,7 @@ describe("useDocumentEscapeHandling", () => {
 		const editorRef = { current: editor as any };
 		const onNavigateBack = vi.fn();
 
-		const { result } = renderHook(() =>
-			useDocumentEscapeHandling({ editorRef, onNavigateBack }),
-		);
+		const { result } = renderHook(() => useDocumentEscapeHandling({ editorRef, onNavigateBack }));
 
 		const event = new KeyboardEvent("keydown", { key: "c", ctrlKey: true });
 		result.current.handleUnfocus(event);
@@ -96,9 +90,7 @@ describe("useDocumentEscapeHandling", () => {
 		const editorRef = { current: null };
 		const onNavigateBack = vi.fn();
 
-		const { result } = renderHook(() =>
-			useDocumentEscapeHandling({ editorRef, onNavigateBack }),
-		);
+		const { result } = renderHook(() => useDocumentEscapeHandling({ editorRef, onNavigateBack }));
 
 		const event = new KeyboardEvent("keydown", { key: "Escape" });
 		result.current.handleEscape(event);
