@@ -1,10 +1,15 @@
-import React from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { useHotkeys } from "../../hooks";
+import { usePaneLayout } from "../../hooks/usePaneLayout";
 import { useDocumentController } from "../../pages/document/useDocumentController";
+import { findPane } from "../../utils/paneLayoutUtils";
 import { DocumentEditorActions } from "../document/DocumentEditorActions";
 import { DocumentEditorForm } from "../document/DocumentEditorForm";
 import { Button, LoadingSpinner } from "../ui";
 import { PaneHeader } from "./PaneHeader";
+
+/** Debounce delay for scroll position tracking (ms) */
+const SCROLL_DEBOUNCE_MS = 200;
 
 export interface PaneDocumentViewProps {
 	paneId: string;
@@ -23,6 +28,67 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 			documentPath,
 			onNavigate,
 		});
+
+		const { layout, updateScrollPosition } = usePaneLayout();
+
+		const scrollContainerRef = useRef<HTMLDivElement>(null);
+		const hasRestoredScrollRef = useRef(false);
+
+		// Debounced scroll handler — updates pane scroll position in layout state
+		const handleScroll = useCallback(() => {
+			const container = scrollContainerRef.current;
+			if (!container) return;
+			updateScrollPosition(paneId, {
+				top: container.scrollTop,
+				left: container.scrollLeft,
+			});
+		}, [paneId, updateScrollPosition]);
+
+		useEffect(() => {
+			const container = scrollContainerRef.current;
+			if (!container) return;
+
+			let timeoutId: ReturnType<typeof setTimeout>;
+
+			const onScroll = () => {
+				clearTimeout(timeoutId);
+				timeoutId = setTimeout(handleScroll, SCROLL_DEBOUNCE_MS);
+			};
+
+			container.addEventListener("scroll", onScroll, { passive: true });
+
+			return () => {
+				clearTimeout(timeoutId);
+				container.removeEventListener("scroll", onScroll);
+			};
+		}, [handleScroll]);
+
+		// Restore scroll position after content finishes loading
+		useEffect(() => {
+			if (controller.isLoading || hasRestoredScrollRef.current) return;
+
+			const container = scrollContainerRef.current;
+			if (!container) return;
+
+			const pane = findPane(layout.root, paneId);
+			if (!pane || pane.type !== "leaf" || !pane.scrollPosition) return;
+
+			const { top, left } = pane.scrollPosition;
+
+			// Wait for content to render before restoring scroll
+			const rafId = requestAnimationFrame(() => {
+				container.scrollTop = top;
+				container.scrollLeft = left;
+				hasRestoredScrollRef.current = true;
+			});
+
+			return () => cancelAnimationFrame(rafId);
+		}, [controller.isLoading, layout.root, paneId]);
+
+		// Reset scroll restoration flag when document changes
+		useEffect(() => {
+			hasRestoredScrollRef.current = false;
+		}, [documentPath]);
 
 		useHotkeys(controller.hotkeys);
 
@@ -73,17 +139,19 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 						)}
 					</div>
 				)}
-				<DocumentEditorForm
-					blocks={contentProps.formData.blocks}
-					tags={contentProps.formData.tags}
-					isEditMode={contentProps.isEditMode}
-					isLoading={contentProps.isLoading}
-					isReadOnly={contentProps.isArchived}
-					onTitleChange={contentProps.onTitleChange}
-					onBlocksChange={contentProps.onBlocksChange}
-					onTagRemove={contentProps.onTagRemove}
-					onEditorReady={contentProps.onEditorReady}
-				/>
+				<div ref={scrollContainerRef} className="flex-1 overflow-auto min-h-0">
+					<DocumentEditorForm
+						blocks={contentProps.formData.blocks}
+						tags={contentProps.formData.tags}
+						isEditMode={contentProps.isEditMode}
+						isLoading={contentProps.isLoading}
+						isReadOnly={contentProps.isArchived}
+						onTitleChange={contentProps.onTitleChange}
+						onBlocksChange={contentProps.onBlocksChange}
+						onTagRemove={contentProps.onTagRemove}
+						onEditorReady={contentProps.onEditorReady}
+					/>
+				</div>
 				<DocumentEditorActions
 					saveState={contentProps.autoSave.saveState}
 					lastSaved={contentProps.autoSave.lastSaved}

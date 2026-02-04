@@ -1,7 +1,7 @@
 import type React from "react";
 import { createContext, useCallback, useMemo, useReducer } from "react";
 import { loadPaneLayout, usePanePersistence } from "../hooks/usePanePersistence";
-import type { PaneLayoutState, SplitDirection } from "../types/PaneLayout";
+import type { PaneLayoutState, ScrollPosition, SplitDirection } from "../types/PaneLayout";
 import {
 	closePane as closePaneUtil,
 	findPane,
@@ -11,6 +11,7 @@ import {
 	resizePane as resizePaneUtil,
 	splitPane as splitPaneUtil,
 	swapPaneDocuments as swapPaneDocumentsUtil,
+	updateScrollPosition as updateScrollPositionUtil,
 } from "../utils/paneLayoutUtils";
 
 // --- Action Types ---
@@ -23,6 +24,7 @@ type PaneLayoutAction =
 	| { type: "SET_ACTIVE_PANE"; paneId: string }
 	| { type: "MOVE_DOCUMENT"; sourcePaneId: string; targetPaneId: string }
 	| { type: "SWAP_DOCUMENTS"; paneIdA: string; paneIdB: string }
+	| { type: "UPDATE_SCROLL_POSITION"; paneId: string; scrollPosition: ScrollPosition }
 	| { type: "RESTORE_LAYOUT"; state: PaneLayoutState };
 
 // --- Reducer ---
@@ -74,6 +76,15 @@ function paneLayoutReducer(state: PaneLayoutState, action: PaneLayoutAction): Pa
 			if (newRoot === state.root) return state;
 			return { ...state, root: newRoot };
 		}
+		case "UPDATE_SCROLL_POSITION": {
+			const newRoot = updateScrollPositionUtil(
+				state.root,
+				action.paneId,
+				action.scrollPosition,
+			);
+			if (newRoot === state.root) return state;
+			return { ...state, root: newRoot };
+		}
 		case "RESTORE_LAYOUT": {
 			return action.state;
 		}
@@ -94,6 +105,7 @@ export interface PaneLayoutContextValue {
 	setActivePane: (paneId: string) => void;
 	moveDocumentBetweenPanes: (sourcePaneId: string, targetPaneId: string) => void;
 	swapPaneDocuments: (paneIdA: string, paneIdB: string) => void;
+	updateScrollPosition: (paneId: string, scrollPosition: ScrollPosition) => void;
 }
 
 export const PaneLayoutContext = createContext<PaneLayoutContextValue | undefined>(undefined);
@@ -137,6 +149,13 @@ export const PaneLayoutProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 		dispatch({ type: "SWAP_DOCUMENTS", paneIdA, paneIdB });
 	}, []);
 
+	const updateScrollPosition = useCallback(
+		(paneId: string, scrollPosition: ScrollPosition) => {
+			dispatch({ type: "UPDATE_SCROLL_POSITION", paneId, scrollPosition });
+		},
+		[],
+	);
+
 	const value = useMemo<PaneLayoutContextValue>(
 		() => ({
 			layout: state,
@@ -148,6 +167,7 @@ export const PaneLayoutProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 			setActivePane,
 			moveDocumentBetweenPanes,
 			swapPaneDocuments,
+			updateScrollPosition,
 		}),
 		[
 			state,
@@ -158,6 +178,7 @@ export const PaneLayoutProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 			setActivePane,
 			moveDocumentBetweenPanes,
 			swapPaneDocuments,
+			updateScrollPosition,
 		],
 	);
 

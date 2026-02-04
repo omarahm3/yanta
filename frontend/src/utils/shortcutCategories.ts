@@ -9,6 +9,7 @@ export type ShortcutCategory =
 	| "search"
 	| "git"
 	| "project"
+	| "panes"
 	| "system"
 	| "general";
 
@@ -56,6 +57,12 @@ export const CATEGORY_INFO: Record<ShortcutCategory, CategoryInfo> = {
 		icon: "📁",
 		description: "Project management",
 	},
+	panes: {
+		id: "panes",
+		displayName: "Panes",
+		icon: "📐",
+		description: "Split pane management",
+	},
 	system: {
 		id: "system",
 		displayName: "System",
@@ -79,6 +86,7 @@ export const CATEGORY_ORDER: ShortcutCategory[] = [
 	"search",
 	"git",
 	"project",
+	"panes",
 	"system",
 	"general",
 ];
@@ -98,9 +106,9 @@ export interface GroupedShortcuts {
  * @returns The inferred category
  */
 export function inferCategory(hotkey: RegisteredHotkey): ShortcutCategory {
-	// If category is already set, return it
+	// If category is already set, normalize to lowercase and return it
 	if (hotkey.category) {
-		return hotkey.category as ShortcutCategory;
+		return hotkey.category.toLowerCase() as ShortcutCategory;
 	}
 
 	const key = hotkey.key.toLowerCase();
@@ -173,6 +181,15 @@ export function inferCategory(hotkey: RegisteredHotkey): ShortcutCategory {
 		description.includes("workspace")
 	) {
 		return "project";
+	}
+
+	// Pane patterns
+	if (
+		key.includes("\\") ||
+		description.includes("pane") ||
+		description.includes("split")
+	) {
+		return "panes";
 	}
 
 	// System patterns
