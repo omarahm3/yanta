@@ -1,5 +1,6 @@
 import React, { Suspense } from "react";
-import { Dashboard, Document, Journal, Projects, QuickCapture, Search, Settings } from "../pages";
+import { Dashboard, Journal, Projects, QuickCapture, Search, Settings } from "../pages";
+import { PaneLayoutView } from "./pane";
 import { LoadingSpinner } from "./ui";
 
 const PageLoader = () => <LoadingSpinner message="Loading..." />;
@@ -66,11 +67,10 @@ export const Router: React.FC<RouterProps> = ({
 		onRegisterToggleSidebar,
 	};
 
-	const documentProps = {
+	const paneLayoutViewProps = {
 		onNavigate: handleNavigation,
 		onRegisterToggleSidebar,
 		documentPath: navigationState.documentPath as string | undefined,
-		initialTitle: navigationState.initialTitle as string | undefined,
 	};
 
 	const journalProps = {
@@ -100,7 +100,7 @@ export const Router: React.FC<RouterProps> = ({
 	return (
 		<Suspense fallback={<PageLoader />}>
 			{page === "dashboard" && <Dashboard {...dashboardPropsWithNav} />}
-			{page === "document" && <Document {...documentProps} />}
+			{page === "document" && <PaneLayoutView {...paneLayoutViewProps} />}
 			{page === "projects" && <Projects {...projectsProps} />}
 			{page === "settings" && <Settings {...settingsProps} />}
 			{page === "search" && <Search {...searchProps} />}

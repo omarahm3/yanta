@@ -10,6 +10,7 @@ import {
 	DocumentProvider,
 	HelpProvider,
 	HotkeyProvider,
+	PaneLayoutProvider,
 	ProjectProvider,
 	ScaleProvider,
 	TitleBarProvider,
@@ -259,16 +260,18 @@ function App() {
 									<UserProgressProvider>
 										<DocumentCountProvider>
 											<DocumentProvider>
-												<ResizeHandles />
-												<TitleBar />
-												<HelpHotkey />
-												<QuitHotkeys />
-												<GlobalCommandHotkey />
-												<WindowEventListener />
-												<ProjectSwitchTracker />
-												<HelpModal />
-												<WelcomeOverlay />
-												<MilestoneHintManager />
+												<PaneLayoutProvider>
+													<ResizeHandles />
+													<TitleBar />
+													<HelpHotkey />
+													<QuitHotkeys />
+													<GlobalCommandHotkey />
+													<WindowEventListener />
+													<ProjectSwitchTracker />
+													<HelpModal />
+													<WelcomeOverlay />
+													<MilestoneHintManager />
+												</PaneLayoutProvider>
 											</DocumentProvider>
 										</DocumentCountProvider>
 									</UserProgressProvider>
