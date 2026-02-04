@@ -452,13 +452,30 @@ func (s *Service) GetGitStatus(ctx context.Context) (map[string]any, error) {
 		return nil, fmt.Errorf("getting git status: %w", err)
 	}
 
-	return map[string]any{
-		"enabled":   true,
-		"clean":     status.Clean,
-		"modified":  status.Modified,
-		"untracked": status.Untracked,
-		"staged":    status.Staged,
-	}, nil
+	result := map[string]any{
+		"enabled":    true,
+		"clean":      status.Clean,
+		"modified":   status.Modified,
+		"untracked":  status.Untracked,
+		"staged":     status.Staged,
+		"deleted":    status.Deleted,
+		"renamed":    status.Renamed,
+		"conflicted": status.Conflicted,
+	}
+
+	// Get ahead/behind count if we have a remote
+	hasRemote, _ := gitService.HasRemote(ctx, dataDir, "origin")
+	if hasRemote {
+		branch, err := gitService.GetCurrentBranch(ctx, dataDir)
+		if err == nil && branch != "" {
+			if ab, err := gitService.GetAheadBehind(ctx, dataDir, branch); err == nil {
+				result["ahead"] = ab.Ahead
+				result["behind"] = ab.Behind
+			}
+		}
+	}
+
+	return result, nil
 }
 
 func (s *Service) GitPush(ctx context.Context) error {

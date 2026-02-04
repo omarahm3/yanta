@@ -62,7 +62,6 @@ func (sm *SyncManager) runLoop() {
 }
 
 func (sm *SyncManager) checkAndSync() {
-	// Prevent concurrent sync operations
 	if !sm.syncing.CompareAndSwap(false, true) {
 		logger.Debug("auto-sync: sync already in progress, skipping")
 		return
@@ -82,7 +81,6 @@ func (sm *SyncManager) checkAndSync() {
 	hasPending := sm.hasPending
 	timeSinceLastCommit := time.Since(sm.lastCommitTime)
 	commitInterval := time.Duration(gitCfg.CommitInterval) * time.Minute
-	// Deep copy reasons slice to avoid race condition
 	reasons := make([]string, len(sm.reasons))
 	copy(reasons, sm.reasons)
 	sm.mu.Unlock()
@@ -137,7 +135,6 @@ func (sm *SyncManager) performSync(reasons []string) {
 		return
 	}
 
-	// Create a context with timeout for the entire sync operation
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
@@ -170,7 +167,6 @@ func (sm *SyncManager) performSync(reasons []string) {
 		}
 	}
 
-	// Create backup before sync if enabled
 	backupCfg := config.GetBackupConfig()
 	if backupCfg.Enabled {
 		logger.Debug("auto-sync: creating pre-sync backup")
@@ -179,7 +175,6 @@ func (sm *SyncManager) performSync(reasons []string) {
 			logger.WithField("error", err).Warn("auto-sync: backup creation failed, continuing with sync")
 		} else {
 			logger.Info("auto-sync: pre-sync backup created successfully")
-			// Enforce retention policy
 			if err := backupService.PruneOldBackups(dataDir, backupCfg.MaxBackups); err != nil {
 				logger.WithField("error", err).Warn("auto-sync: failed to prune old backups")
 			}
@@ -341,7 +336,6 @@ func (sm *SyncManager) HasPendingChanges() bool {
 }
 
 func (sm *SyncManager) ForceSync() {
-	// Prevent concurrent sync operations
 	if !sm.syncing.CompareAndSwap(false, true) {
 		logger.Debug("force-sync: sync already in progress, skipping")
 		return
@@ -349,7 +343,6 @@ func (sm *SyncManager) ForceSync() {
 	defer sm.syncing.Store(false)
 
 	sm.mu.Lock()
-	// Deep copy reasons slice to avoid race condition
 	reasons := make([]string, len(sm.reasons))
 	copy(reasons, sm.reasons)
 	sm.mu.Unlock()

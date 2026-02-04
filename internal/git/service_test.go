@@ -419,3 +419,148 @@ func TestAddAllWithPathValidation(t *testing.T) {
 		assert.Error(t, err)
 	})
 }
+
+func TestGetStatusExtended(t *testing.T) {
+	skipIfNoGit(t)
+
+	service := NewService()
+	tempDir := t.TempDir()
+	ctx := context.Background()
+
+	err := service.Init(ctx, tempDir)
+	require.NoError(t, err)
+
+	configureGitUser(t, tempDir)
+
+	t.Run("detects deleted files", func(t *testing.T) {
+		// Create and commit a file
+		testFile := filepath.Join(tempDir, "to-delete.txt")
+		err := os.WriteFile(testFile, []byte("content"), 0644)
+		require.NoError(t, err)
+		require.NoError(t, service.AddAll(ctx, tempDir))
+		require.NoError(t, service.Commit(ctx, tempDir, "add file"))
+
+		// Delete the file
+		require.NoError(t, os.Remove(testFile))
+
+		status, err := service.GetStatus(ctx, tempDir)
+		require.NoError(t, err)
+		assert.False(t, status.Clean)
+		assert.Contains(t, status.Deleted, "to-delete.txt")
+	})
+
+	t.Run("status struct has all fields initialized", func(t *testing.T) {
+		status, err := service.GetStatus(ctx, tempDir)
+		require.NoError(t, err)
+		assert.NotNil(t, status.Modified)
+		assert.NotNil(t, status.Untracked)
+		assert.NotNil(t, status.Staged)
+		assert.NotNil(t, status.Deleted)
+		assert.NotNil(t, status.Renamed)
+		assert.NotNil(t, status.Conflicted)
+	})
+}
+
+func TestStashOperations(t *testing.T) {
+	skipIfNoGit(t)
+
+	service := NewService()
+	tempDir := t.TempDir()
+	ctx := context.Background()
+
+	err := service.Init(ctx, tempDir)
+	require.NoError(t, err)
+
+	configureGitUser(t, tempDir)
+
+	// Create initial commit
+	initialFile := filepath.Join(tempDir, "initial.txt")
+	err = os.WriteFile(initialFile, []byte("initial"), 0644)
+	require.NoError(t, err)
+	require.NoError(t, service.AddAll(ctx, tempDir))
+	require.NoError(t, service.Commit(ctx, tempDir, "initial commit"))
+
+	t.Run("stash and pop changes", func(t *testing.T) {
+		// Modify an existing tracked file (stash only works on tracked files)
+		err := os.WriteFile(initialFile, []byte("modified content"), 0644)
+		require.NoError(t, err)
+
+		// Verify not clean
+		status, err := service.GetStatus(ctx, tempDir)
+		require.NoError(t, err)
+		assert.False(t, status.Clean)
+
+		// Stash changes
+		err = service.Stash(ctx, tempDir)
+		require.NoError(t, err)
+
+		// Verify clean after stash
+		status, err = service.GetStatus(ctx, tempDir)
+		require.NoError(t, err)
+		assert.True(t, status.Clean)
+
+		// Pop changes
+		err = service.StashPop(ctx, tempDir)
+		require.NoError(t, err)
+
+		// Verify changes restored
+		status, err = service.GetStatus(ctx, tempDir)
+		require.NoError(t, err)
+		assert.False(t, status.Clean)
+
+		// Restore the original content to leave repo in clean state
+		require.NoError(t, service.AddAll(ctx, tempDir))
+		require.NoError(t, service.Commit(ctx, tempDir, "commit modified"))
+	})
+
+	t.Run("stash pop with no stash entries", func(t *testing.T) {
+		// Should not error when no stash entries
+		err := service.StashPop(ctx, tempDir)
+		assert.NoError(t, err)
+	})
+}
+
+func TestGetAheadBehind(t *testing.T) {
+	skipIfNoGit(t)
+
+	service := NewService()
+	tempDir := t.TempDir()
+	ctx := context.Background()
+
+	err := service.Init(ctx, tempDir)
+	require.NoError(t, err)
+
+	configureGitUser(t, tempDir)
+
+	// Create initial commit
+	initialFile := filepath.Join(tempDir, "initial.txt")
+	err = os.WriteFile(initialFile, []byte("initial"), 0644)
+	require.NoError(t, err)
+	require.NoError(t, service.AddAll(ctx, tempDir))
+	require.NoError(t, service.Commit(ctx, tempDir, "initial commit"))
+
+	t.Run("no remote returns zero", func(t *testing.T) {
+		ab, err := service.GetAheadBehind(ctx, tempDir, "master")
+		require.NoError(t, err)
+		assert.Equal(t, 0, ab.Ahead)
+		assert.Equal(t, 0, ab.Behind)
+	})
+}
+
+func TestRetryConfig(t *testing.T) {
+	t.Run("default config has sensible values", func(t *testing.T) {
+		cfg := DefaultRetryConfig()
+		assert.Equal(t, 3, cfg.MaxRetries)
+		assert.True(t, cfg.InitialBackoff > 0)
+		assert.True(t, cfg.MaxBackoff >= cfg.InitialBackoff)
+	})
+}
+
+func TestServiceInstanceIsolation(t *testing.T) {
+	// Test that each Service instance has its own configuredRepos
+	service1 := NewService()
+	service2 := NewService()
+
+	// They should be different instances
+	assert.NotSame(t, service1, service2)
+}

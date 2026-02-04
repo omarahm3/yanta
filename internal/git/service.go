@@ -14,9 +14,9 @@ import (
 	"yanta/internal/logger"
 )
 
-type Service struct{}
-
-var configuredRepos sync.Map
+type Service struct {
+	configuredRepos sync.Map
+}
 
 func NewService() *Service {
 	return &Service{}
@@ -68,10 +68,13 @@ func (s *Service) newGitCmd(ctx context.Context, repoPath string, args ...string
 }
 
 type Status struct {
-	Clean     bool
-	Modified  []string
-	Untracked []string
-	Staged    []string
+	Clean      bool
+	Modified   []string
+	Untracked  []string
+	Staged     []string
+	Deleted    []string
+	Renamed    []string
+	Conflicted []string
 }
 
 func (s *Service) CheckInstalled() (bool, error) {
@@ -402,6 +405,221 @@ func (s *Service) Pull(ctx context.Context, path, remote, branch string) error {
 	return nil
 }
 
+// Stash saves uncommitted changes to the stash stack.
+func (s *Service) Stash(ctx context.Context, path string) error {
+	if err := s.validateRepoPath(path); err != nil {
+		return fmt.Errorf("git stash: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	cmd := s.newGitCmd(ctx, path, "stash", "push", "-m", "auto-stash before pull")
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return fmt.Errorf("git stash timed out after 30s")
+		}
+		output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
+		return fmt.Errorf("git stash failed: %w: %s", err, output)
+	}
+
+	logger.Debug("git stash: changes stashed successfully")
+	return nil
+}
+
+// StashPop restores the most recent stashed changes.
+func (s *Service) StashPop(ctx context.Context, path string) error {
+	if err := s.validateRepoPath(path); err != nil {
+		return fmt.Errorf("git stash pop: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	cmd := s.newGitCmd(ctx, path, "stash", "pop")
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return fmt.Errorf("git stash pop timed out after 30s")
+		}
+		output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
+		// "No stash entries found" is not an error condition
+		if strings.Contains(output, "No stash entries found") {
+			return nil
+		}
+		return fmt.Errorf("git stash pop failed: %w: %s", err, output)
+	}
+
+	logger.Debug("git stash pop: changes restored successfully")
+	return nil
+}
+
+// PullWithStash performs a pull operation, automatically stashing and restoring
+// uncommitted changes if necessary.
+func (s *Service) PullWithStash(ctx context.Context, path, remote, branch string) error {
+	status, err := s.GetStatus(ctx, path)
+	if err != nil {
+		return fmt.Errorf("checking status before pull: %w", err)
+	}
+
+	needsStash := !status.Clean
+	if needsStash {
+		logger.Debug("git pull: stashing uncommitted changes before pull")
+		if err := s.Stash(ctx, path); err != nil {
+			return fmt.Errorf("stashing changes before pull: %w", err)
+		}
+	}
+
+	pullErr := s.Pull(ctx, path, remote, branch)
+
+	if needsStash {
+		logger.Debug("git pull: restoring stashed changes after pull")
+		if err := s.StashPop(ctx, path); err != nil {
+			if pullErr == nil {
+				return fmt.Errorf("pull succeeded but failed to restore stashed changes: %w", err)
+			}
+			logger.WithError(err).Warn("failed to restore stashed changes after failed pull")
+		}
+	}
+
+	return pullErr
+}
+
+// AheadBehind represents the commit difference between local and remote branches.
+type AheadBehind struct {
+	Ahead  int
+	Behind int
+}
+
+// GetAheadBehind returns the number of commits the local branch is ahead/behind
+// the remote tracking branch.
+func (s *Service) GetAheadBehind(ctx context.Context, path, branch string) (*AheadBehind, error) {
+	if err := s.validateRepoPath(path); err != nil {
+		return nil, fmt.Errorf("git rev-list: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	refSpec := fmt.Sprintf("%s...origin/%s", branch, branch)
+	cmd := s.newGitCmd(ctx, path, "rev-list", "--left-right", "--count", refSpec)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		stderrStr := stderr.String()
+		if strings.Contains(stderrStr, "unknown revision") {
+			return &AheadBehind{Ahead: 0, Behind: 0}, nil
+		}
+		return nil, fmt.Errorf("git rev-list failed: %w: %s", err, stderrStr)
+	}
+
+	output := strings.TrimSpace(stdout.String())
+	parts := strings.Split(output, "\t")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("unexpected rev-list output: %s", output)
+	}
+
+	var ahead, behind int
+	if _, err := fmt.Sscanf(parts[0], "%d", &ahead); err != nil {
+		return nil, fmt.Errorf("parsing ahead count: %w", err)
+	}
+	if _, err := fmt.Sscanf(parts[1], "%d", &behind); err != nil {
+		return nil, fmt.Errorf("parsing behind count: %w", err)
+	}
+
+	return &AheadBehind{Ahead: ahead, Behind: behind}, nil
+}
+
+// RetryConfig configures retry behavior for network operations.
+type RetryConfig struct {
+	MaxRetries     int
+	InitialBackoff time.Duration
+	MaxBackoff     time.Duration
+}
+
+// DefaultRetryConfig returns sensible defaults for retry configuration.
+func DefaultRetryConfig() RetryConfig {
+	return RetryConfig{
+		MaxRetries:     3,
+		InitialBackoff: 1 * time.Second,
+		MaxBackoff:     30 * time.Second,
+	}
+}
+
+// PushWithRetry attempts to push with exponential backoff on failure.
+func (s *Service) PushWithRetry(ctx context.Context, path, remote, branch string, cfg RetryConfig) error {
+	return s.retryOperation(ctx, cfg, "push", func() error {
+		return s.Push(ctx, path, remote, branch)
+	})
+}
+
+// FetchWithRetry attempts to fetch with exponential backoff on failure.
+func (s *Service) FetchWithRetry(ctx context.Context, path, remote string, cfg RetryConfig) error {
+	return s.retryOperation(ctx, cfg, "fetch", func() error {
+		return s.Fetch(ctx, path, remote)
+	})
+}
+
+// PullWithRetry attempts to pull with exponential backoff on failure.
+func (s *Service) PullWithRetry(ctx context.Context, path, remote, branch string, cfg RetryConfig) error {
+	return s.retryOperation(ctx, cfg, "pull", func() error {
+		return s.Pull(ctx, path, remote, branch)
+	})
+}
+
+// retryOperation executes an operation with exponential backoff.
+func (s *Service) retryOperation(ctx context.Context, cfg RetryConfig, opName string, op func() error) error {
+	var lastErr error
+	backoff := cfg.InitialBackoff
+
+	for attempt := 0; attempt <= cfg.MaxRetries; attempt++ {
+		if err := op(); err != nil {
+			lastErr = err
+
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+
+			if attempt == cfg.MaxRetries {
+				break
+			}
+
+			logger.WithFields(map[string]any{
+				"operation": opName,
+				"attempt":   attempt + 1,
+				"backoff":   backoff,
+				"error":     err,
+			}).Warn("git operation failed, retrying")
+
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(backoff):
+				backoff *= 2
+				if backoff > cfg.MaxBackoff {
+					backoff = cfg.MaxBackoff
+				}
+			}
+			continue
+		}
+		return nil
+	}
+
+	return fmt.Errorf("%s failed after %d retries: %w", opName, cfg.MaxRetries+1, lastErr)
+}
+
 func (s *Service) GetStatus(ctx context.Context, path string) (*Status, error) {
 	s.ensureLFConfig(ctx, path)
 
@@ -422,10 +640,13 @@ func (s *Service) GetStatus(ctx context.Context, path string) (*Status, error) {
 	}
 
 	status := &Status{
-		Clean:     true,
-		Modified:  []string{},
-		Untracked: []string{},
-		Staged:    []string{},
+		Clean:      true,
+		Modified:   []string{},
+		Untracked:  []string{},
+		Staged:     []string{},
+		Deleted:    []string{},
+		Renamed:    []string{},
+		Conflicted: []string{},
 	}
 
 	lines := strings.Split(stdout.String(), "\n")
@@ -440,21 +661,48 @@ func (s *Service) GetStatus(ctx context.Context, path string) (*Status, error) {
 			continue
 		}
 
-		statusCode := line[0:2]
+		indexStatus := line[0]
+		workTreeStatus := line[1]
 		filename := strings.TrimSpace(line[3:])
 
-		switch statusCode {
-		case "??":
+		if indexStatus == 'R' || indexStatus == 'C' {
+			if idx := strings.Index(filename, " -> "); idx != -1 {
+				filename = filename[idx+4:]
+			}
+			status.Renamed = append(status.Renamed, filename)
+			status.Staged = append(status.Staged, filename)
+			continue
+		}
+
+		if indexStatus == 'U' || workTreeStatus == 'U' ||
+			(indexStatus == 'A' && workTreeStatus == 'A') ||
+			(indexStatus == 'D' && workTreeStatus == 'D') {
+			status.Conflicted = append(status.Conflicted, filename)
+			continue
+		}
+
+		if indexStatus == '?' && workTreeStatus == '?' {
 			status.Untracked = append(status.Untracked, filename)
-		case "M ":
+			continue
+		}
+
+		switch indexStatus {
+		case 'M':
 			status.Staged = append(status.Staged, filename)
-		case " M":
+		case 'A':
+			status.Staged = append(status.Staged, filename)
+		case 'D':
+			status.Deleted = append(status.Deleted, filename)
+			status.Staged = append(status.Staged, filename)
+		}
+
+		switch workTreeStatus {
+		case 'M':
 			status.Modified = append(status.Modified, filename)
-		case "MM":
-			status.Staged = append(status.Staged, filename)
-			status.Modified = append(status.Modified, filename)
-		case "A ", "AM":
-			status.Staged = append(status.Staged, filename)
+		case 'D':
+			if indexStatus != 'D' {
+				status.Deleted = append(status.Deleted, filename)
+			}
 		}
 	}
 
@@ -467,7 +715,7 @@ func (s *Service) ensureLFConfig(ctx context.Context, path string) {
 		return
 	}
 
-	if _, loaded := configuredRepos.LoadOrStore(cleanPath, struct{}{}); loaded {
+	if _, loaded := s.configuredRepos.LoadOrStore(cleanPath, struct{}{}); loaded {
 		return
 	}
 
