@@ -11,7 +11,9 @@ import { DialogProvider, HelpProvider, HotkeyProvider, ProjectContext } from "..
 
 // Mock Layout to render children (header is part of children)
 vi.mock("../../../components/Layout", () => ({
-	Layout: ({ children }: { children: React.ReactNode }) => <div data-testid="layout">{children}</div>,
+	Layout: ({ children }: { children: React.ReactNode }) => (
+		<div data-testid="layout">{children}</div>
+	),
 }));
 
 vi.mock("../../../hooks/useSidebarSections", () => ({
@@ -119,5 +121,4 @@ describe("Journal page header visual elements", () => {
 			expect(iconParent).toBe(headingParent);
 		});
 	});
-
 });

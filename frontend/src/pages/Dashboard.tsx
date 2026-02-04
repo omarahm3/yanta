@@ -55,7 +55,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
 						{/* Page header with mode icon */}
 						<div className="p-4 border-b border-border">
 							<div className="flex items-center gap-2">
-								<FileText className="w-5 h-5" style={{ color: "var(--mode-accent)" }} aria-hidden="true" data-testid="page-header-icon" />
+								<FileText
+									className="w-5 h-5"
+									style={{ color: "var(--mode-accent)" }}
+									aria-hidden="true"
+									data-testid="page-header-icon"
+								/>
 								<h1 className="text-lg font-semibold">Documents</h1>
 							</div>
 						</div>

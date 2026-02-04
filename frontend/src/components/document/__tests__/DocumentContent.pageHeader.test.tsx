@@ -10,7 +10,9 @@ import { describe, expect, it, vi } from "vitest";
 
 // Mock Layout to render children (header is part of children)
 vi.mock("../../Layout", () => ({
-	Layout: ({ children }: { children: React.ReactNode }) => <div data-testid="layout">{children}</div>,
+	Layout: ({ children }: { children: React.ReactNode }) => (
+		<div data-testid="layout">{children}</div>
+	),
 }));
 
 // Mock child components that aren't relevant to header testing
@@ -27,7 +29,14 @@ import { DocumentContent } from "../DocumentContent";
 
 const mockProps = {
 	sidebarSections: [],
-	currentProject: { id: "1", alias: "proj", name: "Project", createdAt: "", updatedAt: "", startDate: "" },
+	currentProject: {
+		id: "1",
+		alias: "proj",
+		name: "Project",
+		createdAt: "",
+		updatedAt: "",
+		startDate: "",
+	},
 	formData: {
 		blocks: [],
 		tags: [],
