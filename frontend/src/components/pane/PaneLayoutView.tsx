@@ -1,6 +1,7 @@
 import type React from "react";
 import { useCallback, useEffect, useRef } from "react";
 import { usePaneLayout, useSidebarSections } from "../../hooks";
+import { usePaneHotkeys } from "../../hooks/usePaneHotkeys";
 import { Layout } from "../Layout";
 import { PaneContainer } from "./PaneContainer";
 
@@ -28,6 +29,9 @@ export const PaneLayoutView: React.FC<PaneLayoutViewProps> = ({
 	documentPath,
 }) => {
 	const { layout, activePaneId, openDocumentInPane } = usePaneLayout();
+
+	// Register pane keyboard shortcuts (split, close, navigate)
+	usePaneHotkeys();
 
 	// Use ref for activePaneId to keep the sidebar onNavigate handler stable
 	const activePaneIdRef = useRef(activePaneId);
