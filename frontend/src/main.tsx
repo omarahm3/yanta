@@ -35,8 +35,7 @@ if (!container) {
 
 const root = createRoot(container);
 
-const isQuickCapture =
-	new URLSearchParams(window.location.search).get("mode") === "quick-capture";
+const isQuickCapture = new URLSearchParams(window.location.search).get("mode") === "quick-capture";
 console.log("[main.tsx] Mode:", "isQuickCapture:", isQuickCapture);
 
 if (isQuickCapture) {
