@@ -53,7 +53,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 				) : (
 					<div className="flex h-full flex-col overflow-hidden">
 						{/* Page header with mode icon */}
-						<div className="p-4 border-b border-border">
+						<div className="p-4 border-b border-glass-border">
 							<div className="flex items-center gap-2">
 								<FileText
 									className="w-5 h-5"

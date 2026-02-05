@@ -45,7 +45,7 @@ export const JournalEntry: React.FC<JournalEntryProps> = ({
 	const backgroundStyle = isHighlighted ? { backgroundColor: "var(--mode-accent-muted)" } : {};
 
 	const itemClasses = cn(
-		"group border-b border-border px-4 py-4 transition-colors border-l-4 border-l-transparent hover:bg-surface/60",
+		"group border-b border-glass-border/50 px-4 py-4 transition-colors border-l-4 border-l-transparent hover:bg-glass-bg/15",
 		className,
 	);
 
@@ -112,7 +112,7 @@ export const JournalEntry: React.FC<JournalEntryProps> = ({
 						{/* Project badge (when viewing all projects) */}
 						{entry.projectAlias && (
 							<>
-								<span className="text-[#61AFEF]">{entry.projectAlias}</span>
+								<span className="text-accent">{entry.projectAlias}</span>
 								<span>·</span>
 							</>
 						)}
@@ -122,7 +122,7 @@ export const JournalEntry: React.FC<JournalEntryProps> = ({
 							<>
 								<div className="flex gap-1.5">
 									{entry.tags.map((tag) => (
-										<span key={tag} className="text-[#98C379]">
+										<span key={tag} className="text-green">
 											#{tag}
 										</span>
 									))}

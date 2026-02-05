@@ -110,7 +110,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 					<button
 						type="button"
 						onClick={handleToday}
-						className="ml-2 px-3 py-1 text-xs bg-surface border border-border rounded hover:border-accent transition-colors"
+						className="ml-2 px-3 py-1 text-xs bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded hover:border-accent transition-colors"
 					>
 						Today
 					</button>
@@ -119,7 +119,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
 			{/* Calendar dropdown */}
 			{isCalendarOpen && (
-				<div className="absolute top-full left-0 mt-2 p-3 bg-surface border border-border rounded-lg shadow-lg z-50">
+				<div className="absolute top-full left-0 mt-2 p-3 bg-glass-bg/90 backdrop-blur-xl border border-glass-border rounded-lg shadow-lg z-50">
 					<Calendar
 						viewDate={viewDate}
 						selectedDate={selectedDateObj}
@@ -234,7 +234,7 @@ const Calendar: React.FC<CalendarProps> = ({
 							data-has-entries={hasEntries}
 							className={cn(
 								"w-8 h-8 flex items-center justify-center text-sm rounded relative transition-colors",
-								isSelected ? "bg-accent text-white" : "hover:bg-surface-hover",
+								isSelected ? "bg-accent text-white" : "hover:bg-glass-bg/20",
 								hasEntries && !isSelected && "text-accent",
 							)}
 						>

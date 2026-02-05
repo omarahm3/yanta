@@ -308,7 +308,7 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 		>
 			<div className="flex flex-col h-full">
 				{/* Search Header */}
-				<div className="p-4 border-b bg-surface border-border shrink-0">
+				<div className="p-4 border-b bg-transparent border-glass-border shrink-0">
 					<div className="flex items-center gap-3 mb-3">
 						<span className="text-base text-accent">/</span>
 						<Input
@@ -317,7 +317,7 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 							placeholder="Search entries... (try: project:alias, tag:name, title:text, -exclude, AND, OR)"
 							value={rawQuery}
 							onChange={(e) => setRawQuery((e.target as HTMLInputElement).value)}
-							className="flex-1 text-base"
+							className="flex-1 text-base bg-glass-bg/20 backdrop-blur-sm border-glass-border"
 						/>
 					</div>
 
@@ -354,7 +354,7 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 				</div>
 
 				{/* Search Info Bar */}
-				<div className="flex items-center justify-between px-5 py-2 text-xs border-b bg-bg border-border text-text-dim shrink-0">
+				<div className="flex items-center justify-between px-5 py-2 text-xs border-b bg-glass-bg/10 border-glass-border text-text-dim shrink-0">
 					<div className="flex gap-4">
 						{isLoading ? (
 							<span className="text-yellow">Searching...</span>
@@ -408,8 +408,10 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 										key={r.path}
 										data-result-item="true"
 										tabIndex={0}
-										className={`relative p-4 bg-surface border border-border rounded transition cursor-pointer outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 ${
-											idx === selectedIndex ? "border-accent ring-1 ring-accent/30" : "hover:border-accent/50"
+										className={`relative p-5 bg-glass-bg/20 backdrop-blur-md border border-glass-border rounded-xl transition-all cursor-pointer outline-none shadow-sm ${
+											idx === selectedIndex
+												? "border-accent ring-1 ring-accent/30 bg-glass-bg/30 shadow-md transform scale-[1.01]"
+												: "hover:bg-glass-bg/30 hover:shadow-md hover:border-glass-border/80"
 										}`}
 										onClick={() => {
 											setSelectedIndex(idx);

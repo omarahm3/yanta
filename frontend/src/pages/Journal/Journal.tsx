@@ -61,7 +61,7 @@ export const Journal: React.FC<JournalProps> = ({
 			>
 				<div className={cn("flex flex-col h-full", className)}>
 					{/* Header with date picker */}
-					<div className="p-4 border-b border-border">
+					<div className="p-4 border-b border-glass-border">
 						<div className="flex items-center justify-between mb-3">
 							<div className="flex items-center gap-2">
 								<BookOpen
@@ -85,7 +85,7 @@ export const Journal: React.FC<JournalProps> = ({
 							</div>
 						)}
 
-						{error && <div className="text-center text-[#E06C75] py-8">{error}</div>}
+						{error && <div className="text-center text-red py-8">{error}</div>}
 
 						{isEmpty && !isLoading && (
 							<div className="text-center text-text-dim py-8">
@@ -158,7 +158,7 @@ const JournalStatusBar: React.FC<JournalStatusBarProps> = ({
 		selectedCount === 1 ? "1 entry selected" : `${selectedCount} entries selected`;
 
 	return (
-		<div className="flex w-full flex-wrap items-center gap-3 border-t border-border bg-surface px-4 py-2 text-xs text-text-dim font-sans">
+		<div className="flex w-full flex-wrap items-center gap-3 border-t border-glass-border bg-glass-bg/80 backdrop-blur-md px-4 py-2 text-xs text-text-dim font-sans">
 			<div className="flex items-center gap-3 whitespace-nowrap text-text">
 				<span>{entriesLabel}</span>
 			</div>
@@ -187,7 +187,7 @@ const JournalStatusBar: React.FC<JournalStatusBarProps> = ({
 						<button
 							type="button"
 							onClick={onDeleteSelected}
-							className="px-2 py-1 text-xs border border-[#E06C75] text-[#E06C75] rounded hover:bg-[#E06C75]/10 transition-colors"
+							className="px-2 py-1 text-xs border border-red text-red rounded hover:bg-red/10 transition-colors"
 						>
 							Delete
 						</button>
