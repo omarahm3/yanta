@@ -125,7 +125,7 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 		>
 			{documentPath ? (
 				<>
-					<PaneDocumentView paneId={paneId} documentPath={documentPath} onNavigate={handlePaneNavigate} />
+					<PaneDocumentView paneId={paneId} documentPath={documentPath} onNavigate={handlePaneNavigate} suppressEscape={showPicker} />
 					{showPicker && (
 						<div className="absolute inset-0 z-10 bg-bg/95 flex flex-col">
 							<PaneHeader paneId={paneId} documentPath={documentPath} />

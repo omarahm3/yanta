@@ -15,6 +15,7 @@ export interface PaneDocumentViewProps {
 	paneId: string;
 	documentPath: string;
 	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
+	suppressEscape?: boolean;
 }
 
 /**
@@ -23,7 +24,7 @@ export interface PaneDocumentViewProps {
  * Each instance is independent with its own editor, auto-save, and scroll position.
  */
 export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
-	({ paneId, documentPath, onNavigate }) => {
+	({ paneId, documentPath, onNavigate, suppressEscape }) => {
 		const controller = useDocumentController({
 			documentPath,
 			onNavigate,
@@ -35,12 +36,14 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 		layoutRef.current = layout;
 		const activePaneIdRef = useRef(activePaneId);
 		activePaneIdRef.current = activePaneId;
+		const suppressEscapeRef = useRef(suppressEscape);
+		suppressEscapeRef.current = suppressEscape;
 
-		// Direct Escape: only active pane handles (blur on 1st, go to dashboard on 2nd).
 		useEffect(() => {
 			const onKeyDown = (e: KeyboardEvent) => {
 				if (e.key !== "Escape") return;
 				if (activePaneIdRef.current !== paneId) return;
+				if (suppressEscapeRef.current) return;
 				controller.escapeHandler(e);
 				e.stopPropagation();
 				e.stopImmediatePropagation();
