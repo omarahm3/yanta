@@ -79,8 +79,6 @@ func run() {
 		Name:        "YANTA",
 		Description: "Your Advanced Note Taking Application",
 		Icon:        appIcon,
-		Transport:   nil,
-
 		// SingleInstance ensures only one Yanta instance runs.
 		// Second instance launches trigger OnSecondInstanceLaunch.
 		SingleInstance: &application.SingleInstanceOptions{
