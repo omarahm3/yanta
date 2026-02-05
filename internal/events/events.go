@@ -29,6 +29,25 @@ type EntryUpdatedData struct {
 	EntryID   string `json:"entryId,omitempty"`
 }
 
+// EntryDeletedData is the payload for entry deletion events.
+type EntryDeletedData struct {
+	Path      string `json:"path,omitempty"`
+	ProjectID string `json:"projectId"`
+	Type      string `json:"type,omitempty"`    // "journal" or "document"
+	Date      string `json:"date,omitempty"`    // journal entries only
+	EntryID   string `json:"entryId,omitempty"` // journal entries only
+	Hard      bool   `json:"hard,omitempty"`    // true for permanent deletion
+}
+
+// EntryRestoredData is the payload for entry restore events.
+type EntryRestoredData struct {
+	Path      string `json:"path,omitempty"`
+	ProjectID string `json:"projectId"`
+	Type      string `json:"type,omitempty"`    // "journal" or "document"
+	Date      string `json:"date,omitempty"`    // journal entries only
+	EntryID   string `json:"entryId,omitempty"` // journal entries only
+}
+
 // ProjectChangedData is the payload for project lifecycle events.
 type ProjectChangedData struct {
 	ID string `json:"id"`
@@ -38,6 +57,8 @@ type ProjectChangedData struct {
 func init() {
 	application.RegisterEvent[EntryCreatedData](EntryCreated)
 	application.RegisterEvent[EntryUpdatedData](EntryUpdated)
+	application.RegisterEvent[EntryDeletedData](EntryDeleted)
+	application.RegisterEvent[EntryRestoredData](EntryRestored)
 	application.RegisterEvent[ProjectChangedData](ProjectChanged)
 }
 

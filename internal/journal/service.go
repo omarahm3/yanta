@@ -318,11 +318,11 @@ func (s *Service) DeleteEntry(ctx context.Context, projectAlias, date, entryID s
 		}
 	}
 
-	s.emitEvent(events.EntryDeleted, map[string]any{
-		"type":      "journal",
-		"projectId": projectAlias,
-		"date":      date,
-		"entryId":   entryID,
+	s.emitEvent(events.EntryDeleted, events.EntryDeletedData{
+		Type:      "journal",
+		ProjectID: projectAlias,
+		Date:      date,
+		EntryID:   entryID,
 	})
 
 	return nil
@@ -694,11 +694,11 @@ func (s *Service) RestoreEntry(ctx context.Context, projectAlias, date, entryID 
 		}
 	}
 
-	s.emitEvent(events.EntryRestored, map[string]any{
-		"type":      "journal",
-		"projectId": projectAlias,
-		"date":      date,
-		"entryId":   entryID,
+	s.emitEvent(events.EntryRestored, events.EntryRestoredData{
+		Type:      "journal",
+		ProjectID: projectAlias,
+		Date:      date,
+		EntryID:   entryID,
 	})
 
 	return nil

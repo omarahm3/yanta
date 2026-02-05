@@ -27,29 +27,7 @@ import { Browser } from "@wailsio/runtime";
 import { Dialogs, Events } from "@wailsio/runtime";
 ```
 
-**Recommended by docs**: Modular sub-path imports for tree-shaking:
-```typescript
-import { On, Emit } from "@wailsio/runtime/events";
-import Window from "@wailsio/runtime/window";
-import { SetText, Text } from "@wailsio/runtime/clipboard";
-import { OpenURL } from "@wailsio/runtime/browser";
-```
-
-**Impact**: Barrel imports pull in the entire runtime. Modular imports allow Vite to tree-shake unused modules, reducing bundle size. Since the app only uses Events, Window, System, Browser, and Dialogs — switching to modular imports would exclude unused modules (Clipboard, Screens, Application, etc.).
-
-**Files to update**:
-- `src/App.tsx` — `Events` → `import { On } from "@wailsio/runtime/events"`
-- `src/contexts/DocumentContext.tsx` — same
-- `src/contexts/DocumentCountContext.tsx` — same
-- `src/contexts/ProjectContext.tsx` — same
-- `src/pages/document/useDocumentController.ts` — `Dialogs, Events`
-- `src/pages/Journal/useJournal.ts` — `Events`
-- `src/pages/settings/useSettingsController.ts` — `Events`
-- `src/pages/QuickCapture/QuickCapture.tsx` — `Window`
-- `src/components/ui/TitleBar.tsx` — `System, Window`
-- `src/components/ui/ResizeHandles.tsx` — `System, Window`
-- `src/components/editor/RichEditor.tsx` — `Browser, System`
-- `src/extensions/link-toolbar/index.tsx` — `Browser`
+**Modular imports**: The docs describe sub-path imports (`@wailsio/runtime/events`, etc.) but `@wailsio/runtime@3.0.0-alpha.79` does **not** support them. The `package.json` `exports` field only has `"."` and `"./plugins/*"` — no `"./events"`, `"./window"`, etc. **All 12 files must keep barrel imports until a future version adds subpath exports.**
 
 ---
 
@@ -82,25 +60,19 @@ export default defineConfig({
 
 ---
 
-## Typed Events Not Used
+## Typed Events — Done
 
-The docs support typed event registration with `application.RegisterEvent[T]()` in Go and typed event imports in the frontend:
-```typescript
-import { UserUpdated } from "./bindings/events";
-Events.Emit(UserUpdated({ ID: "123", Name: "John Doe" }));
-```
+All 5 high-traffic events are registered with `application.RegisterEvent[T]()` in Go and use auto-generated TypeScript types via module augmentation:
 
-**Current**: The project uses plain string-based event names everywhere:
-```typescript
-Events.On("yanta/entry/created", () => { ... });
-Events.On("yanta/project/changed", (ev) => { ... });
-```
+| Event | Go Struct | Status |
+|---|---|---|
+| `yanta/entry/created` | `EntryCreatedData` | Typed |
+| `yanta/entry/updated` | `EntryUpdatedData` | Typed |
+| `yanta/entry/deleted` | `EntryDeletedData` | Typed |
+| `yanta/entry/restored` | `EntryRestoredData` | Typed |
+| `yanta/project/changed` | `ProjectChangedData` | Typed |
 
-Go backend defines events as string constants in `internal/events/events.go` but does NOT use `application.RegisterEvent[T]()`.
-
-**Impact**: No compile-time type safety on event names or payloads. Typos in event strings cause silent failures. Event payload types (documented in comments like `// payload: {id, projectId, title}`) are not enforced.
-
-**Recommendation**: This is a larger refactor. Consider incrementally adopting typed events for high-traffic events first (`EntryCreated`, `EntryUpdated`, `ProjectChanged`).
+Frontend handlers for these events get automatic type inference on `ev.data` — no manual casts or inline type annotations needed. Remaining events (`yanta/project/entry-count`, `yanta/project/created`, `yanta/project/deleted`, etc.) still use `map[string]any` / manual casts as they are lower-traffic.
 
 ---
 
@@ -189,12 +161,12 @@ style={{ "--wails-draggable": "drag" } as React.CSSProperties}
 
 ## Summary of Action Items
 
-| Priority | Item | Effort |
-|---|---|---|
-| **High** | Update `@wailsio/runtime` to `3.0.0-alpha.79` | Low |
-| **High** | Add side-effect import `import "@wailsio/runtime"` in entry point | Low |
-| **Medium** | Add Wails Vite plugin to `vite.config.ts` | Low |
-| **Medium** | Switch to modular sub-path imports for tree-shaking | Medium |
-| **Medium** | Verify `Window.Width()` / `Window.Height()` exist or migrate to `Window.Size()` | Low |
-| **Low** | Adopt typed events with `application.RegisterEvent[T]()` | High |
-| **Low** | Verify `System.IsLinux()` is a supported API | Low |
+| Priority | Item | Effort | Status |
+|---|---|---|---|
+| **High** | Update `@wailsio/runtime` to `3.0.0-alpha.79` | Low | Done |
+| **High** | Add side-effect import `import "@wailsio/runtime"` in entry point | Low | Done |
+| **Medium** | Add Wails Vite plugin to `vite.config.ts` | Low | |
+| ~~Medium~~ | ~~Switch to modular sub-path imports~~ | ~~Medium~~ | N/A — alpha.79 doesn't support subpath exports |
+| **Medium** | Verify `Window.Width()` / `Window.Height()` exist or migrate to `Window.Size()` | Low | |
+| ~~Low~~ | ~~Adopt typed events with `application.RegisterEvent[T]()`~~ | ~~High~~ | Done — 5 events typed |
+| **Low** | Verify `System.IsLinux()` is a supported API | Low | |
