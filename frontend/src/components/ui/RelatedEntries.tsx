@@ -18,14 +18,14 @@ export const RelatedEntries: React.FC<RelatedEntriesProps> = ({ entries, classNa
 	if (entries.length === 0) return null;
 
 	return (
-		<div className={cn("mt-12 pt-6 border-t border-border", className)}>
+		<div className={cn("mt-12 pt-6 border-t border-glass-border", className)}>
 			<div className="text-xs uppercase tracking-wider text-text-dim mb-4">RELATED ENTRIES</div>
 			<div className="flex flex-col gap-2">
 				{entries.map((entry) => (
 					<Button
 						key={entry.id}
 						variant="ghost"
-						className="p-2.5 bg-surface border border-border rounded cursor-pointer transition-all text-left hover:border-accent hover:transform hover:translate-x-1 w-full justify-start flex-col items-start h-auto"
+						className="p-2.5 bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded-lg cursor-pointer transition-all text-left hover:border-accent hover:transform hover:translate-x-1 w-full justify-start flex-col items-start h-auto"
 						onClick={entry.onClick}
 					>
 						<div className="text-xs text-text-dim mb-1">{entry.date}</div>

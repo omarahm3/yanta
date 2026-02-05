@@ -62,7 +62,12 @@ export const MetadataSidebar: React.FC<MetadataSidebarProps> = ({
 	};
 
 	return (
-		<aside className={cn("w-60 bg-surface border-r border-border p-5 overflow-y-auto", className)}>
+		<aside
+			className={cn(
+				"w-60 bg-glass-bg/30 backdrop-blur-md border-r border-glass-border p-5 overflow-y-auto",
+				className,
+			)}
+		>
 			{/* Entry ID */}
 			<div className="text-xs text-text-dim mb-1">ENTRY #{metadata.id}</div>
 
@@ -100,7 +105,7 @@ export const MetadataSidebar: React.FC<MetadataSidebarProps> = ({
 					{metadata.tags.map((tag) => (
 						<span
 							key={tag}
-							className="px-2 py-0.5 bg-bg border border-border rounded text-xs text-cyan cursor-pointer transition-all hover:border-cyan hover:bg-cyan/10"
+							className="px-2 py-0.5 bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded text-xs text-cyan cursor-pointer transition-all hover:border-cyan hover:bg-cyan/10"
 						>
 							#{tag}
 						</span>

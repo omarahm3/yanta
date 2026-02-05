@@ -16,7 +16,7 @@ export interface TagsProps {
 export const Tags: React.FC<TagsProps> = ({ tags, className }) => {
 	const getTagClasses = (tag: Tag) => {
 		const baseClasses =
-			"inline-flex items-center px-2.5 py-1 bg-surface border border-border rounded-full text-xs cursor-pointer transition-all";
+			"inline-flex items-center px-2.5 py-1 bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded-full text-xs cursor-pointer transition-all";
 
 		switch (tag.type) {
 			case "feature":
@@ -26,12 +26,12 @@ export const Tags: React.FC<TagsProps> = ({ tags, className }) => {
 			case "learn":
 				return cn(baseClasses, "text-yellow border-yellow bg-yellow/10 hover:bg-yellow/20");
 			default:
-				return cn(baseClasses, "text-accent hover:bg-surface-hover hover:border-accent");
+				return cn(baseClasses, "text-accent hover:bg-glass-bg/30 hover:border-accent");
 		}
 	};
 
 	return (
-		<div className={cn("mt-3 pt-3 border-t border-border", className)}>
+		<div className={cn("mt-3 pt-3 border-t border-glass-border", className)}>
 			<div className="flex flex-wrap gap-2">
 				{tags.map((tag) => (
 					<span key={tag.id} className={getTagClasses(tag)} onClick={tag.onClick}>

@@ -59,7 +59,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 		>
 			<div className="flex flex-col w-full h-full">
 				{/* Page header with mode icon */}
-				<div className="px-4 pt-4 pb-2 border-b border-border">
+				<div className="px-4 pt-4 pb-2 border-b border-glass-border">
 					<div className="flex items-center gap-2">
 						<FileText
 							className="w-5 h-5"

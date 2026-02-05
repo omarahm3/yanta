@@ -80,7 +80,7 @@ export const DocumentEditorActions: React.FC<DocumentEditorActionsProps> = ({
 	const IconComponent = status.icon;
 
 	return (
-		<div className="flex items-center justify-center px-4 py-2 border-t border-border/50 bg-bg">
+		<div className="flex items-center justify-center px-4 py-2 border-t border-glass-border/50 bg-glass-bg/20 backdrop-blur-sm">
 			<div className={`flex items-center gap-2 text-xs ${status.color}`}>
 				<IconComponent className={status.iconClass} />
 				<span>{status.text}</span>

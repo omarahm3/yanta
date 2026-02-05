@@ -46,7 +46,10 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 		return (
 			<div className="opacity-50 space-y-2">
 				{placeholders.map((doc) => (
-					<div key={doc.path} className="space-y-2 rounded border border-border p-4">
+					<div
+						key={doc.path}
+						className="space-y-2 rounded-lg border border-glass-border bg-glass-bg/10 p-4"
+					>
 						<Heading as="h3" size="lg">
 							{doc.title}
 						</Heading>
@@ -60,7 +63,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 						</div>
 						<div className="mt-2 flex gap-2">
 							{doc.tags.map((tag) => (
-								<span key={tag} className="rounded bg-surface px-2 py-1 text-xs text-text-dim">
+								<span key={tag} className="rounded bg-glass-bg/20 px-2 py-1 text-xs text-text-dim">
 									{tag}
 								</span>
 							))}
@@ -87,7 +90,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 						: {};
 				const backgroundStyle = isHighlighted ? { backgroundColor: "var(--mode-accent-muted)" } : {};
 				const itemClasses = cn(
-					"group border-b border-border px-4 py-4 transition-colors border-l-4 border-l-transparent hover:bg-surface/60",
+					"group border-b border-glass-border/50 px-4 py-4 transition-colors border-l-4 border-l-transparent hover:bg-glass-bg/15",
 				);
 				// Use mode-accent for index text color when highlighted
 				const indexStyle = isSelected
@@ -105,7 +108,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 					: {};
 				const toggleClasses = cn(
 					"mt-1 inline-flex h-5 w-5 items-center justify-center rounded border text-xs font-semibold transition-colors",
-					!isSelected && "border-border text-text-dim hover:text-text hover:border-text",
+					!isSelected && "border-glass-border text-text-dim hover:text-text hover:border-text",
 				);
 				return (
 					<div
@@ -166,7 +169,10 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 								</div>
 								<div className="flex gap-2 mt-2 document-tags">
 									{doc.tags.map((tag) => (
-										<span key={tag} className="px-2 py-1 text-xs rounded tag bg-bg-dark text-text-dim">
+										<span
+											key={tag}
+											className="px-2 py-1 text-xs rounded tag bg-glass-bg/20 border border-glass-border/30 text-text-dim"
+										>
 											{tag}
 										</span>
 									))}
