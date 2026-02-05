@@ -2,8 +2,8 @@ import { FileText, Search } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useProjectContext } from "../../contexts/ProjectContext";
-import { useRecentDocuments, type RecentDocument } from "../../hooks/useRecentDocuments";
 import { usePaneLayout } from "../../hooks/usePaneLayout";
+import { type RecentDocument, useRecentDocuments } from "../../hooks/useRecentDocuments";
 import { cn } from "../../lib/utils";
 import { DocumentServiceWrapper } from "../../services/DocumentService";
 import { formatRelativeTimeFromTimestamp } from "../../utils/dateUtils";
@@ -59,9 +59,7 @@ export const EmptyPaneDocumentPicker: React.FC<EmptyPaneDocumentPickerProps> = (
 		async function validateRecents() {
 			const paths = new Set<string>();
 			const results = await Promise.all(
-				projectsRef.current.map((p) =>
-					DocumentServiceWrapper.listByProject(p.alias).catch(() => []),
-				),
+				projectsRef.current.map((p) => DocumentServiceWrapper.listByProject(p.alias).catch(() => [])),
 			);
 			for (const docs of results) {
 				for (const doc of docs) {

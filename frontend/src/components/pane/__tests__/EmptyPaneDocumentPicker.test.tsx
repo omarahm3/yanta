@@ -6,9 +6,24 @@ const mockOpenDocumentInPane = vi.fn();
 const mockSetActivePane = vi.fn();
 
 let mockRecentDocs = [
-	{ path: "proj/doc-1", title: "First Document", projectAlias: "proj", lastOpened: Date.now() - 3600000 },
-	{ path: "proj/doc-2", title: "Second Document", projectAlias: "proj", lastOpened: Date.now() - 7200000 },
-	{ path: "other/doc-3", title: "Third Document", projectAlias: "other", lastOpened: Date.now() - 86400000 },
+	{
+		path: "proj/doc-1",
+		title: "First Document",
+		projectAlias: "proj",
+		lastOpened: Date.now() - 3600000,
+	},
+	{
+		path: "proj/doc-2",
+		title: "Second Document",
+		projectAlias: "proj",
+		lastOpened: Date.now() - 7200000,
+	},
+	{
+		path: "other/doc-3",
+		title: "Third Document",
+		projectAlias: "other",
+		lastOpened: Date.now() - 86400000,
+	},
 ];
 
 vi.mock("../../../hooks/useRecentDocuments", () => ({
@@ -68,9 +83,24 @@ describe("EmptyPaneDocumentPicker", () => {
 		mockOpenDocumentInPane.mockClear();
 		mockSetActivePane.mockClear();
 		mockRecentDocs = [
-			{ path: "proj/doc-1", title: "First Document", projectAlias: "proj", lastOpened: Date.now() - 3600000 },
-			{ path: "proj/doc-2", title: "Second Document", projectAlias: "proj", lastOpened: Date.now() - 7200000 },
-			{ path: "other/doc-3", title: "Third Document", projectAlias: "other", lastOpened: Date.now() - 86400000 },
+			{
+				path: "proj/doc-1",
+				title: "First Document",
+				projectAlias: "proj",
+				lastOpened: Date.now() - 3600000,
+			},
+			{
+				path: "proj/doc-2",
+				title: "Second Document",
+				projectAlias: "proj",
+				lastOpened: Date.now() - 7200000,
+			},
+			{
+				path: "other/doc-3",
+				title: "Third Document",
+				projectAlias: "other",
+				lastOpened: Date.now() - 86400000,
+			},
 		];
 	});
 
