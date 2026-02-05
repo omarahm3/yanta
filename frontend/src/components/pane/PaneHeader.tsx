@@ -76,7 +76,7 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({
 	return (
 		<div
 			className={cn(
-				"bg-surface border-b border-border px-3 flex items-center justify-between h-8 shrink-0",
+				"bg-glass-bg/40 backdrop-blur-md border-b border-glass-border px-3 flex items-center justify-between h-8 shrink-0",
 				isActive && "border-t-2 border-t-accent",
 				!isActive && "border-t-2 border-t-transparent",
 				documentPath && "cursor-grab active:cursor-grabbing",
@@ -103,7 +103,7 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({
 					className={cn(
 						"flex items-center justify-center w-6 h-6 rounded transition-colors",
 						canSplit
-							? "text-text-dim hover:text-text-bright hover:bg-bg"
+							? "text-text-dim hover:text-text-bright hover:bg-glass-bg/30"
 							: "text-text-dim/30 cursor-not-allowed",
 					)}
 					onClick={handleSplitHorizontal}
@@ -119,7 +119,7 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({
 					className={cn(
 						"flex items-center justify-center w-6 h-6 rounded transition-colors",
 						canSplit
-							? "text-text-dim hover:text-text-bright hover:bg-bg"
+							? "text-text-dim hover:text-text-bright hover:bg-glass-bg/30"
 							: "text-text-dim/30 cursor-not-allowed",
 					)}
 					onClick={handleSplitVertical}
@@ -133,7 +133,7 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({
 				{canClose && (
 					<button
 						type="button"
-						className="flex items-center justify-center w-6 h-6 rounded text-text-dim hover:text-text-bright hover:bg-bg transition-colors"
+						className="flex items-center justify-center w-6 h-6 rounded text-text-dim hover:text-text-bright hover:bg-glass-bg/30 transition-colors"
 						onClick={handleClose}
 						title="Close pane"
 						aria-label="Close pane"

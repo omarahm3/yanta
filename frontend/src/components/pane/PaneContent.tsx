@@ -132,7 +132,7 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 						suppressEscape={showPicker}
 					/>
 					{showPicker && (
-						<div className="absolute inset-0 z-10 bg-bg/95 flex flex-col">
+						<div className="absolute inset-0 z-10 bg-glass-bg/90 backdrop-blur-xl flex flex-col">
 							<PaneHeader paneId={paneId} documentPath={documentPath} />
 							<EmptyPaneDocumentPicker paneId={paneId} onClose={() => setShowPicker(false)} />
 						</div>

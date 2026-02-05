@@ -201,7 +201,7 @@ export const EmptyPaneDocumentPicker: React.FC<EmptyPaneDocumentPickerProps> = (
 						value={query}
 						onChange={(e) => setQuery(e.target.value)}
 						placeholder="Search documents..."
-						className="w-full pl-9 pr-3 py-2 text-sm bg-surface border border-border rounded-md text-text placeholder:text-text-dim/50 focus:outline-none focus:ring-1 focus:ring-accent"
+						className="w-full pl-9 pr-3 py-2 text-sm bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded-md text-text placeholder:text-text-dim/50 focus:outline-none focus:ring-1 focus:ring-accent"
 					/>
 				</div>
 
@@ -223,7 +223,7 @@ export const EmptyPaneDocumentPicker: React.FC<EmptyPaneDocumentPickerProps> = (
 									"flex items-center gap-2.5 px-2.5 py-2 rounded-md text-left transition-colors cursor-pointer",
 									index === highlightedIndex
 										? "bg-accent/10 text-text"
-										: "text-text-dim hover:bg-surface-hover",
+										: "text-text-dim hover:bg-glass-bg/20",
 								)}
 								onClick={() => openItem(item)}
 								onMouseEnter={() => setHighlightedIndex(index)}

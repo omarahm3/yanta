@@ -35,7 +35,7 @@ export const EmptyPane: React.FC<EmptyPaneProps> = ({ className, isDragOver = fa
 						<p className="text-sm font-medium text-text-dim">No document open</p>
 						<p className="text-xs opacity-60 max-w-[220px] leading-relaxed">
 							Press{" "}
-							<kbd className="bg-surface px-1.5 py-0.5 rounded font-mono border border-border text-text-dim">
+							<kbd className="bg-glass-bg/30 backdrop-blur-sm px-1.5 py-0.5 rounded font-mono border border-glass-border text-text-dim">
 								Ctrl+K
 							</kbd>{" "}
 							to open a document, or drag one here from the sidebar.
