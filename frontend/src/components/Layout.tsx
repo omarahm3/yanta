@@ -88,7 +88,6 @@ export const Layout: React.FC<LayoutProps> = ({
 	const { heightInRem } = useTitleBarContext();
 	const { hints: footerHints } = useFooterHints({ currentPage });
 
-	// Register the toggle sidebar handler with the parent component
 	useEffect(() => {
 		if (onRegisterToggleSidebar) {
 			onRegisterToggleSidebar(() => {
@@ -121,41 +120,61 @@ export const Layout: React.FC<LayoutProps> = ({
 			data-testid="layout-root"
 			data-sidebar-visible={sidebarVisible ? "true" : "false"}
 			data-mode={dataMode}
-			className="flex overflow-hidden font-mono text-sm leading-relaxed bg-bg text-text"
-			style={{ height: `calc(100vh - ${heightInRem}rem)` }}
+			className="relative flex overflow-hidden font-sans text-sm leading-relaxed bg-bg-dark text-text selection:bg-accent/30 selection:text-text-bright"
+			style={{
+				height: `calc(100vh - ${heightInRem}rem)`,
+				backgroundImage:
+					"radial-gradient(circle at 15% 50%, rgba(var(--color-accent), 0.08), transparent 25%), radial-gradient(circle at 85% 30%, rgba(var(--color-purple), 0.08), transparent 25%)",
+			}}
 		>
+			{/* Glass Sidebar Container */}
 			<div
-				className={`sidebar-transition h-full ${
+				className={`sidebar-transition relative z-20 h-full ${
 					!sidebarLoading && sidebarVisible ? "sidebar-visible" : "sidebar-hidden"
 				}`}
 			>
-				{sidebarContent ? sidebarContent : <UISidebar sections={sidebarSections || []} />}
-			</div>
-
-			<div className="flex flex-col flex-1 overflow-hidden main-content-transition">
-				<HeaderBar
-					breadcrumb={
-						breadcrumb || (currentPage === "settings" ? "Settings" : currentProject?.name || "No Project")
-					}
-					currentPage={currentPage}
-					shortcuts={headerShortcuts}
-				/>
-
-				{shouldShowContextBar(currentPage) && (
-					<ContextBar
-						mode={dataMode}
-						pageName={getPageDisplayName(currentPage)}
-						projectAlias={currentProject?.alias}
+				{sidebarContent ? (
+					sidebarContent
+				) : (
+					<UISidebar
+						sections={sidebarSections || []}
+						className="bg-glass-bg/50 backdrop-blur-xl border-r border-glass-border"
 					/>
 				)}
+			</div>
 
-				<div className="flex-1 overflow-hidden">{children}</div>
+			<div className="flex flex-col flex-1 overflow-hidden main-content-transition relative z-10 bg-glass-bg/10 backdrop-blur-sm">
+				<div className="bg-glass-bg/40 backdrop-blur-md border-b border-glass-border sticky top-0 z-30">
+					<HeaderBar
+						breadcrumb={
+							breadcrumb ||
+							(currentPage === "settings" ? "Settings" : currentProject?.name || "No Project")
+						}
+						currentPage={currentPage}
+						shortcuts={headerShortcuts}
+					/>
+
+					{shouldShowContextBar(currentPage) && (
+						<ContextBar
+							mode={dataMode}
+							pageName={getPageDisplayName(currentPage)}
+							projectAlias={currentProject?.alias}
+						/>
+					)}
+				</div>
+
+				<div className="flex-1 overflow-hidden relative">
+					{/* Content Container with subtle inner shadow/depth */}
+					<div className="h-full w-full overflow-y-auto overflow-x-hidden p-0 animate-fade-in scroll-smooth">
+						{children}
+					</div>
+				</div>
 			</div>
 
 			{!footerHintsLoading && showFooterHints && (
 				<FooterHintBar
 					hints={footerHints}
-					className={`footer-hint-bar-transition ${
+					className={`footer-hint-bar-transition backdrop-blur-md bg-glass-bg/80 border-t border-glass-border ${
 						!sidebarLoading && sidebarVisible ? "footer-hint-bar-sidebar-visible" : ""
 					}`}
 				/>

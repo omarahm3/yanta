@@ -52,7 +52,7 @@ export const TitleBar: React.FC = () => {
 
 	return (
 		<div
-			className="flex items-center justify-between h-8 px-3 bg-surface border-b border-border"
+			className="flex items-center justify-between h-8 px-3 bg-glass-bg/40 backdrop-blur-md border-b border-glass-border"
 			style={{ "--wails-draggable": "drag" } as React.CSSProperties}
 		>
 			<div className="flex items-center gap-2"></div>

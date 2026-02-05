@@ -74,7 +74,7 @@ export const FooterHintBar: React.FC<FooterHintBarProps> = ({ hints, className }
 		<div
 			data-testid="footer-hint-bar"
 			className={cn(
-				"fixed bottom-0 left-0 right-0 h-8 flex items-center gap-4 px-4 text-xs bg-surface border-t border-border text-text-dim z-40",
+				"fixed bottom-0 left-0 right-0 h-8 flex items-center gap-4 px-4 text-xs bg-glass-bg/60 backdrop-blur-md border-t border-glass-border text-text-dim z-40",
 				className,
 			)}
 		>
@@ -84,7 +84,7 @@ export const FooterHintBar: React.FC<FooterHintBarProps> = ({ hints, className }
 					className="flex items-center gap-1"
 					data-priority={hint.priority ?? 2}
 				>
-					<kbd className="font-mono bg-bg px-1.5 py-0.5 rounded mr-1 text-text-dim border border-border">
+					<kbd className="font-mono bg-glass-bg/30 backdrop-blur-sm px-1.5 py-0.5 rounded mr-1 text-text-dim border border-glass-border">
 						{hint.key}
 					</kbd>
 					<span>{hint.label}</span>

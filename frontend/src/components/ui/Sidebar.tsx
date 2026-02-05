@@ -36,50 +36,56 @@ export interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ sections, className }) => {
 	return (
-		<aside
-			className={cn("h-full w-48 bg-surface border-r border-border p-5 overflow-y-auto", className)}
-		>
-			<div className="mb-8 flex items-center justify-center">
-				<img src={logoImage} alt="YANTA" className="h-12 w-auto object-contain" />
+		<aside className={cn("h-full w-48 p-4 overflow-y-auto flex flex-col", className)}>
+			<div className="mb-8 flex items-center px-2">
+				<img src={logoImage} alt="YANTA" className="h-10 w-auto object-contain opacity-90" />
 			</div>
-			{sections.map((section) => (
-				<div key={section.id} className="mb-8">
-					<div className="text-text-dim text-xs uppercase tracking-wider mb-2">{section.title}</div>
-					<List variant="sidebar">
-						{section.items.map((item) => {
-							const listItemContent = (
-								<ListItem
-									key={item.id}
-									variant="sidebar"
-									active={item.active}
-									onClick={item.onClick}
-									className="flex items-center justify-between"
-								>
-									<span>{item.label}</span>
-									{item.count !== undefined && <span className="text-xs opacity-70">{item.count}</span>}
-								</ListItem>
-							);
 
-							// Wrap with tooltip if tooltip info is provided
-							if (item.tooltip) {
-								return (
-									<WithTooltip
+			<div className="flex-1 space-y-6">
+				{sections.map((section) => (
+					<div key={section.id}>
+						<div className="px-2 text-xs font-semibold uppercase tracking-wider text-text-dim mb-3 opacity-80">
+							{section.title}
+						</div>
+						<List variant="sidebar" className="space-y-0.5">
+							{section.items.map((item) => {
+								const listItemContent = (
+									<ListItem
 										key={item.id}
-										tooltipId={item.tooltip.tooltipId}
-										description={item.tooltip.description}
-										shortcut={item.tooltip.shortcut}
-										placement="right"
+										variant="sidebar"
+										active={item.active}
+										onClick={item.onClick}
+										className={cn("sidebar-item", item.active && "active")}
 									>
-										{listItemContent}
-									</WithTooltip>
+										<span className="font-medium">{item.label}</span>
+										{item.count !== undefined && (
+											<span className="text-xs bg-bg-dark/30 px-1.5 py-0.5 rounded text-text-dim">
+												{item.count}
+											</span>
+										)}
+									</ListItem>
 								);
-							}
 
-							return listItemContent;
-						})}
-					</List>
-				</div>
-			))}
+								if (item.tooltip) {
+									return (
+										<WithTooltip
+											key={item.id}
+											tooltipId={item.tooltip.tooltipId}
+											description={item.tooltip.description}
+											shortcut={item.tooltip.shortcut}
+											placement="right"
+										>
+											{listItemContent}
+										</WithTooltip>
+									);
+								}
+
+								return listItemContent;
+							})}
+						</List>
+					</div>
+				))}
+			</div>
 		</aside>
 	);
 };

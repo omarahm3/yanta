@@ -31,7 +31,7 @@ export const ContextBar: React.FC<ContextBarProps> = ({
 			data-testid="context-bar"
 			data-mode={mode}
 			className={cn(
-				"bg-bg border-b border-border px-5 py-1.5 flex items-center justify-between text-text-dim",
+				"bg-glass-bg/30 backdrop-blur-sm border-b border-glass-border px-5 py-1.5 flex items-center justify-between text-text-dim",
 				className,
 			)}
 			style={{ fontSize: "12px" }}
@@ -62,7 +62,7 @@ export const ContextBar: React.FC<ContextBarProps> = ({
 			<div className="flex items-center gap-1.5">
 				<kbd
 					data-testid="context-bar-keyboard-hint"
-					className="bg-surface px-1.5 py-0.5 rounded font-mono border border-border"
+					className="bg-glass-bg/30 backdrop-blur-sm px-1.5 py-0.5 rounded font-mono border border-glass-border"
 					style={{ fontSize: "11px" }}
 				>
 					Ctrl+K
