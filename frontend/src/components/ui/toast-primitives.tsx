@@ -23,14 +23,14 @@ const ToastViewport = forwardRef<
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
 
 const toastVariants = cva(
-	"pointer-events-auto w-full min-w-[280px] sm:min-w-[340px] max-w-[calc(100vw-2rem)] sm:max-w-lg overflow-hidden rounded-xl border border-slate-200/80 bg-white/95 text-gray-900 shadow-2xl ring-1 ring-black/5 backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/95 dark:text-slate-100 transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-bottom-full sm:data-[state=open]:slide-in-from-right-full",
+	"pointer-events-auto w-full min-w-[280px] sm:min-w-[340px] max-w-[calc(100vw-2rem)] sm:max-w-lg overflow-hidden rounded-2xl border border-glass-border bg-glass-bg/80 backdrop-blur-xl text-text shadow-2xl transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-bottom-full sm:data-[state=open]:slide-in-from-right-full",
 	{
 		variants: {
 			variant: {
-				default: "border-l-4 border-sky-400/80",
-				success: "border-l-4 border-emerald-400/80",
-				error: "border-l-4 border-rose-400/80",
-				warning: "border-l-4 border-amber-300/80",
+				default: "border-l-4 border-accent",
+				success: "border-l-4 border-green-500",
+				error: "border-l-4 border-red-500",
+				warning: "border-l-4 border-yellow-500",
 			},
 		},
 		defaultVariants: {
@@ -75,7 +75,7 @@ const ToastClose = forwardRef<
 	<ToastPrimitives.Close
 		ref={ref}
 		className={cn(
-			"inline-flex p-1 text-gray-400 bg-transparent rounded-md hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-white dark:text-slate-500 dark:hover:text-slate-300 dark:focus:ring-offset-slate-900",
+			"inline-flex p-1 text-text-dim bg-transparent rounded-md hover:text-text focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-2 focus:ring-offset-transparent",
 			className,
 		)}
 		toast-close=""
@@ -92,7 +92,7 @@ const ToastTitle = forwardRef<
 >(({ className, ...props }, ref) => (
 	<ToastPrimitives.Title
 		ref={ref}
-		className={cn("text-base font-semibold text-gray-900 dark:text-slate-50", className)}
+		className={cn("text-base font-semibold text-text-bright", className)}
 		{...props}
 	/>
 ));
@@ -104,10 +104,7 @@ const ToastDescription = forwardRef<
 >(({ className, ...props }, ref) => (
 	<ToastPrimitives.Description
 		ref={ref}
-		className={cn(
-			"mt-1 text-sm leading-relaxed text-gray-600 dark:text-slate-300 whitespace-pre-wrap",
-			className,
-		)}
+		className={cn("mt-1 text-sm leading-relaxed text-text-dim whitespace-pre-wrap", className)}
 		{...props}
 	/>
 ));

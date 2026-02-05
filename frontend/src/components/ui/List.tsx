@@ -31,13 +31,20 @@ export const ListItem = React.forwardRef<HTMLLIElement, ListItemProps>(
 		const baseClasses = "";
 		const variantClasses = {
 			default: "",
-			sidebar: "sidebar-item",
+			sidebar:
+				"sidebar-item flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-all hover:bg-glass-bg/20 hover:text-text mb-1",
 			selectable: "cursor-pointer hover:bg-border rounded-md px-2 py-1",
 		};
 
 		return (
 			<li
-				className={cn(baseClasses, variantClasses[variant], active && "active", className)}
+				className={cn(
+					baseClasses,
+					variantClasses[variant],
+					active &&
+						"active bg-glass-bg/30 text-text-bright font-medium shadow-sm border border-glass-border/50 backdrop-blur-sm",
+					className,
+				)}
 				ref={ref}
 				{...props}
 			/>

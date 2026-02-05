@@ -1,12 +1,12 @@
 import React from "react";
-import { cn } from "../../lib/utils";
+import { cn } from "../../../lib/utils";
 import {
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
 	Select as ShadcnSelect,
-} from "./select-shadcn";
+} from "./primitives";
 
 export interface SelectOption {
 	value: string;

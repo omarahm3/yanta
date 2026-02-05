@@ -8,26 +8,14 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 	({ className, variant = "default", type, error, ...props }, ref) => {
-		const baseClasses = "input";
-		const variantClasses = {
-			default: "bg-surface border border-border rounded-md px-3 py-2 text-text-bright",
-			ghost: "bg-transparent border-none",
-		};
-
-		const errorClasses = error ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "";
-		const numberInputClasses =
-			type === "number"
-				? "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-				: "";
-
 		return (
 			<input
 				type={type}
 				className={cn(
-					baseClasses,
-					variantClasses[variant],
-					errorClasses,
-					numberInputClasses,
+					"input w-full bg-glass-bg/20 backdrop-blur-sm border-glass-border focus:border-accent focus:ring-1 focus:ring-accent/30 placeholder:text-text-dim/50",
+					variant === "ghost" && "bg-transparent border-none shadow-none",
+					error && "border-red-500 focus:border-red-500 focus:ring-red-500",
+					type === "number" && "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none",
 					className,
 				)}
 				ref={ref}

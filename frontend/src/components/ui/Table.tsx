@@ -54,7 +54,7 @@ export const Table: React.FC<TableProps> = ({
 
 	return (
 		<div className={cn("w-full min-w-0 overflow-x-auto", className)}>
-			<div className="grid mb-2 border-b border-border" style={{ gridTemplateColumns }}>
+			<div className="grid mb-2 border-b border-glass-border" style={{ gridTemplateColumns }}>
 				{columns.map((column) => (
 					<div
 						key={column.key}
@@ -73,9 +73,9 @@ export const Table: React.FC<TableProps> = ({
 					<div
 						key={row.id}
 						className={cn(
-							"grid rounded cursor-pointer transition-all duration-100 items-start",
-							"hover:bg-surface focus:outline-none focus:ring-2 focus:ring-accent focus:ring-opacity-50",
-							selectedRowId === row.id && "bg-surface border-l-2 border-accent",
+							"grid rounded cursor-pointer transition-all duration-200 items-start",
+							"hover:bg-glass-bg/20 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-opacity-50",
+							selectedRowId === row.id && "bg-glass-bg/30 border-l-2 border-accent",
 						)}
 						style={{ gridTemplateColumns }}
 						onClick={() => onRowSelect?.(row)}
