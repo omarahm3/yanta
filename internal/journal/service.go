@@ -163,11 +163,11 @@ func (s *Service) AppendEntryToDate(ctx context.Context, req AppendEntryRequestW
 		}
 	}
 
-	s.emitEvent(events.EntryCreated, map[string]any{
-		"type":      "journal",
-		"projectId": projectAlias,
-		"date":      date,
-		"entryId":   entry.ID,
+	s.emitEvent(events.EntryCreated, events.EntryCreatedData{
+		Type:      "journal",
+		ProjectID: projectAlias,
+		Date:      date,
+		EntryID:   entry.ID,
 	})
 
 	return entry, nil
@@ -318,11 +318,11 @@ func (s *Service) DeleteEntry(ctx context.Context, projectAlias, date, entryID s
 		}
 	}
 
-	s.emitEvent(events.EntryDeleted, map[string]any{
-		"type":      "journal",
-		"projectId": projectAlias,
-		"date":      date,
-		"entryId":   entryID,
+	s.emitEvent(events.EntryDeleted, events.EntryDeletedData{
+		Type:      "journal",
+		ProjectID: projectAlias,
+		Date:      date,
+		EntryID:   entryID,
 	})
 
 	return nil
@@ -382,11 +382,11 @@ func (s *Service) UpdateEntry(ctx context.Context, req UpdateEntryRequest) (*Jou
 		}
 	}
 
-	s.emitEvent(events.EntryUpdated, map[string]any{
-		"type":      "journal",
-		"projectId": req.ProjectAlias,
-		"date":      req.Date,
-		"entryId":   req.EntryID,
+	s.emitEvent(events.EntryUpdated, events.EntryUpdatedData{
+		Type:      "journal",
+		ProjectID: req.ProjectAlias,
+		Date:      req.Date,
+		EntryID:   req.EntryID,
 	})
 
 	return entry, nil
@@ -544,11 +544,11 @@ func (s *Service) PromoteToDocument(ctx context.Context, req PromoteRequest) (st
 		"entries": len(entriesToPromote),
 	}).Info("journal entries promoted to document")
 
-	s.emitEvent(events.EntryCreated, map[string]any{
-		"type":      "document",
-		"projectId": req.TargetProject,
-		"path":      docPath,
-		"title":     req.Title,
+	s.emitEvent(events.EntryCreated, events.EntryCreatedData{
+		Type:      "document",
+		ProjectID: req.TargetProject,
+		Path:      docPath,
+		Title:     req.Title,
 	})
 
 	return docPath, nil
@@ -694,11 +694,11 @@ func (s *Service) RestoreEntry(ctx context.Context, projectAlias, date, entryID 
 		}
 	}
 
-	s.emitEvent(events.EntryRestored, map[string]any{
-		"type":      "journal",
-		"projectId": projectAlias,
-		"date":      date,
-		"entryId":   entryID,
+	s.emitEvent(events.EntryRestored, events.EntryRestoredData{
+		Type:      "journal",
+		ProjectID: projectAlias,
+		Date:      date,
+		EntryID:   entryID,
 	})
 
 	return nil

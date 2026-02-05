@@ -109,49 +109,29 @@ export function useJournal({
 
 	// Subscribe to journal entry events for real-time updates
 	useEffect(() => {
-		const unsubscribeCreated = Events.On(
-			"yanta/entry/created",
-			(ev: { data: { type?: string; projectId?: string; date?: string } }) => {
-				// Only refresh if it's a journal entry for the current project/date
-				if (ev.data?.type === "journal") {
-					const eventProject = ev.data.projectId;
-					const eventDate = ev.data.date;
-
-					// Refresh if viewing all projects, or if the project and date match
-					if (projectAlias === "all" || (eventProject === projectAlias && eventDate === date)) {
-						refresh();
-					}
+		const unsubscribeCreated = Events.On("yanta/entry/created", (ev) => {
+			if (ev.data?.type === "journal") {
+				if (projectAlias === "all" || (ev.data.projectId === projectAlias && ev.data.date === date)) {
+					refresh();
 				}
-			},
-		);
+			}
+		});
 
-		const unsubscribeDeleted = Events.On(
-			"yanta/entry/deleted",
-			(ev: { data: { type?: string; projectId?: string; date?: string } }) => {
-				if (ev.data?.type === "journal") {
-					const eventProject = ev.data.projectId;
-					const eventDate = ev.data.date;
-
-					if (projectAlias === "all" || (eventProject === projectAlias && eventDate === date)) {
-						refresh();
-					}
+		const unsubscribeDeleted = Events.On("yanta/entry/deleted", (ev) => {
+			if (ev.data?.type === "journal") {
+				if (projectAlias === "all" || (ev.data.projectId === projectAlias && ev.data.date === date)) {
+					refresh();
 				}
-			},
-		);
+			}
+		});
 
-		const unsubscribeRestored = Events.On(
-			"yanta/entry/restored",
-			(ev: { data: { type?: string; projectId?: string; date?: string } }) => {
-				if (ev.data?.type === "journal") {
-					const eventProject = ev.data.projectId;
-					const eventDate = ev.data.date;
-
-					if (projectAlias === "all" || (eventProject === projectAlias && eventDate === date)) {
-						refresh();
-					}
+		const unsubscribeRestored = Events.On("yanta/entry/restored", (ev) => {
+			if (ev.data?.type === "journal") {
+				if (projectAlias === "all" || (ev.data.projectId === projectAlias && ev.data.date === date)) {
+					refresh();
 				}
-			},
-		);
+			}
+		});
 
 		return () => {
 			unsubscribeCreated();

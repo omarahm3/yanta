@@ -159,17 +159,17 @@ func (s *Service) Save(ctx context.Context, req SaveRequest) (string, error) {
 	}
 
 	if isNew {
-		s.emitEvent(events.EntryCreated, map[string]any{
-			"path":      docPath,
-			"projectId": projectID,
-			"title":     req.Title,
+		s.emitEvent(events.EntryCreated, events.EntryCreatedData{
+			Path:      docPath,
+			ProjectID: projectID,
+			Title:     req.Title,
 		})
 		s.emitDocumentCountChange(ctx, req.ProjectAlias)
 	} else {
-		s.emitEvent(events.EntryUpdated, map[string]any{
-			"path":      docPath,
-			"projectId": projectID,
-			"title":     req.Title,
+		s.emitEvent(events.EntryUpdated, events.EntryUpdatedData{
+			Path:      docPath,
+			ProjectID: projectID,
+			Title:     req.Title,
 		})
 	}
 
@@ -319,9 +319,9 @@ func (s *Service) SoftDelete(ctx context.Context, path string) error {
 	if proj, err := s.projectCache.GetByAlias(ctx, doc.ProjectAlias); err == nil && proj != nil {
 		deletedProjectID = proj.ID
 	}
-	s.emitEvent(events.EntryDeleted, map[string]any{
-		"path":      path,
-		"projectId": deletedProjectID,
+	s.emitEvent(events.EntryDeleted, events.EntryDeletedData{
+		Path:      path,
+		ProjectID: deletedProjectID,
 	})
 	s.emitDocumentCountChange(ctx, doc.ProjectAlias)
 
@@ -374,9 +374,9 @@ func (s *Service) Restore(ctx context.Context, path string) error {
 	if proj, err := s.projectCache.GetByAlias(ctx, doc.ProjectAlias); err == nil && proj != nil {
 		restoredProjectID = proj.ID
 	}
-	s.emitEvent(events.EntryRestored, map[string]any{
-		"path":      path,
-		"projectId": restoredProjectID,
+	s.emitEvent(events.EntryRestored, events.EntryRestoredData{
+		Path:      path,
+		ProjectID: restoredProjectID,
 	})
 	s.emitDocumentCountChange(ctx, doc.ProjectAlias)
 
@@ -434,10 +434,10 @@ func (s *Service) HardDelete(ctx context.Context, path string) error {
 		deletedProjectID = proj.ID
 	}
 
-	s.emitEvent(events.EntryDeleted, map[string]any{
-		"path":      path,
-		"projectId": deletedProjectID,
-		"hard":      true,
+	s.emitEvent(events.EntryDeleted, events.EntryDeletedData{
+		Path:      path,
+		ProjectID: deletedProjectID,
+		Hard:      true,
 	})
 	s.emitDocumentCountChange(ctx, doc.ProjectAlias)
 
@@ -500,10 +500,10 @@ func (s *Service) HardDeleteBatch(ctx context.Context, paths []string) error {
 				deletedProjectID = proj.ID
 			}
 
-			s.emitEvent(events.EntryDeleted, map[string]any{
-				"path":      path,
-				"projectId": deletedProjectID,
-				"hard":      true,
+			s.emitEvent(events.EntryDeleted, events.EntryDeletedData{
+				Path:      path,
+				ProjectID: deletedProjectID,
+				Hard:      true,
 			})
 			s.emitDocumentCountChange(ctx, doc.ProjectAlias)
 		}

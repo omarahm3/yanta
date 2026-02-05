@@ -59,29 +59,26 @@ export const DocumentCountProvider: React.FC<DocumentCountProviderProps> = ({ ch
 	useEffect(() => {
 		const unsubscribers = [
 			Events.On("yanta/entry/created", (ev) => {
-				const data = ev.data as { projectId: string };
 				setCounts((prev) => {
 					const next = new Map(prev);
-					const currentCount = prev.get(data.projectId) ?? 0;
-					next.set(data.projectId, currentCount + 1);
+					const currentCount = prev.get(ev.data.projectId) ?? 0;
+					next.set(ev.data.projectId, currentCount + 1);
 					return next;
 				});
 			}),
 			Events.On("yanta/entry/deleted", (ev) => {
-				const data = ev.data as { projectId: string };
 				setCounts((prev) => {
 					const next = new Map(prev);
-					const currentCount = prev.get(data.projectId) ?? 0;
-					next.set(data.projectId, Math.max(0, currentCount - 1));
+					const currentCount = prev.get(ev.data.projectId) ?? 0;
+					next.set(ev.data.projectId, Math.max(0, currentCount - 1));
 					return next;
 				});
 			}),
 			Events.On("yanta/entry/restored", (ev) => {
-				const data = ev.data as { projectId: string };
 				setCounts((prev) => {
 					const next = new Map(prev);
-					const currentCount = prev.get(data.projectId) ?? 0;
-					next.set(data.projectId, currentCount + 1);
+					const currentCount = prev.get(ev.data.projectId) ?? 0;
+					next.set(ev.data.projectId, currentCount + 1);
 					return next;
 				});
 			}),

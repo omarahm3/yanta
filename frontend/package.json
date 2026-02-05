@@ -30,7 +30,7 @@
     "@radix-ui/react-switch": "^1.1.3",
     "@radix-ui/react-toast": "^1.2.15",
     "@tailwindcss/forms": "^0.5.10",
-    "@wailsio/runtime": "^3.0.0-alpha.73",
+    "@wailsio/runtime": "^3.0.0-alpha.79",
     "autoprefixer": "^10.4.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

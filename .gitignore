@@ -56,3 +56,4 @@ CLAUDE.md
 logs/security/
 
 Auto Run Docs/
+frontend/bindings/*

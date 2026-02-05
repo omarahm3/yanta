@@ -1,6 +1,56 @@
 // Package events defines event types and provides an event bus for inter-component communication.
 package events
 
+import "github.com/wailsapp/wails/v3/pkg/application"
+
+type EntryCreatedData struct {
+	Path      string `json:"path,omitempty"`
+	ProjectID string `json:"projectId"`
+	Title     string `json:"title,omitempty"`
+	Type      string `json:"type,omitempty"`
+	Date      string `json:"date,omitempty"`
+	EntryID   string `json:"entryId,omitempty"`
+}
+
+type EntryUpdatedData struct {
+	Path      string `json:"path,omitempty"`
+	ProjectID string `json:"projectId"`
+	Title     string `json:"title,omitempty"`
+	Type      string `json:"type,omitempty"`
+	Date      string `json:"date,omitempty"`
+	EntryID   string `json:"entryId,omitempty"`
+}
+
+type EntryDeletedData struct {
+	Path      string `json:"path,omitempty"`
+	ProjectID string `json:"projectId"`
+	Type      string `json:"type,omitempty"`
+	Date      string `json:"date,omitempty"`
+	EntryID   string `json:"entryId,omitempty"`
+	Hard      bool   `json:"hard,omitempty"`
+}
+
+type EntryRestoredData struct {
+	Path      string `json:"path,omitempty"`
+	ProjectID string `json:"projectId"`
+	Type      string `json:"type,omitempty"`
+	Date      string `json:"date,omitempty"`
+	EntryID   string `json:"entryId,omitempty"`
+}
+
+type ProjectChangedData struct {
+	ID string `json:"id"`
+	Op string `json:"op"`
+}
+
+func init() {
+	application.RegisterEvent[EntryCreatedData](EntryCreated)
+	application.RegisterEvent[EntryUpdatedData](EntryUpdated)
+	application.RegisterEvent[EntryDeletedData](EntryDeleted)
+	application.RegisterEvent[EntryRestoredData](EntryRestored)
+	application.RegisterEvent[ProjectChangedData](ProjectChanged)
+}
+
 const (
 	AppReady            = "yanta/app/ready"
 	ToastEvent          = "yanta/ui/toast"
