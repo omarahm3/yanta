@@ -3,23 +3,15 @@ package events
 
 import "github.com/wailsapp/wails/v3/pkg/application"
 
-// Typed event payload structs for high-traffic events.
-// These are registered with the Wails binding generator to produce
-// type-safe event helpers on the frontend.
-
-// EntryCreatedData is the payload for entry creation events.
-// Fields are optional (pointers) because documents and journal entries
-// emit different subsets: documents use Path/Title, journals use Date/EntryID.
 type EntryCreatedData struct {
 	Path      string `json:"path,omitempty"`
 	ProjectID string `json:"projectId"`
 	Title     string `json:"title,omitempty"`
-	Type      string `json:"type,omitempty"`  // "journal" or "document"
-	Date      string `json:"date,omitempty"`  // journal entries only
-	EntryID   string `json:"entryId,omitempty"` // journal entries only
+	Type      string `json:"type,omitempty"`
+	Date      string `json:"date,omitempty"`
+	EntryID   string `json:"entryId,omitempty"`
 }
 
-// EntryUpdatedData is the payload for entry update events.
 type EntryUpdatedData struct {
 	Path      string `json:"path,omitempty"`
 	ProjectID string `json:"projectId"`
@@ -29,29 +21,26 @@ type EntryUpdatedData struct {
 	EntryID   string `json:"entryId,omitempty"`
 }
 
-// EntryDeletedData is the payload for entry deletion events.
 type EntryDeletedData struct {
 	Path      string `json:"path,omitempty"`
 	ProjectID string `json:"projectId"`
-	Type      string `json:"type,omitempty"`    // "journal" or "document"
-	Date      string `json:"date,omitempty"`    // journal entries only
-	EntryID   string `json:"entryId,omitempty"` // journal entries only
-	Hard      bool   `json:"hard,omitempty"`    // true for permanent deletion
+	Type      string `json:"type,omitempty"`
+	Date      string `json:"date,omitempty"`
+	EntryID   string `json:"entryId,omitempty"`
+	Hard      bool   `json:"hard,omitempty"`
 }
 
-// EntryRestoredData is the payload for entry restore events.
 type EntryRestoredData struct {
 	Path      string `json:"path,omitempty"`
 	ProjectID string `json:"projectId"`
-	Type      string `json:"type,omitempty"`    // "journal" or "document"
-	Date      string `json:"date,omitempty"`    // journal entries only
-	EntryID   string `json:"entryId,omitempty"` // journal entries only
+	Type      string `json:"type,omitempty"`
+	Date      string `json:"date,omitempty"`
+	EntryID   string `json:"entryId,omitempty"`
 }
 
-// ProjectChangedData is the payload for project lifecycle events.
 type ProjectChangedData struct {
 	ID string `json:"id"`
-	Op string `json:"op"` // "create", "update", "delete", "restore"
+	Op string `json:"op"`
 }
 
 func init() {
