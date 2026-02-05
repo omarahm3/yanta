@@ -1,6 +1,11 @@
 import type React from "react";
-import { createContext, useCallback, useMemo, useReducer } from "react";
-import { clearPaneLayout, loadPaneLayout, usePanePersistence } from "../hooks/usePanePersistence";
+import { createContext, useCallback, useMemo, useReducer, useRef } from "react";
+import {
+	flushSaveLayout,
+	loadLayoutForDocument,
+	loadPaneLayout,
+	usePanePersistence,
+} from "../hooks/usePanePersistence";
 import type { PaneLayoutState, ScrollPosition, SplitDirection } from "../types/PaneLayout";
 import { createDefaultPaneLayout } from "../types/PaneLayout";
 import {
@@ -27,7 +32,7 @@ type PaneLayoutAction =
 	| { type: "SWAP_DOCUMENTS"; paneIdA: string; paneIdB: string }
 	| { type: "UPDATE_SCROLL_POSITION"; paneId: string; scrollPosition: ScrollPosition }
 	| { type: "RESTORE_LAYOUT"; state: PaneLayoutState }
-	| { type: "RESET_LAYOUT" };
+	| { type: "RESET_LAYOUT"; primaryDocumentPath?: string | null };
 
 // --- Reducer ---
 
@@ -36,7 +41,13 @@ function paneLayoutReducer(state: PaneLayoutState, action: PaneLayoutAction): Pa
 		case "SPLIT_PANE": {
 			const newRoot = splitPaneUtil(state.root, action.paneId, action.direction);
 			if (newRoot === state.root) return state;
-			return { ...state, root: newRoot };
+			const oldLeafIds = new Set(getLeaves(state.root).map((l) => l.id));
+			const newPane = getLeaves(newRoot).find((l) => !oldLeafIds.has(l.id));
+			return {
+				...state,
+				root: newRoot,
+				activePaneId: newPane ? newPane.id : state.activePaneId,
+			};
 		}
 		case "CLOSE_PANE": {
 			const newRoot = closePaneUtil(state.root, action.paneId);
@@ -44,6 +55,7 @@ function paneLayoutReducer(state: PaneLayoutState, action: PaneLayoutAction): Pa
 			const leaves = getLeaves(newRoot);
 			const activeStillExists = leaves.some((leaf) => leaf.id === state.activePaneId);
 			return {
+				...state,
 				root: newRoot,
 				activePaneId: activeStillExists ? state.activePaneId : leaves[0].id,
 			};
@@ -87,7 +99,11 @@ function paneLayoutReducer(state: PaneLayoutState, action: PaneLayoutAction): Pa
 			return action.state;
 		}
 		case "RESET_LAYOUT": {
-			return createDefaultPaneLayout();
+			const defaultLayout = createDefaultPaneLayout();
+			return {
+				...defaultLayout,
+				primaryDocumentPath: action.primaryDocumentPath ?? null,
+			};
 		}
 		default:
 			return state;
@@ -108,6 +124,7 @@ export interface PaneLayoutContextValue {
 	swapPaneDocuments: (paneIdA: string, paneIdB: string) => void;
 	updateScrollPosition: (paneId: string, scrollPosition: ScrollPosition) => void;
 	resetLayout: () => void;
+	loadAndRestoreLayout: (docPath: string) => void;
 }
 
 export const PaneLayoutContext = createContext<PaneLayoutContextValue | undefined>(undefined);
@@ -116,12 +133,10 @@ export const PaneLayoutContext = createContext<PaneLayoutContextValue | undefine
 
 export const PaneLayoutProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 	const [state, dispatch] = useReducer(paneLayoutReducer, undefined, loadPaneLayout);
+	const stateRef = useRef(state);
+	stateRef.current = state;
 
-	const handleRestore = useCallback((restoredState: PaneLayoutState) => {
-		dispatch({ type: "RESTORE_LAYOUT", state: restoredState });
-	}, []);
-
-	usePanePersistence(state, handleRestore);
+	usePanePersistence(state);
 
 	const splitPane = useCallback((paneId: string, direction: SplitDirection) => {
 		dispatch({ type: "SPLIT_PANE", paneId, direction });
@@ -156,8 +171,18 @@ export const PaneLayoutProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 	}, []);
 
 	const resetLayout = useCallback(() => {
-		clearPaneLayout();
 		dispatch({ type: "RESET_LAYOUT" });
+	}, []);
+
+	const loadAndRestoreLayout = useCallback((docPath: string) => {
+		flushSaveLayout(stateRef.current);
+		const savedLayout = loadLayoutForDocument(docPath);
+		if (savedLayout) {
+			dispatch({ type: "RESTORE_LAYOUT", state: savedLayout });
+		} else {
+			dispatch({ type: "RESET_LAYOUT", primaryDocumentPath: docPath });
+			dispatch({ type: "OPEN_DOCUMENT", paneId: "pane-1", documentPath: docPath });
+		}
 	}, []);
 
 	const value = useMemo<PaneLayoutContextValue>(
@@ -173,6 +198,7 @@ export const PaneLayoutProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 			swapPaneDocuments,
 			updateScrollPosition,
 			resetLayout,
+			loadAndRestoreLayout,
 		}),
 		[
 			state,
@@ -185,6 +211,7 @@ export const PaneLayoutProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 			swapPaneDocuments,
 			updateScrollPosition,
 			resetLayout,
+			loadAndRestoreLayout,
 		],
 	);
 

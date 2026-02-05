@@ -20,6 +20,7 @@ let mockLayout = {
 		sizes: [50, 50] as [number, number],
 	},
 	activePaneId: "pane-2",
+	primaryDocumentPath: "proj/doc1" as string | null,
 };
 
 vi.mock("../../../hooks/usePaneLayout", () => ({
@@ -45,8 +46,12 @@ vi.mock("../PaneHeader", () => ({
 	PaneHeader: () => <div data-testid="pane-header" />,
 }));
 
-vi.mock("../EmptyPane", () => ({
-	EmptyPane: () => <div data-testid="empty-pane" />,
+vi.mock("../EmptyPaneDocumentPicker", () => ({
+	EmptyPaneDocumentPicker: () => <div data-testid="empty-pane-picker" />,
+}));
+
+vi.mock("../../../hooks/useHotkey", () => ({
+	useHotkey: () => {},
 }));
 
 import { PaneContent } from "../PaneContent";
@@ -74,10 +79,11 @@ describe("PaneContent escape handling", () => {
 		expect(mockOnNavigate).not.toHaveBeenCalled();
 	});
 
-	it("navigates to dashboard on ESC when only one pane exists", () => {
+	it("does nothing on ESC when only one empty pane exists", () => {
 		mockLayout = {
 			root: { type: "leaf" as const, id: "pane-1", documentPath: null } as any,
 			activePaneId: "pane-1",
+			primaryDocumentPath: null,
 		};
 
 		render(<PaneContent paneId="pane-1" documentPath={null} />);
@@ -91,8 +97,8 @@ describe("PaneContent escape handling", () => {
 			window.dispatchEvent(event);
 		});
 
-		expect(mockOnNavigate).toHaveBeenCalledWith("dashboard");
 		expect(mockClosePane).not.toHaveBeenCalled();
+		expect(mockOnNavigate).not.toHaveBeenCalled();
 	});
 
 	it("does not handle ESC when pane is not active", () => {
@@ -108,6 +114,7 @@ describe("PaneContent escape handling", () => {
 				sizes: [50, 50] as [number, number],
 			},
 			activePaneId: "pane-1",
+			primaryDocumentPath: null,
 		};
 
 		render(<PaneContent paneId="pane-2" documentPath={null} />);
@@ -129,6 +136,7 @@ describe("PaneContent escape handling", () => {
 		mockLayout = {
 			root: { type: "leaf" as const, id: "pane-1", documentPath: "proj/doc1" } as any,
 			activePaneId: "pane-1",
+			primaryDocumentPath: "proj/doc1",
 		};
 
 		render(<PaneContent paneId="pane-1" documentPath="proj/doc1" />);

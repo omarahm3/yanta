@@ -3,90 +3,108 @@ import type { PaneLayoutState } from "../types/PaneLayout";
 import { createDefaultPaneLayout } from "../types/PaneLayout";
 import { restoreLayout } from "../utils/paneLayoutUtils";
 
-const STORAGE_KEY = "yanta_pane_layout";
+const OLD_STORAGE_KEY = "yanta_pane_layout";
+const STORAGE_KEY = "yanta_pane_layouts";
 const SAVE_DEBOUNCE_MS = 500;
 const PERSISTENCE_VERSION = 1;
 
-interface PersistedPaneLayout {
-	version: number;
+interface PersistedLayoutEntry {
 	root: PaneLayoutState["root"];
 	activePaneId: string;
 }
 
-/**
- * Load pane layout from localStorage, validating and falling back to default on failure.
- * Handles corrupted data (JSON parse errors), version mismatches, and invalid tree structures.
- */
-export function loadPaneLayout(): PaneLayoutState {
+interface PersistedLayoutMap {
+	version: number;
+	layouts: Record<string, PersistedLayoutEntry>;
+}
+
+function loadLayoutMap(): PersistedLayoutMap {
 	try {
+		const oldData = localStorage.getItem(OLD_STORAGE_KEY);
+		if (oldData) {
+			localStorage.removeItem(OLD_STORAGE_KEY);
+		}
+
 		const stored = localStorage.getItem(STORAGE_KEY);
 		if (!stored) {
-			return createDefaultPaneLayout();
+			return { version: PERSISTENCE_VERSION, layouts: {} };
 		}
 		const parsed = JSON.parse(stored);
-		if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-			return createDefaultPaneLayout();
+		if (
+			typeof parsed !== "object" ||
+			parsed === null ||
+			Array.isArray(parsed) ||
+			parsed.version !== PERSISTENCE_VERSION ||
+			typeof parsed.layouts !== "object"
+		) {
+			return { version: PERSISTENCE_VERSION, layouts: {} };
 		}
-		if (parsed.version !== PERSISTENCE_VERSION) {
-			return createDefaultPaneLayout();
-		}
-		if (!parsed.root || typeof parsed.activePaneId !== "string") {
-			return createDefaultPaneLayout();
-		}
-		return restoreLayout({
-			root: parsed.root,
-			activePaneId: parsed.activePaneId,
-		});
+		return parsed as PersistedLayoutMap;
 	} catch {
-		return createDefaultPaneLayout();
+		return { version: PERSISTENCE_VERSION, layouts: {} };
 	}
 }
 
-/**
- * Save pane layout to localStorage.
- */
-function savePaneLayout(state: PaneLayoutState): void {
+function saveLayoutMap(map: PersistedLayoutMap): void {
 	try {
-		const data: PersistedPaneLayout = {
-			version: PERSISTENCE_VERSION,
-			root: state.root,
-			activePaneId: state.activePaneId,
-		};
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
 	} catch (err) {
 		console.error("[usePanePersistence] Failed to save to localStorage:", err);
 	}
 }
 
-/**
- * Clear pane layout from localStorage, resetting to default single pane.
- */
-export function clearPaneLayout(): void {
-	try {
-		localStorage.removeItem(STORAGE_KEY);
-	} catch (err) {
-		console.error("[usePanePersistence] Failed to clear localStorage:", err);
-	}
+export function loadPaneLayout(): PaneLayoutState {
+	return createDefaultPaneLayout();
 }
 
-/**
- * Hook that manages pane layout persistence to localStorage.
- * Debounces saves (500ms) and listens for cross-tab sync via StorageEvent.
- */
-export function usePanePersistence(
-	state: PaneLayoutState,
-	onRestore: (state: PaneLayoutState) => void,
-): void {
+export function loadLayoutForDocument(docPath: string): PaneLayoutState | null {
+	const map = loadLayoutMap();
+	const entry = map.layouts[docPath];
+	if (!entry || !entry.root || typeof entry.activePaneId !== "string") {
+		return null;
+	}
+	const restored = restoreLayout({
+		root: entry.root,
+		activePaneId: entry.activePaneId,
+	});
+	return { ...restored, primaryDocumentPath: docPath };
+}
+
+export function saveLayoutForDocument(docPath: string, state: PaneLayoutState): void {
+	const map = loadLayoutMap();
+	map.layouts[docPath] = {
+		root: state.root,
+		activePaneId: state.activePaneId,
+	};
+	saveLayoutMap(map);
+}
+
+export function clearLayoutForDocument(docPath: string): void {
+	const map = loadLayoutMap();
+	delete map.layouts[docPath];
+	saveLayoutMap(map);
+}
+
+function savePaneLayout(state: PaneLayoutState): void {
+	if (!state.primaryDocumentPath) return;
+	saveLayoutForDocument(state.primaryDocumentPath, state);
+}
+
+export function flushSaveLayout(state: PaneLayoutState): void {
+	savePaneLayout(state);
+}
+
+export function usePanePersistence(state: PaneLayoutState): void {
 	const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const isInitialMount = useRef(true);
 
-	// Debounced save on state change
 	useEffect(() => {
-		// Skip the initial mount since state comes from localStorage
 		if (isInitialMount.current) {
 			isInitialMount.current = false;
 			return;
 		}
+
+		if (!state.primaryDocumentPath) return;
 
 		if (debounceTimerRef.current) {
 			clearTimeout(debounceTimerRef.current);
@@ -102,18 +120,4 @@ export function usePanePersistence(
 			}
 		};
 	}, [state]);
-
-	// Cross-tab sync via StorageEvent
-	useEffect(() => {
-		const handleStorageChange = (event: StorageEvent) => {
-			if (event.key === STORAGE_KEY) {
-				onRestore(loadPaneLayout());
-			}
-		};
-
-		window.addEventListener("storage", handleStorageChange);
-		return () => {
-			window.removeEventListener("storage", handleStorageChange);
-		};
-	}, [onRestore]);
 }
