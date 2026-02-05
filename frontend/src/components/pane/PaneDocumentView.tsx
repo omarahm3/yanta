@@ -43,7 +43,10 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 			const onKeyDown = (e: KeyboardEvent) => {
 				if (e.key !== "Escape") return;
 				if (activePaneIdRef.current !== paneId) return;
-				if (suppressEscapeRef.current) return;
+				if (suppressEscapeRef.current) {
+					e.preventDefault();
+					return;
+				}
 				controller.escapeHandler(e);
 				e.stopPropagation();
 				e.stopImmediatePropagation();

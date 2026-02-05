@@ -393,7 +393,11 @@ export function useDocumentController({
 			},
 			{
 				key: "Escape",
-				handler: handleEscape,
+				handler: (event: KeyboardEvent) => {
+					if (!isActivePaneRef.current) return false;
+					if (event.defaultPrevented) return false;
+					handleEscape(event);
+				},
 				allowInInput: true,
 				capture: true,
 				description: "Unfocus editor, or go back to dashboard",
