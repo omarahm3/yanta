@@ -75,7 +75,7 @@ export const MilestoneHint: React.FC<MilestoneHintProps> = ({
 			className={cn(
 				"fixed bottom-4 left-1/2 -translate-x-1/2 z-40",
 				"flex items-center gap-3 px-4 py-3 rounded-lg",
-				"bg-surface border border-border shadow-lg",
+				"bg-glass-bg/80 backdrop-blur-xl border border-glass-border shadow-lg",
 				"transition-all duration-200",
 				isExiting ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0",
 				className,
@@ -90,7 +90,7 @@ export const MilestoneHint: React.FC<MilestoneHintProps> = ({
 			<button
 				type="button"
 				onClick={handleDismiss}
-				className="ml-2 p-1 rounded hover:bg-bg text-text-dim hover:text-text transition-colors"
+				className="ml-2 p-1 rounded hover:bg-glass-bg/30 text-text-dim hover:text-text transition-colors"
 				aria-label="Dismiss hint"
 				data-testid="milestone-hint-dismiss"
 			>

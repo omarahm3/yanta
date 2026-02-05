@@ -118,7 +118,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
 						value={name}
 						onChange={handleNameChange}
 						placeholder="My Project"
-						className="w-full px-3 py-2 bg-bg-secondary border border-border rounded-md text-text placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+						className="w-full px-3 py-2 bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded-md text-text placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
 					/>
 					{errors.name && <p className="mt-1 text-sm text-red">{errors.name}</p>}
 				</div>
@@ -133,7 +133,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
 						value={alias}
 						onChange={handleAliasChange}
 						placeholder="@my-project"
-						className="w-full px-3 py-2 bg-bg-secondary border border-border rounded-md text-text placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent font-mono"
+						className="w-full px-3 py-2 bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded-md text-text placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent font-mono"
 					/>
 					{errors.alias && <p className="mt-1 text-sm text-red">{errors.alias}</p>}
 					<p className="mt-1 text-xs text-text-dim">
@@ -151,7 +151,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
 							type="date"
 							value={startDate}
 							onChange={(e) => setStartDate(e.target.value)}
-							className="w-full px-3 py-2 bg-bg-secondary border border-border rounded-md text-text focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+							className="w-full px-3 py-2 bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded-md text-text focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
 						/>
 					</div>
 
@@ -164,7 +164,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
 							type="date"
 							value={endDate}
 							onChange={(e) => setEndDate(e.target.value)}
-							className="w-full px-3 py-2 bg-bg-secondary border border-border rounded-md text-text focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+							className="w-full px-3 py-2 bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded-md text-text focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
 						/>
 					</div>
 				</div>
@@ -173,7 +173,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
 					<button
 						type="button"
 						onClick={onClose}
-						className="px-4 py-2 text-sm font-medium text-text-dim hover:text-text bg-bg-secondary border border-border rounded-md hover:bg-border transition-colors"
+						className="px-4 py-2 text-sm font-medium text-text-dim hover:text-text bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded-md hover:bg-glass-bg/40 transition-colors"
 					>
 						Cancel
 					</button>

@@ -14,12 +14,12 @@ interface ShortcutBadgeProps {
 
 const ShortcutBadge: React.FC<ShortcutBadgeProps> = ({ keys, label }) => {
 	return (
-		<div className="flex items-center gap-4 p-4 rounded-lg bg-bg border border-border">
+		<div className="flex items-center gap-4 p-4 rounded-lg bg-glass-bg/20 backdrop-blur-sm border border-glass-border">
 			<div className="flex items-center gap-1">
 				{keys.map((key, index) => (
 					<span key={key}>
 						{index > 0 && <span className="text-text-dim mx-1">+</span>}
-						<kbd className="inline-flex items-center justify-center min-w-[2rem] h-8 px-2 text-sm font-mono font-semibold rounded bg-surface border border-border text-accent">
+						<kbd className="inline-flex items-center justify-center min-w-[2rem] h-8 px-2 text-sm font-mono font-semibold rounded bg-glass-bg/30 backdrop-blur-sm border border-glass-border text-accent">
 							{key}
 						</kbd>
 					</span>
@@ -71,12 +71,12 @@ export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ className }) => 
 			className={cn("fixed inset-0 z-50 flex items-center justify-center", className)}
 			data-testid="welcome-overlay"
 		>
-			{/* Semi-transparent dark backdrop - not clickable to dismiss */}
-			<div className="absolute inset-0 bg-black/70" aria-hidden="true" />
+			{/* Frosted glass backdrop - not clickable to dismiss */}
+			<div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
 
 			{/* Centered card */}
 			<div
-				className="relative z-10 w-full max-w-md mx-4 p-8 rounded-lg bg-surface border border-border shadow-2xl"
+				className="relative z-10 w-full max-w-md mx-4 p-8 rounded-xl bg-glass-bg/80 backdrop-blur-xl border border-glass-border shadow-2xl"
 				role="dialog"
 				aria-modal="true"
 				aria-labelledby="welcome-title"

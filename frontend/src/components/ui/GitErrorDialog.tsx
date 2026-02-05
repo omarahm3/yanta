@@ -36,11 +36,13 @@ export const GitErrorDialog: React.FC<GitErrorDialogProps> = ({ isOpen, onClose,
 	return (
 		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
 			<DialogContent
-				className={cn("sm:max-w-2xl p-0 bg-surface border-border overflow-hidden")}
+				className={cn(
+					"sm:max-w-2xl p-0 bg-glass-bg/90 backdrop-blur-xl border-glass-border overflow-hidden",
+				)}
 				showCloseButton={false}
 			>
 				{/* Header */}
-				<DialogHeader className="flex flex-row items-start justify-between px-6 py-4 border-b border-border gap-0">
+				<DialogHeader className="flex flex-row items-start justify-between px-6 py-4 border-b border-glass-border gap-0">
 					<div className="flex items-center gap-3">
 						{getIcon()}
 						<DialogTitle className="text-lg font-semibold text-text-bright">{error.title}</DialogTitle>
@@ -56,7 +58,7 @@ export const GitErrorDialog: React.FC<GitErrorDialogProps> = ({ isOpen, onClose,
 				</DialogHeader>
 
 				<div className="px-6 py-4 max-h-[60vh] overflow-y-auto">
-					<div className="bg-bg rounded-lg p-4 border border-border">
+					<div className="bg-glass-bg/20 backdrop-blur-sm rounded-lg p-4 border border-glass-border">
 						<pre className="text-xs text-text-dim font-mono whitespace-pre-wrap break-words leading-relaxed">
 							{error.technicalDetails}
 						</pre>
@@ -64,7 +66,7 @@ export const GitErrorDialog: React.FC<GitErrorDialogProps> = ({ isOpen, onClose,
 				</div>
 
 				{/* Footer */}
-				<DialogFooter className="px-6 py-4 border-t border-border">
+				<DialogFooter className="px-6 py-4 border-t border-glass-border">
 					<Button variant="primary" onClick={onClose}>
 						Close
 					</Button>

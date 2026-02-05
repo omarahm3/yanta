@@ -189,12 +189,12 @@ const HelpSection: React.FC<HelpSectionProps> = ({
 	const contentId = `help-section-content-${sectionId}`;
 
 	return (
-		<div className="border-b border-border/30 last:border-b-0" role="group">
+		<div className="border-b border-glass-border/30 last:border-b-0" role="group">
 			<button
 				type="button"
 				id={headerId}
 				onClick={onToggle}
-				className="w-full flex items-center gap-2 py-3 px-4 text-left select-none cursor-pointer hover:bg-surface transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-inset"
+				className="w-full flex items-center gap-2 py-3 px-4 text-left select-none cursor-pointer hover:bg-glass-bg/20 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-inset"
 				aria-expanded={isExpanded}
 				aria-controls={contentId}
 				aria-label={`${title}, ${shortcutCount} shortcuts, ${isExpanded ? "expanded" : "collapsed"}. Press Enter or Space to ${isExpanded ? "collapse" : "expand"}.`}
@@ -482,9 +482,9 @@ export const HelpModal: React.FC = () => {
 	return (
 		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
 			<DialogContent
-				className="w-[480px] max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-hidden bg-bg border border-border rounded-[12px] p-0"
+				className="w-[480px] max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-hidden bg-glass-bg/90 backdrop-blur-xl border border-glass-border rounded-[12px] p-0"
 				style={{
-					boxShadow: "0 16px 48px rgba(0, 0, 0, 0.24)",
+					boxShadow: "0 16px 48px rgba(0, 0, 0, 0.4)",
 				}}
 				showCloseButton={false}
 				aria-label="Keyboard shortcuts help modal"
@@ -501,7 +501,7 @@ export const HelpModal: React.FC = () => {
 					</p>
 				</VisuallyHidden>
 
-				<DialogHeader className="flex flex-row items-center justify-between px-4 py-4 border-b border-border/40">
+				<DialogHeader className="flex flex-row items-center justify-between px-4 py-4 border-b border-glass-border">
 					<DialogTitle className="text-base font-semibold text-text">Keyboard Shortcuts</DialogTitle>
 					<button
 						ref={closeButtonRef}
@@ -527,7 +527,7 @@ export const HelpModal: React.FC = () => {
 							placeholder="Search shortcuts..."
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
-							className="w-full px-3 py-2 bg-surface border border-border/40 rounded-md text-text placeholder-text-dim focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/30 transition-all text-sm"
+							className="w-full px-3 py-2 bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded-md text-text placeholder-text-dim focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/30 transition-all text-sm"
 							aria-describedby="help-search-results"
 							autoComplete="off"
 						/>
@@ -566,7 +566,7 @@ export const HelpModal: React.FC = () => {
 					{/* Global commands section (colon commands) */}
 					{filteredGlobalCommands.length > 0 && (
 						<section
-							className="px-4 py-3 border-b border-border/30"
+							className="px-4 py-3 border-b border-glass-border/30"
 							aria-labelledby="global-commands-heading"
 						>
 							<Heading
@@ -596,7 +596,7 @@ export const HelpModal: React.FC = () => {
 					{/* Page-specific commands */}
 					{filteredPageCommands.length > 0 && (
 						<section
-							className="px-4 py-3 border-b border-border/30"
+							className="px-4 py-3 border-b border-glass-border/30"
 							aria-labelledby="page-commands-heading"
 						>
 							<Heading

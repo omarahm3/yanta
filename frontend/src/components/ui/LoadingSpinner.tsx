@@ -36,14 +36,14 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 	}, [message]);
 
 	const containerClass = fullScreen
-		? "fixed inset-0 flex items-center justify-center bg-bg-primary z-50"
+		? "fixed inset-0 flex items-center justify-center bg-glass-bg/40 backdrop-blur-sm z-50"
 		: "flex items-center justify-center h-full w-full";
 
 	return (
 		<div className={containerClass}>
 			<div className="flex flex-col items-center gap-4">
 				<div className="relative">
-					<div className="w-12 h-12 border-4 border-border rounded-full"></div>
+					<div className="w-12 h-12 border-4 border-glass-border rounded-full"></div>
 					<div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
 				</div>
 				<div className="text-text-dim text-sm font-mono">{message}</div>

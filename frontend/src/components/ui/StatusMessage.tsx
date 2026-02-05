@@ -39,7 +39,7 @@ export const StatusMessage: React.FC<StatusMessageProps> = ({
 	return (
 		<div
 			className={cn(
-				"fixed bottom-5 right-5 px-4 py-2 bg-surface border rounded text-sm font-medium",
+				"fixed bottom-5 right-5 px-4 py-2 bg-glass-bg/80 backdrop-blur-xl border border-glass-border rounded-lg text-sm font-medium shadow-lg",
 				typeStyles[type],
 				className,
 			)}

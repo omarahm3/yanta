@@ -33,11 +33,11 @@ interface VaultStatsCardProps {
 
 const VaultStatsCard: React.FC<VaultStatsCardProps> = ({ title, path, stats, variant }) => {
 	const borderColor = variant === "local" ? "border-blue-500/50" : "border-green-500/50";
-	const bgColor = variant === "local" ? "bg-blue-500/5" : "bg-green-500/5";
+	const bgColor = variant === "local" ? "bg-blue-500/10" : "bg-green-500/10";
 	const iconColor = variant === "local" ? "text-blue-400" : "text-green-400";
 
 	return (
-		<div className={`flex-1 p-3 rounded border ${borderColor} ${bgColor}`}>
+		<div className={`flex-1 p-3 rounded-lg border backdrop-blur-sm ${borderColor} ${bgColor}`}>
 			<div className="flex items-center gap-2 mb-2">
 				<HardDrive className={`w-4 h-4 ${iconColor}`} />
 				<span className="text-sm font-medium text-text">{title}</span>
@@ -90,10 +90,10 @@ const StrategyOption: React.FC<StrategyOptionProps> = ({
 		<button
 			type="button"
 			onClick={() => onSelect(strategy)}
-			className={`w-full text-left p-3 rounded border transition-colors ${
+			className={`w-full text-left p-3 rounded-lg border transition-colors ${
 				selected
-					? "border-accent bg-accent/10"
-					: "border-border hover:border-border-hover hover:bg-bg-hover"
+					? "border-accent bg-accent/10 backdrop-blur-sm"
+					: "border-glass-border hover:border-accent/30 hover:bg-glass-bg/20"
 			}`}
 		>
 			<div className="flex items-start gap-3">
