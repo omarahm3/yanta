@@ -1,9 +1,10 @@
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useHotkey } from "../../hooks/useHotkey";
 import { usePaneLayout } from "../../hooks/usePaneLayout";
 import { cn } from "../../lib/utils";
 import { countLeaves } from "../../utils/paneLayoutUtils";
-import { EmptyPane } from "./EmptyPane";
+import { EmptyPaneDocumentPicker } from "./EmptyPaneDocumentPicker";
 import { PaneDocumentView } from "./PaneDocumentView";
 import { PaneHeader } from "./PaneHeader";
 import { usePaneNavigateContext } from "./PaneNavigateContext";
@@ -21,6 +22,7 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 		usePaneLayout();
 	const appOnNavigate = usePaneNavigateContext();
 	const [isDragOver, setIsDragOver] = useState(false);
+	const [showPicker, setShowPicker] = useState(false);
 
 	const activePaneIdRef = useRef(activePaneId);
 	activePaneIdRef.current = activePaneId;
@@ -39,14 +41,28 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 
 			if (countLeaves(layoutRef.current.root) > 1) {
 				closePane(paneId);
-			} else {
-				appOnNavigate?.("dashboard");
 			}
 		};
 
 		window.addEventListener("keydown", onKeyDown, true);
 		return () => window.removeEventListener("keydown", onKeyDown, true);
 	}, [documentPath, paneId, appOnNavigate, closePane]);
+
+	useEffect(() => {
+		setShowPicker(false);
+	}, [documentPath]);
+
+	useHotkey({
+		key: "alt+O",
+		allowInInput: true,
+		capture: true,
+		description: "Toggle document picker overlay",
+		handler: (e: KeyboardEvent) => {
+			if (activePaneIdRef.current !== paneId) return false;
+			e.preventDefault();
+			setShowPicker((prev) => !prev);
+		},
+	});
 
 	const handlePaneNavigate = useCallback(
 		(page: string, state?: Record<string, string | number | boolean | undefined>) => {
@@ -100,7 +116,7 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 	return (
 		<div
 			className={cn(
-				"flex flex-col h-full w-full transition-colors",
+				"relative flex flex-col h-full w-full transition-colors",
 				isDragOver && "ring-2 ring-accent ring-inset",
 			)}
 			onDragOver={handleDragOver}
@@ -108,11 +124,22 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 			onDrop={handleDrop}
 		>
 			{documentPath ? (
-				<PaneDocumentView paneId={paneId} documentPath={documentPath} onNavigate={handlePaneNavigate} />
+				<>
+					<PaneDocumentView paneId={paneId} documentPath={documentPath} onNavigate={handlePaneNavigate} />
+					{showPicker && (
+						<div className="absolute inset-0 z-10 bg-bg/95 flex flex-col">
+							<PaneHeader paneId={paneId} documentPath={documentPath} />
+							<EmptyPaneDocumentPicker
+								paneId={paneId}
+								onClose={() => setShowPicker(false)}
+							/>
+						</div>
+					)}
+				</>
 			) : (
 				<>
 					<PaneHeader paneId={paneId} documentPath={null} />
-					<EmptyPane isDragOver={isDragOver} />
+					<EmptyPaneDocumentPicker paneId={paneId} isDragOver={isDragOver} />
 				</>
 			)}
 		</div>
