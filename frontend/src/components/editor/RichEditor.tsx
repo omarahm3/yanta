@@ -37,6 +37,7 @@ export interface RichEditorProps {
 	editable?: boolean;
 	isLoading?: boolean;
 	docKey?: string;
+	autoFocus?: boolean;
 }
 
 const createDefaultInitialBlock = (): PartialBlock => ({
@@ -58,10 +59,11 @@ type EditorInnerProps = {
 	onReady?: (editor: BlockNoteEditor) => void;
 	className?: string;
 	editable: boolean;
+	autoFocus: boolean;
 };
 
 const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
-	({ blocks, onChange, onTitleChange, onReady, className, editable }, ref) => {
+	({ blocks, onChange, onTitleChange, onReady, className, editable, autoFocus }, ref) => {
 		const { currentProject } = useProjectContext();
 		const { scale } = useScale();
 
@@ -187,12 +189,12 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 		}, [editor, isReady]);
 
 		useEffect(() => {
-			if (editor && editable && isReady) {
+			if (editor && editable && isReady && autoFocus) {
 				setTimeout(() => {
 					editor.focus();
 				}, 0);
 			}
-		}, [editor, editable, isReady]);
+		}, [editor, editable, isReady, autoFocus]);
 
 		const convertedBlocksRef = React.useRef<Set<string>>(new Set());
 
@@ -401,6 +403,7 @@ export const RichEditor = React.forwardRef<HTMLDivElement, RichEditorProps>(
 			editable = true,
 			isLoading = false,
 			docKey,
+			autoFocus = true,
 		},
 		ref,
 	) => {
@@ -446,6 +449,7 @@ export const RichEditor = React.forwardRef<HTMLDivElement, RichEditorProps>(
 				onReady={onReady}
 				className={className}
 				editable={editable}
+				autoFocus={autoFocus}
 			/>
 		);
 	},

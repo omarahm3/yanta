@@ -164,6 +164,7 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 						isEditMode={contentProps.isEditMode}
 						isLoading={contentProps.isLoading}
 						isReadOnly={contentProps.isArchived}
+						autoFocus={activePaneId === paneId}
 						onTitleChange={contentProps.onTitleChange}
 						onBlocksChange={contentProps.onBlocksChange}
 						onTagRemove={contentProps.onTagRemove}
