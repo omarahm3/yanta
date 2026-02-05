@@ -14,7 +14,12 @@ export interface HelpSectionProps {
 
 export const HelpSection: React.FC<HelpSectionProps> = ({ title, commands, className }) => {
 	return (
-		<div className={cn("mt-8 p-5 bg-surface border border-border rounded max-w-4xl", className)}>
+		<div
+			className={cn(
+				"mt-8 p-5 bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded-lg max-w-4xl",
+				className,
+			)}
+		>
 			<div className="text-text-bright font-semibold mb-3">{title}</div>
 			<div className="grid grid-cols-[200px_auto] gap-2 text-sm">
 				{commands.map((cmd) => (

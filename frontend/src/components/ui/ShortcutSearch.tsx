@@ -73,7 +73,7 @@ export const ShortcutSearch: React.FC<ShortcutSearchProps> = ({
 					value={query}
 					onChange={(e) => setQuery(e.target.value)}
 					placeholder={placeholder}
-					className="w-full pl-10 pr-10 py-2.5 bg-bg border border-border/40 rounded-md text-text placeholder:text-text-dim focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/30 transition-all font-mono text-sm"
+					className="w-full pl-10 pr-10 py-2.5 bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded-md text-text placeholder:text-text-dim focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/30 transition-all font-mono text-sm"
 					autoComplete="off"
 					spellCheck="false"
 				/>

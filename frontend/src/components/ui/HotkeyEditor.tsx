@@ -50,7 +50,7 @@ export const HotkeyEditor: React.FC<HotkeyEditorProps> = ({
 
 			{/* Error message */}
 			{error && (
-				<div className="text-xs text-red-400 bg-red-900/20 p-2 rounded border border-red-800">
+				<div className="text-xs text-red-400 bg-red-900/10 backdrop-blur-sm p-2 rounded border border-red-800/30">
 					{error}
 				</div>
 			)}

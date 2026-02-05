@@ -164,7 +164,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 		<CommandDialog open={isOpen} onOpenChange={handleOpenChange}>
 			<div onKeyDown={handleKeyDown}>
 				{isSubPaletteMode && (
-					<div className="flex items-center gap-2 px-3 py-2 border-b border-border">
+					<div className="flex items-center gap-2 px-3 py-2 border-b border-glass-border">
 						<button
 							type="button"
 							onClick={onSubPaletteBack}
@@ -217,7 +217,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 												/>
 											)}
 											{command.shortcut ? (
-												<kbd className="ml-auto rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground">
+												<kbd className="ml-auto rounded border border-glass-border bg-bg-dark/40 px-1.5 py-0.5 text-xs font-mono text-text-dim/80 shadow-sm font-semibold tracking-widest">
 													{command.shortcut}
 												</kbd>
 											) : (

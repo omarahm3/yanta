@@ -12,7 +12,7 @@ export const KeyDisplay: React.FC<KeyDisplayProps> = ({ keys, className }) => {
 			{keys.map((key, index) => (
 				<React.Fragment key={key}>
 					{index > 0 && <span className="text-text-dim">+</span>}
-					<kbd className="bg-bg border border-border rounded px-1.5 py-0.5 text-xs font-mono text-cyan">
+					<kbd className="bg-glass-bg/30 backdrop-blur-sm border border-glass-border rounded px-1.5 py-0.5 text-xs font-mono text-cyan">
 						{key}
 					</kbd>
 				</React.Fragment>

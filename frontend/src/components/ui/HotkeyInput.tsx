@@ -108,8 +108,8 @@ export const HotkeyInput: React.FC<HotkeyInputProps> = ({
 				"px-3 py-2 rounded border font-mono text-sm cursor-pointer select-none transition-all",
 				"focus:outline-none focus:ring-2 focus:ring-accent/50",
 				isCapturing
-					? "border-accent bg-accent/10 text-accent"
-					: "border-border bg-bg-secondary text-text hover:border-text-dim",
+					? "border-accent bg-accent/10 backdrop-blur-sm text-accent"
+					: "border-glass-border bg-glass-bg/20 backdrop-blur-sm text-text hover:border-text-dim",
 				disabled && "opacity-50 cursor-not-allowed",
 				!value && !isCapturing && "text-text-dim",
 				className,

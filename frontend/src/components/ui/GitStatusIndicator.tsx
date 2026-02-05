@@ -88,7 +88,7 @@ export const GitStatusIndicator: React.FC<GitStatusIndicatorProps> = ({
 			<button
 				type="button"
 				onClick={onClick}
-				className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${getStatusColor()} hover:bg-border/50 transition-colors`}
+				className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${getStatusColor()} hover:bg-glass-bg/30 transition-colors`}
 				title={getTooltip()}
 			>
 				{getStatusIcon()}
@@ -116,13 +116,13 @@ export const GitStatusIndicator: React.FC<GitStatusIndicatorProps> = ({
 		<button
 			type="button"
 			onClick={onClick}
-			className={`flex items-center gap-2 px-2 py-1 rounded text-xs ${getStatusColor()} hover:bg-border/50 transition-colors`}
+			className={`flex items-center gap-2 px-2 py-1 rounded text-xs ${getStatusColor()} hover:bg-glass-bg/30 transition-colors`}
 			title={getTooltip()}
 		>
 			{getStatusIcon()}
 			<span>{getStatusText()}</span>
 			{(isAhead || isBehind) && (
-				<span className="flex items-center gap-1 text-text-dim border-l border-border pl-2 ml-1">
+				<span className="flex items-center gap-1 text-text-dim border-l border-glass-border pl-2 ml-1">
 					{isAhead && (
 						<span className="flex items-center gap-0.5">
 							<ArrowUp className="w-3 h-3" />

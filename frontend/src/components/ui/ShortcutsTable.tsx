@@ -21,7 +21,7 @@ export const ShortcutsTable: React.FC<ShortcutsTableProps> = ({ shortcuts, class
 	return (
 		<div className={cn("w-full text-sm", className)}>
 			{/* Header */}
-			<div className="grid grid-cols-[1fr_200px] gap-4 pb-3 mb-3 border-b border-border">
+			<div className="grid grid-cols-[1fr_200px] gap-4 pb-3 mb-3 border-b border-glass-border">
 				<div className="text-text-dim text-xs uppercase tracking-wider font-medium">ACTION</div>
 				<div className="text-text-dim text-xs uppercase tracking-wider font-medium">SHORTCUT</div>
 			</div>
