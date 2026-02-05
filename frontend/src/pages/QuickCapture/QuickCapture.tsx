@@ -118,52 +118,81 @@ export const QuickCapture: React.FC = () => {
 
 	if (isLoading) {
 		return (
-			<div className="h-full flex items-center justify-center bg-bg text-text-dim border border-accent/30">
-				Loading...
+			<div
+				className="h-full flex items-center justify-center bg-bg-dark text-text-dim font-sans text-sm rounded-xl overflow-hidden border border-glass-border"
+				style={{
+					backgroundImage:
+						"radial-gradient(circle at 20% 50%, rgba(88, 166, 255, 0.06), transparent 50%), radial-gradient(circle at 80% 30%, rgba(163, 113, 247, 0.06), transparent 50%)",
+				}}
+			>
+				<div className="bg-glass-bg/60 backdrop-blur-xl inset-0 absolute" />
+				<span className="relative text-text-dim">Loading...</span>
 			</div>
 		);
 	}
 
 	return (
-		<div className="flex flex-col h-full bg-bg p-4 select-none w-full border border-accent/30">
-			<div className="flex-1 min-h-0 mb-3">
-				<QuickEditor
-					value={content}
-					onChange={setContent}
-					onKeyDown={handleKeyDown}
-					projects={projects}
-					autoFocus
-					maxLength={10000}
-					className="h-full"
-				/>
-			</div>
-
-			{/* Tags */}
-			{tags.length > 0 && (
-				<div className="mb-2 px-1">
-					<TagChips tags={tags} onRemove={removeTag} />
+		<div
+			className="flex flex-col h-full bg-bg-dark select-none w-full font-sans text-sm text-text rounded-xl overflow-hidden border border-glass-border"
+			style={
+				{
+					"--wails-draggable": "drag",
+					backgroundImage:
+						"radial-gradient(circle at 20% 50%, rgba(88, 166, 255, 0.06), transparent 50%), radial-gradient(circle at 80% 30%, rgba(163, 113, 247, 0.06), transparent 50%)",
+				} as React.CSSProperties
+			}
+		>
+			{/* Glass overlay */}
+			<div className="flex flex-col h-full bg-glass-bg/60 backdrop-blur-xl p-3">
+				{/* Editor */}
+				<div className="flex-1 min-h-0 mb-2">
+					<QuickEditor
+						value={content}
+						onChange={setContent}
+						onKeyDown={handleKeyDown}
+						projects={projects}
+						autoFocus
+						maxLength={10000}
+						className="h-full"
+					/>
 				</div>
-			)}
 
-			{/* Error message */}
-			{error && <div className="mb-2 px-1 text-sm text-[#E06C75]">{error}</div>}
+				{/* Tags */}
+				{tags.length > 0 && (
+					<div className="mb-1 px-1" style={{ "--wails-draggable": "no-drag" } as React.CSSProperties}>
+						<TagChips tags={tags} onRemove={removeTag} />
+					</div>
+				)}
 
-			{/* Escape hint */}
-			{showEscapeHint && (
-				<div className="mb-2 px-1 text-sm text-[#8B9CAF]">Press Esc again to discard</div>
-			)}
+				{/* Error message */}
+				{error && <div className="mb-1 px-1 text-xs text-red">{error}</div>}
 
-			{/* Footer with keyboard hints */}
-			<div className="flex items-center justify-center gap-6 text-xs text-text-dim pt-1">
-				<span>
-					<kbd className="px-1.5 py-0.5 bg-surface rounded">Ctrl+⏎</kbd> Save
-				</span>
-				<span>
-					<kbd className="px-1.5 py-0.5 bg-surface rounded">⇧⏎</kbd> Save & New
-				</span>
-				<span>
-					<kbd className="px-1.5 py-0.5 bg-surface rounded">⎋</kbd> Cancel
-				</span>
+				{/* Escape hint */}
+				{showEscapeHint && (
+					<div className="mb-1 px-1 text-xs text-text-dim">Press Esc again to discard</div>
+				)}
+
+				{/* Footer with keyboard hints */}
+				<div className="flex items-center justify-center gap-5 text-xs text-text-dim pt-2">
+					<span className="inline-flex items-center gap-1.5">
+						<kbd className="px-1.5 py-0.5 bg-glass-bg/40 backdrop-blur-sm border border-glass-border rounded text-[0.65rem] font-mono">
+							Ctrl+⏎
+						</kbd>
+						<span>Save</span>
+					</span>
+					<span className="inline-flex items-center gap-1.5">
+						<kbd className="px-1.5 py-0.5 bg-glass-bg/40 backdrop-blur-sm border border-glass-border rounded text-[0.65rem] font-mono">
+							⇧⏎
+						</kbd>
+						<span>Save &amp; New</span>
+					</span>
+					<span className="inline-flex items-center gap-1.5">
+						<kbd className="px-1.5 py-0.5 bg-glass-bg/40 backdrop-blur-sm border border-glass-border rounded text-[0.65rem] font-mono">
+							⎋
+						</kbd>
+						<span>Cancel</span>
+					</span>
+				</div>
 			</div>
 		</div>
 	);

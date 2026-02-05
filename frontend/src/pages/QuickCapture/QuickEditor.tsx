@@ -202,11 +202,15 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 	return (
 		<div
 			ref={containerRef}
-			className={cn("relative h-full border border-border bg-surface", className)}
+			className={cn(
+				"relative h-full border border-glass-border/50 bg-glass-bg/30 backdrop-blur-sm rounded-lg shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)]",
+				className,
+			)}
+			style={{ "--wails-draggable": "no-drag" } as React.CSSProperties}
 		>
 			<div
 				data-testid="highlight-layer"
-				className="absolute inset-0 p-3 font-mono text-sm leading-relaxed pointer-events-none whitespace-pre-wrap break-words text-[#E8E8E8] overflow-hidden"
+				className="absolute inset-0 p-3 font-mono text-sm leading-relaxed pointer-events-none whitespace-pre-wrap break-words text-text-bright overflow-hidden"
 				aria-hidden="true"
 				// biome-ignore lint/security/noDangerouslySetInnerHtml: Intentional for syntax highlighting
 				dangerouslySetInnerHTML={{ __html: highlightedContent || "&nbsp;" }}
@@ -229,14 +233,14 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 				maxLength={maxLength}
 				placeholder={placeholder}
 				className="relative w-full h-full min-h-[80px] p-3 bg-transparent border-0 font-mono text-sm leading-relaxed resize-none focus:outline-none focus:ring-0 focus:shadow-[inset_0_0_0_2px_var(--color-accent)] text-transparent caret-text-bright placeholder:text-text-dim"
-				style={{ caretColor: "#E8E8E8" }}
+				style={{ caretColor: "var(--color-text-bright)" }}
 			/>
 
 			{showProjectList && (
 				<div
 					ref={projectListRef}
 					data-testid="project-list"
-					className="project-list-scroll bg-bg-dark text-text border border-border/80 rounded-lg z-50 overflow-y-auto w-max max-w-[18rem] max-h-[5.75rem] py-0.5 text-xs"
+					className="project-list-scroll bg-glass-bg/90 backdrop-blur-xl text-text border border-glass-border rounded-lg z-50 overflow-y-auto w-max max-w-[18rem] max-h-[5.75rem] py-0.5 text-xs shadow-lg"
 					style={
 						dropdownPosition
 							? { position: "fixed", top: dropdownPosition.top, left: dropdownPosition.left }
@@ -255,7 +259,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 								"w-full pr-2.5 py-1.5 text-left whitespace-nowrap transition-colors outline-none border-l-2",
 								index === highlightedIndex
 									? "pl-[10px] border-accent bg-accent/10"
-									: "pl-2.5 border-transparent hover:bg-surface/80",
+									: "pl-2.5 border-transparent hover:bg-glass-bg/30",
 							)}
 						>
 							<span className={index === highlightedIndex ? "text-accent font-medium" : ""}>
@@ -286,9 +290,9 @@ function getHighlightedContent(text: string): string {
 
 	let html = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-	html = html.replace(/(^|\s)(@[\w-]+)/g, '$1<span class="text-[#61AFEF] font-medium">$2</span>');
+	html = html.replace(/(^|\s)(@[\w-]+)/g, '$1<span class="text-accent font-medium">$2</span>');
 
-	html = html.replace(/(^|\s)(#[\w_]+)/g, '$1<span class="text-[#98C379] font-medium">$2</span>');
+	html = html.replace(/(^|\s)(#[\w_]+)/g, '$1<span class="text-green font-medium">$2</span>');
 
 	return html;
 }

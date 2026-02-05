@@ -110,17 +110,17 @@ export const ProjectPicker: React.FC<ProjectPickerProps> = ({
 			<button
 				type="button"
 				onClick={() => setIsOpen(!isOpen)}
-				className="w-full flex items-center justify-between px-3 py-2 bg-[#232F3E] border border-[#3D4F63] rounded-lg text-[#E8E8E8] text-sm hover:border-[#61AFEF] transition-colors"
+				className="w-full flex items-center justify-between px-3 py-2 bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded-lg text-text text-sm hover:border-accent transition-colors"
 			>
-				<span className="text-[#61AFEF]">@{displayAlias}</span>
-				<span className="text-[#5C6B7A]">▾</span>
+				<span className="text-accent">@{displayAlias}</span>
+				<span className="text-text-dim">▾</span>
 			</button>
 
 			{/* Dropdown */}
 			{isOpen && (
-				<div className="absolute top-full left-0 right-0 mt-1 bg-[#232F3E] border border-[#3D4F63] rounded-lg shadow-lg z-50 overflow-hidden">
+				<div className="absolute top-full left-0 right-0 mt-1 bg-glass-bg/90 backdrop-blur-xl border border-glass-border rounded-lg shadow-lg z-50 overflow-hidden">
 					{/* Search input */}
-					<div className="p-2 border-b border-[#3D4F63]">
+					<div className="p-2 border-b border-glass-border">
 						<input
 							ref={inputRef}
 							type="text"
@@ -128,14 +128,14 @@ export const ProjectPicker: React.FC<ProjectPickerProps> = ({
 							onChange={(e) => setSearchValue(e.target.value)}
 							onKeyDown={handleKeyDown}
 							placeholder="Search projects..."
-							className="w-full px-2 py-1 bg-[#1B2636] border border-[#3D4F63] rounded text-sm text-[#E8E8E8] placeholder:text-[#5C6B7A] focus:outline-none focus:border-[#61AFEF]"
+							className="w-full px-2 py-1 bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent"
 						/>
 					</div>
 
 					{/* Project list */}
 					<div className="max-h-48 overflow-y-auto">
 						{filteredProjects.length === 0 ? (
-							<div className="px-3 py-2 text-sm text-[#5C6B7A]">No projects found</div>
+							<div className="px-3 py-2 text-sm text-text-dim">No projects found</div>
 						) : (
 							filteredProjects.map((project, index) => (
 								<button
@@ -148,13 +148,13 @@ export const ProjectPicker: React.FC<ProjectPickerProps> = ({
 									className={cn(
 										"w-full px-3 py-2 text-left text-sm transition-colors",
 										index === highlightedIndex
-											? "bg-[#2D3F54] text-[#61AFEF]"
-											: "text-[#E8E8E8] hover:bg-[#2D3F54]",
+											? "bg-accent/10 text-accent"
+											: "text-text hover:bg-glass-bg/30",
 									)}
 								>
-									<span className="text-[#61AFEF]">@{project.alias}</span>
+									<span className="text-accent">@{project.alias}</span>
 									{project.name !== project.alias && (
-										<span className="ml-2 text-[#5C6B7A]">{project.name}</span>
+										<span className="ml-2 text-text-dim">{project.name}</span>
 									)}
 								</button>
 							))
