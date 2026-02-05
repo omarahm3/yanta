@@ -21,7 +21,7 @@ export const DocumentErrorState: React.FC<DocumentErrorStateProps> = React.memo(
 					Document could not be loaded. It may have been deleted or doesn't exist.
 				</div>
 				<Button variant="primary" onClick={() => onNavigate?.("dashboard")} className="mt-4">
-					← Back to Dashboard
+					← Back to Documents
 				</Button>
 			</div>
 		</Layout>

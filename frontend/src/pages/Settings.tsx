@@ -65,14 +65,14 @@ const actualShortcuts: Shortcut[] = [
 	},
 	{
 		id: "new-document",
-		action: "Create new document (Dashboard)",
+		action: "Create new document (Documents)",
 		defaultKey: "Ctrl+N",
 		currentKey: "Ctrl+N",
 		editable: false,
 	},
 	{
 		id: "toggle-archived-dashboard",
-		action: "Toggle archived (Dashboard)",
+		action: "Toggle archived (Documents)",
 		defaultKey: "Ctrl+Shift+A",
 		currentKey: "Ctrl+Shift+A",
 		editable: false,

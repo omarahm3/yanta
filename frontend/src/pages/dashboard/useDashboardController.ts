@@ -143,7 +143,7 @@ export function useDashboardController({
 	}, [currentProject, documents, selectedDocuments, highlightedIndex, showArchived]);
 
 	useEffect(() => {
-		setPageContext(helpCommands, "Dashboard");
+		setPageContext(helpCommands, "Documents");
 	}, [setPageContext]);
 
 	useEffect(() => {

@@ -129,7 +129,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 		commands.push({
 			id: "nav-dashboard",
 			icon: <LayoutDashboard className="text-lg" />,
-			text: "Go to Dashboard",
+			text: "Go to Documents",
 			hint: "Home",
 			shortcut: getShortcutForCommand("nav-dashboard"),
 			group: "Navigation",

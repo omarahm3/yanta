@@ -23,7 +23,7 @@ describe("Sidebar", () => {
 			id: "navigation",
 			title: "NAVIGATION",
 			items: [
-				{ id: "dashboard", label: "dashboard" },
+				{ id: "dashboard", label: "documents" },
 				{ id: "journal", label: "journal" },
 			],
 		},
@@ -34,7 +34,7 @@ describe("Sidebar", () => {
 			id: "navigation",
 			title: "NAVIGATION",
 			items: [
-				{ id: "dashboard", label: "dashboard" },
+				{ id: "dashboard", label: "documents" },
 				{
 					id: "search",
 					label: "search",
@@ -92,7 +92,7 @@ describe("Sidebar", () => {
 			render(<Sidebar sections={basicSections} />);
 
 			expect(screen.getByText("NAVIGATION")).toBeInTheDocument();
-			expect(screen.getByText("dashboard")).toBeInTheDocument();
+			expect(screen.getByText("documents")).toBeInTheDocument();
 			expect(screen.getByText("journal")).toBeInTheDocument();
 		});
 
@@ -134,13 +134,13 @@ describe("Sidebar", () => {
 				{
 					id: "navigation",
 					title: "NAVIGATION",
-					items: [{ id: "dashboard", label: "dashboard", onClick: handleClick }],
+					items: [{ id: "dashboard", label: "documents", onClick: handleClick }],
 				},
 			];
 
 			render(<Sidebar sections={sectionsWithClick} />);
 
-			fireEvent.click(screen.getByText("dashboard"));
+			fireEvent.click(screen.getByText("documents"));
 			expect(handleClick).toHaveBeenCalledTimes(1);
 		});
 
@@ -150,7 +150,7 @@ describe("Sidebar", () => {
 					id: "navigation",
 					title: "NAVIGATION",
 					items: [
-						{ id: "dashboard", label: "dashboard", active: true },
+						{ id: "dashboard", label: "documents", active: true },
 						{ id: "journal", label: "journal", active: false },
 					],
 				},
@@ -158,7 +158,7 @@ describe("Sidebar", () => {
 
 			render(<Sidebar sections={sectionsWithActive} />);
 
-			const dashboardItem = screen.getByText("dashboard").closest("li");
+			const dashboardItem = screen.getByText("documents").closest("li");
 			const journalItem = screen.getByText("journal").closest("li");
 
 			expect(dashboardItem).toHaveClass("active");
@@ -226,8 +226,8 @@ describe("Sidebar", () => {
 		it("does not show tooltip for items without tooltip config", async () => {
 			render(<Sidebar sections={sectionsWithTooltips} />);
 
-			const dashboardItem = screen.getByText("dashboard").closest("li");
-			if (!dashboardItem) throw new Error("dashboard item not found");
+			const dashboardItem = screen.getByText("documents").closest("li");
+			if (!dashboardItem) throw new Error("documents item not found");
 			fireEvent.mouseEnter(dashboardItem);
 
 			act(() => {
@@ -303,7 +303,7 @@ describe("Sidebar", () => {
 				{
 					id: "navigation",
 					title: "NAVIGATION",
-					items: [{ id: "dashboard", label: "dashboard" }],
+					items: [{ id: "dashboard", label: "documents" }],
 				},
 				{
 					id: "projects",
@@ -316,7 +316,7 @@ describe("Sidebar", () => {
 
 			expect(screen.getByText("NAVIGATION")).toBeInTheDocument();
 			expect(screen.getByText("PROJECTS")).toBeInTheDocument();
-			expect(screen.getByText("dashboard")).toBeInTheDocument();
+			expect(screen.getByText("documents")).toBeInTheDocument();
 			expect(screen.getByText("project-1")).toBeInTheDocument();
 		});
 	});

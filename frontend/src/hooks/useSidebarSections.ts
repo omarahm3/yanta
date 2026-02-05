@@ -46,7 +46,7 @@ export const useSidebarSections = ({
 			items: [
 				{
 					id: "dashboard",
-					label: "dashboard",
+					label: "documents",
 					active: currentPage === "dashboard",
 					onClick: () => onNavigate?.("dashboard"),
 				},
