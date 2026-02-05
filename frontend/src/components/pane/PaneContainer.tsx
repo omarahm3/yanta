@@ -46,8 +46,9 @@ const PaneLeafView: React.FC<PaneLeafViewProps> = React.memo(({ node }) => {
 
 	// When this pane becomes the active pane (e.g. via keyboard navigation),
 	// move DOM focus here so the user can type in this pane immediately.
+	// Skip for empty panes — EmptyPaneDocumentPicker manages its own focus.
 	useEffect(() => {
-		if (!isActive || !containerRef.current) return;
+		if (!isActive || !containerRef.current || !node.documentPath) return;
 		containerRef.current.focus();
 		// Focus the editor's contenteditable if present so typing works without an extra click
 		let rafId: number;
@@ -60,7 +61,7 @@ const PaneLeafView: React.FC<PaneLeafViewProps> = React.memo(({ node }) => {
 			}
 		});
 		return () => cancelAnimationFrame(rafId);
-	}, [isActive]);
+	}, [isActive, node.documentPath]);
 
 	return (
 		<div

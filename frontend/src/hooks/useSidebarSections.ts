@@ -46,15 +46,20 @@ export const useSidebarSections = ({
 			items: [
 				{
 					id: "dashboard",
-					label: "dashboard",
+					label: "documents",
 					active: currentPage === "dashboard",
 					onClick: () => onNavigate?.("dashboard"),
 				},
 				{
-					id: "projects",
-					label: "projects",
-					active: currentPage === "projects",
-					onClick: () => onNavigate?.("projects"),
+					id: "journal",
+					label: "journal",
+					active: currentPage === "journal",
+					onClick: () => onNavigate?.("journal"),
+					tooltip: {
+						tooltipId: "sidebar-journal",
+						description: "Journal",
+						shortcut: "Ctrl+J",
+					},
 				},
 				{
 					id: "search",
@@ -68,15 +73,10 @@ export const useSidebarSections = ({
 					},
 				},
 				{
-					id: "journal",
-					label: "journal",
-					active: currentPage === "journal",
-					onClick: () => onNavigate?.("journal"),
-					tooltip: {
-						tooltipId: "sidebar-journal",
-						description: "Journal",
-						shortcut: "Ctrl+J",
-					},
+					id: "projects",
+					label: "projects",
+					active: currentPage === "projects",
+					onClick: () => onNavigate?.("projects"),
 				},
 				{
 					id: "settings",

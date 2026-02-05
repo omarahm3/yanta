@@ -67,14 +67,8 @@ const QuitHotkeys = () => {
 const GlobalCommandHotkey = () => {
 	const { openHelp } = useHelp();
 	const { openDialog, closeDialog } = useDialog();
-	const { openDocumentInPane, activePaneId, resetLayout } = usePaneLayout();
+	const { loadAndRestoreLayout } = usePaneLayout();
 	const [isOpen, setIsOpen] = React.useState(false);
-
-	// Use ref for activePaneId to keep handleNavigate callback stable
-	const activePaneIdRef = React.useRef(activePaneId);
-	React.useEffect(() => {
-		activePaneIdRef.current = activePaneId;
-	}, [activePaneId]);
 
 	React.useEffect(() => {
 		if (isOpen) openDialog();
@@ -95,17 +89,12 @@ const GlobalCommandHotkey = () => {
 		(page: string, state?: Record<string, string | number | boolean | undefined>) => {
 			setCurrentPage(page);
 			setNavigationState(state || {});
-			if (page === "document") {
-				if (state?.newDocument) {
-					resetLayout();
-				}
-				if (state?.documentPath) {
-					const paneId = state?.newDocument ? "pane-1" : activePaneIdRef.current;
-					openDocumentInPane(paneId, state.documentPath as string);
-				}
+			if (page === "document" && state?.documentPath) {
+				const docPath = state.documentPath as string;
+				loadAndRestoreLayout(docPath);
 			}
 		},
-		[openDocumentInPane, resetLayout],
+		[loadAndRestoreLayout],
 	);
 
 	const handleRegisterToggleArchived = React.useCallback((handler: () => void) => {

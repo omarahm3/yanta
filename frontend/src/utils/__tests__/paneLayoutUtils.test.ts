@@ -133,6 +133,7 @@ describe("paneLayoutUtils", () => {
 				validateLayout({
 					root: leaf("p1"),
 					activePaneId: "p1",
+					primaryDocumentPath: null,
 				}),
 			).toBe(true);
 		});
@@ -146,6 +147,7 @@ describe("paneLayoutUtils", () => {
 				validateLayout({
 					root: leaf("p1"),
 					activePaneId: "nonexistent",
+					primaryDocumentPath: null,
 				}),
 			).toBe(false);
 		});

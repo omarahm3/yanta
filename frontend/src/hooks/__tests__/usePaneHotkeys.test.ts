@@ -17,6 +17,7 @@ const mockLayout = {
 		sizes: [50, 50] as [number, number],
 	},
 	activePaneId: "pane-1",
+	primaryDocumentPath: "doc1",
 };
 
 const registeredHotkeys: any[] = [];

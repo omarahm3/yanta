@@ -8,7 +8,7 @@ const mockCommands: CommandOption[] = [
 	{
 		id: "nav-dashboard",
 		icon: <FolderIcon />,
-		text: "Go to Dashboard",
+		text: "Go to Documents",
 		group: "Navigation",
 		action: vi.fn(),
 	},
@@ -103,7 +103,7 @@ describe("CommandPalette", () => {
 		expect(navigationGroup).not.toBeNull();
 
 		if (navigationGroup) {
-			expect(within(navigationGroup as HTMLElement).getByText("Go to Dashboard")).toBeInTheDocument();
+			expect(within(navigationGroup as HTMLElement).getByText("Go to Documents")).toBeInTheDocument();
 			expect(within(navigationGroup as HTMLElement).getByText("Go to Settings")).toBeInTheDocument();
 		}
 
@@ -233,7 +233,7 @@ describe("CommandPalette", () => {
 			{
 				id: "nav-dashboard",
 				icon: <FolderIcon />,
-				text: "Go to Dashboard",
+				text: "Go to Documents",
 				group: "Navigation",
 				keywords: ["home", "main", "list", "documents"],
 				action: vi.fn(),
@@ -285,8 +285,8 @@ describe("CommandPalette", () => {
 
 			// The CommandItem value should include both text and keywords
 			// We can verify this by checking the data-value attribute on the command items
-			const dashboardItem = screen.getByText("Go to Dashboard").closest('[data-slot="command-item"]');
-			expect(dashboardItem).toHaveAttribute("data-value", "Go to Dashboard home main list documents");
+			const dashboardItem = screen.getByText("Go to Documents").closest('[data-slot="command-item"]');
+			expect(dashboardItem).toHaveAttribute("data-value", "Go to Documents home main list documents");
 		});
 
 		it("renders commands with keywords correctly", () => {
@@ -300,7 +300,7 @@ describe("CommandPalette", () => {
 			);
 
 			// Verify all commands render
-			expect(screen.getByText("Go to Dashboard")).toBeInTheDocument();
+			expect(screen.getByText("Go to Documents")).toBeInTheDocument();
 			expect(screen.getByText("Go to Journal")).toBeInTheDocument();
 			expect(screen.getByText("Go to Settings")).toBeInTheDocument();
 			expect(screen.getByText("Git Sync")).toBeInTheDocument();
@@ -323,7 +323,7 @@ describe("CommandPalette", () => {
 
 			// Journal should be visible, others should be filtered out
 			expect(screen.getByText("Go to Journal")).toBeInTheDocument();
-			expect(screen.queryByText("Go to Dashboard")).not.toBeInTheDocument();
+			expect(screen.queryByText("Go to Documents")).not.toBeInTheDocument();
 			expect(screen.queryByText("Go to Settings")).not.toBeInTheDocument();
 			expect(screen.queryByText("Git Sync")).not.toBeInTheDocument();
 		});
@@ -345,7 +345,7 @@ describe("CommandPalette", () => {
 
 			// Git Sync should be visible
 			expect(screen.getByText("Git Sync")).toBeInTheDocument();
-			expect(screen.queryByText("Go to Dashboard")).not.toBeInTheDocument();
+			expect(screen.queryByText("Go to Documents")).not.toBeInTheDocument();
 		});
 
 		it("filters commands by keyword 'preferences' for Settings", async () => {
@@ -365,7 +365,7 @@ describe("CommandPalette", () => {
 
 			// Settings should be visible
 			expect(screen.getByText("Go to Settings")).toBeInTheDocument();
-			expect(screen.queryByText("Go to Dashboard")).not.toBeInTheDocument();
+			expect(screen.queryByText("Go to Documents")).not.toBeInTheDocument();
 		});
 
 		it("still allows searching by command text", async () => {
@@ -380,11 +380,11 @@ describe("CommandPalette", () => {
 
 			const input = screen.getByPlaceholderText("Type a command...");
 
-			// Search by command text "Dashboard"
-			await userEvent.type(input, "Dashboard");
+			// Search by command text "Documents"
+			await userEvent.type(input, "Documents");
 
-			// Dashboard should be visible
-			expect(screen.getByText("Go to Dashboard")).toBeInTheDocument();
+			// Documents should be visible
+			expect(screen.getByText("Go to Documents")).toBeInTheDocument();
 			expect(screen.queryByText("Go to Journal")).not.toBeInTheDocument();
 		});
 
@@ -405,7 +405,7 @@ describe("CommandPalette", () => {
 
 			// Jump to Today's Journal should be visible
 			expect(screen.getByText("Jump to Today's Journal")).toBeInTheDocument();
-			expect(screen.queryByText("Go to Dashboard")).not.toBeInTheDocument();
+			expect(screen.queryByText("Go to Documents")).not.toBeInTheDocument();
 			expect(screen.queryByText("Git Sync")).not.toBeInTheDocument();
 		});
 	});
@@ -553,7 +553,7 @@ describe("CommandPalette", () => {
 			{
 				id: "nav-dashboard",
 				icon: <FolderIcon />,
-				text: "Go to Dashboard",
+				text: "Go to Documents",
 				group: "Navigation",
 				action: vi.fn(),
 				isRecent: true,
@@ -597,7 +597,7 @@ describe("CommandPalette", () => {
 			// Find the recent indicators
 			const recentIndicators = screen.getAllByTestId("recent-indicator");
 
-			// Should have 2 recent indicators (Dashboard and New Document)
+			// Should have 2 recent indicators (Documents and New Document)
 			expect(recentIndicators).toHaveLength(2);
 		});
 
@@ -667,8 +667,8 @@ describe("CommandPalette", () => {
 				/>,
 			);
 
-			// Dashboard has isRecent=true
-			const dashboardItem = screen.getByText("Go to Dashboard").closest('[data-slot="command-item"]');
+			// Documents has isRecent=true
+			const dashboardItem = screen.getByText("Go to Documents").closest('[data-slot="command-item"]');
 			expect(dashboardItem).not.toBeNull();
 			if (dashboardItem) {
 				const indicator = dashboardItem.querySelector('[data-testid="recent-indicator"]');
@@ -743,7 +743,7 @@ describe("CommandPalette", () => {
 				/>,
 			);
 
-			expect(screen.queryByText("Go to Dashboard")).not.toBeInTheDocument();
+			expect(screen.queryByText("Go to Documents")).not.toBeInTheDocument();
 			expect(screen.queryByText("Go to Settings")).not.toBeInTheDocument();
 		});
 

@@ -29,7 +29,7 @@ const createMockCommands = (): CommandOption[] => [
 	{
 		id: "nav-dashboard",
 		icon: <span>🏠</span>,
-		text: "Go to Dashboard",
+		text: "Go to Documents",
 		hint: "Home",
 		group: "Navigation",
 		keywords: ["home", "main"],
@@ -135,7 +135,7 @@ describe("Command Palette Shortcuts", () => {
 			// First item should be selected by default
 			const selected = getSelectedOption();
 			expect(selected).toBeTruthy();
-			expect(selected?.textContent).toContain("Go to Dashboard");
+			expect(selected?.textContent).toContain("Go to Documents");
 		});
 
 		it("navigates down with ArrowDown", async () => {
@@ -300,7 +300,7 @@ describe("Command Palette Shortcuts", () => {
 			await waitForOptions();
 			const input = getCmdkInput();
 
-			// First item (Dashboard) should be selected
+			// First item (Documents) should be selected
 			await waitFor(() => {
 				const options = getOptions();
 				expect(options[0]).toHaveAttribute("data-selected", "true");
@@ -1010,7 +1010,7 @@ describe("Command Palette - Shortcut Display", () => {
 		);
 
 		await waitFor(() => {
-			// Dashboard has hint "Home"
+			// Documents has hint "Home"
 			const commandShortcuts = document.body.querySelectorAll('[data-slot="command-shortcut"]');
 			const shortcutTexts = Array.from(commandShortcuts).map((s) => s.textContent);
 			expect(shortcutTexts.some((t) => t?.includes("Home"))).toBe(true);

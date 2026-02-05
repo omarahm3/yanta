@@ -340,7 +340,7 @@ export const HelpModal: React.FC = () => {
 				{ key: "Ctrl+E", description: "Recent Documents" },
 				{ key: "Ctrl+Tab", description: "Switch to last project" },
 				{ key: "Ctrl+Shift+F", description: "Go to Search" },
-				{ key: "Ctrl+D", description: "Go to Dashboard" },
+				{ key: "Ctrl+D", description: "Go to Documents" },
 			],
 			documents: [
 				{ key: "Ctrl+N", description: "New Document" },

@@ -16,6 +16,7 @@ interface DocumentEditorFormProps {
 	isEditMode: boolean;
 	isLoading: boolean;
 	isReadOnly?: boolean;
+	autoFocus?: boolean;
 	onTitleChange: (title: string) => void;
 	onBlocksChange: (blocks: BlockNoteBlock[]) => void;
 	onTagRemove: (tag: string) => void;
@@ -28,6 +29,7 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 	isEditMode,
 	isLoading,
 	isReadOnly = false,
+	autoFocus = true,
 	onTitleChange,
 	onBlocksChange,
 	onTagRemove,
@@ -80,6 +82,7 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 						onReady={onEditorReady}
 						editable={!isLoading && !isReadOnly}
 						isLoading={isLoading && isEditMode}
+						autoFocus={autoFocus}
 						className="h-full"
 					/>
 				</Suspense>

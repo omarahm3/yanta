@@ -25,6 +25,7 @@ export type PaneNode = PaneLeaf | PaneSplit;
 export interface PaneLayoutState {
 	root: PaneNode;
 	activePaneId: string;
+	primaryDocumentPath: string | null;
 }
 
 export const MAX_PANES = 4;
@@ -37,5 +38,6 @@ export function createDefaultPaneLayout(): PaneLayoutState {
 			documentPath: null,
 		},
 		activePaneId: "pane-1",
+		primaryDocumentPath: null,
 	};
 }

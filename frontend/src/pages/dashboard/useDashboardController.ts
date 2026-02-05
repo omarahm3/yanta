@@ -13,6 +13,7 @@ import { DocumentCommand } from "../../constants";
 import { useDocumentContext, useProjectContext } from "../../contexts";
 import { useHelp } from "../../hooks";
 import { useNotification } from "../../hooks/useNotification";
+import { useRecentDocuments } from "../../hooks/useRecentDocuments";
 import { useSidebarSections } from "../../hooks/useSidebarSections";
 import { DocumentServiceWrapper } from "../../services/DocumentService";
 import type { Document } from "../../types/Document";
@@ -121,6 +122,7 @@ export function useDashboardController({
 	const [showArchived, setShowArchived] = useState(false);
 	const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
 	const { success, error } = useNotification();
+	const { removeRecentDocument } = useRecentDocuments();
 	const { setPageContext } = useHelp();
 	const sidebarSections = useSidebarSections({
 		currentPage: "dashboard",
@@ -141,7 +143,7 @@ export function useDashboardController({
 	}, [currentProject, documents, selectedDocuments, highlightedIndex, showArchived]);
 
 	useEffect(() => {
-		setPageContext(helpCommands, "Dashboard");
+		setPageContext(helpCommands, "Documents");
 	}, [setPageContext]);
 
 	useEffect(() => {
@@ -244,6 +246,7 @@ export function useDashboardController({
 			try {
 				for (const path of paths) {
 					await SoftDelete(path);
+					removeRecentDocument(path);
 				}
 				await reloadDocuments();
 				clearSelection();
@@ -252,7 +255,7 @@ export function useDashboardController({
 				error(err instanceof Error ? err.message : "Failed to archive");
 			}
 		},
-		[clearSelection, reloadDocuments, success, error],
+		[clearSelection, reloadDocuments, success, error, removeRecentDocument],
 	);
 
 	const handleArchiveSelectedDocuments = useCallback(async () => {
@@ -405,6 +408,7 @@ export function useDashboardController({
 						onConfirm: async () => {
 							try {
 								await SoftDelete(doc.path);
+								removeRecentDocument(doc.path);
 								await reloadDocuments();
 								clearSelection();
 								success("Document deleted");
@@ -462,6 +466,7 @@ export function useDashboardController({
 							try {
 								for (const path of selectedPaths) {
 									await SoftDelete(path);
+									removeRecentDocument(path);
 								}
 								await reloadDocuments();
 								clearSelection();
@@ -476,7 +481,7 @@ export function useDashboardController({
 				}
 			}
 		},
-		[error, reloadDocuments, clearSelection, success],
+		[error, reloadDocuments, clearSelection, success, removeRecentDocument],
 	);
 
 	const handleOpenHighlightedDocument = useCallback(() => {

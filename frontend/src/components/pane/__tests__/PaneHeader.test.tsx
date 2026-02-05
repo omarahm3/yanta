@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 const mockLayout = {
 	root: { type: "leaf" as const, id: "pane-1", documentPath: null },
 	activePaneId: "pane-1",
+	primaryDocumentPath: null,
 };
 
 vi.mock("../../../hooks/usePaneLayout", () => ({

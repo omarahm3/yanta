@@ -52,6 +52,8 @@ export function useDocumentController({
 	const { currentProject } = useProjectContext();
 	const { activePaneId } = usePaneLayout();
 	const isActivePane = !paneId || activePaneId === paneId;
+	const isActivePaneRef = useRef(isActivePane);
+	isActivePaneRef.current = isActivePane;
 	const { success, error } = useNotification();
 	const { setPageContext } = useHelp();
 	const isEditMode = !!documentPath;
@@ -107,7 +109,9 @@ export function useDocumentController({
 	const handleEditorReadyWithRef = useCallback(
 		(editor: BlockNoteEditor) => {
 			editorRef.current = editor;
-			handleEditorReady(editor);
+			if (isActivePaneRef.current) {
+				handleEditorReady(editor);
+			}
 			setIsEditorReady(true);
 		},
 		[handleEditorReady],
@@ -342,6 +346,7 @@ export function useDocumentController({
 			{
 				key: "mod+s",
 				handler: (event: KeyboardEvent) => {
+					if (!isActivePaneRef.current) return false;
 					event.preventDefault();
 					event.stopPropagation();
 					if (isArchived) {
@@ -357,6 +362,7 @@ export function useDocumentController({
 			{
 				key: "mod+e",
 				handler: (event: KeyboardEvent) => {
+					if (!isActivePaneRef.current) return false;
 					event.preventDefault();
 					event.stopPropagation();
 					if (isArchived) {
@@ -372,6 +378,7 @@ export function useDocumentController({
 			{
 				key: "mod+shift+e",
 				handler: (event: KeyboardEvent) => {
+					if (!isActivePaneRef.current) return false;
 					event.preventDefault();
 					event.stopPropagation();
 					if (isArchived) {
@@ -386,20 +393,30 @@ export function useDocumentController({
 			},
 			{
 				key: "Escape",
-				handler: handleEscape,
+				handler: (event: KeyboardEvent) => {
+					if (!isActivePaneRef.current) return false;
+					if (event.defaultPrevented) return false;
+					handleEscape(event);
+				},
 				allowInInput: true,
 				capture: true,
 				description: "Unfocus editor, or go back to dashboard",
 			},
 			{
 				key: "mod+C",
-				handler: handleUnfocus,
+				handler: (event: KeyboardEvent) => {
+					if (!isActivePaneRef.current) return false;
+					handleUnfocus(event);
+				},
 				allowInInput: true,
 				description: "Unfocus editor",
 			},
 			{
 				key: "Enter",
-				handler: focusEditor,
+				handler: () => {
+					if (!isActivePaneRef.current) return false;
+					focusEditor();
+				},
 				allowInInput: false,
 				description: "Focus editor when unfocused",
 			},
