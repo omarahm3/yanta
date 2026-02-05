@@ -13,6 +13,7 @@ export interface RecentDocument {
 export interface UseRecentDocumentsReturn {
 	recentDocuments: RecentDocument[];
 	addRecentDocument: (doc: Omit<RecentDocument, "lastOpened">) => void;
+	removeRecentDocument: (path: string) => void;
 	clearRecentDocuments: () => void;
 }
 
@@ -88,6 +89,14 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 		});
 	}, []);
 
+	const removeRecentDocument = useCallback((path: string) => {
+		setRecentDocuments((current) => {
+			const updated = current.filter((d) => d.path !== path);
+			saveRecentDocuments(updated);
+			return updated;
+		});
+	}, []);
+
 	const clearRecentDocuments = useCallback(() => {
 		setRecentDocuments([]);
 		try {
@@ -100,6 +109,7 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 	return {
 		recentDocuments,
 		addRecentDocument,
+		removeRecentDocument,
 		clearRecentDocuments,
 	};
 }
