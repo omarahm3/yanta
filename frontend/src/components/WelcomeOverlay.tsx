@@ -1,5 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useRef } from "react";
+import { useDialog } from "../contexts/DialogContext";
 import { useOnboarding } from "../hooks/useOnboarding";
 import { cn } from "../lib/utils";
 
@@ -32,11 +33,19 @@ const ShortcutBadge: React.FC<ShortcutBadgeProps> = ({ keys, label }) => {
 
 export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ className }) => {
 	const { shouldShowWelcome, dismissWelcome } = useOnboarding();
+	const { openDialog, closeDialog } = useDialog();
 	const buttonRef = useRef<HTMLButtonElement>(null);
 
 	const handleDismiss = useCallback(() => {
 		dismissWelcome();
-	}, [dismissWelcome]);
+		closeDialog();
+	}, [dismissWelcome, closeDialog]);
+
+	useEffect(() => {
+		if (shouldShowWelcome) {
+			openDialog();
+		}
+	}, [shouldShowWelcome, openDialog]);
 
 	useEffect(() => {
 		if (!shouldShowWelcome) return;
@@ -55,11 +64,10 @@ export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ className }) => 
 		};
 	}, [shouldShowWelcome, handleDismiss]);
 
-	// Focus the button when overlay appears
 	useEffect(() => {
-		if (shouldShowWelcome && buttonRef.current) {
-			buttonRef.current.focus();
-		}
+		if (!shouldShowWelcome) return;
+		const timer = setTimeout(() => buttonRef.current?.focus(), 100);
+		return () => clearTimeout(timer);
 	}, [shouldShowWelcome]);
 
 	if (!shouldShowWelcome) {
