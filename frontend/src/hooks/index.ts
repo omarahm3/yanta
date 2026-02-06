@@ -1,5 +1,7 @@
 export type { SaveState } from "./useAutoSave";
 export { useAutoSave } from "./useAutoSave";
+export type { UseLocalStorageOptions } from "./useLocalStorage";
+export { useLocalStorage } from "./useLocalStorage";
 export type { UseCommandDeprecationReturn } from "./useCommandDeprecation";
 export { DEPRECATED_COMMAND_MAPPINGS, useCommandDeprecation } from "./useCommandDeprecation";
 export type {

@@ -1,6 +1,7 @@
 import { Events } from "@wailsio/runtime";
 import { useCallback, useEffect, useState } from "react";
 import { getDocument } from "../services/DocumentService";
+import { useLocalStorage } from "./useLocalStorage";
 
 const STORAGE_KEY = "yanta_recent_documents";
 const MAX_RECENT_DOCUMENTS = 10;
@@ -19,67 +20,44 @@ export interface UseRecentDocumentsReturn {
 	clearRecentDocuments: () => void;
 }
 
-function loadRecentDocuments(): RecentDocument[] {
-	try {
-		const stored = localStorage.getItem(STORAGE_KEY);
-		if (!stored) {
-			return [];
-		}
-		const parsed = JSON.parse(stored);
-		if (!Array.isArray(parsed)) {
-			return [];
-		}
-		return parsed.filter(
-			(doc): doc is RecentDocument =>
-				typeof doc === "object" &&
-				doc !== null &&
-				typeof doc.path === "string" &&
-				typeof doc.title === "string" &&
-				typeof doc.projectAlias === "string" &&
-				typeof doc.lastOpened === "number",
-		);
-	} catch {
-		return [];
+function validateRecentDocuments(data: unknown): RecentDocument[] | null {
+	if (!Array.isArray(data)) {
+		return null;
 	}
-}
-
-function saveRecentDocuments(documents: RecentDocument[]): void {
-	try {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(documents));
-	} catch (err) {
-		console.error("[useRecentDocuments] Failed to save to localStorage:", err);
-	}
+	return data.filter(
+		(doc): doc is RecentDocument =>
+			typeof doc === "object" &&
+			doc !== null &&
+			typeof doc.path === "string" &&
+			typeof doc.title === "string" &&
+			typeof doc.projectAlias === "string" &&
+			typeof doc.lastOpened === "number",
+	);
 }
 
 export function useRecentDocuments(): UseRecentDocumentsReturn {
-	const [recentDocuments, setRecentDocuments] = useState<RecentDocument[]>(() =>
-		loadRecentDocuments(),
+	const [storedDocuments, setStoredDocuments] = useLocalStorage<RecentDocument[]>(
+		STORAGE_KEY,
+		[],
+		{
+			validate: validateRecentDocuments,
+			onError: (operation, err) => {
+				console.error(`[useRecentDocuments] Failed to ${operation}:`, err);
+			},
+		},
 	);
+	const [recentDocuments, setRecentDocuments] = useState<RecentDocument[]>(storedDocuments);
 
 	useEffect(() => {
-		const handleStorageChange = (event: StorageEvent) => {
-			if (event.key === STORAGE_KEY) {
-				setRecentDocuments(loadRecentDocuments());
-			}
-		};
-
-		window.addEventListener("storage", handleStorageChange);
-		return () => {
-			window.removeEventListener("storage", handleStorageChange);
-		};
-	}, []);
-
-	useEffect(() => {
-		const docs = loadRecentDocuments();
-		if (docs.length === 0) return;
+		if (storedDocuments.length === 0) return;
 
 		let cancelled = false;
 
 		Promise.all(
-			docs.map(async (doc) => {
+			storedDocuments.map(async (doc) => {
 				try {
 					const fetched = await getDocument(doc.path);
-					if (fetched.deletedAt) return null; // soft-deleted
+					if (fetched.deletedAt) return null;
 					return { ...doc, title: fetched.title || doc.title };
 				} catch (err) {
 					console.error("[useRecentDocuments] Error fetching document:", err);
@@ -96,7 +74,7 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 				) {
 					return current;
 				}
-				saveRecentDocuments(validated);
+				setStoredDocuments(validated);
 				return validated;
 			});
 		});
@@ -104,57 +82,77 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 		return () => {
 			cancelled = true;
 		};
-	}, []);
+	}, [storedDocuments, setStoredDocuments]);
 
-	const addRecentDocument = useCallback((doc: Omit<RecentDocument, "lastOpened">) => {
-		setRecentDocuments((current) => {
-			const existingIndex = current.findIndex((d) => d.path === doc.path);
-
+	const addRecentDocument = useCallback(
+		(doc: Omit<RecentDocument, "lastOpened">) => {
 			const newDoc: RecentDocument = {
 				...doc,
 				lastOpened: Date.now(),
 			};
 
-			let updated: RecentDocument[];
-			if (existingIndex >= 0) {
-				updated = [newDoc, ...current.filter((_, i) => i !== existingIndex)];
-			} else {
-				updated = [newDoc, ...current];
-			}
+			setStoredDocuments((current) => {
+				const existingIndex = current.findIndex((d) => d.path === doc.path);
+				let updated: RecentDocument[];
+				if (existingIndex >= 0) {
+					updated = [newDoc, ...current.filter((_, i) => i !== existingIndex)];
+				} else {
+					updated = [newDoc, ...current];
+				}
+				return updated.slice(0, MAX_RECENT_DOCUMENTS);
+			});
 
-			const trimmed = updated.slice(0, MAX_RECENT_DOCUMENTS);
-			saveRecentDocuments(trimmed);
-			return trimmed;
-		});
-	}, []);
+			setRecentDocuments((current) => {
+				const existingIndex = current.findIndex((d) => d.path === doc.path);
+				let updated: RecentDocument[];
+				if (existingIndex >= 0) {
+					updated = [newDoc, ...current.filter((_, i) => i !== existingIndex)];
+				} else {
+					updated = [newDoc, ...current];
+				}
+				return updated.slice(0, MAX_RECENT_DOCUMENTS);
+			});
+		},
+		[setStoredDocuments],
+	);
 
-	const removeRecentDocument = useCallback((path: string) => {
-		setRecentDocuments((current) => {
-			const updated = current.filter((d) => d.path !== path);
-			saveRecentDocuments(updated);
-			return updated;
-		});
-	}, []);
+	const removeRecentDocument = useCallback(
+		(path: string) => {
+			setStoredDocuments((current) => current.filter((d) => d.path !== path));
+			setRecentDocuments((current) => current.filter((d) => d.path !== path));
+		},
+		[setStoredDocuments],
+	);
 
 	const clearRecentDocuments = useCallback(() => {
-		setRecentDocuments([]);
 		try {
 			localStorage.removeItem(STORAGE_KEY);
 		} catch (err) {
 			console.error("[useRecentDocuments] Failed to clear localStorage:", err);
 		}
-	}, []);
+		setStoredDocuments([]);
+		setRecentDocuments([]);
+	}, [setStoredDocuments]);
 
-	const updateRecentDocumentTitle = useCallback((path: string, title: string) => {
-		setRecentDocuments((current) => {
-			const idx = current.findIndex((d) => d.path === path);
-			if (idx < 0) return current;
-			const updated = [...current];
-			updated[idx] = { ...updated[idx], title };
-			saveRecentDocuments(updated);
-			return updated;
-		});
-	}, []);
+	const updateRecentDocumentTitle = useCallback(
+		(path: string, title: string) => {
+			setStoredDocuments((current) => {
+				const idx = current.findIndex((d) => d.path === path);
+				if (idx < 0) return current;
+				const updated = [...current];
+				updated[idx] = { ...updated[idx], title };
+				return updated;
+			});
+			setRecentDocuments((current) => {
+				const idx = current.findIndex((d) => d.path === path);
+				if (idx < 0) return current;
+				const updated = [...current];
+				updated[idx] = { ...updated[idx], title };
+				return updated;
+			});
+		},
+		[setStoredDocuments],
+	);
 
 	useEffect(() => {
 		const unsubUpdated = Events.On("yanta/entry/updated", (ev) => {

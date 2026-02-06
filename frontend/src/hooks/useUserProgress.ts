@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
+import { useLocalStorage } from "./useLocalStorage";
 
 const STORAGE_KEY = "yanta_user_progress";
 
@@ -28,108 +29,67 @@ function getDefaultProgressData(): UserProgressData {
 	};
 }
 
-function loadProgressData(): UserProgressData {
-	try {
-		const stored = localStorage.getItem(STORAGE_KEY);
-		if (!stored) {
-			return getDefaultProgressData();
-		}
-		const parsed = JSON.parse(stored);
-		if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-			return getDefaultProgressData();
-		}
-		// Validate and merge with defaults for forward compatibility
-		return {
-			documentsCreated: typeof parsed.documentsCreated === "number" ? parsed.documentsCreated : 0,
-			journalEntriesCreated:
-				typeof parsed.journalEntriesCreated === "number" ? parsed.journalEntriesCreated : 0,
-			projectsSwitched: typeof parsed.projectsSwitched === "number" ? parsed.projectsSwitched : 0,
-			hintsShown: Array.isArray(parsed.hintsShown) ? parsed.hintsShown : [],
-		};
-	} catch {
-		return getDefaultProgressData();
+function validateProgressData(data: unknown): UserProgressData | null {
+	if (typeof data !== "object" || data === null || Array.isArray(data)) {
+		return null;
 	}
-}
-
-function saveProgressData(data: UserProgressData): void {
-	try {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-	} catch (err) {
-		console.error("[useUserProgress] Failed to save to localStorage:", err);
-	}
-}
-
-function clearProgressData(): void {
-	try {
-		localStorage.removeItem(STORAGE_KEY);
-	} catch (err) {
-		console.error("[useUserProgress] Failed to clear localStorage:", err);
-	}
+	const parsed = data as Record<string, unknown>;
+	return {
+		documentsCreated: typeof parsed.documentsCreated === "number" ? parsed.documentsCreated : 0,
+		journalEntriesCreated:
+			typeof parsed.journalEntriesCreated === "number" ? parsed.journalEntriesCreated : 0,
+		projectsSwitched: typeof parsed.projectsSwitched === "number" ? parsed.projectsSwitched : 0,
+		hintsShown: Array.isArray(parsed.hintsShown) ? parsed.hintsShown : [],
+	};
 }
 
 export function useUserProgress(): UseUserProgressReturn {
-	const [progressData, setProgressData] = useState<UserProgressData>(() => loadProgressData());
-
-	// Sync with other tabs via storage events
-	useEffect(() => {
-		const handleStorageChange = (event: StorageEvent) => {
-			if (event.key === STORAGE_KEY) {
-				setProgressData(loadProgressData());
-			}
-		};
-
-		window.addEventListener("storage", handleStorageChange);
-		return () => {
-			window.removeEventListener("storage", handleStorageChange);
-		};
-	}, []);
+	const [progressData, setProgressData] = useLocalStorage<UserProgressData>(
+		STORAGE_KEY,
+		getDefaultProgressData(),
+		{
+			validate: validateProgressData,
+			onError: (operation, err) => {
+				console.error(`[useUserProgress] Failed to ${operation}:`, err);
+			},
+		},
+	);
 
 	const incrementDocumentsCreated = useCallback(() => {
-		setProgressData((prev) => {
-			const updated = {
-				...prev,
-				documentsCreated: prev.documentsCreated + 1,
-			};
-			saveProgressData(updated);
-			return updated;
-		});
-	}, []);
+		setProgressData((prev) => ({
+			...prev,
+			documentsCreated: prev.documentsCreated + 1,
+		}));
+	}, [setProgressData]);
 
 	const incrementJournalEntriesCreated = useCallback(() => {
-		setProgressData((prev) => {
-			const updated = {
-				...prev,
-				journalEntriesCreated: prev.journalEntriesCreated + 1,
-			};
-			saveProgressData(updated);
-			return updated;
-		});
-	}, []);
+		setProgressData((prev) => ({
+			...prev,
+			journalEntriesCreated: prev.journalEntriesCreated + 1,
+		}));
+	}, [setProgressData]);
 
 	const incrementProjectsSwitched = useCallback(() => {
-		setProgressData((prev) => {
-			const updated = {
-				...prev,
-				projectsSwitched: prev.projectsSwitched + 1,
-			};
-			saveProgressData(updated);
-			return updated;
-		});
-	}, []);
+		setProgressData((prev) => ({
+			...prev,
+			projectsSwitched: prev.projectsSwitched + 1,
+		}));
+	}, [setProgressData]);
 
-	const markHintShown = useCallback((hintId: string) => {
-		setProgressData((prev) => {
-			if (prev.hintsShown.includes(hintId)) {
-				return prev;
-			}
-			const updated = {
-				...prev,
-				hintsShown: [...prev.hintsShown, hintId],
-			};
-			saveProgressData(updated);
-			return updated;
-		});
-	}, []);
+	const markHintShown = useCallback(
+		(hintId: string) => {
+			setProgressData((prev) => {
+				if (prev.hintsShown.includes(hintId)) {
+					return prev;
+				}
+				return {
+					...prev,
+					hintsShown: [...prev.hintsShown, hintId],
+				};
+			});
+		},
+		[setProgressData],
+	);
 
 	const hasHintBeenShown = useCallback(
 		(hintId: string): boolean => {
@@ -139,9 +99,13 @@ export function useUserProgress(): UseUserProgressReturn {
 	);
 
 	const resetProgress = useCallback(() => {
-		clearProgressData();
+		try {
+			localStorage.removeItem(STORAGE_KEY);
+		} catch (err) {
+			console.error("[useUserProgress] Failed to clear localStorage:", err);
+		}
 		setProgressData(getDefaultProgressData());
-	}, []);
+	}, [setProgressData]);
 
 	return {
 		progressData,
