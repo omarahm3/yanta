@@ -1,3 +1,4 @@
+import { AlertCircle } from "lucide-react";
 import React from "react";
 import { getLogBuffer } from "../utils/backendLogger";
 
@@ -104,26 +105,13 @@ export class CrashBoundary extends React.Component<
 			<div style={styles.overlay}>
 				<div style={styles.dialog}>
 					<div style={styles.header}>
-						<svg
-							width="20"
-							height="20"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="#ef4444"
-							strokeWidth="2"
-							strokeLinecap="round"
-							strokeLinejoin="round"
-						>
-							<circle cx="12" cy="12" r="10" />
-							<line x1="12" y1="8" x2="12" y2="12" />
-							<line x1="12" y1="16" x2="12.01" y2="16" />
-						</svg>
+						<AlertCircle size={20} color="#ef4444" />
 						<span style={styles.title}>Something went wrong</span>
 					</div>
 
 					<p style={styles.subtitle}>
-						The app crashed unexpectedly. You can download a crash log to help diagnose
-						the issue, then reload to continue.
+						The app crashed unexpectedly. You can download a crash log to help diagnose the issue, then
+						reload to continue.
 					</p>
 
 					<div style={styles.errorBox}>
@@ -156,8 +144,7 @@ const styles: Record<string, React.CSSProperties> = {
 		justifyContent: "center",
 		backgroundColor: "rgba(0, 0, 0, 0.6)",
 		backdropFilter: "blur(8px)",
-		fontFamily:
-			"'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+		fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
 	},
 	dialog: {
 		backgroundColor: "rgba(30, 30, 36, 0.95)",
