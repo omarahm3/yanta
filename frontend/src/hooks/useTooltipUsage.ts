@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
+import { useLocalStorage } from "./useLocalStorage";
 
 const STORAGE_KEY = "yanta_tooltip_usage";
 const FADE_THRESHOLD = 5;
@@ -24,62 +25,38 @@ export interface UseTooltipUsageReturn {
 	getAllTooltipUsage: () => TooltipUsageRecord;
 }
 
-function loadTooltipUsage(): TooltipUsageRecord {
-	try {
-		const stored = localStorage.getItem(STORAGE_KEY);
-		if (!stored) {
-			return {};
-		}
-		const parsed = JSON.parse(stored);
-		if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-			return {};
-		}
-		// Validate the structure
-		const validated: TooltipUsageRecord = {};
-		for (const [key, value] of Object.entries(parsed)) {
-			if (
-				typeof key === "string" &&
-				typeof value === "object" &&
-				value !== null &&
-				typeof (value as TooltipUsageData).seenCount === "number" &&
-				typeof (value as TooltipUsageData).lastSeen === "number"
-			) {
-				validated[key] = value as TooltipUsageData;
-			}
-		}
-		return validated;
-	} catch {
-		return {};
+function validateTooltipUsage(data: unknown): TooltipUsageRecord | null {
+	if (typeof data !== "object" || data === null || Array.isArray(data)) {
+		return null;
 	}
-}
-
-function saveTooltipUsage(usage: TooltipUsageRecord): void {
-	try {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(usage));
-	} catch (err) {
-		console.error("[useTooltipUsage] Failed to save to localStorage:", err);
+	const validated: TooltipUsageRecord = {};
+	for (const [key, value] of Object.entries(data)) {
+		if (
+			typeof key === "string" &&
+			typeof value === "object" &&
+			value !== null &&
+			typeof (value as TooltipUsageData).seenCount === "number" &&
+			typeof (value as TooltipUsageData).lastSeen === "number"
+		) {
+			validated[key] = value as TooltipUsageData;
+		}
 	}
+	return validated;
 }
 
 export function useTooltipUsage(options: UseTooltipUsageOptions = {}): UseTooltipUsageReturn {
 	const { globalDisabled = false } = options;
 
-	const [usageData, setUsageData] = useState<TooltipUsageRecord>(() => {
-		return loadTooltipUsage();
-	});
-
-	useEffect(() => {
-		const handleStorageChange = (event: StorageEvent) => {
-			if (event.key === STORAGE_KEY) {
-				setUsageData(loadTooltipUsage());
-			}
-		};
-
-		window.addEventListener("storage", handleStorageChange);
-		return () => {
-			window.removeEventListener("storage", handleStorageChange);
-		};
-	}, []);
+	const [usageData, setUsageData] = useLocalStorage<TooltipUsageRecord>(
+		STORAGE_KEY,
+		{},
+		{
+			validate: validateTooltipUsage,
+			onError: (operation, err) => {
+				console.error(`[useTooltipUsage] Failed to ${operation}:`, err);
+			},
+		},
+	);
 
 	const shouldShowTooltip = useCallback(
 		(tooltipId: string): boolean => {
@@ -112,23 +89,23 @@ export function useTooltipUsage(options: UseTooltipUsageOptions = {}): UseToolti
 		[usageData, globalDisabled],
 	);
 
-	const recordTooltipView = useCallback((tooltipId: string) => {
-		setUsageData((current) => {
-			const existingEntry = current[tooltipId];
-			const now = Date.now();
+	const recordTooltipView = useCallback(
+		(tooltipId: string) => {
+			setUsageData((current) => {
+				const existingEntry = current[tooltipId];
+				const now = Date.now();
 
-			const updated: TooltipUsageRecord = {
-				...current,
-				[tooltipId]: {
-					seenCount: (existingEntry?.seenCount ?? 0) + 1,
-					lastSeen: now,
-				},
-			};
-
-			saveTooltipUsage(updated);
-			return updated;
-		});
-	}, []);
+				return {
+					...current,
+					[tooltipId]: {
+						seenCount: (existingEntry?.seenCount ?? 0) + 1,
+						lastSeen: now,
+					},
+				};
+			});
+		},
+		[setUsageData],
+	);
 
 	const getTooltipUsage = useCallback(
 		(tooltipId: string): TooltipUsageData | undefined => {

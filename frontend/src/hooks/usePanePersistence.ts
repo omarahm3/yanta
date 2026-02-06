@@ -1,11 +1,12 @@
 import { useEffect, useRef } from "react";
+import { TIMEOUTS } from "@/config";
 import type { PaneLayoutState } from "../types/PaneLayout";
 import { createDefaultPaneLayout } from "../types/PaneLayout";
 import { restoreLayout } from "../utils/paneLayoutUtils";
+import { useLocalStorage } from "./useLocalStorage";
 
 const OLD_STORAGE_KEY = "yanta_pane_layout";
 const STORAGE_KEY = "yanta_pane_layouts";
-const SAVE_DEBOUNCE_MS = 500;
 const PERSISTENCE_VERSION = 1;
 
 interface PersistedLayoutEntry {
@@ -18,6 +19,37 @@ interface PersistedLayoutMap {
 	layouts: Record<string, PersistedLayoutEntry>;
 }
 
+function getDefaultLayoutMap(): PersistedLayoutMap {
+	return { version: PERSISTENCE_VERSION, layouts: {} };
+}
+
+function validateLayoutMap(data: unknown): PersistedLayoutMap | null {
+	if (
+		typeof data !== "object" ||
+		data === null ||
+		Array.isArray(data) ||
+		(data as PersistedLayoutMap).version !== PERSISTENCE_VERSION ||
+		typeof (data as PersistedLayoutMap).layouts !== "object"
+	) {
+		return null;
+	}
+	return data as PersistedLayoutMap;
+}
+
+function deserializeLayoutMap(raw: string): unknown {
+	try {
+		const oldData = localStorage.getItem(OLD_STORAGE_KEY);
+		if (oldData) {
+			localStorage.removeItem(OLD_STORAGE_KEY);
+		}
+	} catch {
+		// Ignore cleanup errors
+	}
+	return JSON.parse(raw);
+}
+
+let globalLayoutMapSetter: ((value: PersistedLayoutMap | ((prev: PersistedLayoutMap) => PersistedLayoutMap)) => void) | null = null;
+
 function loadLayoutMap(): PersistedLayoutMap {
 	try {
 		const oldData = localStorage.getItem(OLD_STORAGE_KEY);
@@ -27,30 +59,47 @@ function loadLayoutMap(): PersistedLayoutMap {
 
 		const stored = localStorage.getItem(STORAGE_KEY);
 		if (!stored) {
-			return { version: PERSISTENCE_VERSION, layouts: {} };
+			return getDefaultLayoutMap();
 		}
 		const parsed = JSON.parse(stored);
-		if (
-			typeof parsed !== "object" ||
-			parsed === null ||
-			Array.isArray(parsed) ||
-			parsed.version !== PERSISTENCE_VERSION ||
-			typeof parsed.layouts !== "object"
-		) {
-			return { version: PERSISTENCE_VERSION, layouts: {} };
-		}
-		return parsed as PersistedLayoutMap;
+		const validated = validateLayoutMap(parsed);
+		return validated ?? getDefaultLayoutMap();
 	} catch {
-		return { version: PERSISTENCE_VERSION, layouts: {} };
+		return getDefaultLayoutMap();
 	}
 }
 
 function saveLayoutMap(map: PersistedLayoutMap): void {
-	try {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
-	} catch (err) {
-		console.error("[usePanePersistence] Failed to save to localStorage:", err);
+	if (globalLayoutMapSetter) {
+		globalLayoutMapSetter(map);
+	} else {
+		try {
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+		} catch (err) {
+			console.error("[usePanePersistence] Failed to save to localStorage:", err);
+		}
 	}
+}
+
+function useLayoutMapStorage(): void {
+	const [, setLayoutMap] = useLocalStorage<PersistedLayoutMap>(
+		STORAGE_KEY,
+		getDefaultLayoutMap(),
+		{
+			validate: validateLayoutMap,
+			deserialize: deserializeLayoutMap,
+			onError: (operation, err) => {
+				console.error(`[usePanePersistence] Failed to ${operation}:`, err);
+			},
+		},
+	);
+
+	useEffect(() => {
+		globalLayoutMapSetter = setLayoutMap;
+		return () => {
+			globalLayoutMapSetter = null;
+		};
+	}, [setLayoutMap]);
 }
 
 export function loadPaneLayout(): PaneLayoutState {
@@ -95,6 +144,8 @@ export function flushSaveLayout(state: PaneLayoutState): void {
 }
 
 export function usePanePersistence(state: PaneLayoutState): void {
+	useLayoutMapStorage();
+
 	const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const isInitialMount = useRef(true);
 
@@ -112,7 +163,7 @@ export function usePanePersistence(state: PaneLayoutState): void {
 
 		debounceTimerRef.current = setTimeout(() => {
 			savePaneLayout(state);
-		}, SAVE_DEBOUNCE_MS);
+		}, TIMEOUTS.savePersistenceDebounceMs);
 
 		return () => {
 			if (debounceTimerRef.current) {

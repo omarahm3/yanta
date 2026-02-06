@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useLocalStorage } from "./useLocalStorage";
 
 const STORAGE_KEY = "yanta_command_usage";
 const MAX_ENTRIES = 100;
@@ -16,41 +17,23 @@ export interface UseCommandUsageReturn {
 	getAllCommandUsage: () => CommandUsageRecord;
 }
 
-function loadCommandUsage(): CommandUsageRecord {
-	try {
-		const stored = localStorage.getItem(STORAGE_KEY);
-		if (!stored) {
-			return {};
-		}
-		const parsed = JSON.parse(stored);
-		if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-			return {};
-		}
-		// Validate the structure
-		const validated: CommandUsageRecord = {};
-		for (const [key, value] of Object.entries(parsed)) {
-			if (
-				typeof key === "string" &&
-				typeof value === "object" &&
-				value !== null &&
-				typeof (value as CommandUsageData).lastUsed === "number" &&
-				typeof (value as CommandUsageData).useCount === "number"
-			) {
-				validated[key] = value as CommandUsageData;
-			}
-		}
-		return validated;
-	} catch {
-		return {};
+function validateCommandUsage(data: unknown): CommandUsageRecord | null {
+	if (typeof data !== "object" || data === null || Array.isArray(data)) {
+		return null;
 	}
-}
-
-function saveCommandUsage(usage: CommandUsageRecord): void {
-	try {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(usage));
-	} catch (err) {
-		console.error("[useCommandUsage] Failed to save to localStorage:", err);
+	const validated: CommandUsageRecord = {};
+	for (const [key, value] of Object.entries(data)) {
+		if (
+			typeof key === "string" &&
+			typeof value === "object" &&
+			value !== null &&
+			typeof (value as CommandUsageData).lastUsed === "number" &&
+			typeof (value as CommandUsageData).useCount === "number"
+		) {
+			validated[key] = value as CommandUsageData;
+		}
 	}
+	return validated;
 }
 
 function pruneUsageData(usage: CommandUsageRecord): CommandUsageRecord {
@@ -72,48 +55,40 @@ function pruneUsageData(usage: CommandUsageRecord): CommandUsageRecord {
 }
 
 export function useCommandUsage(): UseCommandUsageReturn {
-	const [usageData, setUsageData] = useState<CommandUsageRecord>(() => {
-		const loaded = loadCommandUsage();
-		// Run cleanup on initial load
-		const pruned = pruneUsageData(loaded);
-		if (Object.keys(pruned).length !== Object.keys(loaded).length) {
-			saveCommandUsage(pruned);
-		}
-		return pruned;
-	});
+	const [usageData, setUsageData] = useLocalStorage<CommandUsageRecord>(
+		STORAGE_KEY,
+		{},
+		{
+			validate: (data) => {
+				const validated = validateCommandUsage(data);
+				if (validated === null) return null;
+				return pruneUsageData(validated);
+			},
+			onError: (operation, err) => {
+				console.error(`[useCommandUsage] Failed to ${operation}:`, err);
+			},
+		},
+	);
 
-	useEffect(() => {
-		const handleStorageChange = (event: StorageEvent) => {
-			if (event.key === STORAGE_KEY) {
-				setUsageData(loadCommandUsage());
-			}
-		};
+	const recordCommandUsage = useCallback(
+		(commandId: string) => {
+			setUsageData((current) => {
+				const existingEntry = current[commandId];
+				const now = Date.now();
 
-		window.addEventListener("storage", handleStorageChange);
-		return () => {
-			window.removeEventListener("storage", handleStorageChange);
-		};
-	}, []);
+				const updated: CommandUsageRecord = {
+					...current,
+					[commandId]: {
+						lastUsed: now,
+						useCount: (existingEntry?.useCount ?? 0) + 1,
+					},
+				};
 
-	const recordCommandUsage = useCallback((commandId: string) => {
-		setUsageData((current) => {
-			const existingEntry = current[commandId];
-			const now = Date.now();
-
-			const updated: CommandUsageRecord = {
-				...current,
-				[commandId]: {
-					lastUsed: now,
-					useCount: (existingEntry?.useCount ?? 0) + 1,
-				},
-			};
-
-			// Prune if needed
-			const pruned = pruneUsageData(updated);
-			saveCommandUsage(pruned);
-			return pruned;
-		});
-	}, []);
+				return pruneUsageData(updated);
+			});
+		},
+		[setUsageData],
+	);
 
 	const getCommandUsage = useCallback(
 		(commandId: string): CommandUsageData | undefined => {
