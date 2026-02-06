@@ -1,4 +1,6 @@
+import { Events } from "@wailsio/runtime";
 import { useCallback, useEffect, useState } from "react";
+import { getDocument } from "../services/DocumentService";
 
 const STORAGE_KEY = "yanta_recent_documents";
 const MAX_RECENT_DOCUMENTS = 10;
@@ -67,6 +69,43 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 		};
 	}, []);
 
+	useEffect(() => {
+		const docs = loadRecentDocuments();
+		if (docs.length === 0) return;
+
+		let cancelled = false;
+
+		Promise.all(
+			docs.map(async (doc) => {
+				try {
+					const fetched = await getDocument(doc.path);
+					if (fetched.deletedAt) return null; // soft-deleted
+				return { ...doc, title: fetched.title || doc.title };
+				} catch (err) {
+          console.error("[useRecentDocuments] Error fetching document:", err);
+					return null;
+				}
+			}),
+		).then((results) => {
+			if (cancelled) return;
+			const validated = results.filter((d): d is RecentDocument => d !== null);
+			setRecentDocuments((current) => {
+				if (
+					validated.length === current.length &&
+					validated.every((d, i) => d.path === current[i].path && d.title === current[i].title)
+				) {
+					return current;
+				}
+				saveRecentDocuments(validated);
+				return validated;
+			});
+		});
+
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+
 	const addRecentDocument = useCallback((doc: Omit<RecentDocument, "lastOpened">) => {
 		setRecentDocuments((current) => {
 			const existingIndex = current.findIndex((d) => d.path === doc.path);
@@ -105,6 +144,34 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 			console.error("[useRecentDocuments] Failed to clear localStorage:", err);
 		}
 	}, []);
+
+	const updateRecentDocumentTitle = useCallback((path: string, title: string) => {
+		setRecentDocuments((current) => {
+			const idx = current.findIndex((d) => d.path === path);
+			if (idx < 0) return current;
+			const updated = [...current];
+			updated[idx] = { ...updated[idx], title };
+			saveRecentDocuments(updated);
+			return updated;
+		});
+	}, []);
+
+	useEffect(() => {
+		const unsubUpdated = Events.On("yanta/entry/updated", (ev) => {
+			if (ev.data?.path && ev.data?.title) {
+				updateRecentDocumentTitle(ev.data.path, ev.data.title);
+			}
+		});
+		const unsubDeleted = Events.On("yanta/entry/deleted", (ev) => {
+			if (ev.data?.path) {
+				removeRecentDocument(ev.data.path);
+			}
+		});
+		return () => {
+			unsubUpdated();
+			unsubDeleted();
+		};
+	}, [updateRecentDocumentTitle, removeRecentDocument]);
 
 	return {
 		recentDocuments,

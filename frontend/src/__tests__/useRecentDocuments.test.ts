@@ -1,3 +1,4 @@
+import { Events } from "@wailsio/runtime";
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useRecentDocuments } from "../hooks/useRecentDocuments";
@@ -261,6 +262,92 @@ describe("useRecentDocuments", () => {
 						newValue: "[]",
 					}),
 				);
+			});
+
+			expect(result.current.recentDocuments).toEqual(existingDocs);
+		});
+	});
+
+	describe("Wails event listeners", () => {
+		function getEventCallback(eventName: string): (ev: unknown) => void {
+			const calls = vi.mocked(Events.On).mock.calls;
+			const match = calls.find(([name]) => name === eventName);
+			if (!match) throw new Error(`No Events.On call found for "${eventName}"`);
+			return match[1] as (ev: unknown) => void;
+		}
+
+		it("should update title when yanta/entry/updated event fires for a matching doc", () => {
+			const existingDocs = [
+				{ path: "/doc1", title: "Old Title", projectAlias: "proj1", lastOpened: 1000 },
+				{ path: "/doc2", title: "Doc 2", projectAlias: "proj2", lastOpened: 2000 },
+			];
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingDocs));
+
+			const { result } = renderHook(() => useRecentDocuments());
+
+			const onUpdated = getEventCallback("yanta/entry/updated");
+			act(() => {
+				onUpdated({ data: { path: "/doc1", title: "New Title" } });
+			});
+
+			expect(result.current.recentDocuments[0].title).toBe("New Title");
+			expect(result.current.recentDocuments[0].path).toBe("/doc1");
+			// Other docs unchanged
+			expect(result.current.recentDocuments[1]).toEqual(existingDocs[1]);
+			// Persisted to localStorage
+			const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+			expect(stored[0].title).toBe("New Title");
+		});
+
+		it("should be a no-op when yanta/entry/updated fires for a non-matching path", () => {
+			const existingDocs = [
+				{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 },
+			];
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingDocs));
+
+			const { result } = renderHook(() => useRecentDocuments());
+
+			const onUpdated = getEventCallback("yanta/entry/updated");
+			act(() => {
+				onUpdated({ data: { path: "/nonexistent", title: "Whatever" } });
+			});
+
+			expect(result.current.recentDocuments).toEqual(existingDocs);
+		});
+
+		it("should remove doc when yanta/entry/deleted event fires for a matching doc", () => {
+			const existingDocs = [
+				{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 },
+				{ path: "/doc2", title: "Doc 2", projectAlias: "proj2", lastOpened: 2000 },
+			];
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingDocs));
+
+			const { result } = renderHook(() => useRecentDocuments());
+
+			const onDeleted = getEventCallback("yanta/entry/deleted");
+			act(() => {
+				onDeleted({ data: { path: "/doc1" } });
+			});
+
+			expect(result.current.recentDocuments).toHaveLength(1);
+			expect(result.current.recentDocuments[0].path).toBe("/doc2");
+			// Persisted to localStorage
+			const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+			expect(stored).toHaveLength(1);
+			expect(stored[0].path).toBe("/doc2");
+		});
+
+		it("should be a no-op when yanta/entry/deleted fires for a non-matching path", () => {
+			const existingDocs = [
+				{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 },
+			];
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingDocs));
+
+			const { result } = renderHook(() => useRecentDocuments());
+
+			const onDeleted = getEventCallback("yanta/entry/deleted");
+			act(() => {
+				onDeleted({ data: { path: "/nonexistent" } });
 			});
 
 			expect(result.current.recentDocuments).toEqual(existingDocs);
