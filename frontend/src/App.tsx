@@ -87,7 +87,9 @@ const GlobalCommandHotkey = () => {
 	const handleNavigate = React.useCallback(
 		(page: string, state?: NavigationState) => {
 			setCurrentPage(page as PageName);
-			setNavigationState(state || {});
+			if (state) {
+				setNavigationState(state);
+			}
 			if (page === "document" && state?.documentPath) {
 				const docPath = state.documentPath as string;
 				loadAndRestoreLayout(docPath);
@@ -165,9 +167,7 @@ const GlobalCommandHotkey = () => {
 				currentPage={currentPage}
 				navigationState={navigationState}
 				onNavigate={handleNavigate}
-				dashboardProps={{
-					onRegisterToggleArchived: handleRegisterToggleArchived,
-				}}
+				onRegisterToggleArchived={handleRegisterToggleArchived}
 				onRegisterToggleSidebar={handleRegisterToggleSidebar}
 			/>
 		</>
