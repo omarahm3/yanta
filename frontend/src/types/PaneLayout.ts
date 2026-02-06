@@ -1,3 +1,5 @@
+import { LAYOUT } from "@/config";
+
 export type SplitDirection = "horizontal" | "vertical";
 
 export interface ScrollPosition {
@@ -28,7 +30,7 @@ export interface PaneLayoutState {
 	primaryDocumentPath: string | null;
 }
 
-export const MAX_PANES = 4;
+export const MAX_PANES = LAYOUT.maxPanes;
 
 export function createDefaultPaneLayout(): PaneLayoutState {
 	return {

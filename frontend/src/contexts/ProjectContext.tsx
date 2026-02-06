@@ -82,8 +82,7 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
 	}, [loadProjects]);
 
 	useEffect(() => {
-		const unsubscribe = Events.On("yanta/project/changed", (ev) => {
-			console.log("Project changed event received:", ev.data);
+		const unsubscribe = Events.On("yanta/project/changed", () => {
 			loadProjects();
 		});
 

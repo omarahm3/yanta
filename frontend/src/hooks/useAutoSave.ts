@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { TIMEOUTS } from "@/config";
 
 export type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -19,13 +20,10 @@ interface AutoSaveReturn {
 	hasUnsavedChanges: boolean;
 }
 
-const MAX_RETRIES = 3;
-const RETRY_DELAY_BASE = 1000;
-
 export const useAutoSave = <T>({
 	value,
 	onSave,
-	delay = 2000,
+	delay = TIMEOUTS.autoSaveDebounceMs,
 	enabled = true,
 	saveOnBlur = true,
 	isInitialized = true,
@@ -53,7 +51,6 @@ export const useAutoSave = <T>({
 
 	useEffect(() => {
 		if (isInitialized && !prevIsInitializedRef.current) {
-			console.log("[useAutoSave] isInitialized became true, resetting baselines to current value");
 			initialValueRef.current = value;
 			lastSavedValueRef.current = value;
 			hasUserMadeChangesRef.current = false;
@@ -85,13 +82,13 @@ export const useAutoSave = <T>({
 			savedStateTimeoutRef.current = window.setTimeout(() => {
 				setSaveState("idle");
 				savedStateTimeoutRef.current = null;
-			}, 3000);
+			}, TIMEOUTS.savedStateDisplayMs);
 		} catch (err) {
 			const error = err instanceof Error ? err : new Error("Save failed");
 
-			if (retryCount < MAX_RETRIES) {
+			if (retryCount < TIMEOUTS.autoSaveMaxRetries) {
 				retryCountRef.current = retryCount + 1;
-				const retryDelay = RETRY_DELAY_BASE * 2 ** retryCount;
+				const retryDelay = TIMEOUTS.autoSaveRetryBaseMs * 2 ** retryCount;
 
 				if (retryTimeoutRef.current) {
 					clearTimeout(retryTimeoutRef.current);
@@ -124,17 +121,8 @@ export const useAutoSave = <T>({
 		const valueChanged = JSON.stringify(value) !== JSON.stringify(lastSavedValueRef.current);
 		const changedFromInitial = JSON.stringify(value) !== JSON.stringify(initialValueRef.current);
 
-		console.log("[useAutoSave] value effect", {
-			valueChanged,
-			changedFromInitial,
-			hasUserMadeChanges: hasUserMadeChangesRef.current,
-			enabled,
-			isInitialized,
-		});
-
 		if (changedFromInitial && !hasUserMadeChangesRef.current) {
 			hasUserMadeChangesRef.current = true;
-			console.log("[useAutoSave] First change from initial detected");
 		}
 
 		setHasUnsavedChanges(valueChanged);
@@ -142,12 +130,6 @@ export const useAutoSave = <T>({
 		if (!enabled || !valueChanged || !hasUserMadeChangesRef.current) {
 			return;
 		}
-
-		console.log("[useAutoSave] Starting debounce timer for save", {
-			enabled,
-			valueChanged,
-			hasUserMadeChanges: hasUserMadeChangesRef.current,
-		});
 
 		if (isSavingRef.current) {
 			return;
@@ -159,7 +141,6 @@ export const useAutoSave = <T>({
 
 		timeoutRef.current = window.setTimeout(() => {
 			if (!isSavingRef.current) {
-				console.log("[useAutoSave] Debounce timer fired, calling performSave");
 				performSave();
 			}
 			timeoutRef.current = null;
@@ -180,7 +161,6 @@ export const useAutoSave = <T>({
 
 		const handleBlur = () => {
 			if (hasUnsavedChanges && !isSavingRef.current) {
-				console.log("[useAutoSave] Window blur triggered save", { hasUnsavedChanges, isInitialized });
 				saveNow();
 			}
 		};

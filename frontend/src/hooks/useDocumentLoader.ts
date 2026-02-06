@@ -17,7 +17,6 @@ export const useDocumentLoader = (documentPath?: string) => {
 
 	useEffect(() => {
 		if (!documentPath) {
-			console.log("[useDocumentLoader] No document path provided, resetting state");
 			setData(null);
 			setIsLoading(false);
 			setError(null);
@@ -25,20 +24,11 @@ export const useDocumentLoader = (documentPath?: string) => {
 		}
 
 		const loadDocument = async () => {
-			console.log("[useDocumentLoader] Starting to load document:", documentPath);
 			setIsLoading(true);
 			setError(null);
 
 			try {
-				console.log("[useDocumentLoader] Calling DocumentServiceWrapper.get...");
-				const startTime = Date.now();
 				const document = await DocumentServiceWrapper.get(documentPath);
-				const loadTime = Date.now() - startTime;
-				console.log(`[useDocumentLoader] Document loaded successfully in ${loadTime}ms:`, {
-					path: documentPath,
-					title: document.title,
-					blocksCount: document.blocks?.length || 0,
-				});
 				setData(document);
 			} catch (err) {
 				const errorMessage = err instanceof Error ? err.message : "Failed to load document";
@@ -49,7 +39,6 @@ export const useDocumentLoader = (documentPath?: string) => {
 				});
 				setError(errorMessage);
 			} finally {
-				console.log("[useDocumentLoader] Loading complete, setting isLoading to false");
 				setIsLoading(false);
 			}
 		};
