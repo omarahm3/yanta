@@ -14,7 +14,7 @@ const ToastViewport = forwardRef<
 	<ToastPrimitives.Viewport
 		ref={ref}
 		className={cn(
-			"fixed z-50 flex flex-col gap-2 p-4 pointer-events-none max-h-screen w-full sm:max-w-lg",
+			"fixed z-50 flex flex-col gap-2 p-4 pointer-events-none max-h-screen w-full sm:max-w-sm",
 			className,
 		)}
 		{...props}
@@ -23,7 +23,7 @@ const ToastViewport = forwardRef<
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
 
 const toastVariants = cva(
-	"pointer-events-auto w-full min-w-[280px] sm:min-w-[340px] max-w-[calc(100vw-2rem)] sm:max-w-lg overflow-hidden rounded-2xl border border-glass-border bg-glass-bg/80 backdrop-blur-xl text-text shadow-2xl transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-bottom-full sm:data-[state=open]:slide-in-from-right-full",
+	"pointer-events-auto w-full min-w-[240px] sm:min-w-[280px] max-w-[calc(100vw-2rem)] sm:max-w-sm overflow-hidden rounded-lg border border-glass-border bg-glass-bg/80 backdrop-blur-xl text-text shadow-2xl transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-bottom-full sm:data-[state=open]:slide-in-from-right-full",
 	{
 		variants: {
 			variant: {
@@ -81,7 +81,7 @@ const ToastClose = forwardRef<
 		toast-close=""
 		{...props}
 	>
-		<X className="h-5 w-5" />
+		<X className="h-4 w-4" />
 	</ToastPrimitives.Close>
 ));
 ToastClose.displayName = ToastPrimitives.Close.displayName;
@@ -92,7 +92,7 @@ const ToastTitle = forwardRef<
 >(({ className, ...props }, ref) => (
 	<ToastPrimitives.Title
 		ref={ref}
-		className={cn("text-base font-semibold text-text-bright", className)}
+		className={cn("text-sm font-medium text-text-bright", className)}
 		{...props}
 	/>
 ));
@@ -104,7 +104,7 @@ const ToastDescription = forwardRef<
 >(({ className, ...props }, ref) => (
 	<ToastPrimitives.Description
 		ref={ref}
-		className={cn("mt-1 text-sm leading-relaxed text-text-dim whitespace-pre-wrap", className)}
+		className={cn("text-sm leading-relaxed text-text-dim whitespace-pre-wrap", className)}
 		{...props}
 	/>
 ));

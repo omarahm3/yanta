@@ -6,7 +6,6 @@ import {
 	ToastClose,
 	ToastDescription,
 	Toast as ToastRoot,
-	ToastTitle,
 	ToastViewport,
 } from "./toast-primitives";
 
@@ -58,27 +57,13 @@ export const useToast = () => {
 const getIcon = (type: ToastType) => {
 	switch (type) {
 		case "success":
-			return <Check className="w-5 h-5 text-emerald-400" />;
+			return <Check className="w-4 h-4 text-emerald-400" />;
 		case "error":
-			return <AlertCircle className="w-5 h-5 text-rose-400" />;
+			return <AlertCircle className="w-4 h-4 text-rose-400" />;
 		case "warning":
-			return <AlertTriangle className="w-5 h-5 text-amber-300" />;
+			return <AlertTriangle className="w-4 h-4 text-amber-300" />;
 		default:
-			return <Info className="w-5 h-5 text-sky-400" />;
-	}
-};
-
-const getTitle = (toast: Toast) => {
-	if (toast.title) return toast.title;
-	switch (toast.type) {
-		case "success":
-			return "Success";
-		case "error":
-			return "Error";
-		case "warning":
-			return "Warning";
-		default:
-			return "Info";
+			return <Info className="w-4 h-4 text-sky-400" />;
 	}
 };
 
@@ -109,14 +94,13 @@ const ToastItem: React.FC<{
 				}
 			}}
 		>
-			<div className="p-4">
-				<div className="flex items-start">
+			<div className="p-3">
+				<div className="flex items-center">
 					<div className="flex-shrink-0">{getIcon(toast.type)}</div>
-					<div className="ml-3 w-0 flex-1 pt-0.5">
-						<ToastTitle>{getTitle(toast)}</ToastTitle>
+					<div className="ml-2 flex-1">
 						<ToastDescription>{toast.message}</ToastDescription>
 					</div>
-					<div className="flex flex-shrink-0 ml-4">
+					<div className="flex flex-shrink-0 ml-2">
 						<ToastClose />
 					</div>
 				</div>
