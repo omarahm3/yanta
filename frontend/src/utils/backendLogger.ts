@@ -4,6 +4,26 @@ type LogLevel = "debug" | "info" | "warn" | "error";
 
 type LogValue = string | number | boolean | null | undefined | Error | Record<string, unknown>;
 
+export interface LogEntry {
+	level: LogLevel;
+	message: string;
+	timestamp: string;
+}
+
+const LOG_BUFFER_SIZE = 200;
+const logBuffer: LogEntry[] = [];
+
+function pushEntry(level: LogLevel, message: string) {
+	logBuffer.push({ level, message, timestamp: new Date().toISOString() });
+	if (logBuffer.length > LOG_BUFFER_SIZE) {
+		logBuffer.shift();
+	}
+}
+
+export function getLogBuffer(): readonly LogEntry[] {
+	return logBuffer;
+}
+
 export function formatLogArgs(args: LogValue[]): {
 	message: string;
 	data: Record<string, unknown>;
@@ -28,7 +48,6 @@ async function logToBackend(level: LogLevel, ...args: LogValue[]) {
 	try {
 		await LogFromFrontend(level, message, data);
 	} catch (error) {
-		// Silently fail if backend logging fails
 		console.error("[BackendLogger] Failed to send log to backend:", error);
 	}
 }
@@ -53,7 +72,6 @@ export function logError(...args: LogValue[]) {
 	logToBackend("error", ...args);
 }
 
-// Legacy wrapper for backward compatibility
 export const BackendLogger = {
 	formatArgs: formatLogArgs,
 	debug: logDebug,
@@ -62,34 +80,37 @@ export const BackendLogger = {
 	error: logError,
 };
 
-// Replace console methods to automatically send to backend
+const originalLog = console.log;
 const originalError = console.error;
 const originalWarn = console.warn;
 
 export function enableBackendLogging() {
-	// Only intercept errors and warnings to avoid spamming backend with verbose logs
-	// Regular console.log/info remain local and don't trigger RPC calls
+	console.log = (...args) => {
+		originalLog(...args);
+		const { message } = formatLogArgs(args);
+		pushEntry("info", message);
+	};
+
 	console.error = (...args) => {
 		originalError(...args);
 		const { message, data } = formatLogArgs(args);
+		pushEntry("error", message);
 		LogFromFrontend("error", message, data).catch(() => {});
 	};
 
 	console.warn = (...args) => {
 		const message = args[0]?.toString() || "";
 
-		// Suppress known library warnings
 		if (
 			message.includes("Function components cannot be given refs") &&
 			message.includes("ForwardRef")
 		) {
-			// Known issue with @blocknote/shadcn and Radix UI components
-			// See: https://github.com/radix-ui/primitives/discussions/1957
 			return;
 		}
 
 		originalWarn(...args);
 		const formattedData = formatLogArgs(args);
+		pushEntry("warn", formattedData.message);
 		LogFromFrontend("warn", formattedData.message, formattedData.data).catch(() => {});
 	};
 }

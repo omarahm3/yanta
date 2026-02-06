@@ -9,6 +9,7 @@ import "@fontsource/jetbrains-mono/500.css";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { CrashBoundary } from "./components/CrashBoundary";
 import { DialogProvider, HotkeyProvider, UserProgressProvider } from "./contexts";
 import { QuickCapture } from "./pages/QuickCapture";
 import { enableBackendLogging } from "./utils/backendLogger";
@@ -48,19 +49,23 @@ console.log("[main.tsx] Mode:", "isQuickCapture:", isQuickCapture);
 if (isQuickCapture) {
 	root.render(
 		<React.StrictMode>
-			<DialogProvider>
-				<HotkeyProvider>
-					<UserProgressProvider>
-						<QuickCapture />
-					</UserProgressProvider>
-				</HotkeyProvider>
-			</DialogProvider>
+			<CrashBoundary>
+				<DialogProvider>
+					<HotkeyProvider>
+						<UserProgressProvider>
+							<QuickCapture />
+						</UserProgressProvider>
+					</HotkeyProvider>
+				</DialogProvider>
+			</CrashBoundary>
 		</React.StrictMode>,
 	);
 } else {
 	root.render(
 		<React.StrictMode>
-			<App />
+			<CrashBoundary>
+				<App />
+			</CrashBoundary>
 		</React.StrictMode>,
 	);
 }
