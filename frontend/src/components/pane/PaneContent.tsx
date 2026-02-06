@@ -1,7 +1,8 @@
 import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useDialog } from "../../contexts/DialogContext";
+import { useCallback, useEffect, useState } from "react";
 import { useHotkey } from "../../hooks/useHotkey";
+import { useEscapeHandler } from "../../hooks/useEscapeHandler";
+import { useLatestRef } from "../../hooks/useLatestRef";
 import { usePaneLayout } from "../../hooks/usePaneLayout";
 import { cn } from "../../lib/utils";
 import { countLeaves } from "../../utils/paneLayoutUtils";
@@ -25,33 +26,20 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 	const [isDragOver, setIsDragOver] = useState(false);
 	const [showPicker, setShowPicker] = useState(false);
 
-	const { isDialogOpen } = useDialog();
-	const activePaneIdRef = useRef(activePaneId);
-	activePaneIdRef.current = activePaneId;
-	const layoutRef = useRef(layout);
-	layoutRef.current = layout;
-	const isDialogOpenRef = useRef(isDialogOpen);
-	isDialogOpenRef.current = isDialogOpen;
+	const layoutRef = useLatestRef(layout);
+	const activePaneIdRef = useLatestRef(activePaneId);
 
-	useEffect(() => {
-		if (documentPath) return;
-
-		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.key !== "Escape") return;
-			if (isDialogOpenRef.current) return;
-			if (activePaneIdRef.current !== paneId) return;
+	useEscapeHandler({
+		when: !documentPath && activePaneId === paneId,
+		onEscape: (e) => {
 			e.preventDefault();
 			e.stopPropagation();
 			e.stopImmediatePropagation();
-
 			if (countLeaves(layoutRef.current.root) > 1) {
 				closePane(paneId);
 			}
-		};
-
-		window.addEventListener("keydown", onKeyDown, true);
-		return () => window.removeEventListener("keydown", onKeyDown, true);
-	}, [documentPath, paneId, appOnNavigate, closePane]);
+		},
+	});
 
 	useEffect(() => {
 		setShowPicker(false);

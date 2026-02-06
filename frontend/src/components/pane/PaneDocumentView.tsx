@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef } from "react";
 import { TIMEOUTS } from "@/config";
-import { useDialog } from "../../contexts/DialogContext";
-import { useHotkeys } from "../../hooks";
+import { useEscapeHandler } from "../../hooks/useEscapeHandler";
+import { useHotkeys } from "../../hooks/useHotkey";
+import { useLatestRef } from "../../hooks/useLatestRef";
 import { usePaneLayout } from "../../hooks/usePaneLayout";
 import { useDocumentController } from "../../pages/document/useDocumentController";
 import type { NavigationState } from "../../types";
@@ -32,21 +33,12 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 		});
 
 		const { layout, updateScrollPosition, activePaneId } = usePaneLayout();
-		const { isDialogOpen } = useDialog();
-		const layoutRef = useRef(layout);
-		layoutRef.current = layout;
-		const activePaneIdRef = useRef(activePaneId);
-		activePaneIdRef.current = activePaneId;
-		const suppressEscapeRef = useRef(suppressEscape);
-		suppressEscapeRef.current = suppressEscape;
-		const isDialogOpenRef = useRef(isDialogOpen);
-		isDialogOpenRef.current = isDialogOpen;
+		const layoutRef = useLatestRef(layout);
+		const suppressEscapeRef = useLatestRef(suppressEscape);
 
-		useEffect(() => {
-			const onKeyDown = (e: KeyboardEvent) => {
-				if (e.key !== "Escape") return;
-				if (isDialogOpenRef.current) return;
-				if (activePaneIdRef.current !== paneId) return;
+		useEscapeHandler({
+			when: activePaneId === paneId,
+			onEscape: (e) => {
 				if (suppressEscapeRef.current) {
 					e.preventDefault();
 					return;
@@ -54,10 +46,8 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 				controller.escapeHandler(e);
 				e.stopPropagation();
 				e.stopImmediatePropagation();
-			};
-			window.addEventListener("keydown", onKeyDown, true);
-			return () => window.removeEventListener("keydown", onKeyDown, true);
-		}, [paneId, controller.escapeHandler]);
+			},
+		});
 
 		const scrollContainerRef = useRef<HTMLDivElement>(null);
 		const hasRestoredScrollRef = useRef(false);

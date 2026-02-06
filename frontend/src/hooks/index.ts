@@ -11,6 +11,8 @@ export type {
 } from "./useCommandUsage";
 export { useCommandUsage } from "./useCommandUsage";
 export { useDocumentEscapeHandling } from "./useDocumentEscapeHandling";
+export type { UseEscapeHandlerOptions } from "./useEscapeHandler";
+export { useEscapeHandler } from "./useEscapeHandler";
 export { useDocumentForm } from "./useDocumentForm";
 export { useDocumentLoader } from "./useDocumentLoader";
 export { useAutoDocumentSaver } from "./useDocumentSaver";
@@ -23,6 +25,7 @@ export { useGitStatus } from "./useGitStatus";
 export { useGlobalCommand } from "./useGlobalCommand";
 export { useHelp } from "./useHelp";
 export { useHotkey, useHotkeys } from "./useHotkey";
+export { useLatestRef } from "./useLatestRef";
 export type {
 	MilestoneHint,
 	MilestoneHintId,
