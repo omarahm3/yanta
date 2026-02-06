@@ -3,6 +3,7 @@ import * as GlobalCommands from "../../bindings/yanta/internal/commandline/globa
 import type * as commandlineModels from "../../bindings/yanta/internal/commandline/models";
 import { useProjectContext } from "../contexts";
 import { projectFromModel } from "../types";
+import { BackendLogger } from "../utils/backendLogger";
 
 const GLOBAL_COMMANDS = ["switch", "sync", "quit"];
 
@@ -50,7 +51,7 @@ export const useGlobalCommand = () => {
 					result: result || undefined,
 				};
 			} catch (err) {
-				console.error("Global command execution error:", err);
+				BackendLogger.error("Global command execution error:", err);
 				return {
 					handled: true,
 					success: false,

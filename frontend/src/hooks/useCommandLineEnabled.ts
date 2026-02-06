@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BackendLogger } from "../utils/backendLogger";
 // IsCommandLineEnabled will be available after regenerating bindings
 // For now, we'll use a dynamic import pattern that handles the missing export gracefully
 import * as SystemService from "../../bindings/yanta/internal/system/service";
@@ -29,7 +30,7 @@ export function useCommandLineEnabled(): UseCommandLineEnabledReturn {
 					setEnabled(isEnabled);
 				})
 				.catch((err: Error) => {
-					console.error("[useCommandLineEnabled] Failed to check command line enabled:", err);
+					BackendLogger.error("[useCommandLineEnabled] Failed to check command line enabled:", err);
 					setEnabled(false);
 				})
 				.finally(() => {

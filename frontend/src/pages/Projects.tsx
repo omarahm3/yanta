@@ -18,6 +18,7 @@ import { useNotification } from "../hooks/useNotification";
 import { useSidebarSections } from "../hooks/useSidebarSections";
 import { type ExtendedProject, extendProject } from "../types";
 import { getProjectAliasColor } from "../utils/colorUtils";
+import { BackendLogger } from "../utils/backendLogger";
 
 interface ProjectsProps {
 	onNavigate?: (page: string) => void;
@@ -63,7 +64,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 			setDocumentCounts(counts || {});
 			setLastDocumentDates(dates || {});
 		} catch (err) {
-			console.error("Failed to fetch document counts and dates:", err);
+			BackendLogger.error("Failed to fetch document counts and dates:", err);
 		}
 	}, []);
 

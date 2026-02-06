@@ -10,6 +10,7 @@ import {
 	useState,
 } from "react";
 import { GetAllDocumentCounts } from "../../bindings/yanta/internal/project/service";
+import { BackendLogger } from "../utils/backendLogger";
 
 interface DocumentCountContextValue {
 	counts: Map<string, number>;
@@ -39,7 +40,7 @@ export const DocumentCountProvider: React.FC<DocumentCountProviderProps> = ({ ch
 			});
 			setCounts(countsMap);
 		} catch (err) {
-			console.error("Failed to load document counts:", err);
+			BackendLogger.error("Failed to load document counts:", err);
 		} finally {
 			setIsLoading(false);
 		}

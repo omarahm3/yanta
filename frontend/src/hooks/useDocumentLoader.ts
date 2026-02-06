@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { DocumentServiceWrapper } from "../services/DocumentService";
 import type { Document } from "../types/Document";
+import { BackendLogger } from "../utils/backendLogger";
 
 export const useDocumentLoader = (documentPath?: string) => {
 	const [data, setData] = useState<Document | null>(null);
@@ -32,7 +33,7 @@ export const useDocumentLoader = (documentPath?: string) => {
 				setData(document);
 			} catch (err) {
 				const errorMessage = err instanceof Error ? err.message : "Failed to load document";
-				console.error("[useDocumentLoader] Error loading document:", {
+				BackendLogger.error("[useDocumentLoader] Error loading document:", {
 					path: documentPath,
 					error: err,
 					message: errorMessage,

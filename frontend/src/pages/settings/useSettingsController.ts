@@ -50,6 +50,7 @@ import {
 	type SystemInfo,
 	systemInfoFromModel,
 } from "../../types";
+import { BackendLogger } from "../../utils/backendLogger";
 
 interface GitSyncSettings {
 	enabled: boolean;
@@ -111,15 +112,15 @@ export const useSettingsController = () => {
 					setSystemInfo(systemInfoFromModel(model));
 				}
 			})
-			.catch((err) => console.error("Failed to fetch system info:", err));
+			.catch((err) => BackendLogger.error("Failed to fetch system info:", err));
 
 		GetKeepInBackground()
 			.then((value) => setKeepInBackgroundState(value))
-			.catch((err) => console.error("Failed to fetch keep in background setting:", err));
+			.catch((err) => BackendLogger.error("Failed to fetch keep in background setting:", err));
 
 		GetStartHidden()
 			.then((value) => setStartHiddenState(value))
-			.catch((err) => console.error("Failed to fetch start hidden setting:", err));
+			.catch((err) => BackendLogger.error("Failed to fetch start hidden setting:", err));
 
 		CheckGitInstalled()
 			.then((installed) => setGitInstalled(installed))
@@ -127,15 +128,15 @@ export const useSettingsController = () => {
 
 		GetCurrentDataDirectory()
 			.then((dir) => setCurrentDataDir(dir))
-			.catch((err) => console.error("Failed to get current data directory:", err));
+			.catch((err) => BackendLogger.error("Failed to get current data directory:", err));
 
 		IsDataDirectoryOverridden()
 			.then((overridden) => setDataDirOverridden(overridden))
-			.catch((err) => console.error("Failed to check data directory override:", err));
+			.catch((err) => BackendLogger.error("Failed to check data directory override:", err));
 
 		GetDataDirectoryEnvVar()
 			.then((envVar) => setDataDirEnvVar(envVar))
-			.catch((err) => console.error("Failed to get data directory env var:", err));
+			.catch((err) => BackendLogger.error("Failed to get data directory env var:", err));
 
 		GetGitSyncConfig()
 			.then((config) => {
@@ -146,42 +147,42 @@ export const useSettingsController = () => {
 					branch: config.Branch || "",
 				});
 			})
-			.catch((err) => console.error("Failed to get git sync config:", err));
+			.catch((err) => BackendLogger.error("Failed to get git sync config:", err));
 
 		GetGitBranches()
 			.then((branches) => setGitBranches(branches || []))
-			.catch((err) => console.error("Failed to get git branches:", err));
+			.catch((err) => BackendLogger.error("Failed to get git branches:", err));
 
 		GetCurrentGitBranch()
 			.then((branch) => setCurrentGitBranch(branch || ""))
-			.catch((err) => console.error("Failed to get current git branch:", err));
+			.catch((err) => BackendLogger.error("Failed to get current git branch:", err));
 
 		GetWindowMode()
 			.then((mode) => setLinuxWindowModeState(mode))
-			.catch((err) => console.error("Failed to get window mode:", err));
+			.catch((err) => BackendLogger.error("Failed to get window mode:", err));
 
 		GetAppScale()
 			.then((scale) => setAppScaleState(scale))
-			.catch((err) => console.error("Failed to get app scale:", err));
+			.catch((err) => BackendLogger.error("Failed to get app scale:", err));
 
 		GetBackupConfig()
 			.then((config) => setBackupConfig(config))
-			.catch((err) => console.error("Failed to get backup config:", err));
+			.catch((err) => BackendLogger.error("Failed to get backup config:", err));
 
 		GetBackups()
 			.then((backupList) => setBackups(backupList))
-			.catch((err) => console.error("Failed to get backups:", err));
+			.catch((err) => BackendLogger.error("Failed to get backups:", err));
 
 		// Fetch hotkey configuration
 		GetPlatform()
 			.then((p) => setPlatform(p))
-			.catch((err) => console.error("Failed to get platform:", err));
+			.catch((err) => BackendLogger.error("Failed to get platform:", err));
 
 		GetHotkeyConfig()
 			.then((config) => {
 				setHotkeyConfigState(globalHotkeyConfigFromModel(config));
 			})
-			.catch((err) => console.error("Failed to get hotkey config:", err));
+			.catch((err) => BackendLogger.error("Failed to get hotkey config:", err));
 
 		const unsubscribe = Events.On("reindex:progress", (data: unknown) => {
 			const progressData = data as { current: number; total: number; message: string };

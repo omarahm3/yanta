@@ -22,6 +22,7 @@ import {
 import { useHotkey, usePaneLayout } from "./hooks";
 import { useHelp } from "./hooks/useHelp";
 import type { NavigationState, PageName } from "./types";
+import { BackendLogger } from "./utils/backendLogger";
 
 import "./styles/tailwind.css";
 import "./styles/yanta.css";
@@ -226,7 +227,7 @@ const ProjectSwitchTracker = () => {
 function App() {
 	React.useEffect(() => {
 		const handleError = (event: ErrorEvent) => {
-			console.error("[App] Uncaught error:", {
+			BackendLogger.error("[App] Uncaught error:", {
 				message: event.message,
 				filename: event.filename,
 				lineno: event.lineno,
@@ -236,7 +237,7 @@ function App() {
 		};
 
 		const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-			console.error("[App] Unhandled promise rejection:", {
+			BackendLogger.error("[App] Unhandled promise rejection:", {
 				reason: event.reason,
 				promise: event.promise,
 			});
@@ -245,7 +246,7 @@ function App() {
 		window.addEventListener("error", handleError);
 		window.addEventListener("unhandledrejection", handleUnhandledRejection);
 
-		console.log("[App] Global error handlers registered");
+		BackendLogger.info("[App] Global error handlers registered");
 
 		return () => {
 			window.removeEventListener("error", handleError);

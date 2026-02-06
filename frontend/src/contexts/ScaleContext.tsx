@@ -1,6 +1,7 @@
 import type React from "react";
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
 import { GetAppScale } from "../../bindings/yanta/internal/system/service";
+import { BackendLogger } from "../utils/backendLogger";
 
 interface ScaleContextValue {
 	scale: number;
@@ -26,7 +27,7 @@ export const ScaleProvider: React.FC<ScaleProviderProps> = ({ children }) => {
 				applyScale(value);
 			})
 			.catch((err) => {
-				console.error("Failed to load app scale:", err);
+				BackendLogger.error("Failed to load app scale:", err);
 				applyScale(1.0);
 			});
 	}, []);

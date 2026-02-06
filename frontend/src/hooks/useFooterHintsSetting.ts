@@ -3,6 +3,7 @@ import {
 	GetShowFooterHints,
 	SetShowFooterHints,
 } from "../../bindings/yanta/internal/system/service.js";
+import { BackendLogger } from "../utils/backendLogger";
 
 export interface UseFooterHintsSettingReturn {
 	showFooterHints: boolean;
@@ -25,7 +26,7 @@ export function useFooterHintsSetting(): UseFooterHintsSettingReturn {
 				setShowFooterHintsState(show);
 			})
 			.catch((err) => {
-				console.error("[useFooterHintsSetting] Failed to get footer hints visibility:", err);
+				BackendLogger.error("[useFooterHintsSetting] Failed to get footer hints visibility:", err);
 				// Default to true on error so hints are shown
 				setShowFooterHintsState(true);
 			})
@@ -43,7 +44,7 @@ export function useFooterHintsSetting(): UseFooterHintsSettingReturn {
 			try {
 				await SetShowFooterHints(show);
 			} catch (err) {
-				console.error("[useFooterHintsSetting] Failed to set footer hints visibility:", err);
+				BackendLogger.error("[useFooterHintsSetting] Failed to set footer hints visibility:", err);
 				// Revert on error
 				setShowFooterHintsState(previousValue);
 				throw err;

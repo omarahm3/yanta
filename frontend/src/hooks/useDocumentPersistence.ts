@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { TIMEOUTS } from "@/config";
 import type { BlockNoteBlock } from "../types/Document";
+import { BackendLogger } from "../utils/backendLogger";
 import type { Project } from "../types/Project";
 import type { NavigationState } from "../types";
 import { useAutoSave } from "./useAutoSave";
@@ -83,7 +84,7 @@ export const useDocumentPersistence = ({
 				onNewDocumentSaved?.();
 			}
 		} catch (err) {
-			console.error("Save failed:", err);
+			BackendLogger.error("Save failed:", err);
 			throw err;
 		} finally {
 			isSavingRef.current = false;
@@ -94,7 +95,7 @@ export const useDocumentPersistence = ({
 		if (shouldAutoSave && currentProject && !isLoading) {
 			onAutoSaveComplete();
 			handleSave().catch((err) => {
-				console.error("Auto-save failed:", err);
+				BackendLogger.error("Auto-save failed:", err);
 			});
 		}
 	}, [shouldAutoSave, currentProject, isLoading, handleSave, onAutoSaveComplete]);

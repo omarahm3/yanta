@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { BackendLogger } from "../utils/backendLogger";
 import { useLocalStorage } from "./useLocalStorage";
 
 const STORAGE_KEY = "yanta_command_usage";
@@ -65,7 +66,7 @@ export function useCommandUsage(): UseCommandUsageReturn {
 				return pruneUsageData(validated);
 			},
 			onError: (operation, err) => {
-				console.error(`[useCommandUsage] Failed to ${operation}:`, err);
+				BackendLogger.error(`[useCommandUsage] Failed to ${operation}:`, err);
 			},
 		},
 	);

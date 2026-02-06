@@ -9,6 +9,7 @@ import {
 	RestoreEntry,
 } from "../../../bindings/yanta/internal/journal/wailsservice";
 import type { JournalEntryData } from "./JournalEntry";
+import { BackendLogger } from "../../utils/backendLogger";
 
 export interface UseJournalOptions {
 	projectAlias: string; // Use "all" for all projects
@@ -94,7 +95,7 @@ export function useJournal({
 				setEntries(mappedEntries);
 			}
 		} catch (err) {
-			console.error("Failed to fetch journal entries:", err);
+			BackendLogger.error("Failed to fetch journal entries:", err);
 			setError("Failed to load entries");
 			setEntries([]);
 		} finally {
@@ -159,7 +160,7 @@ export function useJournal({
 					return next;
 				});
 			} catch (err) {
-				console.error("Failed to delete entry:", err);
+				BackendLogger.error("Failed to delete entry:", err);
 				throw err;
 			}
 		},
@@ -173,7 +174,7 @@ export function useJournal({
 				await RestoreEntry(projectAlias, date, id);
 				await refresh();
 			} catch (err) {
-				console.error("Failed to restore entry:", err);
+				BackendLogger.error("Failed to restore entry:", err);
 				throw err;
 			}
 		},

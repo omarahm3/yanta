@@ -4,6 +4,7 @@ import {
 	SetShowShortcutTooltips,
 } from "../../bindings/yanta/internal/system/service.js";
 import { ENABLE_TOOLTIP_HINTS } from "../config/featureFlags";
+import { BackendLogger } from "../utils/backendLogger";
 
 export interface UseShortcutTooltipsSettingReturn {
 	showShortcutTooltips: boolean;
@@ -31,7 +32,7 @@ export function useShortcutTooltipsSetting(): UseShortcutTooltipsSettingReturn {
 				setShowShortcutTooltipsState(show);
 			})
 			.catch((err) => {
-				console.error("[useShortcutTooltipsSetting] Failed to get shortcut tooltips visibility:", err);
+				BackendLogger.error("[useShortcutTooltipsSetting] Failed to get shortcut tooltips visibility:", err);
 				setShowShortcutTooltipsState(true);
 			})
 			.finally(() => {
@@ -47,7 +48,7 @@ export function useShortcutTooltipsSetting(): UseShortcutTooltipsSettingReturn {
 			try {
 				await SetShowShortcutTooltips(show);
 			} catch (err) {
-				console.error("[useShortcutTooltipsSetting] Failed to set shortcut tooltips visibility:", err);
+				BackendLogger.error("[useShortcutTooltipsSetting] Failed to set shortcut tooltips visibility:", err);
 				setShowShortcutTooltipsState(previousValue);
 				throw err;
 			}

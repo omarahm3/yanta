@@ -3,6 +3,7 @@ import { TIMEOUTS } from "@/config";
 import type { PaneLayoutState } from "../types/PaneLayout";
 import { createDefaultPaneLayout } from "../types/PaneLayout";
 import { restoreLayout } from "../utils/paneLayoutUtils";
+import { BackendLogger } from "../utils/backendLogger";
 import { useLocalStorage } from "./useLocalStorage";
 
 const OLD_STORAGE_KEY = "yanta_pane_layout";
@@ -76,7 +77,7 @@ function saveLayoutMap(map: PersistedLayoutMap): void {
 		try {
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
 		} catch (err) {
-			console.error("[usePanePersistence] Failed to save to localStorage:", err);
+			BackendLogger.error("[usePanePersistence] Failed to save to localStorage:", err);
 		}
 	}
 }
@@ -89,7 +90,7 @@ function useLayoutMapStorage(): void {
 			validate: validateLayoutMap,
 			deserialize: deserializeLayoutMap,
 			onError: (operation, err) => {
-				console.error(`[usePanePersistence] Failed to ${operation}:`, err);
+				BackendLogger.error(`[usePanePersistence] Failed to ${operation}:`, err);
 			},
 		},
 	);
