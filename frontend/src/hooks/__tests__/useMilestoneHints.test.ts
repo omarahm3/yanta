@@ -99,7 +99,7 @@ describe("useMilestoneHints", () => {
 			expect(firstSave?.text).toBe("Press Ctrl+S to save quickly");
 
 			const recentDocs = MILESTONE_HINTS.find((h) => h.id === "recent-docs");
-			expect(recentDocs?.text).toBe("Power tip: Ctrl+E opens your recent documents");
+			expect(recentDocs?.text).toBe("Power tip: Ctrl+K → Recent Documents to quickly reopen files");
 
 			const journalNav = MILESTONE_HINTS.find((h) => h.id === "journal-nav");
 			expect(journalNav?.text).toBe("Navigate days with Ctrl+← and Ctrl+→");

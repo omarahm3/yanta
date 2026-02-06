@@ -7,7 +7,7 @@ import { ExportRequest } from "../../../bindings/yanta/internal/export/models";
 import { ExportToPDF } from "../../../bindings/yanta/internal/export/service";
 import { GetDocumentTags } from "../../../bindings/yanta/internal/tag/service";
 import type { DocumentContentProps } from "../../components/document/DocumentContent";
-import { useProjectContext } from "../../contexts";
+import { useProjectContext, useUserProgressContext } from "../../contexts";
 import { useDocumentEditor } from "../../hooks/useDocumentEditor";
 import { useDocumentEscapeHandling } from "../../hooks/useDocumentEscapeHandling";
 import { useDocumentForm } from "../../hooks/useDocumentForm";
@@ -50,6 +50,7 @@ export function useDocumentController({
 	paneId,
 }: DocumentControllerOptions): DocumentControllerResult {
 	const { currentProject } = useProjectContext();
+	const { incrementDocumentsCreated } = useUserProgressContext();
 	const { activePaneId } = usePaneLayout();
 	const isActivePane = !paneId || activePaneId === paneId;
 	const isActivePaneRef = useRef(isActivePane);
@@ -140,6 +141,7 @@ export function useDocumentController({
 		onAutoSaveComplete: resetAutoSave,
 		onNavigate,
 		isEditorReady,
+		onNewDocumentSaved: incrementDocumentsCreated,
 	});
 
 	const autoSaveRef = useRef(autoSave);

@@ -1,5 +1,5 @@
-import { Events } from "@wailsio/runtime";
 import { act, renderHook } from "@testing-library/react";
+import { Events } from "@wailsio/runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useRecentDocuments } from "../hooks/useRecentDocuments";
 

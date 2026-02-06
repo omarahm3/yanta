@@ -10,7 +10,7 @@ import { MilestoneHint } from "./MilestoneHint";
  * component to display contextual tips as users reach usage milestones:
  *
  * - First document saved: "Press Ctrl+S to save quickly"
- * - 5 documents created: "Power tip: Ctrl+E opens your recent documents"
+ * - 5 documents created: "Power tip: Ctrl+K → Recent Documents to quickly reopen files"
  * - First journal entry: "Navigate days with Ctrl+← and Ctrl+→"
  * - 10 journal entries: "Select entries with Space to promote or delete in bulk"
  * - First project switch: "Quick switch with Ctrl+Tab to toggle between projects"

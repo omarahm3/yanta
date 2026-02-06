@@ -217,7 +217,9 @@ describe("MilestoneHintManager", () => {
 			});
 
 			expect(screen.getByTestId("milestone-hint")).toBeInTheDocument();
-			expect(screen.getByText("Power tip: Ctrl+E opens your recent documents")).toBeInTheDocument();
+			expect(
+				screen.getByText("Power tip: Ctrl+K → Recent Documents to quickly reopen files"),
+			).toBeInTheDocument();
 		});
 
 		it("shows journal-select hint when journalEntriesCreated reaches 10", () => {

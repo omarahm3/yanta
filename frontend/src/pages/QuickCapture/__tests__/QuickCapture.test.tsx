@@ -1,13 +1,15 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DialogProvider, HotkeyProvider } from "../../../contexts";
+import { DialogProvider, HotkeyProvider, UserProgressProvider } from "../../../contexts";
 import { QuickCapture } from "../QuickCapture";
 
 const renderQuickCapture = () =>
 	render(
 		<DialogProvider>
 			<HotkeyProvider>
-				<QuickCapture />
+				<UserProgressProvider>
+					<QuickCapture />
+				</UserProgressProvider>
 			</HotkeyProvider>
 		</DialogProvider>,
 	);

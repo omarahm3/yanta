@@ -202,6 +202,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 			shortcut: getShortcutForCommand("nav-recent"),
 			group: "Navigation",
 			keywords: ["recent", "history", "opened"],
+			keepOpen: true,
 			action: () => {
 				setShowRecentDocuments(true);
 			},

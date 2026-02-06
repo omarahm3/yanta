@@ -40,7 +40,7 @@ export const MILESTONE_HINTS: MilestoneHint[] = [
 	},
 	{
 		id: MILESTONE_HINT_IDS.RECENT_DOCS,
-		text: "Power tip: Ctrl+E opens your recent documents",
+		text: "Power tip: Ctrl+K → Recent Documents to quickly reopen files",
 		shouldShow: (progress) => progress.documentsCreated >= 5,
 	},
 	{

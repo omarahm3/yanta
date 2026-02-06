@@ -2,6 +2,7 @@ import { Window } from "@wailsio/runtime";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ListActive } from "../../../bindings/yanta/internal/project/service";
+import { useUserProgressContext } from "../../contexts/UserProgressContext";
 import { useHotkeys } from "../../hooks";
 import type { HotkeyConfig } from "../../types/hotkeys";
 import type { ProjectOption } from "./ProjectPicker";
@@ -18,7 +19,10 @@ export const QuickCapture: React.FC = () => {
 	const [isLoading, setIsLoading] = useState(true);
 	const [showEscapeHint, setShowEscapeHint] = useState(false);
 
-	const { content, setContent, tags, error, save, removeTag, clear } = useQuickCapture();
+	const { incrementJournalEntriesCreated } = useUserProgressContext();
+	const { content, setContent, tags, error, save, removeTag, clear } = useQuickCapture({
+		onEntrySaved: incrementJournalEntriesCreated,
+	});
 
 	// Load projects on mount (for inline @ project list)
 	useEffect(() => {

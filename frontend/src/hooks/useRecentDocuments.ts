@@ -80,9 +80,9 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 				try {
 					const fetched = await getDocument(doc.path);
 					if (fetched.deletedAt) return null; // soft-deleted
-				return { ...doc, title: fetched.title || doc.title };
+					return { ...doc, title: fetched.title || doc.title };
 				} catch (err) {
-          console.error("[useRecentDocuments] Error fetching document:", err);
+					console.error("[useRecentDocuments] Error fetching document:", err);
 					return null;
 				}
 			}),

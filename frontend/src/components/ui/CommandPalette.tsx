@@ -21,6 +21,8 @@ export interface CommandOption {
 	group?: string;
 	keywords?: string[];
 	action: () => void;
+	/** When true, keeps the palette open after selecting (e.g. for sub-palette transitions) */
+	keepOpen?: boolean;
 	/** When true, displays a subtle "Recent" indicator for this command */
 	isRecent?: boolean;
 }
@@ -96,7 +98,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 		(command: CommandOption) => {
 			command.action();
 			onCommandSelect(command);
-			onClose();
+			if (!command.keepOpen) {
+				onClose();
+			}
 		},
 		[onCommandSelect, onClose],
 	);

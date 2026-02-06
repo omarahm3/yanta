@@ -9,7 +9,7 @@ import "@fontsource/jetbrains-mono/500.css";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
-import { DialogProvider, HotkeyProvider } from "./contexts";
+import { DialogProvider, HotkeyProvider, UserProgressProvider } from "./contexts";
 import { QuickCapture } from "./pages/QuickCapture";
 import { enableBackendLogging } from "./utils/backendLogger";
 import "./styles/tailwind.css";
@@ -50,7 +50,9 @@ if (isQuickCapture) {
 		<React.StrictMode>
 			<DialogProvider>
 				<HotkeyProvider>
-					<QuickCapture />
+					<UserProgressProvider>
+						<QuickCapture />
+					</UserProgressProvider>
 				</HotkeyProvider>
 			</DialogProvider>
 		</React.StrictMode>,

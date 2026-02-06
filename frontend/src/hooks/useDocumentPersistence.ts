@@ -22,6 +22,7 @@ interface UseDocumentPersistenceProps {
 	onAutoSaveComplete: () => void;
 	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
 	isEditorReady?: boolean;
+	onNewDocumentSaved?: () => void;
 }
 
 export const useDocumentPersistence = ({
@@ -35,6 +36,7 @@ export const useDocumentPersistence = ({
 	onAutoSaveComplete,
 	onNavigate,
 	isEditorReady = false,
+	onNewDocumentSaved,
 }: UseDocumentPersistenceProps) => {
 	const latestFormRef = useRef(formData);
 	const currentDocumentPathRef = useRef(documentPath);
@@ -78,6 +80,7 @@ export const useDocumentPersistence = ({
 
 			if (isNewDocument && savedPath) {
 				currentDocumentPathRef.current = savedPath;
+				onNewDocumentSaved?.();
 			}
 		} catch (err) {
 			console.error("Save failed:", err);
@@ -87,7 +90,7 @@ export const useDocumentPersistence = ({
 		} finally {
 			isSavingRef.current = false;
 		}
-	}, [currentProject, save, onNavigate, resetChanges]);
+	}, [currentProject, save, onNavigate, resetChanges, onNewDocumentSaved]);
 
 	useEffect(() => {
 		if (shouldAutoSave && currentProject && !isLoading) {

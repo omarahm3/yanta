@@ -18,7 +18,11 @@ export interface UseQuickCaptureReturn {
 	clear: () => void;
 }
 
-export function useQuickCapture(): UseQuickCaptureReturn {
+interface UseQuickCaptureOptions {
+	onEntrySaved?: () => void;
+}
+
+export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptureReturn {
 	const [content, setContentInternal] = useState("");
 	const [tags, setTags] = useState<string[]>([]);
 	const [selectedProject, setSelectedProjectInternal] = useState<string | null>(() =>
@@ -68,6 +72,7 @@ export function useQuickCapture(): UseQuickCaptureReturn {
 			});
 
 			await AppendEntry(request);
+			options?.onEntrySaved?.();
 
 			localStorage.setItem(LAST_PROJECT_KEY, projectAlias);
 
