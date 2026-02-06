@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { BackendLogger } from "../utils/backendLogger";
-import { useLocalStorage } from "./useLocalStorage";
+import { useLocalStorage } from "../shared/hooks/useLocalStorage";
 
 const STORAGE_KEY = "yanta_user_progress";
 

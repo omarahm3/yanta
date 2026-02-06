@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { PANE_SHORTCUTS } from "../../config";
 import { useHotkey } from "../../hooks/useHotkey";
 import { useEscapeHandler } from "../../hooks/useEscapeHandler";
-import { useLatestRef } from "../../hooks/useLatestRef";
+import { useLatestRef } from "../../shared/hooks/useLatestRef";
 import { usePaneLayout } from "../../hooks/usePaneLayout";
 import { cn } from "../../lib/utils";
 import { countLeaves } from "../../utils/paneLayoutUtils";

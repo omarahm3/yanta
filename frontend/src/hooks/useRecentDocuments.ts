@@ -2,7 +2,7 @@ import { Events } from "@wailsio/runtime";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getDocument } from "../services/DocumentService";
 import { BackendLogger } from "../utils/backendLogger";
-import { useLocalStorage } from "./useLocalStorage";
+import { useLocalStorage } from "../shared/hooks/useLocalStorage";
 
 const STORAGE_KEY = "yanta_recent_documents";
 const MAX_RECENT_DOCUMENTS = 10;

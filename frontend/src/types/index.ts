@@ -117,4 +117,5 @@ export interface VersionInfo {
 	platform: string;
 }
 
-export type { NavigationState, PageName } from "./navigation";
+// TODO: remove this and import from shared/types/navigation
+export type { NavigationState, PageName } from "../shared/types/navigation";

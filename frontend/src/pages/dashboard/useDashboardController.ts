@@ -591,7 +591,13 @@ export function useDashboardController({
 
 	const hotkeys: HotkeyConfig[] = useMemo(
 		() => [
-			{ ...DASHBOARD_SHORTCUTS.newDocument, handler: handleNewDocument, allowInInput: false },
+			{
+				...DASHBOARD_SHORTCUTS.newDocument,
+				handler: () => {
+					void handleNewDocument();
+				},
+				allowInInput: false,
+			},
 			{
 				...DASHBOARD_SHORTCUTS.toggleArchived,
 				handler: handleToggleArchived,

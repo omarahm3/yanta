@@ -4,7 +4,7 @@ import type { PaneLayoutState } from "../types/PaneLayout";
 import { createDefaultPaneLayout } from "../types/PaneLayout";
 import { restoreLayout } from "../utils/paneLayoutUtils";
 import { BackendLogger } from "../utils/backendLogger";
-import { useLocalStorage } from "./useLocalStorage";
+import { useLocalStorage } from "../shared/hooks/useLocalStorage";
 
 const OLD_STORAGE_KEY = "yanta_pane_layout";
 const STORAGE_KEY = "yanta_pane_layouts";

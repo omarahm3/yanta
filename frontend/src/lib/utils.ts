@@ -1,6 +1,3 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-export function cn(...inputs: ClassValue[]) {
-	return twMerge(clsx(inputs));
-}
+// TODO: this file is redundant, remove it
+/** Compatibility shim: migrate call sites to shared/utils/cn then remove. */
+export { cn } from "../shared/utils/cn";

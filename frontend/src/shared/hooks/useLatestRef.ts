@@ -6,7 +6,6 @@ import { useRef } from "react";
  * Manual equivalent of React's useEffectEvent (stable callback refs) for React 18.
  * Use when you need a stable ref identity but want callbacks (e.g. in event listeners)
  * to read the current value without being in the dependency array.
- * Aligns with: advanced-use-latest, advanced-event-handler-refs, rerender-use-ref-transient-values.
  *
  * @example
  * const valueRef = useLatestRef(value);

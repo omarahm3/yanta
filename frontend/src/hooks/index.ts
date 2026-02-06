@@ -1,7 +1,7 @@
 export type { SaveState } from "./useAutoSave";
 export { useAutoSave } from "./useAutoSave";
-export type { UseLocalStorageOptions } from "./useLocalStorage";
-export { useLocalStorage } from "./useLocalStorage";
+export type { UseLocalStorageOptions } from "../shared/hooks/useLocalStorage";
+export { useLocalStorage } from "../shared/hooks/useLocalStorage";
 export type { UseCommandDeprecationReturn } from "./useCommandDeprecation";
 export { DEPRECATED_COMMAND_MAPPINGS, useCommandDeprecation } from "./useCommandDeprecation";
 export type {
@@ -25,7 +25,7 @@ export { useGitStatus } from "./useGitStatus";
 export { useGlobalCommand } from "./useGlobalCommand";
 export { useHelp } from "./useHelp";
 export { useHotkey, useHotkeys } from "./useHotkey";
-export { useLatestRef } from "./useLatestRef";
+export { useLatestRef } from "../shared/hooks/useLatestRef";
 export type {
 	MilestoneHint,
 	MilestoneHintId,

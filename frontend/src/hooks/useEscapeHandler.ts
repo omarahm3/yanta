@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useDialog } from "../contexts/DialogContext";
-import { useLatestRef } from "./useLatestRef";
+import { useLatestRef } from "../shared/hooks/useLatestRef";
 
 export interface UseEscapeHandlerOptions {
 	/** When false, the handler is not registered. When true, Escape will trigger onEscape (unless dialog blocks it). */
