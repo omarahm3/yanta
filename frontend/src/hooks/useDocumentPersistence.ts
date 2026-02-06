@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
+import { TIMEOUTS } from "@/config";
 import type { BlockNoteBlock } from "../types/Document";
 import type { Project } from "../types/Project";
+import type { NavigationState } from "../types";
 import { useAutoSave } from "./useAutoSave";
 import { useAutoDocumentSaver } from "./useDocumentSaver";
 
@@ -20,7 +22,7 @@ interface UseDocumentPersistenceProps {
 	shouldAutoSave: boolean;
 	resetChanges: () => void;
 	onAutoSaveComplete: () => void;
-	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
+	onNavigate?: (page: string, state?: NavigationState) => void;
 	isEditorReady?: boolean;
 	onNewDocumentSaved?: () => void;
 }
@@ -59,8 +61,6 @@ export const useDocumentPersistence = ({
 
 		isSavingRef.current = true;
 
-		console.log("> saving document", JSON.stringify(latestFormRef.current.blocks));
-
 		try {
 			const currentFormData = latestFormRef.current;
 			const currentPath = currentDocumentPathRef.current;
@@ -84,8 +84,6 @@ export const useDocumentPersistence = ({
 			}
 		} catch (err) {
 			console.error("Save failed:", err);
-			// Re-throw the error so useAutoSave can handle it and show error status
-			// This is safe because useAutoSave has its own try-catch that prevents crashes
 			throw err;
 		} finally {
 			isSavingRef.current = false;
@@ -94,7 +92,6 @@ export const useDocumentPersistence = ({
 
 	useEffect(() => {
 		if (shouldAutoSave && currentProject && !isLoading) {
-			console.log("[useDocumentPersistence] shouldAutoSave triggered immediate save");
 			onAutoSaveComplete();
 			handleSave().catch((err) => {
 				console.error("Auto-save failed:", err);
@@ -102,17 +99,10 @@ export const useDocumentPersistence = ({
 		}
 	}, [shouldAutoSave, currentProject, isLoading, handleSave, onAutoSaveComplete]);
 
-	console.log("[useDocumentPersistence] render", {
-		hasChanges,
-		isLoading,
-		isEditorReady,
-		enabled: hasChanges && !isLoading,
-	});
-
 	const autoSaveHook = useAutoSave({
 		value: formData,
 		onSave: handleSave,
-		delay: 2000,
+		delay: TIMEOUTS.autoSaveDebounceMs,
 		enabled: hasChanges && !isLoading,
 		saveOnBlur: true,
 		isInitialized: isEditorReady,

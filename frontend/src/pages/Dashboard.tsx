@@ -5,10 +5,11 @@ import { MoveDocumentDialog } from "../components/MoveDocumentDialog";
 import { StatusBar } from "../components/ui";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { useHotkeys } from "../hooks";
+import type { NavigationState } from "../types";
 import { useDashboardController } from "./dashboard/useDashboardController";
 
 interface DashboardProps {
-	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
+	onNavigate?: (page: string, state?: NavigationState) => void;
 	onRegisterToggleArchived?: (handler: () => void) => void;
 	getShowArchived?: () => boolean;
 	onRegisterToggleSidebar?: (handler: () => void) => void;

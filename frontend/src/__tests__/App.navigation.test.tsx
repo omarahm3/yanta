@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import type { NavigationState } from "../types";
 
 /**
  * Tests for the handleNavigate logic in App.tsx's GlobalCommandHotkey component.
@@ -17,10 +18,7 @@ describe("App handleNavigate logic", () => {
 		const resetLayout = vi.fn();
 		const activePaneIdRef = { current: "pane-active" };
 
-		const handleNavigate = (
-			page: string,
-			state?: Record<string, string | number | boolean | undefined>,
-		) => {
+		const handleNavigate = (page: string, state?: NavigationState) => {
 			if (page === "document") {
 				if (state?.newDocument) {
 					resetLayout();

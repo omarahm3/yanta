@@ -10,6 +10,7 @@ import { useProjectContext } from "../contexts";
 import { useHelp } from "../hooks/useHelp";
 import { useNotification } from "../hooks/useNotification";
 import { useSidebarSections } from "../hooks/useSidebarSections";
+import type { NavigationState } from "../types";
 
 interface SearchResult {
 	path: string;
@@ -33,7 +34,7 @@ interface GroupedSearchResult {
 }
 
 interface SearchProps {
-	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
+	onNavigate?: (page: string, state?: NavigationState) => void;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 

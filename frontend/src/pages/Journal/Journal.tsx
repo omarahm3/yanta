@@ -4,12 +4,13 @@ import { Layout } from "../../components/Layout";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { useHotkeys } from "../../hooks";
 import { cn } from "../../lib/utils";
+import type { NavigationState } from "../../types";
 import { DatePicker } from "./DatePicker";
 import { JournalEntry } from "./JournalEntry";
 import { useJournalController } from "./useJournalController";
 
 export interface JournalProps {
-	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
+	onNavigate?: (page: string, state?: NavigationState) => void;
 	className?: string;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 	initialDate?: string;

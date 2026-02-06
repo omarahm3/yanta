@@ -21,6 +21,7 @@ import {
 } from "./contexts";
 import { useHotkey, usePaneLayout } from "./hooks";
 import { useHelp } from "./hooks/useHelp";
+import type { NavigationState, PageName } from "./types";
 
 import "./styles/tailwind.css";
 import "./styles/yanta.css";
@@ -77,17 +78,15 @@ const GlobalCommandHotkey = () => {
 			if (isOpen) closeDialog();
 		};
 	}, [isOpen, openDialog, closeDialog]);
-	const [currentPage, setCurrentPage] = React.useState<string>("dashboard");
-	const [navigationState, setNavigationState] = React.useState<
-		Record<string, string | number | boolean | undefined>
-	>({});
+	const [currentPage, setCurrentPage] = React.useState<PageName>("dashboard");
+	const [navigationState, setNavigationState] = React.useState<NavigationState>({});
 	const [showArchived, setShowArchived] = React.useState(false);
 	const toggleArchivedRef = React.useRef<(() => void) | null>(null);
 	const toggleSidebarRef = React.useRef<(() => void) | null>(null);
 
 	const handleNavigate = React.useCallback(
-		(page: string, state?: Record<string, string | number | boolean | undefined>) => {
-			setCurrentPage(page);
+		(page: string, state?: NavigationState) => {
+			setCurrentPage(page as PageName);
 			setNavigationState(state || {});
 			if (page === "document" && state?.documentPath) {
 				const docPath = state.documentPath as string;
