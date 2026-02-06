@@ -124,12 +124,12 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 			if (showProjectList) {
-				if (e.key === "ArrowDown" || e.key === "j" || (e.ctrlKey && e.key === "n")) {
+				if (e.key === "ArrowDown" || (e.ctrlKey && e.key === "n")) {
 					e.preventDefault();
 					moveHighlight(1);
 					return;
 				}
-				if (e.key === "ArrowUp" || e.key === "k" || (e.ctrlKey && e.key === "p")) {
+				if (e.key === "ArrowUp" || (e.ctrlKey && e.key === "p")) {
 					e.preventDefault();
 					moveHighlight(-1);
 					return;

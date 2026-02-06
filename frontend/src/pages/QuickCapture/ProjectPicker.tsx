@@ -68,14 +68,22 @@ export const ProjectPicker: React.FC<ProjectPickerProps> = ({
 	}, [isOpen]);
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
+		if (e.key === "n" && e.ctrlKey) {
+			e.preventDefault();
+			setHighlightedIndex((prev) => (prev < filteredProjects.length - 1 ? prev + 1 : prev));
+			return;
+		}
+		if (e.key === "p" && e.ctrlKey) {
+			e.preventDefault();
+			setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : prev));
+			return;
+		}
 		switch (e.key) {
 			case "ArrowDown":
-			case "j":
 				e.preventDefault();
 				setHighlightedIndex((prev) => (prev < filteredProjects.length - 1 ? prev + 1 : prev));
 				break;
 			case "ArrowUp":
-			case "k":
 				e.preventDefault();
 				setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : prev));
 				break;
