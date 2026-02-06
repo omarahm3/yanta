@@ -3,7 +3,6 @@ import { type ReactNode, useEffect, useMemo } from "react";
 import { useProjectContext, useTitleBarContext } from "../contexts";
 import { useFooterHints, useFooterHintsSetting, useHotkeys, useSidebarSetting } from "../hooks";
 import {
-	ContextBar,
 	FooterHintBar,
 	HeaderBar,
 	type SidebarSection,
@@ -30,14 +29,6 @@ const getPageDisplayName = (page: string): string => {
 		default:
 			return page.charAt(0).toUpperCase() + page.slice(1);
 	}
-};
-
-/**
- * Checks if the current page should show the ContextBar.
- * ContextBar appears on content pages: dashboard, document, journal.
- */
-const shouldShowContextBar = (page: string): boolean => {
-	return ["dashboard", "document", "journal"].includes(page);
 };
 
 export interface LayoutProps {
@@ -144,24 +135,16 @@ export const Layout: React.FC<LayoutProps> = ({
 			</div>
 
 			<div className="flex flex-col flex-1 overflow-hidden main-content-transition relative z-10 bg-glass-bg/10 backdrop-blur-sm">
-				<div className="bg-glass-bg/40 backdrop-blur-md border-b border-glass-border sticky top-0 z-30">
-					<HeaderBar
-						breadcrumb={
-							breadcrumb ||
-							(currentPage === "settings" ? "Settings" : currentProject?.name || "No Project")
-						}
-						currentPage={currentPage}
-						shortcuts={headerShortcuts}
-					/>
-
-					{shouldShowContextBar(currentPage) && (
-						<ContextBar
-							mode={dataMode}
-							pageName={getPageDisplayName(currentPage)}
+				{currentPage !== "settings" && (
+					<div className="bg-glass-bg/40 backdrop-blur-md border-b border-glass-border sticky top-0 z-30">
+						<HeaderBar
+							breadcrumb={breadcrumb || currentProject?.name || "No Project"}
+							currentPage={getPageDisplayName(currentPage)}
 							projectAlias={currentProject?.alias}
+							shortcuts={headerShortcuts}
 						/>
-					)}
-				</div>
+					</div>
+				)}
 
 				<div className="flex-1 overflow-hidden relative">
 					{/* Content Container with subtle inner shadow/depth */}

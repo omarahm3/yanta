@@ -1,7 +1,6 @@
 export { Button } from "./Button";
 export { type CommandOption, CommandPalette, type SubPaletteItem } from "./CommandPalette";
 export { ConfirmDialog, type ConfirmDialogProps } from "./ConfirmDialog";
-export { ContextBar, type ContextBarProps, type DataMode } from "./ContextBar";
 export { type FooterHint, FooterHintBar, type FooterHintBarProps } from "./FooterHintBar";
 export { GitErrorDialog } from "./GitErrorDialog";
 export { GitStatusIndicator } from "./GitStatusIndicator";

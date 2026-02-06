@@ -4,6 +4,7 @@ import { cn } from "../../lib/utils";
 export interface HeaderBarProps {
 	breadcrumb: string;
 	currentPage: string;
+	projectAlias?: string;
 	shortcuts?: Array<{
 		key: string;
 		label: string;
@@ -14,6 +15,7 @@ export interface HeaderBarProps {
 export const HeaderBar: React.FC<HeaderBarProps> = ({
 	breadcrumb,
 	currentPage,
+	projectAlias,
 	shortcuts = [],
 	className,
 }) => {
@@ -27,6 +29,9 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 		>
 			<div className="text-text-dim text-sm">
 				{breadcrumb} / <span className="text-text-bright font-semibold">{currentPage}</span>
+				{projectAlias && (
+					<span className="text-text-dim ml-2">{projectAlias}</span>
+				)}
 			</div>
 			<div className="flex gap-4 text-xs text-text-dim">
 				{shortcuts.map((shortcut) => (
