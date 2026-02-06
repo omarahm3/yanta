@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useToast } from "../components/ui/Toast";
 
 export type NotificationType = "success" | "error" | "info" | "warning";
@@ -17,13 +18,24 @@ export interface NotificationOptions {
 export const useNotification = () => {
 	const toast = useToast();
 
-	return {
-		show: toast.show,
-		success: toast.success,
-		error: toast.error,
-		info: toast.info,
-		warning: toast.warning,
-		dismiss: toast.dismiss,
-		dismissAll: toast.dismissAll,
-	};
+	return useMemo(
+		() => ({
+			show: toast.show,
+			success: toast.success,
+			error: toast.error,
+			info: toast.info,
+			warning: toast.warning,
+			dismiss: toast.dismiss,
+			dismissAll: toast.dismissAll,
+		}),
+		[
+			toast.show,
+			toast.success,
+			toast.error,
+			toast.info,
+			toast.warning,
+			toast.dismiss,
+			toast.dismissAll,
+		],
+	);
 };

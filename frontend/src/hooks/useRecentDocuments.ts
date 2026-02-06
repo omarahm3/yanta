@@ -1,5 +1,5 @@
 import { Events } from "@wailsio/runtime";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getDocument } from "../services/DocumentService";
 import { useLocalStorage } from "./useLocalStorage";
 
@@ -171,10 +171,13 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 		};
 	}, [updateRecentDocumentTitle, removeRecentDocument]);
 
-	return {
-		recentDocuments,
-		addRecentDocument,
-		removeRecentDocument,
-		clearRecentDocuments,
-	};
+	return useMemo<UseRecentDocumentsReturn>(
+		() => ({
+			recentDocuments,
+			addRecentDocument,
+			removeRecentDocument,
+			clearRecentDocuments,
+		}),
+		[recentDocuments, addRecentDocument, removeRecentDocument, clearRecentDocuments],
+	);
 }

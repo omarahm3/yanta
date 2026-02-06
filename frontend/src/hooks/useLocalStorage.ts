@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface UseLocalStorageOptions<T> {
 	validate?: (data: unknown) => T | null;
@@ -19,46 +19,51 @@ export function useLocalStorage<T>(
 		onError,
 	} = options;
 
+	const validateRef = useRef(validate);
+	const serializeRef = useRef(serialize);
+	const deserializeRef = useRef(deserialize);
+	const onErrorRef = useRef(onError);
+	const defaultValueRef = useRef(defaultValue);
+
+	validateRef.current = validate;
+	serializeRef.current = serialize;
+	deserializeRef.current = deserialize;
+	onErrorRef.current = onError;
+	defaultValueRef.current = defaultValue;
+
 	const loadData = useCallback((): T => {
 		try {
 			const stored = localStorage.getItem(key);
 			if (!stored) {
-				return defaultValue;
+				return defaultValueRef.current;
 			}
-			const parsed = deserialize(stored);
-			if (validate) {
-				const validated = validate(parsed);
-				return validated !== null ? validated : defaultValue;
+			const parsed = deserializeRef.current(stored);
+			if (validateRef.current) {
+				const validated = validateRef.current(parsed);
+				return validated !== null ? validated : defaultValueRef.current;
 			}
 			return parsed as T;
 		} catch (err) {
-			onError?.("load", err);
-			return defaultValue;
+			onErrorRef.current?.("load", err);
+			return defaultValueRef.current;
 		}
-	}, [key, defaultValue, deserialize, validate, onError]);
+	}, [key]);
 
 	const [state, setState] = useState<T>(() => loadData());
-
-	const saveData = useCallback(
-		(value: T): void => {
-			try {
-				localStorage.setItem(key, serialize(value));
-			} catch (err) {
-				onError?.("save", err);
-			}
-		},
-		[key, serialize, onError],
-	);
 
 	const setValue = useCallback(
 		(value: T | ((prev: T) => T)) => {
 			setState((prev) => {
 				const nextValue = typeof value === "function" ? (value as (prev: T) => T)(prev) : value;
-				saveData(nextValue);
+				try {
+					localStorage.setItem(key, serializeRef.current(nextValue));
+				} catch (err) {
+					onErrorRef.current?.("save", err);
+				}
 				return nextValue;
 			});
 		},
-		[saveData],
+		[key],
 	);
 
 	useEffect(() => {

@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 
 const STORAGE_KEY = "yanta_user_progress";
@@ -107,13 +107,24 @@ export function useUserProgress(): UseUserProgressReturn {
 		setProgressData(getDefaultProgressData());
 	}, [setProgressData]);
 
-	return {
-		progressData,
-		incrementDocumentsCreated,
-		incrementJournalEntriesCreated,
-		incrementProjectsSwitched,
-		markHintShown,
-		hasHintBeenShown,
-		resetProgress,
-	};
+	return useMemo<UseUserProgressReturn>(
+		() => ({
+			progressData,
+			incrementDocumentsCreated,
+			incrementJournalEntriesCreated,
+			incrementProjectsSwitched,
+			markHintShown,
+			hasHintBeenShown,
+			resetProgress,
+		}),
+		[
+			progressData,
+			incrementDocumentsCreated,
+			incrementJournalEntriesCreated,
+			incrementProjectsSwitched,
+			markHintShown,
+			hasHintBeenShown,
+			resetProgress,
+		],
+	);
 }
