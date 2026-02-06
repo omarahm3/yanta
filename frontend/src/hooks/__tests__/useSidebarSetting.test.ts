@@ -5,6 +5,11 @@ import { useSidebarSetting } from "../useSidebarSetting";
 
 const mockGetSidebarVisible = vi.fn();
 const mockSetSidebarVisible = vi.fn();
+const mockBackendLoggerError = vi.fn();
+
+vi.mock("../../utils/backendLogger", () => ({
+	BackendLogger: { error: (...args: unknown[]) => mockBackendLoggerError(...args) },
+}));
 
 vi.mock("../../../bindings/yanta/internal/system/service", () => ({
 	GetSidebarVisible: () => mockGetSidebarVisible(),
@@ -48,7 +53,7 @@ describe("useSidebarSetting", () => {
 	});
 
 	it("handles backend error gracefully on load", async () => {
-		const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+		mockBackendLoggerError.mockClear();
 		mockGetSidebarVisible.mockRejectedValue(new Error("Backend error"));
 
 		const { result } = renderHook(() => useSidebarSetting());
@@ -57,9 +62,7 @@ describe("useSidebarSetting", () => {
 
 		// Should default to false on error
 		expect(result.current.sidebarVisible).toBe(false);
-		expect(consoleSpy).toHaveBeenCalled();
-
-		consoleSpy.mockRestore();
+		expect(mockBackendLoggerError).toHaveBeenCalled();
 	});
 
 	it("setSidebarVisible updates state optimistically", async () => {
@@ -81,7 +84,6 @@ describe("useSidebarSetting", () => {
 	it("setSidebarVisible reverts state on error", async () => {
 		mockGetSidebarVisible.mockResolvedValue(false);
 		mockSetSidebarVisible.mockRejectedValue(new Error("Failed to save"));
-		const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
 		const { result } = renderHook(() => useSidebarSetting());
 
@@ -97,8 +99,6 @@ describe("useSidebarSetting", () => {
 
 		// Should revert to original value
 		expect(result.current.sidebarVisible).toBe(false);
-
-		consoleSpy.mockRestore();
 	});
 
 	it("toggleSidebar toggles the visibility state", async () => {
