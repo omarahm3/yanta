@@ -2,7 +2,7 @@ import type React from "react";
 import logoImage from "../../assets/images/logo-universal.png";
 import { cn } from "../../lib/utils";
 import { List, ListItem } from "./List";
-import { WithTooltip } from "./WithTooltip";
+import { Tooltip } from "./Tooltip";
 
 export interface SidebarSection {
 	id: string;
@@ -68,15 +68,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ sections, className }) => {
 
 								if (item.tooltip) {
 									return (
-										<WithTooltip
+										<Tooltip
 											key={item.id}
 											tooltipId={item.tooltip.tooltipId}
-											description={item.tooltip.description}
+											content={item.tooltip.description}
 											shortcut={item.tooltip.shortcut}
 											placement="right"
 										>
 											{listItemContent}
-										</WithTooltip>
+										</Tooltip>
 									);
 								}
 

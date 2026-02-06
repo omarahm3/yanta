@@ -42,3 +42,4 @@ export {
 	useToast,
 } from "./Toast";
 export { Toggle } from "./Toggle";
+export { Tooltip, type TooltipPlacement, type TooltipProps } from "./Tooltip";
