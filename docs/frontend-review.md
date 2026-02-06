@@ -2,7 +2,7 @@
 
 **Stack:** React 18 + Tailwind CSS v4 + Radix UI + BlockNote Editor + Wails3 Runtime
 **Target:** Cross-platform desktop application (Wails3)
-**Last Updated:** 2026-02-06 (Rev 7 — Tier 1 #10, #11, #42 done)
+**Last Updated:** 2026-02-06 (Rev 8 — Tier 1 #55 shortcuts config done)
 
 ---
 
@@ -1010,9 +1010,9 @@ This restructure does NOT need to happen in one big bang. Do it incrementally, o
 6. Delete emptied files from old locations
 
 **Phase 2: Create config/ (centralize scattered constants)**
-1. Create `config/shortcuts.ts` -- extract all hardcoded keybindings
-2. Create `config/timeouts.ts` -- extract all hardcoded delays
-3. Update consumers to import from config
+1. ~~Create `config/shortcuts.ts` -- extract all hardcoded keybindings~~ — Done Rev 8
+2. Create `config/timeouts.ts` -- extract all hardcoded delays (already exists; verify no magic numbers remain)
+3. Update consumers to import from config (shortcuts: done Rev 8 — App, Layout, PaneContent, useDocumentController, useDashboardController, useJournalController, Projects, QuickCapture, usePaneHotkeys, Settings)
 
 **Phase 3: Extract first domain -- journal (already 80% isolated)**
 1. Move `pages/Journal/` to `journal/`
@@ -1525,7 +1525,7 @@ Items already resolved in prior branches. Kept here for reference; removed from 
 | 16 | Custom date utils → date-fns | bundled into `refactor/shared-navigation-types` |
 | 22 | Lazy loading | Already implemented |
 | 46 | Debug console + backendLogger + log-level filtering | Rev 7 — completed (see Item 46 above) |
-| 55 | Configuration infrastructure (partial) | `refactor/centralize-config` |
+| 55 | Configuration infrastructure (partial) | `refactor/centralize-config`; Rev 8 — `config/shortcuts.ts` added, all hotkey consumers use it |
 | 10 | Extract `useLatestRef` utility hook | Rev 7 — `hooks/useLatestRef.ts`; pane components refactored |
 | 11 | Extract `useEscapeHandler` (dialog-aware ESC) | Rev 7 — `hooks/useEscapeHandler.ts`; PaneContent, PaneDocumentView |
 | 42 | Extract `useLatestRef` (dual source of truth in panes) | Rev 7 — same as #10; pane adoption done; other call sites optional follow-up |
@@ -1538,7 +1538,7 @@ Items already resolved in prior branches. Kept here for reference; removed from 
 
 | # | Issue | Impact | Effort |
 |---|-------|--------|--------|
-| 55 | Finish full `config/` system (shortcuts, remaining timeouts) | Single source of truth | Medium |
+| — | *(Tier 1 complete: #10, #11, #42, #46, #55 done)* | — | — |
 
 ### Tier 1.5: Folder Restructure (enables all subsequent work)
 
