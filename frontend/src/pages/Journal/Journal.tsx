@@ -1,4 +1,3 @@
-import { BookOpen } from "lucide-react";
 import type React from "react";
 import { Layout } from "../../components/Layout";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
@@ -35,7 +34,6 @@ export const Journal: React.FC<JournalProps> = ({
 		isLoading,
 		error,
 		isEmpty,
-		projectAlias,
 		date,
 		datesWithEntries,
 		highlightedIndex,
@@ -60,20 +58,8 @@ export const Journal: React.FC<JournalProps> = ({
 				onRegisterToggleSidebar={onRegisterToggleSidebar}
 			>
 				<div className={cn("flex flex-col h-full", className)}>
-					{/* Header with date picker */}
+					{/* Date picker */}
 					<div className="p-4 border-b border-glass-border">
-						<div className="flex items-center justify-between mb-3">
-							<div className="flex items-center gap-2">
-								<BookOpen
-									className="w-5 h-5"
-									style={{ color: "var(--mode-accent)" }}
-									aria-hidden="true"
-									data-testid="page-header-icon"
-								/>
-								<h1 className="text-lg font-semibold">Journal</h1>
-							</div>
-							<span className="text-sm text-text-dim">{projectAlias}</span>
-						</div>
 						<DatePicker selectedDate={date} onDateChange={setDate} datesWithEntries={datesWithEntries} />
 					</div>
 

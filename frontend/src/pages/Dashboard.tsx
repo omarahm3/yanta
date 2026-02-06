@@ -1,4 +1,3 @@
-import { FileText } from "lucide-react";
 import type React from "react";
 import { DocumentList } from "../components/DocumentList";
 import { Layout } from "../components/Layout";
@@ -56,18 +55,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
 					</div>
 				) : (
 					<div className="flex h-full flex-col overflow-hidden">
-						{/* Page header with mode icon */}
-						<div className="p-4 border-b border-glass-border">
-							<div className="flex items-center gap-2">
-								<FileText
-									className="w-5 h-5"
-									style={{ color: "var(--mode-accent)" }}
-									aria-hidden="true"
-									data-testid="page-header-icon"
-								/>
-								<h1 className="text-lg font-semibold">Documents</h1>
-							</div>
-						</div>
 						<div className="flex-1 overflow-y-auto p-5">
 							<DocumentList
 								documents={documents}
