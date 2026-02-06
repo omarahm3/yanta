@@ -1,5 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useRef } from "react";
+import { TIMEOUTS } from "../config";
 import { useDialog } from "../contexts/DialogContext";
 import { useOnboarding } from "../hooks/useOnboarding";
 import { cn } from "../lib/utils";
@@ -66,7 +67,7 @@ export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ className }) => 
 
 	useEffect(() => {
 		if (!shouldShowWelcome) return;
-		const timer = setTimeout(() => buttonRef.current?.focus(), 100);
+		const timer = setTimeout(() => buttonRef.current?.focus(), TIMEOUTS.focusRestoreMs);
 		return () => clearTimeout(timer);
 	}, [shouldShowWelcome]);
 

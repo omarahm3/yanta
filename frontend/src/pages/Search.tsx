@@ -4,6 +4,7 @@ import type * as searchModels from "../../bindings/yanta/internal/search/models"
 import { Query } from "../../bindings/yanta/internal/search/service";
 import type * as tagModels from "../../bindings/yanta/internal/tag/models";
 import { ListActive as ListActiveTags } from "../../bindings/yanta/internal/tag/service";
+import { TIMEOUTS } from "../config";
 import { Layout } from "../components/Layout";
 import { Button, Input } from "../components/ui";
 import { useProjectContext } from "../contexts";
@@ -149,7 +150,7 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 
 		searchTimeoutRef.current = setTimeout(() => {
 			performSearch(rawQuery);
-		}, 300);
+		}, TIMEOUTS.searchDebounceMs);
 
 		return () => {
 			if (searchTimeoutRef.current) {

@@ -4,6 +4,7 @@ import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GLOBAL_COMMANDS } from "../../constants/globalCommands";
 import {
+	TIMEOUTS,
 	formatShortcutKeyForDisplay,
 	getHelpShortcutsFromConfig,
 } from "../../config";
@@ -256,7 +257,7 @@ export const HelpModal: React.FC = () => {
 	const announce = useCallback((message: string) => {
 		setAnnouncement("");
 		// Small delay to ensure announcement is triggered even for same message
-		setTimeout(() => setAnnouncement(message), 50);
+		setTimeout(() => setAnnouncement(message), TIMEOUTS.helpAnnounceDelayMs);
 	}, []);
 
 	// Reset expanded sections and search when modal opens
@@ -267,7 +268,7 @@ export const HelpModal: React.FC = () => {
 			setAnnouncement("");
 			setTimeout(() => {
 				searchInputRef.current?.focus();
-			}, 100);
+			}, TIMEOUTS.focusRestoreMs);
 		}
 	}, [isOpen, pageName]);
 

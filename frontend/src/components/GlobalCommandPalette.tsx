@@ -38,6 +38,7 @@ import {
 	OpenDirectoryDialog,
 	SyncNow,
 } from "../../bindings/yanta/internal/system/service";
+import { TIMEOUTS } from "../config";
 import { useDocumentContext } from "../contexts/DocumentContext";
 import { useProjectContext } from "../contexts/ProjectContext";
 import { useCommandUsage } from "../hooks/useCommandUsage";
@@ -92,7 +93,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 
 	const closeErrorDialog = () => {
 		setIsErrorDialogOpen(false);
-		setTimeout(() => setGitError(null), 300);
+		setTimeout(() => setGitError(null), TIMEOUTS.gitErrorDismissMs);
 	};
 
 	const handleClose = useCallback(() => {

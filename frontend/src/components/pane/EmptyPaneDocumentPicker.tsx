@@ -1,6 +1,7 @@
 import { FileText, Search } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { TIMEOUTS } from "../../config";
 import { useProjectContext } from "../../contexts/ProjectContext";
 import { usePaneLayout } from "../../hooks/usePaneLayout";
 import { type RecentDocument, useRecentDocuments } from "../../hooks/useRecentDocuments";
@@ -135,7 +136,7 @@ export const EmptyPaneDocumentPicker: React.FC<EmptyPaneDocumentPickerProps> = (
 
 			setSearchResults(deduped.slice(0, 20));
 			setHighlightedIndex(0);
-		}, 200);
+		}, TIMEOUTS.documentPickerFilterDebounceMs);
 
 		return () => {
 			if (debounceRef.current) {

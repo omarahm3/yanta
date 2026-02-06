@@ -1,5 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { TIMEOUTS } from "../../config";
 import { Modal } from "./Modal";
 
 export interface NewProjectDialogProps {
@@ -27,7 +28,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
 			setStartDate(new Date().toISOString().split("T")[0]);
 			setEndDate("");
 			setErrors({});
-			setTimeout(() => nameInputRef.current?.focus(), 100);
+			setTimeout(() => nameInputRef.current?.focus(), TIMEOUTS.focusRestoreMs);
 		}
 	}, [isOpen]);
 

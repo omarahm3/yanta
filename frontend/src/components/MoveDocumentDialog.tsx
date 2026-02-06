@@ -1,5 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { TIMEOUTS } from "../config";
 import { useDialog } from "../contexts/DialogContext";
 import { useProjectContext } from "../contexts/ProjectContext";
 import { cn } from "../lib/utils";
@@ -39,7 +40,7 @@ export const MoveDocumentDialog: React.FC<MoveDocumentDialogProps> = ({
 			setFilterQuery("");
 			setHighlightedIndex(0);
 			setError(null);
-			setTimeout(() => inputRef.current?.focus(), 100);
+			setTimeout(() => inputRef.current?.focus(), TIMEOUTS.focusRestoreMs);
 		} else {
 			closeDialog();
 		}
