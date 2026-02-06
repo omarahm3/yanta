@@ -1,5 +1,5 @@
 import type React from "react";
-import { createContext, type ReactNode, useCallback, useContext, useState } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
 
 interface DialogContextValue {
 	isDialogOpen: boolean;
@@ -26,11 +26,14 @@ export const DialogProvider: React.FC<DialogProviderProps> = ({ children }) => {
 
 	const isDialogOpen = openCount > 0;
 
-	const value: DialogContextValue = {
-		isDialogOpen,
-		openDialog,
-		closeDialog,
-	};
+	const value = useMemo<DialogContextValue>(
+		() => ({
+			isDialogOpen,
+			openDialog,
+			closeDialog,
+		}),
+		[isDialogOpen, openDialog, closeDialog],
+	);
 
 	return <DialogContext.Provider value={value}>{children}</DialogContext.Provider>;
 };

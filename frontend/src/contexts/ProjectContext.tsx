@@ -1,6 +1,14 @@
 import { Events } from "@wailsio/runtime";
 import type React from "react";
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import {
+	createContext,
+	type ReactNode,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 import { ListActive, ListArchived } from "../../bindings/yanta/internal/project/service";
 import { type Project, projectsFromModels } from "../types";
 
@@ -93,16 +101,28 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
 		};
 	}, [loadProjects]);
 
-	const value: ProjectContextValue = {
-		currentProject,
-		setCurrentProject,
-		previousProject,
-		switchToLastProject,
-		projects,
-		archivedProjects,
-		loadProjects,
-		isLoading,
-	};
+	const value = useMemo<ProjectContextValue>(
+		() => ({
+			currentProject,
+			setCurrentProject,
+			previousProject,
+			switchToLastProject,
+			projects,
+			archivedProjects,
+			loadProjects,
+			isLoading,
+		}),
+		[
+			currentProject,
+			setCurrentProject,
+			previousProject,
+			switchToLastProject,
+			projects,
+			archivedProjects,
+			loadProjects,
+			isLoading,
+		],
+	);
 
 	return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;
 };

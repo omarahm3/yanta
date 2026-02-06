@@ -1,6 +1,14 @@
 import { Events } from "@wailsio/runtime";
 import type React from "react";
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import {
+	createContext,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { DocumentServiceWrapper } from "../services/DocumentService";
 import type { Document } from "../types/Document";
 
@@ -101,24 +109,34 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 		};
 	}, [refreshDocuments]);
 
-	return (
-		<DocumentContext.Provider
-			value={{
-				documents,
-				isLoading,
-				error,
-				loadDocuments,
-				refreshDocuments,
-				selectedIndex,
-				setSelectedIndex,
-				selectNext,
-				selectPrevious,
-				getSelectedDocument,
-			}}
-		>
-			{children}
-		</DocumentContext.Provider>
+	const value = useMemo<DocumentContextValue>(
+		() => ({
+			documents,
+			isLoading,
+			error,
+			loadDocuments,
+			refreshDocuments,
+			selectedIndex,
+			setSelectedIndex,
+			selectNext,
+			selectPrevious,
+			getSelectedDocument,
+		}),
+		[
+			documents,
+			isLoading,
+			error,
+			loadDocuments,
+			refreshDocuments,
+			selectedIndex,
+			setSelectedIndex,
+			selectNext,
+			selectPrevious,
+			getSelectedDocument,
+		],
 	);
+
+	return <DocumentContext.Provider value={value}>{children}</DocumentContext.Provider>;
 };
 
 export const useDocumentContext = () => {

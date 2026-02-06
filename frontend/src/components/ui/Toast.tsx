@@ -1,6 +1,6 @@
 import { AlertCircle, AlertTriangle, Check, Info } from "lucide-react";
 import type React from "react";
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import {
 	ToastProvider as RadixToastProvider,
 	ToastClose,
@@ -198,19 +198,22 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 		{} as Record<string, Toast[]>,
 	);
 
+	const contextValue = useMemo<ToastContextValue>(
+		() => ({
+			toasts,
+			show,
+			success,
+			error,
+			info,
+			warning,
+			dismiss,
+			dismissAll,
+		}),
+		[toasts, show, success, error, info, warning, dismiss, dismissAll],
+	);
+
 	return (
-		<ToastContext.Provider
-			value={{
-				toasts,
-				show,
-				success,
-				error,
-				info,
-				warning,
-				dismiss,
-				dismissAll,
-			}}
-		>
+		<ToastContext.Provider value={contextValue}>
 			<RadixToastProvider swipeDirection="right">
 				{children}
 				{Object.entries(toastsByPosition).map(([position, positionToasts]) => (

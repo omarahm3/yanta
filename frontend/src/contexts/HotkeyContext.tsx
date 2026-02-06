@@ -347,11 +347,14 @@ export const HotkeyProvider: React.FC<HotkeyProviderProps> = ({ children }) => {
 		return () => document.removeEventListener("keydown", handleCtrlW);
 	}, [isDialogOpen]);
 
-	const value: HotkeyContextValue = {
-		register,
-		unregister,
-		getRegisteredHotkeys,
-	};
+	const value = useMemo<HotkeyContextValue>(
+		() => ({
+			register,
+			unregister,
+			getRegisteredHotkeys,
+		}),
+		[register, unregister, getRegisteredHotkeys],
+	);
 
 	return <HotkeyContext.Provider value={value}>{children}</HotkeyContext.Provider>;
 };

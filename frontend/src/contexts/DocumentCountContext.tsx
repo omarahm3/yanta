@@ -1,6 +1,14 @@
 import { Events } from "@wailsio/runtime";
 import type React from "react";
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import {
+	createContext,
+	type ReactNode,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 import { GetAllDocumentCounts } from "../../bindings/yanta/internal/project/service";
 
 interface DocumentCountContextValue {
@@ -107,13 +115,16 @@ export const DocumentCountProvider: React.FC<DocumentCountProviderProps> = ({ ch
 		};
 	}, [refreshCount]);
 
-	const value: DocumentCountContextValue = {
-		counts,
-		getCount,
-		refreshCounts,
-		refreshCount,
-		isLoading,
-	};
+	const value = useMemo<DocumentCountContextValue>(
+		() => ({
+			counts,
+			getCount,
+			refreshCounts,
+			refreshCount,
+			isLoading,
+		}),
+		[counts, getCount, refreshCounts, refreshCount, isLoading],
+	);
 
 	return <DocumentCountContext.Provider value={value}>{children}</DocumentCountContext.Provider>;
 };

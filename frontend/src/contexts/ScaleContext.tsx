@@ -1,5 +1,5 @@
 import type React from "react";
-import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
 import { GetAppScale } from "../../bindings/yanta/internal/system/service";
 
 interface ScaleContextValue {
@@ -39,7 +39,9 @@ export const ScaleProvider: React.FC<ScaleProviderProps> = ({ children }) => {
 		document.documentElement.style.fontSize = `${scaleValue * 100}%`;
 	};
 
-	return <ScaleContext.Provider value={{ scale, setScale }}>{children}</ScaleContext.Provider>;
+	const value = useMemo<ScaleContextValue>(() => ({ scale, setScale }), [scale, setScale]);
+
+	return <ScaleContext.Provider value={value}>{children}</ScaleContext.Provider>;
 };
 
 export const useScale = () => useContext(ScaleContext);

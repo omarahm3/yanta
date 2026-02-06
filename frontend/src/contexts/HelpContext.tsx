@@ -1,4 +1,4 @@
-import React, { createContext, type ReactNode, useCallback, useState } from "react";
+import React, { createContext, type ReactNode, useCallback, useMemo, useState } from "react";
 import type { HelpCommand } from "../types";
 
 interface HelpContextType {
@@ -34,14 +34,17 @@ export const HelpProvider: React.FC<HelpProviderProps> = ({ children }) => {
 		setPageName(name.toUpperCase());
 	}, []);
 
-	const value: HelpContextType = {
-		isOpen,
-		pageCommands,
-		pageName,
-		openHelp,
-		closeHelp,
-		setPageContext,
-	};
+	const value = useMemo<HelpContextType>(
+		() => ({
+			isOpen,
+			pageCommands,
+			pageName,
+			openHelp,
+			closeHelp,
+			setPageContext,
+		}),
+		[isOpen, pageCommands, pageName, openHelp, closeHelp, setPageContext],
+	);
 
 	return <HelpContext.Provider value={value}>{children}</HelpContext.Provider>;
 };

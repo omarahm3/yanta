@@ -1,4 +1,4 @@
-import React, { createContext, type ReactNode, useCallback, useState } from "react";
+import React, { createContext, type ReactNode, useCallback, useMemo, useState } from "react";
 
 interface TitleBarContextType {
 	heightInRem: number;
@@ -18,10 +18,10 @@ export const TitleBarProvider: React.FC<TitleBarProviderProps> = ({ children }) 
 		setHeightInRem(height);
 	}, []);
 
-	const value: TitleBarContextType = {
-		heightInRem,
-		setHeight,
-	};
+	const value = useMemo<TitleBarContextType>(
+		() => ({ heightInRem, setHeight }),
+		[heightInRem, setHeight],
+	);
 
 	return <TitleBarContext.Provider value={value}>{children}</TitleBarContext.Provider>;
 };
