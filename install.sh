@@ -108,7 +108,7 @@ install_arch() {
         $SUDO pacman -S --noconfirm "${missing_deps[@]}"
     fi
     
-    local pkg_file="yanta-${VERSION}-1-x86_64.pkg.tar.zst"
+    local pkg_file="yanta-v${VERSION}-1-x86_64.pkg.tar.zst"
     local download_url="https://github.com/$GITHUB_REPO/releases/download/v$VERSION/$pkg_file"
     
     print_info "Downloading $pkg_file..."
@@ -144,7 +144,7 @@ install_ubuntu() {
         $SUDO apt-get install -y "${missing_deps[@]}"
     fi
     
-    local deb_file="yanta_${VERSION}_amd64.deb"
+    local deb_file="yanta_v${VERSION}_amd64.deb"
     local download_url="https://github.com/$GITHUB_REPO/releases/download/v$VERSION/$deb_file"
     
     print_info "Downloading $deb_file..."
