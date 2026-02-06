@@ -1,23 +1,12 @@
 import React, { Suspense } from "react";
 import { Dashboard, Journal, Projects, QuickCapture, Search, Settings } from "../pages";
+import type { NavigationState, PageName } from "../types";
 import { PaneLayoutView } from "./pane";
 import { LoadingSpinner } from "./ui";
 
 const PageLoader = () => <LoadingSpinner message="Loading..." />;
 
 const Test = React.lazy(() => import("../pages/Test").then((m) => ({ default: m.Test })));
-
-type Page =
-	| "dashboard"
-	| "document"
-	| "projects"
-	| "settings"
-	| "search"
-	| "test"
-	| "quick-capture"
-	| "journal";
-
-type NavigationState = Record<string, string | number | boolean | undefined>;
 
 interface RouterProps {
 	currentPage?: string;
@@ -84,9 +73,9 @@ export const Router: React.FC<RouterProps> = ({
 		onRegisterToggleSidebar,
 	};
 
-	const page = currentPage as Page;
+	const page = currentPage as PageName;
 
-	const knownPages = new Set<Page>([
+	const knownPages = new Set<PageName>([
 		"dashboard",
 		"document",
 		"projects",

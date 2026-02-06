@@ -18,6 +18,7 @@ import { useSidebarSections } from "../../hooks/useSidebarSections";
 import { DocumentServiceWrapper, moveDocumentToProject } from "../../services/DocumentService";
 import type { Document } from "../../types/Document";
 import type { HotkeyConfig } from "../../types/hotkeys";
+import type { NavigationState } from "../../types";
 import { useDashboardCommandHandler } from "./useDashboardCommandHandler";
 
 const helpCommands = [
@@ -68,7 +69,7 @@ export interface MoveDialogState {
 }
 
 export interface DashboardControllerOptions {
-	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
+	onNavigate?: (page: string, state?: NavigationState) => void;
 	onRegisterToggleArchived?: (handler: () => void) => void;
 }
 

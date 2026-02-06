@@ -1,21 +1,20 @@
 import React, { useCallback, useEffect, useRef } from "react";
+import { TIMEOUTS } from "@/config";
 import { useDialog } from "../../contexts/DialogContext";
 import { useHotkeys } from "../../hooks";
 import { usePaneLayout } from "../../hooks/usePaneLayout";
 import { useDocumentController } from "../../pages/document/useDocumentController";
+import type { NavigationState } from "../../types";
 import { findPane } from "../../utils/paneLayoutUtils";
 import { DocumentEditorActions } from "../document/DocumentEditorActions";
 import { DocumentEditorForm } from "../document/DocumentEditorForm";
 import { Button, LoadingSpinner } from "../ui";
 import { PaneHeader } from "./PaneHeader";
 
-/** Debounce delay for scroll position tracking (ms) */
-const SCROLL_DEBOUNCE_MS = 200;
-
 export interface PaneDocumentViewProps {
 	paneId: string;
 	documentPath: string;
-	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
+	onNavigate?: (page: string, state?: NavigationState) => void;
 	suppressEscape?: boolean;
 }
 
@@ -81,7 +80,7 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 
 			const onScroll = () => {
 				clearTimeout(timeoutId);
-				timeoutId = setTimeout(handleScroll, SCROLL_DEBOUNCE_MS);
+				timeoutId = setTimeout(handleScroll, TIMEOUTS.scrollDebounceMs);
 			};
 
 			container.addEventListener("scroll", onScroll, { passive: true });

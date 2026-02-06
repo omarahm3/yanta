@@ -20,10 +20,11 @@ import { useRecentDocuments } from "../../hooks/useRecentDocuments";
 import { useSidebarSections } from "../../hooks/useSidebarSections";
 import { DocumentServiceWrapper } from "../../services/DocumentService";
 import type { HotkeyConfig } from "../../types/hotkeys";
+import type { NavigationState } from "../../types";
 import { createEmptyDocument } from "../../utils/documentBlockUtils";
 
 export interface DocumentControllerOptions {
-	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
+	onNavigate?: (page: string, state?: NavigationState) => void;
 	documentPath?: string;
 	initialTitle?: string;
 	onRegisterToggleSidebar?: (handler: () => void) => void;

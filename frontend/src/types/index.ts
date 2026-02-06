@@ -116,3 +116,5 @@ export interface VersionInfo {
 	storageUsed: string;
 	platform: string;
 }
+
+export type { NavigationState, PageName } from "./navigation";

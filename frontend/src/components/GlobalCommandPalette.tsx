@@ -45,6 +45,7 @@ import { useNotification } from "../hooks/useNotification";
 import { usePaneLayout } from "../hooks/usePaneLayout";
 import { useRecentDocuments } from "../hooks/useRecentDocuments";
 import { DocumentServiceWrapper } from "../services/DocumentService";
+import type { NavigationState } from "../types";
 import { getTopRecentCommandIds, sortCommandsByUsage } from "../utils/commandSorting";
 import { formatRelativeTimeFromTimestamp } from "../utils/dateUtils";
 import { type ParsedGitError, parseGitError } from "../utils/gitErrorParser";
@@ -54,7 +55,7 @@ import { type CommandOption, CommandPalette, GitErrorDialog, type SubPaletteItem
 interface GlobalCommandPaletteProps {
 	isOpen: boolean;
 	onClose: () => void;
-	onNavigate: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
+	onNavigate: (page: string, state?: NavigationState) => void;
 	currentPage?: string;
 	onToggleArchived?: () => void;
 	showArchived?: boolean;

@@ -1,51 +1,58 @@
+import { format, formatDistanceToNow, isValid } from "date-fns";
+
 export function formatRelativeTime(dateString: string): string {
 	if (!dateString) return "Never";
 
 	const date = new Date(dateString);
-	const now = new Date();
-	const diffMs = now.getTime() - date.getTime();
-	const diffSec = Math.floor(diffMs / 1000);
-	const diffMin = Math.floor(diffSec / 60);
-	const diffHour = Math.floor(diffMin / 60);
-	const diffDay = Math.floor(diffHour / 24);
-	const diffWeek = Math.floor(diffDay / 7);
-	const diffMonth = Math.floor(diffDay / 30);
-	const diffYear = Math.floor(diffDay / 365);
+	if (!isValid(date)) return "Unknown";
 
-	if (diffSec < 60) return "Just now";
-	if (diffMin < 60) return `${diffMin}m ago`;
-	if (diffHour < 24) return `${diffHour}h ago`;
-	if (diffDay < 7) return `${diffDay}d ago`;
-	if (diffWeek < 4) return `${diffWeek}w ago`;
-	if (diffMonth < 12) return `${diffMonth}mo ago`;
-	return `${diffYear}y ago`;
+	const result = formatDistanceToNow(date, { addSuffix: true });
+
+	return result
+		.replace("about ", "")
+		.replace(" minutes", "m")
+		.replace(" minute", "m")
+		.replace(" hours", "h")
+		.replace(" hour", "h")
+		.replace(" days", "d")
+		.replace(" day", "d")
+		.replace(" weeks", "w")
+		.replace(" week", "w")
+		.replace(" months", "mo")
+		.replace(" month", "mo")
+		.replace(" years", "y")
+		.replace(" year", "y")
+		.replace("less than a minute", "Just now");
 }
 
 export function formatShortDate(dateString: string): string {
 	if (!dateString) return "Unknown";
 
 	const date = new Date(dateString);
-	const month = date.toLocaleString("en-US", { month: "short" });
-	const day = date.getDate();
+	if (!isValid(date)) return "Unknown";
 
-	return `${month} ${day}`;
+	return format(date, "MMM d");
 }
 
 export function formatRelativeTimeFromTimestamp(timestamp: number): string {
 	if (!timestamp) return "Never";
 
-	const now = Date.now();
-	const diffMs = now - timestamp;
-	const diffSec = Math.floor(diffMs / 1000);
-	const diffMin = Math.floor(diffSec / 60);
-	const diffHour = Math.floor(diffMin / 60);
-	const diffDay = Math.floor(diffHour / 24);
+	const date = new Date(timestamp);
+	if (!isValid(date)) return "Unknown";
 
-	if (diffSec < 60) return "Just now";
-	if (diffMin < 60) return `${diffMin} min ago`;
-	if (diffHour < 24) return `${diffHour}h ago`;
-	if (diffDay === 1) return "yesterday";
-	if (diffDay < 7) return `${diffDay}d ago`;
-	if (diffDay < 30) return `${Math.floor(diffDay / 7)}w ago`;
-	return `${Math.floor(diffDay / 30)}mo ago`;
+	const result = formatDistanceToNow(date, { addSuffix: true });
+
+	return result
+		.replace("about ", "")
+		.replace(" minutes", " min")
+		.replace(" minute", " min")
+		.replace(" hours", "h")
+		.replace(" hour", "h")
+		.replace(" days", "d")
+		.replace(" day", "d")
+		.replace(" weeks", "w")
+		.replace(" week", "w")
+		.replace(" months", "mo")
+		.replace(" month", "mo")
+		.replace("less than a minute", "Just now");
 }

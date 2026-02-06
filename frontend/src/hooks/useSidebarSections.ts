@@ -1,10 +1,8 @@
 import { useCallback, useMemo } from "react";
 import type { SidebarSection } from "../components/ui";
 import { useDocumentCount, useProjectContext } from "../contexts";
-import type { Filter } from "../types";
+import type { Filter, NavigationState } from "../types";
 import { useNotification } from "./useNotification";
-
-type NavigationState = Record<string, string | number | boolean | undefined>;
 
 interface UseSidebarSectionsProps {
 	currentPage: string;
