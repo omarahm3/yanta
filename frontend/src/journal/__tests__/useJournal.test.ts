@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useJournal } from "../useJournal";
 
 // Mock the journal service
-vi.mock("../../../../bindings/yanta/internal/journal/wailsservice", () => ({
+vi.mock("../../../bindings/yanta/internal/journal/wailsservice", () => ({
 	GetActiveEntries: vi.fn(),
 	DeleteEntry: vi.fn(),
 	RestoreEntry: vi.fn(),
@@ -33,7 +33,7 @@ describe("useJournal", () => {
 
 	it("fetches today by default", async () => {
 		const { GetActiveEntries } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
+			"../../../bindings/yanta/internal/journal/wailsservice"
 		);
 		const mockGet = GetActiveEntries as ReturnType<typeof vi.fn>;
 		mockGet.mockResolvedValue(mockEntries);
@@ -50,7 +50,7 @@ describe("useJournal", () => {
 
 	it("fetches specific date", async () => {
 		const { GetActiveEntries } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
+			"../../../bindings/yanta/internal/journal/wailsservice"
 		);
 		const mockGet = GetActiveEntries as ReturnType<typeof vi.fn>;
 		mockGet.mockResolvedValue(mockEntries);
@@ -66,7 +66,7 @@ describe("useJournal", () => {
 
 	it("handles empty state", async () => {
 		const { GetActiveEntries } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
+			"../../../bindings/yanta/internal/journal/wailsservice"
 		);
 		const mockGet = GetActiveEntries as ReturnType<typeof vi.fn>;
 		mockGet.mockResolvedValue([]);
@@ -83,7 +83,7 @@ describe("useJournal", () => {
 
 	it("deletes entry", async () => {
 		const { GetActiveEntries, DeleteEntry } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
+			"../../../bindings/yanta/internal/journal/wailsservice"
 		);
 		const mockGet = GetActiveEntries as ReturnType<typeof vi.fn>;
 		const mockDelete = DeleteEntry as ReturnType<typeof vi.fn>;
@@ -106,7 +106,7 @@ describe("useJournal", () => {
 
 	it("handles promote to document", async () => {
 		const { GetActiveEntries, PromoteToDocument } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
+			"../../../bindings/yanta/internal/journal/wailsservice"
 		);
 		const mockGet = GetActiveEntries as ReturnType<typeof vi.fn>;
 		const mockPromote = PromoteToDocument as ReturnType<typeof vi.fn>;
@@ -143,7 +143,7 @@ describe("useJournal", () => {
 
 	it("refreshes entries on date change", async () => {
 		const { GetActiveEntries } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
+			"../../../bindings/yanta/internal/journal/wailsservice"
 		);
 		const mockGet = GetActiveEntries as ReturnType<typeof vi.fn>;
 		mockGet.mockResolvedValue(mockEntries);
@@ -168,7 +168,7 @@ describe("useJournal", () => {
 
 	it("handles selection", async () => {
 		const { GetActiveEntries } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
+			"../../../bindings/yanta/internal/journal/wailsservice"
 		);
 		const mockGet = GetActiveEntries as ReturnType<typeof vi.fn>;
 		mockGet.mockResolvedValue(mockEntries);
@@ -194,7 +194,7 @@ describe("useJournal", () => {
 
 	it("clears selection", async () => {
 		const { GetActiveEntries } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
+			"../../../bindings/yanta/internal/journal/wailsservice"
 		);
 		const mockGet = GetActiveEntries as ReturnType<typeof vi.fn>;
 		mockGet.mockResolvedValue(mockEntries);

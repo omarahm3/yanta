@@ -1,10 +1,10 @@
 import type React from "react";
 import { useEffect, useRef } from "react";
-import { Layout } from "../../components/Layout";
-import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
-import { useHotkeys } from "../../hooks";
-import { cn } from "../../lib/utils";
-import type { NavigationState } from "../../types";
+import { Layout } from "../components/Layout";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { useHotkeys } from "../hooks";
+import { cn } from "../lib/utils";
+import type { NavigationState } from "../types";
 import { DatePicker } from "./DatePicker";
 import { JournalEntry } from "./JournalEntry";
 import { useJournalController } from "./useJournalController";

@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ListDates } from "../../../bindings/yanta/internal/journal/wailsservice";
-import { JOURNAL_SHORTCUTS } from "../../config";
-import { useProjectContext } from "../../contexts";
-import { useHelp } from "../../hooks";
-import { useSidebarSections } from "../../hooks/useSidebarSections";
-import type { HotkeyConfig } from "../../types/hotkeys";
-import type { NavigationState } from "../../types";
+import { ListDates } from "../../bindings/yanta/internal/journal/wailsservice";
+import { JOURNAL_SHORTCUTS } from "../config";
+import { useProjectContext } from "../contexts";
+import { useHelp } from "../hooks";
+import { useSidebarSections } from "../hooks/useSidebarSections";
+import type { HotkeyConfig } from "../types/hotkeys";
+import type { NavigationState } from "../types";
 import type { JournalEntryData } from "./JournalEntry";
 import { useJournal } from "./useJournal";
-import { BackendLogger } from "../../utils/backendLogger";
+import { BackendLogger } from "../utils/backendLogger";
 
 function addDays(dateStr: string, delta: number): string {
 	const d = new Date(dateStr);

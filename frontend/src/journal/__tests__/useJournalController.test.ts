@@ -3,26 +3,26 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useJournalController } from "../useJournalController";
 
 // Mock project context
-vi.mock("../../../contexts", () => ({
+vi.mock("../../contexts", () => ({
 	useProjectContext: () => ({
 		currentProject: { alias: "personal", name: "Personal" },
 	}),
 }));
 
 // Mock sidebar sections hook
-vi.mock("../../../hooks/useSidebarSections", () => ({
+vi.mock("../../hooks/useSidebarSections", () => ({
 	useSidebarSections: () => [],
 }));
 
 // Mock help hook
-vi.mock("../../../hooks", () => ({
+vi.mock("../../hooks", () => ({
 	useHelp: () => ({
 		setPageContext: vi.fn(),
 	}),
 }));
 
 // Mock journal service
-vi.mock("../../../../bindings/yanta/internal/journal/wailsservice", () => ({
+vi.mock("../../../bindings/yanta/internal/journal/wailsservice", () => ({
 	GetActiveEntries: vi.fn(() =>
 		Promise.resolve([
 			{

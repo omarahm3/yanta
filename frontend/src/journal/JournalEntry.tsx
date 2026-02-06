@@ -1,6 +1,6 @@
 import type React from "react";
-import { Button } from "../../components/ui";
-import { cn } from "../../lib/utils";
+import { Button } from "../components/ui";
+import { cn } from "../lib/utils";
 
 export interface JournalEntryData {
 	id: string;

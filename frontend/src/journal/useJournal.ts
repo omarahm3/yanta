@@ -1,15 +1,15 @@
 import { Events } from "@wailsio/runtime";
 import { useCallback, useEffect, useState } from "react";
-import { PromoteRequest } from "../../../bindings/yanta/internal/journal/models";
+import { PromoteRequest } from "../../bindings/yanta/internal/journal/models";
 import {
 	DeleteEntry,
 	GetActiveEntries,
 	GetAllActiveEntries,
 	PromoteToDocument,
 	RestoreEntry,
-} from "../../../bindings/yanta/internal/journal/wailsservice";
+} from "../../bindings/yanta/internal/journal/wailsservice";
 import type { JournalEntryData } from "./JournalEntry";
-import { BackendLogger } from "../../utils/backendLogger";
+import { BackendLogger } from "../utils/backendLogger";
 
 export interface UseJournalOptions {
 	projectAlias: string; // Use "all" for all projects

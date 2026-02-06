@@ -1,15 +1,15 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DialogProvider, HelpProvider, HotkeyProvider, ProjectContext } from "../../../contexts";
+import { DialogProvider, HelpProvider, HotkeyProvider, ProjectContext } from "../../contexts";
 import { Journal } from "../Journal";
 
 // Mock Layout to render children only (sidebar/header tested elsewhere)
-vi.mock("../../../components/Layout", () => ({
+vi.mock("../../components/Layout", () => ({
 	Layout: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-vi.mock("../../../hooks/useSidebarSections", () => ({
+vi.mock("../../hooks/useSidebarSections", () => ({
 	useSidebarSections: () => [],
 }));
 
@@ -46,7 +46,7 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 // Mock the journal service
-vi.mock("../../../../bindings/yanta/internal/journal/wailsservice", () => ({
+vi.mock("../../../bindings/yanta/internal/journal/wailsservice", () => ({
 	GetActiveEntries: vi.fn(() =>
 		Promise.resolve([
 			{
@@ -72,7 +72,7 @@ vi.mock("../../../../bindings/yanta/internal/journal/wailsservice", () => ({
 }));
 
 // Mock the project service
-vi.mock("../../../../bindings/yanta/internal/project/service", () => ({
+vi.mock("../../../bindings/yanta/internal/project/service", () => ({
 	ListActive: vi.fn(() =>
 		Promise.resolve([
 			{ id: "1", alias: "personal", name: "Personal" },
@@ -86,7 +86,7 @@ describe("Journal", () => {
 		vi.clearAllMocks();
 		// Reset the mock to return entries by default
 		const { GetActiveEntries } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
+			"../../../bindings/yanta/internal/journal/wailsservice"
 		);
 		(GetActiveEntries as ReturnType<typeof vi.fn>).mockResolvedValue([
 			{
@@ -124,7 +124,7 @@ describe("Journal", () => {
 
 	it("renders empty state when no entries", async () => {
 		const { GetActiveEntries } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
+			"../../../bindings/yanta/internal/journal/wailsservice"
 		);
 		const mockGet = GetActiveEntries as ReturnType<typeof vi.fn>;
 		mockGet.mockResolvedValue([]);
@@ -165,7 +165,7 @@ describe("Journal", () => {
 
 	it("navigates dates", async () => {
 		const { GetActiveEntries } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
+			"../../../bindings/yanta/internal/journal/wailsservice"
 		);
 
 		render(<Journal />, { wrapper: TestWrapper });
@@ -184,7 +184,7 @@ describe("Journal", () => {
 	});
 
 	it("deletes selected entries", async () => {
-		const { DeleteEntry } = await import("../../../../bindings/yanta/internal/journal/wailsservice");
+		const { DeleteEntry } = await import("../../../bindings/yanta/internal/journal/wailsservice");
 
 		render(<Journal />, { wrapper: TestWrapper });
 
@@ -231,7 +231,7 @@ describe("Journal", () => {
 
 	it("loads journal for initialDate when provided", async () => {
 		const { GetActiveEntries } = await import(
-			"../../../../bindings/yanta/internal/journal/wailsservice"
+			"../../../bindings/yanta/internal/journal/wailsservice"
 		);
 
 		// Render with a specific initial date
