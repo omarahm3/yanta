@@ -336,14 +336,6 @@
 	.main-content-transition {
 		transition: flex 300ms cubic-bezier(0.16, 1, 0.3, 1);
 	}
-
-	.footer-hint-bar-transition {
-		transition: left 300ms cubic-bezier(0.16, 1, 0.3, 1);
-	}
-
-	.footer-hint-bar-sidebar-visible {
-		left: 12rem;
-	}
 }
 
 @source "../../node_modules/@blocknote/shadcn";
@@ -653,15 +645,5 @@
 	/* Main content transition for smooth expansion when sidebar toggles */
 	.main-content-transition {
 		transition: flex 200ms ease-out;
-	}
-
-	/* Footer hint bar transition styles */
-	.footer-hint-bar-transition {
-		transition: left 200ms ease-out;
-	}
-
-	.footer-hint-bar-sidebar-visible {
-		/* Offset by sidebar width (w-48 = 12rem = 192px) */
-		left: 12rem;
 	}
 }

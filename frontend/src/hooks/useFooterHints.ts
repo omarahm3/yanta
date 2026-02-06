@@ -23,57 +23,71 @@ export type PageContext =
  * - 2: Hidden on narrow viewports (default)
  * - 3: Lowest priority, hidden on narrow viewports
  *
- * Ctrl+K (Commands) is always priority 1 to ensure users can always access the command palette.
  * Navigation hints (↑↓, ←→) are typically priority 1 as they're essential for keyboard users.
  */
 const HINT_CONFIGS: Record<PageContext, FooterHint[]> = {
 	dashboard: [
 		{ key: "↑↓", label: "Navigate", priority: 1 },
-		{ key: "Enter", label: "Open", priority: 2 },
+		{ key: "Enter", label: "Open", priority: 1 },
+		{ key: "Space", label: "Select", priority: 1 },
 		{ key: "Ctrl+N", label: "New", priority: 2 },
-		{ key: "Ctrl+K", label: "Commands", priority: 1 },
+		{ key: "Ctrl+M", label: "Move", priority: 2 },
+		{ key: "Ctrl+A", label: "Archive", priority: 2 },
+		{ key: "Ctrl+U", label: "Restore", priority: 3 },
+		{ key: "Ctrl+D", label: "Delete", priority: 3 },
+		{ key: "Ctrl+Shift+D", label: "Permanent delete", priority: 3 },
+		{ key: "Ctrl+E", label: "Export MD", priority: 3 },
+		{ key: "Ctrl+Shift+E", label: "Export PDF", priority: 3 },
+		{ key: "Ctrl+Shift+A", label: "Toggle archived", priority: 3 },
 	],
 	document: [
 		{ key: "Ctrl+S", label: "Save", priority: 1 },
-		{ key: "Ctrl+\\", label: "Split", priority: 3 },
+		{ key: "Esc", label: "Back", priority: 1 },
+		{ key: "Enter", label: "Focus editor", priority: 2 },
+		{ key: "Ctrl+E", label: "Export MD", priority: 2 },
+		{ key: "Ctrl+Shift+E", label: "Export PDF", priority: 3 },
+		{ key: "Ctrl+\\", label: "Split right", priority: 3 },
+		{ key: "Ctrl+Shift+\\", label: "Split down", priority: 3 },
 		{ key: "Alt+X", label: "Close pane", priority: 3 },
 		{ key: "Alt+H/J/K/L", label: "Focus panes", priority: 3 },
-		{ key: "Esc", label: "Back", priority: 2 },
-		{ key: "Ctrl+K", label: "Commands", priority: 1 },
 	],
 	journal: [
 		{ key: "←→", label: "Change date", priority: 1 },
-		{ key: "↑↓", label: "Navigate", priority: 2 },
-		{ key: "Ctrl+T", label: "Today", priority: 2 },
-		{ key: "Ctrl+K", label: "Commands", priority: 1 },
+		{ key: "Ctrl+N/P", label: "Next/prev day", priority: 2 },
+		{ key: "↑↓", label: "Navigate", priority: 1 },
+		{ key: "Space", label: "Select", priority: 2 },
+		{ key: "Ctrl+D", label: "Delete", priority: 2 },
+		{ key: "Ctrl+Shift+P", label: "Promote", priority: 3 },
 	],
 	search: [
+		{ key: "/", label: "Focus search", priority: 1 },
 		{ key: "↑↓", label: "Navigate", priority: 1 },
-		{ key: "Enter", label: "Open", priority: 2 },
+		{ key: "Enter", label: "Open", priority: 1 },
+		{ key: "Tab", label: "To results", priority: 2 },
 		{ key: "Esc", label: "Clear", priority: 2 },
-		{ key: "Ctrl+K", label: "Commands", priority: 1 },
 	],
-	settings: [
-		{ key: "Esc", label: "Back", priority: 1 },
-		{ key: "Ctrl+K", label: "Commands", priority: 1 },
-	],
+	settings: [{ key: "j/k", label: "Navigate sections", priority: 1 }],
 	projects: [
 		{ key: "↑↓", label: "Navigate", priority: 1 },
-		{ key: "Enter", label: "Open", priority: 2 },
-		{ key: "Ctrl+K", label: "Commands", priority: 1 },
+		{ key: "Enter", label: "Open", priority: 1 },
+		{ key: "Ctrl+N", label: "New", priority: 2 },
+		{ key: "Ctrl+A", label: "Archive", priority: 2 },
+		{ key: "Ctrl+U", label: "Restore", priority: 3 },
+		{ key: "Ctrl+D", label: "Delete", priority: 3 },
+		{ key: "Ctrl+Shift+D", label: "Permanent delete", priority: 3 },
 	],
 	"quick-capture": [
 		{ key: "Ctrl+Enter", label: "Save", priority: 1 },
+		{ key: "Shift+Enter", label: "Save & stay", priority: 2 },
 		{ key: "Esc", label: "Cancel", priority: 2 },
-		{ key: "Ctrl+K", label: "Commands", priority: 1 },
 	],
-	test: [{ key: "Ctrl+K", label: "Commands", priority: 1 }],
+	test: [],
 };
 
 /**
  * Default hints shown when page context is unknown
  */
-const DEFAULT_HINTS: FooterHint[] = [{ key: "Ctrl+K", label: "Commands", priority: 1 }];
+const DEFAULT_HINTS: FooterHint[] = [];
 
 export interface UseFooterHintsOptions {
 	/**

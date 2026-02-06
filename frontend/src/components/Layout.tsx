@@ -2,12 +2,7 @@ import type React from "react";
 import { type ReactNode, useEffect, useMemo } from "react";
 import { useProjectContext, useTitleBarContext } from "../contexts";
 import { useFooterHints, useFooterHintsSetting, useHotkeys, useSidebarSetting } from "../hooks";
-import {
-	FooterHintBar,
-	HeaderBar,
-	type SidebarSection,
-	Sidebar as UISidebar,
-} from "./ui";
+import { FooterHintBar, HeaderBar, type SidebarSection, Sidebar as UISidebar } from "./ui";
 
 /**
  * Converts the current page identifier to a display-friendly page name.
@@ -152,16 +147,9 @@ export const Layout: React.FC<LayoutProps> = ({
 						{children}
 					</div>
 				</div>
-			</div>
 
-			{!footerHintsLoading && showFooterHints && (
-				<FooterHintBar
-					hints={footerHints}
-					className={`footer-hint-bar-transition backdrop-blur-md bg-glass-bg/80 border-t border-glass-border ${
-						!sidebarLoading && !sidebarVisible ? "" : "footer-hint-bar-sidebar-visible"
-					}`}
-				/>
-			)}
+				{!footerHintsLoading && showFooterHints && <FooterHintBar hints={footerHints} />}
+			</div>
 		</div>
 	);
 };
