@@ -223,14 +223,11 @@ export const useSettingsController = () => {
 				if (!enabled) {
 					setStartHiddenState(false);
 				}
-				success(
-					enabled ? "Window will hide to background when closed" : "Window will quit when closed",
-				);
 			} catch (err) {
 				error(`Failed to update setting: ${err}`);
 			}
 		},
-		[success, error],
+		[error],
 	);
 
 	const handleStartHiddenToggle = useCallback(
@@ -238,12 +235,11 @@ export const useSettingsController = () => {
 			try {
 				await SetStartHidden(enabled);
 				setStartHiddenState(enabled);
-				success(enabled ? "App will start hidden in background" : "App will start with window visible");
 			} catch (err) {
 				error(`Failed to update setting: ${err}`);
 			}
 		},
-		[success, error],
+		[error],
 	);
 
 	const handleLinuxWindowModeToggle = useCallback(
@@ -271,12 +267,11 @@ export const useSettingsController = () => {
 				await SetAppScale(scale);
 				setAppScaleState(scale);
 				setScale(scale);
-				success(`App scale set to ${Math.round(scale * 100)}%`);
 			} catch (err) {
 				error(`Failed to set app scale: ${err}`);
 			}
 		},
-		[setScale, success, error],
+		[setScale, error],
 	);
 
 	const handleGitSyncToggle = useCallback(
@@ -291,12 +286,11 @@ export const useSettingsController = () => {
 				};
 				await SetGitSyncConfig(config);
 				setGitSync((prev) => ({ ...prev, enabled }));
-				success(enabled ? "Git sync enabled" : "Git sync disabled");
 			} catch (err) {
 				error(`Failed to update git sync: ${err}`);
 			}
 		},
-		[success, error, gitSync],
+		[error, gitSync],
 	);
 
 	const handleCommitIntervalChange = useCallback(
@@ -311,16 +305,11 @@ export const useSettingsController = () => {
 				};
 				await SetGitSyncConfig(config);
 				setGitSync((prev) => ({ ...prev, commitInterval: interval }));
-				if (interval === 0) {
-					success("Auto-commit disabled (manual only)");
-				} else {
-					success(`Auto-commit interval set to ${interval} minutes`);
-				}
 			} catch (err) {
 				error(`Failed to update commit interval: ${err}`);
 			}
 		},
-		[gitSync, success, error],
+		[gitSync, error],
 	);
 
 	const handleAutoPushToggle = useCallback(
@@ -335,12 +324,11 @@ export const useSettingsController = () => {
 				};
 				await SetGitSyncConfig(config);
 				setGitSync((prev) => ({ ...prev, autoPush: enabled }));
-				success(enabled ? "Auto-push enabled" : "Auto-push disabled");
 			} catch (err) {
 				error(`Failed to update auto-push: ${err}`);
 			}
 		},
-		[gitSync, success, error],
+		[gitSync, error],
 	);
 
 	const handleBranchChange = useCallback(
@@ -355,16 +343,11 @@ export const useSettingsController = () => {
 				};
 				await SetGitSyncConfig(config);
 				setGitSync((prev) => ({ ...prev, branch }));
-				if (branch) {
-					success(`Sync branch set to "${branch}"`);
-				} else {
-					success("Sync branch set to current branch");
-				}
 			} catch (err) {
 				error(`Failed to update sync branch: ${err}`);
 			}
 		},
-		[gitSync, success, error],
+		[gitSync, error],
 	);
 
 	const handlePickDirectory = useCallback(async () => {
@@ -521,12 +504,11 @@ export const useSettingsController = () => {
 				};
 				await SetBackupConfig(config);
 				setBackupConfig(config);
-				success(enabled ? "Automatic backups enabled" : "Automatic backups disabled");
 			} catch (err) {
 				error(`Failed to update backup config: ${err}`);
 			}
 		},
-		[backupConfig, success, error],
+		[backupConfig, error],
 	);
 
 	const handleMaxBackupsChange = useCallback(
@@ -538,12 +520,11 @@ export const useSettingsController = () => {
 				};
 				await SetBackupConfig(config);
 				setBackupConfig(config);
-				success(`Maximum backups set to ${value}`);
 			} catch (err) {
 				error(`Failed to update max backups: ${err}`);
 			}
 		},
-		[backupConfig, success, error],
+		[backupConfig, error],
 	);
 
 	const handleRestoreBackup = useCallback(
@@ -568,14 +549,13 @@ export const useSettingsController = () => {
 				// Refresh backups list
 				const backupList = await GetBackups();
 				setBackups(backupList);
-				success("Backup deleted successfully");
 			} catch (err) {
 				const errorMessage = String(err);
 				const cleanedMessage = errorMessage.replace(/^[A-Z_]+:\s*/, "");
 				error(`Delete failed:\n\n${cleanedMessage}`);
 			}
 		},
-		[success, error],
+		[error],
 	);
 
 	const handleHotkeyConfigChange = useCallback(
@@ -591,12 +571,6 @@ export const useSettingsController = () => {
 
 			try {
 				await SetHotkeyConfig(globalHotkeyConfigToModel(config));
-
-				if (config.quickCaptureEnabled) {
-					success(`Quick Capture hotkey set to ${config.quickCaptureHotkey}`);
-				} else {
-					success("Quick Capture hotkey disabled");
-				}
 			} catch (err) {
 				const errorMessage = String(err);
 				const cleanedMessage = errorMessage.replace(/^[A-Z_]+:\s*/, "");
@@ -604,7 +578,7 @@ export const useSettingsController = () => {
 				error(`Failed to update hotkey: ${cleanedMessage}`);
 			}
 		},
-		[success, error],
+		[error],
 	);
 
 	const logLevelOptions: SelectOption[] = [

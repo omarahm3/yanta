@@ -251,7 +251,7 @@ export function useDashboardController({
 	}, []);
 
 	const archivePaths = useCallback(
-		async (paths: string[], successMessage: (count: number) => string) => {
+		async (paths: string[]) => {
 			try {
 				for (const path of paths) {
 					await SoftDelete(path);
@@ -259,12 +259,11 @@ export function useDashboardController({
 				}
 				await reloadDocuments();
 				clearSelection();
-				success(successMessage(paths.length));
 			} catch (err) {
 				error(err instanceof Error ? err.message : "Failed to archive");
 			}
 		},
-		[clearSelection, reloadDocuments, success, error, removeRecentDocument],
+		[clearSelection, reloadDocuments, error, removeRecentDocument],
 	);
 
 	const handleArchiveSelectedDocuments = useCallback(async () => {
@@ -273,9 +272,7 @@ export function useDashboardController({
 			error("No documents selected");
 			return;
 		}
-		await archivePaths(paths, (count) =>
-			count === 1 ? "Document archived" : `${count} documents archived`,
-		);
+		await archivePaths(paths);
 	}, [archivePaths, error]);
 
 	const handleRestoreSelectedDocuments = useCallback(async () => {
@@ -290,11 +287,10 @@ export function useDashboardController({
 			}
 			await reloadDocuments();
 			clearSelection();
-			success(paths.length === 1 ? "Document restored" : `${paths.length} documents restored`);
 		} catch (err) {
 			error(err instanceof Error ? err.message : "Failed to restore");
 		}
-	}, [reloadDocuments, clearSelection, success, error]);
+	}, [reloadDocuments, clearSelection, error]);
 
 	const handleExportSelectedMarkdown = useCallback(async () => {
 		const paths = Array.from(selectedDocumentsRef.current);
@@ -316,15 +312,10 @@ export function useDashboardController({
 				});
 				await ExportDocument(req);
 			}
-			success(
-				paths.length === 1
-					? "Document exported to markdown"
-					: `${paths.length} documents exported to markdown`,
-			);
 		} catch (err) {
 			error(err instanceof Error ? err.message : "Failed to export");
 		}
-	}, [success, error]);
+	}, [error]);
 
 	const handleExportSelectedPDF = useCallback(async () => {
 		const paths = Array.from(selectedDocumentsRef.current);
@@ -346,13 +337,10 @@ export function useDashboardController({
 				});
 				await ExportToPDF(req);
 			}
-			success(
-				paths.length === 1 ? "Document exported to PDF" : `${paths.length} documents exported to PDF`,
-			);
 		} catch (err) {
 			error(err instanceof Error ? err.message : "Failed to export");
 		}
-	}, [success, error]);
+	}, [error]);
 
 	const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
 		isOpen: false,
@@ -388,9 +376,7 @@ export function useDashboardController({
 	const handleMoveDone = useCallback(async () => {
 		await reloadDocuments();
 		clearSelection();
-		const count = moveDialog.documentPaths.length;
-		success(count === 1 ? "Document moved" : `${count} documents moved`);
-	}, [reloadDocuments, clearSelection, success, moveDialog.documentPaths.length]);
+	}, [reloadDocuments, clearSelection]);
 
 	const closeMoveDialog = useCallback(() => {
 		setMoveDialog({ isOpen: false, documentPaths: [] });
@@ -455,7 +441,6 @@ export function useDashboardController({
 								removeRecentDocument(doc.path);
 								await reloadDocuments();
 								clearSelection();
-								success("Document deleted");
 							} catch (err) {
 								error(err instanceof Error ? err.message : "Failed to delete");
 							} finally {
@@ -514,7 +499,6 @@ export function useDashboardController({
 								}
 								await reloadDocuments();
 								clearSelection();
-								success(`${count} documents deleted`);
 							} catch (err) {
 								error(err instanceof Error ? err.message : "Failed to delete");
 							} finally {

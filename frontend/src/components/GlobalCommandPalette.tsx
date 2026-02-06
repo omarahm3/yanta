@@ -302,7 +302,6 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 					});
 
 					await ExportDocument(req);
-					notification.success(`Exported to ${outputPath}`);
 				} catch (err) {
 					notification.error(`Export failed: ${err}`);
 				}
@@ -341,7 +340,6 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 					});
 
 					await ExportToPDF(req);
-					notification.success(`Exported to ${outputPath}`);
 				} catch (err) {
 					notification.error(`Export failed: ${err}`);
 				}
@@ -502,7 +500,6 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 						});
 
 						await ExportProject(req);
-						notification.success(`Exported project to ${outputDir}`);
 					} catch (err) {
 						notification.error(`Export failed: ${err}`);
 					}

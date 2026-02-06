@@ -141,17 +141,14 @@ export const useDashboardCommandHandler = ({
 					"document archived": async () => {
 						await reloadDocuments();
 						clearSelection();
-						success("Document archived");
 					},
 					"document unarchived": async () => {
 						await reloadDocuments();
 						clearSelection();
-						success("Document unarchived");
 					},
 					"document deleted": async () => {
 						await reloadDocuments();
 						clearSelection();
-						success("Document deleted");
 					},
 					"document permanently deleted": async () => {
 						await reloadDocuments();
@@ -175,7 +172,6 @@ export const useDashboardCommandHandler = ({
 							OutputPath: outputPath,
 						});
 						await ExportDocument(req);
-						success(`Exported to ${outputPath}`);
 					},
 					"export to PDF": async () => {
 						const docPath = result.data?.documentPath;
@@ -194,7 +190,6 @@ export const useDashboardCommandHandler = ({
 							OutputPath: outputPath,
 						});
 						await ExportToPDF(req);
-						success(`Exported to ${outputPath}`);
 					},
 				};
 

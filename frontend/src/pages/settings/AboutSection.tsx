@@ -1,6 +1,5 @@
 import React from "react";
 import { Button, ConfirmDialog, SettingsSection } from "../../components/ui";
-import { useNotification } from "../../hooks/useNotification";
 import { useOnboarding } from "../../hooks/useOnboarding";
 import { useUserProgress } from "../../hooks/useUserProgress";
 import type { SystemInfo } from "../../types";
@@ -13,7 +12,6 @@ export const AboutSection = React.forwardRef<HTMLDivElement, AboutSectionProps>(
 	({ systemInfo }, ref) => {
 		const { resetOnboarding } = useOnboarding();
 		const { resetProgress, progressData } = useUserProgress();
-		const { success } = useNotification();
 
 		const [showResetOnboardingConfirm, setShowResetOnboardingConfirm] = React.useState(false);
 		const [showResetHintsConfirm, setShowResetHintsConfirm] = React.useState(false);
@@ -21,13 +19,11 @@ export const AboutSection = React.forwardRef<HTMLDivElement, AboutSectionProps>(
 		const handleResetOnboarding = () => {
 			resetOnboarding();
 			setShowResetOnboardingConfirm(false);
-			success("Onboarding reset. The welcome overlay will appear on next launch.");
 		};
 
 		const handleResetHints = () => {
 			resetProgress();
 			setShowResetHintsConfirm(false);
-			success("Hints reset. Milestone hints will appear again as you use the app.");
 		};
 
 		const hintsShownCount = progressData.hintsShown.length;

@@ -55,7 +55,7 @@ export function useDocumentController({
 	const isActivePane = !paneId || activePaneId === paneId;
 	const isActivePaneRef = useRef(isActivePane);
 	isActivePaneRef.current = isActivePane;
-	const { success, error } = useNotification();
+	const { error } = useNotification();
 	const { setPageContext } = useHelp();
 	const isEditMode = !!documentPath;
 
@@ -236,12 +236,10 @@ export function useDocumentController({
 					OutputPath: outputPath,
 				}),
 			);
-
-			success("Document exported to Markdown successfully");
 		} catch (err) {
 			error(err instanceof Error ? err.message : "Failed to export Markdown");
 		}
-	}, [documentPath, error, formData.title, success]);
+	}, [documentPath, error, formData.title]);
 
 	const handleExportToPDF = useCallback(async () => {
 		if (!documentPath) {
@@ -271,12 +269,10 @@ export function useDocumentController({
 					OutputPath: outputPath,
 				}),
 			);
-
-			success("Document exported to PDF successfully");
 		} catch (err) {
 			error(err instanceof Error ? err.message : "Failed to export PDF");
 		}
-	}, [documentPath, error, formData.title, success]);
+	}, [documentPath, error, formData.title]);
 
 	const handleRestore = useCallback(async () => {
 		if (!documentPath || isRestoring) {
@@ -286,14 +282,13 @@ export function useDocumentController({
 		try {
 			await DocumentServiceWrapper.restore(documentPath);
 			setHasRestored(true);
-			success("Document restored");
 		} catch (err) {
 			const message = err instanceof Error ? err.message : "Failed to restore document";
 			error(message);
 		} finally {
 			setIsRestoring(false);
 		}
-	}, [documentPath, error, isRestoring, success]);
+	}, [documentPath, error, isRestoring]);
 
 	useEffect(() => {
 		const refreshTags = async () => {

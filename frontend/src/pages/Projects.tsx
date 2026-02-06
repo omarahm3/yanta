@@ -174,10 +174,9 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 			const project = projects.find((p) => p.id === row.id);
 			if (project) {
 				setCurrentProject(project);
-				success(`Switched to ${project.name}`);
 			}
 		},
-		[projects, setCurrentProject, success],
+		[projects, setCurrentProject],
 	);
 
 	const applyResult = useCallback(
@@ -341,9 +340,8 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 		const project = allProjects.find((p) => p.id === selectedProjectIdRef.current);
 		if (project) {
 			setCurrentProject(project);
-			success(`Switched to ${project.name}`);
 		}
-	}, [setCurrentProject, success]);
+	}, [setCurrentProject]);
 
 	const handleCreateProject = useCallback(
 		async (data: { name: string; alias: string; startDate: string; endDate: string }) => {
@@ -353,12 +351,11 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 				await fetchDocumentData();
 				setSelectedProjectId(projectId);
 				setIsNewProjectDialogOpen(false);
-				success(`Created project: ${data.name}`);
 			} catch (err) {
 				error(err instanceof Error ? err.message : "Failed to create project");
 			}
 		},
-		[loadProjects, fetchDocumentData, success, error],
+		[loadProjects, fetchDocumentData, error],
 	);
 
 	const projectHotkeys = useMemo(
