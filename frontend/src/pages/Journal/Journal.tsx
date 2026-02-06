@@ -1,4 +1,5 @@
 import type React from "react";
+import { useEffect, useRef } from "react";
 import { Layout } from "../../components/Layout";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { useHotkeys } from "../../hooks";
@@ -26,6 +27,7 @@ export const Journal: React.FC<JournalProps> = ({
 	initialDate,
 }) => {
 	const controller = useJournalController({ onNavigate, initialDate });
+	const listRef = useRef<HTMLDivElement>(null);
 
 	useHotkeys(controller.hotkeys);
 
@@ -49,6 +51,13 @@ export const Journal: React.FC<JournalProps> = ({
 		setConfirmDialog,
 		statusBar,
 	} = controller;
+
+	useEffect(() => {
+		if (listRef.current && highlightedIndex >= 0) {
+			const items = listRef.current.querySelectorAll("[role='listitem']");
+			items[highlightedIndex]?.scrollIntoView({ block: "nearest" });
+		}
+	}, [highlightedIndex]);
 
 	return (
 		<>
@@ -81,7 +90,7 @@ export const Journal: React.FC<JournalProps> = ({
 						)}
 
 						{!isLoading && !isEmpty && (
-							<div className="space-y-1" role="list">
+							<div ref={listRef} className="space-y-1" role="list">
 								{entries.map((entry, index) => (
 									<JournalEntry
 										key={entry.id}

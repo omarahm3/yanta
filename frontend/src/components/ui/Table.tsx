@@ -1,4 +1,5 @@
 import type React from "react";
+import { useEffect, useRef } from "react";
 import { cn } from "../../lib/utils";
 
 export interface TableColumn {
@@ -30,6 +31,15 @@ export const Table: React.FC<TableProps> = ({
 	onRowDoubleClick,
 	className,
 }) => {
+	const containerRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (containerRef.current && selectedRowId) {
+			const row = containerRef.current.querySelector(`[data-row-id="${selectedRowId}"]`);
+			row?.scrollIntoView({ block: "nearest" });
+		}
+	}, [selectedRowId]);
+
 	const getColumnStyles = (column: TableColumn) => {
 		const baseStyles = "px-3 py-2";
 		const alignStyles = {
@@ -53,7 +63,7 @@ export const Table: React.FC<TableProps> = ({
 		.join(" ");
 
 	return (
-		<div className={cn("w-full min-w-0 overflow-x-auto", className)}>
+		<div ref={containerRef} className={cn("w-full min-w-0 overflow-x-auto", className)}>
 			<div className="grid mb-2 border-b border-glass-border" style={{ gridTemplateColumns }}>
 				{columns.map((column) => (
 					<div
@@ -72,6 +82,7 @@ export const Table: React.FC<TableProps> = ({
 				{rows.map((row) => (
 					<div
 						key={row.id}
+						data-row-id={row.id}
 						className={cn(
 							"grid rounded cursor-pointer transition-all duration-200 items-start",
 							"hover:bg-glass-bg/20 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-opacity-50",

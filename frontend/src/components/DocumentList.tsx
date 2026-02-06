@@ -1,4 +1,5 @@
 import type React from "react";
+import { useEffect, useRef } from "react";
 import { cn } from "../lib/utils";
 import type { Document } from "../types/Document";
 import { formatShortDate } from "../utils/dateUtils";
@@ -21,6 +22,15 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 	selectedDocuments = new Set(),
 	onToggleSelection,
 }) => {
+	const listRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (listRef.current && highlightedIndex >= 0) {
+			const items = listRef.current.querySelectorAll("[role='listitem']");
+			items[highlightedIndex]?.scrollIntoView({ block: "nearest" });
+		}
+	}, [highlightedIndex]);
+
 	if (documents.length === 0) {
 		const placeholders: Document[] = [
 			{
@@ -78,7 +88,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 	}
 
 	return (
-		<div className="space-y-1" role="list">
+		<div ref={listRef} className="space-y-1" role="list">
 			{documents.map((doc, index) => {
 				const isHighlighted = index === highlightedIndex;
 				const isSelected = selectedDocuments.has(doc.path);
