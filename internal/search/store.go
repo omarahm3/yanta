@@ -237,7 +237,7 @@ func (s *Store) SearchJournalEntriesTx(ctx context.Context, q Queryer, fts5Query
 
 	query := `
 		SELECT project_alias, date, entry_id, content, tags, bm25(fts_journal) AS rank,
-		       snippet(fts_journal, 0, '<mark>', '</mark>', ' … ', 12) AS snippet
+		       snippet(fts_journal, 0, '<mark>', '</mark>', ' … ', 30) AS snippet
 		FROM fts_journal
 		WHERE fts_journal MATCH ?
 		ORDER BY rank

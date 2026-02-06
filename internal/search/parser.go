@@ -102,7 +102,7 @@ func Parse(input string) (*Query, error) {
 		logger.Debug("query parsed but expression is nil")
 	}
 
-	logger.Infof("search query parsed successfully input=%s", input)
+	logger.Debugf("search query parsed successfully input=%s", input)
 	return query, nil
 }
 

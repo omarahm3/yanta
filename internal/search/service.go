@@ -147,7 +147,7 @@ func (s *Service) searchDocuments(ctx context.Context, match string, projectAlia
 		sqlBuilder = `
 SELECT d.path, d.title, d.project_alias,
        bm25(fts_doc) AS rank,
-       snippet(fts_doc, -1, '<mark>', '</mark>', ' … ', 12) AS snippet,
+       snippet(fts_doc, -1, '<mark>', '</mark>', ' … ', 30) AS snippet,
        d.updated_at
   FROM fts_doc
   JOIN doc d ON d.path = fts_doc.path`
@@ -241,7 +241,7 @@ func (s *Service) searchJournals(ctx context.Context, match string, projectAlias
 	sqlBuilder = `
 SELECT project_alias, date, entry_id, content,
        bm25(fts_journal) AS rank,
-       snippet(fts_journal, 0, '<mark>', '</mark>', ' … ', 12) AS snippet,
+       snippet(fts_journal, 0, '<mark>', '</mark>', ' … ', 30) AS snippet,
        tags
   FROM fts_journal`
 	args = append(args, match)
