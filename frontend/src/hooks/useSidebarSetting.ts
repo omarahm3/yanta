@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { GetSidebarVisible, SetSidebarVisible } from "../../bindings/yanta/internal/system/service";
 import { announceForScreenReaders } from "../utils/accessibility";
+import { BackendLogger } from "../utils/backendLogger";
 
 export interface UseSidebarSettingReturn {
 	sidebarVisible: boolean;
@@ -19,7 +20,7 @@ export function useSidebarSetting(): UseSidebarSettingReturn {
 				setSidebarVisibleState(visible);
 			})
 			.catch((err) => {
-				console.error("[useSidebarSetting] Failed to get sidebar visibility:", err);
+				BackendLogger.error("[useSidebarSetting] Failed to get sidebar visibility:", err);
 			})
 			.finally(() => {
 				setIsLoading(false);
@@ -35,7 +36,7 @@ export function useSidebarSetting(): UseSidebarSettingReturn {
 			try {
 				await SetSidebarVisible(visible);
 			} catch (err) {
-				console.error("[useSidebarSetting] Failed to set sidebar visibility:", err);
+				BackendLogger.error("[useSidebarSetting] Failed to set sidebar visibility:", err);
 				// Revert on error
 				setSidebarVisibleState(previousValue);
 				throw err;

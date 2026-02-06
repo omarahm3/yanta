@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from "react";
+import { BackendLogger } from "../utils/backendLogger";
 import { useLocalStorage } from "./useLocalStorage";
 
 const STORAGE_KEY = "yanta_user_progress";
@@ -50,7 +51,7 @@ export function useUserProgress(): UseUserProgressReturn {
 		{
 			validate: validateProgressData,
 			onError: (operation, err) => {
-				console.error(`[useUserProgress] Failed to ${operation}:`, err);
+				BackendLogger.error(`[useUserProgress] Failed to ${operation}:`, err);
 			},
 		},
 	);
@@ -102,7 +103,7 @@ export function useUserProgress(): UseUserProgressReturn {
 		try {
 			localStorage.removeItem(STORAGE_KEY);
 		} catch (err) {
-			console.error("[useUserProgress] Failed to clear localStorage:", err);
+			BackendLogger.error("[useUserProgress] Failed to clear localStorage:", err);
 		}
 		setProgressData(getDefaultProgressData());
 	}, [setProgressData]);

@@ -11,6 +11,7 @@ import { useHelp } from "../hooks/useHelp";
 import { useNotification } from "../hooks/useNotification";
 import { useSidebarSections } from "../hooks/useSidebarSections";
 import type { NavigationState } from "../types";
+import { BackendLogger } from "../utils/backendLogger";
 
 interface SearchResult {
 	path: string;
@@ -74,7 +75,7 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 					.slice(0, 10);
 				setAvailableTags(tagNames);
 			} catch (err) {
-				console.error("Failed to load tags:", err);
+				BackendLogger.error("Failed to load tags:", err);
 			}
 		};
 		loadTags();
@@ -201,7 +202,7 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 			if (targetProject) {
 				setCurrentProject(targetProject);
 			} else {
-				console.warn(`Project with alias '${projectAlias}' not found in active projects`);
+				BackendLogger.warn(`Project with alias '${projectAlias}' not found in active projects`);
 			}
 
 			if (result.type === "note") {

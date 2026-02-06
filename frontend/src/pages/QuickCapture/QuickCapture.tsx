@@ -9,6 +9,7 @@ import type { ProjectOption } from "./ProjectPicker";
 import { QuickEditor } from "./QuickEditor";
 import { TagChips } from "./TagChips";
 import { useQuickCapture } from "./useQuickCapture";
+import { BackendLogger } from "../../utils/backendLogger";
 
 /**
  * Quick Capture Window
@@ -38,7 +39,7 @@ export const QuickCapture: React.FC = () => {
 					}));
 				setProjects(mapped);
 			} catch (err) {
-				console.error("Failed to load projects:", err);
+				BackendLogger.error("Failed to load projects:", err);
 			} finally {
 				setIsLoading(false);
 			}

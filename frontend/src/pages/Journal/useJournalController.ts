@@ -7,6 +7,7 @@ import type { HotkeyConfig } from "../../types/hotkeys";
 import type { NavigationState } from "../../types";
 import type { JournalEntryData } from "./JournalEntry";
 import { useJournal } from "./useJournal";
+import { BackendLogger } from "../../utils/backendLogger";
 
 function addDays(dateStr: string, delta: number): string {
 	const d = new Date(dateStr);
@@ -158,7 +159,7 @@ export function useJournalController({
 				const dates = await ListDates(projectAlias, 0, 0);
 				setDatesWithEntries(dates as string[]);
 			} catch (err) {
-				console.error("Failed to load dates:", err);
+				BackendLogger.error("Failed to load dates:", err);
 			}
 		};
 		loadDates();
@@ -237,7 +238,7 @@ export function useJournalController({
 					}
 					clearSelection();
 				} catch (err) {
-					console.error("Failed to delete entries:", err);
+					BackendLogger.error("Failed to delete entries:", err);
 				} finally {
 					setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
 				}
@@ -264,7 +265,7 @@ export function useJournalController({
 				onNavigate("document", { documentPath });
 			}
 		} catch (err) {
-			console.error("Failed to promote to document:", err);
+			BackendLogger.error("Failed to promote to document:", err);
 		}
 	}, [promoteToDocument, projectAlias, clearSelection, onNavigate]);
 

@@ -11,6 +11,7 @@ import {
 } from "react";
 import { ListActive, ListArchived } from "../../bindings/yanta/internal/project/service";
 import { type Project, projectsFromModels } from "../types";
+import { BackendLogger } from "../utils/backendLogger";
 
 interface ProjectContextValue {
 	currentProject: Project | undefined;
@@ -79,7 +80,7 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
 				return prev;
 			});
 		} catch (err) {
-			console.error("Failed to load projects:", err);
+			BackendLogger.error("Failed to load projects:", err);
 		} finally {
 			setIsLoading(false);
 		}

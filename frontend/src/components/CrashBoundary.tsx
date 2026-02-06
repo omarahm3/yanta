@@ -1,6 +1,6 @@
 import { AlertCircle } from "lucide-react";
 import React from "react";
-import { getLogBuffer } from "../utils/backendLogger";
+import { BackendLogger, getLogBuffer } from "../utils/backendLogger";
 
 interface CrashBoundaryState {
 	error: Error | null;
@@ -77,9 +77,9 @@ export class CrashBoundary extends React.Component<
 	componentDidCatch(error: Error, info: React.ErrorInfo) {
 		const componentStack = info.componentStack ?? null;
 		this.setState({ componentStack });
-		console.error("[CrashBoundary] Caught render error:", error);
+		BackendLogger.error("[CrashBoundary] Caught render error:", error);
 		if (componentStack) {
-			console.error("[CrashBoundary] Component stack:", componentStack);
+			BackendLogger.error("[CrashBoundary] Component stack:", componentStack);
 		}
 	}
 

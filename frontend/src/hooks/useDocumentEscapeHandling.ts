@@ -1,5 +1,6 @@
 import type { BlockNoteEditor } from "@blocknote/core";
 import { type MutableRefObject, useCallback } from "react";
+import { BackendLogger } from "../utils/backendLogger";
 
 interface UseDocumentEscapeHandlingProps {
 	editorRef: MutableRefObject<BlockNoteEditor | null>;
@@ -20,7 +21,7 @@ function blurEditor(editor: BlockNoteEditor): boolean {
 		if (domEditor) domEditor.blur();
 		return true;
 	} catch (err) {
-		console.warn("[useDocumentEscapeHandling] blurEditor failed:", err);
+		BackendLogger.warn("[useDocumentEscapeHandling] blurEditor failed:", err);
 		return false;
 	}
 }

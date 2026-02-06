@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { BackendLogger } from "../utils/backendLogger";
 import { useLocalStorage } from "./useLocalStorage";
 
 const STORAGE_KEY = "yanta_tooltip_usage";
@@ -53,7 +54,7 @@ export function useTooltipUsage(options: UseTooltipUsageOptions = {}): UseToolti
 		{
 			validate: validateTooltipUsage,
 			onError: (operation, err) => {
-				console.error(`[useTooltipUsage] Failed to ${operation}:`, err);
+				BackendLogger.error(`[useTooltipUsage] Failed to ${operation}:`, err);
 			},
 		},
 	);

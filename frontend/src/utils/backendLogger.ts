@@ -1,8 +1,8 @@
 import { LogFromFrontend } from "../../bindings/yanta/internal/system/service";
 
-type LogLevel = "debug" | "info" | "warn" | "error";
+export type LogLevel = "debug" | "info" | "warn" | "error";
 
-type LogValue = string | number | boolean | null | undefined | Error | Record<string, unknown>;
+type LogValue = string | number | boolean | null | undefined | Error | Record<string, unknown> | unknown;
 
 export interface LogEntry {
 	level: LogLevel;
@@ -13,7 +13,28 @@ export interface LogEntry {
 const LOG_BUFFER_SIZE = 200;
 const logBuffer: LogEntry[] = [];
 
+const LEVEL_PRIORITY: Record<LogLevel, number> = {
+	debug: 0,
+	info: 1,
+	warn: 2,
+	error: 3,
+};
+
+/** Minimum level to forward to backend and buffer. Below this, logs are no-ops. */
+function getMinLevel(): LogLevel {
+	const env = import.meta.env.VITE_LOG_LEVEL as string | undefined;
+	if (env && ["debug", "info", "warn", "error"].includes(env)) return env as LogLevel;
+	return import.meta.env.PROD ? "warn" : "debug";
+}
+
+const minLevel = getMinLevel();
+
+function shouldLog(level: LogLevel): boolean {
+	return LEVEL_PRIORITY[level] >= LEVEL_PRIORITY[minLevel];
+}
+
 function pushEntry(level: LogLevel, message: string) {
+	if (!shouldLog(level)) return;
 	logBuffer.push({ level, message, timestamp: new Date().toISOString() });
 	if (logBuffer.length > LOG_BUFFER_SIZE) {
 		logBuffer.shift();
@@ -42,34 +63,49 @@ export function formatLogArgs(args: LogValue[]): {
 	return { message, data };
 }
 
-async function logToBackend(level: LogLevel, ...args: LogValue[]) {
-	const { message, data } = formatLogArgs(args);
-
+/** Sends pre-formatted message/data to backend. Call formatLogArgs once at call site to avoid duplicate work (js-cache-function-results). */
+async function sendToBackend(level: LogLevel, message: string, data: Record<string, unknown>) {
+	if (!shouldLog(level)) return;
 	try {
 		await LogFromFrontend(level, message, data);
 	} catch (error) {
-		console.error("[BackendLogger] Failed to send log to backend:", error);
+		originalError("[BackendLogger] Failed to send log to backend:", error);
 	}
 }
 
+const originalLog = console.log;
+const originalError = console.error;
+const originalWarn = console.warn;
+
 export function logDebug(...args: LogValue[]) {
-	console.log(...args);
-	logToBackend("debug", ...args);
+	if (!shouldLog("debug")) return;
+	const { message, data } = formatLogArgs(args);
+	originalLog(...args);
+	pushEntry("debug", message);
+	sendToBackend("debug", message, data);
 }
 
 export function logInfo(...args: LogValue[]) {
-	console.log(...args);
-	logToBackend("info", ...args);
+	if (!shouldLog("info")) return;
+	const { message, data } = formatLogArgs(args);
+	originalLog(...args);
+	pushEntry("info", message);
+	sendToBackend("info", message, data);
 }
 
 export function logWarn(...args: LogValue[]) {
-	console.warn(...args);
-	logToBackend("warn", ...args);
+	if (!shouldLog("warn")) return;
+	const { message, data } = formatLogArgs(args);
+	originalWarn(...args);
+	pushEntry("warn", message);
+	sendToBackend("warn", message, data);
 }
 
 export function logError(...args: LogValue[]) {
-	console.error(...args);
-	logToBackend("error", ...args);
+	const { message, data } = formatLogArgs(args);
+	originalError(...args);
+	pushEntry("error", message);
+	sendToBackend("error", message, data);
 }
 
 export const BackendLogger = {
@@ -80,15 +116,13 @@ export const BackendLogger = {
 	error: logError,
 };
 
-const originalLog = console.log;
-const originalError = console.error;
-const originalWarn = console.warn;
-
 export function enableBackendLogging() {
 	console.log = (...args) => {
 		originalLog(...args);
-		const { message } = formatLogArgs(args);
+		if (!shouldLog("info")) return;
+		const { message, data } = formatLogArgs(args);
 		pushEntry("info", message);
+		LogFromFrontend("info", message, data).catch(() => {});
 	};
 
 	console.error = (...args) => {
@@ -99,18 +133,17 @@ export function enableBackendLogging() {
 	};
 
 	console.warn = (...args) => {
-		const message = args[0]?.toString() || "";
-
+		const rawMessage = args[0]?.toString() || "";
 		if (
-			message.includes("Function components cannot be given refs") &&
-			message.includes("ForwardRef")
+			rawMessage.includes("Function components cannot be given refs") &&
+			rawMessage.includes("ForwardRef")
 		) {
 			return;
 		}
-
 		originalWarn(...args);
-		const formattedData = formatLogArgs(args);
-		pushEntry("warn", formattedData.message);
-		LogFromFrontend("warn", formattedData.message, formattedData.data).catch(() => {});
+		if (!shouldLog("warn")) return;
+		const { message, data } = formatLogArgs(args);
+		pushEntry("warn", message);
+		LogFromFrontend("warn", message, data).catch(() => {});
 	};
 }

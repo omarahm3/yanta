@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TIMEOUTS } from "@/config";
+import { BackendLogger } from "../utils/backendLogger";
 import { useLocalStorage } from "./useLocalStorage";
 
 const STORAGE_KEY = "yanta_onboarding";
@@ -41,7 +42,7 @@ export function useOnboarding(): UseOnboardingReturn {
 		{
 			validate: validateOnboardingData,
 			onError: (operation, err) => {
-				console.error(`[useOnboarding] Failed to ${operation}:`, err);
+				BackendLogger.error(`[useOnboarding] Failed to ${operation}:`, err);
 			},
 		},
 	);
@@ -82,7 +83,7 @@ export function useOnboarding(): UseOnboardingReturn {
 		try {
 			localStorage.removeItem(STORAGE_KEY);
 		} catch (err) {
-			console.error("[useOnboarding] Failed to clear localStorage:", err);
+			BackendLogger.error("[useOnboarding] Failed to clear localStorage:", err);
 		}
 		setOnboardingData(null);
 		setShouldShowWelcome(false);

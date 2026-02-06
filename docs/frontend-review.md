@@ -2,7 +2,23 @@
 
 **Stack:** React 18 + Tailwind CSS v4 + Radix UI + BlockNote Editor + Wails3 Runtime
 **Target:** Cross-platform desktop application (Wails3)
-**Last Updated:** 2026-02-06 (Rev 4 — production readiness pass)
+**Last Updated:** 2026-02-06 (Rev 7 — Tier 1 #10, #11, #42 done)
+
+---
+
+## Goal
+
+The sole purpose of this restructure is to make the frontend **scalable and extensible**. Every module and feature in YANTA will be heavily changed or rebuilt in the near future. The planned roadmap includes:
+
+- **Custom themes** -- user-created and community-shared color schemes, typography, and layout presets
+- **Plugin architecture** -- third-party extensions that add editor blocks, sidebar sections, commands, and integrations
+- **Marketplace** -- a storefront for discovering, installing, and managing themes and plugins
+- **Deep customization** -- user-configurable keyboard shortcuts, layout options, editor toolbars, and workflow automations
+- **i18n** -- full internationalization with community-contributed translations
+
+None of this is possible with the current codebase. Hardcoded commands, scattered configuration, god files mixing 5+ concerns, and no registry/extension-point architecture mean that adding any of these features would require rewriting the same code repeatedly. The restructure invests upfront in domain boundaries, registries, and contracts so that every future feature lands cleanly instead of adding to the debt.
+
+**Every architectural decision in this plan is evaluated against one question: does it make the next plugin/theme/marketplace feature easier to build?**
 
 ---
 
@@ -13,6 +29,24 @@ Solid TypeScript discipline and some genuinely thoughtful patterns (pane layout 
 **Grade: C+** -- Good ideas buried under structural debt. Fixable, but needs deliberate investment.
 
 **Production Readiness: 2/5** -- Functional prototype, not production-grade. Missing error resilience, performance guardrails, extensibility contracts, and configuration infrastructure. The path from here to a mature notes app is well-defined but requires systematic work across 12 categories and 55+ items below.
+
+### Target
+
+**Target Grade: A-** -- Clean domain boundaries, centralized config, production error handling, and extensibility contracts ready for themes/plugins/marketplace. Reach this by completing Tiers 1-5, with Tier 6 delivering the platform features.
+
+**Target Production Readiness: 4/5** -- Achieved when:
+1. Zero god files over 400 lines (Part 2 items resolved or split)
+2. Folder restructure complete through Phase 5 (domains own their code, `app/` shell exists)
+3. Every user-initiated async operation surfaces errors via toast (Item 44)
+4. Granular error boundaries around editor, settings, and document list (Item 45)
+5. No `JSON.stringify` in editor hot path (Item 49)
+
+**Extensibility Readiness: 3/5 → 5/5** -- Achieved when:
+6. Command registry exists and domains register commands declaratively (Item 54)
+7. Configuration is centralized, validated, and supports plugin-scoped namespaces (Item 55)
+8. Keyboard shortcuts are user-rebindable via settings UI (Item 18)
+9. Theme token system supports runtime switching and external theme packages (Item 53a)
+10. Editor extension registry supports plugin-contributed blocks and toolbars (Item 53b)
 
 ---
 
@@ -68,7 +102,23 @@ Problems:
 - **Coupling through position** -- provider order encodes implicit dependencies
 - **Testing friction** -- unit testing requires 11 providers or a test harness
 
-**Recommendation:** Zustand (~1KB, no providers) for global state (project, dialog, scale). Keep context only for hierarchical concerns (pane layout, toast).
+**Recommendation:** Zustand (~1KB, no providers) for global state. Keep context only for hierarchical concerns.
+
+**Provider-to-replacement mapping:**
+
+| Provider | Replacement | Rationale |
+|----------|-------------|-----------|
+| `ScaleProvider` | `shared/stores/scale.store.ts` (zustand) | Global singleton, no tree dependency |
+| `DialogProvider` | `shared/stores/dialog.store.ts` (zustand) | Counter for open dialogs, global |
+| `ProjectProvider` | `shared/stores/project.store.ts` (zustand) | Global state, used by 5+ domains |
+| `UserProgressProvider` | `shared/stores/progress.store.ts` (zustand) | Global gamification state |
+| `DocumentCountProvider` | Merge into `document.store.ts` (zustand) | Simple counter, doesn't need its own context |
+| `TitleBarProvider` | `app/stores/titlebar.store.ts` (zustand) | App-shell concern |
+| `HelpProvider` | Keep as context OR move to zustand | Low-traffic, either works |
+| `ToastProvider` | **Keep as context** | Radix-based, needs portal/tree position |
+| `HotkeyProvider` | **Keep as context** | Needs React tree for registration/cleanup lifecycle |
+| `DocumentProvider` | **Keep as context** | Hierarchical -- different per pane |
+| `PaneLayoutProvider` | **Keep as context** | Hierarchical -- tree structure matters |
 
 **Status:** [ ] Not started
 
@@ -225,7 +275,7 @@ These should be a single component or share a `useTooltipPositioning` hook. Bett
 
 **Fix:** Export from `types/navigation.ts`, import everywhere.
 
-**Status:** [x] Completed — `refactor/shared-navigation-types`
+**Status:** [x] Completed — `refactor/shared-navigation-types` (NavigationState + PageName exported; imports updated codebase-wide)
 
 ---
 
@@ -247,7 +297,7 @@ Found in: `PaneContent.tsx:29-34`, `PaneDocumentView.tsx:37-44`, `PaneLayoutView
 
 **Fix:** `useLatestRef(value)` utility hook (one-liner, or use `usePrevious` from @mantine/hooks).
 
-**Status:** [ ] Not started
+**Status:** [x] Completed — `hooks/useLatestRef.ts` added; PaneContent, PaneDocumentView, PaneLayoutView refactored to use it (Rev 7)
 
 ---
 
@@ -262,7 +312,7 @@ All follow: check `e.key === "Escape"` → check `isDialogOpenRef.current` → c
 
 **Fix:** Could be handled by the existing HotkeyContext with proper priority, or extract a `useEscapeHandler` hook.
 
-**Status:** [ ] Not started
+**Status:** [x] Completed — `hooks/useEscapeHandler.ts` added (dialog-aware, uses refs for stable subscription); PaneContent and PaneDocumentView refactored to use it; direct imports in pane components per bundle-barrel-imports (Rev 7)
 
 ---
 
@@ -272,7 +322,7 @@ All follow: check `e.key === "Escape"` → check `isDialogOpenRef.current` → c
 
 **Fix:** Replace with `date-fns` calls. Already a dependency.
 
-**Status:** [x] Completed — `refactor/shared-navigation-types`
+**Status:** [x] Completed — `refactor/date-fns-cleanup` (bundled into `refactor/shared-navigation-types` PR; `dateUtils.ts` replaced with `date-fns` wrappers)
 
 ---
 
@@ -336,7 +386,7 @@ formatDistanceToNow(date, { addSuffix: true })
 format(date, 'MMM d')
 ```
 
-**Status:** [x] Completed — `refactor/shared-navigation-types`
+**Status:** [x] Completed — `refactor/date-fns-cleanup` (bundled into `refactor/shared-navigation-types` PR; custom `dateUtils.ts` replaced with `date-fns` calls)
 
 ---
 
@@ -453,7 +503,7 @@ The command list (`useMemo`) has 16 dependencies and ~500 lines of definitions. 
 
 ### 24. JSON.stringify for Auto-save Change Detection
 
-`useAutoSave.ts` compares values via JSON serialization. For large BlockNote documents, this is expensive per keystroke (debounced but still).
+`useAutoSave.ts` compares values via JSON serialization. For large BlockNote documents, this is expensive per keystroke (debounced but still). See #49 for the detailed performance analysis and fix options.
 
 **Status:** [ ] Not started
 
@@ -872,24 +922,27 @@ src/
 
 **Rule 2: shared/ earns its place.** Code enters `shared/` only when used by 3+ domains. If it's used by 1-2 domains, it lives in those domain folders. This prevents `shared/` from becoming the new junk drawer.
 
-**Rule 3: Public API via index.ts.** Other domains only import from `@/journal` (resolves to `journal/index.ts`), never from `@/journal/hooks/useJournalController`. Internal structure is private.
+**Rule 3: Public API via index.ts.** Other domains only import from `@/journal` (resolves to `journal/index.ts`), never from `@/journal/hooks/useJournalController`. Internal structure is private. This is critical for plugins -- a plugin interacts with a domain's public API, never its internals.
 
 **Rule 4: One-way dependency flow.**
 ```
-app/ → domains → shared/
-         ↓
-       shared/
+plugins → app/ → domains → shared/
+                    ↓
+                  shared/
 ```
 - Domain folders can import from `shared/` but never from each other directly
 - `app/` can import from domains and `shared/`
 - `shared/` imports only from external packages and bindings
 - Cross-domain communication goes through zustand stores in `shared/stores/`
+- Future plugins import from domain public APIs and `shared/` -- never reach into domain internals
 
 **Rule 5: Types live where they're owned.** Pane types live in `src/pane/types.ts`. Document types live in `shared/types/document.ts` (used by document, dashboard, journal, pane, search -- 5 domains). Props interfaces stay in component files.
 
-**Rule 6: One service per domain.** Instead of 1 `DocumentService.ts` and raw Wails calls everywhere else, each backend domain gets a thin wrapper in `shared/services/`.
+**Rule 6: One service per domain.** Instead of 1 `DocumentService.ts` and raw Wails calls everywhere else, each backend domain gets a thin wrapper in `shared/services/`. These service interfaces become the contracts that plugins use to interact with the backend.
 
-**Rule 7: config/ is the single source of truth.** Keyboard shortcuts defined in `config/shortcuts.ts` are consumed by both `hotkeys/` (for registration) and `settings/` (for display). Change once, updates everywhere.
+**Rule 7: config/ is the single source of truth.** Keyboard shortcuts defined in `config/shortcuts.ts` are consumed by both `hotkeys/` (for registration) and `settings/` (for display). Change once, updates everywhere. Future: plugins register their own config under namespaced keys (e.g. `config.plugins['my-plugin'].setting`).
+
+**Rule 8: Registries over hardcoding.** Commands, editor extensions, sidebar sections, and theme tokens must use registry patterns. A new command/extension/theme is added by calling `registry.register()`, not by editing a 600-line file. This is the foundation for the marketplace -- installed packages register their contributions on load.
 
 ---
 
@@ -1152,13 +1205,15 @@ Several components maintain both `useState` AND `useRef` for the same value, syn
 
 **`pages/Search.tsx:44, 193-195`** — `selectedIndex` state synced to `selectedIndexRef` via effect. Used in keyboard event handler to avoid stale closure. Fragile — if sync effect runs after handler, ref is stale.
 
-**`components/pane/PaneDocumentView.tsx:38-44`** — 5 refs (`layoutRef`, `activePaneIdRef`, `suppressEscapeRef`, `isDialogOpenRef`, `hasRestoredScrollRef`) all synced manually. Exactly the pattern `useLatestRef` would fix.
+**`components/pane/PaneDocumentView.tsx:38-44`** — 5 refs (`layoutRef`, `activePaneIdRef`, `suppressEscapeRef`, `isDialogOpenRef`, `hasRestoredScrollRef`) all synced manually. Exactly the pattern `useLatestRef` would fix. → **Fixed (Rev 7):** PaneContent, PaneDocumentView, PaneLayoutView now use `useLatestRef`.
 
 **`components/pane/EmptyPaneDocumentPicker.tsx:49-53`** — 3 props synced to refs for use in callbacks.
 
 **`components/editor/RichEditor.tsx:181-182, 261`** — Content hash tracked via ref for baseline comparison.
 
-**Status:** [ ] Not started
+See also #49 (JSON.stringify in hot path) — the ref-based value tracking in `useAutoSave` is the flip side of this problem.
+
+**Status:** [x] Partial — Pane components refactored to `useLatestRef` (Rev 7). Remaining: useAutoSave, Search, EmptyPaneDocumentPicker, RichEditor can adopt in follow-up.
 
 ---
 
@@ -1232,7 +1287,7 @@ Files with 3+ `console.log/error/warn` statements that should be removed or rout
 
 **Note:** `vite.config.ts:43-45` has `drop_console` and `pure_funcs` commented out. Uncommenting would strip console calls in production builds. But better to use the existing `backendLogger` consistently and enable log-level filtering.
 
-**Status:** [x] Completed — `refactor/centralize-config`
+**Status:** [x] Completed — Log-level filtering added to `backendLogger` (VITE_LOG_LEVEL / PROD defaults to "warn"); application code in main, App, CrashBoundary, contexts, hooks, pages (document, Search, Journal, Projects, QuickCapture, settings) now uses `BackendLogger.error/warn/info`. Remaining: Test.tsx, LoadingSpinner, RichEditor debug logs, clipboard, blocknote, TitleBar, ResizeHandles, useDocumentForm, useDocumentSaver (optional follow-up).
 
 ---
 
@@ -1276,7 +1331,7 @@ const changedFromInitial = JSON.stringify(value) !== JSON.stringify(initialValue
 
 This runs in a `useEffect` that fires on every `value` change. For a BlockNote document with 100+ blocks, this serializes the entire document tree **twice** on every keystroke (after debounce). This is the single biggest performance bottleneck in the editor.
 
-**Fix:** Use a structural hash (e.g., the existing `contentHash.ts` utility) or a shallow equality check on block array length + last-modified block. Or use BlockNote's built-in change detection.
+**Fix:** Use a structural hash (e.g., the existing `contentHash.ts` utility) or a shallow equality check on block array length + last-modified block. Or use BlockNote's built-in change detection. See also #24 (overview) and #42 (dual source of truth via refs in `useAutoSave`).
 
 **Status:** [ ] Not started
 
@@ -1347,16 +1402,19 @@ New object/function references created on every render, breaking memoization:
 
 ### 53. Extensibility Scorecard
 
-| System | Current | Target for Production | Gap |
-|--------|---------|----------------------|-----|
-| Commands | 2/5 — hardcoded in component | 4/5 — registry with declarative registration | Command registry pattern |
-| Themes | 2/5 — CSS-only, no switching | 4/5 — runtime theme swap via settings | Theme provider + config |
-| Keyboard Shortcuts | 3/5 — runtime registration exists, config hardcoded | 5/5 — fully user-customizable | Config + settings UI |
-| Editor Extensions | 2/5 — only 2 extensions, hardcoded | 4/5 — plugin discovery/loading | Extension registry |
-| Sidebar | 3/5 — data-driven UI, hardcoded sections | 4/5 — pluggable sections | Section registry |
-| Services | 4/5 — clean Wails abstraction | 5/5 — interface-based, mockable | Abstract service interface |
-| Configuration | 1/5 — almost nothing centralized | 4/5 — centralized, validated | `config/` infrastructure |
-| i18n | 0/5 — absent | 3/5 — English + structure for others | i18n library + string extraction |
+These are **planned capabilities**, not aspirational. The roadmap requires custom themes, plugins, a marketplace, deep customization, and i18n. Every system below must reach its target score to support that roadmap.
+
+| System | Current | Target | Why this target | Gap |
+|--------|---------|--------|-----------------|-----|
+| Commands | 2/5 — hardcoded in component | 5/5 — registry + plugin-contributed commands | Marketplace plugins must register commands without editing core files | Command registry pattern (#54) |
+| Themes | 2/5 — CSS-only, no switching | 5/5 — runtime swap, user-created, marketplace-distributed | Custom themes is a planned feature | Theme provider + token system + settings UI |
+| Keyboard Shortcuts | 3/5 — runtime registration exists, config hardcoded | 5/5 — fully user-customizable, rebindable in settings | Deep customization requirement | Config (#18) + settings UI + persistence |
+| Editor Extensions | 2/5 — only 2 extensions, hardcoded | 5/5 — plugin discovery, loading, marketplace install | Plugin architecture is a planned feature | Extension registry + loader + sandboxing |
+| Sidebar | 3/5 — data-driven UI, hardcoded sections | 5/5 — pluggable sections, plugin-contributed | Plugins must add sidebar items | Section registry |
+| Services | 4/5 — clean Wails abstraction | 5/5 — interface-based, mockable, plugin-accessible | Plugins need service access | Abstract service interfaces |
+| Configuration | 1/5 — almost nothing centralized | 5/5 — centralized, validated, user-overridable, plugin-scoped | Marketplace and plugins need scoped config | `config/` infrastructure + persistence + plugin namespaces |
+| i18n | 0/5 — absent | 4/5 — full string extraction, community translation support | i18n is a planned feature | i18n library + string extraction + locale loading |
+| Marketplace | 0/5 — absent | 4/5 — browse, install, update, remove themes/plugins | Marketplace is a planned feature | Package format + registry API + install flow + UI |
 
 **Status:** [ ] Not started
 
@@ -1426,92 +1484,146 @@ export const config = {
 } as const;
 ```
 
-All hardcoded values extracted. Config importable from anywhere. Future: load overrides from user settings file.
+All hardcoded values extracted. Config importable from anywhere. Future phases:
+- **Phase A (current):** Centralize all app constants into `config/`.
+- **Phase B:** Load user overrides from a settings file (persisted to disk via Wails).
+- **Phase C:** Plugin-scoped config namespaces -- each installed plugin registers its config schema under `config.plugins['plugin-id']`, with validation and defaults. The settings UI auto-generates controls from the schema.
 
-**Status:** [x] Partial — `refactor/centralize-config` (timeouts + layout extracted; full config system pending)
+**Status:** [x] Partial — `refactor/centralize-config` (timeouts + layout extracted; Phases B-C pending)
 
 ---
 
-## UPDATED PRIORITY TABLE
+## RISKS
+
+Key risks to track during execution:
+
+1. **Restructure import churn.** The folder restructure (Phases 3-5) touches every import path in the codebase. Do each phase in a dedicated branch, run `tsc --noEmit` and the full test suite before merging, and avoid parallel feature work on the same files.
+
+2. **Zustand migration ordering bugs.** Replacing context providers with zustand stores (Item 3) may surface subtle timing issues -- especially around `DialogProvider` (used for hotkey suppression) and `ProjectProvider` (used by 5+ domains). Migrate one provider at a time, starting with the simplest (`ScaleProvider`), and verify hotkey behavior after each swap.
+
+3. **Editor stability during refactor.** `RichEditor.tsx` (458 lines, 9 `useEffect`s) is the most fragile component. BlockNote + TipTap internals are sensitive to lifecycle changes. Wrap the editor in a granular error boundary (Item 45) *before* refactoring editor code, so regressions don't crash the whole app.
+
+4. **Cross-domain import violations during migration.** The halfway state (some domains extracted, some still in `hooks/` / `contexts/`) will temporarily create messy imports. Accept this as transitional debt but enforce the final dependency rules (`app/ → domains → shared/`) via an ESLint `import/no-restricted-paths` rule added in Phase 1.
+
+5. **Test coverage gap.** Most refactored code has no tests (Item 28). Prioritize adding tests for `paneLayoutUtils` (complex tree logic) and `useAutoSave` (state machine) before splitting them, so regressions are caught automatically.
+
+---
+
+## COMPLETED ITEMS
+
+Items already resolved in prior branches. Kept here for reference; removed from the priority table.
+
+| # | Issue | Branch |
+|---|-------|--------|
+| 1 | Fix duplicated `tailwind.css` | `refactor/unify-css-theme` |
+| 2 | Unify color systems | `refactor/unify-css-theme` |
+| 7 | Extract generic `useLocalStorage<T>` | `refactor/generic-localstorage` |
+| 8 | Merge duplicate tooltip components | `refactor/radix-tooltip` |
+| 9 | Create shared `NavigationState` + `PageName` types | `refactor/shared-navigation-types` |
+| 12 | Replace dateUtils with date-fns calls | bundled into `refactor/shared-navigation-types` |
+| 13 | Replace custom tooltips with @radix-ui/react-tooltip | `refactor/radix-tooltip` |
+| 16 | Custom date utils → date-fns | bundled into `refactor/shared-navigation-types` |
+| 22 | Lazy loading | Already implemented |
+| 46 | Debug console + backendLogger + log-level filtering | Rev 7 — completed (see Item 46 above) |
+| 55 | Configuration infrastructure (partial) | `refactor/centralize-config` |
+| 10 | Extract `useLatestRef` utility hook | Rev 7 — `hooks/useLatestRef.ts`; pane components refactored |
+| 11 | Extract `useEscapeHandler` (dialog-aware ESC) | Rev 7 — `hooks/useEscapeHandler.ts`; PaneContent, PaneDocumentView |
+| 42 | Extract `useLatestRef` (dual source of truth in panes) | Rev 7 — same as #10; pane adoption done; other call sites optional follow-up |
+
+---
+
+## PRIORITY TABLE (REMAINING WORK)
 
 ### Tier 1: Foundation (do before any new features)
 
 | # | Issue | Impact | Effort |
 |---|-------|--------|--------|
-| 1 | Fix duplicated `tailwind.css` | Eliminates dead/conflicting CSS | Low |
-| 2 | Unify color systems | One source of truth for tokens | Medium |
-| 7 | Extract generic `useLocalStorage<T>` or adopt zustand+persist | Eliminates 6 copy-pasted hooks | Medium |
-| 9 | Create shared `NavigationState` + `PageName` types | Fixes 20 duplicate type definitions | Low |
-| 8 | Merge duplicate tooltip components | Eliminates ~350 lines of copy-paste | Low |
-| 12 | Replace dateUtils with date-fns calls | Eliminates 52 lines, use existing dep | Low |
-| 46 | Remove/route debug console statements | Clean production output | Low |
-| 55 | Create `config/` with all extracted constants | Single source of truth | Medium |
+| 55 | Finish full `config/` system (shortcuts, remaining timeouts) | Single source of truth | Medium |
+
+### Tier 1.5: Folder Restructure (enables all subsequent work)
+
+| Phase | Scope | Effort | Notes |
+|-------|-------|--------|-------|
+| Phase 1 | Create `shared/` layer (types, hooks, utils) | Medium | No domain moves yet; safe to do first |
+| Phase 2 | Create `config/` (centralize shortcuts, timeouts) | Low | Builds on partial work in `refactor/centralize-config` |
+| Phase 3 | Extract `journal/` domain (already 80% isolated) | Low | Proof-of-concept for the pattern |
+| Phase 4 | Extract remaining domains one at a time | High | 11 domains; do in order listed in Section 35 |
+| Phase 5 | Create `app/` shell (App, Router, Layout, providers) | Medium | Final move; deletes old top-level dirs |
+| Phase 6 | Clean up tsconfig paths | Low | Verify all imports resolve |
+
+See Section 35 for detailed steps per phase. Each phase leaves the app fully working.
 
 ### Tier 2: Architecture (enables extensibility)
 
 | # | Issue | Impact | Effort |
 |---|-------|--------|--------|
-| 3 | Replace provider pyramid with Zustand | Simpler state, no re-render cascades | High |
-| 41 | Memoize remaining context values | Stops unnecessary re-renders | Low |
+| 3 | Replace provider pyramid with Zustand (see provider mapping above) | Simpler state, no re-render cascades | High |
+| 41 | Memoize remaining context values (`useMemo` on provider values) | Stops unnecessary re-renders | Low |
 | 4 | Extract God Component into proper router + controller | Separation of concerns | Medium |
-| 39 | Split `useSettingsController` (27 useState) into 5 hooks | Maintainability | Medium |
+| 39 | Split `useSettingsController` (27 useState) into 5 focused hooks | Maintainability | Medium |
 | 54 | Create command registry for plugin system | Extensible commands | High |
-| 18 | Centralize shortcuts config | Single source of truth, user-customizable | Medium |
-| 6 | Unify state communication (remove window events) | Consistent data flow | Medium |
+| 18 | Centralize shortcuts config (single source for hotkeys + settings display) | Single source of truth, user-customizable | Medium |
+| 6 | Unify state communication (remove window.dispatchEvent) | Consistent data flow | Medium |
 
 ### Tier 3: Resilience (production-grade error handling)
 
 | # | Issue | Impact | Effort |
 |---|-------|--------|--------|
-| 44 | Fix silent error swallowing (7 instances) | User feedback on failures | Low |
-| 45 | Add granular error boundaries | Partial crash recovery | Medium |
-| 47 | Add AbortController to async hooks | Prevent race conditions | Medium |
-| 48 | Add try/catch to Window controls | Prevent unhandled exceptions | Low |
-| 52 | Enable `drop_console`, add hidden sourcemaps | Production build quality | Low |
+| 44 | Fix silent error swallowing (7 instances → toast notifications) | User feedback on failures | Low |
+| 45 | Add granular error boundaries (editor, settings, document list) | Partial crash recovery | Medium |
+| 47 | Add AbortController to async hooks (loader, search, journal) | Prevent race conditions | Medium |
+| 48 | Add try/catch to Window controls (TitleBar.tsx) | Prevent unhandled exceptions | Low |
+| 52 | Enable `drop_console`, add hidden sourcemaps in vite config | Production build quality | Low |
 
 ### Tier 4: Performance (handles scale)
 
 | # | Issue | Impact | Effort |
 |---|-------|--------|--------|
-| 49 | Replace JSON.stringify in useAutoSave hot path | Editor responsiveness | Medium |
-| 50 | Add React.memo to list item components | Re-render reduction | Low |
-| 51 | Hoist inline styles/callbacks out of renders | Memoization effectiveness | Low |
-| 21 | Add React.memo on page components | Performance | Low |
-| 25 | Add list virtualization (@tanstack/react-virtual) | Performance at scale | Medium |
+| 49 | Replace JSON.stringify in useAutoSave hot path (#24, #42) | Editor responsiveness | Medium |
+| 50 | Add React.memo to list item components (6 lists identified) | Re-render reduction | Low |
+| 51 | Hoist inline styles/callbacks out of render paths | Memoization effectiveness | Low |
+| 21 | Add React.memo on page components (5 pages) | Performance | Low |
+| 25 | Add list virtualization (@tanstack/react-virtual) | Performance at 500+ documents | Medium |
 
 ### Tier 5: Quality & DX
 
 | # | Issue | Impact | Effort |
 |---|-------|--------|--------|
-| 13 | Replace custom tooltips with @radix-ui/react-tooltip | Less code to maintain, better a11y | Medium |
-| 19 | Add barrel files to all feature dirs | Consistent imports | Low |
-| 27 | Fix accessibility gaps | Compliance | Medium |
-| 28 | Add tests for critical logic | Safety net | High |
+| 19 | Add barrel files to all feature dirs (4 missing) | Consistent imports | Low |
+| 26 | Fix TypeScript gaps (force-casts, loose `string` typing) | Type safety | Low |
+| 27 | Fix accessibility gaps (aria-labels, skip-to-content, focus indicators) | Compliance | Medium |
+| 28 | Add tests for critical logic (pane reducer, auto-save, hotkey matcher) | Safety net | High |
+| 29 | Convert renderless components to hooks | Cleaner React tree | Low |
 | 40 | Split effect waterfalls into focused effects | Debuggability | Medium |
-| 42 | Extract `useLatestRef` to fix dual source of truth | Correctness | Low |
 
-### Tier 6: Aspirational (mature product)
+### Tier 6: Extensibility Platform (planned -- required for roadmap)
 
-| # | Issue | Impact | Effort |
-|---|-------|--------|--------|
-| 14 | Evaluate react-hotkeys-hook vs custom | Less code if feasible | Medium |
-| 53 | Theme switching system | User customization | High |
-| 53 | Plugin architecture | Third-party extensions | Very High |
-| 53 | i18n foundation | International readiness | High |
+These are not aspirational. The roadmap requires custom themes, plugins, a marketplace, and i18n. Tiers 1-5 build the foundation; Tier 6 delivers the extensibility contracts those features depend on.
+
+| # | Issue | Impact | Effort | Enables |
+|---|-------|--------|--------|---------|
+| 53a | Theme system -- runtime swap, user-created themes, token architecture | Custom themes, marketplace theme distribution | High | Themes, Marketplace |
+| 53b | Plugin architecture -- extension registry, loader, lifecycle, sandboxing | Third-party editor blocks, sidebar sections, commands | Very High | Plugins, Marketplace |
+| 53c | Marketplace UI + backend -- browse, install, update, remove themes/plugins | Community ecosystem | Very High | Marketplace |
+| 53d | i18n foundation -- string extraction, locale loading, community translations | International users | High | i18n |
+| 14 | Evaluate react-hotkeys-hook vs custom 365-line context | Less code, easier plugin keybinding | Medium | Plugin shortcuts |
+| 15 | Evaluate zustand+persist to replace remaining localStorage hooks | Less boilerplate, plugin-scoped state | Medium | Plugin state |
+| 30 | Desktop hardening (glassmorphism fallback, context menus) | Cross-platform polish | Medium | — |
+| 18 | User-rebindable keyboard shortcuts (settings UI + persistence) | Deep customization | Medium | Customization |
 
 ---
 
-## UPDATED NPM PACKAGES TO ADOPT
+## NPM PACKAGES TO ADOPT
 
 | Need | Current | Replacement | Size | Priority |
 |------|---------|-------------|------|----------|
-| State management | 11 React contexts | `zustand` | ~1KB | High |
-| localStorage persistence | 6 custom hooks | `zustand/middleware` persist | included | High |
-| Tooltips | 2 custom components (~700 lines) | `@radix-ui/react-tooltip` | ~5KB | Medium |
-| Date formatting | Custom 52-line util | `date-fns` (already installed) | 0KB | High |
-| List virtualization | None | `@tanstack/react-virtual` | ~3KB | Medium |
-| Hotkeys (evaluate) | Custom 365-line context | `react-hotkeys-hook` | ~3KB | Low |
+| State management | 11 React contexts | `zustand` | ~1KB | High (Tier 2) |
+| localStorage persistence | 6 custom hooks | `zustand/middleware` persist | included | High (Tier 6, evaluate) |
+| List virtualization | None | `@tanstack/react-virtual` | ~3KB | Medium (Tier 4) |
+| Hotkeys (evaluate) | Custom 365-line context | `react-hotkeys-hook` | ~3KB | Low (Tier 6) |
 | Theme switching (future) | None | CSS variable system + zustand | ~0KB | Future |
 | i18n (future) | None | `react-i18next` | ~10KB | Future |
+
+**Already adopted:** `@radix-ui/react-tooltip` (Tier 1, done), `date-fns` (already installed, now used).
 
 **Rule: if it can be done with an npm package, do it with an npm package.**

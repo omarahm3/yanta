@@ -1,6 +1,7 @@
 import { Events } from "@wailsio/runtime";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getDocument } from "../services/DocumentService";
+import { BackendLogger } from "../utils/backendLogger";
 import { useLocalStorage } from "./useLocalStorage";
 
 const STORAGE_KEY = "yanta_recent_documents";
@@ -42,7 +43,7 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 		{
 			validate: validateRecentDocuments,
 			onError: (operation, err) => {
-				console.error(`[useRecentDocuments] Failed to ${operation}:`, err);
+				BackendLogger.error(`[useRecentDocuments] Failed to ${operation}:`, err);
 			},
 		},
 	);
@@ -60,7 +61,7 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 					if (fetched.deletedAt) return null;
 					return { ...doc, title: fetched.title || doc.title };
 				} catch (err) {
-					console.error("[useRecentDocuments] Error fetching document:", err);
+					BackendLogger.error("[useRecentDocuments] Error fetching document:", err);
 					return null;
 				}
 			}),
@@ -128,7 +129,7 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 		try {
 			localStorage.removeItem(STORAGE_KEY);
 		} catch (err) {
-			console.error("[useRecentDocuments] Failed to clear localStorage:", err);
+			BackendLogger.error("[useRecentDocuments] Failed to clear localStorage:", err);
 		}
 		setStoredDocuments([]);
 		setRecentDocuments([]);

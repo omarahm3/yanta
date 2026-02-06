@@ -22,6 +22,7 @@ import { DocumentServiceWrapper } from "../../services/DocumentService";
 import type { HotkeyConfig } from "../../types/hotkeys";
 import type { NavigationState } from "../../types";
 import { createEmptyDocument } from "../../utils/documentBlockUtils";
+import { BackendLogger } from "../../utils/backendLogger";
 
 export interface DocumentControllerOptions {
 	onNavigate?: (page: string, state?: NavigationState) => void;
@@ -163,7 +164,7 @@ export function useDocumentController({
 				currentProjectRef.current
 			) {
 				autoSaveRef.current.saveNow().catch((err) => {
-					console.error("[Document] Failed to save on unmount:", err);
+					BackendLogger.error("[Document] Failed to save on unmount:", err);
 				});
 			}
 		};
@@ -177,7 +178,7 @@ export function useDocumentController({
 				return;
 			}
 			autoSaveRef.current.saveNow().catch((err) => {
-				console.error("[Document] Failed to save from command palette:", err);
+				BackendLogger.error("[Document] Failed to save from command palette:", err);
 				error("Failed to save document");
 			});
 		};
@@ -299,7 +300,7 @@ export function useDocumentController({
 				const currentTags = await GetDocumentTags(documentPath);
 				setTags(currentTags);
 			} catch (err) {
-				console.error("Failed to refresh tags:", err);
+				BackendLogger.error("Failed to refresh tags:", err);
 			}
 		};
 
