@@ -1001,24 +1001,24 @@ plugins → app/ → domains → shared/
 
 This restructure does NOT need to happen in one big bang. Do it incrementally, one phase per session. Each phase leaves the app fully working.
 
-**Phase 1: Create shared/ layer (no domain moves yet)**
-1. Create `shared/types/navigation.ts` with `NavigationState` and `PageName`
-2. Create `shared/hooks/useLocalStorage.ts` (generic hook)
-3. Create `shared/hooks/useLatestRef.ts`
-4. Create `shared/utils/` by moving pure utils from `utils/`
-5. Update imports codebase-wide
-6. Delete emptied files from old locations
+**Phase 1: Create shared/ layer (no domain moves yet)** — Implemented with compatibility layer
+1. ~~Create `shared/types/navigation.ts` with `NavigationState` and `PageName`~~ — types/index re-exports from shared
+2. ~~Create `shared/hooks/useLocalStorage.ts` (generic hook)~~ — hooks re-export; direct importers updated
+3. ~~Create `shared/hooks/useLatestRef.ts`~~ — idem
+4. ~~Create `shared/utils/` by moving pure utils from `utils/`~~ — cn, date, color, clipboard, accessibility in shared/utils
+5. **Compatibility layer:** Many call sites still consume legacy paths via re-export shims (`lib/utils.ts`, `utils/dateUtils.ts`, `utils/colorUtils.ts`, `utils/clipboard.ts`, `utils/accessibility.ts`). This is intentional for incremental migration; full import migration (call sites importing from `shared/` directly) is not done yet.
+6. ~~Delete emptied files from old locations~~ — types/navigation.ts, hooks/useLocalStorage.ts, hooks/useLatestRef.ts removed; utils/* and lib/utils are thin re-exports (shims). Remove shims once call sites are migrated to shared/.
 
-**Phase 2: Create config/ (centralize scattered constants)**
+**Phase 2: Create config/ (centralize scattered constants)** — Done
 1. ~~Create `config/shortcuts.ts` -- extract all hardcoded keybindings~~ — Done Rev 8
-2. Create `config/timeouts.ts` -- extract all hardcoded delays (already exists; verify no magic numbers remain)
-3. Update consumers to import from config (shortcuts: done Rev 8 — App, Layout, PaneContent, useDocumentController, useDashboardController, useJournalController, Projects, QuickCapture, usePaneHotkeys, Settings)
+2. ~~Create `config/timeouts.ts` -- extract all hardcoded delays~~ — timeouts.ts extended with searchDebounceMs, documentPickerFilterDebounceMs, focusRestoreMs, gitErrorDismissMs, helpAnnounceDelayMs, milestoneAnimationMs; consumers updated (Search, EmptyPaneDocumentPicker, GlobalCommandPalette, HelpModal, WelcomeOverlay, MoveDocumentDialog, NewProjectDialog, MilestoneHint; Tooltip, useAutoSave, usePanePersistence, useOnboarding, PaneDocumentView, useDocumentPersistence already used TIMEOUTS)
+3. ~~Update consumers to import from config~~ — shortcuts and timeouts consumers use config
 
-**Phase 3: Extract first domain -- journal (already 80% isolated)**
-1. Move `pages/Journal/` to `journal/`
-2. Move journal-related hooks from `hooks/` into `journal/hooks/`
-3. Create `journal/index.ts` barrel
-4. Update imports, verify build passes
+**Phase 3: Extract first domain -- journal (already 80% isolated)** — Done
+1. ~~Move `pages/Journal/` to `journal/`~~ — Journal, JournalEntry, DatePicker, useJournal, useJournalController and __tests__ moved to `src/journal/`
+2. ~~Move journal-related hooks from `hooks/` into `journal/hooks/`~~ — Skipped; hooks kept in `journal/` (useJournal, useJournalController)
+3. ~~Create `journal/index.ts` barrel~~ — Done
+4. ~~Update imports, verify build passes~~ — pages/index.ts lazy-imports from `../journal`; Router unchanged; build passes
 
 **Phase 4: Extract remaining domains one at a time**
 - `quick-capture/` (already isolated, just move)
