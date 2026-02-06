@@ -1,7 +1,9 @@
 import type React from "react";
 import { useCallback, useEffect, useRef } from "react";
-import { usePaneLayout, useSidebarSections } from "../../hooks";
+import { useLatestRef } from "../../hooks/useLatestRef";
 import { usePaneHotkeys } from "../../hooks/usePaneHotkeys";
+import { usePaneLayout } from "../../hooks/usePaneLayout";
+import { useSidebarSections } from "../../hooks/useSidebarSections";
 import type { NavigationState } from "../../types";
 import { Layout } from "../Layout";
 import { PaneContainer } from "./PaneContainer";
@@ -22,8 +24,7 @@ export const PaneLayoutView: React.FC<PaneLayoutViewProps> = ({
 
 	usePaneHotkeys();
 
-	const activePaneIdRef = useRef(activePaneId);
-	activePaneIdRef.current = activePaneId;
+	const activePaneIdRef = useLatestRef(activePaneId);
 
 	const handlePaneAwareNavigate = useCallback(
 		(page: string, state?: NavigationState) => {
