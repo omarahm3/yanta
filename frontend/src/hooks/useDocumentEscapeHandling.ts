@@ -13,12 +13,16 @@ interface UseDocumentEscapeHandlingReturn {
 	handleUnfocus: (e: KeyboardEvent) => void;
 }
 
-/** Blur the BlockNote editor if it's focused. Returns true if blur happened. */
 function blurEditor(editor: BlockNoteEditor): boolean {
-	if (!editor.isFocused()) return false;
-	const domEditor = editor.domElement;
-	if (domEditor) domEditor.blur();
-	return true;
+	try {
+		if (!editor.isFocused()) return false;
+		const domEditor = editor.domElement;
+		if (domEditor) domEditor.blur();
+		return true;
+	} catch (err) {
+		console.warn("[useDocumentEscapeHandling] blurEditor failed:", err);
+		return false;
+	}
 }
 
 export const useDocumentEscapeHandling = ({

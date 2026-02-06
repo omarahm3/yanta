@@ -249,6 +249,10 @@ export const registerClipboardImagePlugin = (
 
 	return () => {
 		console.log("[clipboard] unregistering image paste plugin");
-		editor._tiptapEditor.unregisterPlugin(pluginKey);
+		try {
+			editor._tiptapEditor.unregisterPlugin(pluginKey);
+		} catch (err) {
+			console.warn("[clipboard] unregisterPlugin failed:", err);
+		}
 	};
 };
