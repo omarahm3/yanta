@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { TIMEOUTS } from "@/config";
 import { useTooltipUsage } from "./useTooltipUsage";
 
 export type TooltipPlacement = "top" | "bottom" | "left" | "right";
@@ -52,9 +53,6 @@ export interface UseShortcutTooltipReturn {
 	/** Manually hide the tooltip */
 	hide: () => void;
 }
-
-const HOVER_DELAY = 500;
-const FOCUS_DELAY = 800;
 
 /**
  * A hook that provides tooltip behavior with usage tracking.
@@ -141,7 +139,7 @@ export function useShortcutTooltip(
 	}, [clearShowTimeout]);
 
 	const handleMouseEnter = useCallback(() => {
-		scheduleShow(HOVER_DELAY);
+		scheduleShow(TIMEOUTS.tooltipHoverDelay);
 	}, [scheduleShow]);
 
 	const handleMouseLeave = useCallback(() => {
@@ -149,7 +147,7 @@ export function useShortcutTooltip(
 	}, [hide]);
 
 	const handleFocus = useCallback(() => {
-		scheduleShow(FOCUS_DELAY);
+		scheduleShow(TIMEOUTS.tooltipFocusDelay);
 	}, [scheduleShow]);
 
 	const handleBlur = useCallback(() => {
