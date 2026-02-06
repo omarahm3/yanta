@@ -126,6 +126,7 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 			{documentPath ? (
 				<>
 					<PaneDocumentView
+						key={documentPath}
 						paneId={paneId}
 						documentPath={documentPath}
 						onNavigate={handlePaneNavigate}

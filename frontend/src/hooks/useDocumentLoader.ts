@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DocumentServiceWrapper } from "../services/DocumentService";
 import type { Document } from "../types/Document";
 
@@ -6,6 +6,14 @@ export const useDocumentLoader = (documentPath?: string) => {
 	const [data, setData] = useState<Document | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+
+	const prevPathRef = useRef(documentPath);
+	if (prevPathRef.current !== documentPath) {
+		prevPathRef.current = documentPath;
+		setData(null);
+		setIsLoading(!!documentPath);
+		setError(null);
+	}
 
 	useEffect(() => {
 		if (!documentPath) {
