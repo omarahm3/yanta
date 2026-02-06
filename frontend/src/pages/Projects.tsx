@@ -12,6 +12,7 @@ import { Layout } from "../components/Layout";
 import { Table, type TableColumn, type TableRow } from "../components/ui";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { NewProjectDialog } from "../components/ui/NewProjectDialog";
+import { PROJECTS_SHORTCUTS } from "../config";
 import { useProjectContext } from "../contexts";
 import { useHotkeys } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
@@ -362,43 +363,21 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 	const projectHotkeys = useMemo(
 		() => [
 			{
-				key: "mod+N",
+				...PROJECTS_SHORTCUTS.newProject,
 				handler: () => setIsNewProjectDialogOpen(true),
 				allowInInput: false,
-				description: "Create new project",
 			},
+			{ ...PROJECTS_SHORTCUTS.selectNext, handler: selectNext, allowInInput: false },
+			{ ...PROJECTS_SHORTCUTS.selectPrev, handler: selectPrevious, allowInInput: false },
+			{ ...PROJECTS_SHORTCUTS.arrowDown, handler: selectNext, allowInInput: false },
+			{ ...PROJECTS_SHORTCUTS.arrowUp, handler: selectPrevious, allowInInput: false },
 			{
-				key: "j",
-				handler: selectNext,
-				allowInInput: false,
-				description: "Select next project",
-			},
-			{
-				key: "k",
-				handler: selectPrevious,
-				allowInInput: false,
-				description: "Select previous project",
-			},
-			{
-				key: "ArrowDown",
-				handler: selectNext,
-				allowInInput: false,
-				description: "Select next project",
-			},
-			{
-				key: "ArrowUp",
-				handler: selectPrevious,
-				allowInInput: false,
-				description: "Select previous project",
-			},
-			{
-				key: "Enter",
+				...PROJECTS_SHORTCUTS.switchToSelected,
 				handler: selectCurrentProject,
 				allowInInput: false,
-				description: "Switch to selected project",
 			},
 			{
-				key: "mod+A",
+				...PROJECTS_SHORTCUTS.archive,
 				handler: () => {
 					const selected = projectsRef.current.find((p) => p.id === selectedProjectIdRef.current);
 					if (selected) {
@@ -406,10 +385,9 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 					}
 				},
 				allowInInput: false,
-				description: "Archive selected project",
 			},
 			{
-				key: "mod+U",
+				...PROJECTS_SHORTCUTS.restore,
 				handler: () => {
 					const selected = archivedProjectsRef.current.find(
 						(p) => p.id === selectedProjectIdRef.current,
@@ -419,10 +397,9 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 					}
 				},
 				allowInInput: false,
-				description: "Restore archived project",
 			},
 			{
-				key: "mod+D",
+				...PROJECTS_SHORTCUTS.delete,
 				handler: () => {
 					const selected = projectsRef.current.find((p) => p.id === selectedProjectIdRef.current);
 					if (selected) {
@@ -430,10 +407,9 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 					}
 				},
 				allowInInput: false,
-				description: "Delete selected project",
 			},
 			{
-				key: "mod+shift+D",
+				...PROJECTS_SHORTCUTS.permanentDelete,
 				handler: () => {
 					const allProjects = [...projectsRef.current, ...archivedProjectsRef.current];
 					const selected = allProjects.find((p) => p.id === selectedProjectIdRef.current);
@@ -442,7 +418,6 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 					}
 				},
 				allowInInput: false,
-				description: "Permanently delete selected project",
 			},
 		],
 		[selectNext, selectPrevious, selectCurrentProject, executeProjectCommand],

@@ -1,5 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
+import { PANE_SHORTCUTS } from "../../config";
 import { useHotkey } from "../../hooks/useHotkey";
 import { useEscapeHandler } from "../../hooks/useEscapeHandler";
 import { useLatestRef } from "../../hooks/useLatestRef";
@@ -46,10 +47,9 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 	}, [documentPath]);
 
 	useHotkey({
-		key: "alt+O",
+		...PANE_SHORTCUTS.documentPicker,
 		allowInInput: true,
 		capture: true,
-		description: "Toggle document picker overlay",
 		handler: (e: KeyboardEvent) => {
 			if (activePaneIdRef.current !== paneId) return false;
 			e.preventDefault();

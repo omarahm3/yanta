@@ -1,5 +1,6 @@
 import type React from "react";
 import { type ReactNode, useEffect, useMemo } from "react";
+import { SIDEBAR_SHORTCUTS } from "../config";
 import { useProjectContext, useTitleBarContext } from "../contexts";
 import { useFooterHints, useFooterHintsSetting, useHotkeys, useSidebarSetting } from "../hooks";
 import { FooterHintBar, HeaderBar, type SidebarSection, Sidebar as UISidebar } from "./ui";
@@ -85,12 +86,11 @@ export const Layout: React.FC<LayoutProps> = ({
 	const sidebarToggleHotkeys = useMemo(
 		() => [
 			{
-				key: "ctrl+b",
+				...SIDEBAR_SHORTCUTS.toggle,
 				handler: () => {
 					toggleSidebar();
 				},
 				allowInInput: false,
-				description: "Toggle sidebar",
 				category: "navigation",
 			},
 		],

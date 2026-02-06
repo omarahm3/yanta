@@ -1,14 +1,15 @@
 import { useMemo } from "react";
+import { PANE_SHORTCUTS } from "../config";
 import type { HotkeyConfig } from "../types/hotkeys";
 import { countLeaves, getPaneInDirection, type PaneDirection } from "../utils/paneLayoutUtils";
 import { useHotkeys } from "./useHotkey";
 import { usePaneLayout } from "./usePaneLayout";
 
 const directionKeys: { key: string; direction: PaneDirection }[] = [
-	{ key: "alt+h", direction: "left" },
-	{ key: "alt+j", direction: "down" },
-	{ key: "alt+k", direction: "up" },
-	{ key: "alt+l", direction: "right" },
+	{ key: PANE_SHORTCUTS.focusLeft.key, direction: "left" },
+	{ key: PANE_SHORTCUTS.focusDown.key, direction: "down" },
+	{ key: PANE_SHORTCUTS.focusUp.key, direction: "up" },
+	{ key: PANE_SHORTCUTS.focusRight.key, direction: "right" },
 ];
 
 /**
@@ -27,29 +28,27 @@ export const usePaneHotkeys = (): void => {
 	const hotkeys: HotkeyConfig[] = useMemo(
 		() => [
 			{
-				key: "mod+\\",
+				...PANE_SHORTCUTS.splitRight,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					splitPane(activePaneId, "horizontal");
 				},
 				allowInInput: true,
 				capture: true,
-				description: "Split pane right",
 				category: "Panes",
 			},
 			{
-				key: "mod+shift+\\",
+				...PANE_SHORTCUTS.splitDown,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					splitPane(activePaneId, "vertical");
 				},
 				allowInInput: true,
 				capture: true,
-				description: "Split pane down",
 				category: "Panes",
 			},
 			{
-				key: "alt+x",
+				...PANE_SHORTCUTS.close,
 				handler: (event: KeyboardEvent) => {
 					const leafCount = countLeaves(layout.root);
 					if (leafCount <= 1) {
@@ -60,7 +59,6 @@ export const usePaneHotkeys = (): void => {
 				},
 				allowInInput: true,
 				capture: true,
-				description: "Close active pane",
 				category: "Panes",
 			},
 			...directionKeys.map(({ key, direction }) => ({

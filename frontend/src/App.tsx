@@ -19,6 +19,7 @@ import {
 	useProjectContext,
 	useUserProgressContext,
 } from "./contexts";
+import { GLOBAL_SHORTCUTS } from "./config";
 import { useHotkey, usePaneLayout } from "./hooks";
 import { useHelp } from "./hooks/useHelp";
 import type { NavigationState, PageName } from "./types";
@@ -31,10 +32,9 @@ const HelpHotkey = () => {
 	const { openHelp } = useHelp();
 
 	useHotkey({
-		key: "shift+/",
+		...GLOBAL_SHORTCUTS.help,
 		handler: openHelp,
 		allowInInput: false,
-		description: "Toggle help",
 	});
 
 	return null;
@@ -42,25 +42,23 @@ const HelpHotkey = () => {
 
 const QuitHotkeys = () => {
 	useHotkey({
-		key: "ctrl+q",
+		...GLOBAL_SHORTCUTS.quit,
 		capture: true,
 		handler: (e) => {
 			e.preventDefault();
 			BackgroundQuit();
 		},
 		allowInInput: true,
-		description: "Quit (background if enabled)",
 	});
 
 	useHotkey({
-		key: "ctrl+shift+q",
+		...GLOBAL_SHORTCUTS.forceQuit,
 		capture: true,
 		handler: (e) => {
 			e.preventDefault();
 			ForceQuit();
 		},
 		allowInInput: true,
-		description: "Force quit application",
 	});
 
 	return null;
@@ -121,27 +119,25 @@ const GlobalCommandHotkey = () => {
 	}, []);
 
 	useHotkey({
-		key: "mod+K",
+		...GLOBAL_SHORTCUTS.commandPalette,
 		handler: () => setIsOpen(true),
 		allowInInput: false,
-		description: "Open command palette",
 	});
 
 	useHotkey({
-		key: "mod+T",
+		...GLOBAL_SHORTCUTS.today,
 		handler: (e) => {
 			e.preventDefault();
 			const today = new Date().toISOString().split("T")[0];
 			handleNavigate("journal", { date: today });
 		},
 		allowInInput: false,
-		description: "Jump to today's journal",
 	});
 
 	const { switchToLastProject, previousProject } = useProjectContext();
 
 	useHotkey({
-		key: "ctrl+Tab",
+		...GLOBAL_SHORTCUTS.switchProject,
 		handler: (e) => {
 			e.preventDefault();
 			if (previousProject) {
@@ -149,7 +145,6 @@ const GlobalCommandHotkey = () => {
 			}
 		},
 		allowInInput: true,
-		description: "Switch to last project",
 	});
 
 	return (

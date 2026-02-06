@@ -2,6 +2,7 @@ import { Window } from "@wailsio/runtime";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ListActive } from "../../../bindings/yanta/internal/project/service";
+import { QUICK_CAPTURE_SHORTCUTS } from "../../config";
 import { useUserProgressContext } from "../../contexts/UserProgressContext";
 import { useHotkeys } from "../../hooks";
 import type { HotkeyConfig } from "../../types/hotkeys";
@@ -69,27 +70,25 @@ export const QuickCapture: React.FC = () => {
 	const hotkeys: HotkeyConfig[] = useMemo(
 		() => [
 			{
-				key: "ctrl+enter",
+				...QUICK_CAPTURE_SHORTCUTS.save,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					void handleSave(false);
 				},
 				allowInInput: true,
 				capture: true,
-				description: "Save and close",
 			},
 			{
-				key: "shift+enter",
+				...QUICK_CAPTURE_SHORTCUTS.saveAndStay,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					void handleSave(true);
 				},
 				allowInInput: true,
 				capture: true,
-				description: "Save and keep window open",
 			},
 			{
-				key: "Escape",
+				...QUICK_CAPTURE_SHORTCUTS.cancel,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					if (!content.trim()) {
@@ -103,7 +102,6 @@ export const QuickCapture: React.FC = () => {
 				},
 				allowInInput: true,
 				capture: true,
-				description: "Close or discard",
 			},
 		],
 		[content, showEscapeHint, handleSave, handleClose, clear],

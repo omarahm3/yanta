@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ListDates } from "../../../bindings/yanta/internal/journal/wailsservice";
+import { JOURNAL_SHORTCUTS } from "../../config";
 import { useProjectContext } from "../../contexts";
 import { useHelp } from "../../hooks";
 import { useSidebarSections } from "../../hooks/useSidebarSections";
@@ -295,114 +296,103 @@ export function useJournalController({
 	const hotkeys: HotkeyConfig[] = useMemo(
 		() => [
 			{
-				key: "ctrl+n",
+				...JOURNAL_SHORTCUTS.nextDay,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					goToNextDay();
 				},
 				allowInInput: false,
-				description: "Next day",
 			},
 			{
-				key: "ctrl+p",
+				...JOURNAL_SHORTCUTS.prevDay,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					goToPrevDay();
 				},
 				allowInInput: false,
-				description: "Previous day",
 			},
 			{
-				key: "ArrowRight",
+				...JOURNAL_SHORTCUTS.arrowNextDay,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					goToNextDay();
 				},
 				allowInInput: false,
-				description: "Next day",
 			},
 			{
-				key: "ArrowLeft",
+				...JOURNAL_SHORTCUTS.arrowPrevDay,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					goToPrevDay();
 				},
 				allowInInput: false,
-				description: "Previous day",
 			},
 			{
-				key: "j",
+				...JOURNAL_SHORTCUTS.highlightNext,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					highlightNext();
 				},
 				allowInInput: false,
-				description: "Highlight next entry",
 			},
 			{
-				key: "k",
+				...JOURNAL_SHORTCUTS.highlightPrev,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					highlightPrevious();
 				},
 				allowInInput: false,
-				description: "Highlight previous entry",
 			},
 			{
-				key: "ArrowDown",
+				...JOURNAL_SHORTCUTS.navigateDown,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					highlightNext();
 				},
 				allowInInput: false,
-				description: "Navigate down",
 			},
 			{
-				key: "ArrowUp",
+				...JOURNAL_SHORTCUTS.navigateUp,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					highlightPrevious();
 				},
 				allowInInput: false,
-				description: "Navigate up",
 			},
 			{
-				key: "Space",
+				...JOURNAL_SHORTCUTS.toggleSelection,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					toggleSelection();
 				},
 				allowInInput: false,
-				description: "Select/deselect highlighted entry",
 			},
 			{
-				key: "mod+D",
+				...JOURNAL_SHORTCUTS.delete,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					handleDeleteSelected();
 				},
 				allowInInput: false,
-				description: "Delete selected entries",
 			},
 			{
-				key: "mod+shift+p",
+				...JOURNAL_SHORTCUTS.promote,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					void handlePromoteSelected();
 				},
 				allowInInput: false,
-				description: "Promote selected entries to document",
 			},
 		],
 		[

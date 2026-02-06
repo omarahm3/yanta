@@ -7,6 +7,7 @@ import { ExportRequest } from "../../../bindings/yanta/internal/export/models";
 import { ExportToPDF } from "../../../bindings/yanta/internal/export/service";
 import { GetDocumentTags } from "../../../bindings/yanta/internal/tag/service";
 import type { DocumentContentProps } from "../../components/document/DocumentContent";
+import { DOCUMENT_SHORTCUTS } from "../../config";
 import { useProjectContext, useUserProgressContext } from "../../contexts";
 import { useDocumentEditor } from "../../hooks/useDocumentEditor";
 import { useDocumentEscapeHandling } from "../../hooks/useDocumentEscapeHandling";
@@ -343,7 +344,7 @@ export function useDocumentController({
 	const hotkeys: HotkeyConfig[] = useMemo(
 		() => [
 			{
-				key: "mod+s",
+				...DOCUMENT_SHORTCUTS.save,
 				handler: (event: KeyboardEvent) => {
 					if (!isActivePaneRef.current) return false;
 					event.preventDefault();
@@ -355,11 +356,10 @@ export function useDocumentController({
 					void saveNow();
 				},
 				allowInInput: true,
-				description: "Save document",
 				capture: true,
 			},
 			{
-				key: "mod+e",
+				...DOCUMENT_SHORTCUTS.exportMd,
 				handler: (event: KeyboardEvent) => {
 					if (!isActivePaneRef.current) return false;
 					event.preventDefault();
@@ -371,11 +371,10 @@ export function useDocumentController({
 					void handleExportToMarkdown();
 				},
 				allowInInput: true,
-				description: "Export to Markdown",
 				capture: true,
 			},
 			{
-				key: "mod+shift+e",
+				...DOCUMENT_SHORTCUTS.exportPdf,
 				handler: (event: KeyboardEvent) => {
 					if (!isActivePaneRef.current) return false;
 					event.preventDefault();
@@ -387,11 +386,10 @@ export function useDocumentController({
 					void handleExportToPDF();
 				},
 				allowInInput: true,
-				description: "Export to PDF",
 				capture: true,
 			},
 			{
-				key: "Escape",
+				...DOCUMENT_SHORTCUTS.back,
 				handler: (event: KeyboardEvent) => {
 					if (!isActivePaneRef.current) return false;
 					if (event.defaultPrevented) return false;
@@ -399,25 +397,22 @@ export function useDocumentController({
 				},
 				allowInInput: true,
 				capture: true,
-				description: "Unfocus editor, or go back to dashboard",
 			},
 			{
-				key: "mod+C",
+				...DOCUMENT_SHORTCUTS.unfocus,
 				handler: (event: KeyboardEvent) => {
 					if (!isActivePaneRef.current) return false;
 					handleUnfocus(event);
 				},
 				allowInInput: true,
-				description: "Unfocus editor",
 			},
 			{
-				key: "Enter",
+				...DOCUMENT_SHORTCUTS.focusEditor,
 				handler: () => {
 					if (!isActivePaneRef.current) return false;
 					focusEditor();
 				},
 				allowInInput: false,
-				description: "Focus editor when unfocused",
 			},
 		],
 		[

@@ -10,6 +10,7 @@ import { ExportRequest } from "../../../bindings/yanta/internal/export";
 import { ExportToPDF } from "../../../bindings/yanta/internal/export/service";
 import { OpenDirectoryDialog } from "../../../bindings/yanta/internal/system/service";
 import { DocumentCommand } from "../../constants";
+import { DASHBOARD_SHORTCUTS } from "../../config";
 import { useDocumentContext, useProjectContext } from "../../contexts";
 import { useHelp } from "../../hooks";
 import { useNotification } from "../../hooks/useNotification";
@@ -590,147 +591,128 @@ export function useDashboardController({
 
 	const hotkeys: HotkeyConfig[] = useMemo(
 		() => [
+			{ ...DASHBOARD_SHORTCUTS.newDocument, handler: handleNewDocument, allowInInput: false },
 			{
-				key: "mod+N",
-				handler: handleNewDocument,
-				allowInInput: false,
-				description: "Create new document",
-			},
-			{
-				key: "mod+shift+A",
+				...DASHBOARD_SHORTCUTS.toggleArchived,
 				handler: handleToggleArchived,
 				allowInInput: false,
-				description: "Toggle archived documents view",
 			},
 			{
-				key: "mod+D",
+				...DASHBOARD_SHORTCUTS.softDelete,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					handleDeleteSelectedDocuments(false);
 				},
 				allowInInput: false,
-				description: "Soft delete selected documents",
 			},
 			{
-				key: "mod+shift+D",
+				...DASHBOARD_SHORTCUTS.permanentDelete,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					handleDeleteSelectedDocuments(true);
 				},
 				allowInInput: false,
-				description: "Permanently delete selected documents",
 			},
 			{
-				key: "Space",
+				...DASHBOARD_SHORTCUTS.toggleSelection,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					handleToggleSelection();
 				},
 				allowInInput: false,
-				description: "Select/deselect highlighted document",
 			},
 			{
-				key: "Enter",
+				...DASHBOARD_SHORTCUTS.openHighlighted,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					handleOpenHighlightedDocument();
 				},
 				allowInInput: false,
-				description: "Open highlighted document",
 			},
 			{
-				key: "j",
+				...DASHBOARD_SHORTCUTS.highlightNext,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					highlightNext();
 				},
 				allowInInput: false,
-				description: "Highlight next document",
 			},
 			{
-				key: "k",
+				...DASHBOARD_SHORTCUTS.highlightPrev,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					highlightPrevious();
 				},
 				allowInInput: false,
-				description: "Highlight previous document",
 			},
 			{
-				key: "ArrowDown",
+				...DASHBOARD_SHORTCUTS.navigateDown,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					highlightNext();
 				},
 				allowInInput: false,
-				description: "Navigate down",
 			},
 			{
-				key: "ArrowUp",
+				...DASHBOARD_SHORTCUTS.navigateUp,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					highlightPrevious();
 				},
 				allowInInput: false,
-				description: "Navigate up",
 			},
 			{
-				key: "mod+M",
+				...DASHBOARD_SHORTCUTS.move,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					handleMoveSelectedDocuments();
 				},
 				allowInInput: false,
-				description: "Move selected documents to another project",
 			},
 			{
-				key: "mod+A",
+				...DASHBOARD_SHORTCUTS.archive,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					void handleArchiveSelectedDocuments();
 				},
 				allowInInput: false,
-				description: "Archive selected documents",
 			},
 			{
-				key: "mod+U",
+				...DASHBOARD_SHORTCUTS.restore,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					void handleRestoreSelectedDocuments();
 				},
 				allowInInput: false,
-				description: "Restore archived documents",
 			},
 			{
-				key: "mod+E",
+				...DASHBOARD_SHORTCUTS.exportMd,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					void handleExportSelectedMarkdown();
 				},
 				allowInInput: false,
-				description: "Export selected documents to markdown",
 			},
 			{
-				key: "mod+shift+E",
+				...DASHBOARD_SHORTCUTS.exportPdf,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
 					void handleExportSelectedPDF();
 				},
 				allowInInput: false,
-				description: "Export selected documents to PDF",
 			},
 		],
 		[
