@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef } from "react";
+import { useDialog } from "../../contexts/DialogContext";
 import { useHotkeys } from "../../hooks";
 import { usePaneLayout } from "../../hooks/usePaneLayout";
 import { useDocumentController } from "../../pages/document/useDocumentController";
@@ -32,16 +33,20 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 		});
 
 		const { layout, updateScrollPosition, activePaneId } = usePaneLayout();
+		const { isDialogOpen } = useDialog();
 		const layoutRef = useRef(layout);
 		layoutRef.current = layout;
 		const activePaneIdRef = useRef(activePaneId);
 		activePaneIdRef.current = activePaneId;
 		const suppressEscapeRef = useRef(suppressEscape);
 		suppressEscapeRef.current = suppressEscape;
+		const isDialogOpenRef = useRef(isDialogOpen);
+		isDialogOpenRef.current = isDialogOpen;
 
 		useEffect(() => {
 			const onKeyDown = (e: KeyboardEvent) => {
 				if (e.key !== "Escape") return;
+				if (isDialogOpenRef.current) return;
 				if (activePaneIdRef.current !== paneId) return;
 				if (suppressEscapeRef.current) {
 					e.preventDefault();

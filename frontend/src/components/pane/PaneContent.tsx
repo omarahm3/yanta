@@ -1,5 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useDialog } from "../../contexts/DialogContext";
 import { useHotkey } from "../../hooks/useHotkey";
 import { usePaneLayout } from "../../hooks/usePaneLayout";
 import { cn } from "../../lib/utils";
@@ -24,16 +25,20 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 	const [isDragOver, setIsDragOver] = useState(false);
 	const [showPicker, setShowPicker] = useState(false);
 
+	const { isDialogOpen } = useDialog();
 	const activePaneIdRef = useRef(activePaneId);
 	activePaneIdRef.current = activePaneId;
 	const layoutRef = useRef(layout);
 	layoutRef.current = layout;
+	const isDialogOpenRef = useRef(isDialogOpen);
+	isDialogOpenRef.current = isDialogOpen;
 
 	useEffect(() => {
 		if (documentPath) return;
 
 		const onKeyDown = (e: KeyboardEvent) => {
 			if (e.key !== "Escape") return;
+			if (isDialogOpenRef.current) return;
 			if (activePaneIdRef.current !== paneId) return;
 			e.preventDefault();
 			e.stopPropagation();
