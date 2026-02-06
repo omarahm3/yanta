@@ -15,7 +15,7 @@ import { useHelp } from "../../hooks";
 import { useNotification } from "../../hooks/useNotification";
 import { useRecentDocuments } from "../../hooks/useRecentDocuments";
 import { useSidebarSections } from "../../hooks/useSidebarSections";
-import { DocumentServiceWrapper } from "../../services/DocumentService";
+import { DocumentServiceWrapper, moveDocumentToProject } from "../../services/DocumentService";
 import type { Document } from "../../types/Document";
 import type { HotkeyConfig } from "../../types/hotkeys";
 import { useDashboardCommandHandler } from "./useDashboardCommandHandler";
@@ -62,6 +62,11 @@ export interface ConfirmDialogState {
 	showCheckbox?: boolean;
 }
 
+export interface MoveDialogState {
+	isOpen: boolean;
+	documentPaths: string[];
+}
+
 export interface DashboardControllerOptions {
 	onNavigate?: (page: string, state?: Record<string, string | number | boolean | undefined>) => void;
 	onRegisterToggleArchived?: (handler: () => void) => void;
@@ -94,6 +99,10 @@ export interface DashboardControllerResult {
 	handleExportSelectedPDF: () => Promise<void>;
 	confirmDialog: ConfirmDialogState;
 	setConfirmDialog: React.Dispatch<React.SetStateAction<ConfirmDialogState>>;
+	moveDialog: MoveDialogState;
+	handleMoveSelectedDocuments: () => void;
+	handleMoveDone: () => void;
+	closeMoveDialog: () => void;
 	statusBar: {
 		totalEntries: number;
 		currentContext: string;
@@ -351,6 +360,41 @@ export function useDashboardController({
 		message: "",
 		onConfirm: () => {},
 	});
+
+	const [moveDialog, setMoveDialog] = useState<MoveDialogState>({
+		isOpen: false,
+		documentPaths: [],
+	});
+
+	const handleMoveSelectedDocuments = useCallback(() => {
+		let paths = Array.from(selectedDocumentsRef.current);
+		if (
+			paths.length === 0 &&
+			highlightedIndexRef.current >= 0 &&
+			highlightedIndexRef.current < documentsRef.current.length
+		) {
+			const doc = documentsRef.current[highlightedIndexRef.current];
+			if (doc) {
+				paths = [doc.path];
+			}
+		}
+		if (paths.length === 0) {
+			error("No documents selected to move");
+			return;
+		}
+		setMoveDialog({ isOpen: true, documentPaths: paths });
+	}, [error]);
+
+	const handleMoveDone = useCallback(async () => {
+		await reloadDocuments();
+		clearSelection();
+		const count = moveDialog.documentPaths.length;
+		success(count === 1 ? "Document moved" : `${count} documents moved`);
+	}, [reloadDocuments, clearSelection, success, moveDialog.documentPaths.length]);
+
+	const closeMoveDialog = useCallback(() => {
+		setMoveDialog({ isOpen: false, documentPaths: [] });
+	}, []);
 
 	const handleDeleteSelectedDocuments = useCallback(
 		(hard: boolean) => {
@@ -654,6 +698,16 @@ export function useDashboardController({
 				description: "Navigate up",
 			},
 			{
+				key: "mod+M",
+				handler: (event: KeyboardEvent) => {
+					event.preventDefault();
+					event.stopPropagation();
+					handleMoveSelectedDocuments();
+				},
+				allowInInput: false,
+				description: "Move selected documents to another project",
+			},
+			{
 				key: "mod+A",
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
@@ -698,6 +752,7 @@ export function useDashboardController({
 			handleNewDocument,
 			handleToggleArchived,
 			handleDeleteSelectedDocuments,
+			handleMoveSelectedDocuments,
 			handleToggleSelection,
 			handleOpenHighlightedDocument,
 			highlightNext,
@@ -736,6 +791,10 @@ export function useDashboardController({
 		handleExportSelectedPDF,
 		confirmDialog,
 		setConfirmDialog,
+		moveDialog,
+		handleMoveSelectedDocuments,
+		handleMoveDone,
+		closeMoveDialog,
 		statusBar: {
 			totalEntries: documents.length,
 			currentContext: currentProject?.alias ?? "UNKNOWN",

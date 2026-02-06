@@ -2,6 +2,7 @@ import { FileText } from "lucide-react";
 import type React from "react";
 import { DocumentList } from "../components/DocumentList";
 import { Layout } from "../components/Layout";
+import { MoveDocumentDialog } from "../components/MoveDocumentDialog";
 import { StatusBar } from "../components/ui";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { useHotkeys } from "../hooks";
@@ -36,6 +37,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
 		clearSelection,
 		confirmDialog,
 		setConfirmDialog,
+		moveDialog,
+		handleMoveDone,
+		closeMoveDialog,
 		statusBar,
 	} = controller;
 
@@ -90,6 +94,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
 					</div>
 				)}
 			</Layout>
+			<MoveDocumentDialog
+				isOpen={moveDialog.isOpen}
+				onClose={closeMoveDialog}
+				documentPaths={moveDialog.documentPaths}
+				currentProjectAlias={controller.currentProjectAlias ?? ""}
+				onMoved={handleMoveDone}
+			/>
 			<ConfirmDialog
 				isOpen={confirmDialog.isOpen}
 				title={confirmDialog.title}

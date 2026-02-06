@@ -2,6 +2,7 @@ import * as documentModels from "../../bindings/yanta/internal/document/models";
 import {
 	Get,
 	ListByProject,
+	MoveToProject,
 	Restore,
 	Save,
 	SoftDelete,
@@ -49,6 +50,13 @@ export async function restoreDocument(path: string): Promise<void> {
 	await Restore(path);
 }
 
+export async function moveDocumentToProject(
+	path: string,
+	targetProjectAlias: string,
+): Promise<void> {
+	await MoveToProject(path, targetProjectAlias);
+}
+
 // Legacy wrapper for backward compatibility
 export const DocumentServiceWrapper = {
 	save: saveDocument,
@@ -56,4 +64,5 @@ export const DocumentServiceWrapper = {
 	listByProject: listDocumentsByProject,
 	softDelete: softDeleteDocument,
 	restore: restoreDocument,
+	moveToProject: moveDocumentToProject,
 };

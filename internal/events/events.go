@@ -38,6 +38,12 @@ type EntryRestoredData struct {
 	EntryID   string `json:"entryId,omitempty"`
 }
 
+type EntryMovedData struct {
+	Path          string `json:"path,omitempty"`
+	FromProjectID string `json:"fromProjectId"`
+	ToProjectID   string `json:"toProjectId"`
+}
+
 type ProjectChangedData struct {
 	ID string `json:"id"`
 	Op string `json:"op"`
@@ -48,6 +54,7 @@ func init() {
 	application.RegisterEvent[EntryUpdatedData](EntryUpdated)
 	application.RegisterEvent[EntryDeletedData](EntryDeleted)
 	application.RegisterEvent[EntryRestoredData](EntryRestored)
+	application.RegisterEvent[EntryMovedData](EntryMoved)
 	application.RegisterEvent[ProjectChangedData](ProjectChanged)
 }
 
@@ -77,5 +84,6 @@ const (
 	TagListAccessed     = "yanta/tag/list-accessed"   // payload: {count, limit, offset}
 	DocumentTagsUpdated = "yanta/document/tags"       // payload: {path, tags}
 	SearchPerformed     = "yanta/search/performed"    // payload: {query, resultCount, duration}
-	EntryCountChanged   = "yanta/project/entry-count" // payload: {projectId, count}
+	EntryMoved          = "yanta/entry/moved"          // payload: {path, fromProjectId, toProjectId}
+	EntryCountChanged   = "yanta/project/entry-count"  // payload: {projectId, count}
 )

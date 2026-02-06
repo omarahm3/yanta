@@ -63,6 +63,7 @@ func (m *mockIndexer) IndexDocument(ctx context.Context, docPath string) error {
 	}
 
 	existing.Title = file.Meta.Title
+	existing.ProjectAlias = file.Meta.Project
 	_, err = m.store.Update(ctx, existing)
 	return err
 }
@@ -572,4 +573,133 @@ func TestService_HardDeleteByProject_EmptyAlias(t *testing.T) {
 
 	err := service.HardDeleteByProject(context.Background(), "")
 	assert.Error(t, err, "Expected error for empty project alias")
+}
+
+func setupServiceTestWithTwoProjects(t *testing.T) (*Service, *vault.Vault, func()) {
+	database := testutil.SetupTestDB(t)
+
+	tmpDir := t.TempDir()
+	v, err := vault.New(vault.Config{RootPath: tmpDir})
+	require.NoError(t, err, "failed to create vault")
+
+	projectStore := project.NewStore(database)
+
+	p1, err := project.New("Test", "@test", "", "")
+	require.NoError(t, err)
+	p1, err = projectStore.Create(context.Background(), p1)
+	require.NoError(t, err)
+
+	p2, err := project.New("Other", "@other", "", "")
+	require.NoError(t, err)
+	p2, err = projectStore.Create(context.Background(), p2)
+	require.NoError(t, err)
+
+	docStore := NewStore(database)
+	fm := NewFileManager(v)
+
+	idx := &mockIndexer{
+		store: docStore,
+		fm:    fm,
+	}
+
+	projectCache := &mockProjectCache{
+		projects: map[string]*project.Project{
+			p1.Alias: p1,
+			p2.Alias: p2,
+		},
+	}
+
+	service := NewService(database, docStore, v, idx, projectCache, events.NewEventBus())
+
+	cleanup := func() {
+		logger.Close()
+		testutil.CleanupTestDB(t, database)
+	}
+
+	return service, v, cleanup
+}
+
+func TestService_MoveToProject_Success(t *testing.T) {
+	service, _, cleanup := setupServiceTestWithTwoProjects(t)
+	defer cleanup()
+
+	req := SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "Doc to Move",
+		Blocks:       []BlockNoteBlock{},
+		Tags:         []string{},
+	}
+	docPath, err := service.Save(context.Background(), req)
+	require.NoError(t, err)
+
+	err = service.MoveToProject(context.Background(), docPath, "@other")
+	require.NoError(t, err)
+
+	// Verify DB record updated
+	doc, err := service.Get(context.Background(), docPath)
+	require.NoError(t, err)
+	assert.Equal(t, "@other", doc.ProjectAlias, "DB project_alias should be updated")
+
+	// Verify file meta updated
+	assert.Equal(t, "@other", doc.File.Meta.Project, "file meta.project should be updated")
+}
+
+func TestService_MoveToProject_SameProject(t *testing.T) {
+	service, _, cleanup := setupServiceTestWithTwoProjects(t)
+	defer cleanup()
+
+	req := SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "Stay Put",
+		Blocks:       []BlockNoteBlock{},
+	}
+	docPath, err := service.Save(context.Background(), req)
+	require.NoError(t, err)
+
+	err = service.MoveToProject(context.Background(), docPath, "@test")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "already in the target project")
+}
+
+func TestService_MoveToProject_InvalidPath(t *testing.T) {
+	service, _, cleanup := setupServiceTestWithTwoProjects(t)
+	defer cleanup()
+
+	err := service.MoveToProject(context.Background(), "", "@other")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "path is required")
+}
+
+func TestService_MoveToProject_InvalidAlias(t *testing.T) {
+	service, _, cleanup := setupServiceTestWithTwoProjects(t)
+	defer cleanup()
+
+	err := service.MoveToProject(context.Background(), "projects/@test/doc-abc.json", "bad-alias")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid target alias")
+}
+
+func TestService_MoveToProject_NonexistentProject(t *testing.T) {
+	service, _, cleanup := setupServiceTestWithTwoProjects(t)
+	defer cleanup()
+
+	req := SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "Test Doc",
+		Blocks:       []BlockNoteBlock{},
+	}
+	docPath, err := service.Save(context.Background(), req)
+	require.NoError(t, err)
+
+	err = service.MoveToProject(context.Background(), docPath, "@nonexistent")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "target project not found")
+}
+
+func TestService_MoveToProject_NonexistentDocument(t *testing.T) {
+	service, _, cleanup := setupServiceTestWithTwoProjects(t)
+	defer cleanup()
+
+	err := service.MoveToProject(context.Background(), "projects/@test/doc-doesnotexist.json", "@other")
+	assert.Error(t, err)
 }

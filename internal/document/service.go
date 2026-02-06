@@ -554,6 +554,86 @@ func (s *Service) HardDeleteByProject(ctx context.Context, projectAlias string) 
 	return nil
 }
 
+func (s *Service) MoveToProject(ctx context.Context, docPath string, targetAlias string) error {
+	docPath = strings.TrimSpace(docPath)
+	if docPath == "" {
+		return errors.New("path is required")
+	}
+
+	targetAlias = strings.TrimSpace(targetAlias)
+	if err := project.ValidateAlias(targetAlias); err != nil {
+		return fmt.Errorf("invalid target alias: %w", err)
+	}
+
+	// Verify target project exists
+	_, err := s.projectCache.GetByAlias(ctx, targetAlias)
+	if err != nil {
+		return fmt.Errorf("target project not found: %w", err)
+	}
+
+	s.saveMu.Lock()
+	defer s.saveMu.Unlock()
+
+	// Read existing document file
+	docFile, err := s.fm.ReadFile(docPath)
+	if err != nil {
+		return fmt.Errorf("reading document: %w", err)
+	}
+
+	// Get existing DB record
+	doc, err := s.store.GetByPath(ctx, docPath)
+	if err != nil {
+		return fmt.Errorf("getting document: %w", err)
+	}
+
+	// Verify source != target
+	if doc.ProjectAlias == targetAlias {
+		return errors.New("document is already in the target project")
+	}
+
+	sourceAlias := doc.ProjectAlias
+
+	// Update file meta
+	docFile.Meta.Project = targetAlias
+	docFile.Meta.Updated = time.Now()
+
+	// Write updated file
+	if err := s.fm.WriteFile(docPath, docFile); err != nil {
+		return fmt.Errorf("writing document: %w", err)
+	}
+
+	// Re-index (reads file and updates DB record)
+	if err := s.indexer.IndexDocument(ctx, docPath); err != nil {
+		return fmt.Errorf("indexing document: %w", err)
+	}
+
+	// Emit events
+	fromProjectID := sourceAlias
+	if proj, err := s.projectCache.GetByAlias(ctx, sourceAlias); err == nil && proj != nil {
+		fromProjectID = proj.ID
+	}
+	toProjectID := targetAlias
+	if proj, err := s.projectCache.GetByAlias(ctx, targetAlias); err == nil && proj != nil {
+		toProjectID = proj.ID
+	}
+
+	s.emitEvent(events.EntryMoved, events.EntryMovedData{
+		Path:          docPath,
+		FromProjectID: fromProjectID,
+		ToProjectID:   toProjectID,
+	})
+	s.emitDocumentCountChange(ctx, sourceAlias)
+	s.emitDocumentCountChange(ctx, targetAlias)
+
+	logger.WithFields(map[string]any{
+		"path":        docPath,
+		"fromProject": sourceAlias,
+		"toProject":   targetAlias,
+	}).Info("document moved to project")
+
+	return nil
+}
+
 // ExportDocument exports a single document to markdown format
 func (s *Service) ExportDocument(ctx context.Context, req ExportDocumentRequest) error {
 	logger.WithFields(map[string]any{
