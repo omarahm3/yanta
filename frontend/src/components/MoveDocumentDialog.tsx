@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type React from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDialog } from "../contexts/DialogContext";
 import { useProjectContext } from "../contexts/ProjectContext";
 import { cn } from "../lib/utils";
@@ -117,9 +118,7 @@ export const MoveDocumentDialog: React.FC<MoveDocumentDialogProps> = ({
 		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
 			<DialogContent className="sm:max-w-md" showCloseButton={false}>
 				<DialogHeader>
-					<DialogTitle>
-						{docCount === 1 ? "Move Document" : `Move ${docCount} Documents`}
-					</DialogTitle>
+					<DialogTitle>{docCount === 1 ? "Move Document" : `Move ${docCount} Documents`}</DialogTitle>
 				</DialogHeader>
 
 				<div onKeyDown={handleKeyDown} className="space-y-3">

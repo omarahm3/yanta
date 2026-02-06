@@ -121,13 +121,7 @@ describe("MoveDocumentDialog", () => {
 	it("confirms move with Enter", async () => {
 		const onMoved = vi.fn();
 		const onClose = vi.fn();
-		render(
-			<MoveDocumentDialog
-				{...defaultProps}
-				onMoved={onMoved}
-				onClose={onClose}
-			/>,
-		);
+		render(<MoveDocumentDialog {...defaultProps} onMoved={onMoved} onClose={onClose} />);
 
 		const input = screen.getByPlaceholderText("Search projects...");
 		fireEvent.keyDown(input, { key: "Enter" });
