@@ -130,7 +130,7 @@ export const Layout: React.FC<LayoutProps> = ({
 			{/* Glass Sidebar Container */}
 			<div
 				className={`sidebar-transition relative z-20 h-full ${
-					!sidebarLoading && sidebarVisible ? "sidebar-visible" : "sidebar-hidden"
+					!sidebarLoading && !sidebarVisible ? "sidebar-hidden" : "sidebar-visible"
 				}`}
 			>
 				{sidebarContent ? (
@@ -175,7 +175,7 @@ export const Layout: React.FC<LayoutProps> = ({
 				<FooterHintBar
 					hints={footerHints}
 					className={`footer-hint-bar-transition backdrop-blur-md bg-glass-bg/80 border-t border-glass-border ${
-						!sidebarLoading && sidebarVisible ? "footer-hint-bar-sidebar-visible" : ""
+						!sidebarLoading && !sidebarVisible ? "" : "footer-hint-bar-sidebar-visible"
 					}`}
 				/>
 			)}
