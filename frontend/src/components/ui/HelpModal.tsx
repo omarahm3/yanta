@@ -3,6 +3,10 @@ import { ChevronRight } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GLOBAL_COMMANDS } from "../../constants/globalCommands";
+import {
+	formatShortcutKeyForDisplay,
+	getHelpShortcutsFromConfig,
+} from "../../config";
 import { useHotkeyContext } from "../../contexts/HotkeyContext";
 import { useHelp } from "../../hooks/useHelp";
 import { Heading } from "../ui";
@@ -23,33 +27,6 @@ interface HelpSectionData {
 	title: string;
 	shortcuts: ShortcutItem[];
 }
-
-/**
- * Format hotkey string for display
- */
-const formatHotkeyDisplay = (key: string): string => {
-	return key
-		.replace(/mod/gi, "Ctrl")
-		.replace(/shift/gi, "Shift")
-		.replace(/alt/gi, "Alt")
-		.replace(/meta/gi, "Meta")
-		.replace(/\+/g, "+")
-		.split("+")
-		.map((part) => {
-			const keyMap: Record<string, string> = {
-				Escape: "ESC",
-				" ": "SPACE",
-				Enter: "ENTER",
-				Tab: "TAB",
-				ArrowUp: "↑",
-				ArrowDown: "↓",
-				ArrowLeft: "←",
-				ArrowRight: "→",
-			};
-			return keyMap[part] || part.toUpperCase();
-		})
-		.join("+");
-};
 
 /**
  * Get default expanded sections based on current page context
@@ -324,16 +301,11 @@ export const HelpModal: React.FC = () => {
 		return getRegisteredHotkeys().filter((h) => h.description && h.description !== "Toggle help");
 	}, [getRegisteredHotkeys, pageName]);
 
-	// Build sections data
+	// Build sections data (global, documents, journal, editor from config; navigation/git static)
 	const sections: HelpSectionData[] = useMemo(() => {
-		// Initialize sections
+		const fromConfig = getHelpShortcutsFromConfig();
 		const sectionMap: Record<HelpSectionId, ShortcutItem[]> = {
-			global: [
-				{ key: "Ctrl+K", description: "Open command palette" },
-				{ key: "Ctrl+B", description: "Toggle sidebar" },
-				{ key: "Ctrl+,", description: "Open settings" },
-				{ key: "?", description: "Show this help" },
-			],
+			global: fromConfig.global,
 			navigation: [
 				{ key: "Ctrl+J", description: "Go to Journal" },
 				{ key: "Ctrl+T", description: "Jump to Today" },
@@ -342,15 +314,9 @@ export const HelpModal: React.FC = () => {
 				{ key: "Ctrl+Shift+F", description: "Go to Search" },
 				{ key: "Ctrl+D", description: "Go to Documents" },
 			],
-			documents: [
-				{ key: "Ctrl+N", description: "New Document" },
-				{ key: "Ctrl+S", description: "Save Document" },
-			],
-			journal: [
-				{ key: "Ctrl+←", description: "Previous day" },
-				{ key: "Ctrl+→", description: "Next day" },
-			],
-			editor: [],
+			documents: fromConfig.documents,
+			journal: fromConfig.journal,
+			editor: fromConfig.editor,
 			git: [{ key: "Ctrl+Shift+S", description: "Git Sync" }],
 		};
 
@@ -362,7 +328,7 @@ export const HelpModal: React.FC = () => {
 		);
 
 		for (const hotkey of allHotkeys) {
-			const formatted = formatHotkeyDisplay(hotkey.key);
+			const formatted = formatShortcutKeyForDisplay(hotkey.key);
 			const normalizedKey = formatted.toLowerCase().replace(/\s/g, "");
 
 			if (!existingKeys.has(normalizedKey)) {

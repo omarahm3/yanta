@@ -2,6 +2,11 @@ import React, { useCallback, useRef } from "react";
 import { Layout } from "../components/Layout";
 import { ConfirmDialog, MigrationConflictDialog, type Shortcut } from "../components/ui";
 import {
+	formatShortcutKeyForDisplay,
+	getShortcutsForSettings,
+	SETTINGS_SHORTCUTS,
+} from "../config";
+import {
 	useFooterHintsSetting,
 	useGitStatus,
 	useHotkeys,
@@ -20,84 +25,21 @@ import { LoggingSection } from "./settings/LoggingSection";
 import { ShortcutsSection } from "./settings/ShortcutsSection";
 import { useSettingsController } from "./settings/useSettingsController";
 
-const actualShortcuts: Shortcut[] = [
-	{
-		id: "help",
-		action: "Toggle help (global)",
-		defaultKey: "?",
-		currentKey: "?",
+/** Shortcuts from config/shortcuts (single source of truth for registration + display). */
+const shortcutsFromConfig = (): Shortcut[] =>
+	getShortcutsForSettings().map(({ id, action, key }) => ({
+		id,
+		action,
+		defaultKey: formatShortcutKeyForDisplay(key),
+		currentKey: formatShortcutKeyForDisplay(key),
 		editable: false,
-	},
-	{
-		id: "command-palette",
-		action: "Open command palette (global)",
-		defaultKey: "Ctrl+K",
-		currentKey: "Ctrl+K",
-		editable: false,
-	},
-	{
-		id: "command-line",
-		action: "Focus command line",
-		defaultKey: ":",
-		currentKey: ":",
-		editable: false,
-	},
-	{
-		id: "escape",
-		action: "Exit command line",
-		defaultKey: "Esc",
-		currentKey: "Esc",
-		editable: false,
-	},
-	{
-		id: "save-document",
-		action: "Save document (Document page)",
-		defaultKey: "Ctrl+S",
-		currentKey: "Ctrl+S",
-		editable: false,
-	},
-	{
-		id: "delete-block",
-		action: "Delete block (Document page)",
-		defaultKey: "Ctrl+D",
-		currentKey: "Ctrl+D",
-		editable: false,
-	},
-	{
-		id: "new-document",
-		action: "Create new document (Documents)",
-		defaultKey: "Ctrl+N",
-		currentKey: "Ctrl+N",
-		editable: false,
-	},
-	{
-		id: "toggle-archived-dashboard",
-		action: "Toggle archived (Documents)",
-		defaultKey: "Ctrl+Shift+A",
-		currentKey: "Ctrl+Shift+A",
-		editable: false,
-	},
-	{
-		id: "project-next",
-		action: "Select next project (Projects page)",
-		defaultKey: "j",
-		currentKey: "j",
-		editable: false,
-	},
-	{
-		id: "project-prev",
-		action: "Select previous project (Projects page)",
-		defaultKey: "k",
-		currentKey: "k",
-		editable: false,
-	},
-	{
-		id: "project-open",
-		action: "Open selected project (Projects page)",
-		defaultKey: "Enter",
-		currentKey: "Enter",
-		editable: false,
-	},
+	}));
+
+/** Shortcuts not yet in config (command-line, search UI, etc.). Shown in Settings until moved to config. */
+const shortcutsNotInConfig: Shortcut[] = [
+	{ id: "command-line", action: "Focus command line", defaultKey: ":", currentKey: ":", editable: false },
+	{ id: "escape", action: "Exit command line", defaultKey: "Esc", currentKey: "Esc", editable: false },
+	{ id: "delete-block", action: "Delete block (Document page)", defaultKey: "Ctrl+D", currentKey: "Ctrl+D", editable: false },
 	{
 		id: "toggle-archived-projects",
 		action: "Toggle show archived (Projects page)",
@@ -105,49 +47,15 @@ const actualShortcuts: Shortcut[] = [
 		currentKey: "Ctrl+Shift+A",
 		editable: false,
 	},
-	{
-		id: "search-focus",
-		action: "Focus search input (Search page)",
-		defaultKey: "/",
-		currentKey: "/",
-		editable: false,
-	},
-	{
-		id: "search-to-results",
-		action: "Move to results (Search page)",
-		defaultKey: "Tab",
-		currentKey: "Tab",
-		editable: false,
-	},
-	{
-		id: "search-next",
-		action: "Navigate down results (Search page)",
-		defaultKey: "j",
-		currentKey: "j",
-		editable: false,
-	},
-	{
-		id: "search-prev",
-		action: "Navigate up results (Search page)",
-		defaultKey: "k",
-		currentKey: "k",
-		editable: false,
-	},
-	{
-		id: "search-open",
-		action: "Open selected result (Search page)",
-		defaultKey: "Enter",
-		currentKey: "Enter",
-		editable: false,
-	},
-	{
-		id: "search-unfocus",
-		action: "Unfocus search input (Search page)",
-		defaultKey: "Esc",
-		currentKey: "Esc",
-		editable: false,
-	},
+	{ id: "search-focus", action: "Focus search input (Search page)", defaultKey: "/", currentKey: "/", editable: false },
+	{ id: "search-to-results", action: "Move to results (Search page)", defaultKey: "Tab", currentKey: "Tab", editable: false },
+	{ id: "search-next", action: "Navigate down results (Search page)", defaultKey: "j", currentKey: "j", editable: false },
+	{ id: "search-prev", action: "Navigate up results (Search page)", defaultKey: "k", currentKey: "k", editable: false },
+	{ id: "search-open", action: "Open selected result (Search page)", defaultKey: "Enter", currentKey: "Enter", editable: false },
+	{ id: "search-unfocus", action: "Unfocus search input (Search page)", defaultKey: "Esc", currentKey: "Esc", editable: false },
 ];
+
+const actualShortcuts: Shortcut[] = [...shortcutsFromConfig(), ...shortcutsNotInConfig];
 
 interface SettingsProps {
 	onNavigate?: (page: string) => void;
@@ -237,18 +145,8 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggle
 
 	const hotkeys = React.useMemo(
 		() => [
-			{
-				key: "j",
-				handler: handleNextSection,
-				allowInInput: false,
-				description: "Navigate to next section",
-			},
-			{
-				key: "k",
-				handler: handlePreviousSection,
-				allowInInput: false,
-				description: "Navigate to previous section",
-			},
+			{ ...SETTINGS_SHORTCUTS.navNext, handler: handleNextSection, allowInInput: false },
+			{ ...SETTINGS_SHORTCUTS.navPrev, handler: handlePreviousSection, allowInInput: false },
 		],
 		[handleNextSection, handlePreviousSection],
 	);
