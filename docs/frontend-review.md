@@ -2,7 +2,7 @@
 
 **Stack:** React 18 + Tailwind CSS v4 + Radix UI + BlockNote Editor + Wails3 Runtime
 **Target:** Cross-platform desktop application (Wails3)
-**Last Updated:** 2026-02-07 (Rev 9 — Phase 4: document/ + dashboard/ extracted; Projects.tsx type fix)
+**Last Updated:** 2026-02-07 (Rev 10 — Phase 5: app/ shell created; providers + global-hotkeys extracted)
 
 ---
 
@@ -126,13 +126,15 @@ Problems:
 
 ### 4. God Component (App.tsx:67-176)
 
-`GlobalCommandHotkey` is the de facto app controller living inside a component named after a hotkey:
-- Manages `currentPage` (routing), `navigationState`, `showArchived`, sidebar toggle
-- Registers 3 global hotkeys
-- Coordinates command palette with dialog context
+~~App.tsx god component~~ — **Partially addressed (Rev 10):** App.tsx slimmed to ~38 lines (error handlers only); provider tree moved to `app/providers.tsx`; hotkey/shell logic moved to `app/global-hotkeys.tsx`. The remaining coupling is inside **GlobalCommandHotkey** (~100+ lines), which still owns:
+- Command palette open/close + dialog context sync
+- All app navigation state (`currentPage`, `navigationState`, `handleNavigate`)
+- Archive/sidebar toggle registration
+- 3 hotkey registrations
 - Renders both `GlobalCommandPalette` and `Router`
 
-**Status:** [ ] Not started
+**Follow-up:** Extract `useAppNavigation` (or similar) so navigation state lives in a dedicated hook/context; GlobalCommandHotkey should only register hotkeys and compose palette + Router with that state.
+**Status:** [ ] Follow-up — extract useAppNavigation; then optionally have providers import from domains directly instead of legacy barrels
 
 ---
 
@@ -1034,10 +1036,10 @@ This restructure does NOT need to happen in one big bang. Do it incrementally, o
 - `help/` (extract HelpModal + related)
 
 **Phase 5: Create app/ shell**
-1. Move App.tsx, Router.tsx, Layout.tsx, CrashBoundary.tsx to `app/`
-2. Create `app/providers.tsx` composing all providers
-3. Extract global hotkeys from GlobalCommandHotkey into `app/global-hotkeys.ts`
-4. Delete emptied `pages/`, `components/`, `contexts/`, `hooks/` directories
+1. ~~Move App.tsx, Router.tsx, Layout.tsx, CrashBoundary.tsx to `app/`~~ — Done: `app/App.tsx`, `app/Router.tsx`, `app/Layout.tsx`, `app/CrashBoundary.tsx`; shims at `App.tsx`, `components/Router.tsx`, `components/Layout.tsx`, `components/CrashBoundary.tsx` re-export from `app/index`
+2. ~~Create `app/providers.tsx` composing all providers~~ — Done
+3. ~~Extract global hotkeys from GlobalCommandHotkey into `app/global-hotkeys.ts`~~ — Done: `app/global-hotkeys.tsx` (HelpHotkey, QuitHotkeys, GlobalCommandHotkey, WindowEventListener, ProjectSwitchTracker)
+4. Delete emptied `pages/`, `components/`, `contexts/`, `hooks/` directories — *Deferred:* legacy barrels kept for backward compatibility; full cleanup in a later phase
 5. **Domain imports:** When legacy barrels are removed, update domains (e.g. journal, quick-capture) to import from `shared/` directly instead of `../hooks`, `../types`, etc.
 
 **Phase 6: Clean up tsconfig paths**
