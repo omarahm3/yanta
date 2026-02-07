@@ -10,12 +10,13 @@ export type {
 	UseCommandUsageReturn,
 } from "./useCommandUsage";
 export { useCommandUsage } from "./useCommandUsage";
-export { useDocumentEscapeHandling } from "./useDocumentEscapeHandling";
+// Document hooks moved to document domain - backward compatibility shims
+export { useDocumentEscapeHandling } from "../document/hooks/useDocumentEscapeHandling";
+export { useDocumentForm } from "../document/hooks/useDocumentForm";
+export { useDocumentLoader } from "../document/hooks/useDocumentLoader";
+export { useAutoDocumentSaver } from "../document/hooks/useDocumentSaver";
 export type { UseEscapeHandlerOptions } from "./useEscapeHandler";
 export { useEscapeHandler } from "./useEscapeHandler";
-export { useDocumentForm } from "./useDocumentForm";
-export { useDocumentLoader } from "./useDocumentLoader";
-export { useAutoDocumentSaver } from "./useDocumentSaver";
 export type { PageContext, UseFooterHintsOptions, UseFooterHintsReturn } from "./useFooterHints";
 export { getHintsForPage, useFooterHints } from "./useFooterHints";
 export type { UseFooterHintsSettingReturn } from "./useFooterHintsSetting";

@@ -1,8 +1,8 @@
 import { useCallback, useState } from "react";
-import { CleanupOrphans, LinkToDocument } from "../../bindings/yanta/internal/asset/service";
-import { DocumentServiceWrapper } from "../services/DocumentService";
-import type { BlockNoteBlock } from "../types/Document";
-import { extractAssetHashes } from "../utils/assetExtractor";
+import { CleanupOrphans, LinkToDocument } from "../../../bindings/yanta/internal/asset/service";
+import { DocumentServiceWrapper } from "../../services/DocumentService";
+import type { BlockNoteBlock } from "../../types/Document";
+import { extractAssetHashes } from "../../utils/assetExtractor";
 
 interface SaveDocumentParams {
 	title: string;

@@ -2,10 +2,10 @@ import type { Block, BlockNoteEditor } from "@blocknote/core";
 import type React from "react";
 import { lazy, Suspense, useCallback, useMemo } from "react";
 import type { BlockNoteBlock } from "../../types/Document";
-import { Button } from "../ui";
+import { Button } from "../../components/ui";
 
 const RichEditor = lazy(() =>
-	import("../editor/RichEditor").then((m) => ({ default: m.RichEditor })),
+	import("../../components/editor/RichEditor").then((m) => ({ default: m.RichEditor })),
 );
 
 const EditorLoader = () => <div className="h-full w-full" />;

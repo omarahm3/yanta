@@ -1,6 +1,6 @@
 import type { BlockNoteEditor } from "@blocknote/core";
 import { type MutableRefObject, useCallback } from "react";
-import { BackendLogger } from "../utils/backendLogger";
+import { BackendLogger } from "../../utils/backendLogger";
 
 interface UseDocumentEscapeHandlingProps {
 	editorRef: MutableRefObject<BlockNoteEditor | null>;

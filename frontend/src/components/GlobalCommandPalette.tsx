@@ -39,8 +39,7 @@ import {
 	SyncNow,
 } from "../../bindings/yanta/internal/system/service";
 import { TIMEOUTS } from "../config";
-import { useDocumentContext } from "../contexts/DocumentContext";
-import { useProjectContext } from "../contexts/ProjectContext";
+import { useDocumentContext, useProjectContext } from "../contexts";
 import { useCommandUsage } from "../hooks/useCommandUsage";
 import { useNotification } from "../hooks/useNotification";
 import { usePaneLayout } from "../pane";

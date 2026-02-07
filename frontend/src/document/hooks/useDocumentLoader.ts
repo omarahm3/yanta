@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { DocumentServiceWrapper } from "../services/DocumentService";
-import type { Document } from "../types/Document";
-import { BackendLogger } from "../utils/backendLogger";
+import { DocumentServiceWrapper } from "../../services/DocumentService";
+import type { Document } from "../../types/Document";
+import { BackendLogger } from "../../utils/backendLogger";
 
 export const useDocumentLoader = (documentPath?: string) => {
 	const [data, setData] = useState<Document | null>(null);

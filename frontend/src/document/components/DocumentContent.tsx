@@ -4,8 +4,8 @@ import React from "react";
 import type { SaveState } from "../../hooks/useAutoSave";
 import type { BlockNoteBlock } from "../../types/Document";
 import type { Project } from "../../types/Project";
-import { Layout } from "../Layout";
-import { Button, type SidebarSection } from "../ui";
+import { Layout } from "../../components/Layout";
+import { Button, type SidebarSection } from "../../components/ui";
 import { DocumentEditorActions } from "./DocumentEditorActions";
 import { DocumentEditorForm } from "./DocumentEditorForm";
 

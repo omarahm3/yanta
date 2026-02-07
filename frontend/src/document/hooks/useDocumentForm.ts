@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
-import type { BlockNoteBlock } from "../types/Document";
-import { extractTitleFromBlocks } from "../utils/documentUtils";
+import type { BlockNoteBlock } from "../../types/Document";
+import { extractTitleFromBlocks } from "../../utils/documentUtils";
 
 interface DocumentFormData {
 	title: string;

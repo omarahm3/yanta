@@ -10,6 +10,7 @@ interface DocumentEditorActionsProps {
 	saveError: Error | null;
 }
 
+// TODO: this function is manual, replace with external library
 const formatTimeSince = (date: Date): string => {
 	const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
 	if (seconds < 5) return "just now";

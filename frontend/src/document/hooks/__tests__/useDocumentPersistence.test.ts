@@ -1,16 +1,16 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useDocumentPersistence } from "../hooks/useDocumentPersistence";
-import type { Project } from "../types/Project";
+import { useDocumentPersistence } from "../useDocumentPersistence";
+import type { Project } from "../../../types/Project";
 
-vi.mock("../hooks/useDocumentSaver", () => ({
+vi.mock("../useDocumentSaver", () => ({
 	useAutoDocumentSaver: () => {
 		const mockSave = vi.fn(async () => "/path/to/doc");
 		return { save: mockSave, isSaving: false };
 	},
 }));
 
-vi.mock("../hooks/useAutoSave", () => ({
+vi.mock("../../../hooks/useAutoSave", () => ({
 	useAutoSave: ({ onSave }: { onSave: () => void | Promise<void> }) => ({
 		saveState: "idle",
 		lastSaved: null,
@@ -110,7 +110,7 @@ describe("useDocumentPersistence", () => {
 			const mockOnAutoSaveComplete = vi.fn();
 			const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-			vi.doMock("../hooks/useDocumentSaver", () => ({
+			vi.doMock("../useDocumentSaver", () => ({
 				useAutoDocumentSaver: () => ({
 					save: vi.fn(async () => {
 						throw new Error("Save failed");

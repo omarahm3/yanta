@@ -9,7 +9,7 @@ import { describe, expect, it, vi } from "vitest";
  */
 
 // Mock Layout to render children (header is part of children)
-vi.mock("../../Layout", () => ({
+vi.mock("../../../components/Layout", () => ({
 	Layout: ({ children }: { children: React.ReactNode }) => (
 		<div data-testid="layout">{children}</div>
 	),

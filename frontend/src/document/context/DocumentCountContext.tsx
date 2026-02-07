@@ -9,8 +9,8 @@ import {
 	useMemo,
 	useState,
 } from "react";
-import { GetAllDocumentCounts } from "../../bindings/yanta/internal/project/service";
-import { BackendLogger } from "../utils/backendLogger";
+import { GetAllDocumentCounts } from "../../../bindings/yanta/internal/project/service";
+import { BackendLogger } from "../../utils/backendLogger";
 
 interface DocumentCountContextValue {
 	counts: Map<string, number>;

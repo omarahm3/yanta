@@ -1,9 +1,11 @@
 export { DialogProvider, useDialog } from "./DialogContext";
-export { DocumentProvider, useDocumentContext } from "./DocumentContext";
+// Re-export from document domain for backward compatibility
 export {
+	DocumentProvider,
+	useDocumentContext,
 	DocumentCountProvider,
 	useDocumentCount,
-} from "./DocumentCountContext";
+} from "../document";
 export { HelpProvider, useHelpContext } from "./HelpContext";
 export { HotkeyProvider, useHotkeyContext } from "./HotkeyContext";
 export type { PaneLayoutContextValue } from "../pane";

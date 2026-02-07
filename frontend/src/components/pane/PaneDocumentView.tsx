@@ -3,11 +3,10 @@ import { TIMEOUTS } from "@/config";
 import { useEscapeHandler } from "../../hooks/useEscapeHandler";
 import { useHotkeys } from "../../hooks/useHotkey";
 import { useLatestRef } from "../../shared/hooks/useLatestRef";
-import { useDocumentController } from "../../pages/document/useDocumentController";
+import { useDocumentController } from "../../document/hooks/useDocumentController";
 import type { NavigationState } from "../../types";
 import { findPane, usePaneLayout } from "../../pane";
-import { DocumentEditorActions } from "../document/DocumentEditorActions";
-import { DocumentEditorForm } from "../document/DocumentEditorForm";
+import { DocumentEditorActions, DocumentEditorForm } from "../../document/components";
 import { Button, LoadingSpinner } from "../ui";
 import { PaneHeader } from "./PaneHeader";
 
