@@ -1,0 +1,295 @@
+import { act, render, waitFor } from "@testing-library/react";
+import React from "react";
+import { vi } from "vitest";
+import { Restore, SoftDelete } from "../../../bindings/yanta/internal/document/service";
+import { DialogProvider, HotkeyProvider, useHotkeyContext } from "../../contexts";
+import type { HotkeyContextValue } from "../../types/hotkeys";
+
+const onNavigate = vi.fn();
+const selectNext = vi.fn();
+const selectPrevious = vi.fn();
+const loadDocuments = vi.fn();
+const setSelectedIndex = vi.fn();
+const mockSuccess = vi.fn();
+const mockError = vi.fn();
+
+vi.mock("../../hooks/useNotification", () => ({
+	useNotification: () => ({
+		success: mockSuccess,
+		error: mockError,
+	}),
+}));
+
+vi.mock("../../hooks/useHelp", () => ({
+	useHelp: () => ({ setPageContext: vi.fn() }),
+}));
+
+vi.mock("../../hooks/useSidebarSections", () => ({
+	__esModule: true,
+	useSidebarSections: () => [],
+}));
+
+vi.mock("../../contexts", async () => {
+	const actual = await vi.importActual<typeof import("../../contexts")>("../../contexts");
+	return {
+		...actual,
+		useProjectContext: () => ({
+			currentProject: { alias: "proj", name: "Project" },
+			isLoading: false,
+		}),
+		useDocumentContext: () => ({
+			documents: [
+				{ path: "proj/doc1", title: "Doc 1" },
+				{ path: "proj/doc2", title: "Doc 2" },
+			],
+			loadDocuments,
+			isLoading: false,
+			selectedIndex: 0,
+			setSelectedIndex,
+			selectNext,
+			selectPrevious,
+		}),
+	};
+});
+
+vi.mock("../components/DocumentList", () => ({
+	__esModule: true,
+	DocumentList: ({
+		highlightedIndex,
+		selectedDocuments,
+	}: {
+		highlightedIndex?: number;
+		selectedDocuments?: Set<string>;
+	}) => (
+		<div
+			data-testid="document-list"
+			data-highlighted={highlightedIndex ?? -1}
+			data-selected={Array.from(selectedDocuments ?? new Set()).join(",")}
+		/>
+	),
+}));
+
+vi.mock("../components/StatusBar", () => ({
+	__esModule: true,
+	StatusBar: () => <div data-testid="status-bar" />,
+}));
+
+vi.mock("../components/MoveDocumentDialog", () => ({
+	__esModule: true,
+	MoveDocumentDialog: () => null,
+}));
+
+vi.mock("../../../bindings/yanta/internal/commandline/documentcommands", () => ({
+	ParseWithContext: vi.fn(async () => ({ success: true })),
+}));
+
+vi.mock("../../../bindings/yanta/internal/document/service", () => ({
+	SoftDelete: vi.fn(),
+	Restore: vi.fn(),
+}));
+
+vi.mock("../../services/DocumentService", () => ({
+	DocumentServiceWrapper: {
+		save: vi.fn(async () => "proj/new-doc-path"),
+	},
+}));
+
+const softDeleteMock = SoftDelete as unknown as ReturnType<typeof vi.fn>;
+const restoreMock = Restore as unknown as ReturnType<typeof vi.fn>;
+
+vi.mock("../../../wailsjs/go/models", () => ({
+	commandline: {
+		DocumentCommand: {
+			New: "new",
+			Doc: "doc",
+			Archive: "archive",
+			Unarchive: "unarchive",
+			Delete: "delete",
+		},
+	},
+}));
+
+vi.mock("../../components/Layout", () => {
+	const Layout = ({
+		children,
+		commandInputRef,
+		commandValue,
+		onCommandChange,
+	}: {
+		children: React.ReactNode;
+		commandInputRef?: React.RefObject<HTMLInputElement>;
+		commandValue?: string;
+		onCommandChange?: (value: string) => void;
+	}) => (
+		<div>
+			<input
+				data-testid="command-input"
+				ref={commandInputRef}
+				value={commandValue}
+				onChange={(e) => onCommandChange?.(e.target.value)}
+			/>
+			{children}
+		</div>
+	);
+	return { __esModule: true, Layout };
+});
+
+import { Dashboard } from "..";
+
+const HotkeyProbe: React.FC<{ onReady: (ctx: HotkeyContextValue) => void }> = ({ onReady }) => {
+	const ctx = useHotkeyContext();
+	React.useEffect(() => {
+		onReady(ctx);
+	}, [ctx, onReady]);
+	return null;
+};
+
+describe("Dashboard hotkeys", () => {
+	beforeEach(() => {
+		onNavigate.mockClear();
+		selectNext.mockClear();
+		selectPrevious.mockClear();
+		loadDocuments.mockClear();
+		setSelectedIndex.mockClear();
+		mockSuccess.mockClear();
+		mockError.mockClear();
+		softDeleteMock.mockClear();
+		restoreMock.mockClear();
+		vi.useRealTimers();
+	});
+
+	const Wrapper: React.FC<{ onContext: (ctx: HotkeyContextValue) => void }> = ({ onContext }) => (
+		<DialogProvider>
+			<HotkeyProvider>
+				<HotkeyProbe onReady={onContext} />
+				<Dashboard onNavigate={onNavigate} onRegisterToggleArchived={() => {}} />
+			</HotkeyProvider>
+		</DialogProvider>
+	);
+
+	const renderDashboard = async () => {
+		let ctx: HotkeyContextValue | null = null;
+		// biome-ignore lint/suspicious/noAssignInExpressions: Test callback pattern
+		render(<Wrapper onContext={(value) => (ctx = value)} />);
+		await waitFor(() => expect(ctx).not.toBeNull());
+		// biome-ignore lint/style/noNonNullAssertion: Test utility function ensures non-null
+		return ctx!;
+	};
+
+	const getHotkey = (ctx: HotkeyContextValue, key: string) => {
+		const hotkey = ctx.getRegisteredHotkeys().find((h) => h.key === key);
+		expect(hotkey).toBeDefined();
+		// biome-ignore lint/style/noNonNullAssertion: Test utility function ensures non-null
+		return hotkey!;
+	};
+
+	it("navigates to new document with mod+N", async () => {
+		const ctx = await renderDashboard();
+		const modN = getHotkey(ctx, "mod+N");
+		await act(async () => {
+			modN.handler(new KeyboardEvent("keydown", { key: "n", ctrlKey: true }));
+		});
+		await waitFor(() =>
+			expect(onNavigate).toHaveBeenCalledWith("document", {
+				documentPath: "proj/new-doc-path",
+				newDocument: true,
+			}),
+		);
+	});
+
+	it("toggles archived view with mod+shift+A", async () => {
+		const ctx = await renderDashboard();
+		const toggleHotkey = getHotkey(ctx, "mod+shift+A");
+		await act(async () => {
+			toggleHotkey.handler(
+				new KeyboardEvent("keydown", {
+					key: "A",
+					ctrlKey: true,
+					shiftKey: true,
+				}),
+			);
+		});
+		expect(mockSuccess).not.toHaveBeenCalled();
+	});
+
+	it("moves selection down with j", async () => {
+		const ctx = await renderDashboard();
+		const jHotkey = getHotkey(ctx, "j");
+		await act(async () => {
+			jHotkey.handler(new KeyboardEvent("keydown", { key: "j" }));
+		});
+		expect(selectNext).toHaveBeenCalled();
+	});
+
+	it("moves selection with arrow keys", async () => {
+		const ctx = await renderDashboard();
+		const downHotkey = getHotkey(ctx, "ArrowDown");
+		const upHotkey = getHotkey(ctx, "ArrowUp");
+		await act(async () => {
+			downHotkey.handler(new KeyboardEvent("keydown", { key: "ArrowDown" }));
+			upHotkey.handler(new KeyboardEvent("keydown", { key: "ArrowUp" }));
+		});
+		expect(selectNext).toHaveBeenCalled();
+		expect(selectPrevious).toHaveBeenCalled();
+	});
+
+	it("opens selected document with Enter", async () => {
+		const ctx = await renderDashboard();
+		const enterHotkey = getHotkey(ctx, "Enter");
+		await act(async () => {
+			enterHotkey.handler(new KeyboardEvent("keydown", { key: "Enter" }));
+		});
+		expect(onNavigate).toHaveBeenCalledWith("document", {
+			documentPath: "proj/doc1",
+		});
+	});
+
+	it("archives selected documents with mod+A", async () => {
+		const ctx = await renderDashboard();
+		const spaceHotkey = getHotkey(ctx, "Space");
+		const archiveHotkey = getHotkey(ctx, "mod+A");
+
+		await act(async () => {
+			spaceHotkey.handler(new KeyboardEvent("keydown", { key: " " }));
+		});
+
+		await act(async () => {
+			archiveHotkey.handler(new KeyboardEvent("keydown", { key: "a", ctrlKey: true }));
+		});
+
+		await waitFor(() => expect(softDeleteMock).toHaveBeenCalledWith("proj/doc1"));
+		expect(mockSuccess).toHaveBeenLastCalledWith("Document archived");
+	});
+
+	it("restores selected documents with mod+U when archived view is shown", async () => {
+		const ctx = await renderDashboard();
+		const toggleHotkey = getHotkey(ctx, "mod+shift+A");
+		vi.useFakeTimers();
+		await act(async () => {
+			toggleHotkey.handler(
+				new KeyboardEvent("keydown", {
+					key: "A",
+					ctrlKey: true,
+					shiftKey: true,
+				}),
+			);
+		});
+		vi.runAllTimers();
+		vi.useRealTimers();
+		mockSuccess.mockClear();
+
+		const spaceHotkey = getHotkey(ctx, "Space");
+		const restoreHotkey = getHotkey(ctx, "mod+U");
+
+		await act(async () => {
+			spaceHotkey.handler(new KeyboardEvent("keydown", { key: " " }));
+		});
+
+		await act(async () => {
+			restoreHotkey.handler(new KeyboardEvent("keydown", { key: "u", ctrlKey: true }));
+		});
+
+		await waitFor(() => expect(restoreMock).toHaveBeenCalledWith("proj/doc1"));
+		expect(mockSuccess).toHaveBeenLastCalledWith("Document restored");
+	});
+});

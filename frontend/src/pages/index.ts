@@ -1,7 +1,7 @@
 import { lazy } from "react";
 
 // Keep Dashboard eager (initial route)
-export { Dashboard } from "./Dashboard";
+export { Dashboard } from "../dashboard";
 
 // Lazy load all other routes for code splitting
 export const Document = lazy(() => import("../document").then((m) => ({ default: m.Document })));
