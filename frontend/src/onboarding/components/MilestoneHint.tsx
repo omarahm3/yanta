@@ -1,7 +1,7 @@
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { TIMEOUTS } from "../config";
-import { cn } from "../lib/utils";
+import { TIMEOUTS } from "../../config";
+import { cn } from "../../lib/utils";
 
 export interface MilestoneHintProps {
 	hintId: string;

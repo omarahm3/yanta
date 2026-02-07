@@ -27,21 +27,22 @@ export { useGlobalCommand } from "./useGlobalCommand";
 export { useHelp } from "./useHelp";
 export { useHotkey, useHotkeys } from "./useHotkey";
 export { useLatestRef } from "../shared/hooks/useLatestRef";
+// Re-export from onboarding domain for backward compatibility
 export type {
 	MilestoneHint,
 	MilestoneHintId,
 	UseMilestoneHintsOptions,
 	UseMilestoneHintsReturn,
-} from "./useMilestoneHints";
+} from "../onboarding";
 export {
 	MILESTONE_HINT_IDS,
 	MILESTONE_HINTS,
 	useMilestoneHints,
-} from "./useMilestoneHints";
+} from "../onboarding";
 export type { NotificationOptions, NotificationType } from "./useNotification";
 export { useNotification } from "./useNotification";
-export type { OnboardingData, UseOnboardingReturn } from "./useOnboarding";
-export { useOnboarding } from "./useOnboarding";
+export type { OnboardingData, UseOnboardingReturn } from "../onboarding";
+export { useOnboarding } from "../onboarding";
 export type { RecentDocument, UseRecentDocumentsReturn } from "./useRecentDocuments";
 export { useRecentDocuments } from "./useRecentDocuments";
 export type { UseShortcutTooltipsSettingReturn } from "./useShortcutTooltipsSetting";
@@ -49,5 +50,5 @@ export { useShortcutTooltipsSetting } from "./useShortcutTooltipsSetting";
 export { useSidebarSections } from "./useSidebarSections";
 export type { UseSidebarSettingReturn } from "./useSidebarSetting";
 export { useSidebarSetting } from "./useSidebarSetting";
-export type { UserProgressData, UseUserProgressReturn } from "./useUserProgress";
-export { useUserProgress } from "./useUserProgress";
+export type { UserProgressData, UseUserProgressReturn } from "../onboarding";
+export { useUserProgress } from "../onboarding";

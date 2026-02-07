@@ -3,7 +3,7 @@ import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ListActive } from "../../bindings/yanta/internal/project/service";
 import { QUICK_CAPTURE_SHORTCUTS } from "../config";
-import { useUserProgressContext } from "../contexts/UserProgressContext";
+import { useUserProgressContext } from "../contexts";
 import { useHotkeys } from "../hooks";
 import type { HotkeyConfig } from "../types/hotkeys";
 import type { ProjectOption } from "./ProjectPicker";

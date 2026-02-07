@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TIMEOUTS } from "@/config";
-import { BackendLogger } from "../utils/backendLogger";
-import { useLocalStorage } from "../shared/hooks/useLocalStorage";
+import { BackendLogger } from "../../utils/backendLogger";
+import { useLocalStorage } from "../../shared/hooks/useLocalStorage";
 
 const STORAGE_KEY = "yanta_onboarding";
 const CURRENT_VERSION = "1.0.0";

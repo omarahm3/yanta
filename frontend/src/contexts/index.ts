@@ -15,4 +15,5 @@ export { PaneLayoutContext, PaneLayoutProvider } from "../pane";
 export { ProjectContext, ProjectProvider, useProjectContext } from "../project";
 export { ScaleProvider, useScale } from "./ScaleContext";
 export { TitleBarProvider, useTitleBarContext } from "./TitleBarContext";
-export { UserProgressProvider, useUserProgressContext } from "./UserProgressContext";
+// Re-export from onboarding domain for backward compatibility
+export { UserProgressProvider, useUserProgressContext } from "../onboarding";

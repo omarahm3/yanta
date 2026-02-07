@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { FC, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { UserProgressProvider, useUserProgressContext } from "../../contexts";
+import { UserProgressProvider, useUserProgressContext } from "../../context";
 import { MilestoneHintManager } from "../MilestoneHintManager";
 
 // Helper to wrap component with context

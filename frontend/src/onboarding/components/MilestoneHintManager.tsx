@@ -1,6 +1,6 @@
 import type React from "react";
-import { useUserProgressContext } from "../contexts";
-import { useMilestoneHints } from "../hooks";
+import { useUserProgressContext } from "../context/UserProgressContext";
+import { useMilestoneHints } from "../hooks/useMilestoneHints";
 import { MilestoneHint } from "./MilestoneHint";
 
 /**

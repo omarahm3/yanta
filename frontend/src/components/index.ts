@@ -1,6 +1,5 @@
 export { DocumentList } from "./DocumentList";
 export { GlobalCommandPalette } from "./GlobalCommandPalette";
-export { MilestoneHint } from "./MilestoneHint";
-export { MilestoneHintManager } from "./MilestoneHintManager";
+// Re-export from onboarding domain for backward compatibility
+export { MilestoneHint, MilestoneHintManager, WelcomeOverlay } from "../onboarding";
 export { QuickCommandPanel } from "./QuickCommandPanel";
-export { WelcomeOverlay } from "./WelcomeOverlay";
