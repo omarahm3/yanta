@@ -1,5 +1,5 @@
 import { Events } from "@wailsio/runtime";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PromoteRequest } from "../../bindings/yanta/internal/journal/models";
 import {
 	DeleteEntry,
@@ -55,6 +55,7 @@ export function useJournal({
 	const [error, setError] = useState<string | null>(null);
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 	const [date, setDateInternal] = useState(() => initialDate || getTodayString());
+	const refreshRequestIdRef = useRef(0);
 
 	// Update date when initialDate prop changes (e.g., from navigation)
 	useEffect(() => {
@@ -79,8 +80,8 @@ export function useJournal({
 		projectAlias: entry.projectAlias,
 	});
 
-	// Fetch entries
-	const refresh = useCallback(async () => {
+	// Fetch entries. When requestId is passed (from effect), ignore result if a newer request started.
+	const refresh = useCallback(async (requestId?: number) => {
 		setIsLoading(true);
 		setError(null);
 
@@ -88,27 +89,34 @@ export function useJournal({
 			if (projectAlias === "all") {
 				// Fetch from all projects
 				const result = await GetAllActiveEntries(date);
+				if (requestId !== undefined && requestId !== refreshRequestIdRef.current) return;
 				const mappedEntries = (result || []).map(mapEntry);
 				setEntries(mappedEntries);
 			} else {
 				// Fetch from specific project
 				const result = await GetActiveEntries(projectAlias, date);
+				if (requestId !== undefined && requestId !== refreshRequestIdRef.current) return;
 				const mappedEntries = (result || []).map(mapEntry);
 				setEntries(mappedEntries);
 			}
 		} catch (err) {
+			if (requestId !== undefined && requestId !== refreshRequestIdRef.current) return;
 			BackendLogger.error("Failed to fetch journal entries:", err);
 			setError("Failed to load entries");
 			setEntries([]);
 			notifyError("Failed to load journal entries");
 		} finally {
-			setIsLoading(false);
+			if (requestId === undefined || requestId === refreshRequestIdRef.current) {
+				setIsLoading(false);
+			}
 		}
 	}, [projectAlias, date, notifyError]);
 
-	// Fetch on mount and when dependencies change
+	// Fetch on mount and when dependencies change; cancel in-flight when deps change
 	useEffect(() => {
-		refresh();
+		refreshRequestIdRef.current += 1;
+		const id = refreshRequestIdRef.current;
+		refresh(id);
 	}, [refresh]);
 
 	// Subscribe to journal entry events for real-time updates

@@ -1,5 +1,6 @@
 import type React from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { GranularErrorBoundary } from "@/app";
 import { Layout } from "../components/Layout";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { useHotkeys } from "../hooks";
@@ -29,6 +30,7 @@ export const Journal: React.FC<JournalProps> = ({
 }) => {
 	const controller = useJournalController({ onNavigate, initialDate });
 	const listRef = useRef<HTMLDivElement>(null);
+	const [entryListKey, setEntryListKey] = useState(0);
 
 	useHotkeys(controller.hotkeys);
 
@@ -75,6 +77,11 @@ export const Journal: React.FC<JournalProps> = ({
 
 					{/* Entry list */}
 					<div className="flex-1 overflow-y-auto">
+						<GranularErrorBoundary
+							key={entryListKey}
+							message="Something went wrong in the journal entry list."
+							onRetry={() => setEntryListKey((k) => k + 1)}
+						>
 						{isLoading && (
 							<div className="flex items-center justify-center py-8">
 								<div className="text-text-dim">Loading...</div>
@@ -105,6 +112,7 @@ export const Journal: React.FC<JournalProps> = ({
 								))}
 							</div>
 						)}
+						</GranularErrorBoundary>
 					</div>
 
 					{/* Status bar */}

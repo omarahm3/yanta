@@ -24,14 +24,18 @@ export const useDocumentLoader = (documentPath?: string) => {
 			return;
 		}
 
+		let cancelled = false;
+
 		const loadDocument = async () => {
 			setIsLoading(true);
 			setError(null);
 
 			try {
 				const document = await DocumentServiceWrapper.get(documentPath);
+				if (cancelled) return;
 				setData(document);
 			} catch (err) {
+				if (cancelled) return;
 				const errorMessage = err instanceof Error ? err.message : "Failed to load document";
 				BackendLogger.error("[useDocumentLoader] Error loading document:", {
 					path: documentPath,
@@ -40,11 +44,15 @@ export const useDocumentLoader = (documentPath?: string) => {
 				});
 				setError(errorMessage);
 			} finally {
-				setIsLoading(false);
+				if (!cancelled) setIsLoading(false);
 			}
 		};
 
 		loadDocument();
+
+		return () => {
+			cancelled = true;
+		};
 	}, [documentPath]);
 
 	return {

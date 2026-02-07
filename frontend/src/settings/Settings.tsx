@@ -1,4 +1,5 @@
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useRef, useState } from "react";
+import { GranularErrorBoundary } from "@/app";
 import { Layout } from "../components/Layout";
 import { ConfirmDialog, MigrationConflictDialog, type Shortcut } from "../components/ui";
 import {
@@ -176,6 +177,8 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggle
 		],
 	});
 
+	const [settingsKey, setSettingsKey] = useState(0);
+
 	return (
 		<Layout
 			sidebarSections={sidebarSections}
@@ -184,7 +187,12 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggle
 			onRegisterToggleSidebar={onRegisterToggleSidebar}
 		>
 			<div className="h-full p-5 overflow-y-auto">
-				<div className="max-w-4xl mx-auto">
+				<GranularErrorBoundary
+					key={settingsKey}
+					message="Something went wrong in Settings."
+					onRetry={() => setSettingsKey((k) => k + 1)}
+				>
+					<div className="max-w-4xl mx-auto">
 					{controller.needsRestart && (
 						<div className="p-4 mb-6 border border-yellow-700 rounded bg-yellow-900/30">
 							<div className="mb-1 font-medium text-yellow-400">Restart Required</div>
@@ -285,7 +293,8 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggle
 					/>
 
 					<AboutSection ref={aboutRef} systemInfo={controller.systemInfo} />
-				</div>
+					</div>
+				</GranularErrorBoundary>
 			</div>
 
 			<ConfirmDialog

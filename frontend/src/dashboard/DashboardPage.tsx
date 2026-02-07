@@ -1,4 +1,6 @@
 import type React from "react";
+import { useState } from "react";
+import { GranularErrorBoundary } from "@/app";
 import { DocumentList } from "./components/DocumentList";
 import { Layout } from "../components/Layout";
 import { MoveDocumentDialog } from "./components/MoveDocumentDialog";
@@ -26,7 +28,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 	});
 
 	useHotkeys(controller.hotkeys);
-
+	const [documentListKey, setDocumentListKey] = useState(0);
 	const isLoading = controller.projectsLoading || controller.documentsLoading;
 	const {
 		documents,
@@ -57,14 +59,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
 				) : (
 					<div className="flex h-full flex-col overflow-hidden">
 						<div className="flex-1 overflow-y-auto p-5">
-							<DocumentList
-								documents={documents}
-								onDocumentClick={handleDocumentClick}
-								highlightedIndex={documentList.highlightedIndex}
-								onHighlightDocument={documentList.setHighlightedIndex}
-								selectedDocuments={documentList.selectedDocuments}
-								onToggleSelection={documentList.handleToggleSelection}
-							/>
+							<GranularErrorBoundary
+								key={documentListKey}
+								message="Something went wrong in the document list."
+								onRetry={() => setDocumentListKey((k) => k + 1)}
+							>
+								<DocumentList
+									documents={documents}
+									onDocumentClick={handleDocumentClick}
+									highlightedIndex={documentList.highlightedIndex}
+									onHighlightDocument={documentList.setHighlightedIndex}
+									selectedDocuments={documentList.selectedDocuments}
+									onToggleSelection={documentList.handleToggleSelection}
+								/>
+							</GranularErrorBoundary>
 						</div>
 						<StatusBar
 							totalEntries={statusBar.totalEntries}

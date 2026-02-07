@@ -1,5 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { GranularErrorBoundary } from "@/app";
 import type * as searchModels from "../../bindings/yanta/internal/search/models";
 import { Query } from "../../bindings/yanta/internal/search/service";
 import type * as tagModels from "../../bindings/yanta/internal/tag/models";
@@ -56,6 +57,8 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 
 	const searchInputRef = useRef<HTMLInputElement | null>(null);
 	const searchTimeoutRef = useRef<number | null>(null);
+	const searchGenerationRef = useRef(0);
+	const [resultsKey, setResultsKey] = useState(0);
 
 	// Set page context for help modal
 	useEffect(() => {
@@ -98,7 +101,7 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 	}, []);
 
 	const performSearch = useCallback(
-		async (queryStr: string) => {
+		async (queryStr: string, requestGeneration: number) => {
 			if (!queryStr.trim()) {
 				setResults([]);
 				setSearchError(null);
@@ -111,6 +114,8 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 
 			try {
 				const searchResults = await Query(queryStr, 50, 0);
+				if (requestGeneration !== searchGenerationRef.current) return;
+
 				const endTime = performance.now();
 				setQueryTime(Math.round(endTime - startTime));
 
@@ -133,12 +138,13 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 					setResults([]);
 				}
 			} catch (err) {
+				if (requestGeneration !== searchGenerationRef.current) return;
 				const errorMsg = err instanceof Error ? err.message : "Search failed";
 				setSearchError(errorMsg);
 				notifyError(`Search error: ${errorMsg}`);
 				setResults([]);
 			} finally {
-				setIsLoading(false);
+				if (requestGeneration === searchGenerationRef.current) setIsLoading(false);
 			}
 		},
 		[notifyError],
@@ -149,8 +155,11 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 			clearTimeout(searchTimeoutRef.current);
 		}
 
+		searchGenerationRef.current += 1;
+		const generation = searchGenerationRef.current;
+
 		searchTimeoutRef.current = setTimeout(() => {
-			performSearch(rawQuery);
+			performSearch(rawQuery, generation);
 		}, TIMEOUTS.searchDebounceMs);
 
 		return () => {
@@ -386,6 +395,11 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 
 				{/* Results */}
 				<div className="p-5 flex-1 overflow-y-auto">
+					<GranularErrorBoundary
+						key={resultsKey}
+						message="Something went wrong in search results."
+						onRetry={() => setResultsKey((k) => k + 1)}
+					>
 					{searchError ? (
 						<div className="p-4 text-center bg-surface border border-red/30 rounded text-red">
 							Error: {searchError}
@@ -467,6 +481,7 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 							})}
 						</div>
 					)}
+					</GranularErrorBoundary>
 				</div>
 			</div>
 		</Layout>

@@ -1,6 +1,7 @@
 import type { Block, BlockNoteEditor } from "@blocknote/core";
 import type React from "react";
-import { lazy, Suspense, useCallback, useMemo } from "react";
+import { lazy, Suspense, useCallback, useMemo, useState } from "react";
+import { GranularErrorBoundary } from "@/app";
 import type { BlockNoteBlock } from "../../types/Document";
 import { Button } from "../../components/ui";
 
@@ -69,23 +70,30 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 	);
 
 	const blocksJson = useMemo(() => (blocks.length > 0 ? JSON.stringify(blocks) : ""), [blocks]);
+	const [editorKey, setEditorKey] = useState(0);
 
 	return (
 		<div className="flex flex-col flex-1 w-full overflow-hidden document-editor-form">
 			<div className="flex-1 w-full px-2 overflow-hidden">
-				<Suspense fallback={<EditorLoader />}>
-					<RichEditor
-						initialContent={blocksJson}
-						docKey={isEditMode ? `edit:${blocksJson ? "loaded" : "pending"}` : "new"}
-						onChange={handleBlocksChange}
-						onTitleChange={handleTitleChange}
-						onReady={onEditorReady}
-						editable={!isLoading && !isReadOnly}
-						isLoading={isLoading && isEditMode}
-						autoFocus={autoFocus}
-						className="h-full"
-					/>
-				</Suspense>
+				<GranularErrorBoundary
+					key={editorKey}
+					message="Something went wrong in the editor."
+					onRetry={() => setEditorKey((k) => k + 1)}
+				>
+					<Suspense fallback={<EditorLoader />}>
+						<RichEditor
+							initialContent={blocksJson}
+							docKey={isEditMode ? `edit:${blocksJson ? "loaded" : "pending"}` : "new"}
+							onChange={handleBlocksChange}
+							onTitleChange={handleTitleChange}
+							onReady={onEditorReady}
+							editable={!isLoading && !isReadOnly}
+							isLoading={isLoading && isEditMode}
+							autoFocus={autoFocus}
+							className="h-full"
+						/>
+					</Suspense>
+				</GranularErrorBoundary>
 			</div>
 			{tags.length > 0 && (
 				<div className="px-2 py-2">

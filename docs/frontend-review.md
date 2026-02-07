@@ -1276,7 +1276,7 @@ Multiple catch blocks that `console.error` and continue, giving the user no feed
 
 **Production requirement:** Granular error boundaries per domain that show recovery UI ("Something went wrong in the editor. Click to reload.") without taking down the sidebar, navigation, or other panes.
 
-**Status:** [ ] Not started
+**Status:** [x] Completed — `GranularErrorBoundary` in `app/GranularErrorBoundary.tsx` with message + "Click to reload" (onRetry remounts via key). Wrapped: Editor (DocumentEditorForm), Settings content, Document list (Dashboard), Search results, Journal entry list.
 
 ---
 
@@ -1312,7 +1312,7 @@ Async operations that could return after component unmount or after state has ch
 
 **Fix:** Use `AbortController` for all async data fetching. Cancel in-flight requests in effect cleanup functions.
 
-**Status:** [ ] Not started
+**Status:** [x] Completed — useDocumentLoader: cancelled flag in effect cleanup so stale load results are ignored. Search: request generation ref; only the latest query updates state. useJournal: refresh(requestId) with refreshRequestIdRef; only the latest refresh updates state. (Backend does not accept AbortSignal; ignore-stale pattern used.)
 
 ---
 
