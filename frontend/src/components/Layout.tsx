@@ -1,1 +1,1 @@
-export { Layout, type LayoutProps } from "../app/index";
+export { Layout, type LayoutProps } from "@/app";

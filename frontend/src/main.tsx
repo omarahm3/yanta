@@ -8,7 +8,7 @@ import "@fontsource/jetbrains-mono/500.css";
 
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { App, CrashBoundary } from "./app/index";
+import { App, CrashBoundary } from "@/app";
 import { DialogProvider, HotkeyProvider, UserProgressProvider } from "./contexts";
 import { QuickCapture } from "./quick-capture";
 import { BackendLogger, enableBackendLogging } from "./utils/backendLogger";

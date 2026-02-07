@@ -2,7 +2,7 @@
 
 **Stack:** React 18 + Tailwind CSS v4 + Radix UI + BlockNote Editor + Wails3 Runtime
 **Target:** Cross-platform desktop application (Wails3)
-**Last Updated:** 2026-02-07 (Rev 10 — Phase 5: app/ shell created; providers + global-hotkeys extracted)
+**Last Updated:** 2026-02-07 (Rev 11 — Phase 6: tsconfig/vite @/app alias; all imports resolve)
 
 ---
 
@@ -1043,8 +1043,8 @@ This restructure does NOT need to happen in one big bang. Do it incrementally, o
 5. **Domain imports:** When legacy barrels are removed, update domains (e.g. journal, quick-capture) to import from `shared/` directly instead of `../hooks`, `../types`, etc.
 
 **Phase 6: Clean up tsconfig paths**
-1. Update `@/*` path alias or add domain-level aliases
-2. Verify all imports resolve cleanly
+1. ~~Update `@/*` path alias or add domain-level aliases~~ — Done: kept `@/*` → `./src/*`; added explicit `@/app` → `./src/app/index` in tsconfig and Vite (avoids Windows casing with App.tsx)
+2. ~~Verify all imports resolve cleanly~~ — main, App shim, and component shims now use `@/app`; tsc + build pass
 
 ---
 
@@ -1559,7 +1559,7 @@ Items already resolved in prior branches. Kept here for reference; removed from 
 | Phase 3 | Extract `journal/` domain (already 80% isolated) | Low | Proof-of-concept for the pattern |
 | Phase 4 | Extract remaining domains one at a time | High | 11 domains; do in order listed in Section 35 |
 | Phase 5 | Create `app/` shell (App, Router, Layout, providers) | Medium | Final move; deletes old top-level dirs |
-| Phase 6 | Clean up tsconfig paths | Low | Verify all imports resolve |
+| Phase 6 | Clean up tsconfig paths | Low | ~~Done — @/app alias, imports verified~~ |
 
 See Section 35 for detailed steps per phase. Each phase leaves the app fully working.
 

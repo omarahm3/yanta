@@ -1,1 +1,1 @@
-export { CrashBoundary } from "../app/index";
+export { CrashBoundary } from "@/app";
