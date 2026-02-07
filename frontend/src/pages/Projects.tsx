@@ -30,8 +30,8 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 	const { currentProject, setCurrentProject, projects, archivedProjects, loadProjects, isLoading } =
 		useProjectContext();
 	const [selectedProjectId, setSelectedProjectId] = useState<string>(currentProject?.id || "");
-	const [documentCounts, setDocumentCounts] = useState<{ [id: string]: number }>({});
-	const [lastDocumentDates, setLastDocumentDates] = useState<{ [id: string]: string }>({});
+	const [documentCounts, setDocumentCounts] = useState<Record<string, number | undefined>>({});
+	const [lastDocumentDates, setLastDocumentDates] = useState<Record<string, string | undefined>>({});
 	const [confirmDialog, setConfirmDialog] = useState<{
 		isOpen: boolean;
 		title: string;
