@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
-import { AppendEntryRequest } from "../../../bindings/yanta/internal/journal/models";
-import { AppendEntry } from "../../../bindings/yanta/internal/journal/wailsservice";
+import { AppendEntryRequest } from "../../bindings/yanta/internal/journal/models";
+import { AppendEntry } from "../../bindings/yanta/internal/journal/wailsservice";
 import { parseContent, parseProject, parseTags } from "./parser";
 
 const LAST_PROJECT_KEY = "yanta:lastProject";

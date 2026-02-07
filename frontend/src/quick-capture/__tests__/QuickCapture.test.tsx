@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DialogProvider, HotkeyProvider, UserProgressProvider } from "../../../contexts";
+import { DialogProvider, HotkeyProvider, UserProgressProvider } from "../../contexts";
 import { QuickCapture } from "../QuickCapture";
 
 const renderQuickCapture = () =>
@@ -24,12 +24,12 @@ const MOCK_PROJECTS = [
 ];
 
 // Mock the journal service
-vi.mock("../../../../bindings/yanta/internal/journal/wailsservice", () => ({
+vi.mock("../../../bindings/yanta/internal/journal/wailsservice", () => ({
 	AppendEntry: vi.fn(() => Promise.resolve({ id: "abc123", content: "Test" })),
 }));
 
 // Mock the project service
-vi.mock("../../../../bindings/yanta/internal/project/service", () => ({
+vi.mock("../../../bindings/yanta/internal/project/service", () => ({
 	ListActive: vi.fn(() => Promise.resolve(MOCK_PROJECTS)),
 }));
 
@@ -85,7 +85,7 @@ describe("QuickCapture", () => {
 	});
 
 	it("saves on Ctrl+Enter", async () => {
-		const { AppendEntry } = await import("../../../../bindings/yanta/internal/journal/wailsservice");
+		const { AppendEntry } = await import("../../../bindings/yanta/internal/journal/wailsservice");
 
 		// Use a project from the mock list so we don't assume a hardcoded project exists
 		localStorage.setItem("yanta:lastProject", MOCK_PROJECTS[0].alias);
@@ -153,7 +153,7 @@ describe("QuickCapture", () => {
 	});
 
 	it("saves and clears on Shift+Enter", async () => {
-		const { AppendEntry } = await import("../../../../bindings/yanta/internal/journal/wailsservice");
+		const { AppendEntry } = await import("../../../bindings/yanta/internal/journal/wailsservice");
 
 		// Use a project from the mock list so we don't assume a hardcoded project exists
 		localStorage.setItem("yanta:lastProject", MOCK_PROJECTS[0].alias);

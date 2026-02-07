@@ -11,7 +11,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { CrashBoundary } from "./components/CrashBoundary";
 import { DialogProvider, HotkeyProvider, UserProgressProvider } from "./contexts";
-import { QuickCapture } from "./pages/QuickCapture";
+import { QuickCapture } from "./quick-capture";
 import { BackendLogger, enableBackendLogging } from "./utils/backendLogger";
 import "./styles/tailwind.css";
 import "./styles/yanta.css";

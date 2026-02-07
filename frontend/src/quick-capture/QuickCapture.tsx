@@ -1,16 +1,16 @@
 import { Window } from "@wailsio/runtime";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ListActive } from "../../../bindings/yanta/internal/project/service";
-import { QUICK_CAPTURE_SHORTCUTS } from "../../config";
-import { useUserProgressContext } from "../../contexts/UserProgressContext";
-import { useHotkeys } from "../../hooks";
-import type { HotkeyConfig } from "../../types/hotkeys";
+import { ListActive } from "../../bindings/yanta/internal/project/service";
+import { QUICK_CAPTURE_SHORTCUTS } from "../config";
+import { useUserProgressContext } from "../contexts/UserProgressContext";
+import { useHotkeys } from "../hooks";
+import type { HotkeyConfig } from "../types/hotkeys";
 import type { ProjectOption } from "./ProjectPicker";
 import { QuickEditor } from "./QuickEditor";
 import { TagChips } from "./TagChips";
 import { useQuickCapture } from "./useQuickCapture";
-import { BackendLogger } from "../../utils/backendLogger";
+import { BackendLogger } from "../utils/backendLogger";
 
 /**
  * Quick Capture Window

@@ -10,5 +10,5 @@ export const Settings = lazy(() => import("./Settings").then((m) => ({ default: 
 export const Search = lazy(() => import("./Search").then((m) => ({ default: m.Search })));
 export const Journal = lazy(() => import("../journal").then((m) => ({ default: m.Journal })));
 export const QuickCapture = lazy(() =>
-	import("./QuickCapture").then((m) => ({ default: m.QuickCapture })),
+	import("../quick-capture").then((m) => ({ default: m.QuickCapture })),
 );

@@ -1007,7 +1007,7 @@ This restructure does NOT need to happen in one big bang. Do it incrementally, o
 3. ~~Create `shared/hooks/useLatestRef.ts`~~ — idem
 4. ~~Create `shared/utils/` by moving pure utils from `utils/`~~ — cn, date, color, clipboard, accessibility in shared/utils
 5. **Compatibility layer:** Many call sites still consume legacy paths via re-export shims (`lib/utils.ts`, `utils/dateUtils.ts`, `utils/colorUtils.ts`, `utils/clipboard.ts`, `utils/accessibility.ts`). This is intentional for incremental migration; full import migration (call sites importing from `shared/` directly) is not done yet.
-6. ~~Delete emptied files from old locations~~ — types/navigation.ts, hooks/useLocalStorage.ts, hooks/useLatestRef.ts removed; utils/* and lib/utils are thin re-exports (shims). Remove shims once call sites are migrated to shared/.
+6. ~~Delete emptied files from old locations~~ — types/navigation.ts, hooks/useLocalStorage.ts, hooks/useLatestRef.ts removed; utils/* and lib/utils are thin re-exports (shims). **Shim cleanup:** Batch all shim removals in Phase 5 when deleting old top-level directories — one clean sweep; do not migrate high-traffic shims (e.g. cn) in between (avoids 20+ file touches for zero behavioral change).
 
 **Phase 2: Create config/ (centralize scattered constants)** — Done
 1. ~~Create `config/shortcuts.ts` -- extract all hardcoded keybindings~~ — Done Rev 8
@@ -1021,7 +1021,7 @@ This restructure does NOT need to happen in one big bang. Do it incrementally, o
 4. ~~Update imports, verify build passes~~ — pages/index.ts lazy-imports from `../journal`; Router unchanged; build passes
 
 **Phase 4: Extract remaining domains one at a time**
-- `quick-capture/` (already isolated, just move)
+- ~~`quick-capture/` (already isolated, just move)~~ — Done: moved `pages/QuickCapture/` to `quick-capture/`; pages/index.ts and main.tsx updated
 - `settings/` (already has subdirectory, consolidate)
 - `pane/` (already has components/pane/, add hooks + context)
 - `document/` (consolidate from 4 current directories)
@@ -1038,6 +1038,7 @@ This restructure does NOT need to happen in one big bang. Do it incrementally, o
 2. Create `app/providers.tsx` composing all providers
 3. Extract global hotkeys from GlobalCommandHotkey into `app/global-hotkeys.ts`
 4. Delete emptied `pages/`, `components/`, `contexts/`, `hooks/` directories
+5. **Domain imports:** When legacy barrels are removed, update domains (e.g. journal, quick-capture) to import from `shared/` directly instead of `../hooks`, `../types`, etc.
 
 **Phase 6: Clean up tsconfig paths**
 1. Update `@/*` path alias or add domain-level aliases
