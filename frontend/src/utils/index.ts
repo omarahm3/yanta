@@ -13,10 +13,13 @@ export {
 	removeHashtags,
 } from "./blocknote";
 export { getProjectAliasColor } from "./colorUtils";
+// Re-export from command-palette domain for backward compatibility
 export {
 	getRecentlyUsedCommands,
+	getTopRecentCommandIds,
 	isRecentlyUsed,
 	sortCommandsByUsage,
-} from "./commandSorting";
+	preprocessCommand,
+} from "../command-palette";
 export { formatRelativeTime, formatShortDate } from "./dateUtils";
 export { getShortcutForCommand } from "./shortcuts";

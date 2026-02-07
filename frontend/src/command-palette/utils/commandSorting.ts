@@ -1,4 +1,4 @@
-import type { CommandOption } from "../components/ui/CommandPalette";
+import type { CommandOption } from "../../components/ui/CommandPalette";
 import type { CommandUsageRecord } from "../hooks/useCommandUsage";
 
 /**

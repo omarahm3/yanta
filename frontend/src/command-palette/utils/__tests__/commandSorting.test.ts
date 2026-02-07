@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { CommandOption } from "../../components/ui/CommandPalette";
+import type { CommandOption } from "../../../components/ui/CommandPalette";
 import type { CommandUsageRecord } from "../../hooks/useCommandUsage";
 import {
 	getRecentlyUsedCommands,

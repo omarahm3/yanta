@@ -4,12 +4,13 @@ export type { UseLocalStorageOptions } from "../shared/hooks/useLocalStorage";
 export { useLocalStorage } from "../shared/hooks/useLocalStorage";
 export type { UseCommandDeprecationReturn } from "./useCommandDeprecation";
 export { DEPRECATED_COMMAND_MAPPINGS, useCommandDeprecation } from "./useCommandDeprecation";
+// Re-export from command-palette domain for backward compatibility
 export type {
 	CommandUsageData,
 	CommandUsageRecord,
 	UseCommandUsageReturn,
-} from "./useCommandUsage";
-export { useCommandUsage } from "./useCommandUsage";
+} from "../command-palette";
+export { useCommandUsage } from "../command-palette";
 // Document hooks moved to document domain - backward compatibility shims
 export { useDocumentEscapeHandling } from "../document/hooks/useDocumentEscapeHandling";
 export { useDocumentForm } from "../document/hooks/useDocumentForm";

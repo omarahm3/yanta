@@ -1,5 +1,5 @@
-import type { Document } from "../../types/Document";
-import { preprocessCommand } from "../../utils/commandPreprocessor";
+import type { Document } from "../../../types/Document";
+import { preprocessCommand } from "../commandPreprocessor";
 
 const makeDoc = (path: string): Document => ({
 	path,

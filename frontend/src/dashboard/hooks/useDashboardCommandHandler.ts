@@ -8,7 +8,7 @@ import { OpenDirectoryDialog } from "../../../bindings/yanta/internal/system/ser
 import type { Document } from "../../types/Document";
 import type { Project } from "../../types/Project";
 import type { NavigationState } from "../../types";
-import { preprocessCommand } from "../../utils/commandPreprocessor";
+import { preprocessCommand } from "../../utils";
 
 interface DashboardCommandHandlerOptions {
 	documents: Document[];

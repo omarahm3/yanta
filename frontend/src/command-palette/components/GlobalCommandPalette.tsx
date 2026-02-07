@@ -27,30 +27,30 @@ import { useCallback, useMemo, useState } from "react";
 import {
 	ExportDocumentRequest,
 	ExportProjectRequest,
-} from "../../bindings/yanta/internal/document/models";
-import { ExportDocument, ExportProject } from "../../bindings/yanta/internal/document/service";
-import { ExportRequest } from "../../bindings/yanta/internal/export";
-import { ExportToPDF } from "../../bindings/yanta/internal/export/service";
-import { SyncStatus } from "../../bindings/yanta/internal/git/models";
+} from "../../../bindings/yanta/internal/document/models";
+import { ExportDocument, ExportProject } from "../../../bindings/yanta/internal/document/service";
+import { ExportRequest } from "../../../bindings/yanta/internal/export";
+import { ExportToPDF } from "../../../bindings/yanta/internal/export/service";
+import { SyncStatus } from "../../../bindings/yanta/internal/git/models";
 import {
 	GitPull,
 	GitPush,
 	OpenDirectoryDialog,
 	SyncNow,
-} from "../../bindings/yanta/internal/system/service";
-import { TIMEOUTS } from "../config";
-import { useDocumentContext, useProjectContext } from "../contexts";
+} from "../../../bindings/yanta/internal/system/service";
+import { TIMEOUTS } from "../../config";
+import { useDocumentContext, useProjectContext } from "../../contexts";
 import { useCommandUsage } from "../hooks/useCommandUsage";
-import { useNotification } from "../hooks/useNotification";
-import { usePaneLayout } from "../pane";
-import { useRecentDocuments } from "../hooks/useRecentDocuments";
-import { DocumentServiceWrapper } from "../services/DocumentService";
-import type { NavigationState } from "../types";
+import { useNotification } from "../../hooks/useNotification";
+import { usePaneLayout } from "../../pane";
+import { useRecentDocuments } from "../../hooks/useRecentDocuments";
+import { DocumentServiceWrapper } from "../../services/DocumentService";
+import type { NavigationState } from "../../types";
 import { getTopRecentCommandIds, sortCommandsByUsage } from "../utils/commandSorting";
-import { formatRelativeTimeFromTimestamp } from "../utils/dateUtils";
-import { type ParsedGitError, parseGitError } from "../utils/gitErrorParser";
-import { getShortcutForCommand } from "../utils/shortcuts";
-import { type CommandOption, CommandPalette, GitErrorDialog, type SubPaletteItem } from "./ui";
+import { formatRelativeTimeFromTimestamp } from "../../utils/dateUtils";
+import { type ParsedGitError, parseGitError } from "../../utils/gitErrorParser";
+import { getShortcutForCommand } from "../../utils/shortcuts";
+import { type CommandOption, CommandPalette, GitErrorDialog, type SubPaletteItem } from "../../components/ui";
 
 interface GlobalCommandPaletteProps {
 	isOpen: boolean;

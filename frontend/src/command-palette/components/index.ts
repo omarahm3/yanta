@@ -1,0 +1,1 @@
+export { GlobalCommandPalette } from "./GlobalCommandPalette";
