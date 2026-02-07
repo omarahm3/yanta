@@ -2,7 +2,7 @@
 
 **Stack:** React 18 + Tailwind CSS v4 + Radix UI + BlockNote Editor + Wails3 Runtime
 **Target:** Cross-platform desktop application (Wails3)
-**Last Updated:** 2026-02-07 (Rev 11 — Phase 6: tsconfig/vite @/app alias; all imports resolve)
+**Last Updated:** 2026-02-07 (Rev 13 — Tier 3: Item 44 toasts, Item 48 TitleBar try/catch, Item 52 drop_console + sourcemap)
 
 ---
 
@@ -133,8 +133,8 @@ Problems:
 - 3 hotkey registrations
 - Renders both `GlobalCommandPalette` and `Router`
 
-**Follow-up:** Extract `useAppNavigation` (or similar) so navigation state lives in a dedicated hook/context; GlobalCommandHotkey should only register hotkeys and compose palette + Router with that state.
-**Status:** [ ] Follow-up — extract useAppNavigation; then optionally have providers import from domains directly instead of legacy barrels
+**Follow-up:** ~~Extract `useAppNavigation`~~ — Done (Rev 11): `app/useAppNavigation.ts` holds navigation state and handlers; GlobalCommandHotkey only registers hotkeys and composes palette + Router.
+**Status:** [x] Follow-up done — useAppNavigation extracted; optional: have providers import from domains directly instead of legacy barrels
 
 ---
 
@@ -1028,12 +1028,12 @@ This restructure does NOT need to happen in one big bang. Do it incrementally, o
 - ~~`pane/` (already has components/pane/, add hooks + context)~~ — Done: created `pane/` with types, utils/paneLayoutUtils, hooks (usePanePersistence, usePaneLayout, usePaneHotkeys), context/PaneLayoutContext; moved from contexts/, hooks/, utils/, types/PaneLayout; components/pane imports from ../../pane
 - ~~`document/` (consolidate from 4 current directories)~~ — Done: `document/` domain created with DocumentPage, hooks (useDocumentController, useDocumentForm, useDocumentLoader, useDocumentPersistence, useDocumentSaver, useDocumentEscapeHandling, useDocumentEditor), context (DocumentContext, DocumentCountContext), components (DocumentContent, DocumentEditorForm, DocumentEditorActions, DocumentErrorState, DocumentLoadingState, MetadataSidebar), utils (documentUtils); barrel file exports public API; shims at old locations for backward compatibility
 - ~~`dashboard/`~~ — Done: `dashboard/` domain created with DashboardPage, hooks (useDashboardController, useDashboardCommandHandler), components (DocumentList, MoveDocumentDialog, StatusBar — all single-use by dashboard); tests moved alongside code; shims at `pages/Dashboard.tsx`, `pages/dashboard/`, `components/DocumentList.tsx`, `components/MoveDocumentDialog.tsx`, `components/ui/StatusBar.tsx`; pages/index.ts imports Dashboard from `../dashboard`
-- `project/`
-- `search/`
-- `command-palette/` (extract from GlobalCommandPalette.tsx god file)
-- `hotkeys/` (extract from HotkeyContext.tsx)
-- `onboarding/` (group WelcomeOverlay + milestones + progress)
-- `help/` (extract HelpModal + related)
+- ~~`project/`~~ — Done: project context, ProjectsPage, NewProjectDialog in `project/`; shims at contexts, pages, components
+- ~~`search/`~~ — Done: SearchPage in `search/`; pages shim
+- ~~`command-palette/`~~ — Done: GlobalCommandPalette, useCommandUsage, commandSorting, commandPreprocessor in `command-palette/`; shims at components, hooks, utils
+- ~~`hotkeys/`~~ — Done: HotkeyContext, useHotkey in `hotkeys/`; shims at contexts, hooks
+- ~~`onboarding/`~~ — Done: WelcomeOverlay, milestones, UserProgressContext in `onboarding/`; shims at components, contexts, hooks
+- ~~`help/`~~ — Done: HelpModal, HelpSection, ShortcutSearch, HelpContext in `help/`; shims at components/ui, contexts, hooks
 
 **Phase 5: Create app/ shell**
 1. ~~Move App.tsx, Router.tsx, Layout.tsx, CrashBoundary.tsx to `app/`~~ — Done: `app/App.tsx`, `app/Router.tsx`, `app/Layout.tsx`, `app/CrashBoundary.tsx`; shims at `App.tsx`, `components/Router.tsx`, `components/Layout.tsx`, `components/CrashBoundary.tsx` re-export from `app/index`
@@ -1259,7 +1259,7 @@ Multiple catch blocks that `console.error` and continue, giving the user no feed
 
 **Fix:** Every user-initiated operation that fails should show a toast notification. Background operations should set error state that components can display.
 
-**Status:** [ ] Not started
+**Status:** [x] Done (Rev 12) — Toasts added: Search (tags), ProjectsPage (document counts), ProjectContext (load projects), QuickCapture (projects), useJournal (entries), useJournalController (dates). QuickCapture branch in main.tsx wrapped with ToastProvider. Clipboard (shared/utils/clipboard paste/upload) still console-only; optional follow-up.
 
 ---
 
@@ -1318,9 +1318,8 @@ Async operations that could return after component unmount or after state has ch
 
 ### 48. Window Controls Unprotected
 
-**`components/ui/TitleBar.tsx:38, 42`** — `Window.Minimise()` and `Window.ToggleMaximise()` called with no try/catch. If Wails runtime fails (e.g., during app shutdown), these throw unhandled exceptions.
-
-**Status:** [ ] Not started
+**`components/ui/TitleBar.tsx:38, 42`** — ~~`Window.Minimise()` and `Window.ToggleMaximise()` called with no try/catch~~ — **Done (Rev 12):** Both wrapped in try/catch; toast shown on failure. Frameless check catch uses BackendLogger.
+**Status:** [x] Completed
 
 ---
 
@@ -1393,13 +1392,13 @@ New object/function references created on every render, breaking memoization:
 **Good:** Vite config has manual chunks for React, BlockNote, and utilities. Pages lazy-loaded (except Dashboard — correct, it's the initial route).
 
 **Gaps:**
-- `drop_console: true` is **commented out** in `vite.config.ts:43` — production bundles include all console.log statements
+- ~~`drop_console: true` is **commented out**~~ — **Done (Rev 12):** Enabled; `pure_funcs` for console.log/info enabled.
 - No chunk for Radix UI primitives (6 packages, used across many components)
 - No chunk for `lucide-react` (icon library, likely tree-shakes but worth verifying)
 - `date-fns` not in manual chunks (large library, should be split or tree-shaken)
-- `sourcemap: false` — makes production debugging impossible. Should be `'hidden'` (sourcemaps generated but not referenced in bundles, available for error tracking)
+- ~~`sourcemap: false`~~ — **Done (Rev 12):** Set to `'hidden'` for production.
 
-**Status:** [ ] Not started
+**Status:** [x] Partial — drop_console and hidden sourcemaps done; other gaps optional
 
 ---
 
@@ -1539,6 +1538,11 @@ Items already resolved in prior branches. Kept here for reference; removed from 
 | — | Phase 4: Extract `document/` domain | Rev 9 — `refactor/frontend-foundation`; DocumentPage, hooks, context, components, utils consolidated |
 | — | Phase 4: Extract `dashboard/` domain | Rev 9 — `refactor/frontend-foundation`; DashboardPage, DocumentList, MoveDocumentDialog, StatusBar moved; tests migrated |
 | — | Fix `Projects.tsx` TS type errors | Rev 9 — `refactor/frontend-foundation`; widened state types to `Record<string, T \| undefined>` to match API returns |
+| — | Phase 4: Extract `project/`, `search/`, `command-palette/`, `hotkeys/`, `onboarding/`, `help/` | Rev 9 — `refactor/frontend-foundation`; all six domains consolidated with shims |
+| 4 | God Component follow-up: extract `useAppNavigation` | Rev 12 — `app/useAppNavigation.ts`; GlobalCommandHotkey slimmed to hotkeys + composition |
+| 44 | Silent error swallowing → toast notifications (6 of 7 sites) | Rev 12 — Search, Projects, ProjectContext, QuickCapture, useJournal, useJournalController; clipboard optional follow-up |
+| 48 | Window controls try/catch (TitleBar.tsx) | Rev 12 — Minimise/ToggleMaximise wrapped; toast on failure; BackendLogger for frameless check |
+| 52 | Bundle: drop_console, pure_funcs, sourcemap hidden | Rev 12 — vite.config.ts terserOptions + sourcemap |
 
 ---
 
@@ -1579,11 +1583,11 @@ See Section 35 for detailed steps per phase. Each phase leaves the app fully wor
 
 | # | Issue | Impact | Effort |
 |---|-------|--------|--------|
-| 44 | Fix silent error swallowing (7 instances → toast notifications) | User feedback on failures | Low |
+| 44 | ~~Fix silent error swallowing (7 instances → toast notifications)~~ — Done Rev 12 | User feedback on failures | Low |
 | 45 | Add granular error boundaries (editor, settings, document list) | Partial crash recovery | Medium |
 | 47 | Add AbortController to async hooks (loader, search, journal) | Prevent race conditions | Medium |
-| 48 | Add try/catch to Window controls (TitleBar.tsx) | Prevent unhandled exceptions | Low |
-| 52 | Enable `drop_console`, add hidden sourcemaps in vite config | Production build quality | Low |
+| 48 | ~~Add try/catch to Window controls (TitleBar.tsx)~~ — Done Rev 12 | Prevent unhandled exceptions | Low |
+| 52 | ~~Enable `drop_console`, add hidden sourcemaps in vite config~~ — Done Rev 12 | Production build quality | Low |
 
 ### Tier 4: Performance (handles scale)
 
