@@ -3,6 +3,7 @@ import { ListDates } from "../../bindings/yanta/internal/journal/wailsservice";
 import { JOURNAL_SHORTCUTS } from "../config";
 import { useProjectContext } from "../contexts";
 import { useHelp } from "../hooks";
+import { useNotification } from "../hooks/useNotification";
 import { useSidebarSections } from "../hooks/useSidebarSections";
 import type { HotkeyConfig } from "../types/hotkeys";
 import type { NavigationState } from "../types";
@@ -113,6 +114,7 @@ export function useJournalController({
 	const { currentProject } = useProjectContext();
 	const projectAlias = currentProject?.alias || "@personal";
 	const { setPageContext } = useHelp();
+	const { error: notifyError } = useNotification();
 
 	const [datesWithEntries, setDatesWithEntries] = useState<string[]>([]);
 	const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -161,10 +163,11 @@ export function useJournalController({
 				setDatesWithEntries(dates as string[]);
 			} catch (err) {
 				BackendLogger.error("Failed to load dates:", err);
+				notifyError("Failed to load journal dates");
 			}
 		};
 		loadDates();
-	}, [projectAlias]);
+	}, [projectAlias, notifyError]);
 
 	// Reset highlighted index when entries change
 	useEffect(() => {

@@ -9,6 +9,7 @@ import {
 	RestoreEntry,
 } from "../../bindings/yanta/internal/journal/wailsservice";
 import type { JournalEntryData } from "./JournalEntry";
+import { useNotification } from "../hooks/useNotification";
 import { BackendLogger } from "../utils/backendLogger";
 
 export interface UseJournalOptions {
@@ -48,6 +49,7 @@ export function useJournal({
 	projectAlias,
 	date: initialDate,
 }: UseJournalOptions): UseJournalReturn {
+	const { error: notifyError } = useNotification();
 	const [entries, setEntries] = useState<JournalEntryData[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -98,10 +100,11 @@ export function useJournal({
 			BackendLogger.error("Failed to fetch journal entries:", err);
 			setError("Failed to load entries");
 			setEntries([]);
+			notifyError("Failed to load journal entries");
 		} finally {
 			setIsLoading(false);
 		}
-	}, [projectAlias, date]);
+	}, [projectAlias, date, notifyError]);
 
 	// Fetch on mount and when dependencies change
 	useEffect(() => {

@@ -10,6 +10,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { App, CrashBoundary } from "@/app";
 import { DialogProvider, HotkeyProvider, UserProgressProvider } from "./contexts";
+import { ToastProvider } from "./components/ui";
 import { QuickCapture } from "./quick-capture";
 import { BackendLogger, enableBackendLogging } from "./utils/backendLogger";
 import "./styles/tailwind.css";
@@ -49,13 +50,15 @@ if (isQuickCapture) {
 	root.render(
 		<React.StrictMode>
 			<CrashBoundary>
-				<DialogProvider>
-					<HotkeyProvider>
-						<UserProgressProvider>
-							<QuickCapture />
-						</UserProgressProvider>
-					</HotkeyProvider>
-				</DialogProvider>
+				<ToastProvider>
+					<DialogProvider>
+						<HotkeyProvider>
+							<UserProgressProvider>
+								<QuickCapture />
+							</UserProgressProvider>
+						</HotkeyProvider>
+					</DialogProvider>
+				</ToastProvider>
 			</CrashBoundary>
 		</React.StrictMode>,
 	);

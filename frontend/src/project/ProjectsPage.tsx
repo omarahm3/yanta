@@ -48,7 +48,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 		onConfirm: () => {},
 	});
 	const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
-	const { success, error } = useNotification();
+	const { success, error: notifyError } = useNotification();
 	const projectsRef = useRef(projects);
 	const archivedProjectsRef = useRef(archivedProjects);
 	const selectedProjectIdRef = useRef(selectedProjectId);
@@ -66,8 +66,9 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 			setLastDocumentDates(dates || {});
 		} catch (err) {
 			BackendLogger.error("Failed to fetch document counts and dates:", err);
+			notifyError("Failed to load document counts");
 		}
-	}, []);
+	}, [notifyError]);
 
 	useEffect(() => {
 		if (projects.length > 0 || archivedProjects.length > 0) {
@@ -187,7 +188,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 
 			if (!result.success) {
 				if (result.message) {
-					error(result.message);
+					notifyError(result.message);
 				}
 				return;
 			}
@@ -203,7 +204,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 				success(result.message, { duration: 6000 });
 			}
 		},
-		[loadProjects, fetchDocumentData, error, success],
+		[loadProjects, fetchDocumentData, notifyError, success],
 	);
 
 	const executeProjectCommand = useCallback(
@@ -239,13 +240,13 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 				const preview = await Parse(command);
 
 				if (!preview) {
-					error("Command returned null");
+					notifyError("Command returned null");
 					return;
 				}
 
 				if (!preview.success) {
 					if (preview.message) {
-						error(preview.message);
+						notifyError(preview.message);
 					}
 					return;
 				}
@@ -313,10 +314,10 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 
 				await applyResult(preview);
 			} catch (err) {
-				error(err instanceof Error ? err.message : "Command failed");
+				notifyError(err instanceof Error ? err.message : "Command failed");
 			}
 		},
-		[projects, archivedProjects, applyResult, error],
+		[projects, archivedProjects, applyResult, notifyError],
 	);
 
 	const selectNext = useCallback(() => {
@@ -354,10 +355,10 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 				setSelectedProjectId(projectId);
 				setIsNewProjectDialogOpen(false);
 			} catch (err) {
-				error(err instanceof Error ? err.message : "Failed to create project");
+				notifyError(err instanceof Error ? err.message : "Failed to create project");
 			}
 		},
-		[loadProjects, fetchDocumentData, error],
+		[loadProjects, fetchDocumentData, notifyError],
 	);
 
 	const projectHotkeys = useMemo(

@@ -77,6 +77,7 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 				setAvailableTags(tagNames);
 			} catch (err) {
 				BackendLogger.error("Failed to load tags:", err);
+				notifyError("Failed to load tags");
 			}
 		};
 		loadTags();

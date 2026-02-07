@@ -4,8 +4,10 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import { BackgroundQuit } from "../../../bindings/yanta/internal/system/service";
 import { IsFrameless } from "../../../bindings/yanta/internal/window/service";
+import { BackendLogger } from "../../utils/backendLogger";
 import { useTitleBarContext } from "../../contexts";
 import { Button } from "./Button";
+import { useToast } from "./Toast";
 
 export const TitleBar: React.FC = () => {
 	const [shouldShow, setShouldShow] = useState<boolean>(false);
@@ -25,7 +27,7 @@ export const TitleBar: React.FC = () => {
 				setShouldShow(frameless);
 				setHeight(frameless ? 2 : 0);
 			} catch (err) {
-				console.error("Failed to check frameless mode:", err);
+				BackendLogger.error("Failed to check frameless mode:", err);
 				setShouldShow(false);
 				setHeight(0);
 			}
@@ -34,12 +36,22 @@ export const TitleBar: React.FC = () => {
 		checkFrameless();
 	}, [setHeight]);
 
+	const toast = useToast();
+
 	const handleMinimize = () => {
-		Window.Minimise();
+		try {
+			Window.Minimise();
+		} catch (err) {
+			toast.error("Could not minimize window");
+		}
 	};
 
 	const handleMaximize = () => {
-		Window.ToggleMaximise();
+		try {
+			Window.ToggleMaximise();
+		} catch (err) {
+			toast.error("Could not maximize window");
+		}
 	};
 
 	const handleClose = () => {

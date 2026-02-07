@@ -12,6 +12,7 @@ import {
 import { ListActive, ListArchived } from "../../../bindings/yanta/internal/project/service";
 import { type Project, projectsFromModels } from "../../types";
 import { BackendLogger } from "../../utils/backendLogger";
+import { useNotification } from "../../hooks/useNotification";
 
 interface ProjectContextValue {
 	currentProject: Project | undefined;
@@ -31,6 +32,7 @@ interface ProjectProviderProps {
 }
 
 export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) => {
+	const { error: notifyError } = useNotification();
 	const [currentProject, setCurrentProjectInternal] = useState<Project | undefined>();
 	const [previousProject, setPreviousProject] = useState<Project | undefined>();
 	const [projects, setProjects] = useState<Project[]>([]);
@@ -81,10 +83,11 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({ children }) =>
 			});
 		} catch (err) {
 			BackendLogger.error("Failed to load projects:", err);
+			notifyError("Failed to load projects");
 		} finally {
 			setIsLoading(false);
 		}
-	}, []);
+	}, [notifyError]);
 
 	useEffect(() => {
 		loadProjects();

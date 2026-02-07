@@ -5,6 +5,7 @@ import { ListActive } from "../../bindings/yanta/internal/project/service";
 import { QUICK_CAPTURE_SHORTCUTS } from "../config";
 import { useUserProgressContext } from "../contexts";
 import { useHotkeys } from "../hooks";
+import { useNotification } from "../hooks/useNotification";
 import type { HotkeyConfig } from "../types/hotkeys";
 import type { ProjectOption } from "./ProjectPicker";
 import { QuickEditor } from "./QuickEditor";
@@ -22,6 +23,7 @@ export const QuickCapture: React.FC = () => {
 	const [showEscapeHint, setShowEscapeHint] = useState(false);
 
 	const { incrementJournalEntriesCreated } = useUserProgressContext();
+	const { error: notifyError } = useNotification();
 	const { content, setContent, tags, error, save, removeTag, clear } = useQuickCapture({
 		onEntrySaved: incrementJournalEntriesCreated,
 	});
@@ -41,13 +43,14 @@ export const QuickCapture: React.FC = () => {
 				setProjects(mapped);
 			} catch (err) {
 				BackendLogger.error("Failed to load projects:", err);
+				notifyError("Failed to load projects");
 			} finally {
 				setIsLoading(false);
 			}
 		};
 
 		loadProjects();
-	}, []);
+	}, [notifyError]);
 
 	const handleClose = useCallback(() => {
 		try {
