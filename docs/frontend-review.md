@@ -1200,7 +1200,7 @@ New object reference every render → all `useProjectContext()` consumers re-ren
 
 **Fix:** Wrap context values in `useMemo` with correct dependency arrays. Better: migrate to zustand stores which handle this automatically.
 
-**Status:** [ ] Not started
+**Status:** [x] Done — All providers now memoize value: ProjectContext, DocumentContext, DocumentCountContext, ScaleContext, TitleBarContext, DialogContext, HelpContext, HotkeyContext, PaneLayoutContext; UserProgressContext receives memoized return from useUserProgress.
 
 ---
 
@@ -1543,6 +1543,7 @@ Items already resolved in prior branches. Kept here for reference; removed from 
 | 44 | Silent error swallowing → toast notifications (6 of 7 sites) | Rev 12 — Search, Projects, ProjectContext, QuickCapture, useJournal, useJournalController; clipboard optional follow-up |
 | 48 | Window controls try/catch (TitleBar.tsx) | Rev 12 — Minimise/ToggleMaximise wrapped; toast on failure; BackendLogger for frameless check |
 | 52 | Bundle: drop_console, pure_funcs, sourcemap hidden | Rev 12 — vite.config.ts terserOptions + sourcemap |
+| 41 | Context value objects memoized (useMemo in all providers) | Already implemented in codebase |
 
 ---
 
@@ -1572,7 +1573,7 @@ See Section 35 for detailed steps per phase. Each phase leaves the app fully wor
 | # | Issue | Impact | Effort |
 |---|-------|--------|--------|
 | 3 | Replace provider pyramid with Zustand (see provider mapping above) | Simpler state, no re-render cascades | High |
-| 41 | Memoize remaining context values (`useMemo` on provider values) | Stops unnecessary re-renders | Low |
+| 41 | ~~Memoize remaining context values (`useMemo` on provider values)~~ — Done | Stops unnecessary re-renders | Low |
 | 4 | Extract God Component into proper router + controller | Separation of concerns | Medium |
 | 39 | Split `useSettingsController` (27 useState) into 5 focused hooks | Maintainability | Medium |
 | 54 | Create command registry for plugin system | Extensible commands | High |
