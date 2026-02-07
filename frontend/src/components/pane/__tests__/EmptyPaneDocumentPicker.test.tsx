@@ -35,13 +35,17 @@ vi.mock("../../../hooks/useRecentDocuments", () => ({
 	}),
 }));
 
-vi.mock("../../../hooks/usePaneLayout", () => ({
-	usePaneLayout: () => ({
-		openDocumentInPane: mockOpenDocumentInPane,
-		setActivePane: mockSetActivePane,
-		activePaneId: "pane-1",
-	}),
-}));
+vi.mock("../../../pane", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../../../pane")>();
+	return {
+		...actual,
+		usePaneLayout: () => ({
+			openDocumentInPane: mockOpenDocumentInPane,
+			setActivePane: mockSetActivePane,
+			activePaneId: "pane-1",
+		}),
+	};
+});
 
 vi.mock("../../../contexts/ProjectContext", () => ({
 	useProjectContext: () => ({

@@ -6,8 +6,8 @@ import {
 	loadPaneLayout,
 	usePanePersistence,
 } from "../hooks/usePanePersistence";
-import type { PaneLayoutState, ScrollPosition, SplitDirection } from "../types/PaneLayout";
-import { createDefaultPaneLayout } from "../types/PaneLayout";
+import type { PaneLayoutState, ScrollPosition, SplitDirection } from "../types";
+import { createDefaultPaneLayout } from "../types";
 import {
 	closePane as closePaneUtil,
 	findPane,

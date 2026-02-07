@@ -1,4 +1,4 @@
-import { LAYOUT } from "@/config";
+import { LAYOUT } from "../config";
 
 export type SplitDirection = "horizontal" | "vertical";
 

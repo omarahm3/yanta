@@ -1023,7 +1023,7 @@ This restructure does NOT need to happen in one big bang. Do it incrementally, o
 **Phase 4: Extract remaining domains one at a time**
 - ~~`quick-capture/` (already isolated, just move)~~ — Done: moved `pages/QuickCapture/` to `quick-capture/`; pages/index.ts and main.tsx updated
 - ~~`settings/` (already has subdirectory, consolidate)~~ — Done: moved `pages/Settings.tsx` and `pages/settings/` to `settings/`; pages/index.ts updated
-- `pane/` (already has components/pane/, add hooks + context)
+- ~~`pane/` (already has components/pane/, add hooks + context)~~ — Done: created `pane/` with types, utils/paneLayoutUtils, hooks (usePanePersistence, usePaneLayout, usePaneHotkeys), context/PaneLayoutContext; moved from contexts/, hooks/, utils/, types/PaneLayout; components/pane imports from ../../pane
 - `document/` (consolidate from 4 current directories)
 - `dashboard/`
 - `project/`

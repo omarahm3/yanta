@@ -10,7 +10,6 @@ import {
 	DocumentProvider,
 	HelpProvider,
 	HotkeyProvider,
-	PaneLayoutProvider,
 	ProjectProvider,
 	ScaleProvider,
 	TitleBarProvider,
@@ -20,7 +19,8 @@ import {
 	useUserProgressContext,
 } from "./contexts";
 import { GLOBAL_SHORTCUTS } from "./config";
-import { useHotkey, usePaneLayout } from "./hooks";
+import { useHotkey } from "./hooks";
+import { PaneLayoutProvider, usePaneLayout } from "./pane";
 import { useHelp } from "./hooks/useHelp";
 import type { NavigationState, PageName } from "./types";
 import { BackendLogger } from "./utils/backendLogger";

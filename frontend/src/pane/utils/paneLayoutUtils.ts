@@ -5,8 +5,8 @@ import type {
 	PaneSplit,
 	ScrollPosition,
 	SplitDirection,
-} from "../types/PaneLayout";
-import { createDefaultPaneLayout, MAX_PANES } from "../types/PaneLayout";
+} from "../types";
+import { createDefaultPaneLayout, MAX_PANES } from "../types";
 
 let paneIdCounter = 0;
 

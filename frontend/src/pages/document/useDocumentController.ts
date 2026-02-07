@@ -16,7 +16,7 @@ import { useDocumentInitialization } from "../../hooks/useDocumentInitialization
 import { useDocumentPersistence } from "../../hooks/useDocumentPersistence";
 import { useHelp } from "../../hooks/useHelp";
 import { useNotification } from "../../hooks/useNotification";
-import { usePaneLayout } from "../../hooks/usePaneLayout";
+import { usePaneLayout } from "../../pane";
 import { useRecentDocuments } from "../../hooks/useRecentDocuments";
 import { useSidebarSections } from "../../hooks/useSidebarSections";
 import { DocumentServiceWrapper } from "../../services/DocumentService";

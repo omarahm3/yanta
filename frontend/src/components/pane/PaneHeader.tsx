@@ -1,10 +1,8 @@
 import { Columns, Rows, X } from "lucide-react";
 import type React from "react";
 import { useCallback, useMemo } from "react";
-import { usePaneLayout } from "../../hooks/usePaneLayout";
 import { cn } from "../../lib/utils";
-import { MAX_PANES } from "../../types/PaneLayout";
-import { countLeaves } from "../../utils/paneLayoutUtils";
+import { countLeaves, MAX_PANES, usePaneLayout } from "../../pane";
 
 export interface PaneHeaderProps {
 	paneId: string;

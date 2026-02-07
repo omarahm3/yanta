@@ -1,8 +1,8 @@
 import { useMemo } from "react";
-import { PANE_SHORTCUTS } from "../config";
-import type { HotkeyConfig } from "../types/hotkeys";
+import { PANE_SHORTCUTS } from "../../config";
+import type { HotkeyConfig } from "../../types/hotkeys";
 import { countLeaves, getPaneInDirection, type PaneDirection } from "../utils/paneLayoutUtils";
-import { useHotkeys } from "./useHotkey";
+import { useHotkeys } from "../../hooks/useHotkey";
 import { usePaneLayout } from "./usePaneLayout";
 
 const directionKeys: { key: string; direction: PaneDirection }[] = [

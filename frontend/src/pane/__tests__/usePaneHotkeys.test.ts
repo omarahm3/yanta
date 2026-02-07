@@ -22,7 +22,7 @@ const mockLayout = {
 
 const registeredHotkeys: any[] = [];
 
-vi.mock("../usePaneLayout", () => ({
+vi.mock("../hooks/usePaneLayout", () => ({
 	usePaneLayout: () => ({
 		layout: mockLayout,
 		activePaneId: "pane-1",
@@ -32,14 +32,14 @@ vi.mock("../usePaneLayout", () => ({
 	}),
 }));
 
-vi.mock("../useHotkey", () => ({
+vi.mock("../../hooks/useHotkey", () => ({
 	useHotkeys: (hotkeys: any[]) => {
 		registeredHotkeys.length = 0;
 		registeredHotkeys.push(...hotkeys);
 	},
 }));
 
-import { usePaneHotkeys } from "../usePaneHotkeys";
+import { usePaneHotkeys } from "../hooks/usePaneHotkeys";
 
 describe("usePaneHotkeys", () => {
 	beforeEach(() => {

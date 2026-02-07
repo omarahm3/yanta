@@ -43,7 +43,7 @@ import { useDocumentContext } from "../contexts/DocumentContext";
 import { useProjectContext } from "../contexts/ProjectContext";
 import { useCommandUsage } from "../hooks/useCommandUsage";
 import { useNotification } from "../hooks/useNotification";
-import { usePaneLayout } from "../hooks/usePaneLayout";
+import { usePaneLayout } from "../pane";
 import { useRecentDocuments } from "../hooks/useRecentDocuments";
 import { DocumentServiceWrapper } from "../services/DocumentService";
 import type { NavigationState } from "../types";

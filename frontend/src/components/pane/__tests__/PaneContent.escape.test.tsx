@@ -23,16 +23,20 @@ let mockLayout = {
 	primaryDocumentPath: "proj/doc1" as string | null,
 };
 
-vi.mock("../../../hooks/usePaneLayout", () => ({
-	usePaneLayout: () => ({
-		layout: mockLayout,
-		activePaneId: mockLayout.activePaneId,
-		openDocumentInPane: mockOpenDocumentInPane,
-		swapPaneDocuments: mockSwapPaneDocuments,
-		setActivePane: mockSetActivePane,
-		closePane: mockClosePane,
-	}),
-}));
+vi.mock("../../../pane", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../../../pane")>();
+	return {
+		...actual,
+		usePaneLayout: () => ({
+			layout: mockLayout,
+			activePaneId: mockLayout.activePaneId,
+			openDocumentInPane: mockOpenDocumentInPane,
+			swapPaneDocuments: mockSwapPaneDocuments,
+			setActivePane: mockSetActivePane,
+			closePane: mockClosePane,
+		}),
+	};
+});
 
 vi.mock("../PaneNavigateContext", () => ({
 	usePaneNavigateContext: () => mockOnNavigate,
@@ -54,7 +58,15 @@ vi.mock("../../../hooks/useHotkey", () => ({
 	useHotkey: () => {},
 }));
 
+import { DialogProvider } from "../../../contexts/DialogContext";
 import { PaneContent } from "../PaneContent";
+
+const renderPaneContent = (props: React.ComponentProps<typeof PaneContent>) =>
+	render(
+		<DialogProvider>
+			<PaneContent {...props} />
+		</DialogProvider>,
+	);
 
 describe("PaneContent escape handling", () => {
 	beforeEach(() => {
@@ -64,7 +76,7 @@ describe("PaneContent escape handling", () => {
 	});
 
 	it("closes empty pane on ESC when multiple panes exist", () => {
-		render(<PaneContent paneId="pane-2" documentPath={null} />);
+		renderPaneContent({ paneId: "pane-2", documentPath: null });
 
 		act(() => {
 			const event = new KeyboardEvent("keydown", {
@@ -86,7 +98,7 @@ describe("PaneContent escape handling", () => {
 			primaryDocumentPath: null,
 		};
 
-		render(<PaneContent paneId="pane-1" documentPath={null} />);
+		renderPaneContent({ paneId: "pane-1", documentPath: null });
 
 		act(() => {
 			const event = new KeyboardEvent("keydown", {
@@ -117,7 +129,7 @@ describe("PaneContent escape handling", () => {
 			primaryDocumentPath: null,
 		};
 
-		render(<PaneContent paneId="pane-2" documentPath={null} />);
+		renderPaneContent({ paneId: "pane-2", documentPath: null });
 
 		act(() => {
 			const event = new KeyboardEvent("keydown", {
@@ -139,7 +151,7 @@ describe("PaneContent escape handling", () => {
 			primaryDocumentPath: "proj/doc1",
 		};
 
-		render(<PaneContent paneId="pane-1" documentPath="proj/doc1" />);
+		renderPaneContent({ paneId: "pane-1", documentPath: "proj/doc1" });
 
 		act(() => {
 			const event = new KeyboardEvent("keydown", {

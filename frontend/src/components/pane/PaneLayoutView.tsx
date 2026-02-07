@@ -1,8 +1,7 @@
 import type React from "react";
 import { useCallback, useEffect, useRef } from "react";
 import { useLatestRef } from "../../shared/hooks/useLatestRef";
-import { usePaneHotkeys } from "../../hooks/usePaneHotkeys";
-import { usePaneLayout } from "../../hooks/usePaneLayout";
+import { usePaneHotkeys, usePaneLayout } from "../../pane";
 import { useSidebarSections } from "../../hooks/useSidebarSections";
 import type { NavigationState } from "../../types";
 import { Layout } from "../Layout";

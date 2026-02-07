@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { Group, type Layout, Panel, Separator } from "react-resizable-panels";
-import { usePaneLayout } from "../../hooks/usePaneLayout";
 import { cn } from "../../lib/utils";
-import type { PaneLeaf, PaneNode, PaneSplit, SplitDirection } from "../../types/PaneLayout";
+import type { PaneLeaf, PaneNode, PaneSplit, SplitDirection } from "../../pane";
+import { usePaneLayout } from "../../pane";
 import { PaneContent } from "./PaneContent";
 
 // --- Resize Handle ---

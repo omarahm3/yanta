@@ -240,7 +240,7 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 		key: "mod+\\",
 		description: "Split pane right",
 		context: "document",
-		source: "usePaneHotkeys.ts",
+		source: "pane/usePaneHotkeys",
 		allowInInput: true,
 		capture: true,
 	});
@@ -249,7 +249,7 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 		key: "mod+shift+\\",
 		description: "Split pane down",
 		context: "document",
-		source: "usePaneHotkeys.ts",
+		source: "pane/usePaneHotkeys",
 		allowInInput: true,
 		capture: true,
 	});
@@ -258,7 +258,7 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 		key: "alt+x",
 		description: "Close active pane",
 		context: "document",
-		source: "usePaneHotkeys.ts",
+		source: "pane/usePaneHotkeys",
 		allowInInput: true,
 		capture: true,
 	});
@@ -267,7 +267,7 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 		key: "alt+h",
 		description: "Focus pane left",
 		context: "document",
-		source: "usePaneHotkeys.ts",
+		source: "pane/usePaneHotkeys",
 		allowInInput: true,
 		capture: true,
 	});
@@ -276,7 +276,7 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 		key: "alt+j",
 		description: "Focus pane down",
 		context: "document",
-		source: "usePaneHotkeys.ts",
+		source: "pane/usePaneHotkeys",
 		allowInInput: true,
 		capture: true,
 	});
@@ -285,7 +285,7 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 		key: "alt+k",
 		description: "Focus pane up",
 		context: "document",
-		source: "usePaneHotkeys.ts",
+		source: "pane/usePaneHotkeys",
 		allowInInput: true,
 		capture: true,
 	});
@@ -294,7 +294,7 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 		key: "alt+l",
 		description: "Focus pane right",
 		context: "document",
-		source: "usePaneHotkeys.ts",
+		source: "pane/usePaneHotkeys",
 		allowInInput: true,
 		capture: true,
 	});

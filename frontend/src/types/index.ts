@@ -33,8 +33,8 @@ export type {
 	PaneSplit,
 	ScrollPosition,
 	SplitDirection,
-} from "./PaneLayout";
-export { createDefaultPaneLayout, MAX_PANES } from "./PaneLayout";
+} from "../pane/types";
+export { createDefaultPaneLayout, MAX_PANES } from "../pane/types";
 export type { ExtendedProject, Project, ProjectType } from "./Project";
 // Re-export converters for convenience
 export {

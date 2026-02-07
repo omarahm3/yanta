@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { PaneLeaf, PaneNode, PaneSplit } from "../../types/PaneLayout";
+import type { PaneLeaf, PaneNode, PaneSplit } from "../types";
 import {
 	countLeaves,
 	findPane,
@@ -8,7 +8,7 @@ import {
 	getPaneInDirection,
 	getPreviousLeafId,
 	validateLayout,
-} from "../paneLayoutUtils";
+} from "../utils/paneLayoutUtils";
 
 const leaf = (id: string, documentPath: string | null = null): PaneLeaf => ({
 	type: "leaf",

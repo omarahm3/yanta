@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
 import { TIMEOUTS } from "@/config";
-import type { PaneLayoutState } from "../types/PaneLayout";
-import { createDefaultPaneLayout } from "../types/PaneLayout";
+import type { PaneLayoutState } from "../types";
+import { createDefaultPaneLayout } from "../types";
 import { restoreLayout } from "../utils/paneLayoutUtils";
-import { BackendLogger } from "../utils/backendLogger";
-import { useLocalStorage } from "../shared/hooks/useLocalStorage";
+import { BackendLogger } from "../../utils/backendLogger";
+import { useLocalStorage } from "../../shared/hooks/useLocalStorage";
 
 const OLD_STORAGE_KEY = "yanta_pane_layout";
 const STORAGE_KEY = "yanta_pane_layouts";

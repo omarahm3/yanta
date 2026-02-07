@@ -8,14 +8,18 @@ const mockLayout = {
 	primaryDocumentPath: null,
 };
 
-vi.mock("../../../hooks/usePaneLayout", () => ({
-	usePaneLayout: () => ({
-		layout: mockLayout,
-		activePaneId: "pane-1",
-		splitPane: vi.fn(),
-		closePane: vi.fn(),
-	}),
-}));
+vi.mock("../../../pane", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../../../pane")>();
+	return {
+		...actual,
+		usePaneLayout: () => ({
+			layout: mockLayout,
+			activePaneId: "pane-1",
+			splitPane: vi.fn(),
+			closePane: vi.fn(),
+		}),
+	};
+});
 
 import { PaneHeader } from "../PaneHeader";
 

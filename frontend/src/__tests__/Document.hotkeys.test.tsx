@@ -1,7 +1,12 @@
 import { act, render, waitFor } from "@testing-library/react";
 import React from "react";
 import { vi } from "vitest";
-import { DialogProvider, HotkeyProvider, useHotkeyContext } from "../contexts";
+import {
+	DialogProvider,
+	HotkeyProvider,
+	UserProgressProvider,
+	useHotkeyContext,
+} from "../contexts";
 import type { HotkeyContextValue } from "../types/hotkeys";
 
 const mockSaveNow = vi.fn(async () => {});
@@ -93,7 +98,7 @@ vi.mock("../hooks/useHelp", () => ({
 	useHelp: () => ({ setPageContext: vi.fn() }),
 }));
 
-vi.mock("../hooks/usePaneLayout", () => ({
+vi.mock("../pane", () => ({
 	usePaneLayout: () => ({ activePaneId: "pane-1" }),
 }));
 
@@ -134,11 +139,13 @@ const renderDocument = async () => {
 
 	render(
 		<DialogProvider>
-			<HotkeyProvider>
-				{/* biome-ignore lint/suspicious/noAssignInExpressions: Test callback pattern */}
-				<HotkeyProbe onReady={(ctx) => (context = ctx)} />
-				<Document onNavigate={vi.fn()} initialTitle="Sample" />
-			</HotkeyProvider>
+			<UserProgressProvider>
+				<HotkeyProvider>
+					{/* biome-ignore lint/suspicious/noAssignInExpressions: Test callback pattern */}
+					<HotkeyProbe onReady={(ctx) => (context = ctx)} />
+					<Document onNavigate={vi.fn()} initialTitle="Sample" />
+				</HotkeyProvider>
+			</UserProgressProvider>
 		</DialogProvider>,
 	);
 
