@@ -6,7 +6,8 @@ export {
 	DocumentCountProvider,
 	useDocumentCount,
 } from "../document";
-export { HelpProvider, useHelpContext } from "./HelpContext";
+// Re-export from help domain for backward compatibility
+export { HelpProvider, useHelpContext } from "../help";
 export { HotkeyProvider, useHotkeyContext } from "./HotkeyContext";
 export type { PaneLayoutContextValue } from "../pane";
 export { PaneLayoutContext, PaneLayoutProvider } from "../pane";

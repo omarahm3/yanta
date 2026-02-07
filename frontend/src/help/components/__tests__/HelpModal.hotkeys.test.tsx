@@ -1,10 +1,10 @@
 import { fireEvent, render } from "@testing-library/react";
 import { vi } from "vitest";
-import { HelpModal } from "../components/ui/HelpModal";
+import { HelpModal } from "../HelpModal";
 
 const closeHelp = vi.fn();
 
-vi.mock("../hooks/useHelp", () => ({
+vi.mock("../../hooks/useHelp", () => ({
 	useHelp: () => ({
 		isOpen: true,
 		closeHelp,
@@ -13,7 +13,7 @@ vi.mock("../hooks/useHelp", () => ({
 	}),
 }));
 
-vi.mock("../contexts/HotkeyContext", () => ({
+vi.mock("../../../contexts/HotkeyContext", () => ({
 	useHotkeyContext: () => ({
 		getRegisteredHotkeys: () => [
 			{

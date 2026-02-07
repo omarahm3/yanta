@@ -9,9 +9,9 @@ import {
 	getHelpShortcutsFromConfig,
 } from "../../config";
 import { useHotkeyContext } from "../../contexts/HotkeyContext";
-import { useHelp } from "../../hooks/useHelp";
-import { Heading } from "../ui";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./dialog";
+import { useHelp } from "../hooks/useHelp";
+import { Heading } from "../../components/ui";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 
 /**
  * Section definitions for the help modal

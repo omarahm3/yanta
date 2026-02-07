@@ -13,7 +13,7 @@ import {
 	useShortcutTooltipsSetting,
 	useSidebarSetting,
 } from "../hooks";
-import { useHelp } from "../hooks/useHelp";
+import { useHelp } from "../hooks";
 import { useSidebarSections } from "../hooks/useSidebarSections";
 import { AboutSection } from "./AboutSection";
 import { AppearanceSection } from "./AppearanceSection";

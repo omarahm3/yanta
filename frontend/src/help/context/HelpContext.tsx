@@ -1,5 +1,5 @@
 import React, { createContext, type ReactNode, useCallback, useMemo, useState } from "react";
-import type { HelpCommand } from "../types";
+import type { HelpCommand } from "../components/HelpSection";
 
 interface HelpContextType {
 	isOpen: boolean;

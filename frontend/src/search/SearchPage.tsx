@@ -8,7 +8,7 @@ import { TIMEOUTS } from "../config";
 import { Layout } from "../components/Layout";
 import { Button, Input } from "../components/ui";
 import { useProjectContext } from "../contexts";
-import { useHelp } from "../hooks/useHelp";
+import { useHelp } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
 import { useSidebarSections } from "../hooks/useSidebarSections";
 import type { NavigationState } from "../types";

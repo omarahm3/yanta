@@ -21,7 +21,7 @@ import {
 import { GLOBAL_SHORTCUTS } from "./config";
 import { useHotkey } from "./hooks";
 import { PaneLayoutProvider, usePaneLayout } from "./pane";
-import { useHelp } from "./hooks/useHelp";
+import { useHelp } from "./hooks";
 import type { NavigationState, PageName } from "./types";
 import { BackendLogger } from "./utils/backendLogger";
 

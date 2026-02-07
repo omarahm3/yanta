@@ -24,7 +24,8 @@ export { useFooterHintsSetting } from "./useFooterHintsSetting";
 export type { GitStatus, UseGitStatusReturn } from "./useGitStatus";
 export { useGitStatus } from "./useGitStatus";
 export { useGlobalCommand } from "./useGlobalCommand";
-export { useHelp } from "./useHelp";
+// Re-export from help domain for backward compatibility
+export { useHelp } from "../help";
 export { useHotkey, useHotkeys } from "./useHotkey";
 export { useLatestRef } from "../shared/hooks/useLatestRef";
 // Re-export from onboarding domain for backward compatibility

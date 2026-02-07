@@ -14,7 +14,7 @@ import { useDocumentEscapeHandling } from "./useDocumentEscapeHandling";
 import { useDocumentForm } from "./useDocumentForm";
 import { useDocumentInitialization } from "./useDocumentInitialization";
 import { useDocumentPersistence } from "./useDocumentPersistence";
-import { useHelp } from "../../hooks/useHelp";
+import { useHelp } from "../../hooks";
 import { useNotification } from "../../hooks/useNotification";
 import { usePaneLayout } from "../../pane";
 import { useRecentDocuments } from "../../hooks/useRecentDocuments";

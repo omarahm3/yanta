@@ -1,4 +1,4 @@
-import { useHelpContext } from "../contexts/HelpContext";
+import { useHelpContext } from "../context/HelpContext";
 
 export const useHelp = () => {
 	return useHelpContext();

@@ -6,8 +6,9 @@ export { GitErrorDialog } from "./GitErrorDialog";
 export { GitStatusIndicator } from "./GitStatusIndicator";
 export { HeaderBar } from "./HeaderBar";
 export { Heading } from "./Heading";
-export { HelpModal } from "./HelpModal";
-export { type HelpCommand, HelpSection } from "./HelpSection";
+// Re-export from help domain for backward compatibility
+export { HelpModal, HelpSection } from "../../help";
+export type { HelpCommand } from "../../help";
 export { HotkeyEditor, type HotkeyEditorProps } from "./HotkeyEditor";
 export { HotkeyInput, type HotkeyInputProps } from "./HotkeyInput";
 export { Input } from "./Input";
@@ -26,7 +27,9 @@ export { RelatedEntries, type RelatedEntry } from "./RelatedEntries";
 export { ResizeHandles } from "./ResizeHandles";
 export { Select, type SelectOption } from "./Select";
 export { SettingsSection } from "./SettingsSection";
-export { ShortcutSearch, type ShortcutSearchProps } from "./ShortcutSearch";
+// Re-export from help domain for backward compatibility
+export { ShortcutSearch } from "../../help";
+export type { ShortcutSearchProps } from "../../help";
 export { type Shortcut, ShortcutsTable } from "./ShortcutsTable";
 export { Sidebar, type SidebarItem, type SidebarItemTooltip, type SidebarSection } from "./Sidebar";
 export { StatusBar } from "./StatusBar";
