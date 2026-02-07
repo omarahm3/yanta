@@ -9,10 +9,9 @@ import {
 	useUserProgressContext,
 } from "../contexts";
 import { useHelp, useHotkey } from "../hooks";
-import { usePaneLayout } from "../pane";
-import type { NavigationState, PageName } from "../types";
 import { useToast } from "../components/ui";
 import { Router } from "./Router";
+import { useAppNavigation } from "./useAppNavigation";
 
 const HelpHotkey = () => {
 	const { openHelp } = useHelp();
@@ -53,7 +52,7 @@ const QuitHotkeys = () => {
 const GlobalCommandHotkey = () => {
 	const { openHelp } = useHelp();
 	const { openDialog, closeDialog } = useDialog();
-	const { loadAndRestoreLayout } = usePaneLayout();
+	const nav = useAppNavigation();
 	const [isOpen, setIsOpen] = React.useState(false);
 
 	React.useEffect(() => {
@@ -63,46 +62,6 @@ const GlobalCommandHotkey = () => {
 			if (isOpen) closeDialog();
 		};
 	}, [isOpen, openDialog, closeDialog]);
-	const [currentPage, setCurrentPage] = React.useState<PageName>("dashboard");
-	const [navigationState, setNavigationState] = React.useState<NavigationState>({});
-	const [showArchived, setShowArchived] = React.useState(false);
-	const toggleArchivedRef = React.useRef<(() => void) | null>(null);
-	const toggleSidebarRef = React.useRef<(() => void) | null>(null);
-
-	const handleNavigate = React.useCallback(
-		(page: string, state?: NavigationState) => {
-			setCurrentPage(page as PageName);
-			if (state) {
-				setNavigationState(state);
-			}
-			if (page === "document" && state?.documentPath) {
-				const docPath = state.documentPath as string;
-				loadAndRestoreLayout(docPath);
-			}
-		},
-		[loadAndRestoreLayout],
-	);
-
-	const handleRegisterToggleArchived = React.useCallback((handler: () => void) => {
-		toggleArchivedRef.current = handler;
-	}, []);
-
-	const handleToggleArchived = React.useCallback(() => {
-		if (toggleArchivedRef.current) {
-			toggleArchivedRef.current();
-			setShowArchived((prev) => !prev);
-		}
-	}, []);
-
-	const handleRegisterToggleSidebar = React.useCallback((handler: () => void) => {
-		toggleSidebarRef.current = handler;
-	}, []);
-
-	const handleToggleSidebar = React.useCallback(() => {
-		if (toggleSidebarRef.current) {
-			toggleSidebarRef.current();
-		}
-	}, []);
 
 	useHotkey({
 		...GLOBAL_SHORTCUTS.commandPalette,
@@ -115,7 +74,7 @@ const GlobalCommandHotkey = () => {
 		handler: (e) => {
 			e.preventDefault();
 			const today = new Date().toISOString().split("T")[0];
-			handleNavigate("journal", { date: today });
+			nav.onNavigate("journal", { date: today });
 		},
 		allowInInput: false,
 	});
@@ -138,19 +97,19 @@ const GlobalCommandHotkey = () => {
 			<GlobalCommandPalette
 				isOpen={isOpen}
 				onClose={() => setIsOpen(false)}
-				onNavigate={handleNavigate}
-				currentPage={currentPage}
-				onToggleArchived={handleToggleArchived}
-				showArchived={showArchived}
-				onToggleSidebar={handleToggleSidebar}
+				onNavigate={nav.onNavigate}
+				currentPage={nav.currentPage}
+				onToggleArchived={nav.onToggleArchived}
+				showArchived={nav.showArchived}
+				onToggleSidebar={nav.onToggleSidebar}
 				onShowHelp={openHelp}
 			/>
 			<Router
-				currentPage={currentPage}
-				navigationState={navigationState}
-				onNavigate={handleNavigate}
-				onRegisterToggleArchived={handleRegisterToggleArchived}
-				onRegisterToggleSidebar={handleRegisterToggleSidebar}
+				currentPage={nav.currentPage}
+				navigationState={nav.navigationState}
+				onNavigate={nav.onNavigate}
+				onRegisterToggleArchived={nav.onRegisterToggleArchived}
+				onRegisterToggleSidebar={nav.onRegisterToggleSidebar}
 			/>
 		</>
 	);
