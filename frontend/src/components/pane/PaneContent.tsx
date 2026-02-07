@@ -1,7 +1,7 @@
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 import { PANE_SHORTCUTS } from "../../config";
-import { useHotkey } from "../../hooks/useHotkey";
+import { useHotkey } from "../../hooks";
 import { useEscapeHandler } from "../../hooks/useEscapeHandler";
 import { useLatestRef } from "../../shared/hooks/useLatestRef";
 import { cn } from "../../lib/utils";

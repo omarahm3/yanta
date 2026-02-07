@@ -26,7 +26,8 @@ export { useGitStatus } from "./useGitStatus";
 export { useGlobalCommand } from "./useGlobalCommand";
 // Re-export from help domain for backward compatibility
 export { useHelp } from "../help";
-export { useHotkey, useHotkeys } from "./useHotkey";
+// Re-export from hotkeys domain for backward compatibility
+export { useHotkey, useHotkeys } from "../hotkeys";
 export { useLatestRef } from "../shared/hooks/useLatestRef";
 // Re-export from onboarding domain for backward compatibility
 export type {

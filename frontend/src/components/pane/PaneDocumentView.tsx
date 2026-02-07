@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef } from "react";
 import { TIMEOUTS } from "@/config";
 import { useEscapeHandler } from "../../hooks/useEscapeHandler";
-import { useHotkeys } from "../../hooks/useHotkey";
+import { useHotkeys } from "../../hooks";
 import { useLatestRef } from "../../shared/hooks/useLatestRef";
 import { useDocumentController } from "../../document/hooks/useDocumentController";
 import type { NavigationState } from "../../types";

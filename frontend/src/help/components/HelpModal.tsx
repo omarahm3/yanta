@@ -8,7 +8,7 @@ import {
 	formatShortcutKeyForDisplay,
 	getHelpShortcutsFromConfig,
 } from "../../config";
-import { useHotkeyContext } from "../../contexts/HotkeyContext";
+import { useHotkeyContext } from "../../contexts";
 import { useHelp } from "../hooks/useHelp";
 import { Heading } from "../../components/ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";

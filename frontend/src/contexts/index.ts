@@ -8,7 +8,8 @@ export {
 } from "../document";
 // Re-export from help domain for backward compatibility
 export { HelpProvider, useHelpContext } from "../help";
-export { HotkeyProvider, useHotkeyContext } from "./HotkeyContext";
+// Re-export from hotkeys domain for backward compatibility
+export { HotkeyProvider, useHotkeyContext } from "../hotkeys";
 export type { PaneLayoutContextValue } from "../pane";
 export { PaneLayoutContext, PaneLayoutProvider } from "../pane";
 // TODO: Remove this once we have a proper projects page
