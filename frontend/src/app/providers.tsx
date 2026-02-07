@@ -7,7 +7,6 @@ import {
 	HelpProvider,
 	HotkeyProvider,
 	ProjectProvider,
-	ScaleProvider,
 	TitleBarProvider,
 	UserProgressProvider,
 } from "../contexts";
@@ -20,6 +19,7 @@ import {
 	ProjectSwitchTracker,
 } from "./global-hotkeys";
 import { HelpModal, ResizeHandles, TitleBar, ToastProvider } from "../components/ui";
+import { ScaleStoreInit } from "./ScaleStoreInit";
 
 /**
  * Composes all app-level providers and shell UI (titlebar, hotkeys, modals).
@@ -28,7 +28,8 @@ import { HelpModal, ResizeHandles, TitleBar, ToastProvider } from "../components
 export function AppProviders() {
 	return (
 		<ToastProvider>
-			<ScaleProvider>
+			<>
+				<ScaleStoreInit />
 				<TitleBarProvider>
 					<DialogProvider>
 						<HotkeyProvider>
@@ -57,7 +58,7 @@ export function AppProviders() {
 						</HotkeyProvider>
 					</DialogProvider>
 				</TitleBarProvider>
-			</ScaleProvider>
+			</>
 		</ToastProvider>
 	);
 }

@@ -1,48 +1,5 @@
-import type React from "react";
-import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
-import { GetAppScale } from "../../bindings/yanta/internal/system/service";
-import { BackendLogger } from "../utils/backendLogger";
-
-interface ScaleContextValue {
-	scale: number;
-	setScale: (scale: number) => void;
-}
-
-const ScaleContext = createContext<ScaleContextValue>({
-	scale: 1.0,
-	setScale: () => {},
-});
-
-interface ScaleProviderProps {
-	children: ReactNode;
-}
-
-export const ScaleProvider: React.FC<ScaleProviderProps> = ({ children }) => {
-	const [scale, setScale] = useState(1.0);
-
-	useEffect(() => {
-		GetAppScale()
-			.then((value) => {
-				setScale(value);
-				applyScale(value);
-			})
-			.catch((err) => {
-				BackendLogger.error("Failed to load app scale:", err);
-				applyScale(1.0);
-			});
-	}, []);
-
-	useEffect(() => {
-		applyScale(scale);
-	}, [scale]);
-
-	const applyScale = (scaleValue: number) => {
-		document.documentElement.style.fontSize = `${scaleValue * 100}%`;
-	};
-
-	const value = useMemo<ScaleContextValue>(() => ({ scale, setScale }), [scale, setScale]);
-
-	return <ScaleContext.Provider value={value}>{children}</ScaleContext.Provider>;
-};
-
-export const useScale = () => useContext(ScaleContext);
+/**
+ * Scale state is now in shared/stores/scale.store (Zustand).
+ * Re-export useScale so existing imports from contexts keep working.
+ */
+export { useScale } from "../shared/stores/scale.store";

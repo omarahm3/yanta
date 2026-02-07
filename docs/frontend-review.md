@@ -89,10 +89,10 @@ The ShadCN light theme (`:root`) is dead code -- the app is dark-only with no th
 
 ### 3. Provider Pyramid (App.tsx:257-289)
 
-11 nested context providers:
+~~11~~ 10 nested context providers (ScaleProvider replaced with Zustand):
 
 ```
-ToastProvider > ScaleProvider > TitleBarProvider > DialogProvider >
+ToastProvider > TitleBarProvider > DialogProvider >
 HotkeyProvider > HelpProvider > ProjectProvider > UserProgressProvider >
 DocumentCountProvider > DocumentProvider > PaneLayoutProvider
 ```
@@ -108,7 +108,7 @@ Problems:
 
 | Provider | Replacement | Rationale |
 |----------|-------------|-----------|
-| `ScaleProvider` | `shared/stores/scale.store.ts` (zustand) | Global singleton, no tree dependency |
+| ~~`ScaleProvider`~~ | ~~`shared/stores/scale.store.ts` (zustand)~~ — **Done** | Replaced; `useScale` re-exported from contexts |
 | `DialogProvider` | `shared/stores/dialog.store.ts` (zustand) | Counter for open dialogs, global |
 | `ProjectProvider` | `shared/stores/project.store.ts` (zustand) | Global state, used by 5+ domains |
 | `UserProgressProvider` | `shared/stores/progress.store.ts` (zustand) | Global gamification state |
@@ -120,7 +120,7 @@ Problems:
 | `DocumentProvider` | **Keep as context** | Hierarchical -- different per pane |
 | `PaneLayoutProvider` | **Keep as context** | Hierarchical -- tree structure matters |
 
-**Status:** [ ] Not started
+**Status:** [~] In progress — ScaleProvider migrated to `shared/stores/scale.store.ts` (Zustand); `app/ScaleStoreInit` loads scale from backend on mount. Remaining: Dialog, Project, UserProgress, DocumentCount, TitleBar, Help (optional).
 
 ---
 
