@@ -16,8 +16,8 @@ import {
 	type SelectOption,
 	SettingsSection,
 	Toggle,
-} from "../../components/ui";
-import type { GitStatus } from "../../hooks/useGitStatus";
+} from "../components/ui";
+import type { GitStatus } from "../hooks/useGitStatus";
 
 interface GitSyncSectionProps {
 	gitInstalled: boolean;

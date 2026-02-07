@@ -15,15 +15,15 @@ import {
 } from "../hooks";
 import { useHelp } from "../hooks/useHelp";
 import { useSidebarSections } from "../hooks/useSidebarSections";
-import { AboutSection } from "./settings/AboutSection";
-import { AppearanceSection } from "./settings/AppearanceSection";
-import { BackupSection } from "./settings/BackupSection";
-import { DatabaseSection } from "./settings/DatabaseSection";
-import { GeneralSection } from "./settings/GeneralSection";
-import { GitSyncSection } from "./settings/GitSyncSection";
-import { LoggingSection } from "./settings/LoggingSection";
-import { ShortcutsSection } from "./settings/ShortcutsSection";
-import { useSettingsController } from "./settings/useSettingsController";
+import { AboutSection } from "./AboutSection";
+import { AppearanceSection } from "./AppearanceSection";
+import { BackupSection } from "./BackupSection";
+import { DatabaseSection } from "./DatabaseSection";
+import { GeneralSection } from "./GeneralSection";
+import { GitSyncSection } from "./GitSyncSection";
+import { LoggingSection } from "./LoggingSection";
+import { ShortcutsSection } from "./ShortcutsSection";
+import { useSettingsController } from "./useSettingsController";
 
 /** Shortcuts from config/shortcuts (single source of truth for registration + display). */
 const shortcutsFromConfig = (): Shortcut[] =>
@@ -154,46 +154,14 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggle
 	useHotkeys(hotkeys);
 
 	const settingsItems = [
-		{
-			id: "general",
-			label: "general",
-			onClick: () => scrollToSection("general"),
-		},
-		{
-			id: "appearance",
-			label: "appearance",
-			onClick: () => scrollToSection("appearance"),
-		},
-		{
-			id: "database",
-			label: "database",
-			onClick: () => scrollToSection("database"),
-		},
-		{
-			id: "shortcuts",
-			label: "shortcuts",
-			onClick: () => scrollToSection("shortcuts"),
-		},
-		{
-			id: "logging",
-			label: "logging",
-			onClick: () => scrollToSection("logging"),
-		},
-		{
-			id: "backup",
-			label: "backup",
-			onClick: () => scrollToSection("backup"),
-		},
-		{
-			id: "sync",
-			label: "sync",
-			onClick: () => scrollToSection("sync"),
-		},
-		{
-			id: "about",
-			label: "about",
-			onClick: () => scrollToSection("about"),
-		},
+		{ id: "general", label: "general", onClick: () => scrollToSection("general") },
+		{ id: "appearance", label: "appearance", onClick: () => scrollToSection("appearance") },
+		{ id: "database", label: "database", onClick: () => scrollToSection("database") },
+		{ id: "shortcuts", label: "shortcuts", onClick: () => scrollToSection("shortcuts") },
+		{ id: "logging", label: "logging", onClick: () => scrollToSection("logging") },
+		{ id: "backup", label: "backup", onClick: () => scrollToSection("backup") },
+		{ id: "sync", label: "sync", onClick: () => scrollToSection("sync") },
+		{ id: "about", label: "about", onClick: () => scrollToSection("about") },
 	];
 
 	const sidebarSections = useSidebarSections({

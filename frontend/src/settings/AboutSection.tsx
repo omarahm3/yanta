@@ -1,8 +1,8 @@
 import React from "react";
-import { Button, ConfirmDialog, SettingsSection } from "../../components/ui";
-import { useOnboarding } from "../../hooks/useOnboarding";
-import { useUserProgress } from "../../hooks/useUserProgress";
-import type { SystemInfo } from "../../types";
+import { Button, ConfirmDialog, SettingsSection } from "../components/ui";
+import { useOnboarding } from "../hooks/useOnboarding";
+import { useUserProgress } from "../hooks/useUserProgress";
+import type { SystemInfo } from "../types";
 
 interface AboutSectionProps {
 	systemInfo: SystemInfo | null;

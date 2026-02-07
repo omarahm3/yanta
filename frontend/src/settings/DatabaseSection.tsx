@@ -1,6 +1,6 @@
 import React from "react";
-import { Button, SettingsSection, Text } from "../../components/ui";
-import type { SystemInfo } from "../../types";
+import { Button, SettingsSection, Text } from "../components/ui";
+import type { SystemInfo } from "../types";
 
 interface DatabaseSectionProps {
 	systemInfo: SystemInfo | null;

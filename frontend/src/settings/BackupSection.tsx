@@ -1,6 +1,6 @@
 import { Clock, Database, Trash2 } from "lucide-react";
 import React from "react";
-import { Button, ConfirmDialog, Input, Label, SettingsSection, Toggle } from "../../components/ui";
+import { Button, ConfirmDialog, Input, Label, SettingsSection, Toggle } from "../components/ui";
 
 interface BackupInfo {
 	timestamp: string;

@@ -1,17 +1,17 @@
 import { Events } from "@wailsio/runtime";
 import { useCallback, useEffect, useState } from "react";
-import type { BackupInfo } from "../../../bindings/yanta/internal/backup/models";
+import type { BackupInfo } from "../../bindings/yanta/internal/backup/models";
 import {
 	Delete as DeleteBackup,
 	GetConfig as GetBackupConfig,
 	GetBackups,
 	Restore as RestoreBackup,
 	SetConfig as SetBackupConfig,
-} from "../../../bindings/yanta/internal/backup/service";
-import type { BackupConfig } from "../../../bindings/yanta/internal/config/models";
-import { SyncStatus } from "../../../bindings/yanta/internal/git/models";
-import type { MigrationConflictInfo } from "../../../bindings/yanta/internal/migration/models";
-import { MigrationStrategy } from "../../../bindings/yanta/internal/migration/models";
+} from "../../bindings/yanta/internal/backup/service";
+import type { BackupConfig } from "../../bindings/yanta/internal/config/models";
+import { SyncStatus } from "../../bindings/yanta/internal/git/models";
+import type { MigrationConflictInfo } from "../../bindings/yanta/internal/migration/models";
+import { MigrationStrategy } from "../../bindings/yanta/internal/migration/models";
 import {
 	CheckGitInstalled,
 	CheckMigrationConflicts,
@@ -38,19 +38,19 @@ import {
 	SetStartHidden,
 	SyncNow,
 	ValidateMigrationTarget,
-} from "../../../bindings/yanta/internal/system/service";
-import { GetWindowMode, SetWindowMode } from "../../../bindings/yanta/internal/window/service";
-import type { SelectOption } from "../../components/ui";
-import { useScale } from "../../contexts";
-import { useNotification } from "../../hooks/useNotification";
+} from "../../bindings/yanta/internal/system/service";
+import { GetWindowMode, SetWindowMode } from "../../bindings/yanta/internal/window/service";
+import type { SelectOption } from "../components/ui";
+import { useScale } from "../contexts";
+import { useNotification } from "../hooks/useNotification";
 import {
 	type GlobalHotkeyConfig,
 	globalHotkeyConfigFromModel,
 	globalHotkeyConfigToModel,
 	type SystemInfo,
 	systemInfoFromModel,
-} from "../../types";
-import { BackendLogger } from "../../utils/backendLogger";
+} from "../types";
+import { BackendLogger } from "../utils/backendLogger";
 
 interface GitSyncSettings {
 	enabled: boolean;

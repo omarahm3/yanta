@@ -1,12 +1,12 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DialogProvider } from "../../../contexts/DialogContext";
-import type { SystemInfo } from "../../../types";
+import { DialogProvider } from "../../contexts/DialogContext";
+import type { SystemInfo } from "../../types";
 import { AboutSection } from "../AboutSection";
 
 // Mock the Toast module to avoid needing ToastProvider
-vi.mock("../../../components/ui/Toast", () => ({
+vi.mock("../../components/ui/Toast", () => ({
 	ToastProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 	useToast: () => ({
 		show: vi.fn(),
@@ -158,7 +158,9 @@ describe("AboutSection", () => {
 			fireEvent.click(screen.getByRole("button", { name: "Reset Onboarding" }));
 			fireEvent.click(screen.getByRole("button", { name: "Reset" }));
 
-			expect(localStorage.getItem(ONBOARDING_STORAGE_KEY)).toBeNull();
+			// useLocalStorage persists null as the string "null"
+			const stored = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+			expect(stored === null || stored === "null").toBe(true);
 		});
 
 		it("closes dialog after confirming reset", () => {
@@ -211,7 +213,13 @@ describe("AboutSection", () => {
 			fireEvent.click(screen.getByRole("button", { name: "Reset Hints" }));
 			fireEvent.click(screen.getByRole("button", { name: "Reset" }));
 
-			expect(localStorage.getItem(PROGRESS_STORAGE_KEY)).toBeNull();
+			// resetProgress removes key then useLocalStorage persists default state
+			expect(JSON.parse(localStorage.getItem(PROGRESS_STORAGE_KEY)!)).toEqual({
+				documentsCreated: 0,
+				journalEntriesCreated: 0,
+				projectsSwitched: 0,
+				hintsShown: [],
+			});
 		});
 
 		it("closes dialog after confirming reset", () => {

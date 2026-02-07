@@ -6,8 +6,8 @@ import {
 	type Shortcut,
 	ShortcutsTable,
 	Text,
-} from "../../components/ui";
-import type { GlobalHotkeyConfig } from "../../types";
+} from "../components/ui";
+import type { GlobalHotkeyConfig } from "../types";
 
 interface ShortcutsSectionProps {
 	platform: string;

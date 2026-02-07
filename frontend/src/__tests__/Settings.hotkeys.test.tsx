@@ -2,7 +2,7 @@ import { render, waitFor } from "@testing-library/react";
 import React from "react";
 import { vi } from "vitest";
 import { DialogProvider, HotkeyProvider, TitleBarProvider, useHotkeyContext } from "../contexts";
-import { Settings } from "../pages/Settings";
+import { Settings } from "../settings";
 import type { HotkeyContextValue } from "../types/hotkeys";
 
 vi.mock("../hooks/useHelp", () => ({
@@ -13,38 +13,36 @@ vi.mock("../hooks/useSidebarSections", () => ({
 	useSidebarSections: () => [],
 }));
 
-vi.mock("../pages/settings/useSettingsController", () => ({
+vi.mock("../settings/useSettingsController", () => ({
 	useSettingsController: () => ({
 		systemInfo: null,
 		needsRestart: false,
 		keepInBackground: false,
 		startHidden: false,
-		linuxWindowMode: false,
+		linuxWindowMode: "normal",
 		gitInstalled: true,
 		currentDataDir: "/test/dir",
 		migrationTarget: "",
 		setMigrationTarget: vi.fn(),
 		isMigrating: false,
 		migrationProgress: "",
+		dataDirOverridden: false,
+		dataDirEnvVar: "",
 		appScale: 1.0,
 		isReindexing: false,
-		reindexProgress: "",
+		reindexProgress: null,
 		showReindexConfirm: false,
-		gitSync: {
-			enabled: false,
-			repositoryPath: "",
-			remoteUrl: "",
-			syncFrequency: "manual",
-			autoPush: true,
-			commitInterval: "manual",
-		},
+		gitSync: { enabled: false, commitInterval: 10, autoPush: true, branch: "" },
+		gitBranches: [],
+		currentGitBranch: "",
 		backupConfig: { Enabled: false, MaxBackups: 5 },
 		backups: [],
 		hotkeyConfig: { quickCaptureEnabled: false, quickCaptureHotkey: "Ctrl+Shift+N" },
 		hotkeyError: undefined,
 		platform: "linux",
+		conflictInfo: null,
+		showConflictDialog: false,
 		logLevelOptions: [],
-		syncFrequencyOptions: [],
 		commitIntervalOptions: [],
 		handlers: {
 			handleLogLevelChange: vi.fn(),
@@ -52,10 +50,9 @@ vi.mock("../pages/settings/useSettingsController", () => ({
 			handleStartHiddenToggle: vi.fn(),
 			handleLinuxWindowModeToggle: vi.fn(),
 			handleGitSyncToggle: vi.fn(),
-			handleSyncFrequencyChange: vi.fn(),
 			handleCommitIntervalChange: vi.fn(),
-			handleRemoteUrlChange: vi.fn(),
 			handleAutoPushToggle: vi.fn(),
+			handleBranchChange: vi.fn(),
 			handlePickDirectory: vi.fn(),
 			handleMigration: vi.fn(),
 			handleSyncNow: vi.fn(),
@@ -68,6 +65,8 @@ vi.mock("../pages/settings/useSettingsController", () => ({
 			handleMaxBackupsChange: vi.fn(),
 			handleRestoreBackup: vi.fn(),
 			handleDeleteBackup: vi.fn(),
+			handleConflictConfirm: vi.fn(),
+			handleConflictCancel: vi.fn(),
 		},
 	}),
 }));
@@ -146,7 +145,7 @@ describe("Settings hotkeys", () => {
 
 		const jHotkey = context.getRegisteredHotkeys().find((h) => h.key === "j");
 		expect(jHotkey).toBeDefined();
-		expect(jHotkey?.description).toBe("Navigate to next section");
+		expect(jHotkey?.description).toBe("Next section");
 		expect(jHotkey?.allowInInput).toBe(false);
 	});
 
@@ -155,7 +154,7 @@ describe("Settings hotkeys", () => {
 
 		const kHotkey = context.getRegisteredHotkeys().find((h) => h.key === "k");
 		expect(kHotkey).toBeDefined();
-		expect(kHotkey?.description).toBe("Navigate to previous section");
+		expect(kHotkey?.description).toBe("Previous section");
 		expect(kHotkey?.allowInInput).toBe(false);
 	});
 });

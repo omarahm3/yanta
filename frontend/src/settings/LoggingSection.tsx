@@ -1,6 +1,6 @@
 import React from "react";
-import { Label, Select, type SelectOption, SettingsSection } from "../../components/ui";
-import type { SystemInfo } from "../../types";
+import { Label, Select, type SelectOption, SettingsSection } from "../components/ui";
+import type { SystemInfo } from "../types";
 
 interface LoggingSectionProps {
 	systemInfo: SystemInfo | null;
