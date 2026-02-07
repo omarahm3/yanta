@@ -2,7 +2,7 @@
 
 **Stack:** React 18 + Tailwind CSS v4 + Radix UI + BlockNote Editor + Wails3 Runtime
 **Target:** Cross-platform desktop application (Wails3)
-**Last Updated:** 2026-02-06 (Rev 8 — Tier 1 #55 shortcuts config done)
+**Last Updated:** 2026-02-07 (Rev 9 — Phase 4: document/ + dashboard/ extracted; Projects.tsx type fix)
 
 ---
 
@@ -171,7 +171,7 @@ Every controller hook mixes business logic, UI state, command handling, and data
 | `pages/settings/useSettingsController.ts` | 655 | 15+ useState calls: git config + backup + reindexing + hotkeys + migration + system info |
 | `pages/Test.tsx` | 624 | Test page with extensive logic |
 | `components/GlobalCommandPalette.tsx` | 607 | Command palette UI + document export + git operations + navigation + icon selection + usage tracking |
-| `pages/Projects.tsx` | 520 | Project listing + mutations |
+| `pages/Projects.tsx` | 497 | Project listing + mutations (TS type errors fixed Rev 9) |
 | `pages/Search.tsx` | 470 | Search logic + UI + tagging |
 | `components/editor/RichEditor.tsx` | 458 | Editor init + plugins + content handling |
 | `pages/Journal/useJournalController.ts` | 455 | Journal logic + command handling |
@@ -445,8 +445,8 @@ Scattered magic values with no centralization:
 - `contexts/` -- proper barrel file
 
 **Poor isolation:**
-- `pages/dashboard/` -- no index.ts, split across useDashboardController + useDashboardCommandHandler
-- `pages/document/` -- only useDocumentController.ts, no index.ts
+- ~~`pages/dashboard/` -- no index.ts, split across useDashboardController + useDashboardCommandHandler~~ — **Fixed (Rev 9):** Extracted to `dashboard/` domain with index.ts, components, hooks, tests
+- ~~`pages/document/` -- only useDocumentController.ts, no index.ts~~ — **Fixed (Rev 9):** Extracted to `document/` domain with full structure
 - `pages/settings/` -- no index.ts, scattered sections (GitSyncSection, BackupSection, GeneralSection)
 - `components/editor/` -- no index.ts
 - `GlobalCommandPalette.tsx` imports from 5+ utility modules, 6+ contexts, 5+ services
@@ -1024,8 +1024,8 @@ This restructure does NOT need to happen in one big bang. Do it incrementally, o
 - ~~`quick-capture/` (already isolated, just move)~~ — Done: moved `pages/QuickCapture/` to `quick-capture/`; pages/index.ts and main.tsx updated
 - ~~`settings/` (already has subdirectory, consolidate)~~ — Done: moved `pages/Settings.tsx` and `pages/settings/` to `settings/`; pages/index.ts updated
 - ~~`pane/` (already has components/pane/, add hooks + context)~~ — Done: created `pane/` with types, utils/paneLayoutUtils, hooks (usePanePersistence, usePaneLayout, usePaneHotkeys), context/PaneLayoutContext; moved from contexts/, hooks/, utils/, types/PaneLayout; components/pane imports from ../../pane
-- `document/` (consolidate from 4 current directories)
-- `dashboard/`
+- ~~`document/` (consolidate from 4 current directories)~~ — Done: `document/` domain created with DocumentPage, hooks (useDocumentController, useDocumentForm, useDocumentLoader, useDocumentPersistence, useDocumentSaver, useDocumentEscapeHandling, useDocumentEditor), context (DocumentContext, DocumentCountContext), components (DocumentContent, DocumentEditorForm, DocumentEditorActions, DocumentErrorState, DocumentLoadingState, MetadataSidebar), utils (documentUtils); barrel file exports public API; shims at old locations for backward compatibility
+- ~~`dashboard/`~~ — Done: `dashboard/` domain created with DashboardPage, hooks (useDashboardController, useDashboardCommandHandler), components (DocumentList, MoveDocumentDialog, StatusBar — all single-use by dashboard); tests moved alongside code; shims at `pages/Dashboard.tsx`, `pages/dashboard/`, `components/DocumentList.tsx`, `components/MoveDocumentDialog.tsx`, `components/ui/StatusBar.tsx`; pages/index.ts imports Dashboard from `../dashboard`
 - `project/`
 - `search/`
 - `command-palette/` (extract from GlobalCommandPalette.tsx god file)
@@ -1081,14 +1081,18 @@ The dependency graph SHOULD be: `app/ → domain folders → shared/ → (extern
 - `MigrationConflictDialog` → `settings/components/`
 - `ShortcutSearch` → `help/`
 - `GitErrorDialog`, `GitStatusIndicator` → `settings/components/`
-- `StatusBar` → `dashboard/components/`
-- `MetadataSidebar` → `document/components/`
+- ~~`StatusBar` → `dashboard/components/`~~ — Done (Rev 9)
+- ~~`MetadataSidebar` → `document/components/`~~ — Done (Rev 9, part of document/ extraction)
 - `HelpModal`, `HelpSection` → `help/`
+
+**Moved to domain (done):**
+- `DocumentList` → `dashboard/components/` (Rev 9, single-use by Dashboard)
+- `MoveDocumentDialog` → `dashboard/components/` (Rev 9, single-use by Dashboard)
 
 **Dead code:**
 - `EmptyPane` -- exported from barrel, imported by zero files. Delete.
 
-**Status:** [ ] Not started
+**Status:** [ ] Partial — document/ and dashboard/ single-use components moved; remaining: project/, settings/, help/
 
 ---
 
@@ -1115,8 +1119,8 @@ import { useJournalController } from '@/journal/hooks/useJournalController';
 ```
 
 **Current barrel file gaps (need index.ts):**
-- `pages/dashboard/` -- no index.ts
-- `pages/document/` -- no index.ts
+- ~~`pages/dashboard/` -- no index.ts~~ — Fixed: `dashboard/index.ts` (Rev 9)
+- ~~`pages/document/` -- no index.ts~~ — Fixed: `document/index.ts` (Rev 9)
 - `pages/settings/` -- no index.ts
 - `components/editor/` -- no index.ts
 
@@ -1530,6 +1534,9 @@ Items already resolved in prior branches. Kept here for reference; removed from 
 | 10 | Extract `useLatestRef` utility hook | Rev 7 — `hooks/useLatestRef.ts`; pane components refactored |
 | 11 | Extract `useEscapeHandler` (dialog-aware ESC) | Rev 7 — `hooks/useEscapeHandler.ts`; PaneContent, PaneDocumentView |
 | 42 | Extract `useLatestRef` (dual source of truth in panes) | Rev 7 — same as #10; pane adoption done; other call sites optional follow-up |
+| — | Phase 4: Extract `document/` domain | Rev 9 — `refactor/frontend-foundation`; DocumentPage, hooks, context, components, utils consolidated |
+| — | Phase 4: Extract `dashboard/` domain | Rev 9 — `refactor/frontend-foundation`; DashboardPage, DocumentList, MoveDocumentDialog, StatusBar moved; tests migrated |
+| — | Fix `Projects.tsx` TS type errors | Rev 9 — `refactor/frontend-foundation`; widened state types to `Record<string, T \| undefined>` to match API returns |
 
 ---
 
