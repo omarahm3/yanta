@@ -13,7 +13,7 @@ import { Table, type TableColumn, type TableRow } from "../components/ui";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { NewProjectDialog } from "./components/NewProjectDialog";
 import { PROJECTS_SHORTCUTS } from "../config";
-import { useProjectContext } from "./context/ProjectContext";
+import { useProjectContext } from "./context";
 import { useHotkeys } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
 import { useSidebarSections } from "../hooks/useSidebarSections";
