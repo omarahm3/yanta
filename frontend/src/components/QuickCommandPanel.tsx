@@ -1,7 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import type React from "react";
 import { useMemo } from "react";
-import { useProjectContext } from "../contexts/ProjectContext";
+import { useProjectContext } from "../contexts";
 import { type CommandOption, CommandPalette } from "./ui";
 
 interface QuickCommandPanelProps {

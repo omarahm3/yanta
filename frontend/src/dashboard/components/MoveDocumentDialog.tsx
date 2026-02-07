@@ -2,7 +2,7 @@ import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TIMEOUTS } from "../../config";
 import { useDialog } from "../../contexts/DialogContext";
-import { useProjectContext } from "../../contexts/ProjectContext";
+import { useProjectContext } from "../../contexts";
 import { cn } from "../../lib/utils";
 import { moveDocumentToProject } from "../../services/DocumentService";
 import type { Project } from "../../types/Project";

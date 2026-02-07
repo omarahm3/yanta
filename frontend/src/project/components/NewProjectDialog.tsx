@@ -1,7 +1,7 @@
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TIMEOUTS } from "../../config";
-import { Modal } from "./Modal";
+import { Modal } from "../../components/ui/Modal";
 
 export interface NewProjectDialogProps {
 	isOpen: boolean;

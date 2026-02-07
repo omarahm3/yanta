@@ -9,9 +9,9 @@ import {
 	useMemo,
 	useState,
 } from "react";
-import { ListActive, ListArchived } from "../../bindings/yanta/internal/project/service";
-import { type Project, projectsFromModels } from "../types";
-import { BackendLogger } from "../utils/backendLogger";
+import { ListActive, ListArchived } from "../../../bindings/yanta/internal/project/service";
+import { type Project, projectsFromModels } from "../../types";
+import { BackendLogger } from "../../utils/backendLogger";
 
 interface ProjectContextValue {
 	currentProject: Project | undefined;
