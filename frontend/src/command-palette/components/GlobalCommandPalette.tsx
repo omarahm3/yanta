@@ -50,6 +50,7 @@ import { useNotification } from "../../hooks/useNotification";
 import { useRecentDocuments } from "../../hooks/useRecentDocuments";
 import { usePaneLayout } from "../../pane";
 import { DocumentServiceWrapper } from "../../services/DocumentService";
+import { useDocumentCommandStore } from "../../shared/stores/documentCommand.store";
 import type { NavigationState } from "../../types";
 import { formatRelativeTimeFromTimestamp } from "../../utils/dateUtils";
 import { type ParsedGitError, parseGitError } from "../../utils/gitErrorParser";
@@ -270,7 +271,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = ({
 				keywords: ["save", "persist"],
 				action: () => {
 					handleClose();
-					window.dispatchEvent(new CustomEvent("yanta:document:save"));
+					useDocumentCommandStore.getState().requestSave();
 				},
 			});
 		}

@@ -153,12 +153,12 @@ The type `Record<string, string | number | boolean | undefined>` is repeated **2
 Three incompatible patterns used simultaneously:
 
 1. **React Context** (10+ providers) -- persistent state
-2. **`window.dispatchEvent` / `CustomEvent`** -- `"yanta:document:save"`, `"yanta:force-navigate"` etc.
+2. **`window.dispatchEvent` / `CustomEvent`** -- `"yanta:document:save"` **replaced** with `shared/stores/documentCommand.store` (command palette → requestSave(); document controller registers handler). No other production `yanta:*` events found.
 3. **Ref-based handler registration** (`toggleArchivedRef`, `toggleSidebarRef`) -- imperative parent-to-child
 
-Pattern #2 bypasses React's data flow entirely. Invisible to DevTools, untyped at subscription site, hard to trace.
+Pattern #2 bypasses React's data flow entirely. Invisible to DevTools, untyped at subscription site, hard to trace. Document save command now uses Zustand store for request/register flow.
 
-**Status:** [ ] Not started
+**Status:** [x] Document save path completed — `documentCommand.store` + useDocumentController register + GlobalCommandPalette requestSave. Ref-based and remaining patterns unchanged.
 
 ---
 
@@ -1152,9 +1152,11 @@ Components and hooks with excessive `useState` calls indicate mixed concerns. Th
 | `components/ui/NewProjectDialog.tsx` | 6 | Form fields |
 | `hooks/useAutoSave.ts:33-36` | 5 | Save state + flags |
 
-**Worst offender:** `useSettingsController` with 27 `useState` calls. Should be split into `useGitSyncSettings`, `useBackupSettings`, `useSystemSettings`, `useAppearanceSettings`, `useMigrationSettings`.
+**Worst offender:** Resolved — `useSettingsController` split into `useGitSyncSettings`, `useBackupSettings`, `useSystemSettings`, `useAppearanceSettings`, `useMigrationSettings` (Tier 2 Item 39).
 
-**Status:** [ ] Not started
+**Note:** `currentDataDir`, `dataDirOverridden`, and `dataDirEnvVar` live in `useGitSyncSettings` (data-directory concerns used by both git sync and migration UI). Migration only sets a target dir; it doesn’t read the current dir. If migration ever needs to read or refresh the current dir, consider lifting these into a shared hook or the orchestrator.
+
+**Status:** [x] Completed
 
 ---
 
@@ -1174,9 +1176,9 @@ Components with cascading effects where one effect triggers another, causing mul
 | `components/ui/ShortcutTooltip.tsx` | 5 | Position updates + animations |
 | `components/ui/WithTooltip.tsx` | 5 | Position updates + animations |
 
-**Monolithic effect:** `useSettingsController.ts:107-198` — single 91-line effect with 18+ async calls chained. Should be split by domain (git, backup, system).
+**Monolithic effect:** Resolved — loading split by domain across `useBackupSettings`, `useAppearanceSettings`, `useSystemSettings`, `useGitSyncSettings`; `useMigrationSettings` has no initial load (Tier 2 Item 39).
 
-**Status:** [ ] Not started
+**Status:** [x] Completed
 
 ---
 
@@ -1226,16 +1228,11 @@ See also #49 (JSON.stringify in hot path) — the ref-based value tracking in `u
 
 ### 43. Custom Events — Hidden Data Flow
 
-Only 1 production custom event found, but it represents a pattern that should not grow:
+**Resolved for document save:** The only production custom event was `"yanta:document:save"`. Replaced with `shared/stores/documentCommand.store`: command palette calls `requestSave()`; document controller registers a handler via `registerSaveHandler()`. No more `window.dispatchEvent` for this flow.
 
-**`GlobalCommandPalette.tsx:267`:**
-```typescript
-window.dispatchEvent(new CustomEvent("yanta:document:save"));
-```
+The existing `Events.On()` pattern for Wails backend events is fine (those originate from Go). Frontend-to-frontend commands should use zustand actions or similar.
 
-This bypasses React's component tree, is invisible to DevTools, untyped at subscription site, and hard to trace. The existing `Events.On()` pattern for Wails backend events is fine (those originate from Go). But frontend-to-frontend communication should use zustand actions, not `window.dispatchEvent`.
-
-**Status:** [ ] Not started
+**Status:** [x] Completed — document save path uses documentCommand store (Tier 2 Item 6)
 
 ---
 
@@ -1578,7 +1575,7 @@ See Section 35 for detailed steps per phase. Each phase leaves the app fully wor
 | 39 | Split `useSettingsController` (27 useState) into 5 focused hooks | Maintainability | Medium |
 | 54 | Create command registry for plugin system | Extensible commands | High |
 | 18 | Centralize shortcuts config (single source for hotkeys + settings display) | Single source of truth, user-customizable | Medium |
-| 6 | Unify state communication (remove window.dispatchEvent) | Consistent data flow | Medium |
+| 6 | ~~Unify state communication (remove window.dispatchEvent)~~ — Document save path done (`documentCommand.store`) | Consistent data flow | Medium |
 
 ### Tier 3: Resilience (production-grade error handling)
 

@@ -14,6 +14,7 @@ import { useRecentDocuments } from "../../hooks/useRecentDocuments";
 import { useSidebarSections } from "../../hooks/useSidebarSections";
 import { usePaneLayout } from "../../pane";
 import { DocumentServiceWrapper } from "../../services/DocumentService";
+import { useDocumentCommandStore } from "../../shared/stores/documentCommand.store";
 import type { NavigationState } from "../../types";
 import type { HotkeyConfig } from "../../types/hotkeys";
 import { BackendLogger } from "../../utils/backendLogger";
@@ -171,9 +172,9 @@ export function useDocumentController({
 		};
 	}, []);
 
-	// Listen for save event from command palette
+	// Register save handler for command palette / global "Save Document"
 	useEffect(() => {
-		const handleSaveEvent = () => {
+		const handleSaveRequest = () => {
 			if (isArchivedRef.current) {
 				error("Restore the document before saving.");
 				return;
@@ -183,11 +184,9 @@ export function useDocumentController({
 				error("Failed to save document");
 			});
 		};
-
-		window.addEventListener("yanta:document:save", handleSaveEvent);
-
+		useDocumentCommandStore.getState().registerSaveHandler(handleSaveRequest);
 		return () => {
-			window.removeEventListener("yanta:document:save", handleSaveEvent);
+			useDocumentCommandStore.getState().registerSaveHandler(null);
 		};
 	}, [error]);
 
