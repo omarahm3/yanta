@@ -1,8 +1,8 @@
 import React, { Suspense, useMemo } from "react";
-import { Dashboard, Journal, Projects, QuickCapture, Search, Settings } from "../pages";
-import type { NavigationState, PageName } from "../types";
 import { PaneLayoutView } from "../components/pane";
 import { LoadingSpinner } from "../components/ui";
+import { Dashboard, Journal, Projects, QuickCapture, Search, Settings } from "../pages";
+import type { NavigationState, PageName } from "../types";
 
 const PageLoader = () => <LoadingSpinner message="Loading..." />;
 

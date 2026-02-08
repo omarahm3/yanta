@@ -1,9 +1,10 @@
 // Primary controller hook
-export { useDocumentController } from "./useDocumentController";
+
 export type {
 	DocumentControllerOptions,
 	DocumentControllerResult,
 } from "./useDocumentController";
+export { useDocumentController } from "./useDocumentController";
 
 // Supporting hooks (domain-internal, not exported from public API)
 export { useDocumentEditor } from "./useDocumentEditor";

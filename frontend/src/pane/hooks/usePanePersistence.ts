@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
 import { TIMEOUTS } from "@/config";
+import { useLocalStorage } from "../../shared/hooks/useLocalStorage";
+import { BackendLogger } from "../../utils/backendLogger";
 import type { PaneLayoutState } from "../types";
 import { createDefaultPaneLayout } from "../types";
 import { restoreLayout } from "../utils/paneLayoutUtils";
-import { BackendLogger } from "../../utils/backendLogger";
-import { useLocalStorage } from "../../shared/hooks/useLocalStorage";
 
 const OLD_STORAGE_KEY = "yanta_pane_layout";
 const STORAGE_KEY = "yanta_pane_layouts";
@@ -49,7 +49,9 @@ function deserializeLayoutMap(raw: string): unknown {
 	return JSON.parse(raw);
 }
 
-let globalLayoutMapSetter: ((value: PersistedLayoutMap | ((prev: PersistedLayoutMap) => PersistedLayoutMap)) => void) | null = null;
+let globalLayoutMapSetter:
+	| ((value: PersistedLayoutMap | ((prev: PersistedLayoutMap) => PersistedLayoutMap)) => void)
+	| null = null;
 
 function loadLayoutMap(): PersistedLayoutMap {
 	try {
@@ -83,17 +85,13 @@ function saveLayoutMap(map: PersistedLayoutMap): void {
 }
 
 function useLayoutMapStorage(): void {
-	const [, setLayoutMap] = useLocalStorage<PersistedLayoutMap>(
-		STORAGE_KEY,
-		getDefaultLayoutMap(),
-		{
-			validate: validateLayoutMap,
-			deserialize: deserializeLayoutMap,
-			onError: (operation, err) => {
-				BackendLogger.error(`[usePanePersistence] Failed to ${operation}:`, err);
-			},
+	const [, setLayoutMap] = useLocalStorage<PersistedLayoutMap>(STORAGE_KEY, getDefaultLayoutMap(), {
+		validate: validateLayoutMap,
+		deserialize: deserializeLayoutMap,
+		onError: (operation, err) => {
+			BackendLogger.error(`[usePanePersistence] Failed to ${operation}:`, err);
 		},
-	);
+	});
 
 	useEffect(() => {
 		globalLayoutMapSetter = setLayoutMap;

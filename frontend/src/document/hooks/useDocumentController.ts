@@ -6,24 +6,24 @@ import { ExportDocument } from "../../../bindings/yanta/internal/document/servic
 import { ExportRequest } from "../../../bindings/yanta/internal/export/models";
 import { ExportToPDF } from "../../../bindings/yanta/internal/export/service";
 import { GetDocumentTags } from "../../../bindings/yanta/internal/tag/service";
-import type { DocumentContentProps } from "../components/DocumentContent";
 import { DOCUMENT_SHORTCUTS } from "../../config";
 import { useProjectContext, useUserProgressContext } from "../../contexts";
+import { useHelp } from "../../hooks";
+import { useNotification } from "../../hooks/useNotification";
+import { useRecentDocuments } from "../../hooks/useRecentDocuments";
+import { useSidebarSections } from "../../hooks/useSidebarSections";
+import { usePaneLayout } from "../../pane";
+import { DocumentServiceWrapper } from "../../services/DocumentService";
+import type { NavigationState } from "../../types";
+import type { HotkeyConfig } from "../../types/hotkeys";
+import { BackendLogger } from "../../utils/backendLogger";
+import { createEmptyDocument } from "../../utils/documentBlockUtils";
+import type { DocumentContentProps } from "../components/DocumentContent";
 import { useDocumentEditor } from "./useDocumentEditor";
 import { useDocumentEscapeHandling } from "./useDocumentEscapeHandling";
 import { useDocumentForm } from "./useDocumentForm";
 import { useDocumentInitialization } from "./useDocumentInitialization";
 import { useDocumentPersistence } from "./useDocumentPersistence";
-import { useHelp } from "../../hooks";
-import { useNotification } from "../../hooks/useNotification";
-import { usePaneLayout } from "../../pane";
-import { useRecentDocuments } from "../../hooks/useRecentDocuments";
-import { useSidebarSections } from "../../hooks/useSidebarSections";
-import { DocumentServiceWrapper } from "../../services/DocumentService";
-import type { HotkeyConfig } from "../../types/hotkeys";
-import type { NavigationState } from "../../types";
-import { createEmptyDocument } from "../../utils/documentBlockUtils";
-import { BackendLogger } from "../../utils/backendLogger";
 
 export interface DocumentControllerOptions {
 	onNavigate?: (page: string, state?: NavigationState) => void;

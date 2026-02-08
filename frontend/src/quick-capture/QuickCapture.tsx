@@ -7,11 +7,11 @@ import { useUserProgressContext } from "../contexts";
 import { useHotkeys } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
 import type { HotkeyConfig } from "../types/hotkeys";
+import { BackendLogger } from "../utils/backendLogger";
 import type { ProjectOption } from "./ProjectPicker";
 import { QuickEditor } from "./QuickEditor";
 import { TagChips } from "./TagChips";
 import { useQuickCapture } from "./useQuickCapture";
-import { BackendLogger } from "../utils/backendLogger";
 
 /**
  * Quick Capture Window

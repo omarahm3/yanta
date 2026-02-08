@@ -89,10 +89,10 @@ The ShadCN light theme (`:root`) is dead code -- the app is dark-only with no th
 
 ### 3. Provider Pyramid (App.tsx:257-289)
 
-~~11~~ 9 nested context providers (Scale + Dialog replaced with Zustand):
+~~11~~ 8 nested context providers (Scale, Dialog, TitleBar → Zustand):
 
 ```
-ToastProvider > TitleBarProvider >
+ToastProvider >
 HotkeyProvider > HelpProvider > ProjectProvider > UserProgressProvider >
 DocumentCountProvider > DocumentProvider > PaneLayoutProvider
 ```
@@ -113,14 +113,14 @@ Problems:
 | `ProjectProvider` | `shared/stores/project.store.ts` (zustand) | Global state, used by 5+ domains |
 | `UserProgressProvider` | `shared/stores/progress.store.ts` (zustand) | Global gamification state |
 | `DocumentCountProvider` | Merge into `document.store.ts` (zustand) | Simple counter, doesn't need its own context |
-| `TitleBarProvider` | `app/stores/titlebar.store.ts` (zustand) | App-shell concern |
+| ~~`TitleBarProvider`~~ | ~~`app/stores/titlebar.store.ts` (zustand)~~ — **Done** | Replaced; `useTitleBarContext` re-exported; no-op provider for tests |
 | `HelpProvider` | Keep as context OR move to zustand | Low-traffic, either works |
 | `ToastProvider` | **Keep as context** | Radix-based, needs portal/tree position |
 | `HotkeyProvider` | **Keep as context** | Needs React tree for registration/cleanup lifecycle |
 | `DocumentProvider` | **Keep as context** | Hierarchical -- different per pane |
 | `PaneLayoutProvider` | **Keep as context** | Hierarchical -- tree structure matters |
 
-**Status:** [~] In progress — ScaleProvider + DialogProvider migrated to Zustand (`shared/stores/scale.store.ts`, `dialog.store.ts`). Remaining: Project, UserProgress, DocumentCount, TitleBar, Help (optional).
+**Status:** [~] In progress — Scale, Dialog, TitleBar migrated to Zustand. Remaining: Project, UserProgress, DocumentCount, Help (optional).
 
 ---
 

@@ -1,8 +1,8 @@
 import type React from "react";
 import { useCallback, useEffect, useRef } from "react";
-import { useLatestRef } from "../../shared/hooks/useLatestRef";
-import { usePaneHotkeys, usePaneLayout } from "../../pane";
 import { useSidebarSections } from "../../hooks/useSidebarSections";
+import { usePaneHotkeys, usePaneLayout } from "../../pane";
+import { useLatestRef } from "../../shared/hooks/useLatestRef";
 import type { NavigationState } from "../../types";
 import { Layout } from "../Layout";
 import { PaneContainer } from "./PaneContainer";

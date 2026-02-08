@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { BackendLogger } from "../utils/backendLogger";
 // IsCommandLineEnabled will be available after regenerating bindings
 // For now, we'll use a dynamic import pattern that handles the missing export gracefully
 import * as SystemService from "../../bindings/yanta/internal/system/service";
+import { BackendLogger } from "../utils/backendLogger";
 
 export interface UseCommandLineEnabledReturn {
 	enabled: boolean;

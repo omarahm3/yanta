@@ -54,9 +54,7 @@ describe("HelpModal keyboard navigation", () => {
 		render(<HelpModal />);
 
 		const sectionHeaders = screen.getAllByRole("button");
-		const globalSection = sectionHeaders.find((btn) =>
-			btn.textContent?.includes("Global Shortcuts"),
-		);
+		const globalSection = sectionHeaders.find((btn) => btn.textContent?.includes("Global Shortcuts"));
 
 		if (!globalSection) {
 			throw new Error("Global Shortcuts section not found");
@@ -82,9 +80,7 @@ describe("HelpModal keyboard navigation", () => {
 		render(<HelpModal />);
 
 		const sectionHeaders = screen.getAllByRole("button");
-		const globalSection = sectionHeaders.find((btn) =>
-			btn.textContent?.includes("Global Shortcuts"),
-		);
+		const globalSection = sectionHeaders.find((btn) => btn.textContent?.includes("Global Shortcuts"));
 
 		if (!globalSection) return;
 
@@ -125,9 +121,7 @@ describe("HelpModal keyboard navigation", () => {
 		render(<HelpModal />);
 
 		const sectionHeaders = screen.getAllByRole("button");
-		const globalSection = sectionHeaders.find((btn) =>
-			btn.textContent?.includes("Global Shortcuts"),
-		);
+		const globalSection = sectionHeaders.find((btn) => btn.textContent?.includes("Global Shortcuts"));
 
 		// Should display a number (shortcut count)
 		expect(globalSection?.textContent).toMatch(/\d+/);

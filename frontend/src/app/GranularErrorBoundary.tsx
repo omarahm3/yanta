@@ -18,10 +18,7 @@ interface State {
  * Error boundary for a single area (editor, settings, list). Shows recovery UI
  * without taking down the rest of the app. Use with a key so onRetry can remount.
  */
-export class GranularErrorBoundary extends React.Component<
-	GranularErrorBoundaryProps,
-	State
-> {
+export class GranularErrorBoundary extends React.Component<GranularErrorBoundaryProps, State> {
 	state: State = { error: null };
 
 	static getDerivedStateFromError(error: Error): State {

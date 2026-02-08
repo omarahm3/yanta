@@ -1,10 +1,10 @@
-export { PaneLayoutContext, PaneLayoutProvider } from "./context/PaneLayoutContext";
 export type { PaneLayoutContextValue } from "./context/PaneLayoutContext";
-export { usePaneLayout, usePaneHotkeys } from "./hooks";
+export { PaneLayoutContext, PaneLayoutProvider } from "./context/PaneLayoutContext";
+export { usePaneHotkeys, usePaneLayout } from "./hooks";
 export {
-	loadPaneLayout,
-	loadLayoutForDocument,
 	flushSaveLayout,
+	loadLayoutForDocument,
+	loadPaneLayout,
 	usePanePersistence,
 } from "./hooks/usePanePersistence";
 export type {
@@ -16,13 +16,13 @@ export type {
 	SplitDirection,
 } from "./types";
 export { createDefaultPaneLayout, MAX_PANES } from "./types";
+export type { PaneDirection, PathStep } from "./utils/paneLayoutUtils";
 export {
 	countLeaves,
 	findPane,
-	getLeaves,
 	getLeafPaths,
+	getLeaves,
 	getPaneInDirection,
 	restoreLayout,
 	validateLayout,
 } from "./utils/paneLayoutUtils";
-export type { PaneDirection, PathStep } from "./utils/paneLayoutUtils";

@@ -4,8 +4,8 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import { BackgroundQuit } from "../../../bindings/yanta/internal/system/service";
 import { IsFrameless } from "../../../bindings/yanta/internal/window/service";
-import { BackendLogger } from "../../utils/backendLogger";
 import { useTitleBarContext } from "../../contexts";
+import { BackendLogger } from "../../utils/backendLogger";
 import { Button } from "./Button";
 import { useToast } from "./Toast";
 

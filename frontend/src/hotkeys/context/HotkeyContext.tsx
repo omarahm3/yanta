@@ -10,8 +10,8 @@ import {
 	useRef,
 	useState,
 } from "react";
-import type { HotkeyConfig, HotkeyContextValue, RegisteredHotkey } from "../../types/hotkeys";
 import { useDialog } from "../../contexts/DialogContext";
+import type { HotkeyConfig, HotkeyContextValue, RegisteredHotkey } from "../../types/hotkeys";
 
 const HotkeyContext = createContext<HotkeyContextValue | null>(null);
 

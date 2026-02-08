@@ -1,2 +1,2 @@
-export { usePaneLayout } from "./usePaneLayout";
 export { usePaneHotkeys } from "./usePaneHotkeys";
+export { usePaneLayout } from "./usePaneLayout";

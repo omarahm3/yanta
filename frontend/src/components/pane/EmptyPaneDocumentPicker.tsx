@@ -3,9 +3,9 @@ import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TIMEOUTS } from "../../config";
 import { useProjectContext } from "../../contexts";
-import { usePaneLayout } from "../../pane";
 import { type RecentDocument, useRecentDocuments } from "../../hooks/useRecentDocuments";
 import { cn } from "../../lib/utils";
+import { usePaneLayout } from "../../pane";
 import { DocumentServiceWrapper } from "../../services/DocumentService";
 import { formatRelativeTimeFromTimestamp } from "../../utils/dateUtils";
 

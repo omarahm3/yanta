@@ -2,8 +2,8 @@ import type { Block, BlockNoteEditor } from "@blocknote/core";
 import type React from "react";
 import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import { GranularErrorBoundary } from "@/app";
-import type { BlockNoteBlock } from "../../types/Document";
 import { Button } from "../../components/ui";
+import type { BlockNoteBlock } from "../../types/Document";
 
 const RichEditor = lazy(() =>
 	import("../../components/editor/RichEditor").then((m) => ({ default: m.RichEditor })),

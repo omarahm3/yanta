@@ -173,7 +173,10 @@ export function getHelpShortcutsFromConfig(): {
 	journal: { key: string; description: string }[];
 	editor: { key: string; description: string }[];
 } {
-	const fmt = (d: ShortcutDef) => ({ key: formatShortcutKeyForDisplay(d.key), description: d.description });
+	const fmt = (d: ShortcutDef) => ({
+		key: formatShortcutKeyForDisplay(d.key),
+		description: d.description,
+	});
 	return {
 		global: [
 			...Object.values(GLOBAL_SHORTCUTS).map(fmt),

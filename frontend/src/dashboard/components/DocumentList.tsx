@@ -1,9 +1,9 @@
 import type React from "react";
 import { useEffect, useRef } from "react";
+import { Button, Heading, Text } from "../../components/ui";
 import { cn } from "../../lib/utils";
 import type { Document } from "../../types/Document";
 import { formatShortDate } from "../../utils/dateUtils";
-import { Button, Heading, Text } from "../../components/ui";
 
 interface DocumentListProps {
 	documents: Document[];

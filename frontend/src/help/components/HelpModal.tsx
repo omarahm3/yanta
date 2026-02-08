@@ -2,16 +2,12 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { ChevronRight } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { GLOBAL_COMMANDS } from "../../constants/globalCommands";
-import {
-	TIMEOUTS,
-	formatShortcutKeyForDisplay,
-	getHelpShortcutsFromConfig,
-} from "../../config";
-import { useHotkeyContext } from "../../contexts";
-import { useHelp } from "../hooks/useHelp";
 import { Heading } from "../../components/ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import { formatShortcutKeyForDisplay, getHelpShortcutsFromConfig, TIMEOUTS } from "../../config";
+import { GLOBAL_COMMANDS } from "../../constants/globalCommands";
+import { useHotkeyContext } from "../../contexts";
+import { useHelp } from "../hooks/useHelp";
 
 /**
  * Section definitions for the help modal

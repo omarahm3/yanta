@@ -1,23 +1,22 @@
 import React from "react";
 import { GlobalCommandPalette, MilestoneHintManager, WelcomeOverlay } from "../components";
+import { HelpModal, ResizeHandles, TitleBar, ToastProvider } from "../components/ui";
 import {
 	DocumentCountProvider,
 	DocumentProvider,
 	HelpProvider,
 	HotkeyProvider,
 	ProjectProvider,
-	TitleBarProvider,
 	UserProgressProvider,
 } from "../contexts";
 import { PaneLayoutProvider } from "../pane";
 import {
-	HelpHotkey,
-	QuitHotkeys,
 	GlobalCommandHotkey,
-	WindowEventListener,
+	HelpHotkey,
 	ProjectSwitchTracker,
+	QuitHotkeys,
+	WindowEventListener,
 } from "./global-hotkeys";
-import { HelpModal, ResizeHandles, TitleBar, ToastProvider } from "../components/ui";
 import { ScaleStoreInit } from "./ScaleStoreInit";
 
 /**
@@ -29,32 +28,30 @@ export function AppProviders() {
 		<ToastProvider>
 			<>
 				<ScaleStoreInit />
-				<TitleBarProvider>
-					<HotkeyProvider>
-							<HelpProvider>
-								<ProjectProvider>
-									<UserProgressProvider>
-										<DocumentCountProvider>
-											<DocumentProvider>
-												<PaneLayoutProvider>
-													<ResizeHandles />
-													<TitleBar />
-													<HelpHotkey />
-													<QuitHotkeys />
-													<GlobalCommandHotkey />
-													<WindowEventListener />
-													<ProjectSwitchTracker />
-													<HelpModal />
-													<WelcomeOverlay />
-													<MilestoneHintManager />
-												</PaneLayoutProvider>
-											</DocumentProvider>
-										</DocumentCountProvider>
-									</UserProgressProvider>
-								</ProjectProvider>
-							</HelpProvider>
-						</HotkeyProvider>
-				</TitleBarProvider>
+				<HotkeyProvider>
+					<HelpProvider>
+						<ProjectProvider>
+							<UserProgressProvider>
+								<DocumentCountProvider>
+									<DocumentProvider>
+										<PaneLayoutProvider>
+											<ResizeHandles />
+											<TitleBar />
+											<HelpHotkey />
+											<QuitHotkeys />
+											<GlobalCommandHotkey />
+											<WindowEventListener />
+											<ProjectSwitchTracker />
+											<HelpModal />
+											<WelcomeOverlay />
+											<MilestoneHintManager />
+										</PaneLayoutProvider>
+									</DocumentProvider>
+								</DocumentCountProvider>
+							</UserProgressProvider>
+						</ProjectProvider>
+					</HelpProvider>
+				</HotkeyProvider>
 			</>
 		</ToastProvider>
 	);

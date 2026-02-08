@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
-import { BackendLogger } from "../../utils/backendLogger";
 import { useLocalStorage } from "../../shared/hooks/useLocalStorage";
+import { BackendLogger } from "../../utils/backendLogger";
 
 const STORAGE_KEY = "yanta_command_usage";
 const MAX_ENTRIES = 100;

@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import { BackendLogger } from "../utils/backendLogger";
 import { useLocalStorage } from "../shared/hooks/useLocalStorage";
+import { BackendLogger } from "../utils/backendLogger";
 
 const STORAGE_KEY = "yanta_tooltip_usage";
 const FADE_THRESHOLD = 5;

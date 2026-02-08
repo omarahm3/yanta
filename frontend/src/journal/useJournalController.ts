@@ -5,11 +5,11 @@ import { useProjectContext } from "../contexts";
 import { useHelp } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
 import { useSidebarSections } from "../hooks/useSidebarSections";
-import type { HotkeyConfig } from "../types/hotkeys";
 import type { NavigationState } from "../types";
+import type { HotkeyConfig } from "../types/hotkeys";
+import { BackendLogger } from "../utils/backendLogger";
 import type { JournalEntryData } from "./JournalEntry";
 import { useJournal } from "./useJournal";
-import { BackendLogger } from "../utils/backendLogger";
 
 function addDays(dateStr: string, delta: number): string {
 	const d = new Date(dateStr);

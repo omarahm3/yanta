@@ -10,9 +10,9 @@ import {
 	useState,
 } from "react";
 import { ListActive, ListArchived } from "../../../bindings/yanta/internal/project/service";
+import { useNotification } from "../../hooks/useNotification";
 import { type Project, projectsFromModels } from "../../types";
 import { BackendLogger } from "../../utils/backendLogger";
-import { useNotification } from "../../hooks/useNotification";
 
 interface ProjectContextValue {
 	currentProject: Project | undefined;

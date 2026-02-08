@@ -1,21 +1,22 @@
 // Public API for onboarding domain
-export { WelcomeOverlay, MilestoneHint, MilestoneHintManager } from "./components";
-export type { WelcomeOverlayProps, MilestoneHintProps } from "./components";
+
+export type { MilestoneHintProps, WelcomeOverlayProps } from "./components";
+export { MilestoneHint, MilestoneHintManager, WelcomeOverlay } from "./components";
 export { UserProgressProvider, useUserProgressContext } from "./context";
-export {
-	useOnboarding,
-	useUserProgress,
-	useMilestoneHints,
-	MILESTONE_HINT_IDS,
-	MILESTONE_HINTS,
-} from "./hooks";
 export type {
+	MilestoneHintId,
 	OnboardingData,
+	UseMilestoneHintsOptions,
+	UseMilestoneHintsReturn,
 	UseOnboardingReturn,
 	UserProgressData,
 	UseUserProgressReturn,
-	MilestoneHintId,
-	UseMilestoneHintsOptions,
-	UseMilestoneHintsReturn,
+} from "./hooks";
+export {
+	MILESTONE_HINT_IDS,
+	MILESTONE_HINTS,
+	useMilestoneHints,
+	useOnboarding,
+	useUserProgress,
 } from "./hooks";
 // MilestoneHint interface already exported from hooks via MILESTONE_HINTS

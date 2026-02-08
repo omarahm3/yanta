@@ -1,20 +1,20 @@
-export { TIMEOUTS } from "./timeouts";
-export { LAYOUT } from "./layout";
 export { ENABLE_TOOLTIP_HINTS } from "./featureFlags";
-export {
-	GLOBAL_SHORTCUTS,
-	SIDEBAR_SHORTCUTS,
-	PANE_SHORTCUTS,
-	DOCUMENT_SHORTCUTS,
-	DASHBOARD_SHORTCUTS,
-	JOURNAL_SHORTCUTS,
-	PROJECTS_SHORTCUTS,
-	QUICK_CAPTURE_SHORTCUTS,
-	QUICK_CAPTURE_DEFAULT,
-	SETTINGS_SHORTCUTS,
-	ALL_SHORTCUT_KEYS,
-	formatShortcutKeyForDisplay,
-	getShortcutsForSettings,
-	getHelpShortcutsFromConfig,
-} from "./shortcuts";
+export { LAYOUT } from "./layout";
 export type { ShortcutDef } from "./shortcuts";
+export {
+	ALL_SHORTCUT_KEYS,
+	DASHBOARD_SHORTCUTS,
+	DOCUMENT_SHORTCUTS,
+	formatShortcutKeyForDisplay,
+	GLOBAL_SHORTCUTS,
+	getHelpShortcutsFromConfig,
+	getShortcutsForSettings,
+	JOURNAL_SHORTCUTS,
+	PANE_SHORTCUTS,
+	PROJECTS_SHORTCUTS,
+	QUICK_CAPTURE_DEFAULT,
+	QUICK_CAPTURE_SHORTCUTS,
+	SETTINGS_SHORTCUTS,
+	SIDEBAR_SHORTCUTS,
+} from "./shortcuts";
+export { TIMEOUTS } from "./timeouts";

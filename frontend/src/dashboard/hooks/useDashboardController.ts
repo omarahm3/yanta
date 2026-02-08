@@ -9,17 +9,17 @@ import {
 import { ExportRequest } from "../../../bindings/yanta/internal/export";
 import { ExportToPDF } from "../../../bindings/yanta/internal/export/service";
 import { OpenDirectoryDialog } from "../../../bindings/yanta/internal/system/service";
-import { DocumentCommand } from "../../constants";
 import { DASHBOARD_SHORTCUTS } from "../../config";
+import { DocumentCommand } from "../../constants";
 import { useDocumentContext, useProjectContext } from "../../contexts";
 import { useHelp } from "../../hooks";
 import { useNotification } from "../../hooks/useNotification";
 import { useRecentDocuments } from "../../hooks/useRecentDocuments";
 import { useSidebarSections } from "../../hooks/useSidebarSections";
 import { DocumentServiceWrapper, moveDocumentToProject } from "../../services/DocumentService";
+import type { NavigationState } from "../../types";
 import type { Document } from "../../types/Document";
 import type { HotkeyConfig } from "../../types/hotkeys";
-import type { NavigationState } from "../../types";
 import { useDashboardCommandHandler } from "./useDashboardCommandHandler";
 
 const helpCommands = [

@@ -1,7 +1,7 @@
 import type React from "react";
-import { DocumentContent, DocumentErrorState, DocumentLoadingState } from "./components";
 import { useHotkeys } from "../hooks";
 import type { NavigationState } from "../types";
+import { DocumentContent, DocumentErrorState, DocumentLoadingState } from "./components";
 import { useDocumentController } from "./hooks/useDocumentController";
 
 export interface DocumentProps {

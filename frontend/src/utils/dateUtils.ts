@@ -2,6 +2,6 @@
 /** Compatibility shim: migrate call sites to shared/utils/date then remove. */
 export {
 	formatRelativeTime,
-	formatShortDate,
 	formatRelativeTimeFromTimestamp,
+	formatShortDate,
 } from "../shared/utils/date";

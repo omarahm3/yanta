@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef } from "react";
 import { TIMEOUTS } from "@/config";
-import type { BlockNoteBlock } from "../../types/Document";
-import { BackendLogger } from "../../utils/backendLogger";
-import type { Project } from "../../types/Project";
-import type { NavigationState } from "../../types";
 import { useAutoSave } from "../../hooks/useAutoSave";
+import type { NavigationState } from "../../types";
+import type { BlockNoteBlock } from "../../types/Document";
+import type { Project } from "../../types/Project";
+import { BackendLogger } from "../../utils/backendLogger";
 import { useAutoDocumentSaver } from "./useDocumentSaver";
 
 interface DocumentFormData {

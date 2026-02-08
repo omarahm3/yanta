@@ -5,9 +5,9 @@ import type * as searchModels from "../../bindings/yanta/internal/search/models"
 import { Query } from "../../bindings/yanta/internal/search/service";
 import type * as tagModels from "../../bindings/yanta/internal/tag/models";
 import { ListActive as ListActiveTags } from "../../bindings/yanta/internal/tag/service";
-import { TIMEOUTS } from "../config";
 import { Layout } from "../components/Layout";
 import { Button, Input } from "../components/ui";
+import { TIMEOUTS } from "../config";
 import { useProjectContext } from "../contexts";
 import { useHelp } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
@@ -400,87 +400,87 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 						message="Something went wrong in search results."
 						onRetry={() => setResultsKey((k) => k + 1)}
 					>
-					{searchError ? (
-						<div className="p-4 text-center bg-surface border border-red/30 rounded text-red">
-							Error: {searchError}
-						</div>
-					) : groupedResults.length === 0 && !isLoading ? (
-						<div className="p-8 text-center text-text-dim">
-							{rawQuery.trim() ? (
-								<>
-									<div className="text-lg mb-2">No results found</div>
-									<div className="text-sm">Try different keywords or remove some filters</div>
-								</>
-							) : (
-								<>
-									<div className="text-lg mb-2">Start searching</div>
-									<div className="text-sm">Type a query or click filters to search your documents</div>
-								</>
-							)}
-						</div>
-					) : (
-						<div className="space-y-5">
-							{groupedResults.map((r, idx) => {
-								return (
-									<div
-										key={r.path}
-										data-result-item="true"
-										tabIndex={0}
-										className={`relative p-5 bg-glass-bg/20 backdrop-blur-md border border-glass-border rounded-xl transition-all cursor-pointer outline-none shadow-sm ${
-											idx === selectedIndex
-												? "border-accent ring-1 ring-accent/30 bg-glass-bg/30 shadow-md transform scale-[1.01]"
-												: "hover:bg-glass-bg/30 hover:shadow-md hover:border-glass-border/80"
-										}`}
-										onClick={() => {
-											setSelectedIndex(idx);
-											openResult(idx);
-										}}
-										onMouseEnter={() => setSelectedIndex(idx)}
-										onFocus={() => setSelectedIndex(idx)}
-									>
-										<div className="absolute -left-8 top-4 text-text-dim text-[11px] w-7 text-right">
-											{idx + 1}
-										</div>
+						{searchError ? (
+							<div className="p-4 text-center bg-surface border border-red/30 rounded text-red">
+								Error: {searchError}
+							</div>
+						) : groupedResults.length === 0 && !isLoading ? (
+							<div className="p-8 text-center text-text-dim">
+								{rawQuery.trim() ? (
+									<>
+										<div className="text-lg mb-2">No results found</div>
+										<div className="text-sm">Try different keywords or remove some filters</div>
+									</>
+								) : (
+									<>
+										<div className="text-lg mb-2">Start searching</div>
+										<div className="text-sm">Type a query or click filters to search your documents</div>
+									</>
+								)}
+							</div>
+						) : (
+							<div className="space-y-5">
+								{groupedResults.map((r, idx) => {
+									return (
+										<div
+											key={r.path}
+											data-result-item="true"
+											tabIndex={0}
+											className={`relative p-5 bg-glass-bg/20 backdrop-blur-md border border-glass-border rounded-xl transition-all cursor-pointer outline-none shadow-sm ${
+												idx === selectedIndex
+													? "border-accent ring-1 ring-accent/30 bg-glass-bg/30 shadow-md transform scale-[1.01]"
+													: "hover:bg-glass-bg/30 hover:shadow-md hover:border-glass-border/80"
+											}`}
+											onClick={() => {
+												setSelectedIndex(idx);
+												openResult(idx);
+											}}
+											onMouseEnter={() => setSelectedIndex(idx)}
+											onFocus={() => setSelectedIndex(idx)}
+										>
+											<div className="absolute -left-8 top-4 text-text-dim text-[11px] w-7 text-right">
+												{idx + 1}
+											</div>
 
-										<div className="flex items-center justify-between mb-2">
-											<div className="flex items-center gap-3 text-xs">
-												<span
-													className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-														r.type === "note" ? "bg-yellow/20 text-yellow" : "bg-blue/20 text-blue"
-													}`}
-												>
-													{r.type === "note" ? "Note" : "Document"}
-												</span>
-												<span className="text-purple font-semibold">
-													{r.projectAlias || r.path.split("/")[1] || "unknown"}
-												</span>
-												<span className="text-text-dim">{r.updated}</span>
-												{r.matchCount > 1 && (
-													<span className="px-2 py-0.5 bg-accent/10 text-accent rounded-full text-[10px] font-semibold">
-														{r.matchCount} {r.matchCount === 1 ? "match" : "matches"}
+											<div className="flex items-center justify-between mb-2">
+												<div className="flex items-center gap-3 text-xs">
+													<span
+														className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+															r.type === "note" ? "bg-yellow/20 text-yellow" : "bg-blue/20 text-blue"
+														}`}
+													>
+														{r.type === "note" ? "Note" : "Document"}
 													</span>
-												)}
+													<span className="text-purple font-semibold">
+														{r.projectAlias || r.path.split("/")[1] || "unknown"}
+													</span>
+													<span className="text-text-dim">{r.updated}</span>
+													{r.matchCount > 1 && (
+														<span className="px-2 py-0.5 bg-accent/10 text-accent rounded-full text-[10px] font-semibold">
+															{r.matchCount} {r.matchCount === 1 ? "match" : "matches"}
+														</span>
+													)}
+												</div>
+											</div>
+
+											<div className="mb-3 font-medium text-text-bright">{r.title}</div>
+
+											<div className="space-y-2">
+												{r.snippets.map((snippet, snippetIdx) => (
+													<div
+														// biome-ignore lint/suspicious/noArrayIndexKey: snippets are unique within a result
+														key={snippetIdx}
+														className="text-sm [&_mark]:bg-yellow/20 [&_mark]:text-yellow [&_mark]:px-1 [&_mark]:rounded [&_mark]:font-semibold pl-3 border-l-2 border-border"
+													>
+														{renderSnippet(snippet)}
+													</div>
+												))}
 											</div>
 										</div>
-
-										<div className="mb-3 font-medium text-text-bright">{r.title}</div>
-
-										<div className="space-y-2">
-											{r.snippets.map((snippet, snippetIdx) => (
-												<div
-													// biome-ignore lint/suspicious/noArrayIndexKey: snippets are unique within a result
-													key={snippetIdx}
-													className="text-sm [&_mark]:bg-yellow/20 [&_mark]:text-yellow [&_mark]:px-1 [&_mark]:rounded [&_mark]:font-semibold pl-3 border-l-2 border-border"
-												>
-													{renderSnippet(snippet)}
-												</div>
-											))}
-										</div>
-									</div>
-								);
-							})}
-						</div>
-					)}
+									);
+								})}
+							</div>
+						)}
 					</GranularErrorBoundary>
 				</div>
 			</div>

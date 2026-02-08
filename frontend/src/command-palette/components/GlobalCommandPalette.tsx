@@ -38,19 +38,24 @@ import {
 	OpenDirectoryDialog,
 	SyncNow,
 } from "../../../bindings/yanta/internal/system/service";
+import {
+	type CommandOption,
+	CommandPalette,
+	GitErrorDialog,
+	type SubPaletteItem,
+} from "../../components/ui";
 import { TIMEOUTS } from "../../config";
 import { useDocumentContext, useProjectContext } from "../../contexts";
-import { useCommandUsage } from "../hooks/useCommandUsage";
 import { useNotification } from "../../hooks/useNotification";
-import { usePaneLayout } from "../../pane";
 import { useRecentDocuments } from "../../hooks/useRecentDocuments";
+import { usePaneLayout } from "../../pane";
 import { DocumentServiceWrapper } from "../../services/DocumentService";
 import type { NavigationState } from "../../types";
-import { getTopRecentCommandIds, sortCommandsByUsage } from "../utils/commandSorting";
 import { formatRelativeTimeFromTimestamp } from "../../utils/dateUtils";
 import { type ParsedGitError, parseGitError } from "../../utils/gitErrorParser";
 import { getShortcutForCommand } from "../../utils/shortcuts";
-import { type CommandOption, CommandPalette, GitErrorDialog, type SubPaletteItem } from "../../components/ui";
+import { useCommandUsage } from "../hooks/useCommandUsage";
+import { getTopRecentCommandIds, sortCommandsByUsage } from "../utils/commandSorting";
 
 interface GlobalCommandPaletteProps {
 	isOpen: boolean;

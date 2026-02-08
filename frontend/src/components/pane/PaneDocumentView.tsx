@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useRef } from "react";
 import { TIMEOUTS } from "@/config";
-import { useEscapeHandler } from "../../hooks/useEscapeHandler";
-import { useHotkeys } from "../../hooks";
-import { useLatestRef } from "../../shared/hooks/useLatestRef";
-import { useDocumentController } from "../../document/hooks/useDocumentController";
-import type { NavigationState } from "../../types";
-import { findPane, usePaneLayout } from "../../pane";
 import { DocumentEditorActions, DocumentEditorForm } from "../../document/components";
+import { useDocumentController } from "../../document/hooks/useDocumentController";
+import { useHotkeys } from "../../hooks";
+import { useEscapeHandler } from "../../hooks/useEscapeHandler";
+import { findPane, usePaneLayout } from "../../pane";
+import { useLatestRef } from "../../shared/hooks/useLatestRef";
+import type { NavigationState } from "../../types";
 import { Button, LoadingSpinner } from "../ui";
 import { PaneHeader } from "./PaneHeader";
 

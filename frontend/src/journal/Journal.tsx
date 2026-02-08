@@ -82,36 +82,36 @@ export const Journal: React.FC<JournalProps> = ({
 							message="Something went wrong in the journal entry list."
 							onRetry={() => setEntryListKey((k) => k + 1)}
 						>
-						{isLoading && (
-							<div className="flex items-center justify-center py-8">
-								<div className="text-text-dim">Loading...</div>
-							</div>
-						)}
+							{isLoading && (
+								<div className="flex items-center justify-center py-8">
+									<div className="text-text-dim">Loading...</div>
+								</div>
+							)}
 
-						{error && <div className="text-center text-red py-8">{error}</div>}
+							{error && <div className="text-center text-red py-8">{error}</div>}
 
-						{isEmpty && !isLoading && (
-							<div className="text-center text-text-dim py-8">
-								<p>No entries for this day.</p>
-								<p className="mt-2 text-sm">Press your quick capture hotkey to add one!</p>
-							</div>
-						)}
+							{isEmpty && !isLoading && (
+								<div className="text-center text-text-dim py-8">
+									<p>No entries for this day.</p>
+									<p className="mt-2 text-sm">Press your quick capture hotkey to add one!</p>
+								</div>
+							)}
 
-						{!isLoading && !isEmpty && (
-							<div ref={listRef} className="space-y-1" role="list">
-								{entries.map((entry, index) => (
-									<JournalEntry
-										key={entry.id}
-										entry={entry}
-										index={index}
-										onEntryClick={handleEntryClick}
-										onToggleSelection={toggleSelection}
-										isHighlighted={index === highlightedIndex}
-										isSelected={selectedIds.has(entry.id)}
-									/>
-								))}
-							</div>
-						)}
+							{!isLoading && !isEmpty && (
+								<div ref={listRef} className="space-y-1" role="list">
+									{entries.map((entry, index) => (
+										<JournalEntry
+											key={entry.id}
+											entry={entry}
+											index={index}
+											onEntryClick={handleEntryClick}
+											onToggleSelection={toggleSelection}
+											isHighlighted={index === highlightedIndex}
+											isSelected={selectedIds.has(entry.id)}
+										/>
+									))}
+								</div>
+							)}
 						</GranularErrorBoundary>
 					</div>
 

@@ -1,35 +1,15 @@
-import React, { createContext, type ReactNode, useCallback, useMemo, useState } from "react";
+import type React from "react";
+import type { ReactNode } from "react";
 
-interface TitleBarContextType {
-	heightInRem: number;
-	setHeight: (height: number) => void;
-}
+export type { TitleBarContextType } from "../app/stores/titlebar.store";
 
-const TitleBarContext = createContext<TitleBarContextType | undefined>(undefined);
+/**
+ * TitleBar state is now in app/stores/titlebar.store (Zustand).
+ * Re-export so existing imports from contexts keep working.
+ */
+export { useTitleBarContext } from "../app/stores/titlebar.store";
 
-interface TitleBarProviderProps {
-	children: ReactNode;
-}
-
-export const TitleBarProvider: React.FC<TitleBarProviderProps> = ({ children }) => {
-	const [heightInRem, setHeightInRem] = useState(2);
-
-	const setHeight = useCallback((height: number) => {
-		setHeightInRem(height);
-	}, []);
-
-	const value = useMemo<TitleBarContextType>(
-		() => ({ heightInRem, setHeight }),
-		[heightInRem, setHeight],
-	);
-
-	return <TitleBarContext.Provider value={value}>{children}</TitleBarContext.Provider>;
-};
-
-export const useTitleBarContext = (): TitleBarContextType => {
-	const context = React.useContext(TitleBarContext);
-	if (context === undefined) {
-		throw new Error("useTitleBarContext must be used within a TitleBarProvider");
-	}
-	return context;
-};
+/**
+ * No-op for backward compatibility: tests may still wrap with TitleBarProvider.
+ */
+export const TitleBarProvider: React.FC<{ children: ReactNode }> = ({ children }) => children;

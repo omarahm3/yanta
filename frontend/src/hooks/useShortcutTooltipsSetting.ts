@@ -32,7 +32,10 @@ export function useShortcutTooltipsSetting(): UseShortcutTooltipsSettingReturn {
 				setShowShortcutTooltipsState(show);
 			})
 			.catch((err) => {
-				BackendLogger.error("[useShortcutTooltipsSetting] Failed to get shortcut tooltips visibility:", err);
+				BackendLogger.error(
+					"[useShortcutTooltipsSetting] Failed to get shortcut tooltips visibility:",
+					err,
+				);
 				setShowShortcutTooltipsState(true);
 			})
 			.finally(() => {
@@ -48,7 +51,10 @@ export function useShortcutTooltipsSetting(): UseShortcutTooltipsSettingReturn {
 			try {
 				await SetShowShortcutTooltips(show);
 			} catch (err) {
-				BackendLogger.error("[useShortcutTooltipsSetting] Failed to set shortcut tooltips visibility:", err);
+				BackendLogger.error(
+					"[useShortcutTooltipsSetting] Failed to set shortcut tooltips visibility:",
+					err,
+				);
 				setShowShortcutTooltipsState(previousValue);
 				throw err;
 			}

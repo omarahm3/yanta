@@ -1,8 +1,8 @@
 import { Events } from "@wailsio/runtime";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getDocument } from "../services/DocumentService";
-import { BackendLogger } from "../utils/backendLogger";
 import { useLocalStorage } from "../shared/hooks/useLocalStorage";
+import { BackendLogger } from "../utils/backendLogger";
 
 const STORAGE_KEY = "yanta_recent_documents";
 const MAX_RECENT_DOCUMENTS = 10;
@@ -37,16 +37,12 @@ function validateRecentDocuments(data: unknown): RecentDocument[] | null {
 }
 
 export function useRecentDocuments(): UseRecentDocumentsReturn {
-	const [storedDocuments, setStoredDocuments] = useLocalStorage<RecentDocument[]>(
-		STORAGE_KEY,
-		[],
-		{
-			validate: validateRecentDocuments,
-			onError: (operation, err) => {
-				BackendLogger.error(`[useRecentDocuments] Failed to ${operation}:`, err);
-			},
+	const [storedDocuments, setStoredDocuments] = useLocalStorage<RecentDocument[]>(STORAGE_KEY, [], {
+		validate: validateRecentDocuments,
+		onError: (operation, err) => {
+			BackendLogger.error(`[useRecentDocuments] Failed to ${operation}:`, err);
 		},
-	);
+	});
 	const [recentDocuments, setRecentDocuments] = useState<RecentDocument[]>(storedDocuments);
 
 	useEffect(() => {

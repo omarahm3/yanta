@@ -2,7 +2,15 @@ import { LogFromFrontend } from "../../bindings/yanta/internal/system/service";
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
-type LogValue = string | number | boolean | null | undefined | Error | Record<string, unknown> | unknown;
+type LogValue =
+	| string
+	| number
+	| boolean
+	| null
+	| undefined
+	| Error
+	| Record<string, unknown>
+	| unknown;
 
 export interface LogEntry {
 	level: LogLevel;

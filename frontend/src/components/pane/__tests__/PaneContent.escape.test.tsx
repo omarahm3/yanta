@@ -1,5 +1,5 @@
 import { act, render } from "@testing-library/react";
-import React from "react";
+import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockClosePane = vi.fn();

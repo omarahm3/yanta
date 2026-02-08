@@ -2,14 +2,10 @@ import { Events } from "@wailsio/runtime";
 import React from "react";
 import { BackgroundQuit, ForceQuit } from "../../bindings/yanta/internal/system/service";
 import { GlobalCommandPalette } from "../components";
-import { GLOBAL_SHORTCUTS } from "../config";
-import {
-	useDialog,
-	useProjectContext,
-	useUserProgressContext,
-} from "../contexts";
-import { useHelp, useHotkey } from "../hooks";
 import { useToast } from "../components/ui";
+import { GLOBAL_SHORTCUTS } from "../config";
+import { useDialog, useProjectContext, useUserProgressContext } from "../contexts";
+import { useHelp, useHotkey } from "../hooks";
 import { Router } from "./Router";
 import { useAppNavigation } from "./useAppNavigation";
 

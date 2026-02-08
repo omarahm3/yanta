@@ -5,9 +5,9 @@ import { ExportDocument } from "../../../bindings/yanta/internal/document/servic
 import { ExportRequest } from "../../../bindings/yanta/internal/export";
 import { ExportToPDF } from "../../../bindings/yanta/internal/export/service";
 import { OpenDirectoryDialog } from "../../../bindings/yanta/internal/system/service";
+import type { NavigationState } from "../../types";
 import type { Document } from "../../types/Document";
 import type { Project } from "../../types/Project";
-import type { NavigationState } from "../../types";
 import { preprocessCommand } from "../../utils";
 
 interface DashboardCommandHandlerOptions {

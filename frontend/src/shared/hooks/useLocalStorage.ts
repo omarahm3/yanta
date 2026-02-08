@@ -12,12 +12,7 @@ export function useLocalStorage<T>(
 	defaultValue: T,
 	options: UseLocalStorageOptions<T> = {},
 ): [T, (value: T | ((prev: T) => T)) => void] {
-	const {
-		validate,
-		serialize = JSON.stringify,
-		deserialize = JSON.parse,
-		onError,
-	} = options;
+	const { validate, serialize = JSON.stringify, deserialize = JSON.parse, onError } = options;
 
 	const validateRef = useRef(validate);
 	const serializeRef = useRef(serialize);

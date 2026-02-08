@@ -8,9 +8,9 @@ import {
 	PromoteToDocument,
 	RestoreEntry,
 } from "../../bindings/yanta/internal/journal/wailsservice";
-import type { JournalEntryData } from "./JournalEntry";
 import { useNotification } from "../hooks/useNotification";
 import { BackendLogger } from "../utils/backendLogger";
+import type { JournalEntryData } from "./JournalEntry";
 
 export interface UseJournalOptions {
 	projectAlias: string; // Use "all" for all projects
@@ -81,36 +81,39 @@ export function useJournal({
 	});
 
 	// Fetch entries. When requestId is passed (from effect), ignore result if a newer request started.
-	const refresh = useCallback(async (requestId?: number) => {
-		setIsLoading(true);
-		setError(null);
+	const refresh = useCallback(
+		async (requestId?: number) => {
+			setIsLoading(true);
+			setError(null);
 
-		try {
-			if (projectAlias === "all") {
-				// Fetch from all projects
-				const result = await GetAllActiveEntries(date);
+			try {
+				if (projectAlias === "all") {
+					// Fetch from all projects
+					const result = await GetAllActiveEntries(date);
+					if (requestId !== undefined && requestId !== refreshRequestIdRef.current) return;
+					const mappedEntries = (result || []).map(mapEntry);
+					setEntries(mappedEntries);
+				} else {
+					// Fetch from specific project
+					const result = await GetActiveEntries(projectAlias, date);
+					if (requestId !== undefined && requestId !== refreshRequestIdRef.current) return;
+					const mappedEntries = (result || []).map(mapEntry);
+					setEntries(mappedEntries);
+				}
+			} catch (err) {
 				if (requestId !== undefined && requestId !== refreshRequestIdRef.current) return;
-				const mappedEntries = (result || []).map(mapEntry);
-				setEntries(mappedEntries);
-			} else {
-				// Fetch from specific project
-				const result = await GetActiveEntries(projectAlias, date);
-				if (requestId !== undefined && requestId !== refreshRequestIdRef.current) return;
-				const mappedEntries = (result || []).map(mapEntry);
-				setEntries(mappedEntries);
+				BackendLogger.error("Failed to fetch journal entries:", err);
+				setError("Failed to load entries");
+				setEntries([]);
+				notifyError("Failed to load journal entries");
+			} finally {
+				if (requestId === undefined || requestId === refreshRequestIdRef.current) {
+					setIsLoading(false);
+				}
 			}
-		} catch (err) {
-			if (requestId !== undefined && requestId !== refreshRequestIdRef.current) return;
-			BackendLogger.error("Failed to fetch journal entries:", err);
-			setError("Failed to load entries");
-			setEntries([]);
-			notifyError("Failed to load journal entries");
-		} finally {
-			if (requestId === undefined || requestId === refreshRequestIdRef.current) {
-				setIsLoading(false);
-			}
-		}
-	}, [projectAlias, date, notifyError]);
+		},
+		[projectAlias, date, notifyError],
+	);
 
 	// Fetch on mount and when dependencies change; cancel in-flight when deps change
 	useEffect(() => {

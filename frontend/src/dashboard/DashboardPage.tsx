@@ -1,13 +1,13 @@
 import type React from "react";
 import { useState } from "react";
 import { GranularErrorBoundary } from "@/app";
-import { DocumentList } from "./components/DocumentList";
 import { Layout } from "../components/Layout";
-import { MoveDocumentDialog } from "./components/MoveDocumentDialog";
-import { StatusBar } from "./components/StatusBar";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { useHotkeys } from "../hooks";
 import type { NavigationState } from "../types";
+import { DocumentList } from "./components/DocumentList";
+import { MoveDocumentDialog } from "./components/MoveDocumentDialog";
+import { StatusBar } from "./components/StatusBar";
 import { useDashboardController } from "./hooks/useDashboardController";
 
 interface DashboardProps {

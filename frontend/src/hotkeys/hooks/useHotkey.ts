@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { useHotkeyContext } from "../context/HotkeyContext";
 import type { HotkeyConfig } from "../../types/hotkeys";
+import { useHotkeyContext } from "../context/HotkeyContext";
 
 export const useHotkey = (config: HotkeyConfig) => {
 	const { register, unregister } = useHotkeyContext();

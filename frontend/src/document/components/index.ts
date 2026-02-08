@@ -1,5 +1,5 @@
-export { DocumentContent } from "./DocumentContent";
 export type { DocumentContentProps } from "./DocumentContent";
+export { DocumentContent } from "./DocumentContent";
 export { DocumentEditorActions } from "./DocumentEditorActions";
 export { DocumentEditorForm } from "./DocumentEditorForm";
 export { DocumentErrorState } from "./DocumentErrorState";

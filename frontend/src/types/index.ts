@@ -2,6 +2,15 @@ import type { Document } from "./Document";
 import type { Project } from "./Project";
 
 export type {
+	PaneLayoutState,
+	PaneLeaf,
+	PaneNode,
+	PaneSplit,
+	ScrollPosition,
+	SplitDirection,
+} from "../pane/types";
+export { createDefaultPaneLayout, MAX_PANES } from "../pane/types";
+export type {
 	BlockNoteBlock,
 	BlockNoteContent,
 	Document,
@@ -26,15 +35,6 @@ export type {
 	HotkeyContextValue,
 	RegisteredHotkey,
 } from "./hotkeys";
-export type {
-	PaneLayoutState,
-	PaneLeaf,
-	PaneNode,
-	PaneSplit,
-	ScrollPosition,
-	SplitDirection,
-} from "../pane/types";
-export { createDefaultPaneLayout, MAX_PANES } from "../pane/types";
 export type { ExtendedProject, Project, ProjectType } from "./Project";
 // Re-export converters for convenience
 export {

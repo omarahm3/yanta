@@ -1,14 +1,15 @@
 // Public API for document domain
-export { Document } from "./DocumentPage";
+
+export {
+	DocumentCountProvider,
+	DocumentProvider,
+	useDocumentContext,
+	useDocumentCount,
+} from "./context";
 export type { DocumentProps } from "./DocumentPage";
-export { useDocumentController } from "./hooks/useDocumentController";
+export { Document } from "./DocumentPage";
 export type {
 	DocumentControllerOptions,
 	DocumentControllerResult,
 } from "./hooks/useDocumentController";
-export {
-	DocumentProvider,
-	useDocumentContext,
-	DocumentCountProvider,
-	useDocumentCount,
-} from "./context";
+export { useDocumentController } from "./hooks/useDocumentController";

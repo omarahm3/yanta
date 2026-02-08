@@ -11,15 +11,15 @@ import {
 import { Layout } from "../components/Layout";
 import { Table, type TableColumn, type TableRow } from "../components/ui";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
-import { NewProjectDialog } from "./components/NewProjectDialog";
 import { PROJECTS_SHORTCUTS } from "../config";
-import { useProjectContext } from "./context";
 import { useHotkeys } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
 import { useSidebarSections } from "../hooks/useSidebarSections";
 import { type ExtendedProject, extendProject } from "../types";
-import { getProjectAliasColor } from "../utils/colorUtils";
 import { BackendLogger } from "../utils/backendLogger";
+import { getProjectAliasColor } from "../utils/colorUtils";
+import { NewProjectDialog } from "./components/NewProjectDialog";
+import { useProjectContext } from "./context";
 
 interface ProjectsProps {
 	onNavigate?: (page: string) => void;
