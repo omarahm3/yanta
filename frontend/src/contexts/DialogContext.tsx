@@ -1,47 +1,16 @@
 import type React from "react";
-import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 
-interface DialogContextValue {
-	isDialogOpen: boolean;
-	openDialog: () => void;
-	closeDialog: () => void;
-}
+export type { UseDialogReturn } from "../shared/stores/dialog.store";
 
-const DialogContext = createContext<DialogContextValue | null>(null);
+/**
+ * Dialog state is now in shared/stores/dialog.store (Zustand).
+ * Re-export useDialog so existing imports keep working.
+ */
+export { useDialog } from "../shared/stores/dialog.store";
 
-interface DialogProviderProps {
-	children: ReactNode;
-}
-
-export const DialogProvider: React.FC<DialogProviderProps> = ({ children }) => {
-	const [openCount, setOpenCount] = useState(0);
-
-	const openDialog = useCallback(() => {
-		setOpenCount((c) => c + 1);
-	}, []);
-
-	const closeDialog = useCallback(() => {
-		setOpenCount((c) => Math.max(0, c - 1));
-	}, []);
-
-	const isDialogOpen = openCount > 0;
-
-	const value = useMemo<DialogContextValue>(
-		() => ({
-			isDialogOpen,
-			openDialog,
-			closeDialog,
-		}),
-		[isDialogOpen, openDialog, closeDialog],
-	);
-
-	return <DialogContext.Provider value={value}>{children}</DialogContext.Provider>;
-};
-
-export const useDialog = (): DialogContextValue => {
-	const context = useContext(DialogContext);
-	if (!context) {
-		throw new Error("useDialog must be used within a DialogProvider");
-	}
-	return context;
-};
+/**
+ * No-op for backward compatibility: tests and main.tsx may still wrap with DialogProvider.
+ * The store is global; this component no longer provides state.
+ */
+export const DialogProvider: React.FC<{ children: ReactNode }> = ({ children }) => children;

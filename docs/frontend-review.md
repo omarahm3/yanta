@@ -89,10 +89,10 @@ The ShadCN light theme (`:root`) is dead code -- the app is dark-only with no th
 
 ### 3. Provider Pyramid (App.tsx:257-289)
 
-~~11~~ 10 nested context providers (ScaleProvider replaced with Zustand):
+~~11~~ 9 nested context providers (Scale + Dialog replaced with Zustand):
 
 ```
-ToastProvider > TitleBarProvider > DialogProvider >
+ToastProvider > TitleBarProvider >
 HotkeyProvider > HelpProvider > ProjectProvider > UserProgressProvider >
 DocumentCountProvider > DocumentProvider > PaneLayoutProvider
 ```
@@ -109,7 +109,7 @@ Problems:
 | Provider | Replacement | Rationale |
 |----------|-------------|-----------|
 | ~~`ScaleProvider`~~ | ~~`shared/stores/scale.store.ts` (zustand)~~ — **Done** | Replaced; `useScale` re-exported from contexts |
-| `DialogProvider` | `shared/stores/dialog.store.ts` (zustand) | Counter for open dialogs, global |
+| ~~`DialogProvider`~~ | ~~`shared/stores/dialog.store.ts` (zustand)~~ — **Done** | Replaced; `useDialog` re-exported; no-op `DialogProvider` for tests |
 | `ProjectProvider` | `shared/stores/project.store.ts` (zustand) | Global state, used by 5+ domains |
 | `UserProgressProvider` | `shared/stores/progress.store.ts` (zustand) | Global gamification state |
 | `DocumentCountProvider` | Merge into `document.store.ts` (zustand) | Simple counter, doesn't need its own context |
@@ -120,7 +120,7 @@ Problems:
 | `DocumentProvider` | **Keep as context** | Hierarchical -- different per pane |
 | `PaneLayoutProvider` | **Keep as context** | Hierarchical -- tree structure matters |
 
-**Status:** [~] In progress — ScaleProvider migrated to `shared/stores/scale.store.ts` (Zustand); `app/ScaleStoreInit` loads scale from backend on mount. Remaining: Dialog, Project, UserProgress, DocumentCount, TitleBar, Help (optional).
+**Status:** [~] In progress — ScaleProvider + DialogProvider migrated to Zustand (`shared/stores/scale.store.ts`, `dialog.store.ts`). Remaining: Project, UserProgress, DocumentCount, TitleBar, Help (optional).
 
 ---
 

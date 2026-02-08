@@ -1,7 +1,6 @@
 import React from "react";
 import { GlobalCommandPalette, MilestoneHintManager, WelcomeOverlay } from "../components";
 import {
-	DialogProvider,
 	DocumentCountProvider,
 	DocumentProvider,
 	HelpProvider,
@@ -31,8 +30,7 @@ export function AppProviders() {
 			<>
 				<ScaleStoreInit />
 				<TitleBarProvider>
-					<DialogProvider>
-						<HotkeyProvider>
+					<HotkeyProvider>
 							<HelpProvider>
 								<ProjectProvider>
 									<UserProgressProvider>
@@ -56,7 +54,6 @@ export function AppProviders() {
 								</ProjectProvider>
 							</HelpProvider>
 						</HotkeyProvider>
-					</DialogProvider>
 				</TitleBarProvider>
 			</>
 		</ToastProvider>
