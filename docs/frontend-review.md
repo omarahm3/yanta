@@ -89,12 +89,12 @@ The ShadCN light theme (`:root`) is dead code -- the app is dark-only with no th
 
 ### 3. Provider Pyramid (App.tsx:257-289)
 
-~~11~~ 8 nested context providers (Scale, Dialog, TitleBar → Zustand):
+~~11~~ 7 nested context providers (Scale, Dialog, TitleBar, DocumentCount → Zustand):
 
 ```
 ToastProvider >
 HotkeyProvider > HelpProvider > ProjectProvider > UserProgressProvider >
-DocumentCountProvider > DocumentProvider > PaneLayoutProvider
+DocumentProvider > PaneLayoutProvider
 ```
 
 Problems:
@@ -112,7 +112,7 @@ Problems:
 | ~~`DialogProvider`~~ | ~~`shared/stores/dialog.store.ts` (zustand)~~ — **Done** | Replaced; `useDialog` re-exported; no-op `DialogProvider` for tests |
 | `ProjectProvider` | `shared/stores/project.store.ts` (zustand) | Global state, used by 5+ domains |
 | `UserProgressProvider` | `shared/stores/progress.store.ts` (zustand) | Global gamification state |
-| `DocumentCountProvider` | Merge into `document.store.ts` (zustand) | Simple counter, doesn't need its own context |
+| ~~`DocumentCountProvider`~~ | ~~`shared/stores/documentCount.store.ts` (zustand)~~ — **Done** | Replaced; `app/DocumentCountStoreInit` loads + subscribes to events; no-op provider for tests |
 | ~~`TitleBarProvider`~~ | ~~`app/stores/titlebar.store.ts` (zustand)~~ — **Done** | Replaced; `useTitleBarContext` re-exported; no-op provider for tests |
 | `HelpProvider` | Keep as context OR move to zustand | Low-traffic, either works |
 | `ToastProvider` | **Keep as context** | Radix-based, needs portal/tree position |
@@ -120,7 +120,7 @@ Problems:
 | `DocumentProvider` | **Keep as context** | Hierarchical -- different per pane |
 | `PaneLayoutProvider` | **Keep as context** | Hierarchical -- tree structure matters |
 
-**Status:** [~] In progress — Scale, Dialog, TitleBar migrated to Zustand. Remaining: Project, UserProgress, DocumentCount, Help (optional).
+**Status:** [~] In progress — Scale, Dialog, TitleBar, DocumentCount migrated to Zustand. Remaining: Project, UserProgress, Help (optional).
 
 ---
 

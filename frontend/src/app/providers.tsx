@@ -2,7 +2,6 @@ import React from "react";
 import { GlobalCommandPalette, MilestoneHintManager, WelcomeOverlay } from "../components";
 import { HelpModal, ResizeHandles, TitleBar, ToastProvider } from "../components/ui";
 import {
-	DocumentCountProvider,
 	DocumentProvider,
 	HelpProvider,
 	HotkeyProvider,
@@ -10,6 +9,7 @@ import {
 	UserProgressProvider,
 } from "../contexts";
 import { PaneLayoutProvider } from "../pane";
+import { DocumentCountStoreInit } from "./DocumentCountStoreInit";
 import {
 	GlobalCommandHotkey,
 	HelpHotkey,
@@ -28,26 +28,25 @@ export function AppProviders() {
 		<ToastProvider>
 			<>
 				<ScaleStoreInit />
+				<DocumentCountStoreInit />
 				<HotkeyProvider>
 					<HelpProvider>
 						<ProjectProvider>
 							<UserProgressProvider>
-								<DocumentCountProvider>
-									<DocumentProvider>
-										<PaneLayoutProvider>
-											<ResizeHandles />
-											<TitleBar />
-											<HelpHotkey />
-											<QuitHotkeys />
-											<GlobalCommandHotkey />
-											<WindowEventListener />
-											<ProjectSwitchTracker />
-											<HelpModal />
-											<WelcomeOverlay />
-											<MilestoneHintManager />
-										</PaneLayoutProvider>
-									</DocumentProvider>
-								</DocumentCountProvider>
+								<DocumentProvider>
+									<PaneLayoutProvider>
+										<ResizeHandles />
+										<TitleBar />
+										<HelpHotkey />
+										<QuitHotkeys />
+										<GlobalCommandHotkey />
+										<WindowEventListener />
+										<ProjectSwitchTracker />
+										<HelpModal />
+										<WelcomeOverlay />
+										<MilestoneHintManager />
+									</PaneLayoutProvider>
+								</DocumentProvider>
 							</UserProgressProvider>
 						</ProjectProvider>
 					</HelpProvider>
