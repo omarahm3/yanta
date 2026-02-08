@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DialogProvider, HelpProvider, HotkeyProvider, ProjectContext } from "../../contexts";
+import { useProjectStore } from "../../shared/stores/project.store";
 import { Journal } from "../Journal";
 
 // Mock Layout to render children only (sidebar/header tested elsewhere)
@@ -26,20 +27,7 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => (
 	<DialogProvider>
 		<HelpProvider>
 			<HotkeyProvider>
-				<ProjectContext.Provider
-					value={{
-						currentProject: mockProject,
-						projects: [mockProject],
-						archivedProjects: [],
-						setCurrentProject: vi.fn(),
-						previousProject: undefined,
-						switchToLastProject: vi.fn(),
-						loadProjects: vi.fn(),
-						isLoading: false,
-					}}
-				>
-					{children}
-				</ProjectContext.Provider>
+				<ProjectContext.Provider>{children}</ProjectContext.Provider>
 			</HotkeyProvider>
 		</HelpProvider>
 	</DialogProvider>
@@ -84,6 +72,13 @@ vi.mock("../../../bindings/yanta/internal/project/service", () => ({
 describe("Journal", () => {
 	beforeEach(async () => {
 		vi.clearAllMocks();
+		// Set project store so useProjectContext() returns mock project (store is global)
+		useProjectStore.setState({
+			currentProject: mockProject,
+			projects: [mockProject],
+			archivedProjects: [],
+			isLoading: false,
+		});
 		// Reset the mock to return entries by default
 		const { GetActiveEntries } = await import(
 			"../../../bindings/yanta/internal/journal/wailsservice"

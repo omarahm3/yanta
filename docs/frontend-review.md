@@ -89,11 +89,11 @@ The ShadCN light theme (`:root`) is dead code -- the app is dark-only with no th
 
 ### 3. Provider Pyramid (App.tsx:257-289)
 
-~~11~~ 6 nested context providers (Scale, Dialog, TitleBar, DocumentCount, UserProgress → Zustand):
+~~11~~ 5 nested context providers (all global state → Zustand except Toast/Hotkey/Help/Document/PaneLayout):
 
 ```
 ToastProvider >
-HotkeyProvider > HelpProvider > ProjectProvider >
+HotkeyProvider > HelpProvider >
 DocumentProvider > PaneLayoutProvider
 ```
 
@@ -110,7 +110,7 @@ Problems:
 |----------|-------------|-----------|
 | ~~`ScaleProvider`~~ | ~~`shared/stores/scale.store.ts` (zustand)~~ — **Done** | Replaced; `useScale` re-exported from contexts |
 | ~~`DialogProvider`~~ | ~~`shared/stores/dialog.store.ts` (zustand)~~ — **Done** | Replaced; `useDialog` re-exported; no-op `DialogProvider` for tests |
-| `ProjectProvider` | `shared/stores/project.store.ts` (zustand) | Global state, used by 5+ domains |
+| ~~`ProjectProvider`~~ | ~~`shared/stores/project.store.ts` (zustand)~~ — **Done** | Replaced; `app/ProjectStoreInit` loads + subscribes to yanta/project/changed + loadError toast; no-op provider; `ProjectContext` shim for tests |
 | ~~`UserProgressProvider`~~ | ~~`shared/stores/progress.store.ts` (zustand + persist)~~ — **Done** | Replaced; `useUserProgressContext` re-exported; no-op provider for tests |
 | ~~`DocumentCountProvider`~~ | ~~`shared/stores/documentCount.store.ts` (zustand)~~ — **Done** | Replaced; `app/DocumentCountStoreInit` loads + subscribes to events; no-op provider for tests |
 | ~~`TitleBarProvider`~~ | ~~`app/stores/titlebar.store.ts` (zustand)~~ — **Done** | Replaced; `useTitleBarContext` re-exported; no-op provider for tests |
@@ -120,7 +120,7 @@ Problems:
 | `DocumentProvider` | **Keep as context** | Hierarchical -- different per pane |
 | `PaneLayoutProvider` | **Keep as context** | Hierarchical -- tree structure matters |
 
-**Status:** [~] In progress — Scale, Dialog, TitleBar, DocumentCount, UserProgress migrated to Zustand. Remaining: Project, Help (optional).
+**Status:** [x] Completed — All target providers migrated to Zustand (Scale, Dialog, TitleBar, DocumentCount, UserProgress, Project). Help remains context (optional to move). Toast, Hotkey, Document, PaneLayout kept as context per plan.
 
 ---
 
