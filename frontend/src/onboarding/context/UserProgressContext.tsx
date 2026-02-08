@@ -1,23 +1,15 @@
 import type React from "react";
-import { createContext, type ReactNode, useContext } from "react";
-import { type UseUserProgressReturn, useUserProgress } from "../hooks/useUserProgress";
+import type { ReactNode } from "react";
 
-const UserProgressContext = createContext<UseUserProgressReturn | null>(null);
+export type { UserProgressData, UseUserProgressReturn } from "../../shared/stores/progress.store";
 
-interface UserProgressProviderProps {
-	children: ReactNode;
-}
+/**
+ * User progress state is now in shared/stores/progress.store (Zustand + persist).
+ * Re-export so existing imports keep working.
+ */
+export { useUserProgressContext } from "../../shared/stores/progress.store";
 
-export const UserProgressProvider: React.FC<UserProgressProviderProps> = ({ children }) => {
-	const progress = useUserProgress();
-
-	return <UserProgressContext.Provider value={progress}>{children}</UserProgressContext.Provider>;
-};
-
-export const useUserProgressContext = (): UseUserProgressReturn => {
-	const context = useContext(UserProgressContext);
-	if (!context) {
-		throw new Error("useUserProgressContext must be used within a UserProgressProvider");
-	}
-	return context;
-};
+/**
+ * No-op for backward compatibility: tests and main.tsx may still wrap with UserProgressProvider.
+ */
+export const UserProgressProvider: React.FC<{ children: ReactNode }> = ({ children }) => children;

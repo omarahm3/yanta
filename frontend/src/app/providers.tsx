@@ -1,13 +1,7 @@
 import React from "react";
 import { GlobalCommandPalette, MilestoneHintManager, WelcomeOverlay } from "../components";
 import { HelpModal, ResizeHandles, TitleBar, ToastProvider } from "../components/ui";
-import {
-	DocumentProvider,
-	HelpProvider,
-	HotkeyProvider,
-	ProjectProvider,
-	UserProgressProvider,
-} from "../contexts";
+import { DocumentProvider, HelpProvider, HotkeyProvider, ProjectProvider } from "../contexts";
 import { PaneLayoutProvider } from "../pane";
 import { DocumentCountStoreInit } from "./DocumentCountStoreInit";
 import {
@@ -32,22 +26,20 @@ export function AppProviders() {
 				<HotkeyProvider>
 					<HelpProvider>
 						<ProjectProvider>
-							<UserProgressProvider>
-								<DocumentProvider>
-									<PaneLayoutProvider>
-										<ResizeHandles />
-										<TitleBar />
-										<HelpHotkey />
-										<QuitHotkeys />
-										<GlobalCommandHotkey />
-										<WindowEventListener />
-										<ProjectSwitchTracker />
-										<HelpModal />
-										<WelcomeOverlay />
-										<MilestoneHintManager />
-									</PaneLayoutProvider>
-								</DocumentProvider>
-							</UserProgressProvider>
+							<DocumentProvider>
+								<PaneLayoutProvider>
+									<ResizeHandles />
+									<TitleBar />
+									<HelpHotkey />
+									<QuitHotkeys />
+									<GlobalCommandHotkey />
+									<WindowEventListener />
+									<ProjectSwitchTracker />
+									<HelpModal />
+									<WelcomeOverlay />
+									<MilestoneHintManager />
+								</PaneLayoutProvider>
+							</DocumentProvider>
 						</ProjectProvider>
 					</HelpProvider>
 				</HotkeyProvider>

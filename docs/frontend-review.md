@@ -89,11 +89,11 @@ The ShadCN light theme (`:root`) is dead code -- the app is dark-only with no th
 
 ### 3. Provider Pyramid (App.tsx:257-289)
 
-~~11~~ 7 nested context providers (Scale, Dialog, TitleBar, DocumentCount → Zustand):
+~~11~~ 6 nested context providers (Scale, Dialog, TitleBar, DocumentCount, UserProgress → Zustand):
 
 ```
 ToastProvider >
-HotkeyProvider > HelpProvider > ProjectProvider > UserProgressProvider >
+HotkeyProvider > HelpProvider > ProjectProvider >
 DocumentProvider > PaneLayoutProvider
 ```
 
@@ -111,7 +111,7 @@ Problems:
 | ~~`ScaleProvider`~~ | ~~`shared/stores/scale.store.ts` (zustand)~~ — **Done** | Replaced; `useScale` re-exported from contexts |
 | ~~`DialogProvider`~~ | ~~`shared/stores/dialog.store.ts` (zustand)~~ — **Done** | Replaced; `useDialog` re-exported; no-op `DialogProvider` for tests |
 | `ProjectProvider` | `shared/stores/project.store.ts` (zustand) | Global state, used by 5+ domains |
-| `UserProgressProvider` | `shared/stores/progress.store.ts` (zustand) | Global gamification state |
+| ~~`UserProgressProvider`~~ | ~~`shared/stores/progress.store.ts` (zustand + persist)~~ — **Done** | Replaced; `useUserProgressContext` re-exported; no-op provider for tests |
 | ~~`DocumentCountProvider`~~ | ~~`shared/stores/documentCount.store.ts` (zustand)~~ — **Done** | Replaced; `app/DocumentCountStoreInit` loads + subscribes to events; no-op provider for tests |
 | ~~`TitleBarProvider`~~ | ~~`app/stores/titlebar.store.ts` (zustand)~~ — **Done** | Replaced; `useTitleBarContext` re-exported; no-op provider for tests |
 | `HelpProvider` | Keep as context OR move to zustand | Low-traffic, either works |
@@ -120,7 +120,7 @@ Problems:
 | `DocumentProvider` | **Keep as context** | Hierarchical -- different per pane |
 | `PaneLayoutProvider` | **Keep as context** | Hierarchical -- tree structure matters |
 
-**Status:** [~] In progress — Scale, Dialog, TitleBar, DocumentCount migrated to Zustand. Remaining: Project, UserProgress, Help (optional).
+**Status:** [~] In progress — Scale, Dialog, TitleBar, DocumentCount, UserProgress migrated to Zustand. Remaining: Project, Help (optional).
 
 ---
 
