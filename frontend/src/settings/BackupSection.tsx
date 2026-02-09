@@ -1,6 +1,20 @@
 import { Clock, Database, Trash2 } from "lucide-react";
-import React from "react";
+import React, { useCallback } from "react";
 import { Button, ConfirmDialog, Input, Label, SettingsSection, Toggle } from "../components/ui";
+
+function formatSize(bytes: number): string {
+	if (bytes < 1024) return `${bytes} B`;
+	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
+	return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function formatTimestamp(timestamp: string): string {
+	try {
+		return new Date(timestamp).toLocaleString();
+	} catch {
+		return timestamp;
+	}
+}
 
 interface BackupInfo {
 	timestamp: string;
@@ -25,33 +39,22 @@ export const BackupSection = React.forwardRef<HTMLDivElement, BackupSectionProps
 	) => {
 		const [restoreConfirmPath, setRestoreConfirmPath] = React.useState<string | null>(null);
 		const [deleteConfirmPath, setDeleteConfirmPath] = React.useState<string | null>(null);
-		const formatSize = (bytes: number): string => {
-			if (bytes < 1024) return `${bytes} B`;
-			if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
-			return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-		};
 
-		const formatTimestamp = (timestamp: string): string => {
-			try {
-				const date = new Date(timestamp);
-				return date.toLocaleString();
-			} catch {
-				return timestamp;
-			}
-		};
+		const getBackupTimestamp = useCallback(
+			(path: string): string => {
+				const backup = backups.find((b) => b.path === path);
+				return backup ? formatTimestamp(backup.timestamp) : "";
+			},
+			[backups],
+		);
 
-		const getBackupTimestamp = (path: string): string => {
-			const backup = backups.find((b) => b.path === path);
-			return backup ? formatTimestamp(backup.timestamp) : "";
-		};
-
-		const handleRestoreClick = (backupPath: string) => {
+		const handleRestoreClick = useCallback((backupPath: string) => {
 			setRestoreConfirmPath(backupPath);
-		};
+		}, []);
 
-		const handleDeleteClick = (backupPath: string) => {
+		const handleDeleteClick = useCallback((backupPath: string) => {
 			setDeleteConfirmPath(backupPath);
-		};
+		}, []);
 
 		const handleConfirmRestore = () => {
 			if (restoreConfirmPath) {
@@ -121,34 +124,12 @@ export const BackupSection = React.forwardRef<HTMLDivElement, BackupSectionProps
 									) : (
 										<div className="space-y-2">
 											{backups.map((backup) => (
-												<div
+												<BackupRow
 													key={backup.path}
-													className="flex items-center justify-between p-3 border rounded border-border hover:bg-bg-hover"
-												>
-													<div className="flex items-start gap-3 flex-1">
-														<Database className="w-4 h-4 mt-0.5 text-text-dim shrink-0" />
-														<div className="flex-1 min-w-0">
-															<div className="flex items-center gap-2 mb-1">
-																<Clock className="w-3 h-3 text-text-dim" />
-																<div className="text-sm text-text">{formatTimestamp(backup.timestamp)}</div>
-															</div>
-															<div className="text-xs text-text-dim">{formatSize(backup.size)}</div>
-														</div>
-													</div>
-													<div className="flex gap-2 shrink-0">
-														<Button variant="primary" size="sm" onClick={() => handleRestoreClick(backup.path)}>
-															Restore
-														</Button>
-														<Button
-															variant="ghost"
-															size="sm"
-															onClick={() => handleDeleteClick(backup.path)}
-															title="Delete backup"
-														>
-															<Trash2 className="w-4 h-4" />
-														</Button>
-													</div>
-												</div>
+													backup={backup}
+													onRestoreClick={handleRestoreClick}
+													onDeleteClick={handleDeleteClick}
+												/>
 											))}
 										</div>
 									)}
@@ -185,3 +166,40 @@ export const BackupSection = React.forwardRef<HTMLDivElement, BackupSectionProps
 );
 
 BackupSection.displayName = "BackupSection";
+
+interface BackupRowProps {
+	backup: BackupInfo;
+	onRestoreClick: (path: string) => void;
+	onDeleteClick: (path: string) => void;
+}
+
+const BackupRow: React.FC<BackupRowProps> = React.memo(
+	({ backup, onRestoreClick, onDeleteClick }) => (
+		<div className="flex items-center justify-between p-3 border rounded border-border hover:bg-bg-hover">
+			<div className="flex items-start gap-3 flex-1">
+				<Database className="w-4 h-4 mt-0.5 text-text-dim shrink-0" />
+				<div className="flex-1 min-w-0">
+					<div className="flex items-center gap-2 mb-1">
+						<Clock className="w-3 h-3 text-text-dim" />
+						<div className="text-sm text-text">{formatTimestamp(backup.timestamp)}</div>
+					</div>
+					<div className="text-xs text-text-dim">{formatSize(backup.size)}</div>
+				</div>
+			</div>
+			<div className="flex gap-2 shrink-0">
+				<Button variant="primary" size="sm" onClick={() => onRestoreClick(backup.path)}>
+					Restore
+				</Button>
+				<Button
+					variant="ghost"
+					size="sm"
+					onClick={() => onDeleteClick(backup.path)}
+					title="Delete backup"
+				>
+					<Trash2 className="w-4 h-4" />
+				</Button>
+			</div>
+		</div>
+	),
+);
+BackupRow.displayName = "BackupRow";

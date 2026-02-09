@@ -2,6 +2,19 @@ import React from "react";
 import { Button } from "../components/ui";
 import { cn } from "../lib/utils";
 
+const STYLE_BORDER_ACCENT = {
+	borderLeftColor: "var(--mode-accent)",
+	borderLeftWidth: "2px",
+} as const;
+const STYLE_BG_HIGHLIGHTED = { backgroundColor: "var(--mode-accent-muted)" } as const;
+const STYLE_INDEX_SELECTED = { color: "var(--mode-accent)", fontWeight: "bold" } as const;
+const STYLE_INDEX_HIGHLIGHTED = { color: "var(--mode-accent)" } as const;
+const STYLE_TOGGLE_SELECTED = {
+	borderColor: "var(--mode-accent)",
+	color: "var(--mode-accent)",
+} as const;
+const STYLE_EMPTY: React.CSSProperties = {};
+
 export interface JournalEntryData {
 	id: string;
 	content: string;
@@ -36,34 +49,25 @@ const JournalEntryComponent: React.FC<JournalEntryProps> = ({
 }) => {
 	const formattedTime = formatTime(entry.created);
 
-	// Use mode-accent colors for highlighting (via CSS variables)
-	const borderStyle = isHighlighted
-		? { borderLeftColor: "var(--mode-accent)", borderLeftWidth: "2px" }
-		: isSelected
-			? { borderLeftColor: "var(--mode-accent)", borderLeftWidth: "2px" }
-			: {};
-	const backgroundStyle = isHighlighted ? { backgroundColor: "var(--mode-accent-muted)" } : {};
+	const borderStyle = isHighlighted || isSelected ? STYLE_BORDER_ACCENT : STYLE_EMPTY;
+	const backgroundStyle = isHighlighted ? STYLE_BG_HIGHLIGHTED : STYLE_EMPTY;
 
 	const itemClasses = cn(
 		"group border-b border-glass-border/50 px-4 py-4 transition-colors border-l-4 border-l-transparent hover:bg-glass-bg/15",
 		className,
 	);
 
-	// Use mode-accent for index text color when highlighted
 	const indexStyle = isSelected
-		? { color: "var(--mode-accent)", fontWeight: "bold" }
+		? STYLE_INDEX_SELECTED
 		: isHighlighted
-			? { color: "var(--mode-accent)" }
-			: {};
+			? STYLE_INDEX_HIGHLIGHTED
+			: STYLE_EMPTY;
 	const indexClasses = cn(
 		"text-sm font-mono shrink-0 pt-1",
 		!isSelected && !isHighlighted && "text-text-dim",
 	);
 
-	// Selection toggle button styling with mode-accent
-	const toggleStyle = isSelected
-		? { borderColor: "var(--mode-accent)", color: "var(--mode-accent)" }
-		: {};
+	const toggleStyle = isSelected ? STYLE_TOGGLE_SELECTED : STYLE_EMPTY;
 	const toggleClasses = cn(
 		"mt-1 inline-flex h-5 w-5 items-center justify-center rounded border text-xs font-semibold transition-colors",
 		!isSelected && "border-border text-text-dim hover:text-text hover:border-text",

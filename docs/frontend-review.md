@@ -2,7 +2,7 @@
 
 **Stack:** React 18 + Tailwind CSS v4 + Radix UI + BlockNote Editor + Wails3 Runtime
 **Target:** Cross-platform desktop application (Wails3)
-**Last Updated:** 2026-02-07 (Rev 13 — Tier 3: Item 44 toasts, Item 48 TitleBar try/catch, Item 52 drop_console + sourcemap)
+**Last Updated:** 2026-02-09 (Rev 14 — Tier 2 table: Items 3, 39, 54 marked done; Tier 3 table: Items 45, 47 marked done; Tier 2/3 status aligned with section text)
 
 ---
 
@@ -454,19 +454,19 @@ Scattered magic values with no centralization:
 
 **Fix:** Add barrel files to all feature directories. Keep imports shallow.
 
-**Status:** [ ] Not started
+**Status:** [x] Completed — Barrel files added: `components/editor/index.ts` (RichEditor + hooks), `extensions/index.ts` (link-toolbar + rtl), `services/index.ts` (DocumentService exports), `shared/index.ts` (hooks, stores, types, utils re-exports).
 
 ---
 
 ### 20. Barrel File Inconsistency
 
-**Have index.ts (15 dirs):** components/, components/document/, components/editor/hooks/, components/pane/, components/ui/, components/ui/Select/, contexts/, constants/, hooks/, pages/, pages/Journal/, pages/QuickCapture/, types/, utils/, extensions/rtl/
+**Have index.ts:** app/, command-palette/, components/, components/document/, components/editor/, components/editor/hooks/, components/pane/, components/ui/, contexts/, config/, dashboard/, document/, extensions/, help/, hotkeys/, journal/, onboarding/, pane/, project/, quick-capture/, search/, settings/, services/, shared/, types/, utils/, pages/, etc.
 
-**Missing index.ts (4 dirs):** pages/dashboard/, pages/document/, pages/settings/, components/editor/
+**Previously missing (now added):** components/editor/, extensions/, services/, shared/
 
-Inconsistent import patterns result from this -- some paths use `../Journal/` (barrel) vs `../dashboard/useDashboardController` (direct).
+Inconsistent import patterns result from this -- some paths use `../Journal/` (barrel) vs `../dashboard/useDashboardController` (direct). New code can import from barrel (e.g. `from "@/components/editor"`) where appropriate.
 
-**Status:** [ ] Not started
+**Status:** [x] Completed — Item 19: four barrel files added (components/editor, extensions, services, shared).
 
 ---
 
@@ -1365,7 +1365,7 @@ New object/function references created on every render, breaking memoization:
 
 **Fix:** Hoist constant style objects outside components. Use `useCallback` for event handlers or extract list items into `React.memo` components that receive stable props.
 
-**Status:** [ ] Not started
+**Status:** [x] Completed — DocumentList + JournalEntry: style constants hoisted (STYLE_BORDER_ACCENT, STYLE_BG_HIGHLIGHTED, etc.). BackupSection: BackupRow memo + useCallback for handleRestoreClick/handleDeleteClick; formatTimestamp/formatSize moved to module scope. DatePicker: CalendarDayButton memo + useCallback for day click. EmptyPaneDocumentPicker: PickerItemRow memo + handleHighlightIndex useCallback. Optional follow-up: Search.tsx filter/result onClick, Layout/QuickCapture gradient styles.
 
 ---
 
@@ -1535,10 +1535,10 @@ See Section 35 for detailed steps per phase. Each phase leaves the app fully wor
 
 | # | Issue | Impact | Effort |
 |---|-------|--------|--------|
-| 3 | Replace provider pyramid with Zustand (see provider mapping above) | Simpler state, no re-render cascades | High |
+| 3 | ~~Replace provider pyramid with Zustand~~ — Done (Scale, Dialog, TitleBar, DocumentCount, UserProgress, Project → zustand; Toast, Hotkey, Help, Document, PaneLayout kept as context per plan) | Simpler state, no re-render cascades | High |
 | 41 | ~~Memoize remaining context values (`useMemo` on provider values)~~ — Done | Stops unnecessary re-renders | Low |
 | 4 | ~~Extract God Component into proper router + controller~~ — Done (App + AppProviders + Router + useAppNavigation) | Separation of concerns | Medium |
-| 39 | Split `useSettingsController` (27 useState) into 5 focused hooks | Maintainability | Medium |
+| 39 | ~~Split `useSettingsController` (27 useState) into 5 focused hooks~~ — Done (useGitSyncSettings, useBackupSettings, useSystemSettings, useAppearanceSettings, useMigrationSettings; orchestrator composes them) | Maintainability | Medium |
 | 54 | ~~Create command registry for plugin system~~ — Done (registry store + domain modules, palette consumes getAllCommands) | Extensible commands | High |
 | 18 | ~~Centralize shortcuts config (single source for hotkeys + settings display)~~ — Done (config/shortcuts.ts + Settings shortcuts table) | Single source of truth, user-customizable | Medium |
 | 6 | ~~Unify state communication (remove window.dispatchEvent)~~ — Document save path done (`documentCommand.store`) | Consistent data flow | Medium |
@@ -1548,8 +1548,8 @@ See Section 35 for detailed steps per phase. Each phase leaves the app fully wor
 | # | Issue | Impact | Effort |
 |---|-------|--------|--------|
 | 44 | ~~Fix silent error swallowing (7 instances → toast notifications)~~ — Done Rev 12 | User feedback on failures | Low |
-| 45 | Add granular error boundaries (editor, settings, document list) | Partial crash recovery | Medium |
-| 47 | Add AbortController to async hooks (loader, search, journal) | Prevent race conditions | Medium |
+| 45 | ~~Add granular error boundaries (editor, settings, document list)~~ — Done (GranularErrorBoundary in app/; wrapped: DocumentEditorForm, Settings content, Document list in Dashboard, Search results, Journal entry list) | Partial crash recovery | Medium |
+| 47 | ~~Add AbortController to async hooks (loader, search, journal)~~ — Done (useDocumentLoader: cancelled flag in cleanup; Search: latest-request ref; useJournal: refreshRequestIdRef; ignore-stale pattern; backend does not accept AbortSignal) | Prevent race conditions | Medium |
 | 48 | ~~Add try/catch to Window controls (TitleBar.tsx)~~ — Done Rev 12 | Prevent unhandled exceptions | Low |
 | 52 | ~~Enable `drop_console`, add hidden sourcemaps in vite config~~ — Done Rev 12 | Production build quality | Low |
 
@@ -1559,7 +1559,7 @@ See Section 35 for detailed steps per phase. Each phase leaves the app fully wor
 |---|-------|--------|--------|
 | 49 | ~~Replace JSON.stringify in useAutoSave hot path~~ — Done (optional compareKey + document compareKey) | Editor responsiveness | Medium |
 | 50 | ~~Add React.memo to list item components (6 lists)~~ — Done | Re-render reduction | Low |
-| 51 | Hoist inline styles/callbacks out of render paths | Memoization effectiveness | Low |
+| 51 | ~~Hoist inline styles/callbacks out of render paths~~ — Done (DocumentList, JournalEntry, BackupSection, DatePicker, EmptyPaneDocumentPicker; optional: Search, Layout, QuickCapture) | Memoization effectiveness | Low |
 | 21 | ~~Add React.memo on page components (5 pages)~~ — Done | Performance | Low |
 | 25 | ~~Add list virtualization (@tanstack/react-virtual)~~ — Done (dashboard + journal) | Performance at 500+ documents | Medium |
 
@@ -1567,7 +1567,7 @@ See Section 35 for detailed steps per phase. Each phase leaves the app fully wor
 
 | # | Issue | Impact | Effort |
 |---|-------|--------|--------|
-| 19 | Add barrel files to all feature dirs (4 missing) | Consistent imports | Low |
+| 19 | ~~Add barrel files to all feature dirs (4 missing)~~ — Done (components/editor, extensions, services, shared) | Consistent imports | Low |
 | 26 | Fix TypeScript gaps (force-casts, loose `string` typing) | Type safety | Low |
 | 27 | Fix accessibility gaps (aria-labels, skip-to-content, focus indicators) | Compliance | Medium |
 | 28 | Add tests for critical logic (pane reducer, auto-save, hotkey matcher) | Safety net | High |

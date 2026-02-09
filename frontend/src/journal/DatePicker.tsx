@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type React from "react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { cn } from "../lib/utils";
 
 export interface DatePickerProps {
@@ -134,6 +134,43 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 	);
 };
 
+interface CalendarDayButtonProps {
+	day: number;
+	year: number;
+	month: number;
+	selectedDate: Date;
+	datesWithEntriesSet: Set<string>;
+	onSelect: (date: Date) => void;
+}
+
+const CalendarDayButton: React.FC<CalendarDayButtonProps> = React.memo(
+	({ day, year, month, selectedDate, datesWithEntriesSet, onSelect }) => {
+		const date = useMemo(() => new Date(year, month, day), [year, month, day]);
+		const dateString = formatDateString(date);
+		const isSelected = formatDateString(selectedDate) === dateString;
+		const hasEntries = datesWithEntriesSet.has(dateString);
+		const handleClick = useCallback(() => onSelect(date), [date, onSelect]);
+		return (
+			<button
+				type="button"
+				onClick={handleClick}
+				data-has-entries={hasEntries}
+				className={cn(
+					"w-8 h-8 flex items-center justify-center text-sm rounded relative transition-colors",
+					isSelected ? "bg-accent text-white" : "hover:bg-glass-bg/20",
+					hasEntries && !isSelected && "text-accent",
+				)}
+			>
+				{day}
+				{hasEntries && !isSelected && (
+					<span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-accent rounded-full" />
+				)}
+			</button>
+		);
+	},
+);
+CalendarDayButton.displayName = "CalendarDayButton";
+
 interface CalendarProps {
 	viewDate: Date;
 	selectedDate: Date;
@@ -220,29 +257,16 @@ const Calendar: React.FC<CalendarProps> = ({
 						// biome-ignore lint/suspicious/noArrayIndexKey: empty calendar cells are stable placeholders
 						return <div key={`empty-${index}`} className="w-8 h-8" />;
 					}
-
-					const date = new Date(year, month, day);
-					const dateString = formatDateString(date);
-					const isSelected = formatDateString(selectedDate) === dateString;
-					const hasEntries = datesWithEntriesSet.has(dateString);
-
 					return (
-						<button
+						<CalendarDayButton
 							key={day}
-							type="button"
-							onClick={() => onSelect(date)}
-							data-has-entries={hasEntries}
-							className={cn(
-								"w-8 h-8 flex items-center justify-center text-sm rounded relative transition-colors",
-								isSelected ? "bg-accent text-white" : "hover:bg-glass-bg/20",
-								hasEntries && !isSelected && "text-accent",
-							)}
-						>
-							{day}
-							{hasEntries && !isSelected && (
-								<span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-accent rounded-full" />
-							)}
-						</button>
+							day={day}
+							year={year}
+							month={month}
+							selectedDate={selectedDate}
+							datesWithEntriesSet={datesWithEntriesSet}
+							onSelect={onSelect}
+						/>
 					);
 				})}
 			</div>

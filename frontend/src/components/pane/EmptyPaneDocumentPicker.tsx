@@ -1,6 +1,5 @@
 import { FileText, Search } from "lucide-react";
-import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { TIMEOUTS } from "../../config";
 import { useProjectContext } from "../../contexts";
 import { type RecentDocument, useRecentDocuments } from "../../hooks/useRecentDocuments";
@@ -176,6 +175,10 @@ export const EmptyPaneDocumentPicker: React.FC<EmptyPaneDocumentPickerProps> = (
 		[displayItems, highlightedIndex, openItem, onClose],
 	);
 
+	const handleHighlightIndex = useCallback((index: number) => {
+		setHighlightedIndex(index);
+	}, []);
+
 	if (isDragOver) {
 		return (
 			<div className="flex flex-1 flex-col items-center justify-center gap-4 text-text-dim select-none transition-colors bg-accent/5">
@@ -217,26 +220,14 @@ export const EmptyPaneDocumentPicker: React.FC<EmptyPaneDocumentPickerProps> = (
 						</p>
 					) : (
 						displayItems.map((item, index) => (
-							<button
+							<PickerItemRow
 								key={item.path}
-								type="button"
-								className={cn(
-									"flex items-center gap-2.5 px-2.5 py-2 rounded-md text-left transition-colors cursor-pointer",
-									index === highlightedIndex
-										? "bg-accent/10 text-text"
-										: "text-text-dim hover:bg-glass-bg/20",
-								)}
-								onClick={() => openItem(item)}
-								onMouseEnter={() => setHighlightedIndex(index)}
-							>
-								<FileText className="w-4 h-4 shrink-0 opacity-40" aria-hidden="true" />
-								<div className="flex flex-col min-w-0 flex-1">
-									<span className="text-sm truncate">{item.title}</span>
-									<span className="text-xs opacity-50 truncate">
-										@{item.projectAlias} · {formatRelativeTimeFromTimestamp(item.lastOpened)}
-									</span>
-								</div>
-							</button>
+								item={item}
+								index={index}
+								isHighlighted={index === highlightedIndex}
+								openItem={openItem}
+								onHighlight={handleHighlightIndex}
+							/>
 						))
 					)}
 				</div>
@@ -248,3 +239,34 @@ export const EmptyPaneDocumentPicker: React.FC<EmptyPaneDocumentPickerProps> = (
 		</div>
 	);
 };
+
+interface PickerItemRowProps {
+	item: DisplayItem;
+	index: number;
+	isHighlighted: boolean;
+	openItem: (item: DisplayItem) => void;
+	onHighlight: (index: number) => void;
+}
+
+const PickerItemRow: React.FC<PickerItemRowProps> = React.memo(
+	({ item, index, isHighlighted, openItem, onHighlight }) => (
+		<button
+			type="button"
+			className={cn(
+				"flex items-center gap-2.5 px-2.5 py-2 rounded-md text-left transition-colors cursor-pointer",
+				isHighlighted ? "bg-accent/10 text-text" : "text-text-dim hover:bg-glass-bg/20",
+			)}
+			onClick={() => openItem(item)}
+			onMouseEnter={() => onHighlight(index)}
+		>
+			<FileText className="w-4 h-4 shrink-0 opacity-40" aria-hidden="true" />
+			<div className="flex flex-col min-w-0 flex-1">
+				<span className="text-sm truncate">{item.title}</span>
+				<span className="text-xs opacity-50 truncate">
+					@{item.projectAlias} · {formatRelativeTimeFromTimestamp(item.lastOpened)}
+				</span>
+			</div>
+		</button>
+	),
+);
+PickerItemRow.displayName = "PickerItemRow";
