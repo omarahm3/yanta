@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { GranularErrorBoundary } from "@/app";
 import { Layout } from "../components/Layout";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
@@ -28,6 +28,7 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 
 	useHotkeys(controller.hotkeys);
 	const [documentListKey, setDocumentListKey] = useState(0);
+	const documentListScrollRef = useRef<HTMLDivElement>(null);
 	const isLoading = controller.projectsLoading || controller.documentsLoading;
 	const {
 		documents,
@@ -57,7 +58,7 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 					</div>
 				) : (
 					<div className="flex h-full flex-col overflow-hidden">
-						<div className="flex-1 overflow-y-auto p-5">
+						<div ref={documentListScrollRef} className="flex-1 overflow-y-auto p-5">
 							<GranularErrorBoundary
 								key={documentListKey}
 								message="Something went wrong in the document list."
@@ -70,6 +71,7 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 									onHighlightDocument={documentList.setHighlightedIndex}
 									selectedDocuments={documentList.selectedDocuments}
 									onToggleSelection={documentList.handleToggleSelection}
+									scrollRef={documentListScrollRef}
 								/>
 							</GranularErrorBoundary>
 						</div>

@@ -508,9 +508,9 @@ The command list (`useMemo`) has 16 dependencies and ~500 lines of definitions. 
 
 ### 25. No List Virtualization
 
-Document lists render all items. 500+ documents will lag. Replace with `@tanstack/react-virtual`.
+**Resolved:** Dashboard document list and journal entry list now use `@tanstack/react-virtual` (`useVirtualizer`). DocumentList accepts an optional `scrollRef`; when provided, only visible rows are rendered. Journal uses the same pattern with a ref on the entry list scroll container. Keyboard highlight (j/k) scrolls to the focused index via `scrollToIndex(highlightedIndex, { align: 'auto' })`.
 
-**Status:** [ ] Not started
+**Status:** [x] Completed — Document list and journal list virtualized with @tanstack/react-virtual.
 
 ---
 
@@ -1329,22 +1329,20 @@ Async operations that could return after component unmount or after state has ch
 
 ### 50. Unmemoized List Renders
 
-Components that `.map()` over arrays without `React.memo` on the list item component:
+All six listed flows now use `React.memo` on list item components:
 
-| File | List | Items rendered | React.memo? |
-|------|------|---------------|-------------|
-| `components/DocumentList.tsx:92-194` | Document list | All docs | **No** |
-| `pages/Journal/Journal.tsx:94-104` | Journal entries | All entries | **No** (JournalEntry not memo'd) |
-| `pages/Search.tsx:410-467` | Search results | All results | **No** |
-| `pages/Search.tsx:332-342` | Project filter buttons | Up to 10 | **No** |
-| `components/GlobalCommandPalette.tsx:203-233` | Command groups | All commands | **No** |
-| `components/document/DocumentEditorForm.tsx:93-108` | Tag chips | All tags | **No** |
+| File | List | Item component | React.memo? |
+|------|------|----------------|-------------|
+| `dashboard/components/DocumentList.tsx` | Document list | `DocumentListItem` | **Yes** |
+| `journal/Journal.tsx` | Journal entries | `JournalEntry` | **Yes** |
+| `search/SearchPage.tsx` | Search results | `SearchResultCard` | **Yes** |
+| `search/SearchPage.tsx` | Project/tag filter buttons | `ProjectFilterButton`, `TagFilterButton` | **Yes** |
+| `components/ui/CommandPalette.tsx` | Command groups + sub-palette | `CommandPaletteItem`, `SubPaletteItemRow` | **Yes** |
+| `document/components/DocumentEditorForm.tsx` | Tag chips | `TagChip` | **Yes** |
 
 **Positive finding:** `components/pane/PaneContainer.tsx` correctly uses `React.memo` on `PaneLeafView`, `PaneSplitView`, and `PaneResizeHandle`.
 
-**Fix:** Wrap list item components in `React.memo`. Extract anonymous inline item renders into named memoized components.
-
-**Status:** [ ] Not started
+**Status:** [x] Completed — All six lists use memoized item components.
 
 ---
 
@@ -1579,10 +1577,10 @@ See Section 35 for detailed steps per phase. Each phase leaves the app fully wor
 | # | Issue | Impact | Effort |
 |---|-------|--------|--------|
 | 49 | ~~Replace JSON.stringify in useAutoSave hot path~~ — Done (optional compareKey + document compareKey) | Editor responsiveness | Medium |
-| 50 | Add React.memo to list item components (6 lists identified) | Re-render reduction | Low |
+| 50 | ~~Add React.memo to list item components (6 lists)~~ — Done | Re-render reduction | Low |
 | 51 | Hoist inline styles/callbacks out of render paths | Memoization effectiveness | Low |
 | 21 | ~~Add React.memo on page components (5 pages)~~ — Done | Performance | Low |
-| 25 | Add list virtualization (@tanstack/react-virtual) | Performance at 500+ documents | Medium |
+| 25 | ~~Add list virtualization (@tanstack/react-virtual)~~ — Done (dashboard + journal) | Performance at 500+ documents | Medium |
 
 ### Tier 5: Quality & DX
 

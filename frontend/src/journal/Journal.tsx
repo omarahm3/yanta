@@ -1,3 +1,4 @@
+import { useVirtualizer } from "@tanstack/react-virtual";
 import React, { useEffect, useRef, useState } from "react";
 import { GranularErrorBoundary } from "@/app";
 import { Layout } from "../components/Layout";
@@ -8,6 +9,9 @@ import type { NavigationState } from "../types";
 import { DatePicker } from "./DatePicker";
 import { JournalEntry } from "./JournalEntry";
 import { useJournalController } from "./useJournalController";
+
+const JOURNAL_ROW_ESTIMATE = 72;
+const JOURNAL_ROW_GAP = 4;
 
 export interface JournalProps {
 	onNavigate?: (page: string, state?: NavigationState) => void;
@@ -29,6 +33,7 @@ const JournalComponent: React.FC<JournalProps> = ({
 }) => {
 	const controller = useJournalController({ onNavigate, initialDate });
 	const listRef = useRef<HTMLDivElement>(null);
+	const entryListScrollRef = useRef<HTMLDivElement>(null);
 	const [entryListKey, setEntryListKey] = useState(0);
 
 	useHotkeys(controller.hotkeys);
@@ -54,12 +59,23 @@ const JournalComponent: React.FC<JournalProps> = ({
 		statusBar,
 	} = controller;
 
+	const entryVirtualizer = useVirtualizer({
+		count: entries.length,
+		getScrollElement: () => entryListScrollRef.current,
+		estimateSize: () => JOURNAL_ROW_ESTIMATE,
+		gap: JOURNAL_ROW_GAP,
+		getItemKey: (index) => entries[index]?.id ?? index,
+		enabled: entries.length > 0,
+	});
+	const entryVirtualItems = entryVirtualizer.getVirtualItems();
+	// Use virtual list when we have items and the virtualizer returned some; otherwise full list (e.g. scroll not ready)
+	const useVirtualList = entries.length > 0 && entryVirtualItems.length > 0;
+
 	useEffect(() => {
-		if (listRef.current && highlightedIndex >= 0) {
-			const items = listRef.current.querySelectorAll("[role='listitem']");
-			items[highlightedIndex]?.scrollIntoView({ block: "nearest" });
+		if (entryListScrollRef.current && entries.length > 0 && highlightedIndex >= 0) {
+			entryVirtualizer.scrollToIndex(highlightedIndex, { align: "auto" });
 		}
-	}, [highlightedIndex]);
+	}, [highlightedIndex, entries.length, entryVirtualizer]);
 
 	return (
 		<>
@@ -75,7 +91,7 @@ const JournalComponent: React.FC<JournalProps> = ({
 					</div>
 
 					{/* Entry list */}
-					<div className="flex-1 overflow-y-auto">
+					<div ref={entryListScrollRef} className="flex-1 overflow-y-auto">
 						<GranularErrorBoundary
 							key={entryListKey}
 							message="Something went wrong in the journal entry list."
@@ -96,21 +112,62 @@ const JournalComponent: React.FC<JournalProps> = ({
 								</div>
 							)}
 
-							{!isLoading && !isEmpty && (
-								<div ref={listRef} className="space-y-1" role="list">
-									{entries.map((entry, index) => (
-										<JournalEntry
-											key={entry.id}
-											entry={entry}
-											index={index}
-											onEntryClick={handleEntryClick}
-											onToggleSelection={toggleSelection}
-											isHighlighted={index === highlightedIndex}
-											isSelected={selectedIds.has(entry.id)}
-										/>
-									))}
-								</div>
-							)}
+							{!isLoading &&
+								!isEmpty &&
+								entries.length > 0 &&
+								(useVirtualList ? (
+									<div
+										ref={listRef}
+										role="list"
+										style={{
+											height: entryVirtualizer.getTotalSize(),
+											position: "relative",
+										}}
+									>
+										{entryVirtualItems.map((virtualRow) => {
+											const entry = entries[virtualRow.index];
+											if (!entry) return null;
+											const index = virtualRow.index;
+											return (
+												<div
+													key={virtualRow.key}
+													data-index={virtualRow.index}
+													ref={entryVirtualizer.measureElement}
+													style={{
+														position: "absolute",
+														top: 0,
+														left: 0,
+														width: "100%",
+														transform: `translateY(${virtualRow.start}px)`,
+													}}
+												>
+													<JournalEntry
+														entry={entry}
+														index={index}
+														onEntryClick={handleEntryClick}
+														onToggleSelection={toggleSelection}
+														isHighlighted={index === highlightedIndex}
+														isSelected={selectedIds.has(entry.id)}
+													/>
+												</div>
+											);
+										})}
+									</div>
+								) : (
+									<div ref={listRef} className="space-y-1" role="list">
+										{entries.map((entry, index) => (
+											<JournalEntry
+												key={entry.id}
+												entry={entry}
+												index={index}
+												onEntryClick={handleEntryClick}
+												onToggleSelection={toggleSelection}
+												isHighlighted={index === highlightedIndex}
+												isSelected={selectedIds.has(entry.id)}
+											/>
+										))}
+									</div>
+								))}
 						</GranularErrorBoundary>
 					</div>
 

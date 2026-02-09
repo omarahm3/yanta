@@ -1,6 +1,5 @@
 import { ArrowLeft } from "lucide-react";
-import type React from "react";
-import { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
 	CommandDialog,
 	CommandEmpty,
@@ -70,6 +69,65 @@ function groupCommands(commands: CommandOption[]): Map<string, CommandOption[]> 
 
 	return grouped;
 }
+
+interface CommandPaletteItemProps {
+	command: CommandOption;
+	onSelect: (command: CommandOption) => void;
+}
+
+const CommandPaletteItem: React.FC<CommandPaletteItemProps> = React.memo(
+	({ command, onSelect }) => {
+		const handleSelect = useCallback(() => {
+			onSelect(command);
+		}, [command, onSelect]);
+
+		return (
+			<CommandItem
+				value={[command.text, ...(command.keywords || []), command.shortcut].filter(Boolean).join(" ")}
+				keywords={command.hint ? [command.hint] : undefined}
+				onSelect={handleSelect}
+			>
+				<span className="w-5">{command.icon}</span>
+				<span className="flex-1">{command.text}</span>
+				{command.isRecent && (
+					<span
+						className="ml-1 inline-flex h-1.5 w-1.5 rounded-full bg-primary/60"
+						aria-label="Recently used"
+						data-testid="recent-indicator"
+					/>
+				)}
+				{command.shortcut ? (
+					<kbd className="ml-auto rounded border border-glass-border bg-bg-dark/40 px-1.5 py-0.5 text-xs font-mono text-text-dim/80 shadow-sm font-semibold tracking-widest">
+						{command.shortcut}
+					</kbd>
+				) : (
+					command.hint && <CommandShortcut>{command.hint}</CommandShortcut>
+				)}
+			</CommandItem>
+		);
+	},
+);
+CommandPaletteItem.displayName = "CommandPaletteItem";
+
+interface SubPaletteItemRowProps {
+	item: SubPaletteItem;
+	onSelect: (item: SubPaletteItem) => void;
+}
+
+const SubPaletteItemRow: React.FC<SubPaletteItemRowProps> = React.memo(({ item, onSelect }) => {
+	const handleSelect = useCallback(() => {
+		onSelect(item);
+	}, [item, onSelect]);
+
+	return (
+		<CommandItem value={item.text} onSelect={handleSelect}>
+			{item.icon && <span className="w-5">{item.icon}</span>}
+			<span className="flex-1">{item.text}</span>
+			{item.hint && <CommandShortcut>{item.hint}</CommandShortcut>}
+		</CommandItem>
+	);
+});
+SubPaletteItemRow.displayName = "SubPaletteItemRow";
 
 export interface CommandPaletteProps {
 	isOpen: boolean;
@@ -189,11 +247,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 							<CommandEmpty>No items found.</CommandEmpty>
 							<CommandGroup>
 								{subPaletteItems.map((item) => (
-									<CommandItem key={item.id} value={item.text} onSelect={() => handleSubPaletteSelect(item)}>
-										{item.icon && <span className="w-5">{item.icon}</span>}
-										<span className="flex-1">{item.text}</span>
-										{item.hint && <CommandShortcut>{item.hint}</CommandShortcut>}
-									</CommandItem>
+									<SubPaletteItemRow key={item.id} item={item} onSelect={handleSubPaletteSelect} />
 								))}
 							</CommandGroup>
 						</>
@@ -203,31 +257,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 							{Array.from(groupedCommands.entries()).map(([groupName, groupCmds]) => (
 								<CommandGroup key={groupName} heading={groupName}>
 									{groupCmds.map((command) => (
-										<CommandItem
-											key={command.id}
-											value={[command.text, ...(command.keywords || []), command.shortcut]
-												.filter(Boolean)
-												.join(" ")}
-											keywords={command.hint ? [command.hint] : undefined}
-											onSelect={() => handleSelect(command)}
-										>
-											<span className="w-5">{command.icon}</span>
-											<span className="flex-1">{command.text}</span>
-											{command.isRecent && (
-												<span
-													className="ml-1 inline-flex h-1.5 w-1.5 rounded-full bg-primary/60"
-													aria-label="Recently used"
-													data-testid="recent-indicator"
-												/>
-											)}
-											{command.shortcut ? (
-												<kbd className="ml-auto rounded border border-glass-border bg-bg-dark/40 px-1.5 py-0.5 text-xs font-mono text-text-dim/80 shadow-sm font-semibold tracking-widest">
-													{command.shortcut}
-												</kbd>
-											) : (
-												command.hint && <CommandShortcut>{command.hint}</CommandShortcut>
-											)}
-										</CommandItem>
+										<CommandPaletteItem key={command.id} command={command} onSelect={handleSelect} />
 									))}
 								</CommandGroup>
 							))}

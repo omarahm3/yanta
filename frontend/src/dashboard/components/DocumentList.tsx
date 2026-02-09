@@ -1,8 +1,12 @@
+import { useVirtualizer } from "@tanstack/react-virtual";
 import React, { useEffect, useRef } from "react";
 import { Button, Heading, Text } from "../../components/ui";
 import { cn } from "../../lib/utils";
 import type { Document } from "../../types/Document";
 import { formatShortDate } from "../../utils/dateUtils";
+
+const DOCUMENT_ROW_ESTIMATE = 88;
+const DOCUMENT_ROW_GAP = 4;
 
 interface DocumentListProps {
 	documents: Document[];
@@ -11,6 +15,8 @@ interface DocumentListProps {
 	onHighlightDocument?: (index: number) => void;
 	selectedDocuments?: Set<string>;
 	onToggleSelection?: (path?: string) => void;
+	/** When provided, the list is virtualized (only visible items rendered). Pass the ref of the scroll container. */
+	scrollRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export const DocumentList: React.FC<DocumentListProps> = ({
@@ -20,15 +26,26 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 	onHighlightDocument,
 	selectedDocuments = new Set(),
 	onToggleSelection,
+	scrollRef,
 }) => {
 	const listRef = useRef<HTMLDivElement>(null);
 
+	const virtualizer = useVirtualizer({
+		count: documents.length,
+		getScrollElement: () => scrollRef?.current ?? null,
+		estimateSize: () => DOCUMENT_ROW_ESTIMATE,
+		gap: DOCUMENT_ROW_GAP,
+		getItemKey: (index) => documents[index]?.path ?? index,
+		enabled: !!scrollRef && documents.length > 0,
+	});
+
+	const virtualItems = virtualizer.getVirtualItems();
+
 	useEffect(() => {
-		if (listRef.current && highlightedIndex >= 0) {
-			const items = listRef.current.querySelectorAll("[role='listitem']");
-			items[highlightedIndex]?.scrollIntoView({ block: "nearest" });
+		if (scrollRef?.current && documents.length > 0 && highlightedIndex >= 0) {
+			virtualizer.scrollToIndex(highlightedIndex, { align: "auto" });
 		}
-	}, [highlightedIndex]);
+	}, [highlightedIndex, scrollRef, documents.length, virtualizer]);
 
 	if (documents.length === 0) {
 		const placeholders: Document[] = [
@@ -82,6 +99,49 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 				<Text className="p-4 mt-4" size="sm" variant="dim">
 					No documents yet. Create one to get started!
 				</Text>
+			</div>
+		);
+	}
+
+	// Virtualize when scroll ref is provided; fallback to full list when virtualizer returns no items (e.g. scroll not ready yet)
+	if (scrollRef && documents.length > 0 && virtualItems.length > 0) {
+		return (
+			<div
+				ref={listRef}
+				role="list"
+				style={{ height: virtualizer.getTotalSize(), position: "relative" }}
+			>
+				{virtualItems.map((virtualRow) => {
+					const doc = documents[virtualRow.index];
+					if (!doc) return null;
+					const index = virtualRow.index;
+					const isHighlighted = index === highlightedIndex;
+					const isSelected = selectedDocuments.has(doc.path);
+					return (
+						<div
+							key={virtualRow.key}
+							data-index={virtualRow.index}
+							ref={virtualizer.measureElement}
+							style={{
+								position: "absolute",
+								top: 0,
+								left: 0,
+								width: "100%",
+								transform: `translateY(${virtualRow.start}px)`,
+							}}
+						>
+							<DocumentListItem
+								doc={doc}
+								index={index}
+								isHighlighted={isHighlighted}
+								isSelected={isSelected}
+								onDocumentClick={onDocumentClick}
+								onHighlightDocument={onHighlightDocument}
+								onToggleSelection={onToggleSelection}
+							/>
+						</div>
+					);
+				})}
 			</div>
 		);
 	}
