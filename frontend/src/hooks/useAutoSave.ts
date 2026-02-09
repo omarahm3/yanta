@@ -10,6 +10,8 @@ interface AutoSaveConfig<T> {
 	enabled?: boolean;
 	saveOnBlur?: boolean;
 	isInitialized?: boolean;
+	/** When set, used for change detection instead of JSON.stringify(value). Caller can pass a cheap key (e.g. content hash) to avoid serializing large values in the hot path. */
+	compareKey?: string;
 }
 
 interface AutoSaveReturn {
@@ -27,6 +29,7 @@ export const useAutoSave = <T>({
 	enabled = true,
 	saveOnBlur = true,
 	isInitialized = true,
+	compareKey,
 }: AutoSaveConfig<T>): AutoSaveReturn => {
 	const [saveState, setSaveState] = useState<SaveState>("idle");
 	const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -39,6 +42,9 @@ export const useAutoSave = <T>({
 	const lastValueRef = useRef<T>(value);
 	const lastSavedValueRef = useRef<T>(value);
 	const initialValueRef = useRef<T>(value);
+	const currentKeyRef = useRef<string>("");
+	const lastSavedKeyRef = useRef<string>("");
+	const initialKeyRef = useRef<string>("");
 	const hasUserMadeChangesRef = useRef(false);
 	const savedStateTimeoutRef = useRef<number | null>(null);
 	const retryTimeoutRef = useRef<number | null>(null);
@@ -51,13 +57,16 @@ export const useAutoSave = <T>({
 
 	useEffect(() => {
 		if (isInitialized && !prevIsInitializedRef.current) {
+			const key = compareKey ?? JSON.stringify(value);
 			initialValueRef.current = value;
 			lastSavedValueRef.current = value;
+			initialKeyRef.current = key;
+			lastSavedKeyRef.current = key;
 			hasUserMadeChangesRef.current = false;
 			setHasUnsavedChanges(false);
 		}
 		prevIsInitializedRef.current = isInitialized;
-	}, [isInitialized, value]);
+	}, [isInitialized, value, compareKey]);
 
 	const performSave = useCallback(async (retryCount = 0): Promise<void> => {
 		if (isSavingRef.current) {
@@ -71,6 +80,7 @@ export const useAutoSave = <T>({
 		try {
 			await onSaveRef.current();
 			lastSavedValueRef.current = lastValueRef.current;
+			lastSavedKeyRef.current = currentKeyRef.current;
 			setLastSaved(new Date());
 			setSaveState("saved");
 			setHasUnsavedChanges(false);
@@ -117,9 +127,10 @@ export const useAutoSave = <T>({
 
 	useEffect(() => {
 		lastValueRef.current = value;
-
-		const valueChanged = JSON.stringify(value) !== JSON.stringify(lastSavedValueRef.current);
-		const changedFromInitial = JSON.stringify(value) !== JSON.stringify(initialValueRef.current);
+		const currentKey = compareKey ?? JSON.stringify(value);
+		currentKeyRef.current = currentKey;
+		const valueChanged = currentKey !== lastSavedKeyRef.current;
+		const changedFromInitial = currentKey !== initialKeyRef.current;
 
 		if (changedFromInitial && !hasUserMadeChangesRef.current) {
 			hasUserMadeChangesRef.current = true;
@@ -152,7 +163,7 @@ export const useAutoSave = <T>({
 				timeoutRef.current = null;
 			}
 		};
-	}, [value, enabled, delay, performSave]);
+	}, [value, enabled, delay, performSave, compareKey]);
 
 	useEffect(() => {
 		if (!saveOnBlur || !enabled || !isInitialized) {

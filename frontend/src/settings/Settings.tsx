@@ -40,7 +40,7 @@ interface SettingsProps {
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
+const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
 	const controller = useSettingsController();
 	const { setPageContext } = useHelp();
 	const { sidebarVisible, setSidebarVisible, isLoading: sidebarLoading } = useSidebarSetting();
@@ -294,3 +294,5 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggle
 		</Layout>
 	);
 };
+
+export const Settings = React.memo(SettingsComponent);

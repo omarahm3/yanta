@@ -1,6 +1,5 @@
 import { formatRelative } from "date-fns";
-import type React from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProjectResult } from "../../bindings/yanta/internal/commandline/models";
 import { Parse } from "../../bindings/yanta/internal/commandline/projectcommands";
 import {
@@ -26,7 +25,7 @@ interface ProjectsProps {
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
-export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
+const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
 	const { currentProject, setCurrentProject, projects, archivedProjects, loadProjects, isLoading } =
 		useProjectContext();
 	const [selectedProjectId, setSelectedProjectId] = useState<string>(currentProject?.id || "");
@@ -495,3 +494,5 @@ export const Projects: React.FC<ProjectsProps> = ({ onNavigate, onRegisterToggle
 		</>
 	);
 };
+
+export const Projects = React.memo(ProjectsComponent);

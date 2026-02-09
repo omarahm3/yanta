@@ -1,5 +1,4 @@
-import type React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { GranularErrorBoundary } from "@/app";
 import { Layout } from "../components/Layout";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
@@ -17,7 +16,7 @@ interface DashboardProps {
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({
+const DashboardComponent: React.FC<DashboardProps> = ({
 	onNavigate,
 	onRegisterToggleArchived,
 	onRegisterToggleSidebar,
@@ -111,3 +110,5 @@ export const Dashboard: React.FC<DashboardProps> = ({
 		</>
 	);
 };
+
+export const Dashboard = React.memo(DashboardComponent);

@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useRef } from "react";
+import type { Block } from "@blocknote/core";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { TIMEOUTS } from "@/config";
 import { useAutoSave } from "../../hooks/useAutoSave";
 import type { NavigationState } from "../../types";
 import type { BlockNoteBlock } from "../../types/Document";
 import type { Project } from "../../types/Project";
 import { BackendLogger } from "../../utils/backendLogger";
+import { computeContentHash } from "../../utils/contentHash";
 import { useAutoDocumentSaver } from "./useDocumentSaver";
 
 interface DocumentFormData {
@@ -100,6 +102,12 @@ export const useDocumentPersistence = ({
 		}
 	}, [shouldAutoSave, currentProject, isLoading, handleSave, onAutoSaveComplete]);
 
+	const compareKey = useMemo(
+		() =>
+			`${computeContentHash(formData.blocks as Block[])}\n${formData.title}\n${formData.tags.join(",")}`,
+		[formData.blocks, formData.title, formData.tags],
+	);
+
 	const autoSaveHook = useAutoSave({
 		value: formData,
 		onSave: handleSave,
@@ -107,6 +115,7 @@ export const useDocumentPersistence = ({
 		enabled: hasChanges && !isLoading,
 		saveOnBlur: true,
 		isInitialized: isEditorReady,
+		compareKey,
 	});
 
 	return {

@@ -1,5 +1,4 @@
-import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { GranularErrorBoundary } from "@/app";
 import { Layout } from "../components/Layout";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
@@ -22,7 +21,7 @@ export interface JournalProps {
  * Based on PRD Section 7.9 - Journal Entry Operations
  * Follows Dashboard pattern for consistent UX
  */
-export const Journal: React.FC<JournalProps> = ({
+const JournalComponent: React.FC<JournalProps> = ({
 	onNavigate,
 	className,
 	onRegisterToggleSidebar,
@@ -205,3 +204,5 @@ const JournalStatusBar: React.FC<JournalStatusBarProps> = ({
 		</div>
 	);
 };
+
+export const Journal = React.memo(JournalComponent);

@@ -40,7 +40,7 @@ interface SearchProps {
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
-export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
+const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
 	const [rawQuery, setRawQuery] = useState("");
 	const [results, setResults] = useState<SearchResult[]>([]);
 	const [selectedIndex, setSelectedIndex] = useState(0);
@@ -436,6 +436,8 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 		</Layout>
 	);
 };
+
+export const Search = React.memo(SearchComponent);
 
 interface ProjectFilterButtonProps {
 	alias: string;

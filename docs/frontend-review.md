@@ -476,9 +476,9 @@ Inconsistent import patterns result from this -- some paths use `../Journal/` (b
 
 ### 21. No React.memo on Page Components
 
-`Dashboard`, `Settings`, `Search`, `Journal`, `Projects` -- none use `React.memo`. With 11 context providers, any context update re-renders every page and its subtree.
+`Dashboard`, `Settings`, `Search`, `Journal`, `Projects` -- all five page components now wrapped in `React.memo` (DashboardPage, Settings, SearchPage, Journal, ProjectsPage). With provider tree, only the active page re-renders when props are unchanged.
 
-**Status:** [ ] Not started
+**Status:** [x] Completed — React.memo applied to Dashboard, Settings, Search, Journal, Projects.
 
 ---
 
@@ -1321,17 +1321,9 @@ Async operations that could return after component unmount or after state has ch
 
 ### 49. JSON.stringify in Hot Path — useAutoSave
 
-**`hooks/useAutoSave.ts:124-125`:**
-```typescript
-const valueChanged = JSON.stringify(value) !== JSON.stringify(lastSavedValueRef.current);
-const changedFromInitial = JSON.stringify(value) !== JSON.stringify(initialValueRef.current);
-```
+**Resolved:** `useAutoSave` now accepts an optional `compareKey?: string`. When provided, change detection uses `compareKey` instead of `JSON.stringify(value)`, so the hot path does only string comparison. Document persistence passes a `compareKey` from `useMemo(() => computeContentHash(blocks) + title + tags, [formData.blocks, formData.title, formData.tags])`, so the editor no longer serializes the full document in the effect.
 
-This runs in a `useEffect` that fires on every `value` change. For a BlockNote document with 100+ blocks, this serializes the entire document tree **twice** on every keystroke (after debounce). This is the single biggest performance bottleneck in the editor.
-
-**Fix:** Use a structural hash (e.g., the existing `contentHash.ts` utility) or a shallow equality check on block array length + last-modified block. Or use BlockNote's built-in change detection. See also #24 (overview) and #42 (dual source of truth via refs in `useAutoSave`).
-
-**Status:** [ ] Not started
+**Status:** [x] Completed — Optional `compareKey` in useAutoSave; useDocumentPersistence supplies key via contentHash + title + tags.
 
 ---
 
@@ -1586,10 +1578,10 @@ See Section 35 for detailed steps per phase. Each phase leaves the app fully wor
 
 | # | Issue | Impact | Effort |
 |---|-------|--------|--------|
-| 49 | Replace JSON.stringify in useAutoSave hot path (#24, #42) | Editor responsiveness | Medium |
+| 49 | ~~Replace JSON.stringify in useAutoSave hot path~~ — Done (optional compareKey + document compareKey) | Editor responsiveness | Medium |
 | 50 | Add React.memo to list item components (6 lists identified) | Re-render reduction | Low |
 | 51 | Hoist inline styles/callbacks out of render paths | Memoization effectiveness | Low |
-| 21 | Add React.memo on page components (5 pages) | Performance | Low |
+| 21 | ~~Add React.memo on page components (5 pages)~~ — Done | Performance | Low |
 | 25 | Add list virtualization (@tanstack/react-virtual) | Performance at 500+ documents | Medium |
 
 ### Tier 5: Quality & DX
