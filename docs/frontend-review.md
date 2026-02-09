@@ -1574,7 +1574,7 @@ See Section 35 for detailed steps per phase. Each phase leaves the app fully wor
 | 4 | Extract God Component into proper router + controller | Separation of concerns | Medium |
 | 39 | Split `useSettingsController` (27 useState) into 5 focused hooks | Maintainability | Medium |
 | 54 | Create command registry for plugin system | Extensible commands | High |
-| 18 | Centralize shortcuts config (single source for hotkeys + settings display) | Single source of truth, user-customizable | Medium |
+| 18 | ~~Centralize shortcuts config (single source for hotkeys + settings display)~~ — Done (config/shortcuts.ts + Settings shortcuts table) | Single source of truth, user-customizable | Medium |
 | 6 | ~~Unify state communication (remove window.dispatchEvent)~~ — Document save path done (`documentCommand.store`) | Consistent data flow | Medium |
 
 ### Tier 3: Resilience (production-grade error handling)
