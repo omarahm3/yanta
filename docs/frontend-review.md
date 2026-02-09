@@ -2,7 +2,7 @@
 
 **Stack:** React 18 + Tailwind CSS v4 + Radix UI + BlockNote Editor + Wails3 Runtime
 **Target:** Cross-platform desktop application (Wails3)
-**Last Updated:** 2026-02-09 (Rev 14 — Tier 2 table: Items 3, 39, 54 marked done; Tier 3 table: Items 45, 47 marked done; Tier 2/3 status aligned with section text)
+**Last Updated:** 2026-02-09 (Rev 15 — Tier 4 #51 hoist styles/callbacks and Tier 5 #19 barrel files completed; COMPLETED ITEMS table updated; all tier tables and section status text aligned)
 
 ---
 
@@ -1506,6 +1506,9 @@ Items already resolved in prior branches. Kept here for reference; removed from 
 | 44 | Silent error swallowing → toast notifications (6 of 7 sites) | Rev 12 — Search, Projects, ProjectContext, QuickCapture, useJournal, useJournalController; clipboard optional follow-up |
 | 48 | Window controls try/catch (TitleBar.tsx) | Rev 12 — Minimise/ToggleMaximise wrapped; toast on failure; BackendLogger for frameless check |
 | 52 | Bundle: drop_console, pure_funcs, sourcemap hidden | Rev 12 — vite.config.ts terserOptions + sourcemap |
+| 54 | Command registry (registry store + domain command modules, palette consumes getAllCommands) | Rev 14 — refactor/frontend-foundation |
+| 19 | Add barrel files (components/editor, extensions, services, shared) | Rev 15 — refactor/frontend-foundation |
+| 51 | Hoist inline styles/callbacks (DocumentList, JournalEntry, BackupSection, DatePicker, EmptyPaneDocumentPicker) | Rev 15 — refactor/frontend-foundation |
 | 41 | Context value objects memoized (useMemo in all providers) | Already implemented in codebase |
 
 ---
