@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "vite:clear-cache": "bash scripts/clear-vite-cache.sh",
     "build:dev": "vite build --minify false --mode development",
     "build": "tsc && vite build --mode production",
     "preview": "vite preview",

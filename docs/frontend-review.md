@@ -1410,37 +1410,18 @@ These are **planned capabilities**, not aspirational. The roadmap requires custo
 
 ### 54. Command Registry Design
 
-Current: ~500 lines of `useMemo` inside `GlobalCommandPalette.tsx` with 16 dependencies.
+Current: ~~500 lines of `useMemo` inside `GlobalCommandPalette.tsx` with 16 dependencies~~ Replaced by a command registry.
 
-Target:
-```typescript
-// command-palette/registry.ts
-interface CommandDefinition {
-    id: string;
-    group: string;
-    label: string;
-    icon: ComponentType<{ className?: string }>;
-    shortcut?: ShortcutKey;
-    keywords?: string[];
-    when?: () => boolean;        // Visibility condition
-    execute: () => void | Promise<void>;
-}
+**Implemented:**
 
-const registry = createCommandRegistry();
-registry.register({ id: 'nav.journal', group: 'Navigation', ... });
-registry.register({ id: 'git.sync', group: 'Git', ... });
+- **Registry store** (`command-palette/registry/commandRegistry.store.ts`): Zustand store with `setCommands(source, commands)`, `removeSource(source)`, `getAllCommands()`. Sources are ordered: navigation, create, document, git, projects, application (plus any extra for future plugins).
+- **Registry context** (`registry/types.ts`): `CommandRegistryContext` passed to domain registration functions (onNavigate, handleClose, currentProject, getSelectedDocument, notification, etc.).
+- **Domain command modules** (`registry/commands/*.ts`): `registerNavigationCommands`, `registerCreateCommands`, `registerDocumentCommands`, `registerGitCommands`, `registerProjectCommands`, `registerApplicationCommands`. Each receives `(registry, ctx)` and calls `registry.setCommands(source, CommandOption[])`. Commands use the existing `CommandOption` shape (id, icon, text, hint, shortcut, group, keywords, action, keepOpen).
+- **GlobalCommandPalette**: Builds `ctx`, runs all `register*Commands(registry, ctx)` in a `useEffect` when context changes, subscribes to `useCommandRegistryStore(state => state.getAllCommands())`, then applies usage sorting and `isRecent` as before. Sub-palette (recent documents) and Git error dialog unchanged.
 
-// Domains register their own commands:
-// journal/commands.ts
-export function registerJournalCommands(registry: CommandRegistry) {
-    registry.register({ id: 'journal.new', ... });
-    registry.register({ id: 'journal.today', ... });
-}
-```
+Adding a new command = adding an entry in the appropriate `registry/commands/*.ts` file (or registering a new source). The palette consumes `getAllCommands()`; no single 600-line useMemo.
 
-Each domain registers its commands via its `index.ts`. The palette just consumes `registry.getAll()`. Adding a command = adding a `.register()` call, not editing a 600-line file.
-
-**Status:** [ ] Not started
+**Status:** [x] Done
 
 ---
 
@@ -1558,7 +1539,7 @@ See Section 35 for detailed steps per phase. Each phase leaves the app fully wor
 | 41 | ~~Memoize remaining context values (`useMemo` on provider values)~~ — Done | Stops unnecessary re-renders | Low |
 | 4 | ~~Extract God Component into proper router + controller~~ — Done (App + AppProviders + Router + useAppNavigation) | Separation of concerns | Medium |
 | 39 | Split `useSettingsController` (27 useState) into 5 focused hooks | Maintainability | Medium |
-| 54 | Create command registry for plugin system | Extensible commands | High |
+| 54 | ~~Create command registry for plugin system~~ — Done (registry store + domain modules, palette consumes getAllCommands) | Extensible commands | High |
 | 18 | ~~Centralize shortcuts config (single source for hotkeys + settings display)~~ — Done (config/shortcuts.ts + Settings shortcuts table) | Single source of truth, user-customizable | Medium |
 | 6 | ~~Unify state communication (remove window.dispatchEvent)~~ — Document save path done (`documentCommand.store`) | Consistent data flow | Medium |
 
