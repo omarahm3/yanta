@@ -1,5 +1,4 @@
-import type React from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GranularErrorBoundary } from "@/app";
 import type * as searchModels from "../../bindings/yanta/internal/search/models";
 import { Query } from "../../bindings/yanta/internal/search/service";
@@ -99,6 +98,20 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 			return `${trimmed} ${filterSyntax}`;
 		});
 	}, []);
+
+	const handleAddProjectFilter = useCallback(
+		(alias: string) => {
+			addFilterToQuery("project", alias);
+		},
+		[addFilterToQuery],
+	);
+
+	const handleAddTagFilter = useCallback(
+		(tag: string) => {
+			addFilterToQuery("tag", tag);
+		},
+		[addFilterToQuery],
+	);
 
 	const performSearch = useCallback(
 		async (queryStr: string, requestGeneration: number) => {
@@ -338,30 +351,14 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 					<div className="flex items-center gap-3 text-xs flex-wrap">
 						{/* Projects */}
 						{projects.slice(0, 10).map((p) => (
-							<Button
-								key={p.alias}
-								variant="ghost"
-								size="sm"
-								className="inline-flex items-center gap-1 border border-purple text-purple hover:bg-purple/10"
-								onClick={() => addFilterToQuery("project", p.alias)}
-							>
-								{p.alias}
-							</Button>
+							<ProjectFilterButton key={p.alias} alias={p.alias} onAddFilter={handleAddProjectFilter} />
 						))}
 
 						<span className="px-1 text-text-dim">|</span>
 
 						{/* Tags */}
 						{availableTags.map((t) => (
-							<Button
-								key={t}
-								variant="ghost"
-								size="sm"
-								className="inline-flex items-center gap-1 border border-green text-green hover:bg-green/10"
-								onClick={() => addFilterToQuery("tag", t)}
-							>
-								#{t}
-							</Button>
+							<TagFilterButton key={t} tag={t} onAddFilter={handleAddTagFilter} />
 						))}
 					</div>
 				</div>
@@ -420,65 +417,17 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 							</div>
 						) : (
 							<div className="space-y-5">
-								{groupedResults.map((r, idx) => {
-									return (
-										<div
-											key={r.path}
-											data-result-item="true"
-											tabIndex={0}
-											className={`relative p-5 bg-glass-bg/20 backdrop-blur-md border border-glass-border rounded-xl transition-all cursor-pointer outline-none shadow-sm ${
-												idx === selectedIndex
-													? "border-accent ring-1 ring-accent/30 bg-glass-bg/30 shadow-md transform scale-[1.01]"
-													: "hover:bg-glass-bg/30 hover:shadow-md hover:border-glass-border/80"
-											}`}
-											onClick={() => {
-												setSelectedIndex(idx);
-												openResult(idx);
-											}}
-											onMouseEnter={() => setSelectedIndex(idx)}
-											onFocus={() => setSelectedIndex(idx)}
-										>
-											<div className="absolute -left-8 top-4 text-text-dim text-[11px] w-7 text-right">
-												{idx + 1}
-											</div>
-
-											<div className="flex items-center justify-between mb-2">
-												<div className="flex items-center gap-3 text-xs">
-													<span
-														className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-															r.type === "note" ? "bg-yellow/20 text-yellow" : "bg-blue/20 text-blue"
-														}`}
-													>
-														{r.type === "note" ? "Note" : "Document"}
-													</span>
-													<span className="text-purple font-semibold">
-														{r.projectAlias || r.path.split("/")[1] || "unknown"}
-													</span>
-													<span className="text-text-dim">{r.updated}</span>
-													{r.matchCount > 1 && (
-														<span className="px-2 py-0.5 bg-accent/10 text-accent rounded-full text-[10px] font-semibold">
-															{r.matchCount} {r.matchCount === 1 ? "match" : "matches"}
-														</span>
-													)}
-												</div>
-											</div>
-
-											<div className="mb-3 font-medium text-text-bright">{r.title}</div>
-
-											<div className="space-y-2">
-												{r.snippets.map((snippet, snippetIdx) => (
-													<div
-														// biome-ignore lint/suspicious/noArrayIndexKey: snippets are unique within a result
-														key={snippetIdx}
-														className="text-sm [&_mark]:bg-yellow/20 [&_mark]:text-yellow [&_mark]:px-1 [&_mark]:rounded [&_mark]:font-semibold pl-3 border-l-2 border-border"
-													>
-														{renderSnippet(snippet)}
-													</div>
-												))}
-											</div>
-										</div>
-									);
-								})}
+								{groupedResults.map((r, idx) => (
+									<SearchResultCard
+										key={r.path}
+										result={r}
+										index={idx}
+										isSelected={idx === selectedIndex}
+										onSelect={setSelectedIndex}
+										onOpen={openResult}
+										renderSnippet={renderSnippet}
+									/>
+								))}
 							</div>
 						)}
 					</GranularErrorBoundary>
@@ -487,3 +436,132 @@ export const Search: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSide
 		</Layout>
 	);
 };
+
+interface ProjectFilterButtonProps {
+	alias: string;
+	onAddFilter: (alias: string) => void;
+}
+
+const ProjectFilterButton: React.FC<ProjectFilterButtonProps> = React.memo(
+	({ alias, onAddFilter }) => {
+		const handleClick = useCallback(() => {
+			onAddFilter(alias);
+		}, [alias, onAddFilter]);
+
+		return (
+			<Button
+				variant="ghost"
+				size="sm"
+				className="inline-flex items-center gap-1 border border-purple text-purple hover:bg-purple/10"
+				onClick={handleClick}
+			>
+				{alias}
+			</Button>
+		);
+	},
+);
+
+interface TagFilterButtonProps {
+	tag: string;
+	onAddFilter: (tag: string) => void;
+}
+
+const TagFilterButton: React.FC<TagFilterButtonProps> = React.memo(({ tag, onAddFilter }) => {
+	const handleClick = useCallback(() => {
+		onAddFilter(tag);
+	}, [onAddFilter, tag]);
+
+	return (
+		<Button
+			variant="ghost"
+			size="sm"
+			className="inline-flex items-center gap-1 border border-green text-green hover:bg-green/10"
+			onClick={handleClick}
+		>
+			#{tag}
+		</Button>
+	);
+});
+
+interface SearchResultCardProps {
+	result: GroupedSearchResult;
+	index: number;
+	isSelected: boolean;
+	onSelect: (index: number) => void;
+	onOpen: (index: number) => void;
+	renderSnippet: (snippet: string) => React.ReactNode;
+}
+
+const SearchResultCard: React.FC<SearchResultCardProps> = React.memo(
+	({ result, index, isSelected, onSelect, onOpen, renderSnippet }) => {
+		const handleClick: React.MouseEventHandler<HTMLDivElement> = () => {
+			onSelect(index);
+			onOpen(index);
+		};
+
+		const handleMouseEnter: React.MouseEventHandler<HTMLDivElement> = () => {
+			onSelect(index);
+		};
+
+		const handleFocus: React.FocusEventHandler<HTMLDivElement> = () => {
+			onSelect(index);
+		};
+
+		const isNote = result.type === "note";
+		const projectAlias = result.projectAlias || result.path.split("/")[1] || "unknown";
+
+		const cardClasses = `relative p-5 bg-glass-bg/20 backdrop-blur-md border border-glass-border rounded-xl transition-all cursor-pointer outline-none shadow-sm ${
+			isSelected
+				? "border-accent ring-1 ring-accent/30 bg-glass-bg/30 shadow-md transform scale-[1.01]"
+				: "hover:bg-glass-bg/30 hover:shadow-md hover:border-glass-border/80"
+		}`;
+
+		return (
+			<div
+				data-result-item="true"
+				tabIndex={0}
+				className={cardClasses}
+				onClick={handleClick}
+				onMouseEnter={handleMouseEnter}
+				onFocus={handleFocus}
+			>
+				<div className="absolute -left-8 top-4 text-text-dim text-[11px] w-7 text-right">
+					{index + 1}
+				</div>
+
+				<div className="flex items-center justify-between mb-2">
+					<div className="flex items-center gap-3 text-xs">
+						<span
+							className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+								isNote ? "bg-yellow/20 text-yellow" : "bg-blue/20 text-blue"
+							}`}
+						>
+							{isNote ? "Note" : "Document"}
+						</span>
+						<span className="text-purple font-semibold">{projectAlias}</span>
+						<span className="text-text-dim">{result.updated}</span>
+						{result.matchCount > 1 && (
+							<span className="px-2 py-0.5 bg-accent/10 text-accent rounded-full text-[10px] font-semibold">
+								{result.matchCount} {result.matchCount === 1 ? "match" : "matches"}
+							</span>
+						)}
+					</div>
+				</div>
+
+				<div className="mb-3 font-medium text-text-bright">{result.title}</div>
+
+				<div className="space-y-2">
+					{result.snippets.map((snippet, snippetIdx) => (
+						<div
+							// biome-ignore lint/suspicious/noArrayIndexKey: snippets are unique within a result
+							key={snippetIdx}
+							className="text-sm [&_mark]:bg-yellow/20 [&_mark]:text-yellow [&_mark]:px-1 [&_mark]:rounded [&_mark]:font-semibold pl-3 border-l-2 border-border"
+						>
+							{renderSnippet(snippet)}
+						</div>
+					))}
+				</div>
+			</div>
+		);
+	},
+);

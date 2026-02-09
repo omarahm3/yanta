@@ -1,4 +1,4 @@
-import type React from "react";
+import React from "react";
 import { Button } from "../components/ui";
 import { cn } from "../lib/utils";
 
@@ -25,7 +25,7 @@ export interface JournalEntryProps {
  * Based on PRD Section 7.9 - Journal Entry Operations
  * Follows Dashboard DocumentList pattern for consistent UX
  */
-export const JournalEntry: React.FC<JournalEntryProps> = ({
+const JournalEntryComponent: React.FC<JournalEntryProps> = ({
 	entry,
 	index,
 	onEntryClick,
@@ -139,6 +139,8 @@ export const JournalEntry: React.FC<JournalEntryProps> = ({
 		</div>
 	);
 };
+
+export const JournalEntry = React.memo(JournalEntryComponent);
 
 /**
  * Format timestamp to display time

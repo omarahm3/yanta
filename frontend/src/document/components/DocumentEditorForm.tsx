@@ -1,6 +1,5 @@
 import type { Block, BlockNoteEditor } from "@blocknote/core";
-import type React from "react";
-import { lazy, Suspense, useCallback, useMemo, useState } from "react";
+import React, { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import { GranularErrorBoundary } from "@/app";
 import { Button } from "../../components/ui";
 import type { BlockNoteBlock } from "../../types/Document";
@@ -99,20 +98,14 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 				<div className="px-2 py-2">
 					<div className="flex flex-wrap gap-2">
 						{tags.map((tag) => (
-							<Button
+							<TagChip
 								key={tag}
-								variant="secondary"
-								size="sm"
-								onKeyDown={(e) => handleTagKeyDown(e, tag)}
-								onClick={() => {
-									if (!isReadOnly) onTagRemove(tag);
-								}}
-								className="inline-flex items-center gap-1 text-sm"
-								disabled={isLoading || isReadOnly}
-								title="Click or press Delete/Backspace to remove"
-							>
-								{tag}
-							</Button>
+								tag={tag}
+								isLoading={isLoading}
+								isReadOnly={isReadOnly}
+								onRemove={onTagRemove}
+								onKeyDown={handleTagKeyDown}
+							/>
 						))}
 					</div>
 					<div className="mt-2 text-xs text-text-dim">
@@ -123,3 +116,29 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 		</div>
 	);
 };
+
+interface TagChipProps {
+	tag: string;
+	isLoading: boolean;
+	isReadOnly: boolean;
+	onRemove: (tag: string) => void;
+	onKeyDown: (e: React.KeyboardEvent<HTMLButtonElement>, tag: string) => void;
+}
+
+const TagChip: React.FC<TagChipProps> = React.memo(
+	({ tag, isLoading, isReadOnly, onRemove, onKeyDown }) => (
+		<Button
+			variant="secondary"
+			size="sm"
+			onKeyDown={(e) => onKeyDown(e, tag)}
+			onClick={() => {
+				if (!isReadOnly) onRemove(tag);
+			}}
+			className="inline-flex items-center gap-1 text-sm"
+			disabled={isLoading || isReadOnly}
+			title="Click or press Delete/Backspace to remove"
+		>
+			{tag}
+		</Button>
+	),
+);
