@@ -27,90 +27,13 @@ import { ShortcutsSection } from "./ShortcutsSection";
 import { useSettingsController } from "./useSettingsController";
 
 /** Shortcuts from config/shortcuts (single source of truth for registration + display). */
-const shortcutsFromConfig = (): Shortcut[] =>
-	getShortcutsForSettings().map(({ id, action, key }) => ({
-		id,
-		action,
-		defaultKey: formatShortcutKeyForDisplay(key),
-		currentKey: formatShortcutKeyForDisplay(key),
-		editable: false,
-	}));
-
-/** Shortcuts not yet in config (command-line, search UI, etc.). Shown in Settings until moved to config. */
-const shortcutsNotInConfig: Shortcut[] = [
-	{
-		id: "command-line",
-		action: "Focus command line",
-		defaultKey: ":",
-		currentKey: ":",
-		editable: false,
-	},
-	{
-		id: "escape",
-		action: "Exit command line",
-		defaultKey: "Esc",
-		currentKey: "Esc",
-		editable: false,
-	},
-	{
-		id: "delete-block",
-		action: "Delete block (Document page)",
-		defaultKey: "Ctrl+D",
-		currentKey: "Ctrl+D",
-		editable: false,
-	},
-	{
-		id: "toggle-archived-projects",
-		action: "Toggle show archived (Projects page)",
-		defaultKey: "Ctrl+Shift+A",
-		currentKey: "Ctrl+Shift+A",
-		editable: false,
-	},
-	{
-		id: "search-focus",
-		action: "Focus search input (Search page)",
-		defaultKey: "/",
-		currentKey: "/",
-		editable: false,
-	},
-	{
-		id: "search-to-results",
-		action: "Move to results (Search page)",
-		defaultKey: "Tab",
-		currentKey: "Tab",
-		editable: false,
-	},
-	{
-		id: "search-next",
-		action: "Navigate down results (Search page)",
-		defaultKey: "j",
-		currentKey: "j",
-		editable: false,
-	},
-	{
-		id: "search-prev",
-		action: "Navigate up results (Search page)",
-		defaultKey: "k",
-		currentKey: "k",
-		editable: false,
-	},
-	{
-		id: "search-open",
-		action: "Open selected result (Search page)",
-		defaultKey: "Enter",
-		currentKey: "Enter",
-		editable: false,
-	},
-	{
-		id: "search-unfocus",
-		action: "Unfocus search input (Search page)",
-		defaultKey: "Esc",
-		currentKey: "Esc",
-		editable: false,
-	},
-];
-
-const actualShortcuts: Shortcut[] = [...shortcutsFromConfig(), ...shortcutsNotInConfig];
+const SHORTCUTS_FOR_SETTINGS: Shortcut[] = getShortcutsForSettings().map(({ id, action, key }) => ({
+	id,
+	action,
+	defaultKey: formatShortcutKeyForDisplay(key),
+	currentKey: formatShortcutKeyForDisplay(key),
+	editable: false,
+}));
 
 interface SettingsProps {
 	onNavigate?: (page: string) => void;
@@ -296,7 +219,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggle
 							hotkeyConfig={controller.hotkeyConfig}
 							onHotkeyConfigChange={controller.handlers.handleHotkeyConfigChange}
 							hotkeyError={controller.hotkeyError}
-							shortcuts={actualShortcuts}
+							shortcuts={SHORTCUTS_FOR_SETTINGS}
 						/>
 
 						<LoggingSection

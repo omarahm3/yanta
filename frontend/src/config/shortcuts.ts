@@ -41,6 +41,7 @@ export const DOCUMENT_SHORTCUTS = {
 	back: { key: "Escape", description: "Unfocus editor, or go back to dashboard" },
 	unfocus: { key: "mod+C", description: "Unfocus editor" },
 	focusEditor: { key: "Enter", description: "Focus editor when unfocused" },
+	deleteBlock: { key: "ctrl+d", description: "Delete block (Document page)" },
 } as const satisfies Record<string, ShortcutDef>;
 
 /** Dashboard (useDashboardController) */
@@ -89,6 +90,10 @@ export const PROJECTS_SHORTCUTS = {
 	restore: { key: "mod+U", description: "Restore archived project" },
 	delete: { key: "mod+D", description: "Delete selected project" },
 	permanentDelete: { key: "mod+shift+D", description: "Permanently delete selected project" },
+	toggleArchivedProjects: {
+		key: "ctrl+shift+a",
+		description: "Toggle show archived (Projects page)",
+	},
 } as const satisfies Record<string, ShortcutDef>;
 
 /** Quick capture (QuickCapture.tsx) */
@@ -103,6 +108,22 @@ export const QUICK_CAPTURE_DEFAULT: ShortcutDef = {
 	key: "ctrl+shift+n",
 	description: "Open Quick Capture",
 };
+
+/** Command line + search UI (page-local shortcuts, not global hotkeys). */
+export const COMMAND_LINE_SHORTCUTS = {
+	focusCommandLine: { key: ":", description: "Focus command line" },
+	exitCommandLine: { key: "Esc", description: "Exit command line" },
+} as const satisfies Record<string, ShortcutDef>;
+
+/** Search page (SearchPage.tsx) */
+export const SEARCH_SHORTCUTS = {
+	focusInput: { key: "/", description: "Focus search input (Search page)" },
+	toResults: { key: "Tab", description: "Move to results (Search page)" },
+	navigateDown: { key: "j", description: "Navigate down results (Search page)" },
+	navigateUp: { key: "k", description: "Navigate up results (Search page)" },
+	open: { key: "Enter", description: "Open selected search result" },
+	unfocus: { key: "Esc", description: "Unfocus search input (Search page)" },
+} as const satisfies Record<string, ShortcutDef>;
 
 /** Settings (useSettingsController default, Settings.tsx nav) */
 export const SETTINGS_SHORTCUTS = {
@@ -161,6 +182,8 @@ export function getShortcutsForSettings(): { id: string; action: string; key: st
 	});
 	pushAll("quickCapture", QUICK_CAPTURE_SHORTCUTS);
 	pushAll("settings", SETTINGS_SHORTCUTS);
+	pushAll("commandLine", COMMAND_LINE_SHORTCUTS);
+	pushAll("search", SEARCH_SHORTCUTS);
 	pushAll("pane", PANE_SHORTCUTS);
 
 	return entries;
