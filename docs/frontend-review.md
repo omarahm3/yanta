@@ -126,15 +126,10 @@ Problems:
 
 ### 4. God Component (App.tsx:67-176)
 
-~~App.tsx god component~~ — **Partially addressed (Rev 10):** App.tsx slimmed to ~38 lines (error handlers only); provider tree moved to `app/providers.tsx`; hotkey/shell logic moved to `app/global-hotkeys.tsx`. The remaining coupling is inside **GlobalCommandHotkey** (~100+ lines), which still owns:
-- Command palette open/close + dialog context sync
-- All app navigation state (`currentPage`, `navigationState`, `handleNavigate`)
-- Archive/sidebar toggle registration
-- 3 hotkey registrations
-- Renders both `GlobalCommandPalette` and `Router`
+~~App.tsx god component~~ — **Resolved:** App.tsx is now a thin error-handler wrapper that renders `AppProviders`. Provider tree and shell UI live in `app/providers.tsx`; hotkey/shell logic lives in `app/global-hotkeys.tsx`.
 
-**Follow-up:** ~~Extract `useAppNavigation`~~ — Done (Rev 11): `app/useAppNavigation.ts` holds navigation state and handlers; GlobalCommandHotkey only registers hotkeys and composes palette + Router.
-**Status:** [x] Follow-up done — useAppNavigation extracted; optional: have providers import from domains directly instead of legacy barrels
+**Follow-up:** ~~Extract `useAppNavigation`~~ — Done (Rev 11): `app/useAppNavigation.ts` holds navigation state and handlers; `GlobalCommandHotkey` now just wires global hotkeys + `GlobalCommandPalette` + `Router`, with no local navigation state.
+**Status:** [x] Completed — App shell split into `App` (error handlers), `AppProviders` (providers + shell UI), `Router` (page selection), `useAppNavigation` (navigation state/handlers).
 
 ---
 
@@ -1571,7 +1566,7 @@ See Section 35 for detailed steps per phase. Each phase leaves the app fully wor
 |---|-------|--------|--------|
 | 3 | Replace provider pyramid with Zustand (see provider mapping above) | Simpler state, no re-render cascades | High |
 | 41 | ~~Memoize remaining context values (`useMemo` on provider values)~~ — Done | Stops unnecessary re-renders | Low |
-| 4 | Extract God Component into proper router + controller | Separation of concerns | Medium |
+| 4 | ~~Extract God Component into proper router + controller~~ — Done (App + AppProviders + Router + useAppNavigation) | Separation of concerns | Medium |
 | 39 | Split `useSettingsController` (27 useState) into 5 focused hooks | Maintainability | Medium |
 | 54 | Create command registry for plugin system | Extensible commands | High |
 | 18 | ~~Centralize shortcuts config (single source for hotkeys + settings display)~~ — Done (config/shortcuts.ts + Settings shortcuts table) | Single source of truth, user-customizable | Medium |

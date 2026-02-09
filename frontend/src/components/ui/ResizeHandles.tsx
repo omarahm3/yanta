@@ -181,6 +181,40 @@ export const ResizeHandles: React.FC = () => {
 		[handleMouseMove, handleMouseUp],
 	);
 
+	// Pre-bound mouse down handlers per edge to avoid creating new lambdas in JSX
+	const handleTopMouseDown = useCallback(
+		(e: React.MouseEvent) => handleResizeStart("n", e),
+		[handleResizeStart],
+	);
+	const handleRightMouseDown = useCallback(
+		(e: React.MouseEvent) => handleResizeStart("e", e),
+		[handleResizeStart],
+	);
+	const handleBottomMouseDown = useCallback(
+		(e: React.MouseEvent) => handleResizeStart("s", e),
+		[handleResizeStart],
+	);
+	const handleLeftMouseDown = useCallback(
+		(e: React.MouseEvent) => handleResizeStart("w", e),
+		[handleResizeStart],
+	);
+	const handleTopLeftMouseDown = useCallback(
+		(e: React.MouseEvent) => handleResizeStart("nw", e),
+		[handleResizeStart],
+	);
+	const handleTopRightMouseDown = useCallback(
+		(e: React.MouseEvent) => handleResizeStart("ne", e),
+		[handleResizeStart],
+	);
+	const handleBottomLeftMouseDown = useCallback(
+		(e: React.MouseEvent) => handleResizeStart("sw", e),
+		[handleResizeStart],
+	);
+	const handleBottomRightMouseDown = useCallback(
+		(e: React.MouseEvent) => handleResizeStart("se", e),
+		[handleResizeStart],
+	);
+
 	// Only render resize handles on Linux in frameless mode
 	if (!isLinux || !isFrameless) {
 		return null;
@@ -191,56 +225,56 @@ export const ResizeHandles: React.FC = () => {
 			{/* Top edge resize handle */}
 			<div
 				className="resize-handle resize-handle-top"
-				onMouseDown={(e) => handleResizeStart("n", e)}
+				onMouseDown={handleTopMouseDown}
 				title="Drag to resize window (top edge)"
 			/>
 
 			{/* Right edge resize handle */}
 			<div
 				className="resize-handle resize-handle-right"
-				onMouseDown={(e) => handleResizeStart("e", e)}
+				onMouseDown={handleRightMouseDown}
 				title="Drag to resize window (right edge)"
 			/>
 
 			{/* Bottom edge resize handle */}
 			<div
 				className="resize-handle resize-handle-bottom"
-				onMouseDown={(e) => handleResizeStart("s", e)}
+				onMouseDown={handleBottomMouseDown}
 				title="Drag to resize window (bottom edge)"
 			/>
 
 			{/* Left edge resize handle */}
 			<div
 				className="resize-handle resize-handle-left"
-				onMouseDown={(e) => handleResizeStart("w", e)}
+				onMouseDown={handleLeftMouseDown}
 				title="Drag to resize window (left edge)"
 			/>
 
 			{/* Top-left corner resize handle */}
 			<div
 				className="resize-handle resize-handle-corner resize-handle-top-left"
-				onMouseDown={(e) => handleResizeStart("nw", e)}
+				onMouseDown={handleTopLeftMouseDown}
 				title="Drag to resize window (top-left corner)"
 			/>
 
 			{/* Top-right corner resize handle */}
 			<div
 				className="resize-handle resize-handle-corner resize-handle-top-right"
-				onMouseDown={(e) => handleResizeStart("ne", e)}
+				onMouseDown={handleTopRightMouseDown}
 				title="Drag to resize window (top-right corner)"
 			/>
 
 			{/* Bottom-left corner resize handle */}
 			<div
 				className="resize-handle resize-handle-corner resize-handle-bottom-left"
-				onMouseDown={(e) => handleResizeStart("sw", e)}
+				onMouseDown={handleBottomLeftMouseDown}
 				title="Drag to resize window (bottom-left corner)"
 			/>
 
 			{/* Bottom-right corner resize handle */}
 			<div
 				className="resize-handle resize-handle-corner resize-handle-bottom-right"
-				onMouseDown={(e) => handleResizeStart("se", e)}
+				onMouseDown={handleBottomRightMouseDown}
 				title="Drag to resize window (bottom-right corner)"
 			/>
 		</>
