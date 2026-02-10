@@ -2,7 +2,7 @@
 
 **Stack:** React 18 + Tailwind CSS v4 + Radix UI + BlockNote Editor + Wails3 Runtime
 **Target:** Cross-platform desktop application (Wails3)
-**Last Updated:** 2026-02-09 (Rev 16 — Item 5 (URL-synced routing + history) marked completed; Item 23 marked completed via command registry refactor; all status text aligned)
+**Last Updated:** 2026-02-09 (Rev 17 — Item 24 auto-save change detection updated to use compareKey + lightweight keys; JSON.stringify avoided for editor payloads; routing/navigation type-safety unchanged)
 
 ---
 
@@ -500,9 +500,15 @@ The command list (`useMemo`) has 16 dependencies and ~500 lines of definitions. 
 
 ### 24. JSON.stringify for Auto-save Change Detection
 
-`useAutoSave.ts` compares values via JSON serialization. For large BlockNote documents, this is expensive per keystroke (debounced but still). See #49 for the detailed performance analysis and fix options.
+`useAutoSave.ts` previously compared values via `JSON.stringify(value)` whenever `compareKey` was not provided. For large BlockNote documents this would be expensive per keystroke (debounced but still), but the editor path now always supplies a cheap `compareKey` based on a content hash (see #49). `useAutoSave` has been updated to:
 
-**Status:** [ ] Not started
+- Use a dedicated `getAutoSaveKey(value, compareKey)` helper.
+- Prefer `compareKey` when provided (editor/documents code path).
+- Fall back to primitives-only keys (`String(value)` for string/number/boolean) and use `JSON.stringify` only for small object/array values in non-editor callers/tests.
+
+As a result, BlockNote/Document auto-save no longer uses `JSON.stringify` in the hot path; JSON serialization is reserved for lightweight values only.
+
+**Status:** [x] Completed — `useAutoSave` now relies on `compareKey` for editor payloads and avoids JSON.stringify for primitives; JSON fallback is only used for small non-editor objects.
 
 ---
 

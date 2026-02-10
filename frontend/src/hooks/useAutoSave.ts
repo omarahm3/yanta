@@ -57,7 +57,7 @@ export const useAutoSave = <T>({
 
 	useEffect(() => {
 		if (isInitialized && !prevIsInitializedRef.current) {
-			const key = compareKey ?? JSON.stringify(value);
+			const key = getAutoSaveKey(value, compareKey);
 			initialValueRef.current = value;
 			lastSavedValueRef.current = value;
 			initialKeyRef.current = key;
@@ -127,7 +127,7 @@ export const useAutoSave = <T>({
 
 	useEffect(() => {
 		lastValueRef.current = value;
-		const currentKey = compareKey ?? JSON.stringify(value);
+		const currentKey = getAutoSaveKey(value, compareKey);
 		currentKeyRef.current = currentKey;
 		const valueChanged = currentKey !== lastSavedKeyRef.current;
 		const changedFromInitial = currentKey !== initialKeyRef.current;
@@ -222,3 +222,23 @@ export const useAutoSave = <T>({
 		hasUnsavedChanges,
 	};
 };
+
+function getAutoSaveKey<T>(value: T, compareKey?: string): string {
+	if (compareKey !== undefined) {
+		return compareKey;
+	}
+
+	if (value == null) {
+		return "";
+	}
+
+	const type = typeof value;
+
+	if (type === "string" || type === "number" || type === "boolean") {
+		return String(value);
+	}
+
+	// Fallback for small object/array values used in non-editor hooks and tests.
+	// Heavy editor payloads (BlockNote documents) must supply compareKey to avoid JSON.stringify.
+	return JSON.stringify(value);
+}

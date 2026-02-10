@@ -16,7 +16,7 @@ import { useHelp } from "../../hooks";
 import { useNotification } from "../../hooks/useNotification";
 import { useRecentDocuments } from "../../hooks/useRecentDocuments";
 import { useSidebarSections } from "../../hooks/useSidebarSections";
-import { DocumentServiceWrapper, moveDocumentToProject } from "../../services/DocumentService";
+import { DocumentServiceWrapper } from "../../services/DocumentService";
 import type { NavigationState, PageName } from "../../types";
 import type { Document } from "../../types/Document";
 import type { HotkeyConfig } from "../../types/hotkeys";
