@@ -1,21 +1,11 @@
-import React, { useCallback, useRef, useState } from "react";
+import React from "react";
 import { GranularErrorBoundary } from "@/app";
 import { Layout } from "../components/Layout";
 import { ConfirmDialog, MigrationConflictDialog, type Shortcut } from "../components/ui";
 import {
 	formatShortcutKeyForDisplay,
 	getShortcutsForSettings,
-	SETTINGS_SHORTCUTS,
 } from "../config";
-import {
-	useFooterHintsSetting,
-	useGitStatus,
-	useHelp,
-	useHotkeys,
-	useShortcutTooltipsSetting,
-	useSidebarSetting,
-} from "../hooks";
-import { useSidebarSections } from "../hooks/useSidebarSections";
 import { AboutSection } from "./AboutSection";
 import { AppearanceSection } from "./AppearanceSection";
 import { BackupSection } from "./BackupSection";
@@ -24,7 +14,8 @@ import { GeneralSection } from "./GeneralSection";
 import { GitSyncSection } from "./GitSyncSection";
 import { LoggingSection } from "./LoggingSection";
 import { ShortcutsSection } from "./ShortcutsSection";
-import { useSettingsController } from "./useSettingsController";
+import { useSettingsPage } from "./hooks/useSettingsPage";
+import type { PageName } from "../types";
 
 /** Shortcuts from config/shortcuts (single source of truth for registration + display). */
 const SHORTCUTS_FOR_SETTINGS: Shortcut[] = getShortcutsForSettings().map(({ id, action, key }) => ({
@@ -35,128 +26,38 @@ const SHORTCUTS_FOR_SETTINGS: Shortcut[] = getShortcutsForSettings().map(({ id, 
 	editable: false,
 }));
 
-import type { PageName } from "../types";
-
 interface SettingsProps {
 	onNavigate?: (page: PageName) => void;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
 const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
-	const controller = useSettingsController();
-	const { setPageContext } = useHelp();
-	const { sidebarVisible, setSidebarVisible, isLoading: sidebarLoading } = useSidebarSetting();
 	const {
+		controller,
+		sidebarVisible,
+		setSidebarVisible,
+		sidebarLoading,
 		showFooterHints,
 		setShowFooterHints,
-		isLoading: footerHintsLoading,
-	} = useFooterHintsSetting();
-	const {
+		footerHintsLoading,
 		showShortcutTooltips,
 		setShowShortcutTooltips,
-		isLoading: shortcutTooltipsLoading,
-	} = useShortcutTooltipsSetting();
-	const {
-		status: gitStatus,
-		isLoading: gitStatusLoading,
-		refresh: refreshGitStatus,
-	} = useGitStatus(controller.gitSync.enabled ? 30000 : 0);
-
-	const generalRef = useRef<HTMLDivElement>(null);
-	const appearanceRef = useRef<HTMLDivElement>(null);
-	const databaseRef = useRef<HTMLDivElement>(null);
-	const shortcutsRef = useRef<HTMLDivElement>(null);
-	const loggingRef = useRef<HTMLDivElement>(null);
-	const backupRef = useRef<HTMLDivElement>(null);
-	const syncRef = useRef<HTMLDivElement>(null);
-	const aboutRef = useRef<HTMLDivElement>(null);
-
-	const [currentSectionIndex, setCurrentSectionIndex] = React.useState(0);
-
-	const sectionIds = [
-		"general",
-		"appearance",
-		"database",
-		"shortcuts",
-		"logging",
-		"backup",
-		"sync",
-		"about",
-	];
-
-	React.useEffect(() => {
-		setPageContext([], "Settings");
-	}, [setPageContext]);
-
-	const scrollToSection = useCallback((sectionId: string) => {
-		const refMap: Record<string, React.RefObject<HTMLDivElement>> = {
-			general: generalRef,
-			appearance: appearanceRef,
-			database: databaseRef,
-			shortcuts: shortcutsRef,
-			logging: loggingRef,
-			backup: backupRef,
-			sync: syncRef,
-			about: aboutRef,
-		};
-
-		const ref = refMap[sectionId];
-		if (ref?.current) {
-			ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
-		}
-
-		const index = sectionIds.indexOf(sectionId);
-		if (index !== -1) {
-			setCurrentSectionIndex(index);
-		}
-	}, []);
-
-	const handleNextSection = useCallback(() => {
-		const nextIndex = Math.min(currentSectionIndex + 1, sectionIds.length - 1);
-		setCurrentSectionIndex(nextIndex);
-		scrollToSection(sectionIds[nextIndex]);
-	}, [currentSectionIndex, scrollToSection]);
-
-	const handlePreviousSection = useCallback(() => {
-		const prevIndex = Math.max(currentSectionIndex - 1, 0);
-		setCurrentSectionIndex(prevIndex);
-		scrollToSection(sectionIds[prevIndex]);
-	}, [currentSectionIndex, scrollToSection]);
-
-	const hotkeys = React.useMemo(
-		() => [
-			{ ...SETTINGS_SHORTCUTS.navNext, handler: handleNextSection, allowInInput: false },
-			{ ...SETTINGS_SHORTCUTS.navPrev, handler: handlePreviousSection, allowInInput: false },
-		],
-		[handleNextSection, handlePreviousSection],
-	);
-
-	useHotkeys(hotkeys);
-
-	const settingsItems = [
-		{ id: "general", label: "general", onClick: () => scrollToSection("general") },
-		{ id: "appearance", label: "appearance", onClick: () => scrollToSection("appearance") },
-		{ id: "database", label: "database", onClick: () => scrollToSection("database") },
-		{ id: "shortcuts", label: "shortcuts", onClick: () => scrollToSection("shortcuts") },
-		{ id: "logging", label: "logging", onClick: () => scrollToSection("logging") },
-		{ id: "backup", label: "backup", onClick: () => scrollToSection("backup") },
-		{ id: "sync", label: "sync", onClick: () => scrollToSection("sync") },
-		{ id: "about", label: "about", onClick: () => scrollToSection("about") },
-	];
-
-	const sidebarSections = useSidebarSections({
-		currentPage: "settings",
-		onNavigate,
-		additionalSections: [
-			{
-				id: "settings",
-				title: "SETTINGS",
-				items: settingsItems,
-			},
-		],
-	});
-
-	const [settingsKey, setSettingsKey] = useState(0);
+		shortcutTooltipsLoading,
+		gitStatus,
+		gitStatusLoading,
+		refreshGitStatus,
+		generalRef,
+		appearanceRef,
+		databaseRef,
+		shortcutsRef,
+		loggingRef,
+		backupRef,
+		syncRef,
+		aboutRef,
+		settingsKey,
+		setSettingsKey,
+		sidebarSections,
+	} = useSettingsPage({ onNavigate });
 
 	return (
 		<Layout

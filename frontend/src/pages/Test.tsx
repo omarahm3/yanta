@@ -1,9 +1,5 @@
 import type { BlockNoteEditor } from "@blocknote/core";
-import {
-	type Components as BlockNoteComponents,
-	ComponentsContext,
-	useCreateBlockNote,
-} from "@blocknote/react";
+import { type Components as BlockNoteComponents, ComponentsContext } from "@blocknote/react";
 import {
 	BlockNoteView as BlockNoteViewRaw,
 	components as blockNoteComponents,
@@ -15,145 +11,12 @@ import type { PageName } from "../types";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/shadcn/style.css";
 import { cn } from "../lib/utils";
-import {
-	type ClipboardImageSource,
-	ensureFileHasName,
-	extractImagesFromClipboardEvent,
-	registerClipboardImagePlugin,
-} from "../utils/clipboard";
+import { useTestPageController } from "./Test/hooks";
 
 interface TestProps {
 	onNavigate?: (page: PageName) => void;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
-
-interface ResolvedFileInfo {
-	name: string;
-	size: number;
-	type: string;
-	lastModified: number;
-	path?: string;
-}
-
-// Helper that serialises a File into displayable info without reading bytes.
-const describeFile = (file: File, resolvedPath?: string): ResolvedFileInfo => ({
-	name: file.name,
-	size: file.size,
-	type: file.type || "unknown",
-	lastModified: file.lastModified,
-	path: resolvedPath,
-});
-
-const useBlockNoteTestEditor = () => {
-	const urlsRef = React.useRef<string[]>([]);
-	const [events, setEvents] = React.useState<string[]>([]);
-	const [imageCount, setImageCount] = React.useState<number>(0);
-	const [serialized, setSerialized] = React.useState<string>("[]");
-
-	const upload = React.useCallback(async (file: File) => {
-		const url = URL.createObjectURL(file);
-		urlsRef.current.push(url);
-		console.info("[Test] BlockNote upload invoked", {
-			name: file.name,
-			type: file.type,
-			size: file.size,
-		});
-		setEvents((prev) =>
-			[`uploadFile(${file.type || "unknown"}, ${file.size} bytes)`, ...prev].slice(0, 10),
-		);
-		return url;
-	}, []);
-
-	const editor = useCreateBlockNote({
-		uploadFile: upload,
-	});
-	const [accept, setAccept] = React.useState<string>("(pending)");
-
-	React.useEffect(() => {
-		if (!editor) {
-			return;
-		}
-
-		return registerClipboardImagePlugin(editor, {
-			shouldHandlePaste: () => true,
-			uploadFile: upload,
-			onInsert: ({ url, blockId, editor: editorInstance }) => {
-				console.info("[Test] Plugin inserted pasted image", { url });
-				try {
-					editorInstance.updateBlock(blockId, {
-						type: "image",
-						props: { url },
-					});
-				} catch (error) {
-					console.warn("[Test] Failed to convert file block to image", error);
-				}
-			},
-		});
-	}, [editor, upload]);
-
-	React.useEffect(() => {
-		if (!editor) return;
-		const blockSpec = editor.schema.blockSpecs.image;
-		if (blockSpec) {
-			const meta = blockSpec.implementation.meta ?? {};
-			if (
-				!meta.fileBlockAccept ||
-				(Array.isArray(meta.fileBlockAccept) &&
-					meta.fileBlockAccept.filter((entry) => entry && entry.trim().length > 0).length === 0)
-			) {
-				console.warn(
-					"[Test] BlockNote image block missing fileBlockAccept; forcing image/* for diagnostics",
-				);
-				blockSpec.implementation.meta = {
-					...meta,
-					fileBlockAccept: ["image/*"],
-				};
-			}
-		}
-
-		const acceptList = blockSpec?.implementation?.meta?.fileBlockAccept?.join(", ") ?? "";
-		setAccept(acceptList || "(none)");
-		console.info("[Test] BlockNote image block accept", {
-			accept: acceptList,
-		});
-
-		const unsubscribe = editor.onChange(() => {
-			const blocks = editor.document;
-			const imageBlocks = blocks.filter((block) => block.type === "image").length;
-			setImageCount(imageBlocks);
-			try {
-				setSerialized(JSON.stringify(blocks, null, 2));
-			} catch (serializationError) {
-				setSerialized(`Failed to serialise blocks: ${String(serializationError)}`);
-			}
-		});
-		return unsubscribe;
-	}, [editor]);
-
-	React.useEffect(() => {
-		return () => {
-			urlsRef.current.forEach((url) => {
-				URL.revokeObjectURL(url);
-			});
-			urlsRef.current = [];
-		};
-	}, []);
-
-	const reset = React.useCallback(() => {
-		setEvents([]);
-		setImageCount(0);
-		setSerialized("[]");
-		urlsRef.current.forEach((url) => {
-			URL.revokeObjectURL(url);
-		});
-		urlsRef.current = [];
-	}, []);
-
-	return {
-		editor,
-		diagnostics: { events, imageCount, serialized, accept, reset },
-	};
-};
 
 interface SimpleFileInputProps {
 	className?: string;
@@ -191,76 +54,6 @@ const SimpleFileInput = React.forwardRef<HTMLInputElement, SimpleFileInputProps>
 });
 SimpleFileInput.displayName = "SimpleFileInput";
 
-const useFileInputDebug = (containerRef: React.RefObject<HTMLElement>, label: string) => {
-	React.useEffect(() => {
-		const container = containerRef.current;
-		if (!container) return;
-
-		const trackedInputs = new Set<HTMLInputElement>();
-
-		const handleChange = (event: Event) => {
-			const input = event.currentTarget as HTMLInputElement;
-			console.info(`[Test][${label}] change fired`, {
-				accept: input.accept,
-				files: input.files
-					? Array.from(input.files).map((f) => ({
-							name: f.name,
-							type: f.type,
-							size: f.size,
-						}))
-					: null,
-			});
-		};
-
-		const handleClick = (event: Event) => {
-			const input = event.currentTarget as HTMLInputElement;
-			console.info(`[Test][${label}] click`, {
-				accept: input.accept,
-			});
-		};
-
-		const registerInput = (input: HTMLInputElement) => {
-			if (trackedInputs.has(input)) return;
-			trackedInputs.add(input);
-			console.info(`[Test][${label}] file input registered`, {
-				accept: input.accept,
-				visibility: window.getComputedStyle(input).display,
-			});
-			input.addEventListener("change", handleChange);
-			input.addEventListener("click", handleClick);
-		};
-
-		const unregisterAll = () => {
-			trackedInputs.forEach((input) => {
-				input.removeEventListener("change", handleChange);
-				input.removeEventListener("click", handleClick);
-			});
-			trackedInputs.clear();
-		};
-
-		container.querySelectorAll<HTMLInputElement>('input[type="file"]').forEach(registerInput);
-
-		const observer = new MutationObserver((mutations) => {
-			for (const mutation of mutations) {
-				mutation.addedNodes.forEach((node) => {
-					if (node instanceof HTMLInputElement && node.type === "file") {
-						registerInput(node);
-					} else if (node instanceof HTMLElement) {
-						node.querySelectorAll<HTMLInputElement>('input[type="file"]').forEach(registerInput);
-					}
-				});
-			}
-		});
-
-		observer.observe(container, { childList: true, subtree: true });
-
-		return () => {
-			observer.disconnect();
-			unregisterAll();
-		};
-	}, [containerRef, label]);
-};
-
 type BlockNoteViewWithComponentsProps = {
 	componentsOverride: BlockNoteComponents;
 	theme?: "light" | "dark";
@@ -283,21 +76,23 @@ const BlockNoteViewWithComponents: React.FC<BlockNoteViewWithComponentsProps> = 
 };
 
 export const Test: React.FC<TestProps> = ({ onRegisterToggleSidebar }) => {
-	const [selectedInfo, setSelectedInfo] = React.useState<ResolvedFileInfo>();
-	const [previewUrl, setPreviewUrl] = React.useState<string>();
-	const [status, setStatus] = React.useState<string>("No file loaded");
-	const [error, setError] = React.useState<string>();
-	const [clipboardDebug, setClipboardDebug] = React.useState<{
-		types: string[];
-		itemTypes: string[];
-		source: ClipboardImageSource | "none";
-	}>({ types: [], itemTypes: [], source: "none" });
+	const {
+		selectedInfo,
+		previewUrl,
+		status,
+		error,
+		clipboardDebug,
+		handleFileInput,
+		handlePaste,
+		handleClear,
+		baselineBlockNoteEditor,
+		overrideBlockNoteEditor,
+		baselineDiagnostics,
+		overrideDiagnostics,
+		baselineContainerRef,
+		overrideContainerRef,
+	} = useTestPageController();
 
-	const objectUrlRef = React.useRef<string>();
-	const { editor: baselineBlockNoteEditor, diagnostics: baselineDiagnostics } =
-		useBlockNoteTestEditor();
-	const { editor: overrideBlockNoteEditor, diagnostics: overrideDiagnostics } =
-		useBlockNoteTestEditor();
 	const customComponents = React.useMemo<BlockNoteComponents>(() => {
 		return {
 			...blockNoteComponents,
@@ -307,94 +102,6 @@ export const Test: React.FC<TestProps> = ({ onRegisterToggleSidebar }) => {
 			},
 		};
 	}, []);
-
-	const baselineContainerRef = React.useRef<HTMLDivElement>(null);
-	const overrideContainerRef = React.useRef<HTMLDivElement>(null);
-
-	useFileInputDebug(baselineContainerRef, "baseline");
-	useFileInputDebug(overrideContainerRef, "override");
-
-	const resetPreview = React.useCallback(() => {
-		if (objectUrlRef.current) {
-			URL.revokeObjectURL(objectUrlRef.current);
-			objectUrlRef.current = undefined;
-		}
-		setPreviewUrl(undefined);
-	}, []);
-
-	const updateFromFile = React.useCallback(
-		async (file: File) => {
-			setError(undefined);
-			resetPreview();
-			setStatus("Reading file metadata...");
-
-			setSelectedInfo(describeFile(file, undefined));
-
-			if (file.type.startsWith("image/")) {
-				const url = URL.createObjectURL(file);
-				objectUrlRef.current = url;
-				setPreviewUrl(url);
-				setStatus("Image preview ready.");
-			} else {
-				setStatus("File loaded (non-image).");
-			}
-		},
-		[resetPreview],
-	);
-
-	const handleFileInput = React.useCallback(
-		async (event: React.ChangeEvent<HTMLInputElement>) => {
-			const file = event.target.files?.[0];
-			if (!file) {
-				setSelectedInfo(undefined);
-				resetPreview();
-				setStatus("No file selected.");
-				return;
-			}
-			await updateFromFile(file);
-		},
-		[updateFromFile, resetPreview],
-	);
-
-	const handlePaste = React.useCallback(
-		async (event: React.ClipboardEvent<HTMLDivElement>) => {
-			const { clipboardData } = event;
-			const types = Array.from(clipboardData?.types || []);
-			const itemTypes = Array.from(clipboardData?.items || []).map(
-				(entry) => entry.type || entry.kind || "unknown",
-			);
-
-			const extraction = await extractImagesFromClipboardEvent(event.nativeEvent);
-
-			setClipboardDebug({
-				types,
-				itemTypes,
-				source: extraction.source,
-			});
-
-			if (extraction.files.length === 0) {
-				setError("Clipboard paste does not contain an image payload.");
-				return;
-			}
-
-			const namedFiles = extraction.files.map(ensureFileHasName);
-			const firstFile = namedFiles[0];
-
-			await updateFromFile(firstFile);
-			setStatus(
-				extraction.source === "async-clipboard"
-					? "Image pasted using async clipboard fallback."
-					: "Image pasted via DataTransfer.",
-			);
-		},
-		[updateFromFile],
-	);
-
-	React.useEffect(() => {
-		return () => {
-			resetPreview();
-		};
-	}, [resetPreview]);
 
 	return (
 		<Layout
@@ -602,19 +309,7 @@ export const Test: React.FC<TestProps> = ({ onRegisterToggleSidebar }) => {
 					</section>
 
 					<div className="flex items-center gap-3 text-xs text-text-dim">
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => {
-								setSelectedInfo(undefined);
-								setError(undefined);
-								setStatus("Cleared.");
-								resetPreview();
-								setClipboardDebug({ types: [], itemTypes: [], source: "none" });
-								baselineDiagnostics.reset();
-								overrideDiagnostics.reset();
-							}}
-						>
+						<Button variant="ghost" size="sm" onClick={handleClear}>
 							Clear
 						</Button>
 					</div>
