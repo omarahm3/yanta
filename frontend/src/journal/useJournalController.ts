@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ListDates } from "../../bindings/yanta/internal/journal/wailsservice";
-import { JOURNAL_SHORTCUTS } from "../config";
 import { useProjectContext } from "../contexts";
 import { useHelp } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
@@ -10,6 +9,10 @@ import type { HotkeyConfig } from "../types/hotkeys";
 import { BackendLogger } from "../utils/backendLogger";
 import type { JournalEntryData } from "./JournalEntry";
 import { useJournal } from "./useJournal";
+import { type ConfirmDialogState, useJournalDialogs } from "./useJournalDialogs";
+import { useJournalHotkeysConfig } from "./useJournalHotkeysConfig";
+
+export type { ConfirmDialogState } from "./useJournalDialogs";
 
 function addDays(dateStr: string, delta: number): string {
 	const d = new Date(dateStr);
@@ -54,14 +57,6 @@ const helpCommands = [
 		description: "Previous day",
 	},
 ];
-
-export interface ConfirmDialogState {
-	isOpen: boolean;
-	title: string;
-	message: string;
-	onConfirm: () => void;
-	danger?: boolean;
-}
 
 export interface JournalControllerOptions {
 	onNavigate?: (page: PageName, state?: NavigationState) => void;
@@ -118,12 +113,8 @@ export function useJournalController({
 
 	const [datesWithEntries, setDatesWithEntries] = useState<string[]>([]);
 	const [highlightedIndex, setHighlightedIndex] = useState(0);
-	const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
-		isOpen: false,
-		title: "",
-		message: "",
-		onConfirm: () => {},
-	});
+
+	const { confirmDialog, setConfirmDialog } = useJournalDialogs();
 
 	const {
 		entries,
@@ -296,118 +287,15 @@ export function useJournalController({
 		setDate(addDays(date, 1));
 	}, [date, setDate]);
 
-	const hotkeys: HotkeyConfig[] = useMemo(
-		() => [
-			{
-				...JOURNAL_SHORTCUTS.nextDay,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					goToNextDay();
-				},
-				allowInInput: false,
-			},
-			{
-				...JOURNAL_SHORTCUTS.prevDay,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					goToPrevDay();
-				},
-				allowInInput: false,
-			},
-			{
-				...JOURNAL_SHORTCUTS.arrowNextDay,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					goToNextDay();
-				},
-				allowInInput: false,
-			},
-			{
-				...JOURNAL_SHORTCUTS.arrowPrevDay,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					goToPrevDay();
-				},
-				allowInInput: false,
-			},
-			{
-				...JOURNAL_SHORTCUTS.highlightNext,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					highlightNext();
-				},
-				allowInInput: false,
-			},
-			{
-				...JOURNAL_SHORTCUTS.highlightPrev,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					highlightPrevious();
-				},
-				allowInInput: false,
-			},
-			{
-				...JOURNAL_SHORTCUTS.navigateDown,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					highlightNext();
-				},
-				allowInInput: false,
-			},
-			{
-				...JOURNAL_SHORTCUTS.navigateUp,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					highlightPrevious();
-				},
-				allowInInput: false,
-			},
-			{
-				...JOURNAL_SHORTCUTS.toggleSelection,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					toggleSelection();
-				},
-				allowInInput: false,
-			},
-			{
-				...JOURNAL_SHORTCUTS.delete,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					handleDeleteSelected();
-				},
-				allowInInput: false,
-			},
-			{
-				...JOURNAL_SHORTCUTS.promote,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					void handlePromoteSelected();
-				},
-				allowInInput: false,
-			},
-		],
-		[
-			goToPrevDay,
-			goToNextDay,
-			highlightNext,
-			highlightPrevious,
-			toggleSelection,
-			handleDeleteSelected,
-			handlePromoteSelected,
-		],
-	);
+	const hotkeys: HotkeyConfig[] = useJournalHotkeysConfig({
+		goToPrevDay,
+		goToNextDay,
+		highlightNext,
+		highlightPrevious,
+		toggleSelection,
+		handleDeleteSelected,
+		handlePromoteSelected,
+	});
 
 	return {
 		// Data

@@ -1,17 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ParseWithContext } from "../../../bindings/yanta/internal/commandline/documentcommands";
-import { ExportDocumentRequest } from "../../../bindings/yanta/internal/document/models";
-import {
-	ExportDocument,
-	Restore,
-	SoftDelete,
-} from "../../../bindings/yanta/internal/document/service";
-import { ExportRequest } from "../../../bindings/yanta/internal/export";
-import { ExportToPDF } from "../../../bindings/yanta/internal/export/service";
-import { OpenDirectoryDialog } from "../../../bindings/yanta/internal/system/service";
-import { DASHBOARD_SHORTCUTS } from "../../config";
+import { Restore, SoftDelete } from "../../../bindings/yanta/internal/document/service";
 import { DocumentCommand } from "../../constants";
-import { useDocumentContext, useProjectContext } from "../../contexts";
+import { useDocumentContext } from "../../contexts";
 import { useHelp } from "../../hooks";
 import { useNotification } from "../../hooks/useNotification";
 import { useRecentDocuments } from "../../hooks/useRecentDocuments";
@@ -21,6 +12,17 @@ import type { NavigationState, PageName } from "../../types";
 import type { Document } from "../../types/Document";
 import type { HotkeyConfig } from "../../types/hotkeys";
 import { useDashboardCommandHandler } from "./useDashboardCommandHandler";
+import { useDashboardData } from "./useDashboardData";
+import {
+	type ConfirmDialogState,
+	type MoveDialogState,
+	useDashboardDialogs,
+} from "./useDashboardDialogs";
+import { useDashboardExports } from "./useDashboardExports";
+import { useDashboardHotkeysConfig } from "./useDashboardHotkeysConfig";
+import { useDashboardSelection } from "./useDashboardSelection";
+
+export type { ConfirmDialogState, MoveDialogState };
 
 const helpCommands = [
 	{
@@ -52,22 +54,6 @@ const helpCommands = [
 		description: "Permanently delete multiple (e.g., 'delete 1,3,5 --force --hard')",
 	},
 ];
-
-export interface ConfirmDialogState {
-	isOpen: boolean;
-	title: string;
-	message: string;
-	onConfirm: () => void;
-	danger?: boolean;
-	inputPrompt?: string;
-	expectedInput?: string;
-	showCheckbox?: boolean;
-}
-
-export interface MoveDialogState {
-	isOpen: boolean;
-	documentPaths: string[];
-}
 
 export interface DashboardControllerOptions {
 	onNavigate?: (page: PageName, state?: NavigationState) => void;
@@ -117,11 +103,11 @@ export function useDashboardController({
 	onNavigate,
 	onRegisterToggleArchived,
 }: DashboardControllerOptions): DashboardControllerResult {
-	const { currentProject, isLoading: projectsLoading } = useProjectContext();
+	const [showArchived, setShowArchived] = useState(false);
+	const { projectsLoading, documentsLoading, documents, currentProject, reloadDocuments } =
+		useDashboardData({ showArchived });
+
 	const {
-		documents,
-		loadDocuments,
-		isLoading: documentsLoading,
 		selectedIndex: highlightedIndex,
 		setSelectedIndex: setHighlightedIndex,
 		selectNext: highlightNext,
@@ -130,8 +116,21 @@ export function useDashboardController({
 
 	const [commandInput, setCommandInput] = useState("");
 	const commandInputRef = useRef<HTMLInputElement>(null);
-	const [showArchived, setShowArchived] = useState(false);
-	const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
+	const currentProjectRef = useRef(currentProject);
+	const documentsRef = useRef(documents);
+	const highlightedIndexRef = useRef(highlightedIndex);
+	const showArchivedRef = useRef(showArchived);
+
+	const { selectedDocuments, selectedDocumentsRef, handleToggleSelection, clearSelection } =
+		useDashboardSelection({
+			documentsRef,
+			highlightedIndexRef,
+			setHighlightedIndex,
+		});
+
+	const { confirmDialog, setConfirmDialog, moveDialog, setMoveDialog, closeMoveDialog } =
+		useDashboardDialogs();
+
 	const { success, error } = useNotification();
 	const { removeRecentDocument } = useRecentDocuments();
 	const { setPageContext } = useHelp();
@@ -139,46 +138,26 @@ export function useDashboardController({
 		currentPage: "dashboard",
 		onNavigate,
 	});
-	const currentProjectRef = useRef(currentProject);
-	const documentsRef = useRef(documents);
-	const selectedDocumentsRef = useRef(selectedDocuments);
-	const highlightedIndexRef = useRef(highlightedIndex);
-	const showArchivedRef = useRef(showArchived);
+
+	const { handleExportSelectedMarkdown, handleExportSelectedPDF } = useDashboardExports({
+		selectedDocumentsRef,
+		error,
+	});
 
 	useEffect(() => {
 		currentProjectRef.current = currentProject;
 		documentsRef.current = documents;
-		selectedDocumentsRef.current = selectedDocuments;
 		highlightedIndexRef.current = highlightedIndex;
 		showArchivedRef.current = showArchived;
-	}, [currentProject, documents, selectedDocuments, highlightedIndex, showArchived]);
+	}, [currentProject, documents, highlightedIndex, showArchived]);
 
 	useEffect(() => {
 		setPageContext(helpCommands, "Documents");
 	}, [setPageContext]);
 
 	useEffect(() => {
-		if (currentProject) {
-			loadDocuments(currentProject.alias, showArchived);
-		}
-	}, [currentProject, loadDocuments, showArchived]);
-
-	useEffect(() => {
 		commandInputRef.current?.blur();
 	}, []);
-
-	const clearSelection = useCallback(() => {
-		setSelectedDocuments(new Set());
-	}, []);
-
-	useEffect(() => {
-		setSelectedDocuments(new Set());
-	}, []);
-
-	const reloadDocuments = useCallback(async () => {
-		if (!currentProjectRef.current) return;
-		await loadDocuments(currentProjectRef.current.alias, showArchivedRef.current);
-	}, [loadDocuments]);
 
 	const handleDocumentClick = useCallback(
 		(path: string) => {
@@ -222,36 +201,6 @@ export function useDashboardController({
 		}
 	}, [onRegisterToggleArchived, handleToggleArchived]);
 
-	const handleToggleSelection = useCallback((path?: string) => {
-		let targetDoc: Document | null = null;
-		if (path) {
-			const docIndex = documentsRef.current.findIndex((doc) => doc.path === path);
-			if (docIndex !== -1) {
-				targetDoc = documentsRef.current[docIndex];
-				setHighlightedIndex(docIndex);
-			}
-		} else if (
-			highlightedIndexRef.current >= 0 &&
-			highlightedIndexRef.current < documentsRef.current.length
-		) {
-			targetDoc = documentsRef.current[highlightedIndexRef.current];
-		}
-
-		if (!targetDoc) return;
-
-		const docPath = targetDoc.path;
-
-		setSelectedDocuments((prev) => {
-			const next = new Set(prev);
-			if (next.has(docPath)) {
-				next.delete(docPath);
-			} else {
-				next.add(docPath);
-			}
-			return next;
-		});
-	}, []);
-
 	const archivePaths = useCallback(
 		async (paths: string[]) => {
 			try {
@@ -269,7 +218,7 @@ export function useDashboardController({
 	);
 
 	const handleArchiveSelectedDocuments = useCallback(async () => {
-		const paths = Array.from(selectedDocumentsRef.current);
+		const paths = Array.from(selectedDocumentsRef.current ?? []);
 		if (paths.length === 0) {
 			error("No documents selected");
 			return;
@@ -278,7 +227,7 @@ export function useDashboardController({
 	}, [archivePaths, error]);
 
 	const handleRestoreSelectedDocuments = useCallback(async () => {
-		const paths = Array.from(selectedDocumentsRef.current);
+		const paths = Array.from(selectedDocumentsRef.current ?? []);
 		if (paths.length === 0) {
 			error("No documents selected");
 			return;
@@ -294,70 +243,8 @@ export function useDashboardController({
 		}
 	}, [reloadDocuments, clearSelection, error]);
 
-	const handleExportSelectedMarkdown = useCallback(async () => {
-		const paths = Array.from(selectedDocumentsRef.current);
-		if (paths.length === 0) {
-			error("No documents selected");
-			return;
-		}
-		try {
-			const outputDir = await OpenDirectoryDialog();
-			if (!outputDir) {
-				return;
-			}
-			for (const docPath of paths) {
-				const documentName = docPath.split("/").pop()?.replace(".json", ".md") || "document.md";
-				const outputPath = `${outputDir}/${documentName}`;
-				const req = new ExportDocumentRequest({
-					DocumentPath: docPath,
-					OutputPath: outputPath,
-				});
-				await ExportDocument(req);
-			}
-		} catch (err) {
-			error(err instanceof Error ? err.message : "Failed to export");
-		}
-	}, [error]);
-
-	const handleExportSelectedPDF = useCallback(async () => {
-		const paths = Array.from(selectedDocumentsRef.current);
-		if (paths.length === 0) {
-			error("No documents selected");
-			return;
-		}
-		try {
-			const outputDir = await OpenDirectoryDialog();
-			if (!outputDir) {
-				return;
-			}
-			for (const docPath of paths) {
-				const documentName = docPath.split("/").pop()?.replace(".json", ".pdf") || "document.pdf";
-				const outputPath = `${outputDir}/${documentName}`;
-				const req = new ExportRequest({
-					DocumentPath: docPath,
-					OutputPath: outputPath,
-				});
-				await ExportToPDF(req);
-			}
-		} catch (err) {
-			error(err instanceof Error ? err.message : "Failed to export");
-		}
-	}, [error]);
-
-	const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
-		isOpen: false,
-		title: "",
-		message: "",
-		onConfirm: () => {},
-	});
-
-	const [moveDialog, setMoveDialog] = useState<MoveDialogState>({
-		isOpen: false,
-		documentPaths: [],
-	});
-
 	const handleMoveSelectedDocuments = useCallback(() => {
-		let paths = Array.from(selectedDocumentsRef.current);
+		let paths = Array.from(selectedDocumentsRef.current ?? []);
 		if (
 			paths.length === 0 &&
 			highlightedIndexRef.current >= 0 &&
@@ -373,20 +260,16 @@ export function useDashboardController({
 			return;
 		}
 		setMoveDialog({ isOpen: true, documentPaths: paths });
-	}, [error]);
+	}, [error, setMoveDialog]);
 
 	const handleMoveDone = useCallback(async () => {
 		await reloadDocuments();
 		clearSelection();
 	}, [reloadDocuments, clearSelection]);
 
-	const closeMoveDialog = useCallback(() => {
-		setMoveDialog({ isOpen: false, documentPaths: [] });
-	}, []);
-
 	const handleDeleteSelectedDocuments = useCallback(
 		(hard: boolean) => {
-			const selectedPaths = Array.from(selectedDocumentsRef.current);
+			const selectedPaths = Array.from(selectedDocumentsRef.current ?? []);
 			if (selectedPaths.length === 0) {
 				error(hard ? "No documents selected to permanently delete" : "No documents selected to delete");
 				return;
@@ -532,7 +415,7 @@ export function useDashboardController({
 			if (e.key === "Escape") {
 				if (confirmDialog.isOpen) {
 					setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
-				} else if (selectedDocumentsRef.current.size > 0) {
+				} else if ((selectedDocumentsRef.current?.size ?? 0) > 0) {
 					clearSelection();
 				}
 			}
@@ -589,153 +472,20 @@ export function useDashboardController({
 		},
 	});
 
-	const hotkeys: HotkeyConfig[] = useMemo(
-		() => [
-			{
-				...DASHBOARD_SHORTCUTS.newDocument,
-				handler: () => {
-					void handleNewDocument();
-				},
-				allowInInput: false,
-			},
-			{
-				...DASHBOARD_SHORTCUTS.toggleArchived,
-				handler: handleToggleArchived,
-				allowInInput: false,
-			},
-			{
-				...DASHBOARD_SHORTCUTS.softDelete,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					handleDeleteSelectedDocuments(false);
-				},
-				allowInInput: false,
-			},
-			{
-				...DASHBOARD_SHORTCUTS.permanentDelete,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					handleDeleteSelectedDocuments(true);
-				},
-				allowInInput: false,
-			},
-			{
-				...DASHBOARD_SHORTCUTS.toggleSelection,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					handleToggleSelection();
-				},
-				allowInInput: false,
-			},
-			{
-				...DASHBOARD_SHORTCUTS.openHighlighted,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					handleOpenHighlightedDocument();
-				},
-				allowInInput: false,
-			},
-			{
-				...DASHBOARD_SHORTCUTS.highlightNext,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					highlightNext();
-				},
-				allowInInput: false,
-			},
-			{
-				...DASHBOARD_SHORTCUTS.highlightPrev,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					highlightPrevious();
-				},
-				allowInInput: false,
-			},
-			{
-				...DASHBOARD_SHORTCUTS.navigateDown,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					highlightNext();
-				},
-				allowInInput: false,
-			},
-			{
-				...DASHBOARD_SHORTCUTS.navigateUp,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					highlightPrevious();
-				},
-				allowInInput: false,
-			},
-			{
-				...DASHBOARD_SHORTCUTS.move,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					handleMoveSelectedDocuments();
-				},
-				allowInInput: false,
-			},
-			{
-				...DASHBOARD_SHORTCUTS.archive,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					void handleArchiveSelectedDocuments();
-				},
-				allowInInput: false,
-			},
-			{
-				...DASHBOARD_SHORTCUTS.restore,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					void handleRestoreSelectedDocuments();
-				},
-				allowInInput: false,
-			},
-			{
-				...DASHBOARD_SHORTCUTS.exportMd,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					void handleExportSelectedMarkdown();
-				},
-				allowInInput: false,
-			},
-			{
-				...DASHBOARD_SHORTCUTS.exportPdf,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					void handleExportSelectedPDF();
-				},
-				allowInInput: false,
-			},
-		],
-		[
-			handleNewDocument,
-			handleToggleArchived,
-			handleDeleteSelectedDocuments,
-			handleMoveSelectedDocuments,
-			handleToggleSelection,
-			handleOpenHighlightedDocument,
-			highlightNext,
-			highlightPrevious,
-			handleArchiveSelectedDocuments,
-			handleRestoreSelectedDocuments,
-			handleExportSelectedMarkdown,
-			handleExportSelectedPDF,
-		],
-	);
+	const hotkeys: HotkeyConfig[] = useDashboardHotkeysConfig({
+		handleNewDocument,
+		handleToggleArchived,
+		handleDeleteSelectedDocuments,
+		handleMoveSelectedDocuments,
+		handleToggleSelection: () => handleToggleSelection(),
+		handleOpenHighlightedDocument,
+		highlightNext,
+		highlightPrevious,
+		handleArchiveSelectedDocuments,
+		handleRestoreSelectedDocuments,
+		handleExportSelectedMarkdown,
+		handleExportSelectedPDF,
+	});
 
 	return {
 		projectsLoading,

@@ -9,9 +9,9 @@ For full background, see `docs/frontend-review.md` (Rev 20).
 ### Part 2: God Files
 
 **Section:** “PART 2: GOD FILES (13 files, ~6,900 lines)”  
-**Status in review:** `Status: [ ] Not started`
+**Status in review:** `Status: [ ] Not started` (dashboard controller split done)
 
-- `pages/dashboard/useDashboardController.ts` (~789 lines)
+- ~~`dashboard/hooks/useDashboardController.ts`~~ — **Done:** split into useDashboardSelection, useDashboardData, useDashboardDialogs, useDashboardExports, useDashboardHotkeysConfig; controller ~537 lines, thin composer.
 - `components/ui/HelpModal.tsx` (~664 lines)
 - `pages/settings/useSettingsController.ts` (~655 lines)
 - `pages/Test.tsx` (~624 lines)
