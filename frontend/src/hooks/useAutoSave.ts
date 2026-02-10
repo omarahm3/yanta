@@ -238,7 +238,5 @@ function getAutoSaveKey<T>(value: T, compareKey?: string): string {
 		return String(value);
 	}
 
-	// Fallback for small object/array values used in non-editor hooks and tests.
-	// Heavy editor payloads (BlockNote documents) must supply compareKey to avoid JSON.stringify.
 	return JSON.stringify(value);
 }

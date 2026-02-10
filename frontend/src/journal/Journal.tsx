@@ -128,6 +128,8 @@ const JournalComponent: React.FC<JournalProps> = ({
 											const entry = entries[virtualRow.index];
 											if (!entry) return null;
 											const index = virtualRow.index;
+											const isHighlighted = index === highlightedIndex;
+											const isSelected = selectedIds.has(entry.id);
 											return (
 												<div
 													key={virtualRow.key}
@@ -140,14 +142,18 @@ const JournalComponent: React.FC<JournalProps> = ({
 														width: "100%",
 														transform: `translateY(${virtualRow.start}px)`,
 													}}
+													role="listitem"
+													aria-selected={isSelected}
+													tabIndex={isHighlighted ? 0 : -1}
+													onFocus={() => controller.setHighlightedIndex(index)}
 												>
 													<JournalEntry
 														entry={entry}
 														index={index}
 														onEntryClick={handleEntryClick}
 														onToggleSelection={toggleSelection}
-														isHighlighted={index === highlightedIndex}
-														isSelected={selectedIds.has(entry.id)}
+														isHighlighted={isHighlighted}
+														isSelected={isSelected}
 													/>
 												</div>
 											);
@@ -155,17 +161,28 @@ const JournalComponent: React.FC<JournalProps> = ({
 									</div>
 								) : (
 									<div ref={listRef} className="space-y-1" role="list">
-										{entries.map((entry, index) => (
-											<JournalEntry
-												key={entry.id}
-												entry={entry}
-												index={index}
-												onEntryClick={handleEntryClick}
-												onToggleSelection={toggleSelection}
-												isHighlighted={index === highlightedIndex}
-												isSelected={selectedIds.has(entry.id)}
-											/>
-										))}
+										{entries.map((entry, index) => {
+											const isHighlighted = index === highlightedIndex;
+											const isSelected = selectedIds.has(entry.id);
+											return (
+												<div
+													key={entry.id}
+													role="listitem"
+													aria-selected={isSelected}
+													tabIndex={isHighlighted ? 0 : -1}
+													onFocus={() => controller.setHighlightedIndex(index)}
+												>
+													<JournalEntry
+														entry={entry}
+														index={index}
+														onEntryClick={handleEntryClick}
+														onToggleSelection={toggleSelection}
+														isHighlighted={isHighlighted}
+														isSelected={isSelected}
+													/>
+												</div>
+											);
+										})}
 									</div>
 								))}
 						</GranularErrorBoundary>

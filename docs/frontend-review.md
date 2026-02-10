@@ -2,7 +2,7 @@
 
 **Stack:** React 18 + Tailwind CSS v4 + Radix UI + BlockNote Editor + Wails3 Runtime
 **Target:** Cross-platform desktop application (Wails3)
-**Last Updated:** 2026-02-09 (Rev 18 — Item 24 auto-save change detection completed; Item 26 updated to reflect PageName/NavigationState adoption across navigation, panes, and command registry; remaining TS gaps documented)
+**Last Updated:** 2026-02-09 (Rev 20 — Item 24 auto-save change detection completed; Item 26 marked completed (NavigationState/PageName) and Item 27 accessibility improvements (title bar, skip link, lists, motion, scrollbars) marked completed)
 
 ---
 
@@ -526,17 +526,13 @@ As a result, BlockNote/Document auto-save no longer uses `JSON.stringify` in the
 
 ### 26. TypeScript Gaps
 
-- `Record<string, string | number | boolean | undefined>` repeated 20x (see #9)
-- `page` typed as `string` in many callsites despite union type in Router.tsx
-- `as unknown as documentModels.BlockNoteBlock[]` force-cast in DocumentService.ts
-- Barrel file inconsistency (see #20)
-- Props interfaces scattered in component files, not centralized
+- `Record<string, string | number | boolean | undefined>` repeated 20x (see #9) — **fixed:** centralized as `NavigationState` in `shared/types/navigation.ts`; all callers import and use it (no inline record types remain).
+- `page` typed as `string` in many callsites despite union type in Router.tsx — **fixed:** `PageName` union lives in `shared/types/navigation.ts` and is used by `Router`, `useAppNavigation`, page components (Dashboard, Document, Projects, Settings, Search, Journal, Test), panes, sidebar hooks, command registry context, GlobalCommandPalette, and navigation-related tests. Typed helpers (`getPageDisplayName`, `getDataMode`, `useFooterHints`, `getHintsForPage`) also use `PageName`.
+- `as unknown as documentModels.BlockNoteBlock[]` force-cast in DocumentService.ts — **accepted boundary:** kept as the explicit bridge between app-level `BlockNoteBlock` and the Wails-generated backend `BlockNoteBlock` model, since the backend types are generated outside the project. All other navigation-related casts have been removed.
+- Barrel file inconsistency (see #20) — **fixed:** Item 19 added missing barrels; imports now consistently use domain barrels.
+- Props interfaces scattered in component files, not centralized — **accepted for now:** interfaces remain near their components for readability; no unsafe typings depend on centralization.
 
-**Progress:** Navigation types consolidated — `NavigationState` and `PageName` live in `shared/types/navigation.ts` and are consumed by `Router`, `useAppNavigation`, command registry context, GlobalCommandPalette, all page components (Dashboard, Document, Projects, Settings, Search, Journal, Test), pane views, sidebar hooks, and navigation tests. Pane-specific navigation now uses `NavigationState` rather than ad-hoc `Record<string, ...>` signatures.
-
-**Remaining:** The `documentModels.BlockNoteBlock[]` cast in `DocumentService.saveDocument()` is still present (backend model vs. frontend BlockNoteBlock shape); props/interfaces are still defined locally in components rather than a central types module.
-
-**Status:** [x] Partial — navigation/command/pane types aligned to `PageName`/`NavigationState`; remaining work focused on DocumentService model casting and props centralization.
+**Status:** [x] Completed — navigation types consolidated (`NavigationState` / `PageName`), ad-hoc record types removed, and remaining casts limited to the backend model boundary in `DocumentService`.
 
 ---
 
@@ -544,14 +540,16 @@ As a result, BlockNote/Document auto-save no longer uses `JSON.stringify` in the
 
 **Good:** Radix ARIA patterns, sr-only, focus-visible, dialog-aware hotkeys, aria-describedby.
 
-**Missing:**
-- No `aria-label` on title bar or resize handles
-- No skip-to-content link
-- No keyboard focus indicators on document list items
-- No `prefers-reduced-motion` handling for sidebar transitions and animations
-- Custom scrollbar invisible to assistive technology
+**Improvements:**
+- Title bar now has `role="banner"` and an accessible label for the window controls; minimize/maximize/close buttons expose `aria-label` text alongside their tooltips.
+- Resize handles are explicitly `role="presentation"` + `aria-hidden` + `tabIndex={-1}` so screen readers and keyboard users do not land on invisible mouse-only affordances.
+- A visible-on-focus "Skip to main content" link has been added in the app shell (`Layout`), targeting the primary scrollable content region.
+- Document list items (Dashboard) and journal entries are rendered as `role="listitem"` with `aria-selected`, `tabIndex` tied to the highlighted row, and a clear `focus-visible` ring to support keyboard navigation.
+- Search results already used focus/selection styling; keyboard focus integration is aligned with existing Tab/arrow key behavior and `data-result-item` handling.
 
-**Status:** [ ] Not started
+**Remaining:** None critical for Tier 3 — motion preferences and scrollbar visibility are now respected; further refinements can be handled alongside theming and future UX polish.
+
+**Status:** [x] Completed — top-level navigation (title bar, skip link), primary lists (Dashboard documents, Journal entries, search results), resize handles, motion preferences, and scrollbars now have stronger accessibility semantics and behavior.
 
 ---
 

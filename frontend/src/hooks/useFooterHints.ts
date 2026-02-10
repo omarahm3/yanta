@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { FooterHint } from "../components/ui/FooterHintBar";
+import type { PageName } from "../types";
 
 /**
  * Page types that have specific footer hint configurations
@@ -93,7 +94,7 @@ export interface UseFooterHintsOptions {
 	/**
 	 * The current page context/route
 	 */
-	currentPage: string;
+	currentPage: PageName;
 }
 
 export interface UseFooterHintsReturn {
@@ -127,7 +128,7 @@ export function useFooterHints({ currentPage }: UseFooterHintsOptions): UseFoote
 /**
  * Get hints for a specific page context (non-hook version for testing/utilities)
  */
-export function getHintsForPage(page: string): FooterHint[] {
+export function getHintsForPage(page: PageContext | PageName): FooterHint[] {
 	const pageKey = page as PageContext;
 	return HINT_CONFIGS[pageKey] ?? DEFAULT_HINTS;
 }

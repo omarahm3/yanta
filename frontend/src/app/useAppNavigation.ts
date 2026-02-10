@@ -26,7 +26,7 @@ export function useAppNavigation(): UseAppNavigationReturn {
 			return "dashboard";
 		}
 		const { page } = readNavigationFromUrl();
-		return page as PageName;
+		return page;
 	});
 	const [navigationState, setNavigationState] = React.useState<NavigationState>(() => {
 		if (typeof window === "undefined") {
@@ -99,7 +99,7 @@ export function useAppNavigation(): UseAppNavigationReturn {
 			}
 
 			const { page, state } = readNavigationFromUrl();
-			setCurrentPage(page as PageName);
+			setCurrentPage(page);
 			setNavigationState(state);
 			if (page === "document" && state.documentPath) {
 				const docPath = state.documentPath as string;
@@ -125,7 +125,7 @@ export function useAppNavigation(): UseAppNavigationReturn {
 	};
 }
 
-function readNavigationFromUrl(): { page: string; state: NavigationState } {
+function readNavigationFromUrl(): { page: PageName; state: NavigationState } {
 	if (typeof window === "undefined") {
 		return { page: "dashboard", state: {} };
 	}
@@ -133,7 +133,7 @@ function readNavigationFromUrl(): { page: string; state: NavigationState } {
 	try {
 		const url = new URL(window.location.href);
 		const searchParams = url.searchParams;
-		const pageParam = searchParams.get("page") ?? "dashboard";
+		const pageParam = (searchParams.get("page") as PageName | null) ?? "dashboard";
 
 		const state: NavigationState = {};
 		searchParams.forEach((value, key) => {
@@ -148,7 +148,7 @@ function readNavigationFromUrl(): { page: string; state: NavigationState } {
 	}
 }
 
-function writeNavigationToUrl(page: string, state?: NavigationState): void {
+function writeNavigationToUrl(page: PageName, state?: NavigationState): void {
 	if (typeof window === "undefined" || typeof window.history === "undefined") {
 		return;
 	}

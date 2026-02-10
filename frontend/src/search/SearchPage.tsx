@@ -242,7 +242,7 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 	);
 
 	useEffect(() => {
-		const onKeyDown = (e: KeyboardEvent) => {
+	const onKeyDown = (e: KeyboardEvent) => {
 			const focused = document.activeElement as HTMLElement | null;
 			const isSearchInputFocused = focused === (searchInputRef.current as unknown as HTMLElement);
 

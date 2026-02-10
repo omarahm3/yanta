@@ -31,7 +31,7 @@ vi.mock("../components", async () => {
 		GlobalCommandPalette: (props: {
 			isOpen: boolean;
 			onClose: () => void;
-			onNavigate: (page: string) => void;
+			onNavigate: (page: import("../types").PageName) => void;
 		}) => {
 			commandPaletteRender(props);
 			return <div data-testid="command-palette" data-open={props.isOpen} />;

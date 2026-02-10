@@ -204,7 +204,7 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 		const borderStyle = isHighlighted || isSelected ? STYLE_BORDER_ACCENT : STYLE_EMPTY;
 		const backgroundStyle = isHighlighted ? STYLE_BG_HIGHLIGHTED : STYLE_EMPTY;
 		const itemClasses = cn(
-			"group border-b border-glass-border/50 px-4 py-4 transition-colors border-l-4 border-l-transparent hover:bg-glass-bg/15",
+			"group border-b border-glass-border/50 px-4 py-4 transition-colors border-l-4 border-l-transparent hover:bg-glass-bg/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg-dark",
 		);
 		const indexStyle = isSelected
 			? STYLE_INDEX_SELECTED
@@ -242,6 +242,8 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 				style={{ ...borderStyle, ...backgroundStyle }}
 				role="listitem"
 				aria-selected={isSelected}
+				tabIndex={isHighlighted ? 0 : -1}
+				onFocus={() => onHighlightDocument?.(index)}
 				data-highlighted={isHighlighted}
 				data-selected={isSelected}
 				draggable

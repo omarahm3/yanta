@@ -41,7 +41,7 @@ export const TitleBar: React.FC = () => {
 	const handleMinimize = () => {
 		try {
 			Window.Minimise();
-		} catch (err) {
+		} catch {
 			toast.error("Could not minimize window");
 		}
 	};
@@ -49,7 +49,7 @@ export const TitleBar: React.FC = () => {
 	const handleMaximize = () => {
 		try {
 			Window.ToggleMaximise();
-		} catch (err) {
+		} catch {
 			toast.error("Could not maximize window");
 		}
 	};
@@ -66,6 +66,8 @@ export const TitleBar: React.FC = () => {
 		<div
 			className="flex items-center justify-between h-8 px-3 bg-glass-bg/40 backdrop-blur-md border-b border-glass-border"
 			style={{ "--wails-draggable": "drag" } as React.CSSProperties}
+			role="banner"
+			aria-label="Application window controls"
 		>
 			<div className="flex items-center gap-2"></div>
 
@@ -79,6 +81,7 @@ export const TitleBar: React.FC = () => {
 					onClick={handleMinimize}
 					className="flex items-center justify-center w-8 h-6 text-text-dim transition-colors rounded hover:bg-border hover:text-text p-0"
 					title="Minimize"
+					aria-label="Minimize window"
 				>
 					<Minus className="text-sm" />
 				</Button>
@@ -89,6 +92,7 @@ export const TitleBar: React.FC = () => {
 					onClick={handleMaximize}
 					className="flex items-center justify-center w-8 h-6 text-text-dim transition-colors rounded hover:bg-border hover:text-text p-0"
 					title="Maximize"
+					aria-label="Maximize window"
 				>
 					<Square className="text-sm" />
 				</Button>
@@ -99,6 +103,7 @@ export const TitleBar: React.FC = () => {
 					onClick={handleClose}
 					className="flex items-center justify-center w-8 h-6 text-text-dim transition-colors rounded hover:bg-red hover:text-bg p-0"
 					title="Close"
+					aria-label="Close window"
 				>
 					<X className="text-sm" />
 				</Button>

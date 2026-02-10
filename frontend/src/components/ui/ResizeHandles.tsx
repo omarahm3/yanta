@@ -227,6 +227,9 @@ export const ResizeHandles: React.FC = () => {
 				className="resize-handle resize-handle-top"
 				onMouseDown={handleTopMouseDown}
 				title="Drag to resize window (top edge)"
+				role="presentation"
+				aria-hidden="true"
+				tabIndex={-1}
 			/>
 
 			{/* Right edge resize handle */}
@@ -234,6 +237,9 @@ export const ResizeHandles: React.FC = () => {
 				className="resize-handle resize-handle-right"
 				onMouseDown={handleRightMouseDown}
 				title="Drag to resize window (right edge)"
+				role="presentation"
+				aria-hidden="true"
+				tabIndex={-1}
 			/>
 
 			{/* Bottom edge resize handle */}
@@ -241,6 +247,9 @@ export const ResizeHandles: React.FC = () => {
 				className="resize-handle resize-handle-bottom"
 				onMouseDown={handleBottomMouseDown}
 				title="Drag to resize window (bottom edge)"
+				role="presentation"
+				aria-hidden="true"
+				tabIndex={-1}
 			/>
 
 			{/* Left edge resize handle */}
@@ -248,6 +257,9 @@ export const ResizeHandles: React.FC = () => {
 				className="resize-handle resize-handle-left"
 				onMouseDown={handleLeftMouseDown}
 				title="Drag to resize window (left edge)"
+				role="presentation"
+				aria-hidden="true"
+				tabIndex={-1}
 			/>
 
 			{/* Top-left corner resize handle */}
@@ -255,6 +267,9 @@ export const ResizeHandles: React.FC = () => {
 				className="resize-handle resize-handle-corner resize-handle-top-left"
 				onMouseDown={handleTopLeftMouseDown}
 				title="Drag to resize window (top-left corner)"
+				role="presentation"
+				aria-hidden="true"
+				tabIndex={-1}
 			/>
 
 			{/* Top-right corner resize handle */}
@@ -262,6 +277,9 @@ export const ResizeHandles: React.FC = () => {
 				className="resize-handle resize-handle-corner resize-handle-top-right"
 				onMouseDown={handleTopRightMouseDown}
 				title="Drag to resize window (top-right corner)"
+				role="presentation"
+				aria-hidden="true"
+				tabIndex={-1}
 			/>
 
 			{/* Bottom-left corner resize handle */}
@@ -269,6 +287,9 @@ export const ResizeHandles: React.FC = () => {
 				className="resize-handle resize-handle-corner resize-handle-bottom-left"
 				onMouseDown={handleBottomLeftMouseDown}
 				title="Drag to resize window (bottom-left corner)"
+				role="presentation"
+				aria-hidden="true"
+				tabIndex={-1}
 			/>
 
 			{/* Bottom-right corner resize handle */}
@@ -276,6 +297,9 @@ export const ResizeHandles: React.FC = () => {
 				className="resize-handle resize-handle-corner resize-handle-bottom-right"
 				onMouseDown={handleBottomRightMouseDown}
 				title="Drag to resize window (bottom-right corner)"
+				role="presentation"
+				aria-hidden="true"
+				tabIndex={-1}
 			/>
 		</>
 	);

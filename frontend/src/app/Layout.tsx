@@ -6,6 +6,7 @@ import {
 	type SidebarSection,
 	Sidebar as UISidebar,
 } from "../components/ui";
+import type { PageName } from "../types";
 import { SIDEBAR_SHORTCUTS } from "../config";
 import { useProjectContext, useTitleBarContext } from "../contexts";
 import { useFooterHints, useFooterHintsSetting, useHotkeys, useSidebarSetting } from "../hooks";
@@ -13,7 +14,7 @@ import { useFooterHints, useFooterHintsSetting, useHotkeys, useSidebarSetting } 
 /**
  * Converts the current page identifier to a display-friendly page name.
  */
-const getPageDisplayName = (page: string): string => {
+const getPageDisplayName = (page: PageName): string => {
 	switch (page) {
 		case "dashboard":
 			return "Documents";
@@ -37,7 +38,7 @@ export interface LayoutProps {
 	sidebarSections?: SidebarSection[];
 	sidebarContent?: ReactNode;
 	breadcrumb?: string;
-	currentPage: string;
+	currentPage: PageName;
 	headerShortcuts?: Array<{
 		key: string;
 		label: string;
@@ -52,7 +53,7 @@ export interface LayoutProps {
  * - "journal": Journal page
  * - "neutral": Settings, projects, search, and other pages
  */
-const getDataMode = (page: string): "documents" | "journal" | "neutral" => {
+const getDataMode = (page: PageName): "documents" | "journal" | "neutral" => {
 	switch (page) {
 		case "dashboard":
 		case "document":
@@ -135,6 +136,12 @@ export const Layout: React.FC<LayoutProps> = ({
 			</div>
 
 			<div className="flex flex-col flex-1 overflow-hidden main-content-transition relative z-10 bg-glass-bg/10 backdrop-blur-sm">
+				<a
+					href="#main-content"
+					className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-40 focus:px-3 focus:py-2 focus:rounded-md focus:bg-accent focus:text-bg"
+				>
+					Skip to main content
+				</a>
 				{currentPage !== "settings" && (
 					<div className="bg-glass-bg/40 backdrop-blur-md border-b border-glass-border sticky top-0 z-30">
 						<HeaderBar
@@ -148,7 +155,10 @@ export const Layout: React.FC<LayoutProps> = ({
 
 				<div className="flex-1 overflow-hidden relative">
 					{/* Content Container with subtle inner shadow/depth */}
-					<div className="h-full w-full overflow-y-auto overflow-x-hidden p-0 animate-fade-in scroll-smooth">
+					<div
+						id="main-content"
+						className="h-full w-full overflow-y-auto overflow-x-hidden p-0 animate-fade-in scroll-smooth"
+					>
 						{children}
 					</div>
 				</div>
