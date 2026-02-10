@@ -6,10 +6,10 @@ import {
 	type SidebarSection,
 	Sidebar as UISidebar,
 } from "../components/ui";
-import type { PageName } from "../types";
 import { SIDEBAR_SHORTCUTS } from "../config";
 import { useProjectContext, useTitleBarContext } from "../contexts";
 import { useFooterHints, useFooterHintsSetting, useHotkeys, useSidebarSetting } from "../hooks";
+import type { PageName } from "../types";
 
 /**
  * Converts the current page identifier to a display-friendly page name.

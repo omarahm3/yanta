@@ -56,4 +56,3 @@ describe("createHotkeyMatcher", () => {
 		expect(trigger(m, { key: "|", shiftKey: false })).toBe(false);
 	});
 });
-
