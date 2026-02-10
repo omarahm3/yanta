@@ -1,32 +1,15 @@
-import React, { useEffect } from "react";
+import React from "react";
 import "@blocknote/core/fonts/inter.css";
 import type { BlockNoteEditor } from "@blocknote/core";
-import {
-	type Block,
-	BlockNoteSchema,
-	createCodeBlockSpec,
-	createExtension,
-	type PartialBlock,
-} from "@blocknote/core";
-import { useCreateBlockNote } from "@blocknote/react";
+import type { Block, PartialBlock } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/shadcn";
 import "@blocknote/shadcn/style.css";
-import { codeBlockOptions } from "@blocknote/code-block";
-import { useProjectContext, useScale } from "../../contexts";
-import { uploadFile } from "../../utils/assetUpload";
+import { cn } from "../../lib/utils";
+import { CustomLinkToolbarController } from "../../extensions/link-toolbar";
 import "../../styles/blocknote-dark.css";
 import "../../styles/blocknote-scale.css";
 import "../../extensions/rtl/rtl.css";
-import { Link } from "@tiptap/extension-link";
-import { Browser, System } from "@wailsio/runtime";
-import { CustomLinkToolbarController } from "../../extensions/link-toolbar";
-import { RTLExtension } from "../../extensions/rtl";
-import { cn } from "../../lib/utils";
-import type { BlockNoteBlock } from "../../types/Document";
-import { registerClipboardImagePlugin } from "../../utils/clipboard";
-import { computeContentHash } from "../../utils/contentHash";
-import { extractTitleFromBlocks } from "../../utils/documentUtils";
-import { useBlockNoteMenuPosition, usePlainTextClipboard } from "./hooks";
+import { useRichEditorInner } from "./hooks/useRichEditorInner";
 
 export interface RichEditorProps {
 	initialContent?: string;
@@ -64,313 +47,26 @@ type EditorInnerProps = {
 
 const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 	({ blocks, onChange, onTitleChange, onReady, className, editable, autoFocus }, ref) => {
-		const { currentProject } = useProjectContext();
-		const { scale } = useScale();
-
-		useBlockNoteMenuPosition();
-
-		const [isLinux, setIsLinux] = React.useState(false);
-		const [container, setContainer] = React.useState<HTMLDivElement | null>(null);
-
-		usePlainTextClipboard(container);
-
-		const hasEstablishedBaseline = React.useRef(false);
-		const baselineHashRef = React.useRef<string | null>(null);
-
-		const uploadFileFn = React.useCallback(
-			async (file: File) => {
-				console.warn("[RichEditor] uploadFileFn called by BlockNote!", {
-					fileName: file.name,
-					size: file.size,
-				});
-				const alias = currentProject?.alias ?? "";
-				if (!alias) throw new Error("No project selected");
-				return await uploadFile(file, alias);
-			},
-			[currentProject],
-		);
-
-		const schema = React.useMemo(
-			() =>
-				BlockNoteSchema.create().extend({
-					blockSpecs: {
-						codeBlock: createCodeBlockSpec(codeBlockOptions),
-					},
-				}),
-			[],
-		);
-
-		const editor = useCreateBlockNote({
-			schema,
-			initialContent: blocks,
-			uploadFile: uploadFileFn,
-			domAttributes: {
-				editor: {
-					class: "bn-editor",
-					"data-scale": "true",
-				},
-			},
-			extensions: [
-				createExtension({
-					key: "rtl",
-					tiptapExtensions: [RTLExtension],
-				}),
-				createExtension({
-					key: "disableLinkClick",
-					tiptapExtensions: [Link.extend({ inclusive: false }).configure({ openOnClick: false })],
-				}),
-			],
+		const { editor, isReady, scale, containerRefCallback } = useRichEditorInner({
+			blocks,
+			onChange,
+			onTitleChange,
+			onReady,
+			editable,
+			autoFocus,
 		});
-		const [isReady, setIsReady] = React.useState(false);
-
-		useEffect(() => {
-			if (!editor) return;
-
-			let cancelled = false;
-
-			const ensureImageAccept = async () => {
-				try {
-					const isLinuxPlatform = System.IsLinux();
-					if (cancelled) return;
-
-					setIsLinux(isLinuxPlatform);
-					if (!isLinuxPlatform) {
-						return;
-					}
-
-					const imageSpec = editor.schema.blockSpecs?.image;
-					if (!imageSpec || !imageSpec.implementation) {
-						return;
-					}
-
-					const meta = imageSpec.implementation.meta ?? {};
-					const acceptList = Array.isArray(meta.fileBlockAccept)
-						? meta.fileBlockAccept.filter((entry) => typeof entry === "string" && entry.trim().length > 0)
-						: [];
-
-					if (acceptList.length === 0 || acceptList.every((entry) => entry === "*/*")) {
-						imageSpec.implementation.meta = {
-							...meta,
-							fileBlockAccept: ["image/*"],
-						};
-					}
-				} catch (err) {
-					console.warn("[RichEditor] Failed to apply Linux image accept workaround", err);
-				}
-			};
-
-			void ensureImageAccept();
-
-			return () => {
-				cancelled = true;
-			};
-		}, [editor]);
-
-		useEffect(() => {
-			if (editor) {
-				setTimeout(() => {
-					setIsReady(true);
-					if (onReady) onReady(editor);
-				}, 50);
-			}
-		}, [editor, onReady]);
-
-		useEffect(() => {
-			if (editor && isReady && !hasEstablishedBaseline.current) {
-				const raf = requestAnimationFrame(() => {
-					baselineHashRef.current = computeContentHash(editor.document);
-					hasEstablishedBaseline.current = true;
-					console.log("[RichEditor] Baseline established", {
-						hash: baselineHashRef.current?.substring(0, 50),
-					});
-				});
-				return () => cancelAnimationFrame(raf);
-			}
-		}, [editor, isReady]);
-
-		useEffect(() => {
-			if (editor && editable && isReady && autoFocus) {
-				setTimeout(() => {
-					editor.focus();
-				}, 0);
-			}
-		}, [editor, editable, isReady, autoFocus]);
-
-		const convertedBlocksRef = React.useRef<Set<string>>(new Set());
-
-		useEffect(() => {
-			if (!editor || !onChange) return;
-
-			const unsubscribe = editor.onChange(() => {
-				const currentBlocks = editor.document;
-
-				let didModify = false;
-
-				currentBlocks.forEach((block: Block) => {
-					if (block.type === "file" && block.props?.url && !convertedBlocksRef.current.has(block.id)) {
-						const url = block.props.url as string;
-						if (url.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
-							convertedBlocksRef.current.add(block.id);
-							editor.updateBlock(block.id, {
-								type: "image",
-								props: { url },
-							});
-							didModify = true;
-						}
-					}
-				});
-
-				const firstBlock = currentBlocks[0];
-				const needsH1 =
-					!firstBlock ||
-					firstBlock.type !== "heading" ||
-					(firstBlock.props as { level?: number })?.level !== 1;
-
-				if (needsH1) {
-					editor.insertBlocks(
-						[{ type: "heading", props: { level: 1 }, content: [] }],
-						currentBlocks[0],
-						"before",
-					);
-					didModify = true;
-				}
-
-				if (didModify) {
-					console.log("[RichEditor] onChange: didModify=true, skipping propagation");
-					return;
-				}
-
-				if (!hasEstablishedBaseline.current) {
-					console.log("[RichEditor] onChange: baseline not established, skipping");
-					return;
-				}
-
-				const finalBlocks = editor.document;
-				const currentHash = computeContentHash(finalBlocks);
-
-				if (currentHash === baselineHashRef.current) {
-					console.log("[RichEditor] onChange: hash matches baseline, skipping");
-					return;
-				}
-
-				console.log("[RichEditor] onChange: PROPAGATING change", {
-					baselineHash: baselineHashRef.current?.substring(0, 30),
-					currentHash: currentHash.substring(0, 30),
-				});
-				onChange(finalBlocks);
-				baselineHashRef.current = currentHash;
-
-				if (onTitleChange) {
-					const title = extractTitleFromBlocks(finalBlocks as BlockNoteBlock[]);
-					onTitleChange(title);
-				}
-			});
-
-			return unsubscribe;
-		}, [editor, onChange, onTitleChange]);
-
-		useEffect(() => {
-			if (editor) editor.isEditable = editable;
-		}, [editor, editable]);
-
-		useEffect(() => {
-			if (!editor || !isReady || !isLinux) {
-				return;
-			}
-
-			const unregister = registerClipboardImagePlugin(editor, {
-				shouldHandlePaste: () => editable,
-				uploadFile: uploadFileFn,
-			});
-
-			return unregister;
-		}, [editor, uploadFileFn, editable, isReady, isLinux]);
 
 		const mergedRef = React.useCallback(
 			(node: HTMLDivElement | null) => {
-				setContainer(node);
+				containerRefCallback(node);
 				if (typeof ref === "function") {
 					ref(node);
 				} else if (ref) {
 					(ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
 				}
 			},
-			[ref],
+			[ref, containerRefCallback],
 		);
-
-		const openLinkExternally = React.useCallback((url: string) => {
-			Browser.OpenURL(url).catch(() => {
-				window.open(url, "_blank", "noopener,noreferrer");
-			});
-		}, []);
-
-		const allowedProtocols = React.useMemo(() => new Set(["http:", "https:", "mailto:", "tel:"]), []);
-
-		useEffect(() => {
-			if (!container) {
-				return;
-			}
-
-			let isMounted = true;
-			const pendingTimeouts = new Set<ReturnType<typeof setTimeout>>();
-
-			const handleMouseDown = (event: MouseEvent) => {
-				if (event.button !== 0 && event.button !== 1) {
-					return;
-				}
-
-				const target = event.target as HTMLElement | null;
-				if (!target) {
-					return;
-				}
-
-				const anchor = target.closest("a[href]") as HTMLAnchorElement | null;
-				if (!anchor || !container.contains(anchor)) {
-					return;
-				}
-
-				const href = anchor.getAttribute("href");
-				if (!href) {
-					return;
-				}
-
-				let resolvedUrl: URL;
-				try {
-					resolvedUrl = new URL(href, window.location.href);
-				} catch {
-					return;
-				}
-
-				if (!allowedProtocols.has(resolvedUrl.protocol)) {
-					return;
-				}
-
-				anchor.removeAttribute("href");
-				anchor.setAttribute("data-href-temp", href);
-
-				openLinkExternally(resolvedUrl.href);
-
-				const timeoutId = setTimeout(() => {
-					pendingTimeouts.delete(timeoutId);
-					if (!isMounted) return;
-					const tempHref = anchor.getAttribute("data-href-temp");
-					if (tempHref) {
-						anchor.setAttribute("href", tempHref);
-						anchor.removeAttribute("data-href-temp");
-					}
-				}, 100);
-				pendingTimeouts.add(timeoutId);
-			};
-
-			container.addEventListener("mousedown", handleMouseDown, true);
-
-			return () => {
-				isMounted = false;
-				pendingTimeouts.forEach(clearTimeout);
-				pendingTimeouts.clear();
-				container.removeEventListener("mousedown", handleMouseDown, true);
-			};
-		}, [container, openLinkExternally, allowedProtocols]);
 
 		if (!editor || !isReady) {
 			return <div ref={mergedRef} className={cn("h-full w-full", className)} />;

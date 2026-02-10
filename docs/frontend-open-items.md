@@ -18,9 +18,9 @@ For full background, see `docs/frontend-review.md` (Rev 20).
 - ~~`pages/Test.tsx`~~ — **Done:** logic in Test/hooks (useBlockNoteTestEditor, useFileInputDebug, useTestPageController); page is thin shell.
 - ~~`command-palette/components/GlobalCommandPalette.tsx`~~ — **Done:** logic in useGlobalCommandPalette hook; component is thin shell.
 - ~~`journal/useJournalController.ts`~~ — **Done:** split into useJournalDialogs, useJournalHotkeysConfig.
-- `pages/Projects.tsx`, `pages/Search.tsx`, `components/editor/RichEditor.tsx`,
-  `pages/document/useDocumentController.ts`, `utils/paneLayoutUtils.ts`,
-  `contexts/HotkeyContext.tsx`
+- ~~`components/editor/RichEditor.tsx`~~ — **Done:** logic in useRichEditorInner hook; EditorInner is thin shell.
+- `pages/Projects.tsx`, `pages/Search.tsx`, `pages/document/useDocumentController.ts`,
+  `utils/paneLayoutUtils.ts`, `contexts/HotkeyContext.tsx`
 
 **Intent (from review):**
 - Split these into smaller, focused modules: data fetching, state machines, view models, and UI shells.
