@@ -4,25 +4,27 @@ import { HelpModal } from "../HelpModal";
 
 const closeHelp = vi.fn();
 
-vi.mock("../../hooks/useHelp", () => ({
-	useHelp: () => ({
+vi.mock("../../hooks/useHelpModalController", () => ({
+	useHelpModalController: () => ({
 		isOpen: true,
 		closeHelp,
-		pageCommands: [{ command: "test", description: "Test command" }],
 		pageName: "Test Page",
-	}),
-}));
-
-vi.mock("../../../contexts/HotkeyContext", () => ({
-	useHotkeyContext: () => ({
-		getRegisteredHotkeys: () => [
-			{
-				id: "1",
-				key: "mod+s",
-				description: "Save",
-				handler: vi.fn(),
-			},
-		],
+		searchQuery: "",
+		setSearchQuery: vi.fn(),
+		expandedSections: new Set(["global"]),
+		toggleSection: vi.fn(),
+		announcement: "",
+		searchInputRef: { current: null },
+		closeButtonRef: { current: null },
+		filteredSections: [],
+		filteredGlobalCommands: [],
+		filteredPageCommands: [],
+		hasSearchQuery: false,
+		totalResults: 0,
+		handleOpenChange: (open: boolean) => {
+			if (!open) closeHelp();
+		},
+		handleClearSearch: vi.fn(),
 	}),
 }));
 

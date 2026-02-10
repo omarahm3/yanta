@@ -1,6 +1,6 @@
 import Fuse from "fuse.js";
 import { Search, X } from "lucide-react";
-import type React from "react";
+import type { FC } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "../../lib/utils";
 import type { RegisteredHotkey } from "../../types/hotkeys";
@@ -12,7 +12,7 @@ export interface ShortcutSearchProps {
 	className?: string;
 }
 
-export const ShortcutSearch: React.FC<ShortcutSearchProps> = ({
+export const ShortcutSearch: FC<ShortcutSearchProps> = ({
 	shortcuts,
 	onFilteredResults,
 	placeholder = "Search shortcuts...",

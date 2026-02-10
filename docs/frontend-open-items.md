@@ -12,7 +12,7 @@ For full background, see `docs/frontend-review.md` (Rev 20).
 **Status in review:** `Status: [ ] Not started` (dashboard controller split done)
 
 - ~~`dashboard/hooks/useDashboardController.ts`~~ — **Done:** split into useDashboardSelection, useDashboardData, useDashboardDialogs, useDashboardExports, useDashboardHotkeysConfig; controller ~537 lines, thin composer.
-- `components/ui/HelpModal.tsx` (~664 lines)
+- ~~`help/components/HelpModal.tsx`~~ — **Done:** logic in useHelpModalController + help/utils/helpModalUtils; modal is thin UI shell.
 - `pages/settings/useSettingsController.ts` (~655 lines)
 - `pages/Test.tsx` (~624 lines)
 - `components/GlobalCommandPalette.tsx` (~607 lines)

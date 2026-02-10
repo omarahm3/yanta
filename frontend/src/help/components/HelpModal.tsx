@@ -1,142 +1,11 @@
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { ChevronRight } from "lucide-react";
-import type React from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Heading } from "../../components/ui";
+// Value import required at runtime (React.FC in bundle; type-only yields "React is not defined")
+// biome-ignore lint: React used for React.FC and ref casts at runtime
+import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
-import { formatShortcutKeyForDisplay, getHelpShortcutsFromConfig, TIMEOUTS } from "../../config";
-import { GLOBAL_COMMANDS } from "../../constants/globalCommands";
-import { useHotkeyContext } from "../../contexts";
-import { useHelp } from "../hooks/useHelp";
-
-/**
- * Section definitions for the help modal
- */
-type HelpSectionId = "global" | "navigation" | "documents" | "journal" | "editor" | "git";
-
-interface ShortcutItem {
-	key: string;
-	description: string;
-}
-
-interface HelpSectionData {
-	id: HelpSectionId;
-	title: string;
-	shortcuts: ShortcutItem[];
-}
-
-/**
- * Get default expanded sections based on current page context
- */
-const getDefaultExpandedSections = (pageName: string): Set<HelpSectionId> => {
-	const normalizedPage = pageName.toUpperCase();
-
-	switch (normalizedPage) {
-		case "DASHBOARD":
-			return new Set(["global", "navigation", "documents"]);
-		case "JOURNAL":
-			return new Set(["global", "navigation", "journal"]);
-		case "DOCUMENT":
-		case "EDITOR":
-			return new Set(["global", "editor", "documents"]);
-		case "SETTINGS":
-			return new Set(["global"]);
-		case "SEARCH":
-			return new Set(["global", "navigation"]);
-		default:
-			return new Set(["global", "navigation"]);
-	}
-};
-
-/**
- * Categorize a hotkey into a section
- */
-const categorizeHotkey = (hotkeyKey: string, description: string): HelpSectionId => {
-	const key = hotkeyKey.toLowerCase();
-	const desc = description.toLowerCase();
-
-	// Git operations
-	if (
-		desc.includes("git") ||
-		desc.includes("sync") ||
-		desc.includes("push") ||
-		desc.includes("pull") ||
-		desc.includes("commit")
-	) {
-		return "git";
-	}
-
-	// Journal operations
-	if (
-		desc.includes("journal") ||
-		desc.includes("prev day") ||
-		desc.includes("next day") ||
-		desc.includes("today") ||
-		key.includes("ctrl+left") ||
-		key.includes("ctrl+right") ||
-		key.includes("mod+left") ||
-		key.includes("mod+right")
-	) {
-		return "journal";
-	}
-
-	// Editor operations
-	if (
-		desc.includes("save") ||
-		desc.includes("bold") ||
-		desc.includes("italic") ||
-		desc.includes("format") ||
-		desc.includes("undo") ||
-		desc.includes("redo")
-	) {
-		return "editor";
-	}
-
-	// Document operations
-	if (
-		desc.includes("new document") ||
-		desc.includes("new doc") ||
-		desc.includes("export") ||
-		desc.includes("archive") ||
-		desc.includes("delete document")
-	) {
-		return "documents";
-	}
-
-	// Navigation operations
-	if (
-		desc.includes("go to") ||
-		desc.includes("navigate") ||
-		desc.includes("switch") ||
-		desc.includes("recent") ||
-		desc.includes("search") ||
-		key.includes("tab")
-	) {
-		return "navigation";
-	}
-
-	// Global shortcuts
-	if (
-		desc.includes("command palette") ||
-		desc.includes("palette") ||
-		desc.includes("sidebar") ||
-		desc.includes("settings") ||
-		desc.includes("help") ||
-		key === "?" ||
-		key === "shift+/" ||
-		key.includes("ctrl+k") ||
-		key.includes("mod+k") ||
-		key.includes("ctrl+b") ||
-		key.includes("mod+b") ||
-		key.includes("ctrl+,") ||
-		key.includes("mod+,")
-	) {
-		return "global";
-	}
-
-	// Default to global for uncategorized
-	return "global";
-};
+import { Heading } from "../../components/ui/Heading";
+import { useHelpModalController } from "../hooks/useHelpModalController";
 
 /**
  * Collapsible section component
@@ -158,7 +27,6 @@ const HelpSection: React.FC<HelpSectionProps> = ({
 	sectionId,
 	shortcutCount,
 }) => {
-	const contentRef = useRef<HTMLDivElement>(null);
 	const headerId = `help-section-header-${sectionId}`;
 	const contentId = `help-section-content-${sectionId}`;
 
@@ -193,9 +61,7 @@ const HelpSection: React.FC<HelpSectionProps> = ({
 					isExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
 				}`}
 			>
-				<div ref={contentRef} className="px-4 pb-3 pl-10">
-					{children}
-				</div>
+				<div className="px-4 pb-3 pl-10">{children}</div>
 			</div>
 		</div>
 	);
@@ -203,12 +69,6 @@ const HelpSection: React.FC<HelpSectionProps> = ({
 
 /**
  * Shortcut row component
- *
- * Two-column layout with:
- * - Key on left: monospace, muted color, min-width for alignment
- * - Description on right: normal text color
- * - Subtle padding between rows
- * - Consistent indentation under section headers (handled by parent)
  */
 interface ShortcutRowProps {
 	shortcutKey: string;
@@ -241,206 +101,25 @@ const ShortcutRow: React.FC<ShortcutRowProps> = ({
  * Main HelpModal component
  */
 export const HelpModal: React.FC = () => {
-	const { isOpen, closeHelp, pageCommands, pageName } = useHelp();
-	const { getRegisteredHotkeys } = useHotkeyContext();
-	const [searchQuery, setSearchQuery] = useState("");
-	const [expandedSections, setExpandedSections] = useState<Set<HelpSectionId>>(new Set());
-	const [announcement, setAnnouncement] = useState("");
-	const searchInputRef = useRef<HTMLInputElement>(null);
-	const closeButtonRef = useRef<HTMLButtonElement>(null);
-
-	// Announce state changes to screen readers
-	const announce = useCallback((message: string) => {
-		setAnnouncement("");
-		// Small delay to ensure announcement is triggered even for same message
-		setTimeout(() => setAnnouncement(message), TIMEOUTS.helpAnnounceDelayMs);
-	}, []);
-
-	// Reset expanded sections and search when modal opens
-	useEffect(() => {
-		if (isOpen) {
-			setExpandedSections(getDefaultExpandedSections(pageName));
-			setSearchQuery("");
-			setAnnouncement("");
-			setTimeout(() => {
-				searchInputRef.current?.focus();
-			}, TIMEOUTS.focusRestoreMs);
-		}
-	}, [isOpen, pageName]);
-
-	// Handle keyboard events
-	useEffect(() => {
-		if (!isOpen) return;
-
-		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "?") {
-				e.preventDefault();
-				closeHelp();
-			} else if (e.key === "Escape") {
-				if (searchQuery.trim()) {
-					e.preventDefault();
-					e.stopPropagation();
-					setSearchQuery("");
-					searchInputRef.current?.focus();
-					announce("Search cleared");
-				}
-				// Radix Dialog handles Escape to close when no search query
-			}
-		};
-
-		document.addEventListener("keydown", handleKeyDown);
-		return () => document.removeEventListener("keydown", handleKeyDown);
-	}, [isOpen, closeHelp, searchQuery, announce]);
-
-	// Get all registered hotkeys
-	const allHotkeys = useMemo(() => {
-		if (pageName === "SETTINGS") return [];
-		return getRegisteredHotkeys().filter((h) => h.description && h.description !== "Toggle help");
-	}, [getRegisteredHotkeys, pageName]);
-
-	// Build sections data (global, documents, journal, editor from config; navigation/git static)
-	const sections: HelpSectionData[] = useMemo(() => {
-		const fromConfig = getHelpShortcutsFromConfig();
-		const sectionMap: Record<HelpSectionId, ShortcutItem[]> = {
-			global: fromConfig.global,
-			navigation: [
-				{ key: "Ctrl+J", description: "Go to Journal" },
-				{ key: "Ctrl+T", description: "Jump to Today" },
-				{ key: "Ctrl+E", description: "Recent Documents" },
-				{ key: "Ctrl+Tab", description: "Switch to last project" },
-				{ key: "Ctrl+Shift+F", description: "Go to Search" },
-				{ key: "Ctrl+D", description: "Go to Documents" },
-			],
-			documents: fromConfig.documents,
-			journal: fromConfig.journal,
-			editor: fromConfig.editor,
-			git: [{ key: "Ctrl+Shift+S", description: "Git Sync" }],
-		};
-
-		// Add shortcuts from registered hotkeys that aren't already in sections
-		const existingKeys = new Set(
-			Object.values(sectionMap)
-				.flat()
-				.map((s) => s.key.toLowerCase().replace(/\s/g, "")),
-		);
-
-		for (const hotkey of allHotkeys) {
-			const formatted = formatShortcutKeyForDisplay(hotkey.key);
-			const normalizedKey = formatted.toLowerCase().replace(/\s/g, "");
-
-			if (!existingKeys.has(normalizedKey)) {
-				const category = categorizeHotkey(hotkey.key, hotkey.description || "");
-				sectionMap[category].push({
-					key: formatted,
-					description: hotkey.description || "",
-				});
-				existingKeys.add(normalizedKey);
-			}
-		}
-
-		// Convert to array format
-		const sectionTitles: Record<HelpSectionId, string> = {
-			global: "Global Shortcuts",
-			navigation: "Navigation",
-			documents: "Documents",
-			journal: "Journal",
-			editor: "Editor",
-			git: "Git Operations",
-		};
-
-		const sectionOrder: HelpSectionId[] = [
-			"global",
-			"navigation",
-			"documents",
-			"journal",
-			"editor",
-			"git",
-		];
-
-		return sectionOrder
-			.map((id) => ({
-				id,
-				title: sectionTitles[id],
-				shortcuts: sectionMap[id],
-			}))
-			.filter((section) => section.shortcuts.length > 0);
-	}, [allHotkeys]);
-
-	// Filter sections based on search query
-	const filteredSections = useMemo(() => {
-		if (!searchQuery.trim()) return sections;
-
-		const query = searchQuery.toLowerCase();
-		return sections
-			.map((section) => ({
-				...section,
-				shortcuts: section.shortcuts.filter(
-					(s) => s.key.toLowerCase().includes(query) || s.description.toLowerCase().includes(query),
-				),
-			}))
-			.filter((section) => section.shortcuts.length > 0);
-	}, [sections, searchQuery]);
-
-	// Filter global commands
-	const filteredGlobalCommands = useMemo(() => {
-		if (!searchQuery.trim()) return GLOBAL_COMMANDS;
-		const query = searchQuery.toLowerCase();
-		return GLOBAL_COMMANDS.filter(
-			(cmd) =>
-				cmd.command.toLowerCase().includes(query) || cmd.description.toLowerCase().includes(query),
-		);
-	}, [searchQuery]);
-
-	// Filter page commands
-	const filteredPageCommands = useMemo(() => {
-		if (!searchQuery.trim()) return pageCommands;
-		const query = searchQuery.toLowerCase();
-		return pageCommands.filter(
-			(cmd) =>
-				cmd.command.toLowerCase().includes(query) || cmd.description.toLowerCase().includes(query),
-		);
-	}, [pageCommands, searchQuery]);
-
-	// Calculate totals for search results
-	const hasSearchQuery = searchQuery.trim().length > 0;
-	const totalShortcuts = filteredSections.reduce((acc, s) => acc + s.shortcuts.length, 0);
-	const totalResults = filteredGlobalCommands.length + filteredPageCommands.length + totalShortcuts;
-
-	// When searching, expand all sections with matches
-	useEffect(() => {
-		if (hasSearchQuery && filteredSections.length > 0) {
-			setExpandedSections(new Set(filteredSections.map((s) => s.id)));
-		}
-	}, [hasSearchQuery, filteredSections]);
-
-	const toggleSection = useCallback(
-		(sectionId: HelpSectionId, sectionTitle: string) => {
-			setExpandedSections((prev) => {
-				const next = new Set(prev);
-				const willExpand = !next.has(sectionId);
-				if (willExpand) {
-					next.add(sectionId);
-					announce(`${sectionTitle} section expanded`);
-				} else {
-					next.delete(sectionId);
-					announce(`${sectionTitle} section collapsed`);
-				}
-				return next;
-			});
-		},
-		[announce],
-	);
-
-	const handleOpenChange = (open: boolean) => {
-		if (!open) {
-			closeHelp();
-		}
-	};
-
-	const handleClearSearch = () => {
-		setSearchQuery("");
-		searchInputRef.current?.focus();
-	};
+	const {
+		isOpen,
+		closeHelp,
+		pageName,
+		searchQuery,
+		setSearchQuery,
+		expandedSections,
+		toggleSection,
+		announcement,
+		searchInputRef,
+		closeButtonRef,
+		filteredSections,
+		filteredGlobalCommands,
+		filteredPageCommands,
+		hasSearchQuery,
+		totalResults,
+		handleOpenChange,
+		handleClearSearch,
+	} = useHelpModalController();
 
 	return (
 		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -453,7 +132,6 @@ export const HelpModal: React.FC = () => {
 				aria-label="Keyboard shortcuts help modal"
 				aria-describedby="help-modal-description"
 			>
-				{/* Screen reader live region for announcements */}
 				<VisuallyHidden>
 					<div role="status" aria-live="polite" aria-atomic="true">
 						{announcement}
@@ -467,7 +145,7 @@ export const HelpModal: React.FC = () => {
 				<DialogHeader className="flex flex-row items-center justify-between px-4 py-4 border-b border-glass-border">
 					<DialogTitle className="text-base font-semibold text-text">Keyboard Shortcuts</DialogTitle>
 					<button
-						ref={closeButtonRef}
+						ref={closeButtonRef as React.RefObject<HTMLButtonElement>}
 						type="button"
 						onClick={closeHelp}
 						className="text-text-dim hover:text-text transition-colors text-xs font-mono focus:outline-none focus:ring-2 focus:ring-accent/50 rounded px-1"
@@ -477,7 +155,6 @@ export const HelpModal: React.FC = () => {
 					</button>
 				</DialogHeader>
 
-				{/* Search input */}
 				<div className="px-4 pt-4 pb-2">
 					<div className="relative">
 						<label htmlFor="help-search-input" className="sr-only">
@@ -485,7 +162,7 @@ export const HelpModal: React.FC = () => {
 						</label>
 						<input
 							id="help-search-input"
-							ref={searchInputRef}
+							ref={searchInputRef as React.RefObject<HTMLInputElement>}
 							type="search"
 							placeholder="Search shortcuts..."
 							value={searchQuery}
@@ -524,9 +201,7 @@ export const HelpModal: React.FC = () => {
 					)}
 				</div>
 
-				{/* Content */}
 				<div className="overflow-y-auto max-h-[calc(70vh-140px)]" role="document">
-					{/* Global commands section (colon commands) */}
 					{filteredGlobalCommands.length > 0 && (
 						<section
 							className="px-4 py-3 border-b border-glass-border/30"
@@ -556,7 +231,6 @@ export const HelpModal: React.FC = () => {
 						</section>
 					)}
 
-					{/* Page-specific commands */}
 					{filteredPageCommands.length > 0 && (
 						<section
 							className="px-4 py-3 border-b border-glass-border/30"
@@ -582,7 +256,6 @@ export const HelpModal: React.FC = () => {
 						</section>
 					)}
 
-					{/* Collapsible shortcut sections */}
 					{filteredSections.length > 0 && (
 						<div role="group" aria-label="Keyboard shortcut categories">
 							{filteredSections.map((section) => (
@@ -610,7 +283,6 @@ export const HelpModal: React.FC = () => {
 						</div>
 					)}
 
-					{/* Empty state */}
 					{totalResults === 0 && (
 						<div className="py-12 px-6 text-center">
 							<div className="space-y-4">
