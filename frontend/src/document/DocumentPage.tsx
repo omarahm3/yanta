@@ -1,11 +1,11 @@
 import type React from "react";
 import { useHotkeys } from "../hooks";
-import type { NavigationState } from "../types";
+import type { NavigationState, PageName } from "../types";
 import { DocumentContent, DocumentErrorState, DocumentLoadingState } from "./components";
 import { useDocumentController } from "./hooks/useDocumentController";
 
 export interface DocumentProps {
-	onNavigate?: (page: string, state?: NavigationState) => void;
+	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	documentPath?: string;
 	initialTitle?: string;
 	onRegisterToggleSidebar?: (handler: () => void) => void;

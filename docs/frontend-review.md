@@ -2,7 +2,7 @@
 
 **Stack:** React 18 + Tailwind CSS v4 + Radix UI + BlockNote Editor + Wails3 Runtime
 **Target:** Cross-platform desktop application (Wails3)
-**Last Updated:** 2026-02-09 (Rev 15 — Tier 4 #51 hoist styles/callbacks and Tier 5 #19 barrel files completed; COMPLETED ITEMS table updated; all tier tables and section status text aligned)
+**Last Updated:** 2026-02-09 (Rev 16 — Item 5 (URL-synced routing + history) marked completed; Item 23 marked completed via command registry refactor; all status text aligned)
 
 ---
 
@@ -139,7 +139,7 @@ Manual routing via `currentPage` string + `navigationState` object. No URL sync,
 
 The type `Record<string, string | number | boolean | undefined>` is repeated **20 times** across the codebase instead of using a shared type. The `page` parameter is typed as `string` in many callsites despite a union type existing in Router.tsx.
 
-**Status:** [ ] Not started
+**Status:** [x] Completed — `useAppNavigation` now initializes from and syncs navigation to the URL (`?page=...&...`), updates history on `onNavigate`, and listens to `popstate` to support back/forward and deep links into dashboard, document (by path), projects, settings, search, journal, etc. NavigationState reuse was implemented separately in Item 9 (`refactor/shared-navigation-types`).
 
 ---
 
@@ -494,7 +494,7 @@ All pages except Dashboard (correct — it's the initial route) are lazy-loaded 
 
 The command list (`useMemo`) has 16 dependencies and ~500 lines of definitions. Any dependency change rebuilds everything. Should be split into stable command groups individually memoized.
 
-**Status:** [ ] Not started
+**Status:** [x] Completed — superseded by the command registry (Item 54). `GlobalCommandPalette` now delegates command definitions to `command-palette/registry/*` domain modules; the palette itself only subscribes to `getAllCommands()`, applies usage-based sorting, and annotates `isRecent`, so the original 500-line `useMemo` is gone and dependency churn is localized in registry sources.
 
 ---
 

@@ -5,7 +5,7 @@ import { useProjectContext } from "../contexts";
 import { useHelp } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
 import { useSidebarSections } from "../hooks/useSidebarSections";
-import type { NavigationState } from "../types";
+import type { NavigationState, PageName } from "../types";
 import type { HotkeyConfig } from "../types/hotkeys";
 import { BackendLogger } from "../utils/backendLogger";
 import type { JournalEntryData } from "./JournalEntry";
@@ -64,7 +64,7 @@ export interface ConfirmDialogState {
 }
 
 export interface JournalControllerOptions {
-	onNavigate?: (page: string, state?: NavigationState) => void;
+	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	initialDate?: string;
 }
 

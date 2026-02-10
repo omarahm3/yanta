@@ -1,11 +1,11 @@
 import React from "react";
 import { Layout } from "../../components/Layout";
 import { Button, type SidebarSection } from "../../components/ui";
-import type { NavigationState } from "../../types";
+import type { NavigationState, PageName } from "../../types";
 
 interface DocumentErrorStateProps {
 	sidebarSections: SidebarSection[];
-	onNavigate?: (page: string, state?: NavigationState) => void;
+	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 

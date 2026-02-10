@@ -3,13 +3,13 @@ import { useCallback, useEffect, useRef } from "react";
 import { useSidebarSections } from "../../hooks/useSidebarSections";
 import { usePaneHotkeys, usePaneLayout } from "../../pane";
 import { useLatestRef } from "../../shared/hooks/useLatestRef";
-import type { NavigationState } from "../../types";
+import type { NavigationState, PageName } from "../../types";
 import { Layout } from "../Layout";
 import { PaneContainer } from "./PaneContainer";
 import { PaneNavigateProvider } from "./PaneNavigateContext";
 
 export interface PaneLayoutViewProps {
-	onNavigate?: (page: string, state?: NavigationState) => void;
+	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 	documentPath?: string;
 }
@@ -26,7 +26,7 @@ export const PaneLayoutView: React.FC<PaneLayoutViewProps> = ({
 	const activePaneIdRef = useLatestRef(activePaneId);
 
 	const handlePaneAwareNavigate = useCallback(
-		(page: string, state?: NavigationState) => {
+		(page: PageName, state?: NavigationState) => {
 			if (page === "document" && state?.documentPath) {
 				openDocumentInPane(activePaneIdRef.current, state.documentPath as string);
 			}

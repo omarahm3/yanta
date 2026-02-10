@@ -17,7 +17,7 @@ import { useNotification } from "../../hooks/useNotification";
 import { useRecentDocuments } from "../../hooks/useRecentDocuments";
 import { useSidebarSections } from "../../hooks/useSidebarSections";
 import { DocumentServiceWrapper, moveDocumentToProject } from "../../services/DocumentService";
-import type { NavigationState } from "../../types";
+import type { NavigationState, PageName } from "../../types";
 import type { Document } from "../../types/Document";
 import type { HotkeyConfig } from "../../types/hotkeys";
 import { useDashboardCommandHandler } from "./useDashboardCommandHandler";
@@ -70,7 +70,7 @@ export interface MoveDialogState {
 }
 
 export interface DashboardControllerOptions {
-	onNavigate?: (page: string, state?: NavigationState) => void;
+	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	onRegisterToggleArchived?: (handler: () => void) => void;
 }
 

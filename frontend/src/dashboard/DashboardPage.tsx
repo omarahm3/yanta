@@ -3,14 +3,14 @@ import { GranularErrorBoundary } from "@/app";
 import { Layout } from "../components/Layout";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { useHotkeys } from "../hooks";
-import type { NavigationState } from "../types";
+import type { NavigationState, PageName } from "../types";
 import { DocumentList } from "./components/DocumentList";
 import { MoveDocumentDialog } from "./components/MoveDocumentDialog";
 import { StatusBar } from "./components/StatusBar";
 import { useDashboardController } from "./hooks/useDashboardController";
 
 interface DashboardProps {
-	onNavigate?: (page: string, state?: NavigationState) => void;
+	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	onRegisterToggleArchived?: (handler: () => void) => void;
 	getShowArchived?: () => boolean;
 	onRegisterToggleSidebar?: (handler: () => void) => void;

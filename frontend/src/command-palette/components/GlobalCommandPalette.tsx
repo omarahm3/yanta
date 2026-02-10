@@ -26,7 +26,7 @@ import {
 	useCommandRegistryStore,
 } from "../registry";
 import { getTopRecentCommandIds, sortCommandsByUsage } from "../utils/commandSorting";
-import type { NavigationState } from "../../types";
+import type { NavigationState, PageName } from "../../types";
 
 const REGISTRY_SOURCES = [
 	"navigation",
@@ -40,8 +40,8 @@ const REGISTRY_SOURCES = [
 interface GlobalCommandPaletteProps {
 	isOpen: boolean;
 	onClose: () => void;
-	onNavigate: (page: string, state?: NavigationState) => void;
-	currentPage?: string;
+	onNavigate: (page: PageName, state?: NavigationState) => void;
+	currentPage?: PageName;
 	onToggleArchived?: () => void;
 	showArchived?: boolean;
 	onToggleSidebar?: () => void;

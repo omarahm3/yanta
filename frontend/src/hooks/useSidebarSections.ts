@@ -1,12 +1,12 @@
 import { useCallback, useMemo } from "react";
 import type { SidebarSection } from "../components/ui";
 import { useDocumentCount, useProjectContext } from "../contexts";
-import type { Filter, NavigationState } from "../types";
+import type { Filter, NavigationState, PageName } from "../types";
 import { useNotification } from "./useNotification";
 
 interface UseSidebarSectionsProps {
 	currentPage: string;
-	onNavigate?: (page: string, state?: NavigationState) => void;
+	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	filters?: Filter[];
 	onFilterSelect?: (filterId: string) => void;
 	additionalSections?: SidebarSection[];

@@ -11,6 +11,7 @@ import {
 import React from "react";
 import { Layout } from "../components/Layout";
 import { Button } from "../components/ui";
+import type { PageName } from "../types";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/shadcn/style.css";
 import { cn } from "../lib/utils";
@@ -22,7 +23,7 @@ import {
 } from "../utils/clipboard";
 
 interface TestProps {
-	onNavigate?: (page: string) => void;
+	onNavigate?: (page: PageName) => void;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 

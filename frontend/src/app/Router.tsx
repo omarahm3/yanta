@@ -9,9 +9,9 @@ const PageLoader = () => <LoadingSpinner message="Loading..." />;
 const Test = React.lazy(() => import("../pages/Test").then((m) => ({ default: m.Test })));
 
 interface RouterProps {
-	currentPage?: string;
+	currentPage?: PageName;
 	navigationState?: NavigationState;
-	onNavigate?: (page: string, state?: NavigationState) => void;
+	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	onRegisterToggleArchived?: (handler: () => void) => void;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
@@ -26,10 +26,8 @@ export const Router: React.FC<RouterProps> = ({
 	onRegisterToggleSidebar,
 }) => {
 	const handleNavigation = React.useCallback(
-		(page: string, state?: NavigationState) => {
-			if (onNavigate) {
-				onNavigate(page, state);
-			}
+		(page: PageName, state?: NavigationState) => {
+			onNavigate?.(page, state);
 		},
 		[onNavigate],
 	);

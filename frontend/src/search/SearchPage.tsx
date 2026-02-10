@@ -11,7 +11,7 @@ import { useProjectContext } from "../contexts";
 import { useHelp } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
 import { useSidebarSections } from "../hooks/useSidebarSections";
-import type { NavigationState } from "../types";
+import type { NavigationState, PageName } from "../types";
 import { BackendLogger } from "../utils/backendLogger";
 
 interface SearchResult {
@@ -36,7 +36,7 @@ interface GroupedSearchResult {
 }
 
 interface SearchProps {
-	onNavigate?: (page: string, state?: NavigationState) => void;
+	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 

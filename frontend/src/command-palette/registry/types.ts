@@ -1,5 +1,5 @@
 import type { CommandOption } from "../../components/ui";
-import type { NavigationState } from "../../shared/types/navigation";
+import type { NavigationState, PageName } from "../../shared/types/navigation";
 import type { Project } from "../../types";
 
 /**
@@ -8,9 +8,9 @@ import type { Project } from "../../types";
  * Uses app Project type so GlobalCommandPalette can satisfy this without type casts.
  */
 export interface CommandRegistryContext {
-	onNavigate: (page: string, state?: NavigationState) => void;
+	onNavigate: (page: PageName, state?: NavigationState) => void;
 	handleClose: () => void;
-	currentPage?: string;
+	currentPage?: PageName;
 	currentProject: Project | null;
 	previousProject: Project | null;
 	projects: Project[];

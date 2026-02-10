@@ -15,7 +15,7 @@ import { useSidebarSections } from "../../hooks/useSidebarSections";
 import { usePaneLayout } from "../../pane";
 import { DocumentServiceWrapper } from "../../services/DocumentService";
 import { useDocumentCommandStore } from "../../shared/stores/documentCommand.store";
-import type { NavigationState } from "../../types";
+import type { NavigationState, PageName } from "../../types";
 import type { HotkeyConfig } from "../../types/hotkeys";
 import { BackendLogger } from "../../utils/backendLogger";
 import { createEmptyDocument } from "../../utils/documentBlockUtils";
@@ -27,7 +27,7 @@ import { useDocumentInitialization } from "./useDocumentInitialization";
 import { useDocumentPersistence } from "./useDocumentPersistence";
 
 export interface DocumentControllerOptions {
-	onNavigate?: (page: string, state?: NavigationState) => void;
+	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	documentPath?: string;
 	initialTitle?: string;
 	onRegisterToggleSidebar?: (handler: () => void) => void;

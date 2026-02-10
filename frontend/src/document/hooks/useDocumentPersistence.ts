@@ -2,7 +2,7 @@ import type { Block } from "@blocknote/core";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { TIMEOUTS } from "@/config";
 import { useAutoSave } from "../../hooks/useAutoSave";
-import type { NavigationState } from "../../types";
+import type { NavigationState, PageName } from "../../types";
 import type { BlockNoteBlock } from "../../types/Document";
 import type { Project } from "../../types/Project";
 import { BackendLogger } from "../../utils/backendLogger";
@@ -25,7 +25,7 @@ interface UseDocumentPersistenceProps {
 	shouldAutoSave: boolean;
 	resetChanges: () => void;
 	onAutoSaveComplete: () => void;
-	onNavigate?: (page: string, state?: NavigationState) => void;
+	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	isEditorReady?: boolean;
 	onNewDocumentSaved?: () => void;
 }

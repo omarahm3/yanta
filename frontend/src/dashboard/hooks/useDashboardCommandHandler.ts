@@ -5,7 +5,7 @@ import { ExportDocument } from "../../../bindings/yanta/internal/document/servic
 import { ExportRequest } from "../../../bindings/yanta/internal/export";
 import { ExportToPDF } from "../../../bindings/yanta/internal/export/service";
 import { OpenDirectoryDialog } from "../../../bindings/yanta/internal/system/service";
-import type { NavigationState } from "../../types";
+import type { NavigationState, PageName } from "../../types";
 import type { Document } from "../../types/Document";
 import type { Project } from "../../types/Project";
 import { preprocessCommand } from "../../utils";
@@ -16,7 +16,7 @@ interface DashboardCommandHandlerOptions {
 	currentProject: Project | null | undefined;
 	reloadDocuments: () => Promise<void>;
 	clearSelection: () => void;
-	onNavigate?: (page: string, state?: NavigationState) => void;
+	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	success: (message: string) => void;
 	error: (message: string) => void;
 	setCommandInput: (value: string) => void;

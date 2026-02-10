@@ -35,8 +35,10 @@ const SHORTCUTS_FOR_SETTINGS: Shortcut[] = getShortcutsForSettings().map(({ id, 
 	editable: false,
 }));
 
+import type { PageName } from "../types";
+
 interface SettingsProps {
-	onNavigate?: (page: string) => void;
+	onNavigate?: (page: PageName) => void;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 

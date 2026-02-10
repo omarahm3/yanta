@@ -5,7 +5,7 @@ import { Layout } from "../components/Layout";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { useHotkeys } from "../hooks";
 import { cn } from "../lib/utils";
-import type { NavigationState } from "../types";
+import type { NavigationState, PageName } from "../types";
 import { DatePicker } from "./DatePicker";
 import { JournalEntry } from "./JournalEntry";
 import { useJournalController } from "./useJournalController";
@@ -14,7 +14,7 @@ const JOURNAL_ROW_ESTIMATE = 72;
 const JOURNAL_ROW_GAP = 4;
 
 export interface JournalProps {
-	onNavigate?: (page: string, state?: NavigationState) => void;
+	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	className?: string;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 	initialDate?: string;

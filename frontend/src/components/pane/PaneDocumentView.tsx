@@ -6,14 +6,14 @@ import { useHotkeys } from "../../hooks";
 import { useEscapeHandler } from "../../hooks/useEscapeHandler";
 import { findPane, usePaneLayout } from "../../pane";
 import { useLatestRef } from "../../shared/hooks/useLatestRef";
-import type { NavigationState } from "../../types";
+import type { NavigationState, PageName } from "../../types";
 import { Button, LoadingSpinner } from "../ui";
 import { PaneHeader } from "./PaneHeader";
 
 export interface PaneDocumentViewProps {
 	paneId: string;
 	documentPath: string;
-	onNavigate?: (page: string, state?: NavigationState) => void;
+	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	suppressEscape?: boolean;
 }
 

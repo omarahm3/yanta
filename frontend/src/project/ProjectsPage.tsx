@@ -14,14 +14,14 @@ import { PROJECTS_SHORTCUTS } from "../config";
 import { useHotkeys } from "../hooks";
 import { useNotification } from "../hooks/useNotification";
 import { useSidebarSections } from "../hooks/useSidebarSections";
-import { type ExtendedProject, extendProject } from "../types";
+import { type ExtendedProject, type PageName, extendProject } from "../types";
 import { BackendLogger } from "../utils/backendLogger";
 import { getProjectAliasColor } from "../utils/colorUtils";
 import { NewProjectDialog } from "./components/NewProjectDialog";
 import { useProjectContext } from "./context";
 
 interface ProjectsProps {
-	onNavigate?: (page: string) => void;
+	onNavigate?: (page: PageName) => void;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
