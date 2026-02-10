@@ -20,7 +20,8 @@ For full background, see `docs/frontend-review.md` (Rev 20).
 - ~~`journal/useJournalController.ts`~~ — **Done:** split into useJournalDialogs, useJournalHotkeysConfig.
 - ~~`components/editor/RichEditor.tsx`~~ — **Done:** logic in useRichEditorInner hook; EditorInner is thin shell.
 - ~~`pages/document/useDocumentController.ts`~~ — **Done:** split into useDocumentExports, useDocumentHotkeysConfig; controller composes them.
-- `pages/Projects.tsx`, `pages/Search.tsx`, `utils/paneLayoutUtils.ts`, `contexts/HotkeyContext.tsx`
+- ~~`utils/paneLayoutUtils.ts`~~ — **Done:** split into paneId, paneTreeQueries, paneTreeMutations, paneLayoutValidation, paneNavigation; paneLayoutUtils is barrel.
+- `pages/Projects.tsx`, `pages/Search.tsx`, `contexts/HotkeyContext.tsx`
 
 **Intent (from review):**
 - Split these into smaller, focused modules: data fetching, state machines, view models, and UI shells.
