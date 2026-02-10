@@ -15,11 +15,11 @@ For full background, see `docs/frontend-review.md` (Rev 20).
 - ~~`help/components/HelpModal.tsx`~~ — **Done:** logic in useHelpModalController + help/utils/helpModalUtils; modal is thin UI shell.
 - `pages/settings/useSettingsController.ts` (~655 lines)
 - `pages/Test.tsx` (~624 lines)
-- `components/GlobalCommandPalette.tsx` (~607 lines)
+- ~~`command-palette/components/GlobalCommandPalette.tsx`~~ — **Done:** logic in useGlobalCommandPalette hook; component is thin shell.
+- ~~`journal/useJournalController.ts`~~ — **Done:** split into useJournalDialogs, useJournalHotkeysConfig.
 - `pages/Projects.tsx`, `pages/Search.tsx`, `components/editor/RichEditor.tsx`,
-  `pages/Journal/useJournalController.ts`, `pages/Settings.tsx`,
-  `pages/document/useDocumentController.ts`, `utils/paneLayoutUtils.ts`,
-  `contexts/HotkeyContext.tsx`
+  `pages/Settings.tsx`, `pages/document/useDocumentController.ts`,
+  `utils/paneLayoutUtils.ts`, `contexts/HotkeyContext.tsx`
 
 **Intent (from review):**
 - Split these into smaller, focused modules: data fetching, state machines, view models, and UI shells.
