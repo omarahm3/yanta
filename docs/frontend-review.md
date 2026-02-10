@@ -555,9 +555,14 @@ As a result, BlockNote/Document auto-save no longer uses `JSON.stringify` in the
 
 ### 28. Testing: Minimal
 
-Vitest + Testing Library installed but coverage is thin for ~80+ TS files and 30+ hooks. Most complex logic (pane layout reducer, auto-save state machine, hotkey matcher) lacks tests.
+Vitest + Testing Library installed but coverage is thin for ~80+ TS files and 30+ hooks. Critical paths now have baseline tests:
+- Pane layout reducer utilities (`paneLayoutUtils`) validate navigation between panes, leaf counts, and layout validity.
+- `useAutoSave` has a dedicated test suite exercising debouncing, save state transitions, retry logic, blur handling, and disabled behavior.
+- Hotkey system: `createHotkeyMatcher` is covered for simple keys, ctrl combinations, `mod` semantics (Mac vs non-Mac), and shift-modified symbols like `shift+\\`.
 
-**Status:** [ ] Not started
+Additional coverage for full HotkeyProvider integration and complex controller hooks remains a future enhancement, but the highest-risk logic now has direct tests.
+
+**Status:** [x] Completed
 
 ---
 
@@ -1579,8 +1584,8 @@ See Section 35 for detailed steps per phase. Each phase leaves the app fully wor
 | # | Issue | Impact | Effort |
 |---|-------|--------|--------|
 | 19 | ~~Add barrel files to all feature dirs (4 missing)~~ — Done (components/editor, extensions, services, shared) | Consistent imports | Low |
-| 26 | Fix TypeScript gaps (force-casts, loose `string` typing) | Type safety | Low |
-| 27 | Fix accessibility gaps (aria-labels, skip-to-content, focus indicators) | Compliance | Medium |
+| 26 | ~~Fix TypeScript gaps (force-casts, loose `string` typing)~~ — Done (NavigationState/PageName adoption across app; remaining casts isolated to DocumentService backend boundary) | Type safety | Low |
+| 27 | ~~Fix accessibility gaps (aria-labels, skip-to-content, focus indicators)~~ — Done (Title bar ARIA, resize handles, skip link, list focus, prefers-reduced-motion, scrollbars) | Compliance | Medium |
 | 28 | Add tests for critical logic (pane reducer, auto-save, hotkey matcher) | Safety net | High |
 | 29 | Convert renderless components to hooks | Cleaner React tree | Low |
 | 40 | Split effect waterfalls into focused effects | Debuggability | Medium |

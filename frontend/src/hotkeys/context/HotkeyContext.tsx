@@ -34,7 +34,7 @@ const SPECIAL_KEY_SET = new Set(["?", ":", "shift+;", "shift+/"]);
 const isMacPlatform = () =>
 	typeof navigator !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 
-const createHotkeyMatcher = (combo: string) => {
+export const createHotkeyMatcher = (combo: string) => {
 	const parts = combo
 		.split("+")
 		.map((part) => part.trim().toLowerCase())
