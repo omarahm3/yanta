@@ -1,12 +1,7 @@
 import type { BlockNoteEditor } from "@blocknote/core";
-import { Dialogs, Events } from "@wailsio/runtime";
+import { Events } from "@wailsio/runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ExportDocumentRequest } from "../../../bindings/yanta/internal/document/models";
-import { ExportDocument } from "../../../bindings/yanta/internal/document/service";
-import { ExportRequest } from "../../../bindings/yanta/internal/export/models";
-import { ExportToPDF } from "../../../bindings/yanta/internal/export/service";
 import { GetDocumentTags } from "../../../bindings/yanta/internal/tag/service";
-import { DOCUMENT_SHORTCUTS } from "../../config";
 import { useProjectContext, useUserProgressContext } from "../../contexts";
 import { useHelp } from "../../hooks";
 import { useNotification } from "../../hooks/useNotification";
@@ -22,7 +17,9 @@ import { createEmptyDocument } from "../../utils/documentBlockUtils";
 import type { DocumentContentProps } from "../components/DocumentContent";
 import { useDocumentEditor } from "./useDocumentEditor";
 import { useDocumentEscapeHandling } from "./useDocumentEscapeHandling";
+import { useDocumentExports } from "./useDocumentExports";
 import { useDocumentForm } from "./useDocumentForm";
+import { useDocumentHotkeysConfig } from "./useDocumentHotkeysConfig";
 import { useDocumentInitialization } from "./useDocumentInitialization";
 import { useDocumentPersistence } from "./useDocumentPersistence";
 
@@ -92,6 +89,10 @@ export function useDocumentController({
 
 	const { handleEditorReady } = useDocumentEditor();
 	const { addRecentDocument } = useRecentDocuments();
+	const { handleExportToMarkdown, handleExportToPDF } = useDocumentExports({
+		documentPath,
+		documentTitle: formData.title,
+	});
 
 	const editorRef = useRef<BlockNoteEditor | null>(null);
 	const [hasRestored, setHasRestored] = useState(false);
@@ -210,71 +211,17 @@ export function useDocumentController({
 		}
 	}, []);
 
-	const handleExportToMarkdown = useCallback(async () => {
-		if (!documentPath) {
-			error("No document open");
-			return;
-		}
-		try {
-			const defaultFilename = `${formData.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.md`;
-			const outputPath = await Dialogs.SaveFile({
-				Title: "Export to Markdown",
-				Filename: defaultFilename,
-				Filters: [
-					{
-						DisplayName: "Markdown Files",
-						Pattern: "*.md",
-					},
-				],
-			});
-
-			if (!outputPath) {
-				return;
-			}
-
-			await ExportDocument(
-				new ExportDocumentRequest({
-					DocumentPath: documentPath,
-					OutputPath: outputPath,
-				}),
-			);
-		} catch (err) {
-			error(err instanceof Error ? err.message : "Failed to export Markdown");
-		}
-	}, [documentPath, error, formData.title]);
-
-	const handleExportToPDF = useCallback(async () => {
-		if (!documentPath) {
-			error("No document open");
-			return;
-		}
-		try {
-			const defaultFilename = `${formData.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`;
-			const outputPath = await Dialogs.SaveFile({
-				Title: "Export to PDF",
-				Filename: defaultFilename,
-				Filters: [
-					{
-						DisplayName: "PDF Files",
-						Pattern: "*.pdf",
-					},
-				],
-			});
-
-			if (!outputPath) {
-				return;
-			}
-
-			await ExportToPDF(
-				new ExportRequest({
-					DocumentPath: documentPath,
-					OutputPath: outputPath,
-				}),
-			);
-		} catch (err) {
-			error(err instanceof Error ? err.message : "Failed to export PDF");
-		}
-	}, [documentPath, error, formData.title]);
+	const hotkeys = useDocumentHotkeysConfig({
+		isActivePaneRef,
+		isArchived,
+		error,
+		saveNow: autoSave.saveNow,
+		handleExportToMarkdown,
+		handleExportToPDF,
+		handleEscape,
+		handleUnfocus,
+		focusEditor,
+	});
 
 	const handleRestore = useCallback(async () => {
 		if (!documentPath || isRestoring) {
@@ -337,94 +284,6 @@ export function useDocumentController({
 		onRestore: isArchived ? handleRestore : undefined,
 		onRegisterToggleSidebar,
 	};
-
-	const saveNow = autoSave.saveNow;
-
-	const hotkeys: HotkeyConfig[] = useMemo(
-		() => [
-			{
-				...DOCUMENT_SHORTCUTS.save,
-				handler: (event: KeyboardEvent) => {
-					if (!isActivePaneRef.current) return false;
-					event.preventDefault();
-					event.stopPropagation();
-					if (isArchived) {
-						error("Restore the document before editing.");
-						return;
-					}
-					void saveNow();
-				},
-				allowInInput: true,
-				capture: true,
-			},
-			{
-				...DOCUMENT_SHORTCUTS.exportMd,
-				handler: (event: KeyboardEvent) => {
-					if (!isActivePaneRef.current) return false;
-					event.preventDefault();
-					event.stopPropagation();
-					if (isArchived) {
-						error("Restore the document before exporting.");
-						return;
-					}
-					void handleExportToMarkdown();
-				},
-				allowInInput: true,
-				capture: true,
-			},
-			{
-				...DOCUMENT_SHORTCUTS.exportPdf,
-				handler: (event: KeyboardEvent) => {
-					if (!isActivePaneRef.current) return false;
-					event.preventDefault();
-					event.stopPropagation();
-					if (isArchived) {
-						error("Restore the document before exporting.");
-						return;
-					}
-					void handleExportToPDF();
-				},
-				allowInInput: true,
-				capture: true,
-			},
-			{
-				...DOCUMENT_SHORTCUTS.back,
-				handler: (event: KeyboardEvent) => {
-					if (!isActivePaneRef.current) return false;
-					if (event.defaultPrevented) return false;
-					handleEscape(event);
-				},
-				allowInInput: true,
-				capture: true,
-			},
-			{
-				...DOCUMENT_SHORTCUTS.unfocus,
-				handler: (event: KeyboardEvent) => {
-					if (!isActivePaneRef.current) return false;
-					handleUnfocus(event);
-				},
-				allowInInput: true,
-			},
-			{
-				...DOCUMENT_SHORTCUTS.focusEditor,
-				handler: () => {
-					if (!isActivePaneRef.current) return false;
-					focusEditor();
-				},
-				allowInInput: false,
-			},
-		],
-		[
-			saveNow,
-			error,
-			focusEditor,
-			handleEscape,
-			handleUnfocus,
-			isArchived,
-			handleExportToMarkdown,
-			handleExportToPDF,
-		],
-	);
 
 	return {
 		isLoading,
