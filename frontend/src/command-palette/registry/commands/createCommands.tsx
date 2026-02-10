@@ -1,10 +1,13 @@
 import { FilePlus } from "lucide-react";
 import type { CommandOption } from "../../../components/ui";
-import { getShortcutForCommand } from "../../../utils/shortcuts";
 import { DocumentServiceWrapper } from "../../../services/DocumentService";
+import { getShortcutForCommand } from "../../../utils/shortcuts";
 import type { CommandRegistry, CommandRegistryContext } from "../types";
 
-export function registerCreateCommands(registry: CommandRegistry, ctx: CommandRegistryContext): void {
+export function registerCreateCommands(
+	registry: CommandRegistry,
+	ctx: CommandRegistryContext,
+): void {
 	const { onNavigate, handleClose, currentProject, notification } = ctx;
 	const commands: CommandOption[] = [];
 

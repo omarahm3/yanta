@@ -1,8 +1,7 @@
-import type React from "react";
 import { createContext, useContext } from "react";
-import type { NavigationState } from "../../types";
+import type { NavigationState, PageName } from "../../types";
 
-export type PaneNavigateHandler = (page: string, state?: NavigationState) => void;
+export type PaneNavigateHandler = (page: PageName, state?: NavigationState) => void;
 
 const PaneNavigateContext = createContext<PaneNavigateHandler | null>(null);
 

@@ -6,7 +6,10 @@ import type { CommandOption } from "../../../components/ui";
 import { getShortcutForCommand } from "../../../utils/shortcuts";
 import type { CommandRegistry, CommandRegistryContext } from "../types";
 
-export function registerProjectCommands(registry: CommandRegistry, ctx: CommandRegistryContext): void {
+export function registerProjectCommands(
+	registry: CommandRegistry,
+	ctx: CommandRegistryContext,
+): void {
 	const {
 		handleClose,
 		currentProject,

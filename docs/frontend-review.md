@@ -2,7 +2,7 @@
 
 **Stack:** React 18 + Tailwind CSS v4 + Radix UI + BlockNote Editor + Wails3 Runtime
 **Target:** Cross-platform desktop application (Wails3)
-**Last Updated:** 2026-02-09 (Rev 17 — Item 24 auto-save change detection updated to use compareKey + lightweight keys; JSON.stringify avoided for editor payloads; routing/navigation type-safety unchanged)
+**Last Updated:** 2026-02-09 (Rev 18 — Item 24 auto-save change detection completed; Item 26 updated to reflect PageName/NavigationState adoption across navigation, panes, and command registry; remaining TS gaps documented)
 
 ---
 
@@ -532,7 +532,11 @@ As a result, BlockNote/Document auto-save no longer uses `JSON.stringify` in the
 - Barrel file inconsistency (see #20)
 - Props interfaces scattered in component files, not centralized
 
-**Status:** [ ] Not started
+**Progress:** Navigation types consolidated — `NavigationState` and `PageName` live in `shared/types/navigation.ts` and are consumed by `Router`, `useAppNavigation`, command registry context, GlobalCommandPalette, all page components (Dashboard, Document, Projects, Settings, Search, Journal, Test), pane views, sidebar hooks, and navigation tests. Pane-specific navigation now uses `NavigationState` rather than ad-hoc `Record<string, ...>` signatures.
+
+**Remaining:** The `documentModels.BlockNoteBlock[]` cast in `DocumentService.saveDocument()` is still present (backend model vs. frontend BlockNoteBlock shape); props/interfaces are still defined locally in components rather than a central types module.
+
+**Status:** [x] Partial — navigation/command/pane types aligned to `PageName`/`NavigationState`; remaining work focused on DocumentService model casting and props centralization.
 
 ---
 

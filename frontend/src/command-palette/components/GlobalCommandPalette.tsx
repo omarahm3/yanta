@@ -12,6 +12,7 @@ import { useDocumentContext, useProjectContext } from "../../contexts";
 import { useNotification } from "../../hooks/useNotification";
 import { useRecentDocuments } from "../../hooks/useRecentDocuments";
 import { usePaneLayout } from "../../pane";
+import type { NavigationState, PageName } from "../../types";
 import { formatRelativeTimeFromTimestamp } from "../../utils/dateUtils";
 import { type ParsedGitError, parseGitError } from "../../utils/gitErrorParser";
 import { useCommandUsage } from "../hooks/useCommandUsage";
@@ -26,7 +27,6 @@ import {
 	useCommandRegistryStore,
 } from "../registry";
 import { getTopRecentCommandIds, sortCommandsByUsage } from "../utils/commandSorting";
-import type { NavigationState, PageName } from "../../types";
 
 const REGISTRY_SOURCES = [
 	"navigation",

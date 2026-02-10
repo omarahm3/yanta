@@ -1,10 +1,10 @@
 export { useCommandRegistryStore } from "./commandRegistry.store";
-export type { CommandRegistry, CommandRegistryContext, CommandOption } from "./types";
 export {
-	registerNavigationCommands,
+	registerApplicationCommands,
 	registerCreateCommands,
 	registerDocumentCommands,
 	registerGitCommands,
+	registerNavigationCommands,
 	registerProjectCommands,
-	registerApplicationCommands,
 } from "./commands";
+export type { CommandOption, CommandRegistry, CommandRegistryContext } from "./types";

@@ -2,16 +2,16 @@
 export { GlobalCommandPalette } from "./components";
 export type { CommandUsageData, CommandUsageRecord, UseCommandUsageReturn } from "./hooks";
 export { useCommandUsage } from "./hooks";
+export type { CommandRegistry, CommandRegistryContext } from "./registry";
 export {
-	useCommandRegistryStore,
-	registerNavigationCommands,
+	registerApplicationCommands,
 	registerCreateCommands,
 	registerDocumentCommands,
 	registerGitCommands,
+	registerNavigationCommands,
 	registerProjectCommands,
-	registerApplicationCommands,
+	useCommandRegistryStore,
 } from "./registry";
-export type { CommandRegistry, CommandRegistryContext } from "./registry";
 export {
 	getRecentlyUsedCommands,
 	getTopRecentCommandIds,

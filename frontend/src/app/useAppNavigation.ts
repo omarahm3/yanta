@@ -176,4 +176,3 @@ function writeNavigationToUrl(page: string, state?: NavigationState): void {
 		// Best-effort URL sync; ignore failures (e.g., invalid URL environment)
 	}
 }
-

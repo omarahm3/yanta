@@ -3,7 +3,10 @@ import type { CommandOption } from "../../../components/ui";
 import { getShortcutForCommand } from "../../../utils/shortcuts";
 import type { CommandRegistry, CommandRegistryContext } from "../types";
 
-export function registerNavigationCommands(registry: CommandRegistry, ctx: CommandRegistryContext): void {
+export function registerNavigationCommands(
+	registry: CommandRegistry,
+	ctx: CommandRegistryContext,
+): void {
 	const { onNavigate, handleClose, setShowRecentDocuments } = ctx;
 	const commands: CommandOption[] = [
 		{

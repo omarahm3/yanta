@@ -6,6 +6,7 @@ import { useEscapeHandler } from "../../hooks/useEscapeHandler";
 import { cn } from "../../lib/utils";
 import { countLeaves, usePaneLayout } from "../../pane";
 import { useLatestRef } from "../../shared/hooks/useLatestRef";
+import type { NavigationState, PageName } from "../../types";
 import { EmptyPaneDocumentPicker } from "./EmptyPaneDocumentPicker";
 import { PaneDocumentView } from "./PaneDocumentView";
 import { PaneHeader } from "./PaneHeader";
@@ -57,7 +58,7 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 	});
 
 	const handlePaneNavigate = useCallback(
-		(page: string, state?: Record<string, string | number | boolean | undefined>) => {
+		(page: PageName, state?: NavigationState) => {
 			if (page === "document" && state?.documentPath) {
 				openDocumentInPane(paneId, state.documentPath as string);
 			}

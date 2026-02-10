@@ -5,11 +5,14 @@ import { ExportRequest } from "../../../../bindings/yanta/internal/export";
 import { ExportToPDF } from "../../../../bindings/yanta/internal/export/service";
 import { OpenDirectoryDialog } from "../../../../bindings/yanta/internal/system/service";
 import type { CommandOption } from "../../../components/ui";
-import { getShortcutForCommand } from "../../../utils/shortcuts";
 import { useDocumentCommandStore } from "../../../shared/stores/documentCommand.store";
+import { getShortcutForCommand } from "../../../utils/shortcuts";
 import type { CommandRegistry, CommandRegistryContext } from "../types";
 
-export function registerDocumentCommands(registry: CommandRegistry, ctx: CommandRegistryContext): void {
+export function registerDocumentCommands(
+	registry: CommandRegistry,
+	ctx: CommandRegistryContext,
+): void {
 	const { handleClose, currentPage, getSelectedDocument, notification } = ctx;
 	const commands: CommandOption[] = [];
 
