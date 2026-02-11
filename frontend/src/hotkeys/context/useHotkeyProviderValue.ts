@@ -1,4 +1,3 @@
-import { type HotkeyItem, useHotkeys } from "@mantine/hooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDialog } from "../../contexts/DialogContext";
 import type { HotkeyConfig, HotkeyContextValue, RegisteredHotkey } from "../../types/hotkeys";
@@ -66,7 +65,9 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 			targetMap.set(hotkey.key, list);
 		});
 
-		const mapToEntries = (map: Map<string, RegisteredHotkey[]>): HotkeyItem[] =>
+		const mapToEntries = (
+			map: Map<string, RegisteredHotkey[]>,
+		): Array<[string, (event: KeyboardEvent) => void]> =>
 			Array.from(map.entries()).map(([key, handlers]) => {
 				const wrappedHandler = (event: KeyboardEvent) => {
 					const target = event.target as HTMLElement | null;
@@ -78,6 +79,8 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 					if (isDialogOpen) {
 						return;
 					}
+
+					event.preventDefault();
 
 					const sortedHandlers = [...handlers].sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
@@ -94,7 +97,7 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 					}
 				};
 
-				return [key, wrappedHandler] as HotkeyItem;
+				return [key, wrappedHandler];
 			});
 
 		const captureHotkeysWithMatchers = Array.from(captureMap.entries())
@@ -113,7 +116,28 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 		};
 	}, [hotkeys, isDialogOpen]);
 
-	useHotkeys(isDialogOpen ? [] : bubbleHotkeyEntries);
+	useEffect(() => {
+		if (isDialogOpen || bubbleHotkeyEntries.length === 0) {
+			return;
+		}
+
+		const matchersAndHandlers = bubbleHotkeyEntries.map(([key, wrappedHandler]) => ({
+			matcher: createHotkeyMatcher(key),
+			handler: wrappedHandler,
+		}));
+
+		const handleBubble = (event: KeyboardEvent) => {
+			for (const { matcher, handler } of matchersAndHandlers) {
+				if (matcher(event)) {
+					handler(event);
+					break;
+				}
+			}
+		};
+
+		document.addEventListener("keydown", handleBubble, false);
+		return () => document.removeEventListener("keydown", handleBubble, false);
+	}, [bubbleHotkeyEntries, isDialogOpen]);
 
 	useEffect(() => {
 		if (captureHotkeysWithMatchers.length === 0) {

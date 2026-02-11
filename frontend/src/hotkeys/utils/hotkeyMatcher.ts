@@ -55,6 +55,9 @@ export function createHotkeyMatcher(combo: string): (event: KeyboardEvent) => bo
 		}
 	});
 
+	// event.key for spacebar is " "; config uses "Space" -> "space" after toLowerCase
+	if (requireKey === "space") requireKey = " ";
+
 	return (event: KeyboardEvent) => {
 		const key = event.key.length === 1 ? event.key.toLowerCase() : event.key.toLowerCase();
 

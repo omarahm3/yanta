@@ -33,16 +33,14 @@ For full background, see `docs/frontend-review.md` (Rev 20).
 ### Item 14 – Hotkey System Evaluation
 
 **Section:** “14. Custom Hotkey System → Evaluate react-hotkeys-hook”  
-**Status in review:** `Status: [ ] Not started`
+**Status:** Done — Mantine removed, manual addEventListener for bubble phase.
+
+**Completed (Phase 1):** Replaced `@mantine/hooks` useHotkeys with manual keydown listener; added `event.preventDefault()` in bubble handler; added Space key normalization in `createHotkeyMatcher`; removed `@mantine/hooks` dependency.
 
 **Context (excerpt):**
-- `HotkeyContext.tsx` (~365 lines) implements:
+- ~~`HotkeyContext.tsx` (~365 lines)~~ Refactored; now uses:
   - Combo parsing (mod/ctrl/shift/alt), priority system, dialog-aware suppression, special character handling, input-field detection, three dispatch phases.
 - Assessment: The priority system and dialog-awareness are real needs, but a full custom system might be replaceable with `react-hotkeys-hook` or `tinykeys` plus a thinner wrapper.
-
-**Remaining work:**
-- Prototype replacing some or all of `HotkeyContext` with a library-based solution.
-- Measure bundle size and complexity vs current implementation.
 
 ---
 

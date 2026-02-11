@@ -55,4 +55,10 @@ describe("createHotkeyMatcher", () => {
 		expect(trigger(m, { key: "\\", shiftKey: true })).toBe(false);
 		expect(trigger(m, { key: "|", shiftKey: false })).toBe(false);
 	});
+
+	it("matches Space key (event.key is ' ', config uses 'Space')", () => {
+		const m = createHotkeyMatcher("Space");
+		expect(trigger(m, { key: " " })).toBe(true);
+		expect(trigger(m, { key: "a" })).toBe(false);
+	});
 });
