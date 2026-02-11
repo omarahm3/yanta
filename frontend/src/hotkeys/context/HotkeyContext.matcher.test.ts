@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createHotkeyMatcher } from "./HotkeyContext";
+import { createHotkeyMatcher } from "../utils/hotkeyMatcher";
 
 const trigger = (matcher: (e: KeyboardEvent) => boolean, init: KeyboardEventInit) =>
 	matcher(new KeyboardEvent("keydown", init));
