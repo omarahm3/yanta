@@ -3,7 +3,7 @@
  * Re-export so existing imports keep working.
  */
 export {
-	useOnboarding,
 	type OnboardingData,
 	type UseOnboardingReturn,
+	useOnboarding,
 } from "../../shared/stores/onboarding.store";

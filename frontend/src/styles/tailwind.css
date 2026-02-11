@@ -192,6 +192,15 @@
 	outline-offset: 2px;
 }
 
+/* Reduced effects: disable blur + opaque glass for low-end hardware / Linux compositing */
+[data-reduced-effects="true"] [class*="backdrop-blur"] {
+	backdrop-filter: none !important;
+}
+[data-reduced-effects="true"] {
+	--color-glass-bg: rgba(22, 27, 34, 0.97);
+	--color-glass-border: rgba(48, 54, 61, 0.8);
+}
+
 /* Custom component styles */
 @layer components {
 	/* Buttons: Modern, scaling, polished */

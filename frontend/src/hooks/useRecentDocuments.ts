@@ -3,7 +3,7 @@
  * Re-export so existing imports keep working.
  */
 export {
-	useRecentDocuments,
 	type RecentDocument,
 	type UseRecentDocumentsReturn,
+	useRecentDocuments,
 } from "../shared/stores/recentDocuments.store";

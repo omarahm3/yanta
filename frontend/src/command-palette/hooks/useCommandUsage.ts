@@ -3,8 +3,8 @@
  * Re-export so existing imports keep working.
  */
 export {
-	useCommandUsage,
 	type CommandUsageData,
 	type CommandUsageRecord,
 	type UseCommandUsageReturn,
+	useCommandUsage,
 } from "../../shared/stores/commandUsage.store";

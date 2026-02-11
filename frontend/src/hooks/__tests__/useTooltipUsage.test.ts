@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useTooltipUsage } from "../useTooltipUsage";
 import { useTooltipUsageStore } from "../../shared/stores/tooltipUsage.store";
+import { useTooltipUsage } from "../useTooltipUsage";
 
 describe("useTooltipUsage", () => {
 	const STORAGE_KEY = "yanta_tooltip_usage";

@@ -82,6 +82,9 @@ export interface DashboardControllerResult {
 	clearSelection: () => void;
 	handleArchiveSelectedDocuments: () => Promise<void>;
 	handleRestoreSelectedDocuments: () => Promise<void>;
+	handleArchiveDocument: (path: string) => Promise<void>;
+	handleRestoreDocument: (path: string) => Promise<void>;
+	handleOpenMoveDialog: (path: string) => void;
 	handleDeleteSelectedDocuments: (hard: boolean) => void;
 	handleExportSelectedMarkdown: () => Promise<void>;
 	handleExportSelectedPDF: () => Promise<void>;
@@ -242,6 +245,30 @@ export function useDashboardController({
 			error(err instanceof Error ? err.message : "Failed to restore");
 		}
 	}, [reloadDocuments, clearSelection, error]);
+
+	const handleArchiveDocument = useCallback(
+		async (path: string) => {
+			await archivePaths([path]);
+		},
+		[archivePaths],
+	);
+
+	const handleRestoreDocument = useCallback(
+		async (path: string) => {
+			try {
+				await Restore(path);
+				await reloadDocuments();
+				clearSelection();
+			} catch (err) {
+				error(err instanceof Error ? err.message : "Failed to restore");
+			}
+		},
+		[reloadDocuments, clearSelection, error],
+	);
+
+	const handleOpenMoveDialog = useCallback((path: string) => {
+		setMoveDialog({ isOpen: true, documentPaths: [path] });
+	}, []);
 
 	const handleMoveSelectedDocuments = useCallback(() => {
 		let paths = Array.from(selectedDocumentsRef.current ?? []);
@@ -509,6 +536,9 @@ export function useDashboardController({
 		clearSelection,
 		handleArchiveSelectedDocuments,
 		handleRestoreSelectedDocuments,
+		handleArchiveDocument,
+		handleRestoreDocument,
+		handleOpenMoveDialog,
 		handleDeleteSelectedDocuments,
 		handleExportSelectedMarkdown,
 		handleExportSelectedPDF,

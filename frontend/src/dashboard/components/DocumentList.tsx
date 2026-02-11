@@ -1,6 +1,14 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import React, { useEffect, useRef } from "react";
-import { Button, Heading, Text } from "../../components/ui";
+import {
+	Button,
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuTrigger,
+	Heading,
+	Text,
+} from "../../components/ui";
 import { cn } from "../../lib/utils";
 import type { Document } from "../../types/Document";
 import { formatShortDate } from "../../utils/dateUtils";
@@ -30,6 +38,14 @@ interface DocumentListProps {
 	onToggleSelection?: (path?: string) => void;
 	/** When provided, the list is virtualized (only visible items rendered). Pass the ref of the scroll container. */
 	scrollRef?: React.RefObject<HTMLDivElement | null>;
+	/** Optional: archive a single document (shown in context menu when not in archived view). */
+	onArchiveDocument?: (path: string) => void;
+	/** Optional: restore a single archived document (shown in context menu when in archived view). */
+	onRestoreDocument?: (path: string) => void;
+	/** Optional: open move dialog for a single document. */
+	onMoveDocument?: (path: string) => void;
+	/** Whether the list is showing archived documents (affects context menu labels). */
+	showArchived?: boolean;
 }
 
 export const DocumentList: React.FC<DocumentListProps> = ({
@@ -40,6 +56,10 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 	selectedDocuments = new Set(),
 	onToggleSelection,
 	scrollRef,
+	onArchiveDocument,
+	onRestoreDocument,
+	onMoveDocument,
+	showArchived = false,
 }) => {
 	const listRef = useRef<HTMLDivElement>(null);
 
@@ -151,6 +171,10 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 								onDocumentClick={onDocumentClick}
 								onHighlightDocument={onHighlightDocument}
 								onToggleSelection={onToggleSelection}
+								onArchiveDocument={onArchiveDocument}
+								onRestoreDocument={onRestoreDocument}
+								onMoveDocument={onMoveDocument}
+								showArchived={showArchived}
 							/>
 						</div>
 					);
@@ -174,6 +198,10 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 						onDocumentClick={onDocumentClick}
 						onHighlightDocument={onHighlightDocument}
 						onToggleSelection={onToggleSelection}
+						onArchiveDocument={onArchiveDocument}
+						onRestoreDocument={onRestoreDocument}
+						onMoveDocument={onMoveDocument}
+						showArchived={showArchived}
 					/>
 				);
 			})}
@@ -189,6 +217,10 @@ interface DocumentListItemProps {
 	onDocumentClick: (path: string) => void;
 	onHighlightDocument?: (index: number) => void;
 	onToggleSelection?: (path?: string) => void;
+	onArchiveDocument?: (path: string) => void;
+	onRestoreDocument?: (path: string) => void;
+	onMoveDocument?: (path: string) => void;
+	showArchived?: boolean;
 }
 
 const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
@@ -200,6 +232,10 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 		onDocumentClick,
 		onHighlightDocument,
 		onToggleSelection,
+		onArchiveDocument,
+		onRestoreDocument,
+		onMoveDocument,
+		showArchived = false,
 	}) => {
 		const borderStyle = isHighlighted || isSelected ? STYLE_BORDER_ACCENT : STYLE_EMPTY;
 		const backgroundStyle = isHighlighted ? STYLE_BG_HIGHLIGHTED : STYLE_EMPTY;
@@ -236,65 +272,91 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 			e.dataTransfer.effectAllowed = "copyMove";
 		};
 
+		const handleOpen = () => {
+			onHighlightDocument?.(index);
+			onDocumentClick(doc.path);
+		};
+
+		const handleToggleSelect = () => onToggleSelection?.(doc.path);
+
 		return (
-			<div
-				className={itemClasses}
-				style={{ ...borderStyle, ...backgroundStyle }}
-				role="listitem"
-				aria-selected={isSelected}
-				tabIndex={isHighlighted ? 0 : -1}
-				onFocus={() => onHighlightDocument?.(index)}
-				data-highlighted={isHighlighted}
-				data-selected={isSelected}
-				draggable
-				onDragStart={handleDragStart}
-			>
-				<div className="flex items-start gap-3">
-					<Button
-						variant="ghost"
-						size="sm"
-						className={toggleClasses}
-						style={toggleStyle}
+			<ContextMenu>
+				<ContextMenuTrigger asChild>
+					<div
+						className={itemClasses}
+						style={{ ...borderStyle, ...backgroundStyle }}
+						role="listitem"
+						aria-selected={isSelected}
+						tabIndex={isHighlighted ? 0 : -1}
+						onFocus={() => onHighlightDocument?.(index)}
+						data-highlighted={isHighlighted}
 						data-selected={isSelected}
-						aria-pressed={isSelected}
-						aria-label={
-							isSelected ? `Deselect ${doc.title ?? "document"}` : `Select ${doc.title ?? "document"}`
-						}
-						onClick={handleToggleClick}
+						draggable
+						onDragStart={handleDragStart}
 					>
-						{isSelected ? "✓" : ""}
-					</Button>
-					<span className={indexClasses} style={indexStyle}>
-						{index + 1}.
-					</span>
-					<div className="flex-1 cursor-pointer" onClick={handleItemClick}>
-						<div className="flex items-center gap-2">
-							<Heading as="h3" size="lg">
-								{doc.title}
-							</Heading>
-							{doc.deletedAt && (
-								<span className="ml-auto rounded border border-accent/60 bg-accent/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-accent">
-									Archived
-								</span>
-							)}
-						</div>
-						<div className="flex gap-4 mt-2 text-sm document-meta text-text-dim">
-							<span>{doc.projectAlias}</span>
-							<span>{formatShortDate(doc.updated.toISOString())}</span>
-						</div>
-						<div className="flex gap-2 mt-2 document-tags">
-							{doc.tags.map((tag) => (
-								<span
-									key={tag}
-									className="px-2 py-1 text-xs rounded tag bg-glass-bg/20 border border-glass-border/30 text-text-dim"
-								>
-									{tag}
-								</span>
-							))}
+						<div className="flex items-start gap-3">
+							<Button
+								variant="ghost"
+								size="sm"
+								className={toggleClasses}
+								style={toggleStyle}
+								data-selected={isSelected}
+								aria-pressed={isSelected}
+								aria-label={
+									isSelected ? `Deselect ${doc.title ?? "document"}` : `Select ${doc.title ?? "document"}`
+								}
+								onClick={handleToggleClick}
+							>
+								{isSelected ? "✓" : ""}
+							</Button>
+							<span className={indexClasses} style={indexStyle}>
+								{index + 1}.
+							</span>
+							<div className="flex-1 cursor-pointer" onClick={handleItemClick}>
+								<div className="flex items-center gap-2">
+									<Heading as="h3" size="lg">
+										{doc.title}
+									</Heading>
+									{doc.deletedAt && (
+										<span className="ml-auto rounded border border-accent/60 bg-accent/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-accent">
+											Archived
+										</span>
+									)}
+								</div>
+								<div className="flex gap-4 mt-2 text-sm document-meta text-text-dim">
+									<span>{doc.projectAlias}</span>
+									<span>{formatShortDate(doc.updated.toISOString())}</span>
+								</div>
+								<div className="flex gap-2 mt-2 document-tags">
+									{doc.tags.map((tag) => (
+										<span
+											key={tag}
+											className="px-2 py-1 text-xs rounded tag bg-glass-bg/20 border border-glass-border/30 text-text-dim"
+										>
+											{tag}
+										</span>
+									))}
+								</div>
+							</div>
 						</div>
 					</div>
-				</div>
-			</div>
+				</ContextMenuTrigger>
+				<ContextMenuContent>
+					<ContextMenuItem onSelect={handleOpen}>Open</ContextMenuItem>
+					<ContextMenuItem onSelect={handleToggleSelect}>
+						{isSelected ? "Deselect" : "Select"}
+					</ContextMenuItem>
+					{onMoveDocument && (
+						<ContextMenuItem onSelect={() => onMoveDocument(doc.path)}>Move to...</ContextMenuItem>
+					)}
+					{showArchived && onRestoreDocument && (
+						<ContextMenuItem onSelect={() => onRestoreDocument(doc.path)}>Restore</ContextMenuItem>
+					)}
+					{!showArchived && onArchiveDocument && (
+						<ContextMenuItem onSelect={() => onArchiveDocument(doc.path)}>Archive</ContextMenuItem>
+					)}
+				</ContextMenuContent>
+			</ContextMenu>
 		);
 	},
 );

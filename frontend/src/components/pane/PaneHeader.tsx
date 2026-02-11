@@ -1,6 +1,12 @@
 import { Columns, Rows, X } from "lucide-react";
 import type React from "react";
 import { useCallback, useMemo } from "react";
+import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuTrigger,
+} from "../../components/ui";
 import { cn } from "../../lib/utils";
 import { countLeaves, MAX_PANES, usePaneLayout } from "../../pane";
 
@@ -72,74 +78,87 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({
 	);
 
 	return (
-		<div
-			className={cn(
-				"bg-glass-bg/40 backdrop-blur-md border-b border-glass-border px-3 flex items-center justify-between h-8 shrink-0",
-				isActive && "border-t-2 border-t-accent",
-				!isActive && "border-t-2 border-t-transparent",
-				documentPath && "cursor-grab active:cursor-grabbing",
-				className,
-			)}
-			draggable={!!documentPath}
-			onDragStart={handleDragStart}
-		>
-			{/* Title */}
-			<span
-				className={cn(
-					"text-xs truncate mr-2",
-					documentPath ? "text-text-bright font-medium" : "text-text-dim",
-				)}
-				title={documentPath ?? undefined}
-			>
-				{title}
-			</span>
-
-			{/* Actions */}
-			<div className="flex items-center gap-0.5 shrink-0">
-				<button
-					type="button"
+		<ContextMenu>
+			<ContextMenuTrigger asChild>
+				<div
 					className={cn(
-						"flex items-center justify-center w-6 h-6 rounded transition-colors",
-						canSplit
-							? "text-text-dim hover:text-text-bright hover:bg-glass-bg/30"
-							: "text-text-dim/30 cursor-not-allowed",
+						"bg-glass-bg/40 backdrop-blur-md border-b border-glass-border px-3 flex items-center justify-between h-8 shrink-0",
+						isActive && "border-t-2 border-t-accent",
+						!isActive && "border-t-2 border-t-transparent",
+						documentPath && "cursor-grab active:cursor-grabbing",
+						className,
 					)}
-					onClick={handleSplitHorizontal}
-					disabled={!canSplit}
-					title="Split horizontally"
-					aria-label="Split horizontally"
+					draggable={!!documentPath}
+					onDragStart={handleDragStart}
 				>
-					<Columns className="w-3.5 h-3.5" />
-				</button>
-
-				<button
-					type="button"
-					className={cn(
-						"flex items-center justify-center w-6 h-6 rounded transition-colors",
-						canSplit
-							? "text-text-dim hover:text-text-bright hover:bg-glass-bg/30"
-							: "text-text-dim/30 cursor-not-allowed",
-					)}
-					onClick={handleSplitVertical}
-					disabled={!canSplit}
-					title="Split vertically"
-					aria-label="Split vertically"
-				>
-					<Rows className="w-3.5 h-3.5" />
-				</button>
-
-				{canClose && (
-					<button
-						type="button"
-						className="flex items-center justify-center w-6 h-6 rounded text-text-dim hover:text-text-bright hover:bg-glass-bg/30 transition-colors"
-						onClick={handleClose}
-						title="Close pane"
-						aria-label="Close pane"
+					{/* Title */}
+					<span
+						className={cn(
+							"text-xs truncate mr-2",
+							documentPath ? "text-text-bright font-medium" : "text-text-dim",
+						)}
+						title={documentPath ?? undefined}
 					>
-						<X className="w-3.5 h-3.5" />
-					</button>
-				)}
-			</div>
-		</div>
+						{title}
+					</span>
+
+					{/* Actions */}
+					<div className="flex items-center gap-0.5 shrink-0">
+						<button
+							type="button"
+							className={cn(
+								"flex items-center justify-center w-6 h-6 rounded transition-colors",
+								canSplit
+									? "text-text-dim hover:text-text-bright hover:bg-glass-bg/30"
+									: "text-text-dim/30 cursor-not-allowed",
+							)}
+							onClick={handleSplitHorizontal}
+							disabled={!canSplit}
+							title="Split horizontally"
+							aria-label="Split horizontally"
+						>
+							<Columns className="w-3.5 h-3.5" />
+						</button>
+
+						<button
+							type="button"
+							className={cn(
+								"flex items-center justify-center w-6 h-6 rounded transition-colors",
+								canSplit
+									? "text-text-dim hover:text-text-bright hover:bg-glass-bg/30"
+									: "text-text-dim/30 cursor-not-allowed",
+							)}
+							onClick={handleSplitVertical}
+							disabled={!canSplit}
+							title="Split vertically"
+							aria-label="Split vertically"
+						>
+							<Rows className="w-3.5 h-3.5" />
+						</button>
+
+						{canClose && (
+							<button
+								type="button"
+								className="flex items-center justify-center w-6 h-6 rounded text-text-dim hover:text-text-bright hover:bg-glass-bg/30 transition-colors"
+								onClick={handleClose}
+								title="Close pane"
+								aria-label="Close pane"
+							>
+								<X className="w-3.5 h-3.5" />
+							</button>
+						)}
+					</div>
+				</div>
+			</ContextMenuTrigger>
+			<ContextMenuContent>
+				<ContextMenuItem onSelect={handleSplitHorizontal} disabled={!canSplit}>
+					Split horizontally
+				</ContextMenuItem>
+				<ContextMenuItem onSelect={handleSplitVertical} disabled={!canSplit}>
+					Split vertically
+				</ContextMenuItem>
+				{canClose && <ContextMenuItem onSelect={handleClose}>Close pane</ContextMenuItem>}
+			</ContextMenuContent>
+		</ContextMenu>
 	);
 };

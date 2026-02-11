@@ -72,6 +72,10 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 									selectedDocuments={documentList.selectedDocuments}
 									onToggleSelection={documentList.handleToggleSelection}
 									scrollRef={documentListScrollRef}
+									onArchiveDocument={controller.handleArchiveDocument}
+									onRestoreDocument={controller.handleRestoreDocument}
+									onMoveDocument={controller.handleOpenMoveDialog}
+									showArchived={showArchived}
 								/>
 							</GranularErrorBoundary>
 						</div>

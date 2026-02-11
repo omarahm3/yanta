@@ -3,7 +3,7 @@
  * Re-export as useUserProgress for backward compatibility.
  */
 export {
-	useUserProgressContext as useUserProgress,
 	type UserProgressData,
 	type UseUserProgressReturn,
+	useUserProgressContext as useUserProgress,
 } from "../../shared/stores/progress.store";

@@ -107,17 +107,13 @@ Each store uses custom `PersistStorage` for validation, backwards-compatible for
 ### Item 30 – Desktop-Specific Concerns
 
 **Section:** “30. Desktop-Specific Concerns”  
-**Status in review:** `Status: [ ] Not started`
+**Status:** Done.
 
-**Context (excerpt):**
-- Good: custom resize handles, Wails event cleanup, background/force quit, custom titlebar.
-- Questionable:
-  - `backdrop-blur-md` glassmorphism can be GPU-intensive.
-  - No native right-click context menu.
-
-**Remaining work:**
-- Add fallback styles or a “reduced effects” mode for low-end hardware / problematic compositors.
-- Implement a context menu strategy (native or custom) where appropriate.
+**Completed:**
+- **Reduced effects mode:** Added “Reduce Visual Effects” toggle in Settings > Appearance. When enabled, sets `data-reduced-effects="true"` on `document.documentElement`; CSS disables `backdrop-filter` and uses nearly opaque glass colors. Persisted via `appearance.store.ts` (zustand + persist).
+- **Context menus:** Added Radix-based context menu primitive (`components/ui/context-menu.tsx`). Right-click:
+  - **Pane tabs** (PaneHeader): Split horizontally, Split vertically, Close pane
+  - **Document rows** (DocumentList): Open, Select/Deselect, Move to..., Archive (or Restore when in archived view)
 
 ---
 

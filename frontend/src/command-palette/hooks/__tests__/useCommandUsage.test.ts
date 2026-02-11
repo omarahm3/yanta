@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useCommandUsage } from "../useCommandUsage";
 import { useCommandUsageStore } from "../../../shared/stores/commandUsage.store";
+import { useCommandUsage } from "../useCommandUsage";
 
 describe("useCommandUsage", () => {
 	const STORAGE_KEY = "yanta_command_usage";

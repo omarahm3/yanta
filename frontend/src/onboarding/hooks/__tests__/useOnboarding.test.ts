@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useOnboarding } from "../useOnboarding";
 import { useOnboardingStore } from "../../../shared/stores/onboarding.store";
+import { useOnboarding } from "../useOnboarding";
 
 describe("useOnboarding", () => {
 	const STORAGE_KEY = "yanta_onboarding";

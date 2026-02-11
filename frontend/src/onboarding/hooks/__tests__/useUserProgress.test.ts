@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useUserProgress } from "../useUserProgress";
 import { useProgressStore } from "../../../shared/stores/progress.store";
+import { useUserProgress } from "../useUserProgress";
 
 describe("useUserProgress", () => {
 	const STORAGE_KEY = "yanta_user_progress";
