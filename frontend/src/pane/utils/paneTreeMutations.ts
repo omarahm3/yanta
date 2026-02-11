@@ -1,7 +1,7 @@
 import type { PaneNode, ScrollPosition, SplitDirection } from "../types";
 import { MAX_PANES } from "../types";
-import { countLeaves, findPane } from "./paneTreeQueries";
 import { generatePaneId } from "./paneId";
+import { countLeaves, findPane } from "./paneTreeQueries";
 
 /**
  * Replace a node by ID within the tree, applying a transform function.

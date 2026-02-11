@@ -1,11 +1,10 @@
 import React from "react";
 import "@blocknote/core/fonts/inter.css";
-import type { BlockNoteEditor } from "@blocknote/core";
-import type { Block, PartialBlock } from "@blocknote/core";
+import type { Block, BlockNoteEditor, PartialBlock } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/shadcn";
 import "@blocknote/shadcn/style.css";
-import { cn } from "../../lib/utils";
 import { CustomLinkToolbarController } from "../../extensions/link-toolbar";
+import { cn } from "../../lib/utils";
 import "../../styles/blocknote-dark.css";
 import "../../styles/blocknote-scale.css";
 import "../../extensions/rtl/rtl.css";

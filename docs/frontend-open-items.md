@@ -6,10 +6,10 @@ For full background, see `docs/frontend-review.md` (Rev 20).
 
 ---
 
-### Part 2: God Files
+### Part 2: God Files — Complete
 
 **Section:** “PART 2: GOD FILES (13 files, ~6,900 lines)”  
-**Status in review:** `Status: [ ] Not started` (dashboard controller split done)
+**Status:** Done. All substantive god files split into focused hooks/utils; remaining two are re-export shims only.
 
 - ~~`dashboard/hooks/useDashboardController.ts`~~ — **Done:** split into useDashboardSelection, useDashboardData, useDashboardDialogs, useDashboardExports, useDashboardHotkeysConfig; controller ~537 lines, thin composer.
 - ~~`help/components/HelpModal.tsx`~~ — **Done:** logic in useHelpModalController + help/utils/helpModalUtils; modal is thin UI shell.
@@ -22,7 +22,7 @@ For full background, see `docs/frontend-review.md` (Rev 20).
 - ~~`pages/document/useDocumentController.ts`~~ — **Done:** split into useDocumentExports, useDocumentHotkeysConfig; controller composes them.
 - ~~`utils/paneLayoutUtils.ts`~~ — **Done:** split into paneId, paneTreeQueries, paneTreeMutations, paneLayoutValidation, paneNavigation; paneLayoutUtils is barrel.
 - ~~`hotkeys/context/HotkeyContext.tsx`~~ — **Done:** logic in hotkeyMatcher.ts + useHotkeyProviderValue; HotkeyContext is thin provider shell.
-- `pages/Projects.tsx`, `pages/Search.tsx` (re-export shims only)
+- `pages/Projects.tsx`, `pages/Search.tsx` — **N/A:** re-export shims only (~3 lines each); no refactor needed.
 
 **Intent (from review):**
 - Split these into smaller, focused modules: data fetching, state machines, view models, and UI shells.

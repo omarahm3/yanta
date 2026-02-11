@@ -11,10 +11,7 @@ export interface UseDocumentExportsOptions {
 	documentTitle: string;
 }
 
-export function useDocumentExports({
-	documentPath,
-	documentTitle,
-}: UseDocumentExportsOptions) {
+export function useDocumentExports({ documentPath, documentTitle }: UseDocumentExportsOptions) {
 	const { error } = useNotification();
 
 	const handleExportToMarkdown = useCallback(async () => {

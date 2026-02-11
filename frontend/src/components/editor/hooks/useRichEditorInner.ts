@@ -1,3 +1,4 @@
+import { codeBlockOptions } from "@blocknote/code-block";
 import type { BlockNoteEditor } from "@blocknote/core";
 import {
 	type Block,
@@ -7,14 +8,13 @@ import {
 	type PartialBlock,
 } from "@blocknote/core";
 import { useCreateBlockNote } from "@blocknote/react";
-import { codeBlockOptions } from "@blocknote/code-block";
-import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "@tiptap/extension-link";
 import { Browser, System } from "@wailsio/runtime";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useProjectContext, useScale } from "../../../contexts";
-import { uploadFile } from "../../../utils/assetUpload";
 import { RTLExtension } from "../../../extensions/rtl";
 import type { BlockNoteBlock } from "../../../types/Document";
+import { uploadFile } from "../../../utils/assetUpload";
 import { registerClipboardImagePlugin } from "../../../utils/clipboard";
 import { computeContentHash } from "../../../utils/contentHash";
 import { extractTitleFromBlocks } from "../../../utils/documentUtils";

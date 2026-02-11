@@ -2,20 +2,17 @@ import React from "react";
 import { GranularErrorBoundary } from "@/app";
 import { Layout } from "../components/Layout";
 import { ConfirmDialog, MigrationConflictDialog, type Shortcut } from "../components/ui";
-import {
-	formatShortcutKeyForDisplay,
-	getShortcutsForSettings,
-} from "../config";
+import { formatShortcutKeyForDisplay, getShortcutsForSettings } from "../config";
+import type { PageName } from "../types";
 import { AboutSection } from "./AboutSection";
 import { AppearanceSection } from "./AppearanceSection";
 import { BackupSection } from "./BackupSection";
 import { DatabaseSection } from "./DatabaseSection";
 import { GeneralSection } from "./GeneralSection";
 import { GitSyncSection } from "./GitSyncSection";
+import { useSettingsPage } from "./hooks/useSettingsPage";
 import { LoggingSection } from "./LoggingSection";
 import { ShortcutsSection } from "./ShortcutsSection";
-import { useSettingsPage } from "./hooks/useSettingsPage";
-import type { PageName } from "../types";
 
 /** Shortcuts from config/shortcuts (single source of truth for registration + display). */
 const SHORTCUTS_FOR_SETTINGS: Shortcut[] = getShortcutsForSettings().map(({ id, action, key }) => ({

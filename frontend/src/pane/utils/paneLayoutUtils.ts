@@ -8,16 +8,13 @@
  */
 
 export { generatePaneId } from "./paneId";
-
+export { restoreLayout, validateLayout } from "./paneLayoutValidation";
 export {
-	countLeaves,
-	findPane,
-	getLeafPaths,
-	getLeaves,
-	getPathToLeaf,
-	type PathStep,
-} from "./paneTreeQueries";
-
+	getNextLeafId,
+	getPaneInDirection,
+	getPreviousLeafId,
+	type PaneDirection,
+} from "./paneNavigation";
 export {
 	closePane,
 	moveDocumentBetweenPanes,
@@ -27,12 +24,11 @@ export {
 	swapPaneDocuments,
 	updateScrollPosition,
 } from "./paneTreeMutations";
-
-export { restoreLayout, validateLayout } from "./paneLayoutValidation";
-
 export {
-	getNextLeafId,
-	getPaneInDirection,
-	getPreviousLeafId,
-	type PaneDirection,
-} from "./paneNavigation";
+	countLeaves,
+	findPane,
+	getLeafPaths,
+	getLeaves,
+	getPathToLeaf,
+	type PathStep,
+} from "./paneTreeQueries";
