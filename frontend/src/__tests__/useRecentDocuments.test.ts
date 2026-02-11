@@ -1,13 +1,28 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { Events } from "@wailsio/runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useRecentDocuments } from "../hooks/useRecentDocuments";
+import { useRecentDocumentsStore } from "../shared/stores/recentDocuments.store";
+
+vi.mock("../services/DocumentService", () => ({
+	getDocument: vi.fn((path: string) =>
+		Promise.resolve({
+			path,
+			title: "", // Empty so we keep stored title
+			projectAlias: "proj",
+			blocks: [],
+			tags: [],
+			deletedAt: undefined,
+		}),
+	),
+}));
 
 const STORAGE_KEY = "yanta_recent_documents";
 
 describe("useRecentDocuments", () => {
 	beforeEach(() => {
 		localStorage.clear();
+		useRecentDocumentsStore.setState({ documents: [] });
 		vi.useFakeTimers();
 	});
 
@@ -23,16 +38,21 @@ describe("useRecentDocuments", () => {
 			expect(result.current.recentDocuments).toEqual([]);
 		});
 
-		it("should load existing documents from localStorage", () => {
+		it("should load existing documents from localStorage", async () => {
+			vi.useRealTimers();
 			const existingDocs = [
 				{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 },
 				{ path: "/doc2", title: "Doc 2", projectAlias: "proj2", lastOpened: 2000 },
 			];
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingDocs));
+			await useRecentDocumentsStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useRecentDocuments());
 
-			expect(result.current.recentDocuments).toEqual(existingDocs);
+			await waitFor(() => {
+				expect(result.current.recentDocuments).toEqual(existingDocs);
+			});
+			vi.useFakeTimers();
 		});
 
 		it("should handle invalid JSON in localStorage", () => {
@@ -43,7 +63,8 @@ describe("useRecentDocuments", () => {
 			expect(result.current.recentDocuments).toEqual([]);
 		});
 
-		it("should filter out invalid documents from localStorage", () => {
+		it("should filter out invalid documents from localStorage", async () => {
+			vi.useRealTimers();
 			const mixedDocs = [
 				{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 },
 				{ path: 123, title: "Invalid", projectAlias: "proj1", lastOpened: 2000 }, // invalid path
@@ -52,12 +73,16 @@ describe("useRecentDocuments", () => {
 				{ path: "/doc3" }, // missing fields
 			];
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(mixedDocs));
+			await useRecentDocumentsStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useRecentDocuments());
 
-			expect(result.current.recentDocuments).toHaveLength(2);
-			expect(result.current.recentDocuments[0].path).toBe("/doc1");
-			expect(result.current.recentDocuments[1].path).toBe("/doc2");
+			await waitFor(() => {
+				expect(result.current.recentDocuments).toHaveLength(2);
+				expect(result.current.recentDocuments[0].path).toBe("/doc1");
+				expect(result.current.recentDocuments[1].path).toBe("/doc2");
+			});
+			vi.useFakeTimers();
 		});
 
 		it("should handle non-array data in localStorage", () => {
@@ -193,12 +218,13 @@ describe("useRecentDocuments", () => {
 	});
 
 	describe("clearRecentDocuments", () => {
-		it("should clear all documents", () => {
+		it("should clear all documents", async () => {
 			const existingDocs = [
 				{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 },
 				{ path: "/doc2", title: "Doc 2", projectAlias: "proj2", lastOpened: 2000 },
 			];
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingDocs));
+			await useRecentDocumentsStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useRecentDocuments());
 			expect(result.current.recentDocuments).toHaveLength(2);
@@ -210,11 +236,12 @@ describe("useRecentDocuments", () => {
 			expect(result.current.recentDocuments).toEqual([]);
 		});
 
-		it("should remove data from localStorage", () => {
+		it("should remove data from localStorage", async () => {
 			const existingDocs = [
 				{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 },
 			];
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingDocs));
+			await useRecentDocumentsStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useRecentDocuments());
 
@@ -227,10 +254,9 @@ describe("useRecentDocuments", () => {
 	});
 
 	describe("cross-tab synchronization", () => {
-		it("should update when storage event is fired", () => {
+		it("should update when storage event is fired", async () => {
+			vi.useRealTimers();
 			const { result } = renderHook(() => useRecentDocuments());
-
-			expect(result.current.recentDocuments).toEqual([]);
 
 			const newDocs = [{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 }];
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(newDocs));
@@ -244,14 +270,18 @@ describe("useRecentDocuments", () => {
 				);
 			});
 
-			expect(result.current.recentDocuments).toEqual(newDocs);
+			await waitFor(() => {
+				expect(result.current.recentDocuments).toEqual(newDocs);
+			});
+			vi.useFakeTimers();
 		});
 
-		it("should ignore storage events for other keys", () => {
+		it("should ignore storage events for other keys", async () => {
 			const existingDocs = [
 				{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 },
 			];
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingDocs));
+			await useRecentDocumentsStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useRecentDocuments());
 
@@ -276,14 +306,20 @@ describe("useRecentDocuments", () => {
 			return match[1] as (ev: unknown) => void;
 		}
 
-		it("should update title when yanta/entry/updated event fires for a matching doc", () => {
+		it("should update title when yanta/entry/updated event fires for a matching doc", async () => {
+			vi.useRealTimers();
 			const existingDocs = [
 				{ path: "/doc1", title: "Old Title", projectAlias: "proj1", lastOpened: 1000 },
 				{ path: "/doc2", title: "Doc 2", projectAlias: "proj2", lastOpened: 2000 },
 			];
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingDocs));
+			await useRecentDocumentsStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useRecentDocuments());
+
+			await waitFor(() => {
+				expect(result.current.recentDocuments).toHaveLength(2);
+			});
 
 			const onUpdated = getEventCallback("yanta/entry/updated");
 			act(() => {
@@ -297,15 +333,22 @@ describe("useRecentDocuments", () => {
 			// Persisted to localStorage
 			const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
 			expect(stored[0].title).toBe("New Title");
+			vi.useFakeTimers();
 		});
 
-		it("should be a no-op when yanta/entry/updated fires for a non-matching path", () => {
+		it("should be a no-op when yanta/entry/updated fires for a non-matching path", async () => {
+			vi.useRealTimers();
 			const existingDocs = [
 				{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 },
 			];
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingDocs));
+			await useRecentDocumentsStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useRecentDocuments());
+
+			await waitFor(() => {
+				expect(result.current.recentDocuments).toHaveLength(1);
+			});
 
 			const onUpdated = getEventCallback("yanta/entry/updated");
 			act(() => {
@@ -313,16 +356,23 @@ describe("useRecentDocuments", () => {
 			});
 
 			expect(result.current.recentDocuments).toEqual(existingDocs);
+			vi.useFakeTimers();
 		});
 
-		it("should remove doc when yanta/entry/deleted event fires for a matching doc", () => {
+		it("should remove doc when yanta/entry/deleted event fires for a matching doc", async () => {
+			vi.useRealTimers();
 			const existingDocs = [
 				{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 },
 				{ path: "/doc2", title: "Doc 2", projectAlias: "proj2", lastOpened: 2000 },
 			];
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingDocs));
+			await useRecentDocumentsStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useRecentDocuments());
+
+			await waitFor(() => {
+				expect(result.current.recentDocuments).toHaveLength(2);
+			});
 
 			const onDeleted = getEventCallback("yanta/entry/deleted");
 			act(() => {
@@ -335,15 +385,22 @@ describe("useRecentDocuments", () => {
 			const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
 			expect(stored).toHaveLength(1);
 			expect(stored[0].path).toBe("/doc2");
+			vi.useFakeTimers();
 		});
 
-		it("should be a no-op when yanta/entry/deleted fires for a non-matching path", () => {
+		it("should be a no-op when yanta/entry/deleted fires for a non-matching path", async () => {
+			vi.useRealTimers();
 			const existingDocs = [
 				{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 },
 			];
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingDocs));
+			await useRecentDocumentsStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useRecentDocuments());
+
+			await waitFor(() => {
+				expect(result.current.recentDocuments).toHaveLength(1);
+			});
 
 			const onDeleted = getEventCallback("yanta/entry/deleted");
 			act(() => {
@@ -351,6 +408,7 @@ describe("useRecentDocuments", () => {
 			});
 
 			expect(result.current.recentDocuments).toEqual(existingDocs);
+			vi.useFakeTimers();
 		});
 	});
 });

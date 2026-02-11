@@ -1,12 +1,14 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useOnboarding } from "../useOnboarding";
+import { useOnboardingStore } from "../../../shared/stores/onboarding.store";
 
 describe("useOnboarding", () => {
 	const STORAGE_KEY = "yanta_onboarding";
 
 	beforeEach(() => {
 		localStorage.clear();
+		useOnboardingStore.setState({ onboardingData: null });
 		vi.useFakeTimers();
 	});
 
@@ -21,13 +23,14 @@ describe("useOnboarding", () => {
 			expect(result.current.onboardingData).toBeNull();
 		});
 
-		it("loads existing data from localStorage", () => {
+		it("loads existing data from localStorage", async () => {
 			const existingData = {
 				completedWelcome: true,
 				completedAt: 1000,
 				version: "1.0.0",
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useOnboardingStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useOnboarding());
 
@@ -89,12 +92,13 @@ describe("useOnboarding", () => {
 			expect(result.current.onboardingData).toBeNull();
 		});
 
-		it("accepts valid data without completedAt", () => {
+		it("accepts valid data without completedAt", async () => {
 			const existingData = {
 				completedWelcome: false,
 				version: "1.0.0",
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useOnboardingStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useOnboarding());
 
@@ -109,25 +113,27 @@ describe("useOnboarding", () => {
 			expect(result.current.hasCompletedOnboarding()).toBe(false);
 		});
 
-		it("returns false when completedWelcome is false", () => {
+		it("returns false when completedWelcome is false", async () => {
 			const existingData = {
 				completedWelcome: false,
 				version: "1.0.0",
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useOnboardingStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useOnboarding());
 
 			expect(result.current.hasCompletedOnboarding()).toBe(false);
 		});
 
-		it("returns true when completedWelcome is true", () => {
+		it("returns true when completedWelcome is true", async () => {
 			const existingData = {
 				completedWelcome: true,
 				completedAt: 1000,
 				version: "1.0.0",
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useOnboardingStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useOnboarding());
 
@@ -187,13 +193,14 @@ describe("useOnboarding", () => {
 	});
 
 	describe("resetOnboarding", () => {
-		it("clears onboarding data from state", () => {
+		it("clears onboarding data from state", async () => {
 			const existingData = {
 				completedWelcome: true,
 				completedAt: 1000,
 				version: "1.0.0",
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useOnboardingStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useOnboarding());
 
@@ -207,13 +214,14 @@ describe("useOnboarding", () => {
 			expect(result.current.onboardingData).toBeNull();
 		});
 
-		it("removes data from localStorage", () => {
+		it("removes data from localStorage", async () => {
 			const existingData = {
 				completedWelcome: true,
 				completedAt: 1000,
 				version: "1.0.0",
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useOnboardingStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useOnboarding());
 
@@ -226,7 +234,8 @@ describe("useOnboarding", () => {
 	});
 
 	describe("storage event handling", () => {
-		it("updates state when storage changes from another tab", () => {
+		it("updates state when storage changes from another tab", async () => {
+			vi.useRealTimers();
 			const { result } = renderHook(() => useOnboarding());
 
 			const newData = {
@@ -236,7 +245,6 @@ describe("useOnboarding", () => {
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
 
-			// Simulate storage event from another tab
 			act(() => {
 				window.dispatchEvent(
 					new StorageEvent("storage", {
@@ -246,16 +254,20 @@ describe("useOnboarding", () => {
 				);
 			});
 
-			expect(result.current.onboardingData).toEqual(newData);
+			await waitFor(() => {
+				expect(result.current.onboardingData).toEqual(newData);
+			});
+			vi.useFakeTimers();
 		});
 
-		it("ignores storage events for other keys", () => {
+		it("ignores storage events for other keys", async () => {
 			const existingData = {
 				completedWelcome: true,
 				completedAt: 1000,
 				version: "1.0.0",
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useOnboardingStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useOnboarding());
 
@@ -324,13 +336,14 @@ describe("useOnboarding", () => {
 			expect(result.current.shouldShowWelcome).toBe(true);
 		});
 
-		it("does not show welcome if onboarding was already completed", () => {
+		it("does not show welcome if onboarding was already completed", async () => {
 			const existingData = {
 				completedWelcome: true,
 				completedAt: 1000,
 				version: "1.0.0",
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useOnboardingStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useOnboarding());
 

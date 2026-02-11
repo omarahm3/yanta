@@ -47,15 +47,17 @@ For full background, see `docs/frontend-review.md` (Rev 20).
 ### Item 15 – LocalStorage → zustand + persist
 
 **Section:** “15. Custom localStorage Persistence → zustand + persist”  
-**Status in review:** `Status: [ ] Not started`
+**Status:** Done.
 
-**Context (excerpt):**
-- Six hooks (`useCommandUsage`, `useTooltipUsage`, `useUserProgress`, `useOnboarding`, `useRecentDocuments`, `usePanePersistence`) each implement their own load/save/validate/listen boilerplate.
-- Recommendation: Replace with a single set of zustand stores using `persist` middleware.
+**Completed:** Migrated all six hooks to zustand + persist stores:
+- `commandUsage.store.ts` – command palette usage tracking
+- `tooltipUsage.store.ts` – tooltip fade/usage
+- `onboarding.store.ts` – welcome overlay state
+- `recentDocuments.store.ts` – recent documents list (+ fetch + Events)
+- `paneLayout.store.ts` – pane layouts per document
+- `progress.store.ts` (pre-existing) – user progress; `useUserProgress` now re-exports from it
 
-**Remaining work:**
-- Design persistent stores for these concerns.
-- Migrate hooks to wrappers over the new stores; delete duplicated localStorage code.
+Each store uses custom `PersistStorage` for validation, backwards-compatible formats, and optional StorageEvent cross-tab sync. `useLocalStorage` is now unused and can be removed in a future cleanup.
 
 ---
 
@@ -96,14 +98,9 @@ For full background, see `docs/frontend-review.md` (Rev 20).
 ### Item 29 – Renderless Components → Hooks
 
 **Section:** “29. \"Renderless\" Components”  
-**Status in review:** `Status: [ ] Not started`
+**Status:** Done.
 
-**Context (excerpt):**
-- `HelpHotkey`, `QuitHotkeys`, `WindowEventListener`, `ProjectSwitchTracker` render `null` and exist solely for side effects.
-
-**Remaining work:**
-- Extract each into a hook (e.g. `useHelpHotkey`, `useQuitHotkeys`, `useWindowHiddenToast`, `useProjectSwitchTracking`).
-- Compose these hooks from a minimal orchestrator instead of multiple `null` components.
+**Completed:** Extracted into `useHelpHotkey`, `useQuitHotkeys`, `useWindowHiddenToast`, `useProjectSwitchTracking` in `app/hooks/`. Composed via `useAppGlobalEffects`; single `AppGlobalEffects` component in providers.
 
 ---
 

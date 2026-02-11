@@ -1,12 +1,14 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useCommandUsage } from "../useCommandUsage";
+import { useCommandUsageStore } from "../../../shared/stores/commandUsage.store";
 
 describe("useCommandUsage", () => {
 	const STORAGE_KEY = "yanta_command_usage";
 
 	beforeEach(() => {
 		localStorage.clear();
+		useCommandUsageStore.setState({ usage: {} });
 		vi.useFakeTimers();
 	});
 
@@ -21,12 +23,13 @@ describe("useCommandUsage", () => {
 			expect(result.current.getAllCommandUsage()).toEqual({});
 		});
 
-		it("loads existing data from localStorage", () => {
+		it("loads existing data from localStorage", async () => {
 			const existingData = {
 				"nav-dashboard": { lastUsed: 1000, useCount: 5 },
 				"new-document": { lastUsed: 2000, useCount: 3 },
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useCommandUsageStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useCommandUsage());
 
@@ -49,13 +52,14 @@ describe("useCommandUsage", () => {
 			expect(result.current.getAllCommandUsage()).toEqual({});
 		});
 
-		it("filters out invalid entries from localStorage", () => {
+		it("filters out invalid entries from localStorage", async () => {
 			const mixedData = {
 				"valid-command": { lastUsed: 1000, useCount: 5 },
 				"invalid-command": { lastUsed: "not-a-number", useCount: 3 },
 				"another-invalid": { foo: "bar" },
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(mixedData));
+			await useCommandUsageStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useCommandUsage());
 
@@ -78,11 +82,12 @@ describe("useCommandUsage", () => {
 			expect(usage).toEqual({ lastUsed: 5000, useCount: 1 });
 		});
 
-		it("increments useCount for existing command", () => {
+		it("increments useCount for existing command", async () => {
 			const existingData = {
 				"nav-dashboard": { lastUsed: 1000, useCount: 5 },
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useCommandUsageStore.persist.rehydrate();
 			vi.setSystemTime(new Date(5000));
 
 			const { result } = renderHook(() => useCommandUsage());
@@ -134,11 +139,12 @@ describe("useCommandUsage", () => {
 			expect(result.current.getCommandUsage("unknown-command")).toBeUndefined();
 		});
 
-		it("returns usage data for known command", () => {
+		it("returns usage data for known command", async () => {
 			const existingData = {
 				"nav-dashboard": { lastUsed: 1000, useCount: 5 },
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useCommandUsageStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useCommandUsage());
 
@@ -150,13 +156,14 @@ describe("useCommandUsage", () => {
 	});
 
 	describe("getAllCommandUsage", () => {
-		it("returns all usage data", () => {
+		it("returns all usage data", async () => {
 			const existingData = {
 				"nav-dashboard": { lastUsed: 1000, useCount: 5 },
 				"new-document": { lastUsed: 2000, useCount: 3 },
 				"nav-settings": { lastUsed: 500, useCount: 1 },
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useCommandUsageStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useCommandUsage());
 
@@ -165,13 +172,14 @@ describe("useCommandUsage", () => {
 	});
 
 	describe("cleanup logic", () => {
-		it("prunes entries when exceeding 100 on record", () => {
+		it("prunes entries when exceeding 100 on record", async () => {
 			// Create 100 existing entries
 			const existingData: Record<string, { lastUsed: number; useCount: number }> = {};
 			for (let i = 0; i < 100; i++) {
 				existingData[`command-${i}`] = { lastUsed: i * 1000, useCount: 1 };
 			}
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useCommandUsageStore.persist.rehydrate();
 
 			vi.setSystemTime(new Date(200000));
 			const { result } = renderHook(() => useCommandUsage());
@@ -194,13 +202,14 @@ describe("useCommandUsage", () => {
 			expect(allUsage["new-command"]).toBeDefined();
 		});
 
-		it("prunes entries on initial load when exceeding 100", () => {
+		it("prunes entries on initial load when exceeding 100", async () => {
 			// Create 105 entries
 			const existingData: Record<string, { lastUsed: number; useCount: number }> = {};
 			for (let i = 0; i < 105; i++) {
 				existingData[`command-${i}`] = { lastUsed: i * 1000, useCount: 1 };
 			}
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useCommandUsageStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useCommandUsage());
 
@@ -221,12 +230,13 @@ describe("useCommandUsage", () => {
 			}
 		});
 
-		it("does not prune when at exactly 100 entries", () => {
+		it("does not prune when at exactly 100 entries", async () => {
 			const existingData: Record<string, { lastUsed: number; useCount: number }> = {};
 			for (let i = 0; i < 100; i++) {
 				existingData[`command-${i}`] = { lastUsed: i * 1000, useCount: 1 };
 			}
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useCommandUsageStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useCommandUsage());
 
@@ -241,7 +251,8 @@ describe("useCommandUsage", () => {
 	});
 
 	describe("storage event handling", () => {
-		it("updates state when storage changes from another tab", () => {
+		it("updates state when storage changes from another tab", async () => {
+			vi.useRealTimers(); // Rehydrate uses promises; fake timers can block
 			const { result } = renderHook(() => useCommandUsage());
 
 			const newData = {
@@ -259,17 +270,21 @@ describe("useCommandUsage", () => {
 				);
 			});
 
-			expect(result.current.getCommandUsage("external-command")).toEqual({
-				lastUsed: 9999,
-				useCount: 42,
+			await waitFor(() => {
+				expect(result.current.getCommandUsage("external-command")).toEqual({
+					lastUsed: 9999,
+					useCount: 42,
+				});
 			});
+			vi.useFakeTimers(); // Restore for other tests
 		});
 
-		it("ignores storage events for other keys", () => {
+		it("ignores storage events for other keys", async () => {
 			const existingData = {
 				"nav-dashboard": { lastUsed: 1000, useCount: 5 },
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useCommandUsageStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useCommandUsage());
 

@@ -51,21 +51,21 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 	// GLOBAL SHORTCUTS (App.tsx)
 	// ============================================
 
-	// HelpHotkey component
+	// useHelpHotkey
 	shortcuts.push({
 		key: "shift+/",
 		description: "Toggle help",
 		context: "global",
-		source: "App.tsx - HelpHotkey",
+		source: "app/hooks/useHelpHotkey",
 		allowInInput: false,
 	});
 
-	// QuitHotkeys component
+	// useQuitHotkeys
 	shortcuts.push({
 		key: "ctrl+q",
 		description: "Quit (background if enabled)",
 		context: "global",
-		source: "App.tsx - QuitHotkeys",
+		source: "app/hooks/useQuitHotkeys",
 		allowInInput: true,
 		capture: true,
 	});
@@ -74,7 +74,7 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 		key: "ctrl+shift+q",
 		description: "Force quit application",
 		context: "global",
-		source: "App.tsx - QuitHotkeys",
+		source: "app/hooks/useQuitHotkeys",
 		allowInInput: true,
 		capture: true,
 	});

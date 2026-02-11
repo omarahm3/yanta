@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useTooltipUsage } from "../useTooltipUsage";
+import { useTooltipUsageStore } from "../../shared/stores/tooltipUsage.store";
 
 describe("useTooltipUsage", () => {
 	const STORAGE_KEY = "yanta_tooltip_usage";
@@ -10,6 +11,7 @@ describe("useTooltipUsage", () => {
 
 	beforeEach(() => {
 		localStorage.clear();
+		useTooltipUsageStore.setState({ usage: {} });
 		vi.useFakeTimers();
 	});
 
@@ -24,12 +26,13 @@ describe("useTooltipUsage", () => {
 			expect(result.current.getAllTooltipUsage()).toEqual({});
 		});
 
-		it("loads existing data from localStorage", () => {
+		it("loads existing data from localStorage", async () => {
 			const existingData = {
 				"new-document-btn": { seenCount: 3, lastSeen: 1000 },
 				"save-btn": { seenCount: 1, lastSeen: 2000 },
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useTooltipUsageStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useTooltipUsage());
 
@@ -52,13 +55,14 @@ describe("useTooltipUsage", () => {
 			expect(result.current.getAllTooltipUsage()).toEqual({});
 		});
 
-		it("filters out invalid entries from localStorage", () => {
+		it("filters out invalid entries from localStorage", async () => {
 			const mixedData = {
 				"valid-tooltip": { seenCount: 3, lastSeen: 1000 },
 				"invalid-tooltip": { seenCount: "not-a-number", lastSeen: 3 },
 				"another-invalid": { foo: "bar" },
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(mixedData));
+			await useTooltipUsageStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useTooltipUsage());
 
@@ -75,61 +79,66 @@ describe("useTooltipUsage", () => {
 			expect(result.current.shouldShowTooltip("new-tooltip")).toBe(true);
 		});
 
-		it("returns true when seenCount is below fade threshold", () => {
+		it("returns true when seenCount is below fade threshold", async () => {
 			const existingData = {
 				"some-tooltip": { seenCount: FADE_THRESHOLD - 1, lastSeen: Date.now() },
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useTooltipUsageStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useTooltipUsage());
 
 			expect(result.current.shouldShowTooltip("some-tooltip")).toBe(true);
 		});
 
-		it("returns false when seenCount equals fade threshold and within dormancy period", () => {
+		it("returns false when seenCount equals fade threshold and within dormancy period", async () => {
 			vi.setSystemTime(new Date(100000));
 			const existingData = {
 				"some-tooltip": { seenCount: FADE_THRESHOLD, lastSeen: 100000 },
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useTooltipUsageStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useTooltipUsage());
 
 			expect(result.current.shouldShowTooltip("some-tooltip")).toBe(false);
 		});
 
-		it("returns false when seenCount exceeds fade threshold and within dormancy period", () => {
+		it("returns false when seenCount exceeds fade threshold and within dormancy period", async () => {
 			vi.setSystemTime(new Date(100000));
 			const existingData = {
 				"some-tooltip": { seenCount: FADE_THRESHOLD + 5, lastSeen: 100000 },
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useTooltipUsageStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useTooltipUsage());
 
 			expect(result.current.shouldShowTooltip("some-tooltip")).toBe(false);
 		});
 
-		it("returns true when lastSeen exceeds dormancy period (30+ days)", () => {
+		it("returns true when lastSeen exceeds dormancy period (30+ days)", async () => {
 			const now = 100000 + DORMANCY_MS + 1;
 			vi.setSystemTime(new Date(now));
 			const existingData = {
 				"some-tooltip": { seenCount: FADE_THRESHOLD + 10, lastSeen: 100000 },
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useTooltipUsageStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useTooltipUsage());
 
 			expect(result.current.shouldShowTooltip("some-tooltip")).toBe(true);
 		});
 
-		it("returns false when lastSeen is exactly at dormancy period boundary", () => {
+		it("returns false when lastSeen is exactly at dormancy period boundary", async () => {
 			const now = 100000 + DORMANCY_MS;
 			vi.setSystemTime(new Date(now));
 			const existingData = {
 				"some-tooltip": { seenCount: FADE_THRESHOLD, lastSeen: 100000 },
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useTooltipUsageStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useTooltipUsage());
 
@@ -150,11 +159,12 @@ describe("useTooltipUsage", () => {
 			expect(usage).toEqual({ seenCount: 1, lastSeen: 5000 });
 		});
 
-		it("increments seenCount for existing tooltip", () => {
+		it("increments seenCount for existing tooltip", async () => {
 			const existingData = {
 				"new-document-btn": { seenCount: 3, lastSeen: 1000 },
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useTooltipUsageStore.persist.rehydrate();
 			vi.setSystemTime(new Date(5000));
 
 			const { result } = renderHook(() => useTooltipUsage());
@@ -206,11 +216,12 @@ describe("useTooltipUsage", () => {
 			expect(result.current.getTooltipUsage("unknown-tooltip")).toBeUndefined();
 		});
 
-		it("returns usage data for known tooltip", () => {
+		it("returns usage data for known tooltip", async () => {
 			const existingData = {
 				"new-document-btn": { seenCount: 3, lastSeen: 1000 },
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useTooltipUsageStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useTooltipUsage());
 
@@ -222,13 +233,14 @@ describe("useTooltipUsage", () => {
 	});
 
 	describe("getAllTooltipUsage", () => {
-		it("returns all usage data", () => {
+		it("returns all usage data", async () => {
 			const existingData = {
 				"new-document-btn": { seenCount: 3, lastSeen: 1000 },
 				"save-btn": { seenCount: 1, lastSeen: 2000 },
 				"sidebar-journal": { seenCount: 5, lastSeen: 500 },
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useTooltipUsageStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useTooltipUsage());
 
@@ -339,11 +351,12 @@ describe("useTooltipUsage", () => {
 			});
 		});
 
-		it("ignores storage events for other keys", () => {
+		it("ignores storage events for other keys", async () => {
 			const existingData = {
 				"new-document-btn": { seenCount: 3, lastSeen: 1000 },
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useTooltipUsageStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useTooltipUsage());
 

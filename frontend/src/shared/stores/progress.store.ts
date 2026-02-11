@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { create } from "zustand";
 import type { PersistStorage } from "zustand/middleware";
 import { persist } from "zustand/middleware";
@@ -51,7 +52,9 @@ const progressStorage: PersistStorage<UserProgressData> = {
 			const raw = localStorage.getItem(name);
 			if (!raw) return null;
 			const parsed = JSON.parse(raw) as unknown;
-			const state = validateProgressData(parsed);
+			// Support both flat format (legacy) and wrapped { state } format
+			const toValidate = (parsed as { state?: UserProgressData })?.state ?? parsed;
+			const state = validateProgressData(toValidate);
 			return state !== null ? { state } : null;
 		} catch (err) {
 			BackendLogger.error("[progress.store] Failed to load:", err);
@@ -60,7 +63,17 @@ const progressStorage: PersistStorage<UserProgressData> = {
 	},
 	setItem: (name: string, value: { state: UserProgressData }) => {
 		try {
-			localStorage.setItem(name, JSON.stringify(value));
+			const defaultData = getDefaultProgressData();
+			if (
+				value.state.documentsCreated === defaultData.documentsCreated &&
+				value.state.journalEntriesCreated === defaultData.journalEntriesCreated &&
+				value.state.projectsSwitched === defaultData.projectsSwitched &&
+				value.state.hintsShown.length === 0
+			) {
+				localStorage.removeItem(name);
+			} else {
+				localStorage.setItem(name, JSON.stringify(value.state));
+			}
 		} catch (err) {
 			BackendLogger.error("[progress.store] Failed to save:", err);
 		}
@@ -122,6 +135,16 @@ export interface UseUserProgressReturn {
 
 /** Same API as legacy useUserProgressContext — use in components. */
 export function useUserProgressContext(): UseUserProgressReturn {
+	useEffect(() => {
+		const handleStorage = (e: StorageEvent) => {
+			if (e.key === STORAGE_KEY) {
+				useProgressStore.persist?.rehydrate();
+			}
+		};
+		window.addEventListener("storage", handleStorage);
+		return () => window.removeEventListener("storage", handleStorage);
+	}, []);
+
 	const progressData: UserProgressData = {
 		documentsCreated: useProgressStore((s) => s.documentsCreated),
 		journalEntriesCreated: useProgressStore((s) => s.journalEntriesCreated),

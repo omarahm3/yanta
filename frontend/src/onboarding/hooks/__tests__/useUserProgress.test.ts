@@ -1,12 +1,19 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useUserProgress } from "../useUserProgress";
+import { useProgressStore } from "../../../shared/stores/progress.store";
 
 describe("useUserProgress", () => {
 	const STORAGE_KEY = "yanta_user_progress";
 
 	beforeEach(() => {
 		localStorage.clear();
+		useProgressStore.setState({
+			documentsCreated: 0,
+			journalEntriesCreated: 0,
+			projectsSwitched: 0,
+			hintsShown: [],
+		});
 	});
 
 	afterEach(() => {
@@ -25,7 +32,7 @@ describe("useUserProgress", () => {
 			});
 		});
 
-		it("loads existing data from localStorage", () => {
+		it("loads existing data from localStorage", async () => {
 			const existingData = {
 				documentsCreated: 5,
 				journalEntriesCreated: 10,
@@ -33,6 +40,7 @@ describe("useUserProgress", () => {
 				hintsShown: ["hint1", "hint2"],
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useProgressStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useUserProgress());
 
@@ -65,8 +73,9 @@ describe("useUserProgress", () => {
 			});
 		});
 
-		it("handles partially missing fields with defaults", () => {
+		it("handles partially missing fields with defaults", async () => {
 			localStorage.setItem(STORAGE_KEY, JSON.stringify({ documentsCreated: 5 }));
+			await useProgressStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useUserProgress());
 
@@ -124,7 +133,7 @@ describe("useUserProgress", () => {
 			expect(stored.documentsCreated).toBe(1);
 		});
 
-		it("increments correctly from existing value", () => {
+		it("increments correctly from existing value", async () => {
 			localStorage.setItem(
 				STORAGE_KEY,
 				JSON.stringify({
@@ -134,6 +143,7 @@ describe("useUserProgress", () => {
 					hintsShown: [],
 				}),
 			);
+			await useProgressStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useUserProgress());
 
@@ -264,7 +274,7 @@ describe("useUserProgress", () => {
 			expect(result.current.hasHintBeenShown("first-save")).toBe(true);
 		});
 
-		it("returns correct value for loaded data", () => {
+		it("returns correct value for loaded data", async () => {
 			localStorage.setItem(
 				STORAGE_KEY,
 				JSON.stringify({
@@ -274,6 +284,7 @@ describe("useUserProgress", () => {
 					hintsShown: ["first-save", "journal-nav"],
 				}),
 			);
+			await useProgressStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useUserProgress());
 
@@ -284,7 +295,7 @@ describe("useUserProgress", () => {
 	});
 
 	describe("resetProgress", () => {
-		it("resets all progress data to defaults", () => {
+		it("resets all progress data to defaults", async () => {
 			localStorage.setItem(
 				STORAGE_KEY,
 				JSON.stringify({
@@ -294,6 +305,7 @@ describe("useUserProgress", () => {
 					hintsShown: ["hint1", "hint2"],
 				}),
 			);
+			await useProgressStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useUserProgress());
 
@@ -311,7 +323,7 @@ describe("useUserProgress", () => {
 			});
 		});
 
-		it("removes data from localStorage", () => {
+		it("removes data from localStorage", async () => {
 			localStorage.setItem(
 				STORAGE_KEY,
 				JSON.stringify({
@@ -321,6 +333,7 @@ describe("useUserProgress", () => {
 					hintsShown: ["hint1"],
 				}),
 			);
+			await useProgressStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useUserProgress());
 
@@ -333,7 +346,8 @@ describe("useUserProgress", () => {
 	});
 
 	describe("storage event handling", () => {
-		it("updates state when storage changes from another tab", () => {
+		it("updates state when storage changes from another tab", async () => {
+			vi.useRealTimers();
 			const { result } = renderHook(() => useUserProgress());
 
 			const newData = {
@@ -344,7 +358,6 @@ describe("useUserProgress", () => {
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
 
-			// Simulate storage event from another tab
 			act(() => {
 				window.dispatchEvent(
 					new StorageEvent("storage", {
@@ -354,10 +367,13 @@ describe("useUserProgress", () => {
 				);
 			});
 
-			expect(result.current.progressData).toEqual(newData);
+			await waitFor(() => {
+				expect(result.current.progressData).toEqual(newData);
+			});
+			vi.useFakeTimers();
 		});
 
-		it("ignores storage events for other keys", () => {
+		it("ignores storage events for other keys", async () => {
 			const existingData = {
 				documentsCreated: 5,
 				journalEntriesCreated: 10,
@@ -365,6 +381,7 @@ describe("useUserProgress", () => {
 				hintsShown: ["hint1"],
 			};
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			await useProgressStore.persist.rehydrate();
 
 			const { result } = renderHook(() => useUserProgress());
 
