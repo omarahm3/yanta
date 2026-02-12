@@ -33,6 +33,26 @@ function validateCommandUsage(data: unknown): CommandUsageRecord | null {
 	return validated;
 }
 
+function parseStoredUsage(raw: string): CommandUsageRecord | null {
+	try {
+		const parsed = JSON.parse(raw) as unknown;
+		// Versioned format: { version: 1, usage: {...} }
+		if (
+			typeof parsed === "object" &&
+			parsed !== null &&
+			"version" in parsed &&
+			parsed.version === 1 &&
+			"usage" in parsed
+		) {
+			return validateCommandUsage(parsed.usage);
+		}
+		// Legacy format: raw usage object
+		return validateCommandUsage(parsed);
+	} catch {
+		return null;
+	}
+}
+
 function pruneUsageData(usage: CommandUsageRecord): CommandUsageRecord {
 	const entries = Object.entries(usage);
 	if (entries.length <= MAX_ENTRIES) {
@@ -59,10 +79,10 @@ const commandUsageStorage: PersistStorage<{ usage: CommandUsageRecord }> = {
 		try {
 			const raw = localStorage.getItem(name);
 			if (!raw) return null;
-			const parsed = JSON.parse(raw) as unknown;
-			const validated = validateCommandUsage(parsed);
+			const validated = parseStoredUsage(raw);
 			if (validated === null) return null;
-			const usage = pruneUsageData(validated);
+			const usage =
+				Object.keys(validated).length > MAX_ENTRIES ? pruneUsageData(validated) : validated;
 			return { state: { usage } };
 		} catch (err) {
 			BackendLogger.error("[commandUsage.store] Failed to load:", err);
@@ -71,8 +91,7 @@ const commandUsageStorage: PersistStorage<{ usage: CommandUsageRecord }> = {
 	},
 	setItem: (name: string, value: { state: { usage: CommandUsageRecord } }) => {
 		try {
-			// Save raw record for backwards compatibility (no wrapper)
-			localStorage.setItem(name, JSON.stringify(value.state.usage));
+			localStorage.setItem(name, JSON.stringify({ version: 1, usage: value.state.usage }));
 		} catch (err) {
 			BackendLogger.error("[commandUsage.store] Failed to save:", err);
 		}
@@ -101,7 +120,9 @@ export const useCommandUsageStore = create<CommandUsageState>()(
 						useCount: (existingEntry?.useCount ?? 0) + 1,
 					},
 				};
-				set({ usage: pruneUsageData(updated) });
+				set({
+					usage: Object.keys(updated).length > MAX_ENTRIES ? pruneUsageData(updated) : updated,
+				});
 			},
 			getCommandUsage: (commandId: string) => get().usage[commandId],
 			getAllCommandUsage: () => get().usage,

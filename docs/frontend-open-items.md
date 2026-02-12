@@ -151,7 +151,7 @@ Each store uses custom `PersistStorage` for validation, backwards-compatible for
 
 **Post-restructure verification (2026-02-12):**
 - Zero legacy import paths remain (`@/components/`, `@/hooks/`, `@/contexts/`, `@/utils/`, `@/types/`, `@/services/`, `@/constants/`, `@/lib/`, `@/pages/` — all clean).
-- Barrel files use named exports throughout (except `shared/index.ts` wildcard — tracked in Item 19).
+- Barrel files use named exports throughout (`shared/index.ts` uses explicit exports).
 - Code splitting via `React.lazy` correctly applied in `app/Router.tsx` for all route-level pages.
 - `tsconfig.json` path aliases minimal and correct (`@/*` → `./src/*`, `@/app` → `./src/app/index`).
 - `extensions/index.ts` serves as a compatibility shim re-exporting from `editor/extensions` — acceptable.
@@ -226,21 +226,20 @@ Each store uses custom `PersistStorage` for validation, backwards-compatible for
 ### Item 54 – Command Registry (Follow-Up)
 
 **Section:** "54. Command Registry Design"
-**Status:** Done (Rev 14), with bug found.
+**Status:** Done (Rev 14), bug fixed (2026-02-12).
 
-**Bug (from performance review 2025-02-12):**
-- `useGlobalCommandPalette.tsx:~150` — `setShowRecentDocuments` is included in the `ctx` object but **missing from the `useMemo` dependency array**. This causes a stale closure: the context object holds a stale reference to `setShowRecentDocuments` after re-renders. Add it to the dependency array.
+**Completed:** `setShowRecentDocuments` added to the `ctx` useMemo dependency array in `useGlobalCommandPalette.tsx`; stale closure resolved.
 
 ---
 
 ### Item 15 – LocalStorage Stores (Follow-Up)
 
 **Section:** "15. Custom localStorage Persistence → zustand + persist"
-**Status:** Done, with schema versioning gap identified.
+**Status:** Done, follow-up complete (2026-02-12).
 
-**Follow-up (from performance review 2025-02-12):**
-- `recentDocuments.store.ts` and `commandUsage.store.ts` save raw data without a schema version field. If the schema changes (e.g., adding a `tags` field to recent documents), old data will fail validation silently and be discarded. Add `{ version: 1, ... }` wrapper to storage format.
-- `commandUsage.store.ts:41` — `pruneUsageData` sorts entries on every storage write even when under the cap. Only prune when `MAX_ENTRIES` exceeded.
+**Completed:**
+- `recentDocuments.store.ts` and `commandUsage.store.ts` now use `{ version: 1, ... }` wrapper in storage format; legacy format still parsed for backwards compatibility.
+- `pruneUsageData` in `commandUsage.store.ts` returns early when `entries.length <= MAX_ENTRIES`; prune only runs when over cap.
 
 ---
 

@@ -40,13 +40,34 @@ interface RecentDocumentsState {
 	setDocuments: (docs: RecentDocument[]) => void;
 }
 
+function parseStoredDocuments(raw: string): RecentDocument[] | null {
+	try {
+		const parsed = JSON.parse(raw) as unknown;
+		if (
+			typeof parsed === "object" &&
+			parsed !== null &&
+			"version" in parsed &&
+			parsed.version === 1 &&
+			"documents" in parsed
+		) {
+			return validateRecentDocuments(parsed.documents);
+		}
+		// Legacy format: raw array
+		if (Array.isArray(parsed)) {
+			return validateRecentDocuments(parsed);
+		}
+		return null;
+	} catch {
+		return null;
+	}
+}
+
 const recentDocumentsStorage: PersistStorage<{ documents: RecentDocument[] }> = {
 	getItem: (name: string) => {
 		try {
 			const raw = localStorage.getItem(name);
 			if (!raw) return null;
-			const parsed = JSON.parse(raw) as unknown;
-			const documents = validateRecentDocuments(parsed);
+			const documents = parseStoredDocuments(raw);
 			return documents !== null ? { state: { documents } } : null;
 		} catch (err) {
 			BackendLogger.error("[recentDocuments.store] Failed to load:", err);
@@ -58,7 +79,7 @@ const recentDocumentsStorage: PersistStorage<{ documents: RecentDocument[] }> = 
 			if (value.state.documents.length === 0) {
 				localStorage.removeItem(name);
 			} else {
-				localStorage.setItem(name, JSON.stringify(value.state.documents));
+				localStorage.setItem(name, JSON.stringify({ version: 1, documents: value.state.documents }));
 			}
 		} catch (err) {
 			BackendLogger.error("[recentDocuments.store] Failed to save:", err);
