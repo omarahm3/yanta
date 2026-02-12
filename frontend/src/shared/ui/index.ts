@@ -48,3 +48,4 @@ export {
 } from "./Toast";
 export { Toggle } from "./Toggle";
 export { Tooltip, type TooltipPlacement, type TooltipProps } from "./Tooltip";
+export { WithTooltip, type WithTooltipProps } from "./WithTooltip";
