@@ -57,79 +57,80 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 		return Array.from(hotkeys.values());
 	}, [hotkeys]);
 
-	const { bubbleMatchersAndHandlers, captureHotkeysWithMatchers, specialCharHotkeys } = useMemo(() => {
-		const captureMap = new Map<string, RegisteredHotkey[]>();
-		const bubbleMap = new Map<string, RegisteredHotkey[]>();
-		const special: RegisteredHotkey[] = [];
+	const { bubbleMatchersAndHandlers, captureHotkeysWithMatchers, specialCharHotkeys } =
+		useMemo(() => {
+			const captureMap = new Map<string, RegisteredHotkey[]>();
+			const bubbleMap = new Map<string, RegisteredHotkey[]>();
+			const special: RegisteredHotkey[] = [];
 
-		hotkeys.forEach((hotkey) => {
-			if (SPECIAL_KEY_SET.has(hotkey.key)) {
-				special.push(hotkey);
-				return;
-			}
+			hotkeys.forEach((hotkey) => {
+				if (SPECIAL_KEY_SET.has(hotkey.key)) {
+					special.push(hotkey);
+					return;
+				}
 
-			const targetMap = hotkey.capture ? captureMap : bubbleMap;
-			const list = targetMap.get(hotkey.key) ?? [];
-			list.push(hotkey);
-			targetMap.set(hotkey.key, list);
-		});
-
-		const mapToEntries = (
-			map: Map<string, RegisteredHotkey[]>,
-		): Array<[string, (event: KeyboardEvent) => void]> =>
-			Array.from(map.entries()).map(([key, handlers]) => {
-				const wrappedHandler = (event: KeyboardEvent) => {
-					const target = event.target as HTMLElement | null;
-					const inInputField =
-						target?.tagName === "INPUT" ||
-						target?.tagName === "TEXTAREA" ||
-						(target?.getAttribute && target.getAttribute("contenteditable") === "true");
-
-					if (isDialogOpenRef.current) {
-						return;
-					}
-
-					event.preventDefault();
-
-					const sortedHandlers = [...handlers].sort((a, b) => (b.priority || 0) - (a.priority || 0));
-
-					for (const handler of sortedHandlers) {
-						if (inInputField && !handler.allowInInput) {
-							continue;
-						}
-
-						const result = handler.handler(event);
-						if (result === false) {
-							continue;
-						}
-						break;
-					}
-				};
-
-				return [key, wrappedHandler];
+				const targetMap = hotkey.capture ? captureMap : bubbleMap;
+				const list = targetMap.get(hotkey.key) ?? [];
+				list.push(hotkey);
+				targetMap.set(hotkey.key, list);
 			});
 
-		const bubbleEntries = mapToEntries(bubbleMap);
-		const bubbleMatchersAndHandlers = bubbleEntries.map(([key, wrappedHandler]) => ({
-			matcher: createHotkeyMatcher(key),
-			handler: wrappedHandler,
-		}));
+			const mapToEntries = (
+				map: Map<string, RegisteredHotkey[]>,
+			): Array<[string, (event: KeyboardEvent) => void]> =>
+				Array.from(map.entries()).map(([key, handlers]) => {
+					const wrappedHandler = (event: KeyboardEvent) => {
+						const target = event.target as HTMLElement | null;
+						const inInputField =
+							target?.tagName === "INPUT" ||
+							target?.tagName === "TEXTAREA" ||
+							(target?.getAttribute && target.getAttribute("contenteditable") === "true");
 
-		const captureHotkeysWithMatchers = Array.from(captureMap.entries())
-			.flatMap(([key, handlers]) =>
-				handlers.map((hotkey) => ({
-					hotkey,
-					matcher: createHotkeyMatcher(key),
-				})),
-			)
-			.sort((a, b) => (b.hotkey.priority || 0) - (a.hotkey.priority || 0));
+						if (isDialogOpenRef.current) {
+							return;
+						}
 
-		return {
-			bubbleMatchersAndHandlers,
-			captureHotkeysWithMatchers,
-			specialCharHotkeys: special,
-		};
-	}, [hotkeys]);
+						event.preventDefault();
+
+						const sortedHandlers = [...handlers].sort((a, b) => (b.priority || 0) - (a.priority || 0));
+
+						for (const handler of sortedHandlers) {
+							if (inInputField && !handler.allowInInput) {
+								continue;
+							}
+
+							const result = handler.handler(event);
+							if (result === false) {
+								continue;
+							}
+							break;
+						}
+					};
+
+					return [key, wrappedHandler];
+				});
+
+			const bubbleEntries = mapToEntries(bubbleMap);
+			const bubbleMatchersAndHandlers = bubbleEntries.map(([key, wrappedHandler]) => ({
+				matcher: createHotkeyMatcher(key),
+				handler: wrappedHandler,
+			}));
+
+			const captureHotkeysWithMatchers = Array.from(captureMap.entries())
+				.flatMap(([key, handlers]) =>
+					handlers.map((hotkey) => ({
+						hotkey,
+						matcher: createHotkeyMatcher(key),
+					})),
+				)
+				.sort((a, b) => (b.hotkey.priority || 0) - (a.hotkey.priority || 0));
+
+			return {
+				bubbleMatchersAndHandlers,
+				captureHotkeysWithMatchers,
+				specialCharHotkeys: special,
+			};
+		}, [hotkeys]);
 
 	useEffect(() => {
 		if (isDialogOpen || bubbleMatchersAndHandlers.length === 0) {

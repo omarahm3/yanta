@@ -104,10 +104,7 @@ export const Layout: React.FC<LayoutProps> = ({
 
 	const dataMode = getDataMode(currentPage);
 
-	const layoutStyle = useMemo(
-		() => ({ height: `calc(100vh - ${heightInRem}rem)` }),
-		[heightInRem],
-	);
+	const layoutStyle = useMemo(() => ({ height: `calc(100vh - ${heightInRem}rem)` }), [heightInRem]);
 
 	return (
 		<div

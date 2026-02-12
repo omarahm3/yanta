@@ -1,9 +1,6 @@
 import { useCallback } from "react";
-import {
-	useMergedConfig,
-	usePreferencesStore,
-} from "../shared/stores/preferences.store";
 import type { MergedConfig } from "../shared/stores/preferences.store";
+import { useMergedConfig, usePreferencesStore } from "../shared/stores/preferences.store";
 import type { PreferencesOverrides } from "./preferences";
 
 export type { MergedConfig } from "../shared/stores/preferences.store";

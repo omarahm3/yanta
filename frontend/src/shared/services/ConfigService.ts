@@ -1,13 +1,13 @@
 import {
+	PreferencesLayoutOverrides as PreferencesLayoutOverridesModel,
+	PreferencesOverrides as PreferencesOverridesModel,
+	PreferencesShortcutsOverrides as PreferencesShortcutsOverridesModel,
+	PreferencesTimeoutsOverrides as PreferencesTimeoutsOverridesModel,
+} from "../../../bindings/yanta/internal/config/models";
+import {
 	GetPreferencesOverrides as GetPreferencesOverridesBinding,
 	SetPreferencesOverrides as SetPreferencesOverridesBinding,
 } from "../../../bindings/yanta/internal/config/wailsservice";
-import {
-	PreferencesOverrides as PreferencesOverridesModel,
-	PreferencesTimeoutsOverrides as PreferencesTimeoutsOverridesModel,
-	PreferencesShortcutsOverrides as PreferencesShortcutsOverridesModel,
-	PreferencesLayoutOverrides as PreferencesLayoutOverridesModel,
-} from "../../../bindings/yanta/internal/config/models";
 import {
 	type PreferencesOverrides,
 	preferencesFromModel,

@@ -1,23 +1,23 @@
 import { create } from "zustand";
-import { getPreferencesOverrides, setPreferencesOverrides } from "../services/ConfigService";
-import type { PreferencesOverrides } from "../../config/preferences";
 import { LAYOUT } from "../../config/layout";
-import { TIMEOUTS } from "../../config/timeouts";
+import type { PreferencesOverrides } from "../../config/preferences";
 import type { ShortcutDef } from "../../config/shortcuts";
 import {
-	GLOBAL_SHORTCUTS,
-	SIDEBAR_SHORTCUTS,
-	DOCUMENT_SHORTCUTS,
+	COMMAND_LINE_SHORTCUTS,
 	DASHBOARD_SHORTCUTS,
+	DOCUMENT_SHORTCUTS,
+	GLOBAL_SHORTCUTS,
 	JOURNAL_SHORTCUTS,
+	PANE_SHORTCUTS,
 	PROJECTS_SHORTCUTS,
 	QUICK_CAPTURE_DEFAULT,
 	QUICK_CAPTURE_SHORTCUTS,
-	SETTINGS_SHORTCUTS,
-	COMMAND_LINE_SHORTCUTS,
 	SEARCH_SHORTCUTS,
-	PANE_SHORTCUTS,
+	SETTINGS_SHORTCUTS,
+	SIDEBAR_SHORTCUTS,
 } from "../../config/shortcuts";
+import { TIMEOUTS } from "../../config/timeouts";
+import { getPreferencesOverrides, setPreferencesOverrides } from "../services/ConfigService";
 import { BackendLogger } from "../utils/backendLogger";
 
 export interface MergedTimeouts {
