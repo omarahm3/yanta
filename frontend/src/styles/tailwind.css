@@ -311,6 +311,20 @@
 		transition: flex 300ms cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
+	/* Layout root: static gradient (hoisted from inline style) */
+	.layout-root {
+		background-image: radial-gradient(
+				circle at 15% 50%,
+				rgb(88 166 255 / 0.08),
+				transparent 25%
+			),
+			radial-gradient(
+				circle at 85% 30%,
+				rgb(163 113 247 / 0.08),
+				transparent 25%
+			);
+	}
+
 	@media (prefers-reduced-motion: reduce) {
 		.sidebar-transition {
 			transition: none;

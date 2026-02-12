@@ -1,4 +1,4 @@
-import type React from "react";
+import { memo } from "react";
 import { useHotkeys } from "../hotkeys";
 import type { NavigationState, PageName } from "../shared/types";
 import { DocumentContent, DocumentErrorState, DocumentLoadingState } from "./components";
@@ -11,12 +11,12 @@ export interface DocumentProps {
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
-export const Document: React.FC<DocumentProps> = ({
+export const Document = memo<DocumentProps>(function Document({
 	onNavigate,
 	documentPath,
 	initialTitle,
 	onRegisterToggleSidebar,
-}) => {
+}) {
 	const controller = useDocumentController({
 		onNavigate,
 		documentPath,
@@ -41,4 +41,4 @@ export const Document: React.FC<DocumentProps> = ({
 	}
 
 	return <DocumentContent {...controller.contentProps} />;
-};
+});

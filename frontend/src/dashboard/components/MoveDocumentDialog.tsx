@@ -1,6 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { TIMEOUTS } from "../../config";
+import { useMergedConfig } from "../../config";
 import { useProjectContext } from "../../project";
 import { moveDocumentToProject } from "../../shared/services/DocumentService";
 import { useDialog } from "../../shared/stores/dialog.store";
@@ -25,6 +25,7 @@ export const MoveDocumentDialog: React.FC<MoveDocumentDialogProps> = ({
 	currentProjectAlias,
 	onMoved,
 }) => {
+	const { timeouts } = useMergedConfig();
 	const { openDialog, closeDialog } = useDialog();
 	const { projects } = useProjectContext();
 	const [filterQuery, setFilterQuery] = useState("");
@@ -40,7 +41,7 @@ export const MoveDocumentDialog: React.FC<MoveDocumentDialogProps> = ({
 			setFilterQuery("");
 			setHighlightedIndex(0);
 			setError(null);
-			setTimeout(() => inputRef.current?.focus(), TIMEOUTS.focusRestoreMs);
+			setTimeout(() => inputRef.current?.focus(), timeouts.focusRestoreMs);
 		} else {
 			closeDialog();
 		}

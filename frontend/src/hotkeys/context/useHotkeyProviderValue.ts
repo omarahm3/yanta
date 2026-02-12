@@ -19,8 +19,13 @@ const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(
 
 export function useHotkeyProviderValue(): HotkeyContextValue {
 	const { isDialogOpen } = useDialog();
+	const isDialogOpenRef = useRef(isDialogOpen);
 	const [hotkeys, setHotkeys] = useState<Map<string, RegisteredHotkey>>(new Map());
 	const nextIdRef = useRef(0);
+
+	useEffect(() => {
+		isDialogOpenRef.current = isDialogOpen;
+	}, [isDialogOpen]);
 
 	const register = useCallback((config: HotkeyConfig): string => {
 		const id = `hotkey-${nextIdRef.current}`;
@@ -52,7 +57,7 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 		return Array.from(hotkeys.values());
 	}, [hotkeys]);
 
-	const { bubbleHotkeyEntries, captureHotkeysWithMatchers, specialCharHotkeys } = useMemo(() => {
+	const { bubbleMatchersAndHandlers, captureHotkeysWithMatchers, specialCharHotkeys } = useMemo(() => {
 		const captureMap = new Map<string, RegisteredHotkey[]>();
 		const bubbleMap = new Map<string, RegisteredHotkey[]>();
 		const special: RegisteredHotkey[] = [];
@@ -80,7 +85,7 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 						target?.tagName === "TEXTAREA" ||
 						(target?.getAttribute && target.getAttribute("contenteditable") === "true");
 
-					if (isDialogOpen) {
+					if (isDialogOpenRef.current) {
 						return;
 					}
 
@@ -104,6 +109,12 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 				return [key, wrappedHandler];
 			});
 
+		const bubbleEntries = mapToEntries(bubbleMap);
+		const bubbleMatchersAndHandlers = bubbleEntries.map(([key, wrappedHandler]) => ({
+			matcher: createHotkeyMatcher(key),
+			handler: wrappedHandler,
+		}));
+
 		const captureHotkeysWithMatchers = Array.from(captureMap.entries())
 			.flatMap(([key, handlers]) =>
 				handlers.map((hotkey) => ({
@@ -114,24 +125,19 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 			.sort((a, b) => (b.hotkey.priority || 0) - (a.hotkey.priority || 0));
 
 		return {
-			bubbleHotkeyEntries: mapToEntries(bubbleMap),
+			bubbleMatchersAndHandlers,
 			captureHotkeysWithMatchers,
 			specialCharHotkeys: special,
 		};
-	}, [hotkeys, isDialogOpen]);
+	}, [hotkeys]);
 
 	useEffect(() => {
-		if (isDialogOpen || bubbleHotkeyEntries.length === 0) {
+		if (isDialogOpen || bubbleMatchersAndHandlers.length === 0) {
 			return;
 		}
 
-		const matchersAndHandlers = bubbleHotkeyEntries.map(([key, wrappedHandler]) => ({
-			matcher: createHotkeyMatcher(key),
-			handler: wrappedHandler,
-		}));
-
 		const handleBubble = (event: KeyboardEvent) => {
-			for (const { matcher, handler } of matchersAndHandlers) {
+			for (const { matcher, handler } of bubbleMatchersAndHandlers) {
 				if (matcher(event)) {
 					handler(event);
 					break;
@@ -141,7 +147,7 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 
 		document.addEventListener("keydown", handleBubble, false);
 		return () => document.removeEventListener("keydown", handleBubble, false);
-	}, [bubbleHotkeyEntries, isDialogOpen]);
+	}, [bubbleMatchersAndHandlers, isDialogOpen]);
 
 	useEffect(() => {
 		if (captureHotkeysWithMatchers.length === 0) {
@@ -155,7 +161,7 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 				target?.tagName === "TEXTAREA" ||
 				(target?.getAttribute && target.getAttribute("contenteditable") === "true");
 
-			if (isDialogOpen) {
+			if (isDialogOpenRef.current) {
 				return;
 			}
 
@@ -180,7 +186,7 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 		return () => {
 			window.removeEventListener("keydown", handleCapture, true);
 		};
-	}, [captureHotkeysWithMatchers, isDialogOpen]);
+	}, [captureHotkeysWithMatchers]);
 
 	useEffect(() => {
 		const handleSpecialChars = (event: KeyboardEvent) => {
@@ -190,7 +196,7 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 				target?.tagName === "TEXTAREA" ||
 				(target?.getAttribute && target.getAttribute("contenteditable") === "true");
 
-			if (isDialogOpen) {
+			if (isDialogOpenRef.current) {
 				return;
 			}
 
@@ -219,7 +225,7 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 
 		document.addEventListener("keydown", handleSpecialChars);
 		return () => document.removeEventListener("keydown", handleSpecialChars);
-	}, [specialCharHotkeys, isDialogOpen]);
+	}, [specialCharHotkeys]);
 
 	useEffect(() => {
 		const handleSpaceKey = (event: KeyboardEvent) => {
@@ -235,7 +241,7 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 				target?.getAttribute?.("role") === "button" ||
 				target?.getAttribute?.("role") === "checkbox";
 
-			if (isDialogOpen) {
+			if (isDialogOpenRef.current) {
 				return;
 			}
 
@@ -246,14 +252,14 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 
 		document.addEventListener("keydown", handleSpaceKey);
 		return () => document.removeEventListener("keydown", handleSpaceKey);
-	}, [isDialogOpen]);
+	}, []);
 
 	useEffect(() => {
 		const handleCtrlW = (event: KeyboardEvent) => {
 			const target = event.target as HTMLElement;
 			const inInputField = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA";
 
-			if (isDialogOpen) {
+			if (isDialogOpenRef.current) {
 				return;
 			}
 
@@ -291,7 +297,7 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 
 		document.addEventListener("keydown", handleCtrlW);
 		return () => document.removeEventListener("keydown", handleCtrlW);
-	}, [isDialogOpen]);
+	}, []);
 
 	return useMemo<HotkeyContextValue>(
 		() => ({

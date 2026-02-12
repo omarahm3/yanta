@@ -32,6 +32,41 @@ type HotkeyConfig struct {
 	QuickCaptureKey       string   `toml:"quick_capture_key"`       // e.g., "N"
 }
 
+// PreferencesOverrides holds user-configurable overrides for shortcuts, timeouts, and layout.
+// Stored in config.toml under [preferences]. Only non-zero/non-empty values are applied.
+type PreferencesTimeoutsOverrides struct {
+	AutoSaveDebounceMs     int `toml:"auto_save_debounce_ms"`
+	TooltipHoverDelay      int `toml:"tooltip_hover_delay"`
+	TooltipFocusDelay      int `toml:"tooltip_focus_delay"`
+	ScrollDebounceMs       int `toml:"scroll_debounce_ms"`
+	SearchDebounceMs       int `toml:"search_debounce_ms"`
+	SavePersistenceDebounceMs int `toml:"save_persistence_debounce_ms"`
+}
+
+type PreferencesShortcutsOverrides struct {
+	Global      map[string]string `toml:"global"`
+	Sidebar     map[string]string `toml:"sidebar"`
+	Document    map[string]string `toml:"document"`
+	Dashboard   map[string]string `toml:"dashboard"`
+	Journal     map[string]string `toml:"journal"`
+	Projects    map[string]string `toml:"projects"`
+	QuickCapture map[string]string `toml:"quick_capture"`
+	Settings    map[string]string `toml:"settings"`
+	CommandLine map[string]string `toml:"command_line"`
+	Search      map[string]string `toml:"search"`
+	Pane        map[string]string `toml:"pane"`
+}
+
+type PreferencesLayoutOverrides struct {
+	MaxPanes int `toml:"max_panes"`
+}
+
+type PreferencesOverrides struct {
+	Timeouts  PreferencesTimeoutsOverrides  `toml:"timeouts"`
+	Shortcuts PreferencesShortcutsOverrides `toml:"shortcuts"`
+	Layout   PreferencesLayoutOverrides   `toml:"layout"`
+}
+
 type Config struct {
 	LogLevel             string        `toml:"log_level"`
 	KeepInBackground     bool          `toml:"keep_in_background"`
@@ -42,9 +77,10 @@ type Config struct {
 	LinuxWindowMode      string        `toml:"linux_window_mode"`
 	AppScale             float64       `toml:"app_scale"`
 	Hotkey               HotkeyConfig  `toml:"hotkey"`
-	SidebarVisible       bool          `toml:"sidebar_visible"`
-	ShowFooterHints      bool          `toml:"show_footer_hints"`
-	ShowShortcutTooltips bool          `toml:"show_shortcut_tooltips"`
+	SidebarVisible       bool                  `toml:"sidebar_visible"`
+	ShowFooterHints      bool                  `toml:"show_footer_hints"`
+	ShowShortcutTooltips bool                  `toml:"show_shortcut_tooltips"`
+	Preferences          PreferencesOverrides  `toml:"preferences"`
 }
 
 const (
@@ -446,4 +482,64 @@ func SetShowShortcutTooltips(show bool) error {
 
 	instance.ShowShortcutTooltips = show
 	return save(instance)
+}
+
+func GetPreferencesOverrides() PreferencesOverrides {
+	cfg := Get()
+	if cfg == nil {
+		return PreferencesOverrides{}
+	}
+	return cfg.Preferences
+}
+
+func SetPreferencesOverrides(overrides PreferencesOverrides) error {
+	validated := validatePreferencesOverrides(overrides)
+	mu.Lock()
+	defer mu.Unlock()
+
+	if instance == nil {
+		instance = &Config{}
+	}
+
+	instance.Preferences = validated
+	return save(instance)
+}
+
+// validatePreferencesOverrides validates and sanitizes overrides.
+// Invalid values are reset to zero (meaning "use default"); unknown shortcut keys are ignored.
+func validatePreferencesOverrides(overrides PreferencesOverrides) PreferencesOverrides {
+	validated := overrides
+
+	// Timeouts: bounds 100-30000 ms for debounce values
+	const minMs, maxMs = 100, 30000
+	if validated.Timeouts.AutoSaveDebounceMs != 0 {
+		if validated.Timeouts.AutoSaveDebounceMs < minMs || validated.Timeouts.AutoSaveDebounceMs > maxMs {
+			logrus.Warnf("preferences.timeouts.auto_save_debounce_ms %d out of range [%d,%d], using default",
+				validated.Timeouts.AutoSaveDebounceMs, minMs, maxMs)
+			validated.Timeouts.AutoSaveDebounceMs = 0
+		}
+	}
+	if validated.Timeouts.TooltipHoverDelay != 0 {
+		if validated.Timeouts.TooltipHoverDelay < 0 || validated.Timeouts.TooltipHoverDelay > maxMs {
+			logrus.Warnf("preferences.timeouts.tooltip_hover_delay %d out of range [0,%d], using default",
+				validated.Timeouts.TooltipHoverDelay, maxMs)
+			validated.Timeouts.TooltipHoverDelay = 0
+		}
+	}
+	if validated.Timeouts.TooltipFocusDelay != 0 {
+		if validated.Timeouts.TooltipFocusDelay < 0 || validated.Timeouts.TooltipFocusDelay > maxMs {
+			validated.Timeouts.TooltipFocusDelay = 0
+		}
+	}
+
+	// Layout: max_panes 2-8
+	if validated.Layout.MaxPanes != 0 {
+		if validated.Layout.MaxPanes < 2 || validated.Layout.MaxPanes > 8 {
+			logrus.Warnf("preferences.layout.max_panes %d out of range [2,8], using default",
+				validated.Layout.MaxPanes)
+			validated.Layout.MaxPanes = 0
+		}
+	}
+
+	return validated
 }

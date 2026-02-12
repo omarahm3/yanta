@@ -4,7 +4,7 @@ import type * as searchModels from "../../bindings/yanta/internal/search/models"
 import { Query } from "../../bindings/yanta/internal/search/service";
 import type * as tagModels from "../../bindings/yanta/internal/tag/models";
 import { ListActive as ListActiveTags } from "../../bindings/yanta/internal/tag/service";
-import { TIMEOUTS } from "../config";
+import { useMergedConfig } from "../config";
 import { useHelp } from "../help";
 import { useProjectContext } from "../project";
 import { useNotification, useSidebarSections } from "../shared/hooks";
@@ -46,6 +46,7 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 	const [searchError, setSearchError] = useState<string | null>(null);
 	const [queryTime, setQueryTime] = useState<number>(0);
 
+	const { timeouts } = useMergedConfig();
 	const { error: notifyError } = useNotification();
 	const { projects, setCurrentProject } = useProjectContext();
 	const { setPageContext } = useHelp();
@@ -171,7 +172,7 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 
 		searchTimeoutRef.current = setTimeout(() => {
 			performSearch(rawQuery, generation);
-		}, TIMEOUTS.searchDebounceMs);
+		}, timeouts.searchDebounceMs);
 
 		return () => {
 			if (searchTimeoutRef.current) {

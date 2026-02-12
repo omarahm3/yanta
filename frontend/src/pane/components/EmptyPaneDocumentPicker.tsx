@@ -1,6 +1,6 @@
 import { FileText, Search } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { TIMEOUTS } from "../../config";
+import { useMergedConfig } from "../../config";
 import { useProjectContext } from "../../project";
 import { type RecentDocument, useRecentDocuments } from "../../shared/hooks";
 import { DocumentServiceWrapper } from "../../shared/services/DocumentService";
@@ -41,6 +41,7 @@ export const EmptyPaneDocumentPicker: React.FC<EmptyPaneDocumentPickerProps> = (
 	const inputRef = useRef<HTMLInputElement>(null);
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+	const { timeouts } = useMergedConfig();
 	const { recentDocuments, removeRecentDocument } = useRecentDocuments();
 	const { projects } = useProjectContext();
 	const { openDocumentInPane, setActivePane, activePaneId } = usePaneLayout();
@@ -135,7 +136,7 @@ export const EmptyPaneDocumentPicker: React.FC<EmptyPaneDocumentPickerProps> = (
 
 			setSearchResults(deduped.slice(0, 20));
 			setHighlightedIndex(0);
-		}, TIMEOUTS.documentPickerFilterDebounceMs);
+		}, timeouts.documentPickerFilterDebounceMs);
 
 		return () => {
 			if (debounceRef.current) {

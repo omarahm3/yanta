@@ -1,6 +1,6 @@
 import { FileText } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { TIMEOUTS } from "../../config";
+import { useMergedConfig } from "../../config";
 import { useDocumentContext } from "../../document";
 import { usePaneLayout } from "../../pane";
 import { useProjectContext } from "../../project";
@@ -79,6 +79,7 @@ export function useGlobalCommandPalette(
 	const [gitError, setGitError] = useState<ParsedGitError | null>(null);
 	const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
 	const [showRecentDocuments, setShowRecentDocuments] = useState(false);
+	const { timeouts } = useMergedConfig();
 
 	const showGitError = useCallback((error: unknown) => {
 		const parsed = parseGitError(error);
@@ -88,8 +89,8 @@ export function useGlobalCommandPalette(
 
 	const closeErrorDialog = useCallback(() => {
 		setIsErrorDialogOpen(false);
-		setTimeout(() => setGitError(null), TIMEOUTS.gitErrorDismissMs);
-	}, []);
+		setTimeout(() => setGitError(null), timeouts.gitErrorDismissMs);
+	}, [timeouts.gitErrorDismissMs]);
 
 	const handleClose = useCallback(() => {
 		setShowRecentDocuments(false);

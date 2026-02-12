@@ -3,8 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	formatShortcutKeyForDisplay,
 	GLOBAL_COMMANDS,
-	getHelpShortcutsFromConfig,
-	TIMEOUTS,
+	getHelpShortcutsFromMerged,
+	useMergedConfig,
 } from "../../config";
 import { useHotkeyContext } from "../../hotkeys";
 import type { HelpSectionData, HelpSectionId } from "../utils/helpModalUtils";
@@ -35,6 +35,7 @@ export interface UseHelpModalControllerResult {
 export function useHelpModalController(): UseHelpModalControllerResult {
 	const { isOpen, closeHelp, pageCommands, pageName } = useHelp();
 	const { getRegisteredHotkeys } = useHotkeyContext();
+	const { timeouts, shortcuts } = useMergedConfig();
 
 	const [searchQuery, setSearchQuery] = useState("");
 	const [expandedSections, setExpandedSections] = useState<Set<HelpSectionId>>(new Set());
@@ -42,10 +43,13 @@ export function useHelpModalController(): UseHelpModalControllerResult {
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const closeButtonRef = useRef<HTMLButtonElement>(null);
 
-	const announce = useCallback((message: string) => {
-		setAnnouncement("");
-		setTimeout(() => setAnnouncement(message), TIMEOUTS.helpAnnounceDelayMs);
-	}, []);
+	const announce = useCallback(
+		(message: string) => {
+			setAnnouncement("");
+			setTimeout(() => setAnnouncement(message), timeouts.helpAnnounceDelayMs);
+		},
+		[timeouts.helpAnnounceDelayMs],
+	);
 
 	useEffect(() => {
 		if (isOpen) {
@@ -54,9 +58,9 @@ export function useHelpModalController(): UseHelpModalControllerResult {
 			setAnnouncement("");
 			setTimeout(() => {
 				searchInputRef.current?.focus();
-			}, TIMEOUTS.focusRestoreMs);
+			}, timeouts.focusRestoreMs);
 		}
-	}, [isOpen, pageName]);
+	}, [isOpen, pageName, timeouts.focusRestoreMs]);
 
 	useEffect(() => {
 		if (!isOpen) return;
@@ -86,7 +90,7 @@ export function useHelpModalController(): UseHelpModalControllerResult {
 	}, [getRegisteredHotkeys, pageName]);
 
 	const sections: HelpSectionData[] = useMemo(() => {
-		const fromConfig = getHelpShortcutsFromConfig();
+		const fromConfig = getHelpShortcutsFromMerged(shortcuts);
 		const sectionMap: Record<HelpSectionId, { key: string; description: string }[]> = {
 			global: fromConfig.global,
 			navigation: [
@@ -148,7 +152,7 @@ export function useHelpModalController(): UseHelpModalControllerResult {
 				shortcuts: sectionMap[id],
 			}))
 			.filter((section) => section.shortcuts.length > 0);
-	}, [allHotkeys]);
+	}, [shortcuts, allHotkeys]);
 
 	const filteredSections = useMemo(() => {
 		if (!searchQuery.trim()) return sections;

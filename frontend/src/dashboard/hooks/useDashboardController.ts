@@ -119,6 +119,7 @@ export function useDashboardController({
 	const commandInputRef = useRef<HTMLInputElement>(null);
 	const currentProjectRef = useRef(currentProject);
 	const documentsRef = useRef(documents);
+	const documentsByPathRef = useRef(new Map<string, Document>());
 	const highlightedIndexRef = useRef(highlightedIndex);
 	const showArchivedRef = useRef(showArchived);
 
@@ -148,6 +149,11 @@ export function useDashboardController({
 	useEffect(() => {
 		currentProjectRef.current = currentProject;
 		documentsRef.current = documents;
+		const byPath = new Map<string, Document>();
+		for (const doc of documents) {
+			byPath.set(doc.path, doc);
+		}
+		documentsByPathRef.current = byPath;
 		highlightedIndexRef.current = highlightedIndex;
 		showArchivedRef.current = showArchived;
 	}, [currentProject, documents, highlightedIndex, showArchived]);
@@ -303,7 +309,7 @@ export function useDashboardController({
 			const count = selectedPaths.length;
 
 			if (count === 1) {
-				const doc = documentsRef.current.find((d) => d.path === selectedPaths[0]);
+				const doc = documentsByPathRef.current.get(selectedPaths[0]);
 				if (!doc) {
 					error("Unable to find selected document");
 					return;

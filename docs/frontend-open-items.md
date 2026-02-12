@@ -79,19 +79,17 @@ Each store uses custom `PersistStorage` for validation, backwards-compatible for
 
 ---
 
-### Item 18 – Configuration Infrastructure (Phases B–C)
+### Item 18 – Configuration Infrastructure (Phase C)
 
-**Section:** “18. Hardcoded Configuration Everywhere”  
-**Status in review:** `Status: [x] Partial — refactor/centralize-config (timeouts + layout extracted; Phases B-C pending)`
+**Section:** "18. Hardcoded Configuration Everywhere"
+**Status:** Phases A–B complete; Phase C not started.
 
-**Context (excerpt):**
-- Phase A: centralize app constants into `config/` (done for shortcuts/timeouts/layout).
-- Phase B: load user overrides from a settings file via Wails (not done).
-- Phase C: plugin-scoped config namespaces with schema validation (not done).
+**Completed:**
+- **Phase A:** Constants centralized in `config/` (shortcuts, timeouts, layout).
+- **Phase B:** User overrides loaded from `~/.yanta/config.toml` via Wails bindings (`GetPreferencesOverrides`/`SetPreferencesOverrides`). `preferences.store.ts` merges backend overrides with frontend defaults; `useMergedConfig()` consumed across 15+ components. Backend validates bounds (timeouts 100–30000ms, maxPanes 2–8). Settings UI reads + writes overrides via `usePreferencesOverrides()`.
 
 **Remaining work:**
-- Implement user-configurable overrides with persistence and validation.
-- Extend config system to support per-plugin namespaces.
+- **Phase C:** Plugin-scoped config namespaces with schema validation (not started — blocked on Item 17 plugin architecture).
 
 ---
 
@@ -197,29 +195,17 @@ Each store uses custom `PersistStorage` for validation, backwards-compatible for
 ### Item 49–51 – Performance (Follow-Up)
 
 **Section:** "PART 11: PERFORMANCE DEEP DIVE"
-**Status:** Done (Items 49-51 completed), with follow-up findings.
+**Status:** Done (Items 49-51 completed), follow-up findings implemented (2026-02-12).
 
-**Follow-up (from performance review 2025-02-12):**
+**Completed (2026-02-12):**
 
-**Inline objects still in render paths:**
-- `app/Layout.tsx:113-117` — gradient `backgroundImage` is static and should be hoisted to a CSS class; dynamic `height` style object created every render, hoist to `useMemo` keyed on `heightInRem`.
-
-**Closure chain in callbacks:**
-- `shared/hooks/useSidebarSetting.ts:30-46` — `toggleSidebar` → `setSidebarVisible` → `sidebarVisible` cascading deps; callbacks recreated on every state change. Use functional setState to eliminate closures.
-
-**Missing memoization:**
-- `document/DocumentPage.tsx` — not wrapped in `React.memo` despite being rendered by Router with changing props.
-
-**O(n) lookups in hot paths:**
-- `useDashboardController.ts:306` — `documents.find()` in delete confirmation; use a `Map` for O(1) lookup.
-- `useJournalController.ts:204` — `entries.findIndex()` on every entry click; use a `Map`.
-
-**Hotkey system overhead:**
-- `useHotkeyProviderValue.ts:51-117` — `useMemo` over all hotkeys depends on `isDialogOpen`, forcing full rebuild when any dialog opens/closes. Split into two memos (hotkey map vs dialog filtering).
-- `useHotkeyProviderValue.ts:124-125` — `createHotkeyMatcher()` called inside effect on every render; memoize matchers.
-
-**compareKey optimization defeated:**
-- `useDocumentPersistence.tsx:107-109` — `formData.blocks` array in `useMemo` deps causes re-computation even when content is the same (reference equality). The `compareKey` pattern is correct but the dependency should not include the array.
+- **`app/Layout.tsx`** — Gradient hoisted to `.layout-root` CSS class in `styles/tailwind.css`; dynamic `height` style memoized with `useMemo` keyed on `heightInRem`.
+- **`shared/hooks/useSidebarSetting.ts`** — Uses functional setState and `sidebarVisibleRef` to avoid closure chain; `setSidebarVisible` and `toggleSidebar` have empty deps.
+- **`document/DocumentPage.tsx`** — Document component wrapped in `React.memo`.
+- **`useDashboardController.ts`** — `documentsByPathRef` Map for O(1) lookup; `documents.find()` replaced with `documentsByPathRef.current.get()`.
+- **`useJournalController.ts`** — `entriesByIdRef` Map for O(1) lookup; `entries.findIndex()` replaced with `entriesByIdRef.current.get()`.
+- **`useHotkeyProviderValue.ts`** — `isDialogOpenRef` for dialog check; useMemo depends only on `hotkeys`; `bubbleMatchersAndHandlers` precomputed in memo (no matcher creation in effect); capture/special/space/ctrlW handlers use ref.
+- **`useDocumentPersistence.ts`** — `blocksHash` computed in `useLayoutEffect` and stored in state; `compareKey` useMemo deps are `[blocksHash, formData.title, formData.tags]` (no `formData.blocks`).
 
 ---
 

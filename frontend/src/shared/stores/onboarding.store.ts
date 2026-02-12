@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { create } from "zustand";
 import type { PersistStorage } from "zustand/middleware";
 import { persist } from "zustand/middleware";
-import { TIMEOUTS } from "@/config";
+import { getMergedConfig } from "@/config";
 import { BackendLogger } from "../utils/backendLogger";
 
 const STORAGE_KEY = "yanta_onboarding";
@@ -129,7 +129,10 @@ export function useOnboarding(): UseOnboardingReturn {
 	useEffect(() => {
 		const hasCompleted = onboardingData?.completedWelcome ?? false;
 		if (!hasCompleted) {
-			const timer = setTimeout(() => setShouldShowWelcome(true), TIMEOUTS.welcomeDelayMs);
+			const timer = setTimeout(
+				() => setShouldShowWelcome(true),
+				getMergedConfig().timeouts.welcomeDelayMs,
+			);
 			return () => clearTimeout(timer);
 		}
 		return undefined;

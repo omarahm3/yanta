@@ -1,6 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { TIMEOUTS } from "../../config";
+import { useMergedConfig } from "../../config";
 import { Modal } from "../../shared/ui/Modal";
 
 export interface NewProjectDialogProps {
@@ -20,6 +20,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
 	const [endDate, setEndDate] = useState("");
 	const [errors, setErrors] = useState<{ name?: string; alias?: string }>({});
 	const nameInputRef = useRef<HTMLInputElement>(null);
+	const { timeouts } = useMergedConfig();
 
 	useEffect(() => {
 		if (isOpen) {
@@ -28,9 +29,9 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
 			setStartDate(new Date().toISOString().split("T")[0]);
 			setEndDate("");
 			setErrors({});
-			setTimeout(() => nameInputRef.current?.focus(), TIMEOUTS.focusRestoreMs);
+			setTimeout(() => nameInputRef.current?.focus(), timeouts.focusRestoreMs);
 		}
-	}, [isOpen]);
+	}, [isOpen, timeouts.focusRestoreMs]);
 
 	const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
 		const value = e.target.value;

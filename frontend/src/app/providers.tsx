@@ -8,6 +8,7 @@ import { ToastProvider } from "../shared/ui";
 import { ResizeHandles, TitleBar } from "./components";
 import { DocumentCountStoreInit } from "./DocumentCountStoreInit";
 import { AppGlobalEffects, GlobalCommandHotkey } from "./global-hotkeys";
+import { PreferencesStoreInit } from "./PreferencesStoreInit";
 import { ProjectStoreInit } from "./ProjectStoreInit";
 import { ScaleStoreInit } from "./ScaleStoreInit";
 
@@ -17,6 +18,7 @@ export function AppProviders() {
 			<ReducedEffectsInit />
 			<ScaleStoreInit />
 			<DocumentCountStoreInit />
+			<PreferencesStoreInit />
 			<ProjectStoreInit />
 			<HotkeyProvider>
 				<HelpProvider>

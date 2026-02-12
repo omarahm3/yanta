@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { create } from "zustand";
 import type { PersistStorage } from "zustand/middleware";
 import { persist } from "zustand/middleware";
-import { TIMEOUTS } from "@/config";
+import { getMergedConfig } from "@/config";
 import type { PaneLayoutState } from "../../pane/types";
 import { createDefaultPaneLayout } from "../../pane/types";
 import { restoreLayout } from "../../pane/utils/paneLayoutUtils";
@@ -180,7 +180,7 @@ export function usePanePersistence(state: PaneLayoutState): void {
 
 		debounceTimerRef.current = setTimeout(() => {
 			savePaneLayout(state);
-		}, TIMEOUTS.savePersistenceDebounceMs);
+		}, getMergedConfig().timeouts.savePersistenceDebounceMs);
 
 		return () => {
 			if (debounceTimerRef.current) {

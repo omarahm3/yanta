@@ -159,6 +159,38 @@ export function formatShortcutKeyForDisplay(key: string): string {
 		.join("+");
 }
 
+/** Display key → config key (HotkeyInput outputs raw key names; normalize edge cases). */
+const DISPLAY_TO_KEY_MAP: Record<string, string> = {
+	ESC: "Escape",
+	SPACE: " ",
+	Space: " ",
+	ENTER: "Enter",
+	TAB: "Tab",
+	"↑": "ArrowUp",
+	"↓": "ArrowDown",
+	"←": "ArrowLeft",
+	"→": "ArrowRight",
+};
+
+/**
+ * Convert HotkeyInput display format to config format (e.g. "Ctrl+K" → "mod+K").
+ * platform: "windows" | "darwin" | "linux" — mod = Ctrl on Win/Linux, Cmd on Mac.
+ */
+export function parseDisplayKeyToConfigKey(displayKey: string, platform: string): string {
+	const isMac = platform === "darwin";
+	return displayKey
+		.split("+")
+		.map((part) => {
+			const normalized = part.trim();
+			if (normalized === "Ctrl") return isMac ? "ctrl" : "mod";
+			if (normalized === "Win" || normalized === "Meta") return isMac ? "mod" : "meta";
+			if (normalized === "Shift") return "shift";
+			if (normalized === "Alt") return "alt";
+			return DISPLAY_TO_KEY_MAP[normalized] ?? normalized;
+		})
+		.join("+");
+}
+
 /** Flatten all config shortcuts for Settings table. IDs use config key names (e.g. global.help) for stable, safe identifiers. */
 export function getShortcutsForSettings(): { id: string; action: string; key: string }[] {
 	const entries: { id: string; action: string; key: string }[] = [];
@@ -189,6 +221,46 @@ export function getShortcutsForSettings(): { id: string; action: string; key: st
 	return entries;
 }
 
+/** Build settings shortcuts from merged config (for user-overridable shortcuts). */
+export function getShortcutsForSettingsFromMerged(shortcuts: {
+	global: Record<string, ShortcutDef>;
+	sidebar: Record<string, ShortcutDef>;
+	document: Record<string, ShortcutDef>;
+	dashboard: Record<string, ShortcutDef>;
+	journal: Record<string, ShortcutDef>;
+	projects: Record<string, ShortcutDef>;
+	quickCapture: Record<string, ShortcutDef> & { default: ShortcutDef };
+	settings: Record<string, ShortcutDef>;
+	commandLine: Record<string, ShortcutDef>;
+	search: Record<string, ShortcutDef>;
+	pane: Record<string, ShortcutDef>;
+}): { id: string; action: string; key: string }[] {
+	const entries: { id: string; action: string; key: string }[] = [];
+	const pushAll = (group: string, defs: Record<string, ShortcutDef>) => {
+		for (const [name, def] of Object.entries(defs)) {
+			entries.push({ id: `${group}.${name}`, action: def.description, key: def.key });
+		}
+	};
+	pushAll("global", shortcuts.global);
+	pushAll("sidebar", shortcuts.sidebar);
+	pushAll("document", shortcuts.document);
+	pushAll("dashboard", shortcuts.dashboard);
+	pushAll("journal", shortcuts.journal);
+	pushAll("projects", shortcuts.projects);
+	entries.push({
+		id: "quickCapture.default",
+		action: shortcuts.quickCapture.default.description,
+		key: shortcuts.quickCapture.default.key,
+	});
+	const { default: _, ...rest } = shortcuts.quickCapture;
+	pushAll("quickCapture", rest);
+	pushAll("settings", shortcuts.settings);
+	pushAll("commandLine", shortcuts.commandLine);
+	pushAll("search", shortcuts.search);
+	pushAll("pane", shortcuts.pane);
+	return entries;
+}
+
 /** Help modal section items derived from config (key formatted for display). Editor left empty so it is filled only by runtime-registered hotkeys (avoids duplication). */
 export function getHelpShortcutsFromConfig(): {
 	global: { key: string; description: string }[];
@@ -207,6 +279,34 @@ export function getHelpShortcutsFromConfig(): {
 		],
 		documents: [fmt(DASHBOARD_SHORTCUTS.newDocument), fmt(DOCUMENT_SHORTCUTS.save)],
 		journal: [fmt(JOURNAL_SHORTCUTS.prevDay), fmt(JOURNAL_SHORTCUTS.nextDay)],
+		editor: [],
+	};
+}
+
+/** Help modal items from merged shortcuts (for user-overridable shortcuts). */
+export function getHelpShortcutsFromMerged(shortcuts: {
+	global: Record<string, ShortcutDef>;
+	sidebar: Record<string, ShortcutDef>;
+	dashboard: Record<string, ShortcutDef>;
+	document: Record<string, ShortcutDef>;
+	journal: Record<string, ShortcutDef>;
+}): {
+	global: { key: string; description: string }[];
+	documents: { key: string; description: string }[];
+	journal: { key: string; description: string }[];
+	editor: { key: string; description: string }[];
+} {
+	const fmt = (d: ShortcutDef) => ({
+		key: formatShortcutKeyForDisplay(d.key),
+		description: d.description,
+	});
+	return {
+		global: [
+			...Object.values(shortcuts.global).map(fmt),
+			...Object.values(shortcuts.sidebar).map(fmt),
+		],
+		documents: [fmt(shortcuts.dashboard.newDocument), fmt(shortcuts.document.save)],
+		journal: [fmt(shortcuts.journal.prevDay), fmt(shortcuts.journal.nextDay)],
 		editor: [],
 	};
 }

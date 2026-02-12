@@ -1,6 +1,12 @@
-import React from "react";
+import React, { useCallback, useMemo } from "react";
 import { GranularErrorBoundary, Layout } from "@/app";
-import { formatShortcutKeyForDisplay, getShortcutsForSettings } from "../config";
+import {
+	formatShortcutKeyForDisplay,
+	getShortcutsForSettingsFromMerged,
+	parseDisplayKeyToConfigKey,
+	useMergedConfig,
+	usePreferencesOverrides,
+} from "../config";
 import type { PageName } from "../shared/types";
 import { ConfirmDialog, MigrationConflictDialog, type Shortcut } from "../shared/ui";
 import { AboutSection } from "./AboutSection";
@@ -13,21 +19,26 @@ import { useSettingsPage } from "./hooks/useSettingsPage";
 import { LoggingSection } from "./LoggingSection";
 import { ShortcutsSection } from "./ShortcutsSection";
 
-/** Shortcuts from config/shortcuts (single source of truth for registration + display). */
-const SHORTCUTS_FOR_SETTINGS: Shortcut[] = getShortcutsForSettings().map(({ id, action, key }) => ({
-	id,
-	action,
-	defaultKey: formatShortcutKeyForDisplay(key),
-	currentKey: formatShortcutKeyForDisplay(key),
-	editable: false,
-}));
-
 interface SettingsProps {
 	onNavigate?: (page: PageName) => void;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
 const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
+	const { shortcuts: mergedShortcuts } = useMergedConfig();
+	const { setOverrides } = usePreferencesOverrides();
+	const shortcutsForSettings: Shortcut[] = useMemo(
+		() =>
+			getShortcutsForSettingsFromMerged(mergedShortcuts).map(({ id, action, key }) => ({
+				id,
+				action,
+				defaultKey: formatShortcutKeyForDisplay(key),
+				currentKey: formatShortcutKeyForDisplay(key),
+				editable: false,
+			})),
+		[mergedShortcuts],
+	);
+
 	const {
 		controller,
 		sidebarVisible,
@@ -54,6 +65,33 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		setSettingsKey,
 		sidebarSections,
 	} = useSettingsPage({ onNavigate });
+
+	const handleShortcutOverride = useCallback(
+		async (id: string, displayKey: string) => {
+			const dot = id.indexOf(".");
+			if (dot === -1) return;
+			const group = id.slice(0, dot) as
+				| "global"
+				| "sidebar"
+				| "document"
+				| "dashboard"
+				| "journal"
+				| "projects"
+				| "quickCapture"
+				| "settings"
+				| "commandLine"
+				| "search"
+				| "pane";
+			const key = id.slice(dot + 1);
+			const configKey = parseDisplayKeyToConfigKey(displayKey, controller.platform);
+			await setOverrides({
+				shortcuts: {
+					[group]: { [key]: configKey },
+				},
+			});
+		},
+		[setOverrides, controller.platform],
+	);
 
 	return (
 		<Layout
@@ -118,7 +156,8 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 							hotkeyConfig={controller.hotkeyConfig}
 							onHotkeyConfigChange={controller.handlers.handleHotkeyConfigChange}
 							hotkeyError={controller.hotkeyError}
-							shortcuts={SHORTCUTS_FOR_SETTINGS}
+							shortcuts={shortcutsForSettings}
+							onShortcutOverride={handleShortcutOverride}
 						/>
 
 						<LoggingSection

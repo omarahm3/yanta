@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { DASHBOARD_SHORTCUTS } from "../../config";
+import { useMergedConfig } from "../../config";
 import type { HotkeyConfig } from "../../shared/types/hotkeys";
 
 export interface UseDashboardHotkeysConfigOptions {
@@ -31,22 +31,25 @@ export function useDashboardHotkeysConfig({
 	handleExportSelectedMarkdown,
 	handleExportSelectedPDF,
 }: UseDashboardHotkeysConfigOptions): HotkeyConfig[] {
+	const { shortcuts } = useMergedConfig();
+	const dashboard = shortcuts.dashboard;
+
 	return useMemo(
 		() => [
 			{
-				...DASHBOARD_SHORTCUTS.newDocument,
+				...dashboard.newDocument,
 				handler: () => {
 					void handleNewDocument();
 				},
 				allowInInput: false,
 			},
 			{
-				...DASHBOARD_SHORTCUTS.toggleArchived,
+				...dashboard.toggleArchived,
 				handler: handleToggleArchived as (event: KeyboardEvent) => void,
 				allowInInput: false,
 			},
 			{
-				...DASHBOARD_SHORTCUTS.softDelete,
+				...dashboard.softDelete,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -55,7 +58,7 @@ export function useDashboardHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...DASHBOARD_SHORTCUTS.permanentDelete,
+				...dashboard.permanentDelete,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -64,7 +67,7 @@ export function useDashboardHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...DASHBOARD_SHORTCUTS.toggleSelection,
+				...dashboard.toggleSelection,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -73,7 +76,7 @@ export function useDashboardHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...DASHBOARD_SHORTCUTS.openHighlighted,
+				...dashboard.openHighlighted,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -82,7 +85,7 @@ export function useDashboardHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...DASHBOARD_SHORTCUTS.highlightNext,
+				...dashboard.highlightNext,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -91,7 +94,7 @@ export function useDashboardHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...DASHBOARD_SHORTCUTS.highlightPrev,
+				...dashboard.highlightPrev,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -100,7 +103,7 @@ export function useDashboardHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...DASHBOARD_SHORTCUTS.navigateDown,
+				...dashboard.navigateDown,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -109,7 +112,7 @@ export function useDashboardHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...DASHBOARD_SHORTCUTS.navigateUp,
+				...dashboard.navigateUp,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -118,7 +121,7 @@ export function useDashboardHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...DASHBOARD_SHORTCUTS.move,
+				...dashboard.move,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -127,7 +130,7 @@ export function useDashboardHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...DASHBOARD_SHORTCUTS.archive,
+				...dashboard.archive,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -136,7 +139,7 @@ export function useDashboardHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...DASHBOARD_SHORTCUTS.restore,
+				...dashboard.restore,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -145,7 +148,7 @@ export function useDashboardHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...DASHBOARD_SHORTCUTS.exportMd,
+				...dashboard.exportMd,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -154,7 +157,7 @@ export function useDashboardHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...DASHBOARD_SHORTCUTS.exportPdf,
+				...dashboard.exportPdf,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -164,6 +167,7 @@ export function useDashboardHotkeysConfig({
 			},
 		],
 		[
+			dashboard,
 			handleNewDocument,
 			handleToggleArchived,
 			handleDeleteSelectedDocuments,

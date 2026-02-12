@@ -1,6 +1,5 @@
 import type { Block } from "@blocknote/core";
-import { useCallback, useEffect, useMemo, useRef } from "react";
-import { TIMEOUTS } from "@/config";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useAutoSave } from "../../shared/hooks";
 import type { NavigationState, PageName } from "../../shared/types";
 import type { BlockNoteBlock } from "../../shared/types/Document";
@@ -46,6 +45,14 @@ export const useDocumentPersistence = ({
 	const latestFormRef = useRef(formData);
 	const currentDocumentPathRef = useRef(documentPath);
 	const isSavingRef = useRef(false);
+
+	// Compute blocks hash in layout effect to avoid formData.blocks in useMemo deps
+	// (reference equality causes re-computation on every render; hash is content-based)
+	const [blocksHash, setBlocksHash] = useState(() => computeContentHash(formData.blocks as Block[]));
+
+	useLayoutEffect(() => {
+		setBlocksHash(computeContentHash(formData.blocks as Block[]));
+	}, [formData]);
 
 	useEffect(() => {
 		latestFormRef.current = formData;
@@ -103,15 +110,13 @@ export const useDocumentPersistence = ({
 	}, [shouldAutoSave, currentProject, isLoading, handleSave, onAutoSaveComplete]);
 
 	const compareKey = useMemo(
-		() =>
-			`${computeContentHash(formData.blocks as Block[])}\n${formData.title}\n${formData.tags.join(",")}`,
-		[formData.blocks, formData.title, formData.tags],
+		() => `${blocksHash}\n${formData.title}\n${formData.tags.join(",")}`,
+		[blocksHash, formData.title, formData.tags],
 	);
 
 	const autoSaveHook = useAutoSave({
 		value: formData,
 		onSave: handleSave,
-		delay: TIMEOUTS.autoSaveDebounceMs,
 		enabled: hasChanges && !isLoading,
 		saveOnBlur: true,
 		isInitialized: isEditorReady,

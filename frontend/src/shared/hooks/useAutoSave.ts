@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { TIMEOUTS } from "@/config";
+import { useMergedConfig } from "@/config";
 
 export type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -25,12 +25,17 @@ interface AutoSaveReturn {
 export const useAutoSave = <T>({
 	value,
 	onSave,
-	delay = TIMEOUTS.autoSaveDebounceMs,
+	delay: delayProp,
 	enabled = true,
 	saveOnBlur = true,
 	isInitialized = true,
 	compareKey,
 }: AutoSaveConfig<T>): AutoSaveReturn => {
+	const { timeouts } = useMergedConfig();
+	const delay = delayProp ?? timeouts.autoSaveDebounceMs;
+	const timeoutsRef = useRef(timeouts);
+	timeoutsRef.current = timeouts;
+
 	const [saveState, setSaveState] = useState<SaveState>("idle");
 	const [lastSaved, setLastSaved] = useState<Date | null>(null);
 	const [saveError, setSaveError] = useState<Error | null>(null);
@@ -92,13 +97,13 @@ export const useAutoSave = <T>({
 			savedStateTimeoutRef.current = window.setTimeout(() => {
 				setSaveState("idle");
 				savedStateTimeoutRef.current = null;
-			}, TIMEOUTS.savedStateDisplayMs);
+			}, timeoutsRef.current.savedStateDisplayMs);
 		} catch (err) {
 			const error = err instanceof Error ? err : new Error("Save failed");
 
-			if (retryCount < TIMEOUTS.autoSaveMaxRetries) {
+			if (retryCount < timeoutsRef.current.autoSaveMaxRetries) {
 				retryCountRef.current = retryCount + 1;
-				const retryDelay = TIMEOUTS.autoSaveRetryBaseMs * 2 ** retryCount;
+				const retryDelay = timeoutsRef.current.autoSaveRetryBaseMs * 2 ** retryCount;
 
 				if (retryTimeoutRef.current) {
 					clearTimeout(retryTimeoutRef.current);

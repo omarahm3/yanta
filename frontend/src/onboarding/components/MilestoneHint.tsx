@@ -1,6 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { TIMEOUTS } from "../../config";
+import { getMergedConfig } from "../../config";
 import { cn } from "../../shared/utils/cn";
 
 export interface MilestoneHintProps {
@@ -39,7 +39,7 @@ export const MilestoneHint: React.FC<MilestoneHintProps> = ({
 		animationTimerRef.current = setTimeout(() => {
 			setIsVisible(false);
 			onDismiss(hintId);
-		}, TIMEOUTS.milestoneAnimationMs);
+		}, getMergedConfig().timeouts.milestoneAnimationMs);
 	}, [hintId, onDismiss]);
 
 	// Auto-dismiss after specified time

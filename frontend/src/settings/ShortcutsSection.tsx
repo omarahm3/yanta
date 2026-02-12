@@ -3,11 +3,22 @@ import type { GlobalHotkeyConfig } from "../shared/types";
 import {
 	Heading,
 	HotkeyEditor,
+	HotkeyInput,
 	SettingsSection,
 	type Shortcut,
 	ShortcutsTable,
 	Text,
 } from "../shared/ui";
+
+/** Shortcut IDs that users can override (subset of full shortcut list). */
+const OVERRIDABLE_SHORTCUT_IDS = [
+	{ id: "global.help", label: "Toggle help" },
+	{ id: "global.commandPalette", label: "Open command palette" },
+	{ id: "global.today", label: "Jump to today's journal" },
+	{ id: "sidebar.toggle", label: "Toggle sidebar" },
+	{ id: "dashboard.newDocument", label: "Create new document" },
+	{ id: "document.save", label: "Save document" },
+] as const;
 
 interface ShortcutsSectionProps {
 	platform: string;
@@ -15,10 +26,24 @@ interface ShortcutsSectionProps {
 	onHotkeyConfigChange: (config: GlobalHotkeyConfig) => void;
 	hotkeyError?: string;
 	shortcuts: Shortcut[];
+	/** Override shortcuts (from preferences). Key: "group.key", value: key combo e.g. "mod+K" */
+	shortcutOverrides?: Record<string, string>;
+	onShortcutOverride?: (id: string, newKey: string) => void;
 }
 
 export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectionProps>(
-	({ platform, hotkeyConfig, onHotkeyConfigChange, hotkeyError, shortcuts }, ref) => {
+	(
+		{
+			platform,
+			hotkeyConfig,
+			onHotkeyConfigChange,
+			hotkeyError,
+			shortcuts,
+			shortcutOverrides = {},
+			onShortcutOverride,
+		},
+		ref,
+	) => {
 		const isWindows = platform === "windows";
 		const isLinux = platform === "linux";
 		const isMac = platform === "darwin";
@@ -145,6 +170,37 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 								</div>
 							)}
 						</div>
+
+						{/* Override Shortcuts (when supported) */}
+						{onShortcutOverride && (
+							<div>
+								<Heading as="h3" size="sm" variant="bright" weight="medium" className="mb-2">
+									Override Shortcuts
+								</Heading>
+								<Text size="sm" variant="dim" className="mb-4">
+									Customize these shortcuts. Changes take effect immediately.
+								</Text>
+								<div className="space-y-3">
+									{OVERRIDABLE_SHORTCUT_IDS.map(({ id, label }) => {
+										const shortcut = shortcuts.find((s) => s.id === id);
+										const currentKey = shortcutOverrides[id] ?? shortcut?.currentKey ?? "";
+										return (
+											<div
+												key={id}
+												className="flex items-center justify-between gap-4 p-3 rounded border border-border bg-bg-secondary"
+											>
+												<span className="text-sm text-text">{label}</span>
+												<HotkeyInput
+													value={currentKey}
+													onChange={(key) => onShortcutOverride(id, key)}
+													placeholder="Click and press keys..."
+												/>
+											</div>
+										);
+									})}
+								</div>
+							</div>
+						)}
 
 						{/* Application Shortcuts Section */}
 						<div>

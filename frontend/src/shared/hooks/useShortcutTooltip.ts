@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { TIMEOUTS } from "@/config";
+import { useMergedConfig } from "@/config";
 import { useTooltipUsage } from "../stores/tooltipUsage.store";
 
 export type TooltipPlacement = "top" | "bottom" | "left" | "right";
@@ -86,6 +86,7 @@ export function useShortcutTooltip(
 	config: TooltipConfig,
 ): UseShortcutTooltipReturn {
 	const { description, shortcut, placement = "top", disabled = false } = config;
+	const { timeouts } = useMergedConfig();
 
 	const [isVisible, setIsVisible] = useState(false);
 	const [hasBeenShown, setHasBeenShown] = useState(false);
@@ -139,16 +140,16 @@ export function useShortcutTooltip(
 	}, [clearShowTimeout]);
 
 	const handleMouseEnter = useCallback(() => {
-		scheduleShow(TIMEOUTS.tooltipHoverDelay);
-	}, [scheduleShow]);
+		scheduleShow(timeouts.tooltipHoverDelay);
+	}, [scheduleShow, timeouts.tooltipHoverDelay]);
 
 	const handleMouseLeave = useCallback(() => {
 		hide();
 	}, [hide]);
 
 	const handleFocus = useCallback(() => {
-		scheduleShow(TIMEOUTS.tooltipFocusDelay);
-	}, [scheduleShow]);
+		scheduleShow(timeouts.tooltipFocusDelay);
+	}, [scheduleShow, timeouts.tooltipFocusDelay]);
 
 	const handleBlur = useCallback(() => {
 		hide();

@@ -176,6 +176,7 @@ func New(cfg Config) (*App, error) {
 		System:                   systemService,
 		Assets:                   assetService,
 		Journal:                  journalWailsService,
+		Config:                   config.NewWailsService(),
 		Backup:                   backupService,
 		Export:                   exportService,
 		ProjectCommands:          projectCommands,

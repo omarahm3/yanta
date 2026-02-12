@@ -1,6 +1,6 @@
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import React, { type ReactNode, useCallback, useEffect, useState } from "react";
-import { TIMEOUTS } from "@/config";
+import { useMergedConfig } from "@/config";
 import { useShortcutTooltipsSetting, useTooltipUsage } from "../hooks";
 import { cn } from "../utils/cn";
 
@@ -32,10 +32,13 @@ export const Tooltip: React.FC<TooltipProps> = ({
 	content,
 	shortcut,
 	placement = "top",
-	delay = TIMEOUTS.tooltipHoverDelay,
+	delay: delayProp,
 	children,
 	disabled = false,
 }) => {
+	const { timeouts } = useMergedConfig();
+	const delay = delayProp ?? timeouts.tooltipHoverDelay;
+
 	const [hasBeenShown, setHasBeenShown] = useState(false);
 	const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 	const [isOpen, setIsOpen] = useState(false);
@@ -86,7 +89,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
 				<TooltipPrimitive.Portal>
 					<TooltipPrimitive.Content
 						side={placement}
-						sideOffset={TIMEOUTS.tooltipOffset}
+						sideOffset={timeouts.tooltipOffset}
 						className={cn(
 							"z-[9999] px-3 py-2 text-sm rounded-md shadow-lg",
 							"bg-glass-bg/90 backdrop-blur-xl border border-glass-border text-text",

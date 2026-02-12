@@ -136,11 +136,17 @@ export function useJournalController({
 
 	// Refs for hotkey handlers (to avoid stale closures)
 	const entriesRef = useRef(entries);
+	const entriesByIdRef = useRef(new Map<string, number>());
 	const highlightedIndexRef = useRef(highlightedIndex);
 	const selectedIdsRef = useRef(selectedIds);
 
 	useEffect(() => {
 		entriesRef.current = entries;
+		const byId = new Map<string, number>();
+		for (let i = 0; i < entries.length; i++) {
+			byId.set(entries[i].id, i);
+		}
+		entriesByIdRef.current = byId;
 		highlightedIndexRef.current = highlightedIndex;
 		selectedIdsRef.current = selectedIds;
 	}, [entries, highlightedIndex, selectedIds]);
@@ -198,16 +204,13 @@ export function useJournalController({
 		[toggleSelectionById],
 	);
 
-	// Entry click handler
-	const handleEntryClick = useCallback(
-		(id: string) => {
-			const index = entries.findIndex((e) => e.id === id);
-			if (index !== -1) {
-				setHighlightedIndex(index);
-			}
-		},
-		[entries],
-	);
+	// Entry click handler (O(1) lookup via Map)
+	const handleEntryClick = useCallback((id: string) => {
+		const index = entriesByIdRef.current.get(id);
+		if (index !== undefined) {
+			setHighlightedIndex(index);
+		}
+	}, []);
 
 	// Delete selected entries with confirmation
 	const handleDeleteSelected = useCallback(() => {

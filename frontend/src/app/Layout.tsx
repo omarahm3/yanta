@@ -104,17 +104,18 @@ export const Layout: React.FC<LayoutProps> = ({
 
 	const dataMode = getDataMode(currentPage);
 
+	const layoutStyle = useMemo(
+		() => ({ height: `calc(100vh - ${heightInRem}rem)` }),
+		[heightInRem],
+	);
+
 	return (
 		<div
 			data-testid="layout-root"
 			data-sidebar-visible={sidebarVisible ? "true" : "false"}
 			data-mode={dataMode}
-			className="relative flex overflow-hidden font-sans text-sm leading-relaxed bg-bg-dark text-text selection:bg-accent/30 selection:text-text-bright"
-			style={{
-				height: `calc(100vh - ${heightInRem}rem)`,
-				backgroundImage:
-					"radial-gradient(circle at 15% 50%, rgba(var(--color-accent), 0.08), transparent 25%), radial-gradient(circle at 85% 30%, rgba(var(--color-purple), 0.08), transparent 25%)",
-			}}
+			className="layout-root relative flex overflow-hidden font-sans text-sm leading-relaxed bg-bg-dark text-text selection:bg-accent/30 selection:text-text-bright"
+			style={layoutStyle}
 		>
 			{/* Glass Sidebar Container */}
 			<div

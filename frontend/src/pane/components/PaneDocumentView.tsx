@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from "react";
-import { TIMEOUTS } from "@/config";
+import { useMergedConfig } from "@/config";
 import { DocumentEditorActions, DocumentEditorForm } from "../../document/components";
 import { useDocumentController } from "../../document/hooks/useDocumentController";
 import { useHotkeys } from "../../hotkeys";
@@ -30,6 +30,7 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 			paneId,
 		});
 
+		const { timeouts } = useMergedConfig();
 		const { layout, updateScrollPosition, activePaneId } = usePaneLayout();
 		const layoutRef = useLatestRef(layout);
 		const suppressEscapeRef = useLatestRef(suppressEscape);
@@ -68,7 +69,7 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 
 			const onScroll = () => {
 				clearTimeout(timeoutId);
-				timeoutId = setTimeout(handleScroll, TIMEOUTS.scrollDebounceMs);
+				timeoutId = setTimeout(handleScroll, timeouts.scrollDebounceMs);
 			};
 
 			container.addEventListener("scroll", onScroll, { passive: true });
@@ -77,7 +78,7 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 				clearTimeout(timeoutId);
 				container.removeEventListener("scroll", onScroll);
 			};
-		}, [handleScroll]);
+		}, [handleScroll, timeouts.scrollDebounceMs]);
 
 		// Restore scroll position after content finishes loading
 		useEffect(() => {

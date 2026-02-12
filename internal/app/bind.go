@@ -23,6 +23,7 @@ type Bindings struct {
 	System           *system.Service
 	Assets           *asset.Service
 	Journal          *journal.WailsService
+	Config           *config.WailsService
 	Backup           *backup.Service
 	Export           *export.Service
 	ProjectCommands  *commandline.ProjectCommands
@@ -52,6 +53,7 @@ func (b *Bindings) Bind() []any {
 		b.System,
 		b.Assets,
 		b.Journal,
+		b.Config,
 		b.Backup,
 		b.Export,
 		b.ProjectCommands,
