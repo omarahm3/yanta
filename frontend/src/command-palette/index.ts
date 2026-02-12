@@ -1,6 +1,7 @@
 // Public API for command-palette domain
-export { GlobalCommandPalette } from "./components";
+
 export { useCommandPaletteStore } from "./commandPalette.store";
+export { GlobalCommandPalette } from "./components";
 export type { CommandUsageData, CommandUsageRecord, UseCommandUsageReturn } from "./hooks";
 export { useCommandUsage } from "./hooks";
 export type { CommandRegistry, CommandRegistryContext } from "./registry";

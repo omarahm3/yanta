@@ -9,6 +9,7 @@ export type GlobalCommandPaletteProps = UseGlobalCommandPaletteProps;
 
 export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = (props) => {
 	const {
+		isOpen,
 		handleClose,
 		handleCommandSelect,
 		sortedCommands,
@@ -23,7 +24,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = (props)
 	return (
 		<>
 			<CommandPalette
-				isOpen={props.isOpen}
+				isOpen={isOpen}
 				onClose={handleClose}
 				onCommandSelect={handleCommandSelect}
 				commands={sortedCommands}

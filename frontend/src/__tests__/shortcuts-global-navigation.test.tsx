@@ -59,23 +59,23 @@ vi.mock("../command-palette", async () => {
 	return {
 		...actual,
 		GlobalCommandPalette: (props: {
-			isOpen: boolean;
 			onClose: () => void;
 			onNavigate: (
 				page: import("../types").PageName,
 				state?: import("../types").NavigationState,
 			) => void;
 		}) => {
-			__mockCommandPaletteOpen = props.isOpen;
-			commandPaletteRender(props);
+			const isOpen = actual.useCommandPaletteStore((s: { isOpen: boolean }) => s.isOpen);
+			__mockCommandPaletteOpen = isOpen;
+			commandPaletteRender({ ...props, isOpen });
 			// Expose navigate for tests
-			if (props.isOpen) {
+			if (isOpen) {
 				(window as unknown as { __testNavigate: typeof props.onNavigate }).__testNavigate =
 					props.onNavigate;
 			}
 			return (
-				<div data-testid="command-palette" data-open={props.isOpen}>
-					{props.isOpen && (
+				<div data-testid="command-palette" data-open={String(isOpen)}>
+					{isOpen && (
 						<button
 							data-testid="navigate-journal"
 							onClick={() => props.onNavigate("journal")}

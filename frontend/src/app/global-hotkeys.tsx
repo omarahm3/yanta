@@ -15,7 +15,6 @@ const AppGlobalEffects = () => {
 const GlobalCommandHotkey = () => {
 	const { openHelp } = useHelp();
 	const nav = useAppNavigation();
-	const isOpen = useCommandPaletteStore((s) => s.isOpen);
 	const openCommandPalette = useCommandPaletteStore((s) => s.open);
 	const closeCommandPalette = useCommandPaletteStore((s) => s.close);
 
@@ -51,7 +50,6 @@ const GlobalCommandHotkey = () => {
 	return (
 		<>
 			<GlobalCommandPalette
-				isOpen={isOpen}
 				onClose={() => closeCommandPalette()}
 				onNavigate={nav.onNavigate}
 				currentPage={nav.currentPage}

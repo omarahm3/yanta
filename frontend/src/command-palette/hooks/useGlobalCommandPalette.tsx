@@ -9,6 +9,7 @@ import type { NavigationState, PageName } from "../../shared/types";
 import type { CommandOption, SubPaletteItem } from "../../shared/ui";
 import { formatRelativeTimeFromTimestamp } from "../../shared/utils/date";
 import { type ParsedGitError, parseGitError } from "../../shared/utils/gitErrorParser";
+import { useCommandPaletteStore } from "../commandPalette.store";
 import {
 	type CommandRegistryContext,
 	registerApplicationCommands,
@@ -32,7 +33,6 @@ const REGISTRY_SOURCES = [
 ] as const;
 
 export interface UseGlobalCommandPaletteProps {
-	isOpen: boolean;
 	onClose: () => void;
 	onNavigate: (page: PageName, state?: NavigationState) => void;
 	currentPage?: PageName;
@@ -43,6 +43,7 @@ export interface UseGlobalCommandPaletteProps {
 }
 
 export interface UseGlobalCommandPaletteReturn {
+	isOpen: boolean;
 	handleClose: () => void;
 	handleCommandSelect: (command: CommandOption) => void;
 	sortedCommands: CommandOption[];
@@ -67,6 +68,7 @@ export function useGlobalCommandPalette(
 		onShowHelp,
 	} = props;
 
+	const isOpen = useCommandPaletteStore((s) => s.isOpen);
 	const { projects, currentProject, setCurrentProject, previousProject, switchToLastProject } =
 		useProjectContext();
 	const { getSelectedDocument } = useDocumentContext();
@@ -166,6 +168,7 @@ export function useGlobalCommandPalette(
 			onToggleSidebar,
 			onShowHelp,
 			resetLayout,
+			setShowRecentDocuments,
 		],
 	);
 
@@ -203,6 +206,7 @@ export function useGlobalCommandPalette(
 	}, [commandOptions, getAllCommandUsage]);
 
 	return {
+		isOpen,
 		handleClose,
 		handleCommandSelect,
 		sortedCommands,

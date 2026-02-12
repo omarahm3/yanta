@@ -164,20 +164,20 @@ Each store uses custom `PersistStorage` for validation, backwards-compatible for
 ### Item 19 – Barrel Files (Follow-Up)
 
 **Section:** "19. Add barrel files to all feature dirs"
-**Status:** Done (Rev 15), with follow-up needed.
+**Status:** Done (Rev 15), follow-up complete (2026-02-12).
 
 **Completed:** Barrel files added to components/editor, extensions, services, shared.
 
 **Follow-up (from performance review 2025-02-12):**
-- `shared/index.ts:1` uses `export * from "./ui"` — wildcard re-export prevents tree-shaking; all ~50 UI components bundled even if only 2 are used. Replace with named exports for only what consumers actually need.
+- ~~`shared/index.ts`~~ — **Done:** Uses explicit named exports from `./ui` (not `export *`).
 - `shared/hooks/index.ts` — 30+ named hook exports; acceptable since hooks are small, but monitor for unused additions.
 - `pane/index.ts` — 30+ exports from pane utilities; acceptable since pane is page-scoped.
 - `shared/ui/index.ts` — 50+ component re-exports. Consumers should prefer direct imports (`@/shared/ui/Button`) over barrel imports (`@/shared/ui`) for better tree-shaking.
 
-**Remaining work:**
-- Replace `export * from "./ui"` in `shared/index.ts` with explicit named exports.
-- Replace `export * from "./primitives"` in `shared/ui/Select/index.ts` with explicit named exports (leaks Select internals).
-- Add missing `WithTooltip` export to `shared/ui/index.ts` barrel.
+**Remaining work:** All done (2026-02-12).
+- ~~Replace `export * from "./ui"` in `shared/index.ts` with explicit named exports~~ — Already uses explicit exports.
+- ~~Replace `export * from "./primitives"` in `shared/ui/Select/index.ts` with explicit named exports~~ — Select does not export primitives; they remain internal.
+- ~~Add missing `WithTooltip` export to `shared/ui/index.ts` barrel~~ — Already exported.
 
 ---
 

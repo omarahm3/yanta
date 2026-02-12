@@ -30,12 +30,12 @@ vi.mock("../command-palette", async () => {
 	return {
 		...actual,
 		GlobalCommandPalette: (props: {
-			isOpen: boolean;
 			onClose: () => void;
 			onNavigate: (page: import("../types").PageName) => void;
 		}) => {
-			commandPaletteRender(props);
-			return <div data-testid="command-palette" data-open={props.isOpen} />;
+			const isOpen = actual.useCommandPaletteStore((s: { isOpen: boolean }) => s.isOpen);
+			commandPaletteRender({ ...props, isOpen });
+			return <div data-testid="command-palette" data-open={String(isOpen)} />;
 		},
 	};
 });

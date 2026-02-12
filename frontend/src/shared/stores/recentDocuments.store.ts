@@ -138,7 +138,7 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 	const updateRecentDocumentTitle = useRecentDocumentsStore((s) => s.updateRecentDocumentTitle);
 	const setDocuments = useRecentDocumentsStore((s) => s.setDocuments);
 
-	// Cross-tab sync: rehydrate when another tab changes our key
+	// Cross-tab sync + event subscriptions: single effect for external listeners
 	useEffect(() => {
 		const handleStorage = (e: StorageEvent) => {
 			if (e.key === STORAGE_KEY) {
@@ -146,8 +146,22 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 			}
 		};
 		window.addEventListener("storage", handleStorage);
-		return () => window.removeEventListener("storage", handleStorage);
-	}, []);
+		const unsubUpdated = Events.On("yanta/entry/updated", (ev) => {
+			if (ev.data?.path && ev.data?.title) {
+				updateRecentDocumentTitle(ev.data.path, ev.data.title);
+			}
+		});
+		const unsubDeleted = Events.On("yanta/entry/deleted", (ev) => {
+			if (ev.data?.path) {
+				removeRecentDocument(ev.data.path);
+			}
+		});
+		return () => {
+			window.removeEventListener("storage", handleStorage);
+			unsubUpdated();
+			unsubDeleted();
+		};
+	}, [updateRecentDocumentTitle, removeRecentDocument]);
 
 	// Fetch fresh titles for stored documents and persist to store
 	useEffect(() => {
@@ -176,24 +190,6 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 			cancelled = true;
 		};
 	}, [documents, setDocuments]);
-
-	// Event subscriptions
-	useEffect(() => {
-		const unsubUpdated = Events.On("yanta/entry/updated", (ev) => {
-			if (ev.data?.path && ev.data?.title) {
-				updateRecentDocumentTitle(ev.data.path, ev.data.title);
-			}
-		});
-		const unsubDeleted = Events.On("yanta/entry/deleted", (ev) => {
-			if (ev.data?.path) {
-				removeRecentDocument(ev.data.path);
-			}
-		});
-		return () => {
-			unsubUpdated();
-			unsubDeleted();
-		};
-	}, [updateRecentDocumentTitle, removeRecentDocument]);
 
 	return useMemo<UseRecentDocumentsReturn>(
 		() => ({
