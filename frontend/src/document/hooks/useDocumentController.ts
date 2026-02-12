@@ -94,6 +94,7 @@ export function useDocumentController({
 	});
 
 	const editorRef = useRef<BlockNoteEditor | null>(null);
+	const lastAddedPathRef = useRef<string | null>(null);
 	const [hasRestored, setHasRestored] = useState(false);
 	const [isRestoring, setIsRestoring] = useState(false);
 	const [isEditorReady, setIsEditorReady] = useState(false);
@@ -103,6 +104,7 @@ export function useDocumentController({
 		setHasRestored(false);
 		setIsRestoring(false);
 		setIsEditorReady(false);
+		lastAddedPathRef.current = null;
 	}, [documentPath]);
 
 	useEffect(() => {
@@ -122,15 +124,16 @@ export function useDocumentController({
 		[handleEditorReady],
 	);
 
-	// Track recently opened documents
+	// Track recently opened documents (guard prevents duplicate calls when deps change)
 	useEffect(() => {
-		if (data && documentPath && !isLoading && !loadError && currentProject) {
-			addRecentDocument({
-				path: documentPath,
-				title: data.title || "Untitled",
-				projectAlias: currentProject.alias,
-			});
-		}
+		if (!data || !documentPath || isLoading || loadError || !currentProject) return;
+		if (lastAddedPathRef.current === documentPath) return;
+		lastAddedPathRef.current = documentPath;
+		addRecentDocument({
+			path: documentPath,
+			title: data.title || "Untitled",
+			projectAlias: currentProject.alias,
+		});
 	}, [data, documentPath, isLoading, loadError, currentProject, addRecentDocument]);
 
 	const { autoSave } = useDocumentPersistence({

@@ -184,18 +184,13 @@ Each store uses custom `PersistStorage` for validation, backwards-compatible for
 ### Item 40 – Effect Waterfalls
 
 **Section:** "40. Split effect waterfalls into focused effects"
-**Status:** Partial — some addressed, others identified.
+**Status:** Done.
 
-**Identified in performance review (2025-02-12):**
+**Completed (2026-02-12):**
 
-- **`recentDocuments.store.ts:141-194`** — 4 separate effects where 2 would suffice. Effect 3 (line 192-194, sync local state) is redundant with Effect 2 (fetch titles). Local `useState` mirrors zustand store unnecessarily, causing double re-renders. Remove the local state and use `documents` from the store directly.
-- **`app/global-hotkeys.tsx:23-29`** — Effect-derived state anti-pattern: `isOpen` useState + useEffect to call `openDialog`/`closeDialog`. Should bind hotkey directly to dialog store action.
-- **`useDocumentController.tsx:126-134`** — `addRecentDocument` effect re-fires whenever any of 6 dependencies change; should guard against re-adding the same document.
-
-**Remaining work:**
-- Consolidate `useRecentDocuments` from 4 effects to 2; remove redundant local state mirror.
-- Refactor `global-hotkeys.tsx` to avoid intermediate `isOpen` state.
-- Add guard in `useDocumentController` to prevent duplicate `addRecentDocument` calls.
+- **`recentDocuments.store.ts`** — Consolidated from 4 effects to 2; removed redundant local state mirror. Now uses `documents` from the store directly.
+- **`app/global-hotkeys.tsx`** — Refactored to use `commandPalette.store.ts`; hotkey binds directly to `open()`/`close()`; removed `isOpen` useState and useEffect.
+- **`useDocumentController.ts`** — Added `lastAddedPathRef` guard to prevent duplicate `addRecentDocument` calls when deps change.
 
 ---
 

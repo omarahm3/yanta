@@ -1,10 +1,8 @@
-import React from "react";
-import { GlobalCommandPalette } from "../command-palette";
+import { GlobalCommandPalette, useCommandPaletteStore } from "../command-palette";
 import { GLOBAL_SHORTCUTS } from "../config";
 import { useHelp } from "../help";
 import { useHotkey } from "../hotkeys";
 import { useProjectContext } from "../project";
-import { useDialog } from "./context";
 import { useAppGlobalEffects } from "./hooks";
 import { Router } from "./Router";
 import { useAppNavigation } from "./useAppNavigation";
@@ -16,21 +14,14 @@ const AppGlobalEffects = () => {
 
 const GlobalCommandHotkey = () => {
 	const { openHelp } = useHelp();
-	const { openDialog, closeDialog } = useDialog();
 	const nav = useAppNavigation();
-	const [isOpen, setIsOpen] = React.useState(false);
-
-	React.useEffect(() => {
-		if (isOpen) openDialog();
-		else closeDialog();
-		return () => {
-			if (isOpen) closeDialog();
-		};
-	}, [isOpen, openDialog, closeDialog]);
+	const isOpen = useCommandPaletteStore((s) => s.isOpen);
+	const openCommandPalette = useCommandPaletteStore((s) => s.open);
+	const closeCommandPalette = useCommandPaletteStore((s) => s.close);
 
 	useHotkey({
 		...GLOBAL_SHORTCUTS.commandPalette,
-		handler: () => setIsOpen(true),
+		handler: () => openCommandPalette(),
 		allowInInput: false,
 	});
 
@@ -61,7 +52,7 @@ const GlobalCommandHotkey = () => {
 		<>
 			<GlobalCommandPalette
 				isOpen={isOpen}
-				onClose={() => setIsOpen(false)}
+				onClose={() => closeCommandPalette()}
 				onNavigate={nav.onNavigate}
 				currentPage={nav.currentPage}
 				onToggleArchived={nav.onToggleArchived}

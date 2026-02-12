@@ -1,5 +1,5 @@
 import { Events } from "@wailsio/runtime";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { create } from "zustand";
 import type { PersistStorage } from "zustand/middleware";
 import { persist } from "zustand/middleware";
@@ -138,8 +138,6 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 	const updateRecentDocumentTitle = useRecentDocumentsStore((s) => s.updateRecentDocumentTitle);
 	const setDocuments = useRecentDocumentsStore((s) => s.setDocuments);
 
-	const [recentDocuments, setRecentDocuments] = useState<RecentDocument[]>(documents);
-
 	// Cross-tab sync: rehydrate when another tab changes our key
 	useEffect(() => {
 		const handleStorage = (e: StorageEvent) => {
@@ -151,12 +149,9 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 		return () => window.removeEventListener("storage", handleStorage);
 	}, []);
 
-	// Fetch fresh titles for stored documents
+	// Fetch fresh titles for stored documents and persist to store
 	useEffect(() => {
-		if (documents.length === 0) {
-			setRecentDocuments([]);
-			return;
-		}
+		if (documents.length === 0) return;
 
 		let cancelled = false;
 
@@ -174,24 +169,13 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 		).then((results) => {
 			if (cancelled) return;
 			const validated = results.filter((d): d is RecentDocument => d !== null);
-			setRecentDocuments(validated);
-			if (
-				validated.length !== documents.length ||
-				validated.some((d, i) => d.path !== documents[i].path || d.title !== documents[i].title)
-			) {
-				setDocuments(validated);
-			}
+			setDocuments(validated);
 		});
 
 		return () => {
 			cancelled = true;
 		};
 	}, [documents, setDocuments]);
-
-	// Sync local state when store updates from events
-	useEffect(() => {
-		setRecentDocuments(documents);
-	}, [documents]);
 
 	// Event subscriptions
 	useEffect(() => {
@@ -213,11 +197,11 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 
 	return useMemo<UseRecentDocumentsReturn>(
 		() => ({
-			recentDocuments,
+			recentDocuments: documents,
 			addRecentDocument,
 			removeRecentDocument,
 			clearRecentDocuments,
 		}),
-		[recentDocuments, addRecentDocument, removeRecentDocument, clearRecentDocuments],
+		[documents, addRecentDocument, removeRecentDocument, clearRecentDocuments],
 	);
 }

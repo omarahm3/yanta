@@ -171,6 +171,7 @@ vi.mock("../shared/ui/Toast", () => ({
 }));
 
 import App from "../App";
+import { useCommandPaletteStore } from "../command-palette";
 
 // ============================================
 // Test Utilities
@@ -205,6 +206,7 @@ describe("Global Navigation Shortcuts", () => {
 		commandPaletteRender.mockClear();
 		capturedHotkeyContext = null;
 		__mockCommandPaletteOpen = false;
+		useCommandPaletteStore.getState().reset();
 	});
 
 	describe("Command Palette (Ctrl+K / mod+K)", () => {
@@ -392,6 +394,7 @@ describe("Global Navigation Shortcuts from Multiple Starting Pages", () => {
 		mockCloseHelp.mockClear();
 		commandPaletteRender.mockClear();
 		capturedHotkeyContext = null;
+		useCommandPaletteStore.getState().reset();
 	});
 
 	const globalShortcuts = [
@@ -486,6 +489,7 @@ describe("Command Palette Navigation Commands", () => {
 	beforeEach(() => {
 		commandPaletteRender.mockClear();
 		capturedHotkeyContext = null;
+		useCommandPaletteStore.getState().reset();
 	});
 
 	it("command palette provides navigation callback", async () => {
@@ -536,6 +540,7 @@ describe("Shortcut Registration Validation", () => {
 
 	beforeEach(() => {
 		capturedHotkeyContext = null;
+		useCommandPaletteStore.getState().reset();
 	});
 
 	it("verifies all global shortcuts have descriptions", async () => {

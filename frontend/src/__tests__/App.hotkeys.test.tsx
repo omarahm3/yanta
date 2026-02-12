@@ -100,12 +100,14 @@ vi.mock("../shared/ui/Toast", () => ({
 }));
 
 import App from "../App";
+import { useCommandPaletteStore } from "../command-palette";
 
 describe("App hotkeys", () => {
 	beforeEach(() => {
 		openHelp.mockClear();
 		commandPaletteRender.mockClear();
 		capturedHotkeyContext = null;
+		useCommandPaletteStore.getState().reset();
 	});
 
 	it("opens help modal with Shift+/", async () => {
