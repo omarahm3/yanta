@@ -61,10 +61,17 @@ type PreferencesLayoutOverrides struct {
 	MaxPanes int `toml:"max_panes"`
 }
 
+// PreferencesPluginConfig holds key-value overrides for a single plugin.
+// Schema validation is done on the frontend; backend stores and passes through.
+type PreferencesPluginConfig map[string]any
+
+// PreferencesOverrides holds user-configurable overrides for shortcuts, timeouts, layout, and plugins.
+// Stored in config.toml under [preferences]. Plugin config under [preferences.plugins.<plugin-id>].
 type PreferencesOverrides struct {
 	Timeouts  PreferencesTimeoutsOverrides  `toml:"timeouts"`
 	Shortcuts PreferencesShortcutsOverrides `toml:"shortcuts"`
-	Layout   PreferencesLayoutOverrides   `toml:"layout"`
+	Layout    PreferencesLayoutOverrides   `toml:"layout"`
+	Plugins   map[string]PreferencesPluginConfig `toml:"plugins"`
 }
 
 type Config struct {

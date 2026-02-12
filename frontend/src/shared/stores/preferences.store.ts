@@ -206,10 +206,22 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
 					mergedShortcuts[group] = existingGroup;
 				}
 			}
+			const mergedPlugins: PreferencesOverrides["plugins"] = { ...existing.plugins };
+			if (newOverrides.plugins && typeof newOverrides.plugins === "object") {
+				for (const [pluginId, pluginConfig] of Object.entries(newOverrides.plugins)) {
+					if (pluginConfig && typeof pluginConfig === "object") {
+						mergedPlugins[pluginId] = {
+							...mergedPlugins[pluginId],
+							...pluginConfig,
+						};
+					}
+				}
+			}
 			const merged: PreferencesOverrides = {
 				timeouts: { ...existing.timeouts, ...newOverrides.timeouts },
 				shortcuts: Object.keys(mergedShortcuts).length > 0 ? mergedShortcuts : undefined,
 				layout: { ...existing.layout, ...newOverrides.layout },
+				plugins: Object.keys(mergedPlugins).length > 0 ? mergedPlugins : undefined,
 			};
 			await setPreferencesOverrides(merged);
 			set({ overrides: merged });

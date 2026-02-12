@@ -30,10 +30,15 @@ export interface PreferencesLayoutOverrides {
 	maxPanes?: number;
 }
 
+export interface PreferencesPluginOverrides {
+	[pluginId: string]: Record<string, unknown>;
+}
+
 export interface PreferencesOverrides {
 	timeouts?: PreferencesTimeoutsOverrides;
 	shortcuts?: PreferencesShortcutsOverrides;
 	layout?: PreferencesLayoutOverrides;
+	plugins?: PreferencesPluginOverrides;
 }
 
 /** Convert backend (PascalCase) model to frontend (camelCase) format. */
@@ -48,6 +53,7 @@ export function preferencesFromModel(model: {
 	};
 	Shortcuts?: Record<string, Record<string, string>>;
 	Layout?: { MaxPanes?: number };
+	Plugins?: Record<string, Record<string, unknown>>;
 }): PreferencesOverrides {
 	const overrides: PreferencesOverrides = {};
 	if (model.Timeouts) {
@@ -86,6 +92,9 @@ export function preferencesFromModel(model: {
 	if (model.Layout?.MaxPanes) {
 		overrides.layout = { maxPanes: model.Layout.MaxPanes };
 	}
+	if (model.Plugins && typeof model.Plugins === "object" && Object.keys(model.Plugins).length > 0) {
+		overrides.plugins = model.Plugins as PreferencesPluginOverrides;
+	}
 	return overrides;
 }
 
@@ -94,15 +103,18 @@ export function preferencesToModel(overrides: PreferencesOverrides): {
 	Timeouts: Record<string, number>;
 	Shortcuts: Record<string, Record<string, string>>;
 	Layout: Record<string, number>;
+	Plugins: Record<string, Record<string, unknown>>;
 } {
 	const model: {
 		Timeouts: Record<string, number>;
 		Shortcuts: Record<string, Record<string, string>>;
 		Layout: Record<string, number>;
+		Plugins: Record<string, Record<string, unknown>>;
 	} = {
 		Timeouts: {},
 		Shortcuts: {},
 		Layout: {},
+		Plugins: {},
 	};
 	if (overrides.timeouts) {
 		const t = overrides.timeouts;
@@ -137,6 +149,9 @@ export function preferencesToModel(overrides: PreferencesOverrides): {
 	}
 	if (overrides.layout?.maxPanes) {
 		model.Layout.MaxPanes = overrides.layout.maxPanes;
+	}
+	if (overrides.plugins && typeof overrides.plugins === "object" && Object.keys(overrides.plugins).length > 0) {
+		model.Plugins = overrides.plugins;
 	}
 	return model;
 }

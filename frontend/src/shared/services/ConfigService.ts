@@ -20,11 +20,12 @@ export async function getPreferencesOverrides(): Promise<PreferencesOverrides> {
 }
 
 export async function setPreferencesOverrides(overrides: PreferencesOverrides): Promise<void> {
-	const { Timeouts, Shortcuts, Layout } = preferencesToModel(overrides);
+	const { Timeouts, Shortcuts, Layout, Plugins } = preferencesToModel(overrides);
 	const model = new PreferencesOverridesModel({
 		Timeouts: new PreferencesTimeoutsOverridesModel(Timeouts),
 		Shortcuts: new PreferencesShortcutsOverridesModel(Shortcuts),
 		Layout: new PreferencesLayoutOverridesModel(Layout),
+		Plugins: Plugins ?? {},
 	});
 	await SetPreferencesOverridesBinding(model);
 }

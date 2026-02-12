@@ -4,7 +4,17 @@ export { EDITOR_HELP_COMMANDS, EDITOR_SHORTCUTS } from "./editorCommands";
 export { ENABLE_TOOLTIP_HINTS } from "./featureFlags";
 export { GLOBAL_COMMANDS } from "./globalCommands";
 export { LAYOUT } from "./layout";
-export type { PreferencesOverrides } from "./preferences";
+export type { PreferencesOverrides, PreferencesPluginOverrides } from "./preferences";
+export {
+	getPluginConfigDefinition,
+	getRegisteredPluginIds,
+	registerPluginConfig,
+} from "./pluginConfigRegistry";
+export type { PluginConfigSchema } from "./pluginConfigRegistry";
+export { validatePluginConfig } from "./pluginConfigValidation";
+export type { ValidatePluginConfigResult } from "./pluginConfigValidation";
+export { usePluginConfig } from "./usePluginConfig";
+export type { UsePluginConfigResult } from "./usePluginConfig";
 export type { ShortcutDef } from "./shortcuts";
 export {
 	ALL_SHORTCUT_KEYS,

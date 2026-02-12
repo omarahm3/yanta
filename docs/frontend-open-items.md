@@ -79,17 +79,17 @@ Each store uses custom `PersistStorage` for validation, backwards-compatible for
 
 ---
 
-### Item 18 – Configuration Infrastructure (Phase C)
+### Item 18 – Configuration Infrastructure — Complete
 
 **Section:** "18. Hardcoded Configuration Everywhere"
-**Status:** Phases A–B complete; Phase C not started.
+**Status:** Done (Phases A–C complete).
 
 **Completed:**
 - **Phase A:** Constants centralized in `config/` (shortcuts, timeouts, layout).
 - **Phase B:** User overrides loaded from `~/.yanta/config.toml` via Wails bindings (`GetPreferencesOverrides`/`SetPreferencesOverrides`). `preferences.store.ts` merges backend overrides with frontend defaults; `useMergedConfig()` consumed across 15+ components. Backend validates bounds (timeouts 100–30000ms, maxPanes 2–8). Settings UI reads + writes overrides via `usePreferencesOverrides()`.
+- **Phase C:** Plugin-scoped config namespaces with Zod schema validation. Infrastructure: `pluginConfigRegistry.ts` (Map-based registry with `registerPluginConfig()`), `pluginConfigValidation.ts` (Zod `safeParse` with fallback to defaults), `usePluginConfig<T>(pluginId)` hook for read/write. Backend stores under `[preferences.plugins.<plugin-id>]` in TOML. `preferences.store.ts` deep-merges per plugin ID on save. No consumers yet — awaiting Item 17 plugin architecture.
 
-**Remaining work:**
-- **Phase C:** Plugin-scoped config namespaces with schema validation (not started — blocked on Item 17 plugin architecture).
+**Note:** `validatePluginConfig` passes through raw config for unregistered plugins (no schema = no validation). Tighten this when Item 17 plugin lifecycle enforces registration.
 
 ---
 
