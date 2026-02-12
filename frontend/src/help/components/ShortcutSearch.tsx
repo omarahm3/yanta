@@ -2,8 +2,8 @@ import Fuse from "fuse.js";
 import { Search, X } from "lucide-react";
 import type { FC } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { cn } from "../../lib/utils";
-import type { RegisteredHotkey } from "../../types/hotkeys";
+import type { RegisteredHotkey } from "../../shared/types/hotkeys";
+import { cn } from "../../shared/utils/cn";
 
 export interface ShortcutSearchProps {
 	shortcuts: RegisteredHotkey[];

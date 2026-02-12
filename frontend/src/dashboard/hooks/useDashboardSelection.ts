@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Document } from "../../types/Document";
+import type { Document } from "../../shared/types/Document";
 
 export interface UseDashboardSelectionOptions {
 	documentsRef: React.RefObject<Document[]>;

@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ListDates } from "../../bindings/yanta/internal/journal/wailsservice";
-import { useProjectContext } from "../contexts";
-import { useHelp } from "../hooks";
-import { useNotification } from "../hooks/useNotification";
-import { useSidebarSections } from "../hooks/useSidebarSections";
-import type { NavigationState, PageName } from "../types";
-import type { HotkeyConfig } from "../types/hotkeys";
-import { BackendLogger } from "../utils/backendLogger";
+import { useHelp } from "../help";
+import { useProjectContext } from "../project";
+import { useNotification, useSidebarSections } from "../shared/hooks";
+import type { NavigationState, PageName } from "../shared/types";
+import type { HotkeyConfig } from "../shared/types/hotkeys";
+import { BackendLogger } from "../shared/utils/backendLogger";
 import type { JournalEntryData } from "./JournalEntry";
 import { useJournal } from "./useJournal";
 import { type ConfirmDialogState, useJournalDialogs } from "./useJournalDialogs";

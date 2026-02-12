@@ -1,6 +1,6 @@
 import { Events } from "@wailsio/runtime";
 import { useEffect } from "react";
-import { useToast } from "../../components/ui";
+import { useToast } from "../../shared/ui";
 
 export function useWindowHiddenToast(): void {
 	const toast = useToast();

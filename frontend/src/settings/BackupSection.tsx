@@ -1,6 +1,6 @@
 import { Clock, Database, Trash2 } from "lucide-react";
 import React, { useCallback } from "react";
-import { Button, ConfirmDialog, Input, Label, SettingsSection, Toggle } from "../components/ui";
+import { Button, ConfirmDialog, Input, Label, SettingsSection, Toggle } from "../shared/ui";
 
 function formatSize(bytes: number): string {
 	if (bytes < 1024) return `${bytes} B`;

@@ -1,7 +1,7 @@
 import React from "react";
-import { Label, Select, type SelectOption, SettingsSection, Toggle } from "../components/ui";
 import { ENABLE_TOOLTIP_HINTS } from "../config/featureFlags";
 import { useAppearanceStore } from "../shared/stores/appearance.store";
+import { Label, Select, type SelectOption, SettingsSection, Toggle } from "../shared/ui";
 
 interface AppearanceSectionProps {
 	appScale: number;

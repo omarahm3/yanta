@@ -2,7 +2,7 @@ import { useCallback, useEffect } from "react";
 import { create } from "zustand";
 import type { PersistStorage } from "zustand/middleware";
 import { persist } from "zustand/middleware";
-import { BackendLogger } from "../../utils/backendLogger";
+import { BackendLogger } from "../utils/backendLogger";
 
 const STORAGE_KEY = "yanta_tooltip_usage";
 const FADE_THRESHOLD = 5;

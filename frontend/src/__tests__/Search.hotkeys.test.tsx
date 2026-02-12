@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { vi } from "vitest";
-import { DialogProvider, HotkeyProvider } from "../contexts";
-import { Search } from "../pages/Search";
+import { DialogProvider } from "../app/context";
+import { HotkeyProvider } from "../hotkeys";
+import { Search } from "../search";
 
 const onNavigate = vi.fn();
 
@@ -40,9 +41,13 @@ vi.mock("../../bindings/yanta/internal/tag/service", () => ({
 	ListActive: vi.fn(async () => [{ name: "t1" }]),
 }));
 
-vi.mock("../components/Layout", () => ({
-	Layout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
+vi.mock("../app", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../app")>();
+	return {
+		...actual,
+		Layout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	};
+});
 
 import { Query } from "../../bindings/yanta/internal/search/service";
 

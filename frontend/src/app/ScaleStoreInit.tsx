@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { GetAppScale } from "../../bindings/yanta/internal/system/service";
 import { useScaleStore } from "../shared/stores/scale.store";
-import { BackendLogger } from "../utils/backendLogger";
+import { BackendLogger } from "../shared/utils/backendLogger";
 
 /**
  * Runs once on app mount: loads scale from backend and applies it.

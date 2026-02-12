@@ -1,8 +1,10 @@
 import React from "react";
-import { GlobalCommandPalette } from "../components";
+import { GlobalCommandPalette } from "../command-palette";
 import { GLOBAL_SHORTCUTS } from "../config";
-import { useDialog, useProjectContext } from "../contexts";
-import { useHelp, useHotkey } from "../hooks";
+import { useHelp } from "../help";
+import { useHotkey } from "../hotkeys";
+import { useProjectContext } from "../project";
+import { useDialog } from "./context";
 import { useAppGlobalEffects } from "./hooks";
 import { Router } from "./Router";
 import { useAppNavigation } from "./useAppNavigation";

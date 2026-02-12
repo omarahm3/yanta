@@ -1,16 +1,16 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SETTINGS_SHORTCUTS } from "../../config";
+import { useHelp } from "../../help";
+import { useHotkeys } from "../../hotkeys";
 import {
 	useFooterHintsSetting,
 	useGitStatus,
-	useHelp,
-	useHotkeys,
 	useShortcutTooltipsSetting,
+	useSidebarSections,
 	useSidebarSetting,
-} from "../../hooks";
-import { useSidebarSections } from "../../hooks/useSidebarSections";
-import type { PageName } from "../../types";
+} from "../../shared/hooks";
+import type { PageName } from "../../shared/types";
 import { useSettingsController } from "../useSettingsController";
 
 const SECTION_IDS = [

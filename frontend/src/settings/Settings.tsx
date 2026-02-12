@@ -1,9 +1,8 @@
 import React from "react";
-import { GranularErrorBoundary } from "@/app";
-import { Layout } from "../components/Layout";
-import { ConfirmDialog, MigrationConflictDialog, type Shortcut } from "../components/ui";
+import { GranularErrorBoundary, Layout } from "@/app";
 import { formatShortcutKeyForDisplay, getShortcutsForSettings } from "../config";
-import type { PageName } from "../types";
+import type { PageName } from "../shared/types";
+import { ConfirmDialog, MigrationConflictDialog, type Shortcut } from "../shared/ui";
 import { AboutSection } from "./AboutSection";
 import { AppearanceSection } from "./AppearanceSection";
 import { BackupSection } from "./BackupSection";

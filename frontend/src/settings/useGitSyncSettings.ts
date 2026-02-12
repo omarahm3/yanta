@@ -11,9 +11,9 @@ import {
 	SetGitSyncConfig,
 	SyncNow,
 } from "../../bindings/yanta/internal/system/service";
-import type { SelectOption } from "../components/ui";
-import { useNotification } from "../hooks/useNotification";
-import { BackendLogger } from "../utils/backendLogger";
+import { useNotification } from "../shared/hooks";
+import type { SelectOption } from "../shared/ui";
+import { BackendLogger } from "../shared/utils/backendLogger";
 
 export interface GitSyncSettings {
 	enabled: boolean;

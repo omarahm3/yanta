@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
-import { useDocumentContext, useProjectContext } from "../../contexts";
-import type { Document } from "../../types/Document";
-import type { Project } from "../../types/Project";
+import { useDocumentContext } from "../../document";
+import { useProjectContext } from "../../project";
+import type { Document } from "../../shared/types/Document";
+import type { Project } from "../../shared/types/Project";
 
 export interface UseDashboardDataOptions {
 	showArchived: boolean;

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { PANE_SHORTCUTS } from "../../config";
-import { useHotkeys } from "../../hooks";
-import type { HotkeyConfig } from "../../types/hotkeys";
+import { useHotkeys } from "../../hotkeys";
+import type { HotkeyConfig } from "../../shared/types/hotkeys";
 import { countLeaves, getPaneInDirection, type PaneDirection } from "../utils/paneLayoutUtils";
 import { usePaneLayout } from "./usePaneLayout";
 

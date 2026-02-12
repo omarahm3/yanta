@@ -11,5 +11,6 @@ export { useProgressStore, useUserProgressContext } from "./stores/progress.stor
 export type { ProjectContextValue } from "./stores/project.store";
 export { useProjectContext, useProjectStore } from "./stores/project.store";
 export { useScaleStore } from "./stores/scale.store";
-export type { NavigationState, PageName } from "./types/navigation";
+export type { NavigationState, PageName } from "./types";
+export * from "./ui";
 export { cn } from "./utils/cn";

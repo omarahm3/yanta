@@ -1,5 +1,5 @@
 import React from "react";
-import { BackendLogger } from "../utils/backendLogger";
+import { BackendLogger } from "../shared/utils/backendLogger";
 import { AppProviders } from "./providers";
 
 function App() {

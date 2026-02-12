@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { useProjectContext, useUserProgressContext } from "../../contexts";
+import { useUserProgressContext } from "../../onboarding";
+import { useProjectContext } from "../../project";
 
 export function useProjectSwitchTracking(): void {
 	const { currentProject } = useProjectContext();

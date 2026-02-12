@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { BlockNoteBlock } from "../../types/Document";
-import { createEmptyDocument } from "../../utils/documentBlockUtils";
+import type { BlockNoteBlock } from "../../shared/types/Document";
+import { createEmptyDocument } from "../utils/documentBlockUtils";
 import { useDocumentLoader } from "./useDocumentLoader";
 
 interface DocumentFormData {

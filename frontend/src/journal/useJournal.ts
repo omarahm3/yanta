@@ -8,8 +8,8 @@ import {
 	PromoteToDocument,
 	RestoreEntry,
 } from "../../bindings/yanta/internal/journal/wailsservice";
-import { useNotification } from "../hooks/useNotification";
-import { BackendLogger } from "../utils/backendLogger";
+import { useNotification } from "../shared/hooks";
+import { BackendLogger } from "../shared/utils/backendLogger";
 import type { JournalEntryData } from "./JournalEntry";
 
 export interface UseJournalOptions {

@@ -12,15 +12,15 @@ import {
 	SetStartHidden,
 } from "../../bindings/yanta/internal/system/service";
 import { GetWindowMode, SetWindowMode } from "../../bindings/yanta/internal/window/service";
-import { useNotification } from "../hooks/useNotification";
+import { useNotification } from "../shared/hooks";
 import {
 	type GlobalHotkeyConfig,
 	globalHotkeyConfigFromModel,
 	globalHotkeyConfigToModel,
 	type SystemInfo,
 	systemInfoFromModel,
-} from "../types";
-import { BackendLogger } from "../utils/backendLogger";
+} from "../shared/types";
+import { BackendLogger } from "../shared/utils/backendLogger";
 
 export interface UseSystemSettingsOptions {
 	setNeedsRestart?: (value: boolean) => void;

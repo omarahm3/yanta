@@ -120,7 +120,7 @@ Each store uses custom `PersistStorage` for validation, backwards-compatible for
 ### Item 31–32 – Folder Restructure to Final Domain Layout
 
 **Sections:** “31. Current Structure: Diagnosis”, “32. Proposed Structure”  
-**Status in review:** `Status: [ ] Not started` (for the final target layout)
+**Status:** Complete — All legacy folders (lib/, hooks/, contexts/, components/, constants/, utils/, types/, services/) removed.
 
 **Context (excerpt):**
 - Current structure is still partly “technical-role” based (hooks/, contexts/, utils/).
@@ -128,9 +128,124 @@ Each store uses custom `PersistStorage` for validation, backwards-compatible for
   - `app/`, `dashboard/`, `document/`, `journal/`, `project/`, `search/`, `settings/`, `pane/`, `help/`, `hotkeys/`, etc.
   - A `shared/` layer used only when code is reused across ≥3 domains.
 
+**Completed:**
+- **Phase 1:** shared/ui, shared/hooks, shared/utils, shared/types, config/constants
+- **Phase 2.1:** pane/components
+- **Phase 2.2:** `editor/` domain (RichEditor, extensions, utils/blocknote)
+- **Phase 3:** ResizeHandles, TitleBar → app/components
+- **Phase 4:** Router imports from domains; `pages/` removed; Test → app/test/
+- **Phase 5:** DocumentService → shared/services; legacy shims in place
+- **Phase 6 (partial):** Layout imports → @/app; app/providers, app/global-hotkeys import from domains; test mocks updated
+
+**Completed:**
+- **Phase 1:** shared/ui, shared/hooks, shared/utils, shared/types, config/constants
+- **Phase 2.1:** pane/components
+- **Phase 2.2:** `editor/` domain (RichEditor, extensions, utils/blocknote)
+- **Phase 3:** ResizeHandles, TitleBar → app/components
+- **Phase 4:** Router imports from domains; `pages/` removed; Test → app/test/
+- **Phase 5:** DocumentService → shared/services; legacy shims in place
+- **Phase 6:** Layout imports → @/app; app/providers, app/global-hotkeys import from domains; test mocks updated
+- lib/, hooks/, contexts/, components/, constants/, utils/, types/, services/ all removed
+- QuickCommandPanel moved to app/components
+- 60+ import paths updated across the codebase
+
+**Post-restructure verification (2026-02-12):**
+- Zero legacy import paths remain (`@/components/`, `@/hooks/`, `@/contexts/`, `@/utils/`, `@/types/`, `@/services/`, `@/constants/`, `@/lib/`, `@/pages/` — all clean).
+- Barrel files use named exports throughout (except `shared/index.ts` wildcard — tracked in Item 19).
+- Code splitting via `React.lazy` correctly applied in `app/Router.tsx` for all route-level pages.
+- `tsconfig.json` path aliases minimal and correct (`@/*` → `./src/*`, `@/app` → `./src/app/index`).
+- `extensions/index.ts` serves as a compatibility shim re-exporting from `editor/extensions` — acceptable.
+
 **Remaining work:**
-- Finish extracting all domains to their own top-level folders.
-- Remove legacy folders once shims are no longer needed.
+- Verify test suite after restructure (deferred).
+
+---
+
+### Item 19 – Barrel Files (Follow-Up)
+
+**Section:** "19. Add barrel files to all feature dirs"
+**Status:** Done (Rev 15), with follow-up needed.
+
+**Completed:** Barrel files added to components/editor, extensions, services, shared.
+
+**Follow-up (from performance review 2025-02-12):**
+- `shared/index.ts:1` uses `export * from "./ui"` — wildcard re-export prevents tree-shaking; all ~50 UI components bundled even if only 2 are used. Replace with named exports for only what consumers actually need.
+- `shared/hooks/index.ts` — 30+ named hook exports; acceptable since hooks are small, but monitor for unused additions.
+- `pane/index.ts` — 30+ exports from pane utilities; acceptable since pane is page-scoped.
+- `shared/ui/index.ts` — 50+ component re-exports. Consumers should prefer direct imports (`@/shared/ui/Button`) over barrel imports (`@/shared/ui`) for better tree-shaking.
+
+**Remaining work:**
+- Replace `export * from "./ui"` in `shared/index.ts` with explicit named exports.
+- Replace `export * from "./primitives"` in `shared/ui/Select/index.ts` with explicit named exports (leaks Select internals).
+- Add missing `WithTooltip` export to `shared/ui/index.ts` barrel.
+
+---
+
+### Item 40 – Effect Waterfalls
+
+**Section:** "40. Split effect waterfalls into focused effects"
+**Status:** Partial — some addressed, others identified.
+
+**Identified in performance review (2025-02-12):**
+
+- **`recentDocuments.store.ts:141-194`** — 4 separate effects where 2 would suffice. Effect 3 (line 192-194, sync local state) is redundant with Effect 2 (fetch titles). Local `useState` mirrors zustand store unnecessarily, causing double re-renders. Remove the local state and use `documents` from the store directly.
+- **`app/global-hotkeys.tsx:23-29`** — Effect-derived state anti-pattern: `isOpen` useState + useEffect to call `openDialog`/`closeDialog`. Should bind hotkey directly to dialog store action.
+- **`useDocumentController.tsx:126-134`** — `addRecentDocument` effect re-fires whenever any of 6 dependencies change; should guard against re-adding the same document.
+
+**Remaining work:**
+- Consolidate `useRecentDocuments` from 4 effects to 2; remove redundant local state mirror.
+- Refactor `global-hotkeys.tsx` to avoid intermediate `isOpen` state.
+- Add guard in `useDocumentController` to prevent duplicate `addRecentDocument` calls.
+
+---
+
+### Item 49–51 – Performance (Follow-Up)
+
+**Section:** "PART 11: PERFORMANCE DEEP DIVE"
+**Status:** Done (Items 49-51 completed), with follow-up findings.
+
+**Follow-up (from performance review 2025-02-12):**
+
+**Inline objects still in render paths:**
+- `app/Layout.tsx:113-117` — gradient `backgroundImage` is static and should be hoisted to a CSS class; dynamic `height` style object created every render, hoist to `useMemo` keyed on `heightInRem`.
+
+**Closure chain in callbacks:**
+- `shared/hooks/useSidebarSetting.ts:30-46` — `toggleSidebar` → `setSidebarVisible` → `sidebarVisible` cascading deps; callbacks recreated on every state change. Use functional setState to eliminate closures.
+
+**Missing memoization:**
+- `document/DocumentPage.tsx` — not wrapped in `React.memo` despite being rendered by Router with changing props.
+
+**O(n) lookups in hot paths:**
+- `useDashboardController.ts:306` — `documents.find()` in delete confirmation; use a `Map` for O(1) lookup.
+- `useJournalController.ts:204` — `entries.findIndex()` on every entry click; use a `Map`.
+
+**Hotkey system overhead:**
+- `useHotkeyProviderValue.ts:51-117` — `useMemo` over all hotkeys depends on `isDialogOpen`, forcing full rebuild when any dialog opens/closes. Split into two memos (hotkey map vs dialog filtering).
+- `useHotkeyProviderValue.ts:124-125` — `createHotkeyMatcher()` called inside effect on every render; memoize matchers.
+
+**compareKey optimization defeated:**
+- `useDocumentPersistence.tsx:107-109` — `formData.blocks` array in `useMemo` deps causes re-computation even when content is the same (reference equality). The `compareKey` pattern is correct but the dependency should not include the array.
+
+---
+
+### Item 54 – Command Registry (Follow-Up)
+
+**Section:** "54. Command Registry Design"
+**Status:** Done (Rev 14), with bug found.
+
+**Bug (from performance review 2025-02-12):**
+- `useGlobalCommandPalette.tsx:~150` — `setShowRecentDocuments` is included in the `ctx` object but **missing from the `useMemo` dependency array**. This causes a stale closure: the context object holds a stale reference to `setShowRecentDocuments` after re-renders. Add it to the dependency array.
+
+---
+
+### Item 15 – LocalStorage Stores (Follow-Up)
+
+**Section:** "15. Custom localStorage Persistence → zustand + persist"
+**Status:** Done, with schema versioning gap identified.
+
+**Follow-up (from performance review 2025-02-12):**
+- `recentDocuments.store.ts` and `commandUsage.store.ts` save raw data without a schema version field. If the schema changes (e.g., adding a `tags` field to recent documents), old data will fail validation silently and be discarded. Add `{ version: 1, ... }` wrapper to storage format.
+- `commandUsage.store.ts:41` — `pruneUsageData` sorts entries on every storage write even when under the cap. Only prune when `MAX_ENTRIES` exceeded.
 
 ---
 
@@ -149,4 +264,3 @@ Key items:
 **Remaining work:**
 - Design and implement the full platform layer for themes, plugins, marketplace, and i18n.
 - Integrate the configuration, hotkeys, and state layers so they are ready for plugin-driven extensibility.
-

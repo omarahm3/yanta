@@ -4,7 +4,7 @@ import { ExportDocumentRequest } from "../../../bindings/yanta/internal/document
 import { ExportDocument } from "../../../bindings/yanta/internal/document/service";
 import { ExportRequest } from "../../../bindings/yanta/internal/export/models";
 import { ExportToPDF } from "../../../bindings/yanta/internal/export/service";
-import { useNotification } from "../../hooks/useNotification";
+import { useNotification } from "../../shared/hooks";
 
 export interface UseDocumentExportsOptions {
 	documentPath?: string;

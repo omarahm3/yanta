@@ -1,4 +1,4 @@
-import type { Document } from "../../types/Document";
+import type { Document } from "../../shared/types/Document";
 
 const COMMANDS_WITH_NUMERIC_SHORTCUTS = [
 	"doc",

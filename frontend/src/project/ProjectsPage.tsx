@@ -1,5 +1,6 @@
 import { formatRelative } from "date-fns";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Layout } from "@/app";
 import type { ProjectResult } from "../../bindings/yanta/internal/commandline/models";
 import { Parse } from "../../bindings/yanta/internal/commandline/projectcommands";
 import {
@@ -7,16 +8,14 @@ import {
 	GetAllDocumentCounts,
 	GetAllLastDocumentDates,
 } from "../../bindings/yanta/internal/project/service";
-import { Layout } from "../components/Layout";
-import { Table, type TableColumn, type TableRow } from "../components/ui";
-import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { PROJECTS_SHORTCUTS } from "../config";
-import { useHotkeys } from "../hooks";
-import { useNotification } from "../hooks/useNotification";
-import { useSidebarSections } from "../hooks/useSidebarSections";
-import { type ExtendedProject, extendProject, type PageName } from "../types";
-import { BackendLogger } from "../utils/backendLogger";
-import { getProjectAliasColor } from "../utils/colorUtils";
+import { useHotkeys } from "../hotkeys";
+import { useNotification, useSidebarSections } from "../shared/hooks";
+import { type ExtendedProject, extendProject, type PageName } from "../shared/types";
+import { Table, type TableColumn, type TableRow } from "../shared/ui";
+import { ConfirmDialog } from "../shared/ui/ConfirmDialog";
+import { BackendLogger } from "../shared/utils/backendLogger";
+import { getProjectAliasColor } from "../shared/utils/color";
 import { NewProjectDialog } from "./components/NewProjectDialog";
 import { useProjectContext } from "./context";
 

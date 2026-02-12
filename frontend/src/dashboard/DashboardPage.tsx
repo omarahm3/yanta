@@ -1,9 +1,8 @@
 import React, { useRef, useState } from "react";
-import { GranularErrorBoundary } from "@/app";
-import { Layout } from "../components/Layout";
-import { ConfirmDialog } from "../components/ui/ConfirmDialog";
-import { useHotkeys } from "../hooks";
-import type { NavigationState, PageName } from "../types";
+import { GranularErrorBoundary, Layout } from "@/app";
+import { useHotkeys } from "../hotkeys";
+import type { NavigationState, PageName } from "../shared/types";
+import { ConfirmDialog } from "../shared/ui/ConfirmDialog";
 import { DocumentList } from "./components/DocumentList";
 import { MoveDocumentDialog } from "./components/MoveDocumentDialog";
 import { StatusBar } from "./components/StatusBar";

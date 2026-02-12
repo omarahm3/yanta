@@ -1,5 +1,6 @@
 import { GLOBAL_SHORTCUTS } from "../../config";
-import { useHelp, useHotkey } from "../../hooks";
+import { useHelp } from "../../help";
+import { useHotkey } from "../../hotkeys";
 
 export function useHelpHotkey(): void {
 	const { openHelp } = useHelp();

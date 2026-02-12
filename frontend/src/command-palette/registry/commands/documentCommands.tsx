@@ -4,9 +4,9 @@ import { ExportDocument } from "../../../../bindings/yanta/internal/document/ser
 import { ExportRequest } from "../../../../bindings/yanta/internal/export";
 import { ExportToPDF } from "../../../../bindings/yanta/internal/export/service";
 import { OpenDirectoryDialog } from "../../../../bindings/yanta/internal/system/service";
-import type { CommandOption } from "../../../components/ui";
 import { useDocumentCommandStore } from "../../../shared/stores/documentCommand.store";
-import { getShortcutForCommand } from "../../../utils/shortcuts";
+import type { CommandOption } from "../../../shared/ui";
+import { getShortcutForCommand } from "../../../shared/utils/shortcuts";
 import type { CommandRegistry, CommandRegistryContext } from "../types";
 
 export function registerDocumentCommands(

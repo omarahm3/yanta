@@ -1,9 +1,9 @@
 import type React from "react";
 import { useCallback, useEffect, useRef } from "react";
 import { TIMEOUTS } from "../../config";
-import { useDialog } from "../../contexts/DialogContext";
-import { cn } from "../../lib/utils";
-import { useOnboarding } from "../hooks/useOnboarding";
+import { useDialog } from "../../shared/stores/dialog.store";
+import { cn } from "../../shared/utils/cn";
+import { useOnboarding } from "../hooks";
 
 export interface WelcomeOverlayProps {
 	className?: string;

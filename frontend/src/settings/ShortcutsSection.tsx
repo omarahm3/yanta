@@ -1,4 +1,5 @@
 import React from "react";
+import type { GlobalHotkeyConfig } from "../shared/types";
 import {
 	Heading,
 	HotkeyEditor,
@@ -6,8 +7,7 @@ import {
 	type Shortcut,
 	ShortcutsTable,
 	Text,
-} from "../components/ui";
-import type { GlobalHotkeyConfig } from "../types";
+} from "../shared/ui";
 
 interface ShortcutsSectionProps {
 	platform: string;

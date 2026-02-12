@@ -1,7 +1,7 @@
 import React from "react";
-import { Layout } from "../../components/Layout";
-import { Button, type SidebarSection } from "../../components/ui";
-import type { NavigationState, PageName } from "../../types";
+import { Layout } from "@/app";
+import type { NavigationState, PageName } from "../../shared/types";
+import { Button, type SidebarSection } from "../../shared/ui";
 
 interface DocumentErrorStateProps {
 	sidebarSections: SidebarSection[];

@@ -3,9 +3,9 @@ import { ChevronRight } from "lucide-react";
 // Value import required at runtime (React.FC in bundle; type-only yields "React is not defined")
 // biome-ignore lint: React used for React.FC and ref casts at runtime
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
-import { Heading } from "../../components/ui/Heading";
-import { useHelpModalController } from "../hooks/useHelpModalController";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../shared/ui/dialog";
+import { Heading } from "../../shared/ui/Heading";
+import { useHelpModalController } from "../hooks";
 
 /**
  * Collapsible section component

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { GetAllDocumentCounts } from "../../../bindings/yanta/internal/project/service";
-import { BackendLogger } from "../../utils/backendLogger";
+import { BackendLogger } from "../utils/backendLogger";
 
 interface DocumentCountState {
 	counts: Map<string, number>;

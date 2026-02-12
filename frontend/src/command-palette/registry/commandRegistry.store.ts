@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { CommandOption } from "../../components/ui";
+import type { CommandOption } from "../../shared/ui";
 
 const SOURCE_ORDER = [
 	"navigation",

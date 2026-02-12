@@ -1,5 +1,6 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import React, { useEffect, useRef } from "react";
+import type { Document } from "../../shared/types/Document";
 import {
 	Button,
 	ContextMenu,
@@ -8,10 +9,9 @@ import {
 	ContextMenuTrigger,
 	Heading,
 	Text,
-} from "../../components/ui";
-import { cn } from "../../lib/utils";
-import type { Document } from "../../types/Document";
-import { formatShortDate } from "../../utils/dateUtils";
+} from "../../shared/ui";
+import { cn } from "../../shared/utils/cn";
+import { formatShortDate } from "../../shared/utils/date";
 
 const DOCUMENT_ROW_ESTIMATE = 88;
 const DOCUMENT_ROW_GAP = 4;

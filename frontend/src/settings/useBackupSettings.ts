@@ -8,8 +8,8 @@ import {
 	SetConfig as SetBackupConfig,
 } from "../../bindings/yanta/internal/backup/service";
 import type { BackupConfig } from "../../bindings/yanta/internal/config/models";
-import { useNotification } from "../hooks/useNotification";
-import { BackendLogger } from "../utils/backendLogger";
+import { useNotification } from "../shared/hooks";
+import { BackendLogger } from "../shared/utils/backendLogger";
 
 export interface UseBackupSettingsOptions {
 	onRestoreSuccess?: () => void;

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { DOCUMENT_SHORTCUTS } from "../../config";
-import type { HotkeyConfig } from "../../types/hotkeys";
+import type { HotkeyConfig } from "../../shared/types/hotkeys";
 
 export interface UseDocumentHotkeysConfigOptions {
 	/** Ref whose .current is updated with the active pane state (read in handlers). */

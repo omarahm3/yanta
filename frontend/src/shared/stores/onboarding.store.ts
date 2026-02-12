@@ -3,7 +3,7 @@ import { create } from "zustand";
 import type { PersistStorage } from "zustand/middleware";
 import { persist } from "zustand/middleware";
 import { TIMEOUTS } from "@/config";
-import { BackendLogger } from "../../utils/backendLogger";
+import { BackendLogger } from "../utils/backendLogger";
 
 const STORAGE_KEY = "yanta_onboarding";
 const CURRENT_VERSION = "1.0.0";

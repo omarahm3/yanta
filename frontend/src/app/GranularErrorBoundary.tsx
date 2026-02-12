@@ -1,6 +1,6 @@
 import { AlertCircle } from "lucide-react";
 import React from "react";
-import { BackendLogger } from "../utils/backendLogger";
+import { BackendLogger } from "../shared/utils/backendLogger";
 
 export interface GranularErrorBoundaryProps {
 	children: React.ReactNode;

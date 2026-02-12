@@ -1,6 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { getHintsForPage, useFooterHints } from "../hooks/useFooterHints";
+import { getHintsForPage, useFooterHints } from "../shared/hooks";
 
 describe("useFooterHints", () => {
 	describe("Dashboard page hints", () => {

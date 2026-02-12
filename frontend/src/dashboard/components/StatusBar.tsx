@@ -1,5 +1,5 @@
 import type React from "react";
-import { Button } from "../../components/ui/Button";
+import { Button } from "../../shared/ui/Button";
 
 interface StatusBarProps {
 	totalEntries: number;

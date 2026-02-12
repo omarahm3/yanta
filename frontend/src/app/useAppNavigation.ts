@@ -1,6 +1,6 @@
 import React from "react";
 import { usePaneLayout } from "../pane";
-import type { NavigationState, PageName } from "../types";
+import type { NavigationState, PageName } from "../shared/types";
 
 export interface UseAppNavigationReturn {
 	currentPage: PageName;

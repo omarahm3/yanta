@@ -1,12 +1,12 @@
 import type { Block } from "@blocknote/core";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { TIMEOUTS } from "@/config";
-import { useAutoSave } from "../../hooks/useAutoSave";
-import type { NavigationState, PageName } from "../../types";
-import type { BlockNoteBlock } from "../../types/Document";
-import type { Project } from "../../types/Project";
-import { BackendLogger } from "../../utils/backendLogger";
-import { computeContentHash } from "../../utils/contentHash";
+import { useAutoSave } from "../../shared/hooks";
+import type { NavigationState, PageName } from "../../shared/types";
+import type { BlockNoteBlock } from "../../shared/types/Document";
+import type { Project } from "../../shared/types/Project";
+import { BackendLogger } from "../../shared/utils/backendLogger";
+import { computeContentHash } from "../../shared/utils/contentHash";
 import { useAutoDocumentSaver } from "./useDocumentSaver";
 
 interface DocumentFormData {

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { DASHBOARD_SHORTCUTS } from "../../config";
-import type { HotkeyConfig } from "../../types/hotkeys";
+import type { HotkeyConfig } from "../../shared/types/hotkeys";
 
 export interface UseDashboardHotkeysConfigOptions {
 	handleNewDocument: () => void;

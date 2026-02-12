@@ -8,6 +8,7 @@ import {
 	RefreshCw,
 } from "lucide-react";
 import React from "react";
+import type { GitStatus } from "../shared/hooks";
 import {
 	Button,
 	Input,
@@ -16,8 +17,7 @@ import {
 	type SelectOption,
 	SettingsSection,
 	Toggle,
-} from "../components/ui";
-import type { GitStatus } from "../hooks/useGitStatus";
+} from "../shared/ui";
 
 interface GitSyncSectionProps {
 	gitInstalled: boolean;

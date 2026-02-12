@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useDialog } from "../../contexts/DialogContext";
-import type { HotkeyConfig, HotkeyContextValue, RegisteredHotkey } from "../../types/hotkeys";
+import { useDialog } from "../../shared/stores/dialog.store";
+import type {
+	HotkeyConfig,
+	HotkeyContextValue,
+	RegisteredHotkey,
+} from "../../shared/types/hotkeys";
 import { createHotkeyMatcher, SPECIAL_KEY_SET } from "../utils/hotkeyMatcher";
 
 const nativeInputValueSetter = Object.getOwnPropertyDescriptor(

@@ -1,8 +1,8 @@
 import { CloudDownload, CloudUpload, GitCommit } from "lucide-react";
 import { SyncStatus } from "../../../../bindings/yanta/internal/git/models";
 import { GitPull, GitPush, SyncNow } from "../../../../bindings/yanta/internal/system/service";
-import type { CommandOption } from "../../../components/ui";
-import { getShortcutForCommand } from "../../../utils/shortcuts";
+import type { CommandOption } from "../../../shared/ui";
+import { getShortcutForCommand } from "../../../shared/utils/shortcuts";
 import type { CommandRegistry, CommandRegistryContext } from "../types";
 
 export function registerGitCommands(registry: CommandRegistry, ctx: CommandRegistryContext): void {

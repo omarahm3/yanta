@@ -1,6 +1,6 @@
 import React from "react";
-import { SettingsSection, Toggle } from "../components/ui";
-import type { SystemInfo } from "../types";
+import type { SystemInfo } from "../shared/types";
+import { SettingsSection, Toggle } from "../shared/ui";
 
 interface GeneralSectionProps {
 	systemInfo: SystemInfo | null;

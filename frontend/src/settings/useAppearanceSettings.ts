@@ -4,10 +4,10 @@ import {
 	SetAppScale,
 	SetLogLevel,
 } from "../../bindings/yanta/internal/system/service";
-import type { SelectOption } from "../components/ui";
-import { useScale } from "../contexts";
-import { useNotification } from "../hooks/useNotification";
-import { BackendLogger } from "../utils/backendLogger";
+import { useNotification } from "../shared/hooks";
+import { useScale } from "../shared/stores/scale.store";
+import type { SelectOption } from "../shared/ui";
+import { BackendLogger } from "../shared/utils/backendLogger";
 
 export interface UseAppearanceSettingsOptions {
 	setNeedsRestart?: (value: boolean) => void;

@@ -1,8 +1,11 @@
-import { MilestoneHintManager, WelcomeOverlay } from "../components";
-import { HelpModal, ResizeHandles, TitleBar, ToastProvider } from "../components/ui";
-import { DocumentProvider, HelpProvider, HotkeyProvider } from "../contexts";
+import { DocumentProvider } from "../document";
+import { HelpModal, HelpProvider } from "../help";
+import { HotkeyProvider } from "../hotkeys";
+import { MilestoneHintManager, WelcomeOverlay } from "../onboarding";
 import { PaneLayoutProvider } from "../pane";
 import { ReducedEffectsInit } from "../shared/stores/appearance.store";
+import { ToastProvider } from "../shared/ui";
+import { ResizeHandles, TitleBar } from "./components";
 import { DocumentCountStoreInit } from "./DocumentCountStoreInit";
 import { AppGlobalEffects, GlobalCommandHotkey } from "./global-hotkeys";
 import { ProjectStoreInit } from "./ProjectStoreInit";

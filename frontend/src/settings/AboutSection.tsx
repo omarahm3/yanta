@@ -1,7 +1,7 @@
 import React from "react";
-import { Button, ConfirmDialog, SettingsSection } from "../components/ui";
-import { useOnboarding, useUserProgress } from "../hooks";
-import type { SystemInfo } from "../types";
+import { useOnboarding, useUserProgress } from "../onboarding";
+import type { SystemInfo } from "../shared/types";
+import { Button, ConfirmDialog, SettingsSection } from "../shared/ui";
 
 interface AboutSectionProps {
 	systemInfo: SystemInfo | null;

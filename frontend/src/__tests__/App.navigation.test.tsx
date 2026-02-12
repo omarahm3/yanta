@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { NavigationState, PageName } from "../types";
+import type { NavigationState, PageName } from "../shared/types";
 
 /**
  * Tests for the handleNavigate logic in App.tsx's GlobalCommandHotkey component.

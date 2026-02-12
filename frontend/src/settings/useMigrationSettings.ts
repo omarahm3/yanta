@@ -7,7 +7,7 @@ import {
 	OpenDirectoryDialog,
 	ValidateMigrationTarget,
 } from "../../bindings/yanta/internal/system/service";
-import { useNotification } from "../hooks/useNotification";
+import { useNotification } from "../shared/hooks";
 
 export function useMigrationSettings() {
 	const [migrationTarget, setMigrationTarget] = useState("");

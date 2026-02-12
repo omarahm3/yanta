@@ -1,31 +1,32 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
-import type { HotkeyContextValue } from "../types/hotkeys";
+import type { HotkeyContextValue } from "../shared/types/hotkeys";
 
 const openHelp = vi.fn();
 
-vi.mock("../hooks/useHelp", () => ({
-	useHelp: () => ({
-		openHelp,
-		setPageContext: vi.fn(),
-	}),
-}));
+vi.mock("../help", async () => {
+	const actual = await vi.importActual<typeof import("../help")>("../help");
+	return {
+		...actual,
+		useHelp: () => ({
+			openHelp,
+			setPageContext: vi.fn(),
+		}),
+		HelpModal: () => <div data-testid="help-modal" />,
+	};
+});
 
-vi.mock("../components/ui/TitleBar", () => ({
+vi.mock("../app/components/TitleBar", () => ({
 	TitleBar: () => <div data-testid="title-bar" />,
 }));
 
-vi.mock("../components/ui/HelpModal", () => ({
-	HelpModal: () => <div data-testid="help-modal" />,
-}));
-
-vi.mock("../components/ui/ResizeHandles", () => ({
+vi.mock("../app/components/ResizeHandles", () => ({
 	ResizeHandles: () => null,
 }));
 
 const commandPaletteRender = vi.fn();
-vi.mock("../components", async () => {
-	const actual = await vi.importActual<typeof import("../components")>("../components");
+vi.mock("../command-palette", async () => {
+	const actual = await vi.importActual<typeof import("../command-palette")>("../command-palette");
 	return {
 		...actual,
 		GlobalCommandPalette: (props: {
@@ -39,44 +40,43 @@ vi.mock("../components", async () => {
 	};
 });
 
-vi.mock("../components/Router", () => ({
+vi.mock("../app/Router", () => ({
 	Router: () => <div data-testid="router" />, // navigation handled elsewhere
 }));
 
 let capturedHotkeyContext: HotkeyContextValue | null = null;
 
-vi.mock("../contexts", async () => {
-	const actual = await vi.importActual<typeof import("../contexts")>("../contexts");
+vi.mock("../hotkeys", async () => {
+	const actual = await vi.importActual<typeof import("../hotkeys")>("../hotkeys");
 	const React = await import("react");
 
-	const HotkeyCapture: React.FC = () => {
+	const HotkeyCapture: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 		const ctx = actual.useHotkeyContext();
 		React.useEffect(() => {
 			capturedHotkeyContext = ctx;
 		}, [ctx]);
-		return null;
+		return <>{children}</>;
 	};
 
 	return {
 		...actual,
 		HotkeyProvider: ({ children }: { children: React.ReactNode }) => (
 			<actual.HotkeyProvider>
-				<HotkeyCapture />
-				{children}
+				<HotkeyCapture>{children}</HotkeyCapture>
 			</actual.HotkeyProvider>
 		),
-		ProjectProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-		DocumentProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-		DocumentCountProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-		HelpProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-		useProjectContext: () => ({
-			currentProject: { name: "Project", alias: "project" },
-			projects: [],
-			setCurrentProject: vi.fn(),
-			isLoading: false,
-		}),
 	};
 });
+
+vi.mock("../project", () => ({
+	...vi.importActual("../project"),
+	useProjectContext: () => ({
+		currentProject: { name: "Project", alias: "project" },
+		projects: [],
+		setCurrentProject: vi.fn(),
+		isLoading: false,
+	}),
+}));
 
 vi.mock("../../wailsjs/runtime/runtime", () => ({
 	EventsOn: vi.fn(() => () => {}),
@@ -86,7 +86,7 @@ vi.mock("../../bindings/yanta/internal/system/service", () => ({
 	GetAppScale: vi.fn(() => Promise.resolve(1.0)),
 }));
 
-vi.mock("../components/ui/Toast", () => ({
+vi.mock("../shared/ui/Toast", () => ({
 	ToastProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 	useToast: () => ({
 		show: vi.fn(),

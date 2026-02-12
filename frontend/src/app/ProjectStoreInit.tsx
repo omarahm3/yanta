@@ -1,6 +1,6 @@
 import { Events } from "@wailsio/runtime";
 import { useEffect } from "react";
-import { useNotification } from "../hooks/useNotification";
+import { useNotification } from "../shared/hooks";
 import { useProjectStore } from "../shared/stores/project.store";
 
 /**

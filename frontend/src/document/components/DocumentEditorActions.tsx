@@ -1,6 +1,6 @@
 import { Check, Circle, Loader2, X } from "lucide-react";
 import type React from "react";
-import type { SaveState } from "../../hooks/useAutoSave";
+import type { SaveState } from "../../shared/hooks";
 
 interface DocumentEditorActionsProps {
 	isArchived?: boolean;

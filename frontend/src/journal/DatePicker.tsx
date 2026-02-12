@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import React, { useCallback, useMemo, useState } from "react";
-import { cn } from "../lib/utils";
+import { cn } from "../shared/utils/cn";
 
 export interface DatePickerProps {
 	selectedDate: string;

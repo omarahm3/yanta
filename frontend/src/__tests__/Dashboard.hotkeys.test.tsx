@@ -2,8 +2,9 @@ import { act, render, waitFor } from "@testing-library/react";
 import React from "react";
 import { vi } from "vitest";
 import { Restore, SoftDelete } from "../../bindings/yanta/internal/document/service";
-import { DialogProvider, HotkeyProvider, useHotkeyContext } from "../contexts";
-import type { HotkeyContextValue } from "../types/hotkeys";
+import { DialogProvider } from "../app/context";
+import { HotkeyProvider, useHotkeyContext } from "../hotkeys";
+import type { HotkeyContextValue } from "../shared/types/hotkeys";
 
 const onNavigate = vi.fn();
 const selectNext = vi.fn();
@@ -13,30 +14,38 @@ const setSelectedIndex = vi.fn();
 const mockSuccess = vi.fn();
 const mockError = vi.fn();
 
-vi.mock("../hooks/useNotification", () => ({
+vi.mock("../shared/hooks/useNotification", () => ({
 	useNotification: () => ({
 		success: mockSuccess,
 		error: mockError,
 	}),
 }));
 
-vi.mock("../hooks/useHelp", () => ({
-	useHelp: () => ({ setPageContext: vi.fn() }),
-}));
+vi.mock("../help", async () => {
+	const actual = await vi.importActual<typeof import("../help")>("../help");
+	return {
+		...actual,
+		useHelp: () => ({ setPageContext: vi.fn() }),
+	};
+});
 
-vi.mock("../hooks/useSidebarSections", () => ({
+vi.mock("../shared/hooks/useSidebarSections", () => ({
 	__esModule: true,
 	useSidebarSections: () => [],
 }));
 
-vi.mock("../contexts", async () => {
-	const actual = await vi.importActual<typeof import("../contexts")>("../contexts");
+vi.mock("../project", () => ({
+	...vi.importActual("../project"),
+	useProjectContext: () => ({
+		currentProject: { alias: "proj", name: "Project" },
+		isLoading: false,
+	}),
+}));
+
+vi.mock("../document", async () => {
+	const actual = await vi.importActual<typeof import("../document")>("../document");
 	return {
 		...actual,
-		useProjectContext: () => ({
-			currentProject: { alias: "proj", name: "Project" },
-			isLoading: false,
-		}),
 		useDocumentContext: () => ({
 			documents: [
 				{ path: "proj/doc1", title: "Doc 1" },
@@ -52,7 +61,7 @@ vi.mock("../contexts", async () => {
 	};
 });
 
-vi.mock("../components/DocumentList", () => ({
+vi.mock("../dashboard/components/DocumentList", () => ({
 	__esModule: true,
 	DocumentList: ({
 		highlightedIndex,
@@ -69,7 +78,7 @@ vi.mock("../components/DocumentList", () => ({
 	),
 }));
 
-vi.mock("../components/StatusBar", () => ({
+vi.mock("../dashboard/components/StatusBar", () => ({
 	__esModule: true,
 	StatusBar: () => <div data-testid="status-bar" />, // minimal stub
 }));
@@ -83,7 +92,7 @@ vi.mock("../../bindings/yanta/internal/document/service", () => ({
 	Restore: vi.fn(),
 }));
 
-vi.mock("../services/DocumentService", () => ({
+vi.mock("../shared/services/DocumentService", () => ({
 	DocumentServiceWrapper: {
 		save: vi.fn(async () => "proj/new-doc-path"),
 	},
@@ -104,7 +113,8 @@ vi.mock("../../wailsjs/go/models", () => ({
 	},
 }));
 
-vi.mock("../components/Layout", () => {
+vi.mock("../app", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../app")>();
 	const Layout = ({
 		children,
 		commandInputRef,
@@ -126,10 +136,10 @@ vi.mock("../components/Layout", () => {
 			{children}
 		</div>
 	);
-	return { __esModule: true, Layout };
+	return { ...actual, Layout };
 });
 
-import { Dashboard } from "../pages/Dashboard";
+import { Dashboard } from "../dashboard";
 
 const HotkeyProbe: React.FC<{ onReady: (ctx: HotkeyContextValue) => void }> = ({ onReady }) => {
 	const ctx = useHotkeyContext();

@@ -1,14 +1,14 @@
 import { FileText } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { CommandOption, SubPaletteItem } from "../../components/ui";
 import { TIMEOUTS } from "../../config";
-import { useDocumentContext, useProjectContext } from "../../contexts";
-import { useNotification } from "../../hooks/useNotification";
-import { useRecentDocuments } from "../../hooks/useRecentDocuments";
+import { useDocumentContext } from "../../document";
 import { usePaneLayout } from "../../pane";
-import type { NavigationState, PageName } from "../../types";
-import { formatRelativeTimeFromTimestamp } from "../../utils/dateUtils";
-import { type ParsedGitError, parseGitError } from "../../utils/gitErrorParser";
+import { useProjectContext } from "../../project";
+import { useNotification, useRecentDocuments } from "../../shared/hooks";
+import type { NavigationState, PageName } from "../../shared/types";
+import type { CommandOption, SubPaletteItem } from "../../shared/ui";
+import { formatRelativeTimeFromTimestamp } from "../../shared/utils/date";
+import { type ParsedGitError, parseGitError } from "../../shared/utils/gitErrorParser";
 import {
 	type CommandRegistryContext,
 	registerApplicationCommands,

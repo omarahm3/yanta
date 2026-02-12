@@ -1,10 +1,10 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { Events } from "@wailsio/runtime";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useRecentDocuments } from "../hooks/useRecentDocuments";
+import { useRecentDocuments } from "../shared/hooks";
 import { useRecentDocumentsStore } from "../shared/stores/recentDocuments.store";
 
-vi.mock("../services/DocumentService", () => ({
+vi.mock("../shared/services/DocumentService", () => ({
 	getDocument: vi.fn((path: string) =>
 		Promise.resolve({
 			path,

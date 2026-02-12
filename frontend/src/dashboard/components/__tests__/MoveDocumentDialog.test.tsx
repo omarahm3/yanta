@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { Project } from "../../../types/Project";
+import type { Project } from "../../../shared/types/Project";
 import { MoveDocumentDialog } from "../MoveDocumentDialog";
 
 const mockOpenDialog = vi.fn();
@@ -56,7 +56,7 @@ vi.mock("../../../contexts/ProjectContext", () => ({
 
 const mockMoveDocumentToProject = vi.fn().mockResolvedValue(undefined);
 
-vi.mock("../../../services/DocumentService", () => ({
+vi.mock("../../../shared/services/DocumentService", () => ({
 	moveDocumentToProject: (...args: unknown[]) => mockMoveDocumentToProject(...args),
 }));
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { LoadingSpinner } from "../../components/ui";
+import { LoadingSpinner } from "../../shared/ui";
 
 interface DocumentLoadingStateProps {
 	sidebarSections: unknown[];

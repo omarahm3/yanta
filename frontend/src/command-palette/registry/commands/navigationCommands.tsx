@@ -1,6 +1,6 @@
 import { BookOpen, Calendar, Clock, Folder, LayoutDashboard, Search, Settings } from "lucide-react";
-import type { CommandOption } from "../../../components/ui";
-import { getShortcutForCommand } from "../../../utils/shortcuts";
+import type { CommandOption } from "../../../shared/ui";
+import { getShortcutForCommand } from "../../../shared/utils/shortcuts";
 import type { CommandRegistry, CommandRegistryContext } from "../types";
 
 export function registerNavigationCommands(

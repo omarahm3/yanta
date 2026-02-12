@@ -1,8 +1,9 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 import { vi } from "vitest";
-import { DialogProvider, HotkeyProvider, TitleBarProvider, useHotkeyContext } from "../contexts";
-import type { HotkeyContextValue } from "../types/hotkeys";
+import { DialogProvider, TitleBarProvider } from "../app/context";
+import { HotkeyProvider, useHotkeyContext } from "../hotkeys";
+import type { HotkeyContextValue } from "../shared/types/hotkeys";
 
 const mockSuccess = vi.fn();
 const mockError = vi.fn();
@@ -46,7 +47,7 @@ vi.mock("../contexts", async () => {
 	};
 });
 
-vi.mock("../components/ui", () => ({
+vi.mock("../shared/ui", () => ({
 	__esModule: true,
 	HeaderBar: ({ currentPage }: { currentPage: string }) => (
 		<div data-testid="header">{currentPage}</div>
@@ -58,7 +59,7 @@ vi.mock("../components/ui", () => ({
 	),
 }));
 
-import { Layout } from "../components/Layout";
+import { Layout } from "../app";
 
 const HotkeyProbe: React.FC<{ onReady: (ctx: HotkeyContextValue) => void }> = ({ onReady }) => {
 	const ctx = useHotkeyContext();

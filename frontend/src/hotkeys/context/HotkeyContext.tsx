@@ -1,6 +1,6 @@
 import type React from "react";
 import { createContext, type ReactNode, useContext } from "react";
-import type { HotkeyContextValue } from "../../types/hotkeys";
+import type { HotkeyContextValue } from "../../shared/types/hotkeys";
 import { useHotkeyProviderValue } from "./useHotkeyProviderValue";
 
 const HotkeyContext = createContext<HotkeyContextValue | null>(null);

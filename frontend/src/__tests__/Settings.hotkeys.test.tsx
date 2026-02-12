@@ -1,9 +1,10 @@
 import { render, waitFor } from "@testing-library/react";
 import React from "react";
 import { vi } from "vitest";
-import { DialogProvider, HotkeyProvider, TitleBarProvider, useHotkeyContext } from "../contexts";
+import { DialogProvider, TitleBarProvider } from "../app/context";
+import { HotkeyProvider, useHotkeyContext } from "../hotkeys";
 import { Settings } from "../settings";
-import type { HotkeyContextValue } from "../types/hotkeys";
+import type { HotkeyContextValue } from "../shared/types/hotkeys";
 
 vi.mock("../hooks/useHelp", () => ({
 	useHelp: () => ({ setPageContext: vi.fn() }),
@@ -85,7 +86,7 @@ vi.mock("../../wailsjs/runtime/runtime", () => ({
 	EventsOn: vi.fn(() => () => {}),
 }));
 
-vi.mock("../components/ui/Toast", () => ({
+vi.mock("../shared/ui/Toast", () => ({
 	ToastProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 	useToast: () => ({
 		show: vi.fn(),

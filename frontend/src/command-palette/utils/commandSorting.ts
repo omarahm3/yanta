@@ -1,5 +1,5 @@
-import type { CommandOption } from "../../components/ui/CommandPalette";
-import type { CommandUsageRecord } from "../hooks/useCommandUsage";
+import type { CommandOption } from "../../shared/ui/CommandPalette";
+import type { CommandUsageRecord } from "../hooks";
 
 /**
  * Time constants for recency scoring

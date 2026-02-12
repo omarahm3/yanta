@@ -1,5 +1,5 @@
 import type React from "react";
-import { CommandPalette, GitErrorDialog } from "../../components/ui";
+import { CommandPalette, GitErrorDialog } from "../../shared/ui";
 import {
 	type UseGlobalCommandPaletteProps,
 	useGlobalCommandPalette,

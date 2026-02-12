@@ -9,8 +9,8 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { DocumentServiceWrapper } from "../../services/DocumentService";
-import type { Document } from "../../types/Document";
+import { DocumentServiceWrapper } from "../../shared/services/DocumentService";
+import type { Document } from "../../shared/types/Document";
 
 interface DocumentContextValue {
 	documents: Document[];

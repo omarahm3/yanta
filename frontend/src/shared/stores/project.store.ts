@@ -1,9 +1,9 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { ListActive, ListArchived } from "../../../bindings/yanta/internal/project/service";
-import type { Project } from "../../types";
-import { projectsFromModels } from "../../types";
-import { BackendLogger } from "../../utils/backendLogger";
+import type { Project } from "../types";
+import { projectsFromModels } from "../types";
+import { BackendLogger } from "../utils/backendLogger";
 
 export interface ProjectContextValue {
 	currentProject: Project | undefined;

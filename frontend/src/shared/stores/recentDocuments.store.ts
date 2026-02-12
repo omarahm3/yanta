@@ -3,8 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { create } from "zustand";
 import type { PersistStorage } from "zustand/middleware";
 import { persist } from "zustand/middleware";
-import { getDocument } from "../../services/DocumentService";
-import { BackendLogger } from "../../utils/backendLogger";
+import { getDocument } from "../services/DocumentService";
+import { BackendLogger } from "../utils/backendLogger";
 
 const STORAGE_KEY = "yanta_recent_documents";
 const MAX_RECENT_DOCUMENTS = 10;

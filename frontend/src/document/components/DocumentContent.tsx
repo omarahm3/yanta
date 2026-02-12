@@ -1,11 +1,11 @@
 import type { BlockNoteEditor } from "@blocknote/core";
 import { FileText } from "lucide-react";
 import React from "react";
-import { Layout } from "../../components/Layout";
-import { Button, type SidebarSection } from "../../components/ui";
-import type { SaveState } from "../../hooks/useAutoSave";
-import type { BlockNoteBlock } from "../../types/Document";
-import type { Project } from "../../types/Project";
+import { Layout } from "@/app";
+import type { SaveState } from "../../shared/hooks";
+import type { BlockNoteBlock } from "../../shared/types/Document";
+import type { Project } from "../../shared/types/Project";
+import { Button, type SidebarSection } from "../../shared/ui";
 import { DocumentEditorActions } from "./DocumentEditorActions";
 import { DocumentEditorForm } from "./DocumentEditorForm";
 
@@ -54,7 +54,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 	}) => (
 		<Layout
 			sidebarSections={sidebarSections}
-			currentPage={currentProject?.alias ?? "document"}
+			currentPage="document"
 			onRegisterToggleSidebar={onRegisterToggleSidebar}
 		>
 			<div className="flex flex-col w-full h-full">

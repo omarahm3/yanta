@@ -1,14 +1,18 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DialogProvider, HelpProvider, HotkeyProvider, ProjectContext } from "../../contexts";
+import { DialogProvider } from "../../app/context";
+import { HelpProvider } from "../../help";
+import { HotkeyProvider } from "../../hotkeys";
+import { ProjectContext } from "../../project";
 import { useProjectStore } from "../../shared/stores/project.store";
 import { Journal } from "../Journal";
 
 // Mock Layout to render children only (sidebar/header tested elsewhere)
-vi.mock("../../components/Layout", () => ({
-	Layout: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
+vi.mock("../../app", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../../app")>();
+	return { ...actual, Layout: ({ children }: { children: React.ReactNode }) => <>{children}</> };
+});
 
 vi.mock("../../hooks/useSidebarSections", () => ({
 	useSidebarSections: () => [],

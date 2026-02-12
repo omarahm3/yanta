@@ -1,4 +1,4 @@
-import type { PaneNode, ScrollPosition, SplitDirection } from "../types";
+import type { PaneNode, PaneSplit, ScrollPosition, SplitDirection } from "../types";
 import { MAX_PANES } from "../types";
 import { generatePaneId } from "./paneId";
 import { countLeaves, findPane } from "./paneTreeQueries";
@@ -44,19 +44,19 @@ export function splitPane(root: PaneNode, paneId: string, direction: SplitDirect
 	return replaceNode(root, paneId, (leaf) => {
 		if (leaf.type !== "leaf") return leaf;
 
-		const newSplit = {
-			type: "split" as const,
+		const newSplit: PaneSplit = {
+			type: "split",
 			id: generatePaneId(),
 			direction,
 			children: [
 				{ ...leaf },
 				{
-					type: "leaf" as const,
+					type: "leaf",
 					id: generatePaneId(),
 					documentPath: null,
 				},
-			],
-			sizes: [50, 50] as [number, number],
+			] as [PaneNode, PaneNode],
+			sizes: [50, 50],
 		};
 		return newSplit;
 	});

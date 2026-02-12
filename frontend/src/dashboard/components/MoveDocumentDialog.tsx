@@ -1,14 +1,14 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
-import { Input } from "../../components/ui/Input";
-import { Text } from "../../components/ui/Text";
 import { TIMEOUTS } from "../../config";
-import { useProjectContext } from "../../contexts";
-import { useDialog } from "../../contexts/DialogContext";
-import { cn } from "../../lib/utils";
-import { moveDocumentToProject } from "../../services/DocumentService";
-import type { Project } from "../../types/Project";
+import { useProjectContext } from "../../project";
+import { moveDocumentToProject } from "../../shared/services/DocumentService";
+import { useDialog } from "../../shared/stores/dialog.store";
+import type { Project } from "../../shared/types/Project";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../shared/ui/dialog";
+import { Input } from "../../shared/ui/Input";
+import { Text } from "../../shared/ui/Text";
+import { cn } from "../../shared/utils/cn";
 
 export interface MoveDocumentDialogProps {
 	isOpen: boolean;

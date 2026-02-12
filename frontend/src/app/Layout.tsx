@@ -1,15 +1,12 @@
 import type React from "react";
 import { type ReactNode, useEffect, useMemo } from "react";
-import {
-	FooterHintBar,
-	HeaderBar,
-	type SidebarSection,
-	Sidebar as UISidebar,
-} from "../components/ui";
 import { SIDEBAR_SHORTCUTS } from "../config";
-import { useProjectContext, useTitleBarContext } from "../contexts";
-import { useFooterHints, useFooterHintsSetting, useHotkeys, useSidebarSetting } from "../hooks";
-import type { PageName } from "../types";
+import { useHotkeys } from "../hotkeys";
+import { useProjectContext } from "../project";
+import { useFooterHints, useFooterHintsSetting, useSidebarSetting } from "../shared/hooks";
+import type { PageName } from "../shared/types";
+import { FooterHintBar, HeaderBar, type SidebarSection, Sidebar as UISidebar } from "../shared/ui";
+import { useTitleBarContext } from "./context";
 
 /**
  * Converts the current page identifier to a display-friendly page name.

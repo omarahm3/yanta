@@ -2,8 +2,8 @@ import { Archive, ArchiveRestore, ArrowLeftRight, ArrowRight, FileDown } from "l
 import { ExportProjectRequest } from "../../../../bindings/yanta/internal/document/models";
 import { ExportProject } from "../../../../bindings/yanta/internal/document/service";
 import { OpenDirectoryDialog } from "../../../../bindings/yanta/internal/system/service";
-import type { CommandOption } from "../../../components/ui";
-import { getShortcutForCommand } from "../../../utils/shortcuts";
+import type { CommandOption } from "../../../shared/ui";
+import { getShortcutForCommand } from "../../../shared/utils/shortcuts";
 import type { CommandRegistry, CommandRegistryContext } from "../types";
 
 export function registerProjectCommands(

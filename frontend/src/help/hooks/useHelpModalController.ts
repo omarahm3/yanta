@@ -1,7 +1,11 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { formatShortcutKeyForDisplay, getHelpShortcutsFromConfig, TIMEOUTS } from "../../config";
-import { GLOBAL_COMMANDS } from "../../constants/globalCommands";
+import {
+	formatShortcutKeyForDisplay,
+	GLOBAL_COMMANDS,
+	getHelpShortcutsFromConfig,
+	TIMEOUTS,
+} from "../../config";
 import { useHotkeyContext } from "../../hotkeys";
 import type { HelpSectionData, HelpSectionId } from "../utils/helpModalUtils";
 import { categorizeHotkey, getDefaultExpandedSections } from "../utils/helpModalUtils";

@@ -10,10 +10,10 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { App, CrashBoundary } from "@/app";
 import { ReducedEffectsInit } from "@/shared/stores/appearance.store";
-import { ToastProvider } from "./components/ui";
-import { HotkeyProvider } from "./contexts";
+import { HotkeyProvider } from "./hotkeys";
 import { QuickCapture } from "./quick-capture";
-import { BackendLogger, enableBackendLogging } from "./utils/backendLogger";
+import { ToastProvider } from "./shared/ui";
+import { BackendLogger, enableBackendLogging } from "./shared/utils/backendLogger";
 import "./styles/tailwind.css";
 import "./styles/yanta.css";
 

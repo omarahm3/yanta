@@ -1,13 +1,10 @@
 import { act, render, waitFor } from "@testing-library/react";
 import React from "react";
 import { vi } from "vitest";
-import {
-	DialogProvider,
-	HotkeyProvider,
-	UserProgressProvider,
-	useHotkeyContext,
-} from "../contexts";
-import type { HotkeyContextValue } from "../types/hotkeys";
+import { DialogProvider } from "../app/context";
+import { HotkeyProvider, useHotkeyContext } from "../hotkeys";
+import { UserProgressProvider } from "../onboarding";
+import type { HotkeyContextValue } from "../shared/types/hotkeys";
 
 const mockSaveNow = vi.fn(async () => {});
 const mockHandleEscape = vi.fn();
@@ -24,7 +21,7 @@ const mockEditor: MockEditor = {
 	focus: mockEditorFocus,
 };
 
-vi.mock("../components/document", () => ({
+vi.mock("../document/components", () => ({
 	__esModule: true,
 	DocumentContent: (props: { onEditorReady?: (editor: MockEditor) => void }) => {
 		props.onEditorReady?.(mockEditor);
@@ -34,11 +31,11 @@ vi.mock("../components/document", () => ({
 	DocumentErrorState: () => <div data-testid="error" />,
 }));
 
-vi.mock("../hooks/useSidebarSections", () => ({
+vi.mock("../shared/hooks/useSidebarSections", () => ({
 	useSidebarSections: () => [],
 }));
 
-vi.mock("../hooks/useNotification", () => ({
+vi.mock("../shared/hooks/useNotification", () => ({
 	useNotification: () => ({
 		success: vi.fn(),
 		error: vi.fn(),
@@ -47,7 +44,7 @@ vi.mock("../hooks/useNotification", () => ({
 	}),
 }));
 
-vi.mock("../hooks/useDocumentForm", () => ({
+vi.mock("../document/hooks/useDocumentForm", () => ({
 	useDocumentForm: () => ({
 		formData: { title: "Title", blocks: [], tags: [] },
 		hasChanges: true,
@@ -60,7 +57,7 @@ vi.mock("../hooks/useDocumentForm", () => ({
 	}),
 }));
 
-vi.mock("../hooks/useDocumentInitialization", () => ({
+vi.mock("../document/hooks/useDocumentInitialization", () => ({
 	useDocumentInitialization: () => ({
 		isLoading: false,
 		loadError: null,
@@ -69,7 +66,7 @@ vi.mock("../hooks/useDocumentInitialization", () => ({
 	}),
 }));
 
-vi.mock("../hooks/useDocumentPersistence", () => ({
+vi.mock("../document/hooks/useDocumentPersistence", () => ({
 	useDocumentPersistence: () => ({
 		autoSave: {
 			saveNow: mockSaveNow,
@@ -81,20 +78,20 @@ vi.mock("../hooks/useDocumentPersistence", () => ({
 	}),
 }));
 
-vi.mock("../hooks/useDocumentEditor", () => ({
+vi.mock("../document/hooks/useDocumentEditor", () => ({
 	useDocumentEditor: () => ({
 		handleEditorReady: vi.fn(),
 	}),
 }));
 
-vi.mock("../hooks/useDocumentEscapeHandling", () => ({
+vi.mock("../document/hooks/useDocumentEscapeHandling", () => ({
 	useDocumentEscapeHandling: () => ({
 		handleEscape: mockHandleEscape,
 		handleUnfocus: mockHandleUnfocus,
 	}),
 }));
 
-vi.mock("../hooks/useHelp", () => ({
+vi.mock("../help/hooks/useHelp", () => ({
 	useHelp: () => ({ setPageContext: vi.fn() }),
 }));
 
@@ -102,8 +99,8 @@ vi.mock("../pane", () => ({
 	usePaneLayout: () => ({ activePaneId: "pane-1" }),
 }));
 
-vi.mock("../contexts", async () => {
-	const actual = await vi.importActual<typeof import("../contexts")>("../contexts");
+vi.mock("../project", async () => {
+	const actual = await vi.importActual<typeof import("../project")>("../project");
 	return {
 		...actual,
 		useProjectContext: () => ({
@@ -124,7 +121,7 @@ vi.mock("../../wailsjs/runtime/runtime", () => ({
 	EventsOn: vi.fn(() => () => {}),
 }));
 
-import { Document } from "../pages/Document";
+import { Document } from "../document";
 
 const HotkeyProbe: React.FC<{ onReady: (ctx: HotkeyContextValue) => void }> = ({ onReady }) => {
 	const ctx = useHotkeyContext();

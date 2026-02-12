@@ -19,7 +19,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
 import { vi } from "vitest";
-import type { HotkeyContextValue } from "../types/hotkeys";
+import type { HotkeyContextValue } from "../shared/types/hotkeys";
 
 // ============================================
 // Mock Setup
@@ -29,23 +29,24 @@ const mockOpenHelp = vi.fn();
 const mockCloseHelp = vi.fn();
 const mockSetPageContext = vi.fn();
 
-vi.mock("../hooks/useHelp", () => ({
-	useHelp: () => ({
-		openHelp: mockOpenHelp,
-		closeHelp: mockCloseHelp,
-		setPageContext: mockSetPageContext,
-	}),
-}));
+vi.mock("../help", async () => {
+	const actual = await vi.importActual<typeof import("../help")>("../help");
+	return {
+		...actual,
+		useHelp: () => ({
+			openHelp: mockOpenHelp,
+			closeHelp: mockCloseHelp,
+			setPageContext: mockSetPageContext,
+		}),
+		HelpModal: () => <div data-testid="help-modal" />,
+	};
+});
 
-vi.mock("../components/ui/TitleBar", () => ({
+vi.mock("../app/components/TitleBar", () => ({
 	TitleBar: () => <div data-testid="title-bar" />,
 }));
 
-vi.mock("../components/ui/HelpModal", () => ({
-	HelpModal: () => <div data-testid="help-modal" />,
-}));
-
-vi.mock("../components/ui/ResizeHandles", () => ({
+vi.mock("../app/components/ResizeHandles", () => ({
 	ResizeHandles: () => null,
 }));
 
@@ -53,8 +54,8 @@ const mockNavigate = vi.fn();
 const commandPaletteRender = vi.fn();
 let __mockCommandPaletteOpen = false;
 
-vi.mock("../components", async () => {
-	const actual = await vi.importActual<typeof import("../components")>("../components");
+vi.mock("../command-palette", async () => {
+	const actual = await vi.importActual<typeof import("../command-palette")>("../command-palette");
 	return {
 		...actual,
 		GlobalCommandPalette: (props: {
@@ -86,12 +87,10 @@ vi.mock("../components", async () => {
 				</div>
 			);
 		},
-		WelcomeOverlay: () => null,
-		MilestoneHintManager: () => null,
 	};
 });
 
-vi.mock("../components/Router", () => ({
+vi.mock("../app/Router", () => ({
 	Router: ({ currentPage }: { currentPage: string }) => (
 		<div data-testid="router" data-current-page={currentPage}>
 			{currentPage}
@@ -101,39 +100,46 @@ vi.mock("../components/Router", () => ({
 
 let capturedHotkeyContext: HotkeyContextValue | null = null;
 
-vi.mock("../contexts", async () => {
-	const actual = await vi.importActual<typeof import("../contexts")>("../contexts");
+vi.mock("../hotkeys", async () => {
+	const actual = await vi.importActual<typeof import("../hotkeys")>("../hotkeys");
 	const React = await import("react");
 
-	const HotkeyCapture: React.FC = () => {
+	const HotkeyCapture: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 		const ctx = actual.useHotkeyContext();
 		React.useEffect(() => {
 			capturedHotkeyContext = ctx;
 		}, [ctx]);
-		return null;
+		return <>{children}</>;
 	};
 
 	return {
 		...actual,
 		HotkeyProvider: ({ children }: { children: React.ReactNode }) => (
 			<actual.HotkeyProvider>
-				<HotkeyCapture />
-				{children}
+				<HotkeyCapture>{children}</HotkeyCapture>
 			</actual.HotkeyProvider>
 		),
-		ProjectProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-		DocumentProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-		DocumentCountProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-		HelpProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-		UserProgressProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-		useProjectContext: () => ({
-			currentProject: { name: "Test Project", alias: "test" },
-			projects: [{ id: "1", name: "Test Project", alias: "test" }],
-			previousProject: { id: "2", name: "Previous Project", alias: "prev" },
-			setCurrentProject: vi.fn(),
-			switchToLastProject: vi.fn(),
-			isLoading: false,
-		}),
+	};
+});
+
+vi.mock("../project", () => ({
+	...vi.importActual("../project"),
+	useProjectContext: () => ({
+		currentProject: { name: "Test Project", alias: "test" },
+		projects: [{ id: "1", name: "Test Project", alias: "test" }],
+		previousProject: { id: "2", name: "Previous Project", alias: "prev" },
+		setCurrentProject: vi.fn(),
+		switchToLastProject: vi.fn(),
+		isLoading: false,
+	}),
+}));
+
+vi.mock("../onboarding", async () => {
+	const actual = await vi.importActual<typeof import("../onboarding")>("../onboarding");
+	return {
+		...actual,
+		WelcomeOverlay: () => null,
+		MilestoneHintManager: () => null,
 		useUserProgressContext: () => ({
 			incrementProjectsSwitched: vi.fn(),
 			getProgress: vi.fn(),
@@ -151,7 +157,7 @@ vi.mock("../../bindings/yanta/internal/system/service", () => ({
 	ForceQuit: vi.fn(),
 }));
 
-vi.mock("../components/ui/Toast", () => ({
+vi.mock("../shared/ui/Toast", () => ({
 	ToastProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 	useToast: () => ({
 		show: vi.fn(),

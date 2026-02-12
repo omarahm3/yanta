@@ -1,18 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { GranularErrorBoundary } from "@/app";
+import { GranularErrorBoundary, Layout } from "@/app";
 import type * as searchModels from "../../bindings/yanta/internal/search/models";
 import { Query } from "../../bindings/yanta/internal/search/service";
 import type * as tagModels from "../../bindings/yanta/internal/tag/models";
 import { ListActive as ListActiveTags } from "../../bindings/yanta/internal/tag/service";
-import { Layout } from "../components/Layout";
-import { Button, Input } from "../components/ui";
 import { TIMEOUTS } from "../config";
-import { useProjectContext } from "../contexts";
-import { useHelp } from "../hooks";
-import { useNotification } from "../hooks/useNotification";
-import { useSidebarSections } from "../hooks/useSidebarSections";
-import type { NavigationState, PageName } from "../types";
-import { BackendLogger } from "../utils/backendLogger";
+import { useHelp } from "../help";
+import { useProjectContext } from "../project";
+import { useNotification, useSidebarSections } from "../shared/hooks";
+import type { NavigationState, PageName } from "../shared/types";
+import { Button, Input } from "../shared/ui";
+import { BackendLogger } from "../shared/utils/backendLogger";
 
 interface SearchResult {
 	path: string;

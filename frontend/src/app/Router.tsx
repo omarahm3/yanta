@@ -1,12 +1,20 @@
-import React, { Suspense, useMemo } from "react";
-import { PaneLayoutView } from "../components/pane";
-import { LoadingSpinner } from "../components/ui";
-import { Dashboard, Journal, Projects, QuickCapture, Search, Settings } from "../pages";
-import type { NavigationState, PageName } from "../types";
+import React, { lazy, Suspense, useMemo } from "react";
+import { Dashboard } from "../dashboard";
+import { PaneLayoutView } from "../pane";
+import type { NavigationState, PageName } from "../shared/types";
+import { LoadingSpinner } from "../shared/ui";
 
 const PageLoader = () => <LoadingSpinner message="Loading..." />;
 
-const Test = React.lazy(() => import("../pages/Test").then((m) => ({ default: m.Test })));
+// Lazy load routes for code splitting
+const Journal = lazy(() => import("../journal").then((m) => ({ default: m.Journal })));
+const Projects = lazy(() => import("../project").then((m) => ({ default: m.Projects })));
+const QuickCapture = lazy(() =>
+	import("../quick-capture").then((m) => ({ default: m.QuickCapture })),
+);
+const Search = lazy(() => import("../search").then((m) => ({ default: m.Search })));
+const Settings = lazy(() => import("../settings").then((m) => ({ default: m.Settings })));
+const Test = lazy(() => import("./test/Test").then((m) => ({ default: m.Test })));
 
 interface RouterProps {
 	currentPage?: PageName;

@@ -1,8 +1,9 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 import { vi } from "vitest";
-import { DialogProvider, HotkeyProvider, useHotkeyContext } from "../contexts";
-import type { HotkeyContextValue } from "../types/hotkeys";
+import { DialogProvider } from "../app/context";
+import { HotkeyProvider, useHotkeyContext } from "../hotkeys";
+import type { HotkeyContextValue } from "../shared/types/hotkeys";
 
 const mockSuccess = vi.fn();
 const mockError = vi.fn();
@@ -46,7 +47,8 @@ vi.mock("../contexts", async () => {
 	};
 });
 
-vi.mock("../components/Layout", () => {
+vi.mock("../app", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../app")>();
 	const Layout = ({
 		children,
 		commandInputRef,
@@ -68,17 +70,17 @@ vi.mock("../components/Layout", () => {
 			{children}
 		</div>
 	);
-	return { __esModule: true, Layout };
+	return { ...actual, Layout };
 });
 
-vi.mock("../components/ui", () => ({
+vi.mock("../shared/ui", () => ({
 	__esModule: true,
 	Table: ({ selectedRowId }: { selectedRowId: string }) => (
 		<div data-testid="selected-project">{selectedRowId}</div>
 	),
 }));
 
-import { Projects } from "../pages/Projects";
+import { Projects } from "../project";
 
 const HotkeyProbe: React.FC<{ onReady: (ctx: HotkeyContextValue) => void }> = ({ onReady }) => {
 	const ctx = useHotkeyContext();

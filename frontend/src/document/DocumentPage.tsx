@@ -1,6 +1,6 @@
 import type React from "react";
-import { useHotkeys } from "../hooks";
-import type { NavigationState, PageName } from "../types";
+import { useHotkeys } from "../hotkeys";
+import type { NavigationState, PageName } from "../shared/types";
 import { DocumentContent, DocumentErrorState, DocumentLoadingState } from "./components";
 import { useDocumentController } from "./hooks/useDocumentController";
 

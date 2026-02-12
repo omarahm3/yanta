@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { Document } from "../../../types/Document";
+import type { Document } from "../../../shared/types/Document";
 import { DocumentList } from "../DocumentList";
 
 const buildDocument = (overrides: Partial<Document> = {}): Document => ({

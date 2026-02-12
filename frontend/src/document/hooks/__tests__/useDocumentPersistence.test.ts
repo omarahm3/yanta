@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Project } from "../../../types/Project";
+import type { Project } from "../../../shared/types/Project";
 import { useDocumentPersistence } from "../useDocumentPersistence";
 
 vi.mock("../useDocumentSaver", () => ({

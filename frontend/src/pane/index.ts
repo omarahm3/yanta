@@ -1,3 +1,14 @@
+export {
+	EmptyPane,
+	EmptyPaneDocumentPicker,
+	PaneContainer,
+	PaneContent,
+	PaneDocumentView,
+	PaneHeader,
+	PaneLayoutView,
+	PaneNavigateProvider,
+	usePaneNavigateContext,
+} from "./components";
 export type { PaneLayoutContextValue } from "./context/PaneLayoutContext";
 export { PaneLayoutContext, PaneLayoutProvider } from "./context/PaneLayoutContext";
 export { usePaneHotkeys, usePaneLayout } from "./hooks";

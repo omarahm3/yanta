@@ -1,4 +1,4 @@
-import type { Document } from "../../../types/Document";
+import type { Document } from "../../../shared/types/Document";
 import { preprocessCommand } from "../commandPreprocessor";
 
 const makeDoc = (path: string): Document => ({

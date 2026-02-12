@@ -1,6 +1,6 @@
-import type { CommandOption } from "../../components/ui";
+import type { Project } from "../../shared/types";
 import type { NavigationState, PageName } from "../../shared/types/navigation";
-import type { Project } from "../../types";
+import type { CommandOption } from "../../shared/ui";
 
 /**
  * Context passed to domain command registration functions.

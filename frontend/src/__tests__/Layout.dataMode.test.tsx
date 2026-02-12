@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
-import { DialogProvider, HotkeyProvider, TitleBarProvider } from "../contexts";
+import { DialogProvider, TitleBarProvider } from "../app/context";
+import { HotkeyProvider } from "../hotkeys";
 
 vi.mock("../hooks/useGlobalCommand", () => ({
 	useGlobalCommand: () => ({
@@ -40,7 +41,7 @@ vi.mock("../contexts", async () => {
 	};
 });
 
-vi.mock("../components/ui", () => ({
+vi.mock("../shared/ui", () => ({
 	__esModule: true,
 	HeaderBar: ({ currentPage }: { currentPage: string }) => (
 		<div data-testid="header">{currentPage}</div>
@@ -52,7 +53,7 @@ vi.mock("../components/ui", () => ({
 	),
 }));
 
-import { Layout } from "../components/Layout";
+import { Layout } from "../app";
 
 const renderWithProviders = (currentPage: string) => {
 	return render(

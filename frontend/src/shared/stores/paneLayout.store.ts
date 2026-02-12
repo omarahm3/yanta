@@ -6,7 +6,7 @@ import { TIMEOUTS } from "@/config";
 import type { PaneLayoutState } from "../../pane/types";
 import { createDefaultPaneLayout } from "../../pane/types";
 import { restoreLayout } from "../../pane/utils/paneLayoutUtils";
-import { BackendLogger } from "../../utils/backendLogger";
+import { BackendLogger } from "../utils/backendLogger";
 
 const OLD_STORAGE_KEY = "yanta_pane_layout";
 const STORAGE_KEY = "yanta_pane_layouts";

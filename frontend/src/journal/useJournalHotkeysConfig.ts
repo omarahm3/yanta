@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { JOURNAL_SHORTCUTS } from "../config";
-import type { HotkeyConfig } from "../types/hotkeys";
+import type { HotkeyConfig } from "../shared/types/hotkeys";
 
 export interface UseJournalHotkeysConfigOptions {
 	goToPrevDay: () => void;

@@ -1,6 +1,6 @@
 import React from "react";
-import { Button } from "../components/ui";
-import { cn } from "../lib/utils";
+import { Button } from "../shared/ui";
+import { cn } from "../shared/utils/cn";
 
 const STYLE_BORDER_ACCENT = {
 	borderLeftColor: "var(--mode-accent)",

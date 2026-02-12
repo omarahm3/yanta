@@ -1,6 +1,6 @@
 import { AlertCircle } from "lucide-react";
 import React from "react";
-import { BackendLogger, getLogBuffer } from "../utils/backendLogger";
+import { BackendLogger, getLogBuffer } from "../shared/utils/backendLogger";
 
 interface CrashBoundaryState {
 	error: Error | null;

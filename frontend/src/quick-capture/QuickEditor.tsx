@@ -1,6 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { cn } from "../lib/utils";
+import { cn } from "../shared/utils/cn";
 import type { ProjectOption } from "./ProjectPicker";
 
 function escapeHtmlForMirror(text: string): string {
