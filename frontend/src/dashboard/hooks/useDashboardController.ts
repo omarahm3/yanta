@@ -4,8 +4,8 @@ import { Restore, SoftDelete } from "../../../bindings/yanta/internal/document/s
 import { DocumentCommand } from "../../config";
 import { useDocumentContext } from "../../document";
 import { useHelp } from "../../help";
-import { DocumentServiceWrapper } from "../../shared/services/DocumentService";
 import { useNotification, useRecentDocuments, useSidebarSections } from "../../shared/hooks";
+import { DocumentServiceWrapper } from "../../shared/services/DocumentService";
 import type { NavigationState, PageName } from "../../shared/types";
 import type { Document } from "../../shared/types/Document";
 import type { HotkeyConfig } from "../../shared/types/hotkeys";
