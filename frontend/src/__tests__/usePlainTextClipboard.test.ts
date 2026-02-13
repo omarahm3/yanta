@@ -1,6 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { usePlainTextClipboard } from "../components/editor/hooks/usePlainTextClipboard";
+import { usePlainTextClipboard } from "../editor/hooks/usePlainTextClipboard";
 
 /**
  * Helper to create a mock ClipboardEvent since jsdom doesn't fully support it.

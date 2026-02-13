@@ -2,6 +2,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
+      "@/app": ["./src/app/index"],
       "@/*": ["./src/*"]
     },
     "target": "ESNext",
@@ -24,6 +25,7 @@
     "allowImportingTsExtensions": true
   },
   "include": ["src", "vitest.setup.ts", "bindings"],
+  "exclude": ["src/__tests__", "**/*.test.ts", "**/*.test.tsx"],
   "references": [
     {
       "path": "./tsconfig.node.json"

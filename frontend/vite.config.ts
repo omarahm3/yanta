@@ -4,6 +4,7 @@ import { visualizer } from "rollup-plugin-visualizer";
 import tailwindcss from "@tailwindcss/vite";
 import wails from "@wailsio/runtime/plugins/vite";
 import path from "path";
+import type { BuildOptions } from "vite";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -26,6 +27,7 @@ export default defineConfig({
 
   resolve: {
     alias: {
+      "@/app": path.resolve(__dirname, "./src/app/index.ts"),
       "@": path.resolve(__dirname, "./src"),
     },
   },
@@ -38,13 +40,14 @@ export default defineConfig({
   build: {
     target: "es2020",
     minify: "terser",
+    sourcemap: "hidden",
     terserOptions: {
       compress: {
-        // drop_console: true,
+        drop_console: true,
         drop_debugger: true,
-        // pure_funcs: ["console.log", "console.info"],
+        pure_funcs: ["console.log", "console.info"],
       },
-    },
+    } as BuildOptions["terserOptions"],
 
     rollupOptions: {
       output: {
@@ -70,7 +73,6 @@ export default defineConfig({
     },
 
     chunkSizeWarningLimit: 500,
-    sourcemap: false,
     cssCodeSplit: true,
   },
 

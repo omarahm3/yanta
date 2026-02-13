@@ -1,21 +1,25 @@
 import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
-import { DialogProvider, HotkeyProvider, TitleBarProvider } from "../contexts";
+import { DialogProvider, TitleBarProvider } from "../app/context";
 
-vi.mock("../hooks/useGlobalCommand", () => ({
-	useGlobalCommand: () => ({
-		executeGlobalCommand: async () => ({ handled: false }),
-	}),
+vi.mock("../config", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../config")>();
+	return {
+		...actual,
+		SIDEBAR_SHORTCUTS: {
+			toggle: { key: "ctrl+b", description: "Toggle sidebar" },
+		},
+		LAYOUT: { maxPanes: 4 },
+	};
+});
+
+vi.mock("../hotkeys", () => ({
+	useHotkeys: vi.fn(),
+	HotkeyProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+	useHotkeyContext: () => ({ getRegisteredHotkeys: () => [] }),
 }));
 
-vi.mock("../hooks/useNotification", () => ({
-	useNotification: () => ({
-		success: vi.fn(),
-		error: vi.fn(),
-	}),
-}));
-
-vi.mock("../hooks/useSidebarSetting", () => ({
+vi.mock("../shared/hooks/useSidebarSetting", () => ({
 	useSidebarSetting: () => ({
 		sidebarVisible: false,
 		isLoading: false,
@@ -24,35 +28,41 @@ vi.mock("../hooks/useSidebarSetting", () => ({
 	}),
 }));
 
-vi.mock("../hooks/useFooterHints", () => ({
+vi.mock("../shared/hooks/useFooterHints", () => ({
 	useFooterHints: () => ({
 		hints: [{ key: "Ctrl+K", label: "Commands" }],
 	}),
 }));
 
-vi.mock("../contexts", async () => {
-	const actual = await vi.importActual<typeof import("../contexts")>("../contexts");
-	return {
-		...actual,
-		useProjectContext: () => ({
-			currentProject: { name: "Test Project" },
-		}),
-	};
-});
+vi.mock("../shared/hooks/useFooterHintsSetting", () => ({
+	useFooterHintsSetting: () => ({
+		showFooterHints: true,
+		isLoading: false,
+		setShowFooterHints: vi.fn(),
+		toggleFooterHints: vi.fn(),
+	}),
+}));
 
-vi.mock("../components/ui", () => ({
+vi.mock("../project", () => ({
+	useProjectContext: () => ({
+		currentProject: { name: "Test Project" },
+	}),
+}));
+
+vi.mock("../shared/ui", () => ({
 	__esModule: true,
 	HeaderBar: ({ currentPage }: { currentPage: string }) => (
 		<div data-testid="header">{currentPage}</div>
 	),
 	Sidebar: ({ title }: { title?: string }) => <div data-testid="sidebar">{title ?? "Sidebar"}</div>,
-	ContextBar: () => <div data-testid="context-bar-mock" />,
 	FooterHintBar: ({ hints }: { hints: { key: string; label: string }[] }) => (
 		<div data-testid="footer-hint-bar-mock">{hints.length} hints</div>
 	),
 }));
 
-import { Layout } from "../components/Layout";
+import type React from "react";
+import { Layout } from "../app";
+import { HotkeyProvider } from "../hotkeys";
 
 const renderWithProviders = (currentPage: string) => {
 	return render(

@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
-import { type CommandOption, CommandPalette } from "../components/ui/CommandPalette";
+import { type CommandOption, CommandPalette } from "../shared/ui/CommandPalette";
 
-Element.prototype.scrollIntoView = vi.fn();
+Element.prototype.scrollIntoView = () => {};
 
 const onClose = vi.fn();
 const onCommandSelect = vi.fn();

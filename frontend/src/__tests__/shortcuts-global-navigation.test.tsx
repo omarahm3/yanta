@@ -3,23 +3,14 @@
  *
  * Tests that global navigation shortcuts work from any page and properly
  * trigger navigation, modal visibility, or state changes.
- *
- * Shortcuts tested:
- * - Ctrl+K → Opens command palette
- * - Ctrl+B → Toggles sidebar visibility
- * - Ctrl+, → Navigates to Settings page
- * - ? or F1 → Opens Help modal
- * - Ctrl+J → Navigates to Journal page (via command palette)
- * - Ctrl+T → Navigates to Journal page with today's date
- * - Ctrl+E → Opens Recent Documents sub-palette (via command palette)
- * - Ctrl+Tab → Switches to last project (if previous project exists)
- * - Ctrl+Shift+F → Navigates to Search page (via command palette)
  */
 
 import { act, render, screen, waitFor } from "@testing-library/react";
-import type React from "react";
+import type { ReactNode } from "react";
+import React from "react";
 import { vi } from "vitest";
-import type { HotkeyContextValue } from "../types/hotkeys";
+import type { HotkeyContextValue } from "../shared/types/hotkeys";
+import type { NavigationState, PageName } from "../shared/types/navigation";
 
 // ============================================
 // Mock Setup
@@ -28,53 +19,60 @@ import type { HotkeyContextValue } from "../types/hotkeys";
 const mockOpenHelp = vi.fn();
 const mockCloseHelp = vi.fn();
 const mockSetPageContext = vi.fn();
+const commandPaletteRender = vi.fn();
 
-vi.mock("../hooks/useHelp", () => ({
+vi.mock("../help", () => ({
 	useHelp: () => ({
 		openHelp: mockOpenHelp,
 		closeHelp: mockCloseHelp,
 		setPageContext: mockSetPageContext,
 	}),
-}));
-
-vi.mock("../components/ui/TitleBar", () => ({
-	TitleBar: () => <div data-testid="title-bar" />,
-}));
-
-vi.mock("../components/ui/HelpModal", () => ({
 	HelpModal: () => <div data-testid="help-modal" />,
 }));
 
-vi.mock("../components/ui/ResizeHandles", () => ({
+vi.mock("../app/components/TitleBar", () => ({
+	TitleBar: () => <div data-testid="title-bar" />,
+}));
+
+vi.mock("../app/components/ResizeHandles", () => ({
 	ResizeHandles: () => null,
 }));
 
-const mockNavigate = vi.fn();
-const commandPaletteRender = vi.fn();
-let __mockCommandPaletteOpen = false;
-
-vi.mock("../components", async () => {
-	const actual = await vi.importActual<typeof import("../components")>("../components");
+vi.mock("../config", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../config")>();
 	return {
 		...actual,
+		GLOBAL_SHORTCUTS: {
+			commandPalette: { key: "mod+K", description: "Open command palette" },
+			today: { key: "mod+T", description: "Jump to today's journal" },
+			switchProject: { key: "ctrl+Tab", description: "Switch to last project" },
+			help: { key: "shift+/", description: "Toggle help" },
+			quit: { key: "ctrl+q", description: "Quit (background if enabled)" },
+			forceQuit: { key: "ctrl+shift+q", description: "Force quit application" },
+		},
+		SIDEBAR_SHORTCUTS: {
+			toggle: { key: "ctrl+b", description: "Toggle sidebar" },
+		},
+		LAYOUT: { maxPanes: 4 },
+	};
+});
+
+// Import the real command palette store from specific file
+vi.mock("../command-palette", async () => {
+	const storeModule = await vi.importActual<
+		typeof import("../command-palette/commandPalette.store")
+	>("../command-palette/commandPalette.store");
+	return {
+		...storeModule,
 		GlobalCommandPalette: (props: {
-			isOpen: boolean;
 			onClose: () => void;
-			onNavigate: (
-				page: string,
-				state?: Record<string, string | number | boolean | undefined>,
-			) => void;
+			onNavigate: (page: PageName, state?: NavigationState) => void;
 		}) => {
-			__mockCommandPaletteOpen = props.isOpen;
-			commandPaletteRender(props);
-			// Expose navigate for tests
-			if (props.isOpen) {
-				(window as unknown as { __testNavigate: typeof props.onNavigate }).__testNavigate =
-					props.onNavigate;
-			}
+			const isOpen = storeModule.useCommandPaletteStore((s: { isOpen: boolean }) => s.isOpen);
+			commandPaletteRender({ ...props, isOpen });
 			return (
-				<div data-testid="command-palette" data-open={props.isOpen}>
-					{props.isOpen && (
+				<div data-testid="command-palette" data-open={String(isOpen)}>
+					{isOpen && (
 						<button
 							data-testid="navigate-journal"
 							onClick={() => props.onNavigate("journal")}
@@ -86,12 +84,10 @@ vi.mock("../components", async () => {
 				</div>
 			);
 		},
-		WelcomeOverlay: () => null,
-		MilestoneHintManager: () => null,
 	};
 });
 
-vi.mock("../components/Router", () => ({
+vi.mock("../app/Router", () => ({
 	Router: ({ currentPage }: { currentPage: string }) => (
 		<div data-testid="router" data-current-page={currentPage}>
 			{currentPage}
@@ -99,47 +95,37 @@ vi.mock("../components/Router", () => ({
 	),
 }));
 
-let capturedHotkeyContext: HotkeyContextValue | null = null;
+vi.mock("../project", () => ({
+	useProjectContext: () => ({
+		currentProject: { name: "Test Project", alias: "test" },
+		projects: [{ id: "1", name: "Test Project", alias: "test" }],
+		previousProject: { id: "2", name: "Previous Project", alias: "prev" },
+		setCurrentProject: vi.fn(),
+		switchToLastProject: vi.fn(),
+		isLoading: false,
+	}),
+}));
 
-vi.mock("../contexts", async () => {
-	const actual = await vi.importActual<typeof import("../contexts")>("../contexts");
-	const React = await import("react");
+vi.mock("../pane", () => ({
+	usePaneLayout: () => ({
+		loadAndRestoreLayout: vi.fn(),
+		layout: {
+			root: { type: "leaf", id: "pane-1" },
+			activePaneId: "pane-1",
+			primaryDocumentPath: null,
+		},
+		activePaneId: "pane-1",
+	}),
+}));
 
-	const HotkeyCapture: React.FC = () => {
-		const ctx = actual.useHotkeyContext();
-		React.useEffect(() => {
-			capturedHotkeyContext = ctx;
-		}, [ctx]);
-		return null;
-	};
-
-	return {
-		...actual,
-		HotkeyProvider: ({ children }: { children: React.ReactNode }) => (
-			<actual.HotkeyProvider>
-				<HotkeyCapture />
-				{children}
-			</actual.HotkeyProvider>
-		),
-		ProjectProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-		DocumentProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-		DocumentCountProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-		HelpProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-		UserProgressProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-		useProjectContext: () => ({
-			currentProject: { name: "Test Project", alias: "test" },
-			projects: [{ id: "1", name: "Test Project", alias: "test" }],
-			previousProject: { id: "2", name: "Previous Project", alias: "prev" },
-			setCurrentProject: vi.fn(),
-			switchToLastProject: vi.fn(),
-			isLoading: false,
-		}),
-		useUserProgressContext: () => ({
-			incrementProjectsSwitched: vi.fn(),
-			getProgress: vi.fn(),
-		}),
-	};
-});
+vi.mock("../onboarding", () => ({
+	useUserProgressContext: () => ({
+		incrementProjectsSwitched: vi.fn(),
+		getProgress: vi.fn(),
+	}),
+	WelcomeOverlay: () => null,
+	MilestoneHintManager: () => null,
+}));
 
 vi.mock("../../wailsjs/runtime/runtime", () => ({
 	EventsOn: vi.fn(() => () => {}),
@@ -151,8 +137,8 @@ vi.mock("../../bindings/yanta/internal/system/service", () => ({
 	ForceQuit: vi.fn(),
 }));
 
-vi.mock("../components/ui/Toast", () => ({
-	ToastProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+vi.mock("../shared/ui/Toast", () => ({
+	ToastProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 	useToast: () => ({
 		show: vi.fn(),
 		success: vi.fn(),
@@ -164,7 +150,66 @@ vi.mock("../components/ui/Toast", () => ({
 	}),
 }));
 
-import App from "../App";
+// Let the real useAppGlobalEffects load - its deps (config, help, hotkeys, bindings) are all mocked
+vi.mock("../app/hooks/useWindowHiddenToast", () => ({
+	useWindowHiddenToast: () => {},
+}));
+
+vi.mock("../app/hooks/useProjectSwitchTracking", () => ({
+	useProjectSwitchTracking: () => {},
+}));
+
+vi.mock("../app/useAppNavigation", () => ({
+	useAppNavigation: () => ({
+		currentPage: "dashboard" as PageName,
+		navigationState: undefined,
+		onNavigate: vi.fn(),
+		onToggleArchived: vi.fn(),
+		showArchived: false,
+		onRegisterToggleArchived: vi.fn(),
+		onRegisterToggleSidebar: vi.fn(),
+		onToggleSidebar: vi.fn(),
+	}),
+}));
+
+// Real hotkeys system (lightweight modules loaded from specific files)
+let capturedHotkeyContext: HotkeyContextValue | null = null;
+
+vi.mock("../hotkeys", async () => {
+	const context = await vi.importActual<typeof import("../hotkeys/context")>("../hotkeys/context");
+	const hooks = await vi.importActual<typeof import("../hotkeys/hooks")>("../hotkeys/hooks");
+	const React = await import("react");
+
+	const HotkeyCapture: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+		const ctx = context.useHotkeyContext();
+		React.useEffect(() => {
+			capturedHotkeyContext = ctx;
+		}, [ctx]);
+		return <>{children}</>;
+	};
+
+	return {
+		...context,
+		...hooks,
+		HotkeyProvider: ({ children }: { children: React.ReactNode }) => (
+			<context.HotkeyProvider>
+				<HotkeyCapture>{children}</HotkeyCapture>
+			</context.HotkeyProvider>
+		),
+	};
+});
+
+import { AppGlobalEffects, GlobalCommandHotkey } from "../app/global-hotkeys";
+import { useCommandPaletteStore } from "../command-palette/commandPalette.store";
+import { HotkeyProvider } from "../hotkeys";
+
+// Mock App: just the global hotkeys, wrapped in HotkeyProvider
+const MockApp = () => (
+	<HotkeyProvider>
+		<AppGlobalEffects />
+		<GlobalCommandHotkey />
+	</HotkeyProvider>
+);
 
 // ============================================
 // Test Utilities
@@ -195,15 +240,14 @@ describe("Global Navigation Shortcuts", () => {
 		mockOpenHelp.mockClear();
 		mockCloseHelp.mockClear();
 		mockSetPageContext.mockClear();
-		mockNavigate.mockClear();
 		commandPaletteRender.mockClear();
 		capturedHotkeyContext = null;
-		__mockCommandPaletteOpen = false;
+		useCommandPaletteStore.getState().reset();
 	});
 
 	describe("Command Palette (Ctrl+K / mod+K)", () => {
 		it("opens command palette with mod+K", async () => {
-			render(<App />);
+			render(<MockApp />);
 
 			await waitFor(() => {
 				expect(capturedHotkeyContext).not.toBeNull();
@@ -219,18 +263,15 @@ describe("Global Navigation Shortcuts", () => {
 		});
 
 		it("mod+K toggles command palette closed when already open", async () => {
-			render(<App />);
+			render(<MockApp />);
 
 			await waitFor(() => {
 				expect(capturedHotkeyContext).not.toBeNull();
 			});
 
-			// Open the palette
 			await triggerHotkey("mod+K", { ctrlKey: true });
 			expect(screen.getByTestId("command-palette")).toHaveAttribute("data-open", "true");
 
-			// The close behavior is typically handled by the palette component itself
-			// For this test, we verify the hotkey is registered and callable
 			const hotkey = findHotkey("mod+K");
 			expect(hotkey).toBeDefined();
 			expect(hotkey?.description).toBe("Open command palette");
@@ -239,7 +280,7 @@ describe("Global Navigation Shortcuts", () => {
 
 	describe("Help Modal (Shift+/ or ?)", () => {
 		it("opens help modal with shift+/", async () => {
-			render(<App />);
+			render(<MockApp />);
 
 			await waitFor(() => {
 				expect(capturedHotkeyContext).not.toBeNull();
@@ -257,7 +298,7 @@ describe("Global Navigation Shortcuts", () => {
 		});
 
 		it("help hotkey is registered with correct properties", async () => {
-			render(<App />);
+			render(<MockApp />);
 
 			await waitFor(() => {
 				expect(capturedHotkeyContext).not.toBeNull();
@@ -271,7 +312,7 @@ describe("Global Navigation Shortcuts", () => {
 
 	describe("Jump to Today's Journal (Ctrl+T / mod+T)", () => {
 		it("navigates to journal with today's date on mod+T", async () => {
-			render(<App />);
+			render(<MockApp />);
 
 			await waitFor(() => {
 				expect(capturedHotkeyContext).not.toBeNull();
@@ -281,25 +322,22 @@ describe("Global Navigation Shortcuts", () => {
 			expect(hotkey).toBeDefined();
 			expect(hotkey?.description).toBe("Jump to today's journal");
 
-			const _today = new Date().toISOString().split("T")[0];
-
 			await act(async () => {
 				const event = new KeyboardEvent("keydown", { key: "t", ctrlKey: true });
 				const preventDefaultSpy = vi.spyOn(event, "preventDefault");
 				hotkey?.handler(event);
 				expect(preventDefaultSpy).toHaveBeenCalled();
+				preventDefaultSpy.mockRestore();
 			});
 
-			// Verify the router received the navigation
 			await waitFor(() => {
 				const router = screen.getByTestId("router");
-				// The navigation should have been called with journal and today's date
 				expect(router).toBeInTheDocument();
 			});
 		});
 
 		it("mod+T does not trigger when in input field", async () => {
-			render(<App />);
+			render(<MockApp />);
 
 			await waitFor(() => {
 				expect(capturedHotkeyContext).not.toBeNull();
@@ -312,7 +350,7 @@ describe("Global Navigation Shortcuts", () => {
 
 	describe("Switch to Last Project (Ctrl+Tab)", () => {
 		it("registers ctrl+Tab hotkey for switching projects", async () => {
-			render(<App />);
+			render(<MockApp />);
 
 			await waitFor(() => {
 				expect(capturedHotkeyContext).not.toBeNull();
@@ -325,7 +363,7 @@ describe("Global Navigation Shortcuts", () => {
 		});
 
 		it("ctrl+Tab handler calls preventDefault", async () => {
-			render(<App />);
+			render(<MockApp />);
 
 			await waitFor(() => {
 				expect(capturedHotkeyContext).not.toBeNull();
@@ -339,13 +377,14 @@ describe("Global Navigation Shortcuts", () => {
 				const preventDefaultSpy = vi.spyOn(event, "preventDefault");
 				hotkey?.handler(event);
 				expect(preventDefaultSpy).toHaveBeenCalled();
+				preventDefaultSpy.mockRestore();
 			});
 		});
 	});
 
 	describe("Quit Shortcuts", () => {
 		it("registers ctrl+q for background quit", async () => {
-			render(<App />);
+			render(<MockApp />);
 
 			await waitFor(() => {
 				expect(capturedHotkeyContext).not.toBeNull();
@@ -359,7 +398,7 @@ describe("Global Navigation Shortcuts", () => {
 		});
 
 		it("registers ctrl+shift+q for force quit", async () => {
-			render(<App />);
+			render(<MockApp />);
 
 			await waitFor(() => {
 				expect(capturedHotkeyContext).not.toBeNull();
@@ -375,17 +414,12 @@ describe("Global Navigation Shortcuts", () => {
 });
 
 describe("Global Navigation Shortcuts from Multiple Starting Pages", () => {
-	/**
-	 * Tests that global shortcuts work consistently regardless of which page
-	 * the user is currently on. The key insight is that global shortcuts
-	 * are registered at the App level and should be active on all pages.
-	 */
-
 	beforeEach(() => {
 		mockOpenHelp.mockClear();
 		mockCloseHelp.mockClear();
 		commandPaletteRender.mockClear();
 		capturedHotkeyContext = null;
+		useCommandPaletteStore.getState().reset();
 	});
 
 	const globalShortcuts = [
@@ -398,7 +432,7 @@ describe("Global Navigation Shortcuts from Multiple Starting Pages", () => {
 	];
 
 	it("all global shortcuts are registered on App mount", async () => {
-		render(<App />);
+		render(<MockApp />);
 
 		await waitFor(() => {
 			expect(capturedHotkeyContext).not.toBeNull();
@@ -412,7 +446,7 @@ describe("Global Navigation Shortcuts from Multiple Starting Pages", () => {
 	});
 
 	it("global shortcuts remain registered throughout App lifecycle", async () => {
-		const { rerender } = render(<App />);
+		const { rerender } = render(<MockApp />);
 
 		await waitFor(() => {
 			expect(capturedHotkeyContext).not.toBeNull();
@@ -421,25 +455,21 @@ describe("Global Navigation Shortcuts from Multiple Starting Pages", () => {
 		const initialHotkeyCount = capturedHotkeyContext?.getRegisteredHotkeys().length || 0;
 		expect(initialHotkeyCount).toBeGreaterThan(0);
 
-		// Simulate a rerender (like a state change would cause)
-		rerender(<App />);
+		rerender(<MockApp />);
 
 		await waitFor(() => {
 			const currentHotkeyCount = capturedHotkeyContext?.getRegisteredHotkeys().length || 0;
-			// Hotkey count should remain stable
 			expect(currentHotkeyCount).toBe(initialHotkeyCount);
 		});
 	});
 
 	it("command palette can be opened from any page context", async () => {
-		render(<App />);
+		render(<MockApp />);
 
 		await waitFor(() => {
 			expect(capturedHotkeyContext).not.toBeNull();
 		});
 
-		// The Router mock shows current page, simulating different page contexts
-		// The key point is that mod+K is always available regardless of currentPage
 		const palette = screen.getByTestId("command-palette");
 		expect(palette).toHaveAttribute("data-open", "false");
 
@@ -449,7 +479,7 @@ describe("Global Navigation Shortcuts from Multiple Starting Pages", () => {
 	});
 
 	it("help can be opened from any page context", async () => {
-		render(<App />);
+		render(<MockApp />);
 
 		await waitFor(() => {
 			expect(capturedHotkeyContext).not.toBeNull();
@@ -467,32 +497,21 @@ describe("Global Navigation Shortcuts from Multiple Starting Pages", () => {
 });
 
 describe("Command Palette Navigation Commands", () => {
-	/**
-	 * Tests that shortcuts triggered via the command palette properly
-	 * navigate to the expected pages. The command palette acts as an
-	 * intermediary for many navigation actions.
-	 *
-	 * Note: The actual command palette command execution is tested in
-	 * CommandPalette.hotkeys.test.tsx. These tests verify that the
-	 * command palette can be opened and that navigation commands are available.
-	 */
-
 	beforeEach(() => {
 		commandPaletteRender.mockClear();
 		capturedHotkeyContext = null;
+		useCommandPaletteStore.getState().reset();
 	});
 
 	it("command palette provides navigation callback", async () => {
-		render(<App />);
+		render(<MockApp />);
 
 		await waitFor(() => {
 			expect(capturedHotkeyContext).not.toBeNull();
 		});
 
-		// Open the palette
 		await triggerHotkey("mod+K", { ctrlKey: true });
 
-		// Verify the palette received onNavigate callback
 		expect(commandPaletteRender).toHaveBeenLastCalledWith(
 			expect.objectContaining({
 				isOpen: true,
@@ -502,17 +521,12 @@ describe("Command Palette Navigation Commands", () => {
 	});
 
 	it("navigation commands include expected pages", async () => {
-		render(<App />);
+		render(<MockApp />);
 
 		await waitFor(() => {
 			expect(capturedHotkeyContext).not.toBeNull();
 		});
 
-		// The GlobalCommandPalette component (real implementation) includes
-		// commands for: dashboard, projects, search, journal, settings, recent
-		// This is validated in the shortcut-conflicts.test.ts documentation
-
-		// We verify the palette renders with the navigate callback
 		await triggerHotkey("mod+K", { ctrlKey: true });
 
 		const paletteProps =
@@ -523,17 +537,13 @@ describe("Command Palette Navigation Commands", () => {
 });
 
 describe("Shortcut Registration Validation", () => {
-	/**
-	 * Validates that all expected global shortcuts are properly registered
-	 * with correct metadata (description, allowInInput, capture, etc.)
-	 */
-
 	beforeEach(() => {
 		capturedHotkeyContext = null;
+		useCommandPaletteStore.getState().reset();
 	});
 
 	it("verifies all global shortcuts have descriptions", async () => {
-		render(<App />);
+		render(<MockApp />);
 
 		await waitFor(() => {
 			expect(capturedHotkeyContext).not.toBeNull();
@@ -548,13 +558,12 @@ describe("Shortcut Registration Validation", () => {
 	});
 
 	it("verifies capture phase shortcuts are properly marked", async () => {
-		render(<App />);
+		render(<MockApp />);
 
 		await waitFor(() => {
 			expect(capturedHotkeyContext).not.toBeNull();
 		});
 
-		// Quit shortcuts use capture phase
 		const quitHotkey = findHotkey("ctrl+q");
 		expect(quitHotkey?.capture).toBe(true);
 
@@ -563,7 +572,7 @@ describe("Shortcut Registration Validation", () => {
 	});
 
 	it("verifies help shortcut does not allow input", async () => {
-		render(<App />);
+		render(<MockApp />);
 
 		await waitFor(() => {
 			expect(capturedHotkeyContext).not.toBeNull();
@@ -574,13 +583,12 @@ describe("Shortcut Registration Validation", () => {
 	});
 
 	it("verifies project switch shortcut allows input", async () => {
-		render(<App />);
+		render(<MockApp />);
 
 		await waitFor(() => {
 			expect(capturedHotkeyContext).not.toBeNull();
 		});
 
-		// Ctrl+Tab should work even in input fields (for quick project switching)
 		const projectSwitchHotkey = findHotkey("ctrl+Tab");
 		expect(projectSwitchHotkey?.allowInInput).toBe(true);
 	});

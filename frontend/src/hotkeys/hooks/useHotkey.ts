@@ -1,0 +1,74 @@
+import { useEffect, useRef } from "react";
+import type { HotkeyConfig } from "../../shared/types/hotkeys";
+import { useHotkeyContext } from "../context/HotkeyContext";
+
+export const useHotkey = (config: HotkeyConfig) => {
+	const { register, unregister } = useHotkeyContext();
+	const hotkeyIdRef = useRef<string | null>(null);
+	const handlerRef = useRef(config.handler);
+
+	useEffect(() => {
+		handlerRef.current = config.handler;
+	}, [config.handler]);
+
+	useEffect(() => {
+		if (hotkeyIdRef.current) {
+			unregister(hotkeyIdRef.current);
+		}
+
+		const stableConfig = {
+			...config,
+			handler: (event: KeyboardEvent) => handlerRef.current(event),
+		};
+
+		const id = register(stableConfig);
+		hotkeyIdRef.current = id;
+
+		return () => {
+			if (hotkeyIdRef.current) {
+				unregister(hotkeyIdRef.current);
+			}
+		};
+	}, [
+		config.key,
+		config.allowInInput,
+		config.capture,
+		config.priority,
+		config.description,
+		register,
+		unregister,
+	]);
+};
+
+export const useHotkeys = (configs: HotkeyConfig[]) => {
+	const { register, unregister } = useHotkeyContext();
+	const hotkeyIdsRef = useRef<string[]>([]);
+	const handlerRefsRef = useRef<((event: KeyboardEvent) => void)[]>([]);
+
+	useEffect(() => {
+		handlerRefsRef.current = configs.map((c) => c.handler);
+	}, [configs]);
+
+	useEffect(() => {
+		hotkeyIdsRef.current.forEach((id) => {
+			unregister(id);
+		});
+		hotkeyIdsRef.current = [];
+
+		const ids = configs.map((config, index) => {
+			const stableConfig = {
+				...config,
+				handler: (event: KeyboardEvent) => handlerRefsRef.current[index]?.(event),
+			};
+			return register(stableConfig);
+		});
+		hotkeyIdsRef.current = ids;
+
+		return () => {
+			hotkeyIdsRef.current.forEach((id) => {
+				unregister(id);
+			});
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [configs, register, unregister]);
+};

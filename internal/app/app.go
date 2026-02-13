@@ -27,6 +27,7 @@ import (
 	"yanta/internal/journal"
 	"yanta/internal/link"
 	"yanta/internal/logger"
+	"yanta/internal/plugins"
 	"yanta/internal/project"
 	"yanta/internal/quickcapture"
 	"yanta/internal/search"
@@ -165,6 +166,8 @@ func New(cfg Config) (*App, error) {
 	)
 	globalCommands := commandline.NewGlobalCommands(projectService, systemService)
 	documentCommands := commandline.NewDocumentCommands(documentService, tagService)
+	pluginService := plugins.NewService()
+	pluginWailsService := plugins.NewWailsService(pluginService)
 
 	logger.Debugf("command handlers created")
 
@@ -173,9 +176,11 @@ func New(cfg Config) (*App, error) {
 		Documents:                documentService,
 		Tags:                     tagService,
 		Search:                   searchService,
+		Plugins:                  pluginWailsService,
 		System:                   systemService,
 		Assets:                   assetService,
 		Journal:                  journalWailsService,
+		Config:                   config.NewWailsService(),
 		Backup:                   backupService,
 		Export:                   exportService,
 		ProjectCommands:          projectCommands,

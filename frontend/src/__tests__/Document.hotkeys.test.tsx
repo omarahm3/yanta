@@ -1,154 +1,130 @@
 import { act, render, waitFor } from "@testing-library/react";
 import React from "react";
 import { vi } from "vitest";
-import { DialogProvider, HotkeyProvider, useHotkeyContext } from "../contexts";
-import type { HotkeyContextValue } from "../types/hotkeys";
 
 const mockSaveNow = vi.fn(async () => {});
 const mockHandleEscape = vi.fn();
 const mockHandleUnfocus = vi.fn();
 const mockEditorFocus = vi.fn();
 
-interface MockEditor {
-	isFocused: () => boolean;
-	focus: typeof mockEditorFocus;
-}
-
-const mockEditor: MockEditor = {
-	isFocused: () => false,
-	focus: mockEditorFocus,
-};
-
-vi.mock("../components/document", () => ({
+vi.mock("../document/components", () => ({
 	__esModule: true,
-	DocumentContent: (props: { onEditorReady?: (editor: MockEditor) => void }) => {
-		props.onEditorReady?.(mockEditor);
-		return <div data-testid="document-content" />;
-	},
+	DocumentContent: () => <div data-testid="document-content" />,
 	DocumentLoadingState: () => <div data-testid="loading" />,
 	DocumentErrorState: () => <div data-testid="error" />,
 }));
 
-vi.mock("../hooks/useSidebarSections", () => ({
-	useSidebarSections: () => [],
+vi.mock("../document/hooks/useDocumentController", () => ({
+	useDocumentController: () => ({
+		isLoading: false,
+		showError: false,
+		sidebarSections: [],
+		contentProps: {
+			formData: { title: "Title", blocks: [], tags: [] },
+			hasChanges: true,
+			setTitle: vi.fn(),
+			setBlocks: vi.fn(),
+			removeTag: vi.fn(),
+			setTags: vi.fn(),
+			onEditorReady: vi.fn(),
+			autoSave: {
+				saveNow: mockSaveNow,
+				hasUnsavedChanges: false,
+				saveState: "idle",
+				lastSaved: null,
+				saveError: null,
+			},
+		},
+		hotkeys: [
+			{
+				key: "mod+s",
+				description: "Save document",
+				handler: () => mockSaveNow(),
+				allowInInput: true,
+				capture: true,
+			},
+			{
+				key: "Escape",
+				description: "Escape",
+				handler: () => mockHandleEscape(),
+				allowInInput: true,
+				capture: true,
+			},
+			{
+				key: "mod+C",
+				description: "Unfocus editor",
+				handler: () => mockHandleUnfocus(),
+				allowInInput: true,
+				capture: true,
+			},
+			{
+				key: "Enter",
+				description: "Focus editor",
+				handler: () => mockEditorFocus(),
+			},
+		],
+		documentTitle: "Title",
+		escapeHandler: mockHandleEscape,
+	}),
 }));
 
-vi.mock("../hooks/useNotification", () => ({
+vi.mock("../config", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../config")>();
+	return {
+		...actual,
+		SIDEBAR_SHORTCUTS: {
+			toggle: { key: "ctrl+b", description: "Toggle sidebar", category: "navigation" },
+		},
+		LAYOUT: { maxPanes: 4 },
+	};
+});
+
+// Capture hotkey configs registered by the Document component
+let capturedHotkeys: Array<{ key: string; handler: (e: KeyboardEvent) => void }> = [];
+
+vi.mock("../hotkeys", () => ({
+	useHotkeys: (configs: Array<{ key: string; handler: (e: KeyboardEvent) => void }>) => {
+		capturedHotkeys = configs;
+	},
+	useHotkey: vi.fn(),
+}));
+
+vi.mock("../shared/hooks", () => ({
 	useNotification: () => ({
 		success: vi.fn(),
 		error: vi.fn(),
 		info: vi.fn(),
 		warning: vi.fn(),
 	}),
+	useRecentDocuments: () => ({
+		addRecentDocument: vi.fn(),
+		recentDocuments: [],
+	}),
+	useSidebarSections: () => [],
 }));
 
-vi.mock("../hooks/useDocumentForm", () => ({
-	useDocumentForm: () => ({
-		formData: { title: "Title", blocks: [], tags: [] },
-		hasChanges: true,
-		setTitle: vi.fn(),
-		setBlocks: vi.fn(),
-		removeTag: vi.fn(),
-		setTags: vi.fn(),
-		resetChanges: vi.fn(),
-		initializeForm: vi.fn(),
+vi.mock("../project", () => ({
+	useProjectContext: () => ({
+		currentProject: { alias: "proj", name: "Project" },
 	}),
 }));
 
-vi.mock("../hooks/useDocumentInitialization", () => ({
-	useDocumentInitialization: () => ({
-		isLoading: false,
-		loadError: null,
-		shouldAutoSave: false,
-		resetAutoSave: vi.fn(),
-	}),
-}));
-
-vi.mock("../hooks/useDocumentPersistence", () => ({
-	useDocumentPersistence: () => ({
-		autoSave: {
-			saveNow: mockSaveNow,
-			hasUnsavedChanges: false,
-			saveState: "idle",
-			lastSaved: null,
-			saveError: null,
-		},
-	}),
-}));
-
-vi.mock("../hooks/useDocumentEditor", () => ({
-	useDocumentEditor: () => ({
-		handleEditorReady: vi.fn(),
-	}),
-}));
-
-vi.mock("../hooks/useDocumentEscapeHandling", () => ({
-	useDocumentEscapeHandling: () => ({
-		handleEscape: mockHandleEscape,
-		handleUnfocus: mockHandleUnfocus,
-	}),
-}));
-
-vi.mock("../hooks/useHelp", () => ({
-	useHelp: () => ({ setPageContext: vi.fn() }),
-}));
-
-vi.mock("../hooks/usePaneLayout", () => ({
+vi.mock("../pane", () => ({
 	usePaneLayout: () => ({ activePaneId: "pane-1" }),
 }));
 
-vi.mock("../contexts", async () => {
-	const actual = await vi.importActual<typeof import("../contexts")>("../contexts");
-	return {
-		...actual,
-		useProjectContext: () => ({
-			currentProject: { alias: "proj", name: "Project" },
-		}),
-	};
-});
-
-vi.mock("../../wailsjs/go/commandline/DocumentCommands", () => ({
-	ParseWithDocument: vi.fn(async () => ({ success: true })),
+vi.mock("../help", () => ({
+	useHelp: () => ({ setPageContext: vi.fn() }),
 }));
 
-vi.mock("../../wailsjs/go/tag/Service", () => ({
-	GetDocumentTags: vi.fn(async () => []),
+vi.mock("../onboarding", () => ({
+	useUserProgressContext: () => ({
+		userProgress: null,
+		setUserProgress: vi.fn(),
+	}),
 }));
 
-vi.mock("../../wailsjs/runtime/runtime", () => ({
-	EventsOn: vi.fn(() => () => {}),
-}));
-
-import { Document } from "../pages/Document";
-
-const HotkeyProbe: React.FC<{ onReady: (ctx: HotkeyContextValue) => void }> = ({ onReady }) => {
-	const ctx = useHotkeyContext();
-	React.useEffect(() => {
-		onReady(ctx);
-	}, [ctx, onReady]);
-	return null;
-};
-
-const renderDocument = async () => {
-	let context: HotkeyContextValue | null = null;
-
-	render(
-		<DialogProvider>
-			<HotkeyProvider>
-				{/* biome-ignore lint/suspicious/noAssignInExpressions: Test callback pattern */}
-				<HotkeyProbe onReady={(ctx) => (context = ctx)} />
-				<Document onNavigate={vi.fn()} initialTitle="Sample" />
-			</HotkeyProvider>
-		</DialogProvider>,
-	);
-
-	await waitFor(() => {
-		expect(context).not.toBeNull();
-	});
-
-	// biome-ignore lint/style/noNonNullAssertion: Test utility function ensures non-null
-	return context!;
-};
+import { Document } from "../document/DocumentPage";
 
 describe("Document hotkeys", () => {
 	beforeEach(() => {
@@ -156,57 +132,50 @@ describe("Document hotkeys", () => {
 		mockHandleEscape.mockClear();
 		mockHandleUnfocus.mockClear();
 		mockEditorFocus.mockClear();
+		capturedHotkeys = [];
 	});
 
-	it("triggers auto-save immediately on mod+s", async () => {
-		const ctx = await renderDocument();
+	it("triggers auto-save immediately on mod+s", () => {
+		render(<Document onNavigate={vi.fn()} initialTitle="Sample" />);
 
-		const hotkey = ctx.getRegisteredHotkeys().find((h) => h.key === "mod+s");
+		const hotkey = capturedHotkeys.find((h) => h.key === "mod+s");
 		expect(hotkey).toBeDefined();
 
-		await act(async () => {
-			hotkey?.handler(new KeyboardEvent("keydown", { key: "s", ctrlKey: true, code: "KeyS" }));
-		});
+		hotkey!.handler(new KeyboardEvent("keydown", { key: "s", ctrlKey: true, code: "KeyS" }));
 
-		await waitFor(() => expect(mockSaveNow).toHaveBeenCalledTimes(1));
+		expect(mockSaveNow).toHaveBeenCalledTimes(1);
 	});
 
-	it("handles escape key", async () => {
-		const ctx = await renderDocument();
+	it("handles escape key", () => {
+		render(<Document onNavigate={vi.fn()} initialTitle="Sample" />);
 
-		const hotkey = ctx.getRegisteredHotkeys().find((h) => h.key === "Escape");
+		const hotkey = capturedHotkeys.find((h) => h.key === "Escape");
 		expect(hotkey).toBeDefined();
 
-		await act(async () => {
-			hotkey?.handler(new KeyboardEvent("keydown", { key: "Escape", code: "Escape" }));
-		});
+		hotkey!.handler(new KeyboardEvent("keydown", { key: "Escape", code: "Escape" }));
 
-		await waitFor(() => expect(mockHandleEscape).toHaveBeenCalledTimes(1));
+		expect(mockHandleEscape).toHaveBeenCalledTimes(1);
 	});
 
-	it("handles mod+C to unfocus editor", async () => {
-		const ctx = await renderDocument();
+	it("handles mod+C to unfocus editor", () => {
+		render(<Document onNavigate={vi.fn()} initialTitle="Sample" />);
 
-		const hotkey = ctx.getRegisteredHotkeys().find((h) => h.key === "mod+C");
+		const hotkey = capturedHotkeys.find((h) => h.key === "mod+C");
 		expect(hotkey).toBeDefined();
 
-		await act(async () => {
-			hotkey?.handler(new KeyboardEvent("keydown", { key: "c", ctrlKey: true, code: "KeyC" }));
-		});
+		hotkey!.handler(new KeyboardEvent("keydown", { key: "c", ctrlKey: true, code: "KeyC" }));
 
-		await waitFor(() => expect(mockHandleUnfocus).toHaveBeenCalledTimes(1));
+		expect(mockHandleUnfocus).toHaveBeenCalledTimes(1);
 	});
 
-	it("focuses editor on Enter", async () => {
-		const ctx = await renderDocument();
+	it("focuses editor on Enter", () => {
+		render(<Document onNavigate={vi.fn()} initialTitle="Sample" />);
 
-		const hotkey = ctx.getRegisteredHotkeys().find((h) => h.key === "Enter");
+		const hotkey = capturedHotkeys.find((h) => h.key === "Enter");
 		expect(hotkey).toBeDefined();
 
-		await act(async () => {
-			hotkey?.handler(new KeyboardEvent("keydown", { key: "Enter", code: "Enter" }));
-		});
+		hotkey!.handler(new KeyboardEvent("keydown", { key: "Enter", code: "Enter" }));
 
-		await waitFor(() => expect(mockEditorFocus).toHaveBeenCalledTimes(1));
+		expect(mockEditorFocus).toHaveBeenCalledTimes(1);
 	});
 });

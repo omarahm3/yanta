@@ -1,82 +1,83 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
+import React from "react";
 import { vi } from "vitest";
-import type { HotkeyContextValue } from "../types/hotkeys";
+import type { PageName } from "../shared/types";
+import type { HotkeyContextValue } from "../shared/types/hotkeys";
 
 const openHelp = vi.fn();
 
-vi.mock("../hooks/useHelp", () => ({
+vi.mock("../help", () => ({
 	useHelp: () => ({
 		openHelp,
 		setPageContext: vi.fn(),
 	}),
-}));
-
-vi.mock("../components/ui/TitleBar", () => ({
-	TitleBar: () => <div data-testid="title-bar" />,
-}));
-
-vi.mock("../components/ui/HelpModal", () => ({
 	HelpModal: () => <div data-testid="help-modal" />,
 }));
 
-vi.mock("../components/ui/ResizeHandles", () => ({
+vi.mock("../app/components/TitleBar", () => ({
+	TitleBar: () => <div data-testid="title-bar" />,
+}));
+
+vi.mock("../app/components/ResizeHandles", () => ({
 	ResizeHandles: () => null,
 }));
 
 const commandPaletteRender = vi.fn();
-vi.mock("../components", async () => {
-	const actual = await vi.importActual<typeof import("../components")>("../components");
+
+vi.mock("../command-palette", async () => {
+	const store = await vi.importActual<typeof import("../command-palette/commandPalette.store")>(
+		"../command-palette/commandPalette.store",
+	);
 	return {
-		...actual,
-		GlobalCommandPalette: (props: {
-			isOpen: boolean;
-			onClose: () => void;
-			onNavigate: (page: string) => void;
-		}) => {
-			commandPaletteRender(props);
-			return <div data-testid="command-palette" data-open={props.isOpen} />;
+		useCommandPaletteStore: store.useCommandPaletteStore,
+		GlobalCommandPalette: (props: { onClose: () => void; onNavigate: (page: PageName) => void }) => {
+			const isOpen = store.useCommandPaletteStore((s: { isOpen: boolean }) => s.isOpen);
+			commandPaletteRender({ ...props, isOpen });
+			return <div data-testid="command-palette" data-open={String(isOpen)} />;
 		},
 	};
 });
 
-vi.mock("../components/Router", () => ({
-	Router: () => <div data-testid="router" />, // navigation handled elsewhere
+vi.mock("../app/Router", () => ({
+	Router: () => <div data-testid="router" />,
 }));
 
 let capturedHotkeyContext: HotkeyContextValue | null = null;
 
-vi.mock("../contexts", async () => {
-	const actual = await vi.importActual<typeof import("../contexts")>("../contexts");
-	const React = await import("react");
+vi.mock("../hotkeys", async () => {
+	const context = await vi.importActual<typeof import("../hotkeys/context")>("../hotkeys/context");
+	const hooks = await vi.importActual<typeof import("../hotkeys/hooks")>("../hotkeys/hooks");
 
-	const HotkeyCapture: React.FC = () => {
-		const ctx = actual.useHotkeyContext();
+	const HotkeyCapture: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+		const ctx = context.useHotkeyContext();
 		React.useEffect(() => {
 			capturedHotkeyContext = ctx;
 		}, [ctx]);
-		return null;
+		return <>{children}</>;
 	};
 
 	return {
-		...actual,
+		...context,
+		...hooks,
 		HotkeyProvider: ({ children }: { children: React.ReactNode }) => (
-			<actual.HotkeyProvider>
-				<HotkeyCapture />
-				{children}
-			</actual.HotkeyProvider>
+			<context.HotkeyProvider>
+				<HotkeyCapture>{children}</HotkeyCapture>
+			</context.HotkeyProvider>
 		),
-		ProjectProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-		DocumentProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-		DocumentCountProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-		HelpProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-		useProjectContext: () => ({
-			currentProject: { name: "Project", alias: "project" },
-			projects: [],
-			setCurrentProject: vi.fn(),
-			isLoading: false,
-		}),
 	};
 });
+
+vi.mock("../project", () => ({
+	useProjectContext: () => ({
+		currentProject: { name: "Project", alias: "project" },
+		projects: [],
+		setCurrentProject: vi.fn(),
+		switchToLastProject: vi.fn(),
+		previousProject: null,
+		isLoading: false,
+	}),
+}));
 
 vi.mock("../../wailsjs/runtime/runtime", () => ({
 	EventsOn: vi.fn(() => () => {}),
@@ -86,8 +87,8 @@ vi.mock("../../bindings/yanta/internal/system/service", () => ({
 	GetAppScale: vi.fn(() => Promise.resolve(1.0)),
 }));
 
-vi.mock("../components/ui/Toast", () => ({
-	ToastProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+vi.mock("../shared/ui/Toast", () => ({
+	ToastProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 	useToast: () => ({
 		show: vi.fn(),
 		success: vi.fn(),
@@ -99,17 +100,93 @@ vi.mock("../components/ui/Toast", () => ({
 	}),
 }));
 
-import App from "../App";
+vi.mock("../pane", () => ({
+	usePaneLayout: () => ({
+		loadAndRestoreLayout: vi.fn(),
+		layout: {
+			root: { type: "leaf", id: "pane-1" },
+			activePaneId: "pane-1",
+			primaryDocumentPath: null,
+		},
+		activePaneId: "pane-1",
+	}),
+}));
+
+vi.mock("../config", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../config")>();
+	return {
+		...actual,
+		GLOBAL_SHORTCUTS: {
+			help: { key: "shift+/", description: "Toggle help" },
+			quit: { key: "ctrl+q", description: "Quit (background if enabled)" },
+			forceQuit: {
+				key: "ctrl+shift+q",
+				description: "Force quit application",
+			},
+			commandPalette: { key: "mod+K", description: "Open command palette" },
+			today: { key: "mod+T", description: "Jump to today's journal" },
+			switchProject: {
+				key: "ctrl+Tab",
+				description: "Switch to last project",
+			},
+		},
+		SIDEBAR_SHORTCUTS: {
+			toggle: {
+				key: "ctrl+b",
+				description: "Toggle sidebar",
+				category: "navigation",
+			},
+		},
+		LAYOUT: { maxPanes: 4 },
+	};
+});
+
+vi.mock("../onboarding", () => ({
+	useUserProgressContext: () => ({
+		userProgress: null,
+		setUserProgress: vi.fn(),
+	}),
+}));
+
+// Mock heavy sub-hooks of useAppGlobalEffects
+vi.mock("../app/hooks/useWindowHiddenToast", () => ({
+	useWindowHiddenToast: () => {},
+}));
+
+vi.mock("../app/hooks/useProjectSwitchTracking", () => ({
+	useProjectSwitchTracking: () => {},
+}));
+
+vi.mock("../shared/hooks", () => ({
+	useNotification: () => ({
+		success: vi.fn(),
+		error: vi.fn(),
+		info: vi.fn(),
+		warning: vi.fn(),
+	}),
+}));
+
+import { AppGlobalEffects, GlobalCommandHotkey } from "../app/global-hotkeys";
+import { useCommandPaletteStore } from "../command-palette/commandPalette.store";
+import { HotkeyProvider } from "../hotkeys";
+
+const MockApp = () => (
+	<HotkeyProvider>
+		<AppGlobalEffects />
+		<GlobalCommandHotkey />
+	</HotkeyProvider>
+);
 
 describe("App hotkeys", () => {
 	beforeEach(() => {
 		openHelp.mockClear();
 		commandPaletteRender.mockClear();
 		capturedHotkeyContext = null;
+		useCommandPaletteStore.getState().reset();
 	});
 
 	it("opens help modal with Shift+/", async () => {
-		render(<App />);
+		render(<MockApp />);
 
 		await waitFor(() => {
 			expect(capturedHotkeyContext).not.toBeNull();
@@ -126,7 +203,7 @@ describe("App hotkeys", () => {
 	});
 
 	it("opens command palette with mod+K", async () => {
-		render(<App />);
+		render(<MockApp />);
 
 		await waitFor(() => {
 			expect(capturedHotkeyContext).not.toBeNull();

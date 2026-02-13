@@ -16,10 +16,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Mock } from "vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { type CommandOption, CommandPalette } from "../components/ui/CommandPalette";
+import { type CommandOption, CommandPalette } from "../shared/ui/CommandPalette";
 
 // Polyfill scrollIntoView for JSDOM
-Element.prototype.scrollIntoView = vi.fn();
+Element.prototype.scrollIntoView = () => {};
 
 // ============================================
 // Test Utilities

@@ -1,0 +1,164 @@
+import { useCallback, useMemo } from "react";
+import { useSidebarRegistryStore } from "../../sidebar/registry/sidebarRegistry.store";
+import { useDocumentCount } from "../stores/documentCount.store";
+import { useProjectContext } from "../stores/project.store";
+import type { Filter, NavigationState, PageName } from "../types";
+import type { SidebarSection } from "../ui";
+import { useNotification } from "./useNotification";
+
+interface UseSidebarSectionsProps {
+	currentPage: string;
+	onNavigate?: (page: PageName, state?: NavigationState) => void;
+	filters?: Filter[];
+	onFilterSelect?: (filterId: string) => void;
+	additionalSections?: SidebarSection[];
+}
+
+export const useSidebarSections = ({
+	currentPage,
+	onNavigate,
+	filters,
+	onFilterSelect,
+	additionalSections = [],
+}: UseSidebarSectionsProps): SidebarSection[] => {
+	const { currentProject, projects, archivedProjects, setCurrentProject } = useProjectContext();
+	const { getCount } = useDocumentCount();
+	const { success } = useNotification();
+	const sidebarSources = useSidebarRegistryStore((s) => s.sources);
+	const pluginSections = useMemo(
+		() => useSidebarRegistryStore.getState().getAllSections(),
+		[sidebarSources],
+	);
+
+	const handleProjectSelect = useCallback(
+		(projectId: string) => {
+			const allProjects = [...projects, ...archivedProjects];
+			const project = allProjects.find((p) => p.id === projectId);
+			if (project) {
+				setCurrentProject(project);
+				success(`Switched to ${project.name}`);
+			}
+		},
+		[projects, archivedProjects, setCurrentProject, success],
+	);
+
+	return useMemo(() => {
+		const sections: SidebarSection[] = [];
+
+		sections.push({
+			id: "navigation",
+			title: "NAVIGATION",
+			items: [
+				{
+					id: "dashboard",
+					label: "documents",
+					active: currentPage === "dashboard",
+					onClick: () => onNavigate?.("dashboard"),
+				},
+				{
+					id: "journal",
+					label: "journal",
+					active: currentPage === "journal",
+					onClick: () => onNavigate?.("journal"),
+					tooltip: {
+						tooltipId: "sidebar-journal",
+						description: "Journal",
+						shortcut: "Ctrl+J",
+					},
+				},
+				{
+					id: "search",
+					label: "search",
+					active: currentPage === "search",
+					onClick: () => onNavigate?.("search"),
+					tooltip: {
+						tooltipId: "sidebar-search",
+						description: "Search",
+						shortcut: "Ctrl+Shift+F",
+					},
+				},
+				{
+					id: "projects",
+					label: "projects",
+					active: currentPage === "projects",
+					onClick: () => onNavigate?.("projects"),
+				},
+				{
+					id: "settings",
+					label: "settings",
+					active: currentPage === "settings",
+					onClick: () => onNavigate?.("settings"),
+				},
+			],
+		});
+
+		if (projects.length > 0 && currentPage !== "settings" && currentPage !== "document") {
+			sections.push({
+				id: "projects",
+				title: "PROJECTS",
+				items: projects.map((project) => ({
+					id: project.id,
+					label: project.alias,
+					count: getCount(project.id),
+					active: project.id === currentProject?.id,
+					onClick: () => handleProjectSelect(project.id),
+				})),
+			});
+		}
+
+		if (filters && filters.length > 0) {
+			const timeFilters = filters.filter((f) => f.type === "time");
+			const categoryFilters = filters.filter((f) => f.type === "category");
+
+			sections.push({
+				id: "filters",
+				title: "FILTERS",
+				items: [
+					...timeFilters.map((filter) => ({
+						id: filter.id,
+						label: filter.displayName,
+						count: filter.entryCount,
+						onClick: () => onFilterSelect?.(filter.id),
+					})),
+					...categoryFilters.map((filter) => ({
+						id: filter.id,
+						label: filter.displayName,
+						count: filter.entryCount,
+						onClick: () => onFilterSelect?.(filter.id),
+					})),
+				],
+			});
+		}
+
+		sections.push(...additionalSections);
+		sections.push(...pluginSections);
+
+		if (archivedProjects.length > 0 && currentPage !== "settings" && currentPage !== "document") {
+			sections.push({
+				id: "archive",
+				title: "ARCHIVE",
+				items: archivedProjects.map((project) => ({
+					id: project.id,
+					label: project.alias || project.name,
+					count: getCount(project.id),
+					active: project.id === currentProject?.id,
+					onClick: () => handleProjectSelect(project.id),
+				})),
+			});
+		}
+
+		return sections;
+	}, [
+		currentPage,
+		onNavigate,
+		projects,
+		currentProject?.id,
+		filters,
+		onFilterSelect,
+		additionalSections,
+		pluginSections,
+		archivedProjects,
+		getCount,
+		handleProjectSelect,
+	]);
+};

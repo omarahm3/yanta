@@ -8,11 +8,12 @@ import "@fontsource/jetbrains-mono/500.css";
 
 import React from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App";
-import { CrashBoundary } from "./components/CrashBoundary";
-import { DialogProvider, HotkeyProvider, UserProgressProvider } from "./contexts";
-import { QuickCapture } from "./pages/QuickCapture";
-import { enableBackendLogging } from "./utils/backendLogger";
+import { App, CrashBoundary } from "@/app";
+import { ReducedEffectsInit } from "@/shared/stores/appearance.store";
+import { HotkeyProvider } from "./hotkeys";
+import { QuickCapture } from "./quick-capture";
+import { ToastProvider } from "./shared/ui";
+import { BackendLogger, enableBackendLogging } from "./shared/utils/backendLogger";
 import "./styles/tailwind.css";
 import "./styles/yanta.css";
 
@@ -37,26 +38,25 @@ enableBackendLogging();
 const container = document.getElementById("root");
 
 if (!container) {
-	console.error("[main.tsx] CRITICAL: Root container not found!");
+	BackendLogger.error("[main.tsx] CRITICAL: Root container not found!");
 	throw new Error("Root container not found");
 }
 
 const root = createRoot(container);
 
 const isQuickCapture = new URLSearchParams(window.location.search).get("mode") === "quick-capture";
-console.log("[main.tsx] Mode:", "isQuickCapture:", isQuickCapture);
+BackendLogger.info("[main.tsx] Mode:", "isQuickCapture:", isQuickCapture);
 
 if (isQuickCapture) {
 	root.render(
 		<React.StrictMode>
 			<CrashBoundary>
-				<DialogProvider>
+				<ToastProvider>
 					<HotkeyProvider>
-						<UserProgressProvider>
-							<QuickCapture />
-						</UserProgressProvider>
+						<ReducedEffectsInit />
+						<QuickCapture />
 					</HotkeyProvider>
-				</DialogProvider>
+				</ToastProvider>
 			</CrashBoundary>
 		</React.StrictMode>,
 	);
@@ -70,4 +70,4 @@ if (isQuickCapture) {
 	);
 }
 
-console.log("[main.tsx] App rendered successfully");
+BackendLogger.info("[main.tsx] App rendered successfully");

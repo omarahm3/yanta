@@ -268,21 +268,22 @@
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-	width: 8px;
-	height: 8px;
+	width: 10px;
+	height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-	background: var(--color-bg);
+	background-color: rgba(15, 23, 42, 0.9);
 }
 
 ::-webkit-scrollbar-thumb {
-	background: var(--color-border);
-	border-radius: 4px;
+	background-color: rgba(148, 163, 184, 0.9);
+	border-radius: 5px;
+	border: 2px solid rgba(15, 23, 42, 0.9);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-	background: var(--color-text-dim);
+	background-color: rgba(226, 232, 240, 0.95);
 }
 
 .project-list-scroll::-webkit-scrollbar {

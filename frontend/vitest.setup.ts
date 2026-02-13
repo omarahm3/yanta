@@ -5,7 +5,13 @@ import { afterEach, vi } from "vitest";
 // Ensure DOM cleanup after each test to prevent memory leaks
 afterEach(() => {
   cleanup();
+  // Drop any queued fake timers before switching back to real timers.
+  vi.clearAllTimers();
+  vi.useRealTimers();
+  vi.restoreAllMocks();
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 // Mock @wailsio/runtime - the bindings depend on this
@@ -73,4 +79,4 @@ Object.defineProperty(window, "matchMedia", {
 });
 
 // Mock scrollIntoView for cmdk
-Element.prototype.scrollIntoView = vi.fn();
+Element.prototype.scrollIntoView = () => {};
