@@ -8,8 +8,7 @@ import "@fontsource/jetbrains-mono/500.css";
 
 import React from "react";
 import { createRoot } from "react-dom/client";
-import App from "@/app/App";
-import { CrashBoundary } from "@/app/CrashBoundary";
+import { App, CrashBoundary } from "@/app";
 import { ReducedEffectsInit } from "@/shared/stores/appearance.store";
 import { HotkeyProvider } from "./hotkeys";
 import { QuickCapture } from "./quick-capture";
