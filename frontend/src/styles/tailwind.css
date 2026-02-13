@@ -214,6 +214,11 @@
 	background-color: var(--color-surface) !important;
 	border-color: var(--color-border) !important;
 }
+/* Keep enabled-state semantics visible for switches in reduced effects mode. */
+[data-reduced-effects="true"] [data-slot="switch"][data-state="checked"] {
+	background-color: var(--color-green) !important;
+	border-color: transparent !important;
+}
 
 /* Custom component styles */
 @layer components {

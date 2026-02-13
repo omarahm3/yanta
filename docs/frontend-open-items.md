@@ -75,7 +75,8 @@ Each store uses custom `PersistStorage` for validation, backwards-compatible for
 
 **Completed (Foundation Phase 1, 2026-02-13):**
 - **Backend plugin service + bindings:** Added `internal/plugins/` with local plugin discovery (`~/.yanta/plugins/<id>/plugin.toml`), plugin enabled-state persistence via config preferences, and Wails service methods (`ListInstalled`, `ScanLocalPlugins`, `GetPluginState`, `SetPluginEnabled`, `GetPluginDirectory`). Wired through `internal/app/bind.go`, `internal/app/app.go`, and `main.go`.
-- **Frontend plugin runtime:** Added `frontend/src/plugins/` with plugin contracts/types, registry/lifecycle (`register/load/unload/enable/disable/loadEnabled`), bootstrap integration, and a built-in plugin (`core.tools`) to verify extension points.
+- **Frontend plugin runtime:** Added `frontend/src/plugins/` with plugin contracts/types, registry/lifecycle (`register/load/unload/enable/disable/loadEnabled`), bootstrap integration, and extension-point registries.
+  - Example plugin implementation is documented in `docs/plugin-example.md` and not loaded by the app runtime.
 - **Extension-point registries:** 
   - Commands: plugin sources now register into existing command registry as `plugin:<id>`.
   - Sidebar: added `sidebar/registry/sidebarRegistry.store.ts`, merged via `useSidebarSections`.
