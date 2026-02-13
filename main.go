@@ -109,6 +109,7 @@ func run() {
 			application.NewService(a.Bindings.Documents),
 			application.NewService(a.Bindings.Tags),
 			application.NewService(a.Bindings.Search),
+			application.NewService(a.Bindings.Plugins),
 			application.NewService(a.Bindings.System),
 			application.NewService(a.Bindings.Assets),
 			application.NewService(a.Bindings.Journal),
@@ -281,7 +282,6 @@ func createCustomAssetHandler(assetService *asset.Service) application.Middlewar
 				uploadHandler.ServeHTTP(w, r)
 				return
 			}
-
 
 			if !strings.HasPrefix(r.URL.Path, "/assets/") {
 				next.ServeHTTP(w, r)

@@ -3,6 +3,7 @@ import { useDocumentCount } from "../stores/documentCount.store";
 import { useProjectContext } from "../stores/project.store";
 import type { Filter, NavigationState, PageName } from "../types";
 import type { SidebarSection } from "../ui";
+import { useSidebarRegistryStore } from "../../sidebar/registry/sidebarRegistry.store";
 import { useNotification } from "./useNotification";
 
 interface UseSidebarSectionsProps {
@@ -23,6 +24,11 @@ export const useSidebarSections = ({
 	const { currentProject, projects, archivedProjects, setCurrentProject } = useProjectContext();
 	const { getCount } = useDocumentCount();
 	const { success } = useNotification();
+	const sidebarSources = useSidebarRegistryStore((s) => s.sources);
+	const pluginSections = useMemo(
+		() => useSidebarRegistryStore.getState().getAllSections(),
+		[sidebarSources],
+	);
 
 	const handleProjectSelect = useCallback(
 		(projectId: string) => {
@@ -125,6 +131,7 @@ export const useSidebarSections = ({
 		}
 
 		sections.push(...additionalSections);
+		sections.push(...pluginSections);
 
 		if (archivedProjects.length > 0 && currentPage !== "settings" && currentPage !== "document") {
 			sections.push({
@@ -149,6 +156,7 @@ export const useSidebarSections = ({
 		filters,
 		onFilterSelect,
 		additionalSections,
+		pluginSections,
 		archivedProjects,
 		getCount,
 		handleProjectSelect,

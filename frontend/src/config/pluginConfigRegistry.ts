@@ -20,6 +20,14 @@ export function registerPluginConfig<T>(pluginId: string, def: PluginConfigSchem
 }
 
 /**
+ * Unregister a plugin config schema.
+ * Called when a plugin unloads.
+ */
+export function unregisterPluginConfig(pluginId: string): void {
+	registry.delete(pluginId);
+}
+
+/**
  * Get a plugin's config definition for validation.
  */
 export function getPluginConfigDefinition(

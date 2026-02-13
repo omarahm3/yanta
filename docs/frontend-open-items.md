@@ -64,7 +64,7 @@ Each store uses custom `PersistStorage` for validation, backwards-compatible for
 ### Item 17 – Plugin Architecture (High-Level)
 
 **Section:** “17. No Plugin Architecture”  
-**Status in review:** `Status: [ ] Not started`
+**Status:** In progress (Foundation Phase 1 complete, 2026-02-13)
 
 **Context (excerpt):**
 - Commands, keyboard shortcuts, editor extensions, and themes are all hardcoded.
@@ -73,9 +73,22 @@ Each store uses custom `PersistStorage` for validation, backwards-compatible for
   - Shortcut registry (config centralization partially done),
   - Theme system and editor plugin interface (still open).
 
-**Remaining work:**
-- Define extension points and contracts for plugins (commands, blocks, sidebars, settings).
-- Design plugin lifecycle (load, enable/disable, uninstall) and isolation strategy.
+**Completed (Foundation Phase 1, 2026-02-13):**
+- **Backend plugin service + bindings:** Added `internal/plugins/` with local plugin discovery (`~/.yanta/plugins/<id>/plugin.toml`), plugin enabled-state persistence via config preferences, and Wails service methods (`ListInstalled`, `ScanLocalPlugins`, `GetPluginState`, `SetPluginEnabled`, `GetPluginDirectory`). Wired through `internal/app/bind.go`, `internal/app/app.go`, and `main.go`.
+- **Frontend plugin runtime:** Added `frontend/src/plugins/` with plugin contracts/types, registry/lifecycle (`register/load/unload/enable/disable/loadEnabled`), bootstrap integration, and a built-in plugin (`core.tools`) to verify extension points.
+- **Extension-point registries:** 
+  - Commands: plugin sources now register into existing command registry as `plugin:<id>`.
+  - Sidebar: added `sidebar/registry/sidebarRegistry.store.ts`, merged via `useSidebarSections`.
+  - Editor: added `editor/extensions/registry/editorExtensionRegistry.ts`, consumed by `useRichEditorInner`.
+- **Config lifecycle support:** Added `unregisterPluginConfig(pluginId)` and export wiring for unload cleanup.
+- **Verification:** Added tests (`frontend/src/plugins/__tests__/pluginRegistry.test.ts`, `internal/plugins/service_test.go`), `npx tsc --noEmit` passes, and `go test ./...` passes.
+
+**Remaining work (Item 17):**
+- Implement plugin installation/uninstall flows (beyond local directory discovery/state toggles).
+- Add first-class plugin management UI in Settings (list/install/toggle/uninstall/error states).
+- Finalize plugin API versioning/compat policy and stronger manifest validation/error reporting UX.
+- Decide and implement stronger isolation model if needed (current model is trusted in-process plugin execution with capability-gated APIs).
+- Expand editor plugin interface for richer block/tooling contributions and lifecycle hooks.
 
 ---
 
@@ -238,11 +251,11 @@ Each store uses custom `PersistStorage` for validation, backwards-compatible for
 ### Tier 6 – Extensibility Platform (53a–53d, 14, 15, 18, 30)
 
 **Section:** “Tier 6: Extensibility Platform (planned -- required for roadmap)”  
-**Status in review:** all **Not started** (or partial where overlapped with earlier items).
+**Status:** Partially in progress (2026-02-13) — foundational plugin architecture landed; themes/marketplace/i18n still open.
 
 Key items:
 - **53a** – Theme system (runtime swap, user-created themes, token architecture).
-- **53b** – Plugin architecture (extension registry, loader, lifecycle, sandboxing).
+- **53b** – Plugin architecture (extension registry, loader, lifecycle, sandboxing). **Status:** Foundation Phase 1 complete (local discovery + lifecycle + command/sidebar/editor registries); sandboxing/marketplace-grade packaging still open.
 - **53c** – Marketplace (browse/install/update/remove themes/plugins).
 - **53d** – i18n foundation (string extraction, locale loading).
 - **14, 15, 18, 30** – See sections above; they are explicitly called out as Tier 6 enablers.

@@ -9,6 +9,7 @@ import (
 	"yanta/internal/events"
 	"yanta/internal/export"
 	"yanta/internal/journal"
+	"yanta/internal/plugins"
 	"yanta/internal/project"
 	"yanta/internal/search"
 	"yanta/internal/system"
@@ -20,6 +21,7 @@ type Bindings struct {
 	Documents        *document.Service
 	Tags             *tag.Service
 	Search           *search.Service
+	Plugins          *plugins.WailsService
 	System           *system.Service
 	Assets           *asset.Service
 	Journal          *journal.WailsService
@@ -50,6 +52,7 @@ func (b *Bindings) Bind() []any {
 		b.Documents,
 		b.Tags,
 		b.Search,
+		b.Plugins,
 		b.System,
 		b.Assets,
 		b.Journal,

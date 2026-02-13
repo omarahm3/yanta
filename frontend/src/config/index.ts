@@ -9,6 +9,7 @@ export {
 	getPluginConfigDefinition,
 	getRegisteredPluginIds,
 	registerPluginConfig,
+	unregisterPluginConfig,
 } from "./pluginConfigRegistry";
 export type { ValidatePluginConfigResult } from "./pluginConfigValidation";
 export { validatePluginConfig } from "./pluginConfigValidation";

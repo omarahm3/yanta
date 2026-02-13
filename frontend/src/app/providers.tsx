@@ -3,6 +3,7 @@ import { HelpModal, HelpProvider } from "../help";
 import { HotkeyProvider } from "../hotkeys";
 import { MilestoneHintManager, WelcomeOverlay } from "../onboarding";
 import { PaneLayoutProvider } from "../pane";
+import { PluginBootstrap } from "../plugins";
 import { ReducedEffectsInit } from "../shared/stores/appearance.store";
 import { ToastProvider } from "../shared/ui";
 import { ResizeHandles, TitleBar } from "./components";
@@ -19,6 +20,7 @@ export function AppProviders() {
 			<ScaleStoreInit />
 			<DocumentCountStoreInit />
 			<PreferencesStoreInit />
+			<PluginBootstrap />
 			<ProjectStoreInit />
 			<HotkeyProvider>
 				<HelpProvider>

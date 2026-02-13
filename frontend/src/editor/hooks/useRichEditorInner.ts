@@ -18,6 +18,7 @@ import type { BlockNoteBlock } from "../../shared/types/Document";
 import { uploadFile } from "../../shared/utils/assetUpload";
 import { registerClipboardImagePlugin } from "../../shared/utils/clipboard";
 import { computeContentHash } from "../../shared/utils/contentHash";
+import { useEditorExtensions } from "../extensions/registry/editorExtensionRegistry";
 import { RTLExtension } from "../extensions/rtl";
 import { useBlockNoteMenuPosition } from "./useBlockNoteMenuPosition";
 import { usePlainTextClipboard } from "./usePlainTextClipboard";
@@ -41,6 +42,7 @@ export function useRichEditorInner({
 }: UseRichEditorInnerProps) {
 	const { currentProject } = useProjectContext();
 	const { scale } = useScale();
+	const pluginExtensions = useEditorExtensions() as any[];
 
 	useBlockNoteMenuPosition();
 
@@ -93,6 +95,7 @@ export function useRichEditorInner({
 				key: "disableLinkClick",
 				tiptapExtensions: [Link.extend({ inclusive: false }).configure({ openOnClick: false })],
 			}),
+			...(pluginExtensions as any[]),
 		],
 	});
 	const [isReady, setIsReady] = useState(false);
