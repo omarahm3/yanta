@@ -5,14 +5,15 @@ import { ShortcutTooltip } from "../ShortcutTooltip";
 // Mock the useTooltipUsage hook
 const mockShouldShowTooltip = vi.fn();
 const mockRecordTooltipView = vi.fn();
+const mockGetTooltipUsage = vi.fn();
+const mockGetAllTooltipUsage = vi.fn();
 
 vi.mock("../../stores/tooltipUsage.store", () => ({
-	...vi.importActual("../../stores/tooltipUsage.store"),
 	useTooltipUsage: () => ({
 		shouldShowTooltip: mockShouldShowTooltip,
 		recordTooltipView: mockRecordTooltipView,
-		getTooltipUsage: vi.fn(),
-		getAllTooltipUsage: vi.fn(),
+		getTooltipUsage: mockGetTooltipUsage,
+		getAllTooltipUsage: mockGetAllTooltipUsage,
 	}),
 }));
 
@@ -36,6 +37,7 @@ vi.mock("@/config", async (importOriginal) => {
 
 describe("ShortcutTooltip", () => {
 	beforeEach(() => {
+		vi.clearAllTimers();
 		vi.useRealTimers();
 		mockShouldShowTooltip.mockReturnValue(true);
 		mockRecordTooltipView.mockClear();
@@ -56,6 +58,7 @@ describe("ShortcutTooltip", () => {
 	});
 
 	afterEach(() => {
+		vi.clearAllTimers();
 		vi.useRealTimers();
 	});
 

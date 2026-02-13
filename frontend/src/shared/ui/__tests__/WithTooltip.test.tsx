@@ -5,14 +5,15 @@ import { WithTooltip } from "../WithTooltip";
 // Mock the useTooltipUsage hook
 const mockShouldShowTooltip = vi.fn();
 const mockRecordTooltipView = vi.fn();
+const mockGetTooltipUsage = vi.fn();
+const mockGetAllTooltipUsage = vi.fn();
 
 vi.mock("../../stores/tooltipUsage.store", () => ({
-	...vi.importActual("../../stores/tooltipUsage.store"),
 	useTooltipUsage: () => ({
 		shouldShowTooltip: mockShouldShowTooltip,
 		recordTooltipView: mockRecordTooltipView,
-		getTooltipUsage: vi.fn(),
-		getAllTooltipUsage: vi.fn(),
+		getTooltipUsage: mockGetTooltipUsage,
+		getAllTooltipUsage: mockGetAllTooltipUsage,
 	}),
 }));
 
@@ -55,12 +56,15 @@ describe("WithTooltip", () => {
 		});
 		// Mock requestAnimationFrame to execute callback synchronously
 		vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
-			cb(0);
-			return 0;
+			return window.setTimeout(() => cb(Date.now()), 0);
+		});
+		vi.stubGlobal("cancelAnimationFrame", (id: number) => {
+			window.clearTimeout(id);
 		});
 	});
 
 	afterEach(() => {
+		vi.clearAllTimers();
 		vi.useRealTimers();
 		vi.unstubAllGlobals();
 	});

@@ -19,7 +19,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type CommandOption, CommandPalette } from "../shared/ui/CommandPalette";
 
 // Polyfill scrollIntoView for JSDOM
-Element.prototype.scrollIntoView = vi.fn();
+Element.prototype.scrollIntoView = () => {};
 
 // ============================================
 // Test Utilities

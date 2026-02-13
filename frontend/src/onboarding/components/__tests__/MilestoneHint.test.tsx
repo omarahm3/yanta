@@ -8,6 +8,7 @@ describe("MilestoneHint", () => {
 	});
 
 	afterEach(() => {
+		vi.clearAllTimers();
 		vi.useRealTimers();
 	});
 

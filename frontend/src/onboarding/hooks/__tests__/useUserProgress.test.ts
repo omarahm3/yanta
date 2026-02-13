@@ -347,6 +347,7 @@ describe("useUserProgress", () => {
 
 	describe("storage event handling", () => {
 		it("updates state when storage changes from another tab", async () => {
+			vi.clearAllTimers();
 			vi.useRealTimers();
 			const { result } = renderHook(() => useUserProgress());
 

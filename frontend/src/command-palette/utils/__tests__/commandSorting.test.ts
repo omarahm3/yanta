@@ -33,6 +33,7 @@ describe("sortCommandsByUsage", () => {
 	});
 
 	afterEach(() => {
+		vi.clearAllTimers();
 		vi.useRealTimers();
 	});
 
@@ -161,6 +162,7 @@ describe("getRecentlyUsedCommands", () => {
 	});
 
 	afterEach(() => {
+		vi.clearAllTimers();
 		vi.useRealTimers();
 	});
 
@@ -245,6 +247,7 @@ describe("isRecentlyUsed", () => {
 	});
 
 	afterEach(() => {
+		vi.clearAllTimers();
 		vi.useRealTimers();
 	});
 
@@ -296,6 +299,7 @@ describe("getTopRecentCommandIds", () => {
 	});
 
 	afterEach(() => {
+		vi.clearAllTimers();
 		vi.useRealTimers();
 	});
 

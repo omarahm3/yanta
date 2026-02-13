@@ -15,6 +15,7 @@ describe("useTooltipUsage", () => {
 	});
 
 	afterEach(() => {
+		vi.clearAllTimers();
 		vi.useRealTimers();
 	});
 

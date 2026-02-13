@@ -13,6 +13,7 @@ describe("useCommandUsage", () => {
 	});
 
 	afterEach(() => {
+		vi.clearAllTimers();
 		vi.useRealTimers();
 	});
 
@@ -253,6 +254,7 @@ describe("useCommandUsage", () => {
 
 	describe("storage event handling", () => {
 		it("updates state when storage changes from another tab", async () => {
+			vi.clearAllTimers();
 			vi.useRealTimers(); // Rehydrate uses promises; fake timers can block
 			const { result } = renderHook(() => useCommandUsage());
 

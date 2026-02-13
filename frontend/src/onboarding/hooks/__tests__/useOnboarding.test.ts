@@ -13,6 +13,7 @@ describe("useOnboarding", () => {
 	});
 
 	afterEach(() => {
+		vi.clearAllTimers();
 		vi.useRealTimers();
 	});
 
@@ -235,6 +236,7 @@ describe("useOnboarding", () => {
 
 	describe("storage event handling", () => {
 		it("updates state when storage changes from another tab", async () => {
+			vi.clearAllTimers();
 			vi.useRealTimers();
 			const { result } = renderHook(() => useOnboarding());
 

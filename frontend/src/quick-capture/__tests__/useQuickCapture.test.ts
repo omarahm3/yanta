@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { useQuickCapture } from "../useQuickCapture";
 
 // Mock the journal service
@@ -13,6 +13,7 @@ vi.mock("../../../bindings/yanta/internal/project/service", () => ({
 }));
 
 // Mock localStorage
+const originalLocalStorage = window.localStorage;
 const mockLocalStorage = (() => {
 	let store: Record<string, string> = {};
 	return {
@@ -28,12 +29,20 @@ const mockLocalStorage = (() => {
 
 Object.defineProperty(window, "localStorage", {
 	value: mockLocalStorage,
+	configurable: true,
 });
 
 describe("useQuickCapture", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mockLocalStorage.clear();
+	});
+
+	afterAll(() => {
+		Object.defineProperty(window, "localStorage", {
+			value: originalLocalStorage,
+			configurable: true,
+		});
 	});
 
 	it("initializes with empty content", () => {

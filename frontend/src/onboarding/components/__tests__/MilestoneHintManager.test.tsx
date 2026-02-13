@@ -33,6 +33,7 @@ describe("MilestoneHintManager", () => {
 	});
 
 	afterEach(() => {
+		vi.clearAllTimers();
 		vi.useRealTimers();
 		localStorage.clear();
 	});

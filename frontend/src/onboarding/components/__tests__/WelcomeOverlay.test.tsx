@@ -13,6 +13,7 @@ describe("WelcomeOverlay", () => {
 	});
 
 	afterEach(() => {
+		vi.clearAllTimers();
 		vi.useRealTimers();
 	});
 

@@ -8,7 +8,9 @@ describe("useAutoSave", () => {
 	});
 
 	afterEach(() => {
+		vi.clearAllTimers();
 		vi.restoreAllMocks();
+		vi.clearAllTimers();
 		vi.useRealTimers();
 	});
 
@@ -21,17 +23,23 @@ describe("useAutoSave", () => {
 			);
 
 			// Make multiple rapid changes
-			rerender({ value: "change1" });
+			act(() => {
+				rerender({ value: "change1" });
+			});
 			act(() => {
 				vi.advanceTimersByTime(500);
 			});
 
-			rerender({ value: "change2" });
+			act(() => {
+				rerender({ value: "change2" });
+			});
 			act(() => {
 				vi.advanceTimersByTime(500);
 			});
 
-			rerender({ value: "change3" });
+			act(() => {
+				rerender({ value: "change3" });
+			});
 			act(() => {
 				vi.advanceTimersByTime(500);
 			});
@@ -45,7 +53,9 @@ describe("useAutoSave", () => {
 			});
 
 			// Should only save once with the final value
-			await vi.runOnlyPendingTimersAsync();
+			await act(async () => {
+				await vi.runOnlyPendingTimersAsync();
+			});
 			expect(onSave).toHaveBeenCalledTimes(1);
 		});
 
@@ -64,7 +74,9 @@ describe("useAutoSave", () => {
 			);
 
 			// Trigger first save
-			rerender({ value: "change1" });
+			act(() => {
+				rerender({ value: "change1" });
+			});
 			await act(async () => {
 				vi.advanceTimersByTime(2000);
 			});
@@ -73,7 +85,9 @@ describe("useAutoSave", () => {
 			expect(onSave).toHaveBeenCalledTimes(1);
 
 			// Try to trigger another save while first is in progress
-			rerender({ value: "change2" });
+			act(() => {
+				rerender({ value: "change2" });
+			});
 			await act(async () => {
 				vi.advanceTimersByTime(2000);
 			});
@@ -102,13 +116,17 @@ describe("useAutoSave", () => {
 			);
 
 			// First change
-			rerender({ value: "change1" });
+			act(() => {
+				rerender({ value: "change1" });
+			});
 			act(() => {
 				vi.advanceTimersByTime(1500);
 			});
 
 			// Second change before timer expires - should reset timer
-			rerender({ value: "change2" });
+			act(() => {
+				rerender({ value: "change2" });
+			});
 			act(() => {
 				vi.advanceTimersByTime(1500);
 			});
@@ -122,7 +140,9 @@ describe("useAutoSave", () => {
 			});
 
 			// Now it should save
-			await vi.runOnlyPendingTimersAsync();
+			await act(async () => {
+				await vi.runOnlyPendingTimersAsync();
+			});
 			expect(onSave).toHaveBeenCalledTimes(1);
 		});
 	});
@@ -255,7 +275,9 @@ describe("useAutoSave", () => {
 			);
 
 			// Make a change while disabled
-			rerender({ value: "changed", enabled: false });
+			act(() => {
+				rerender({ value: "changed", enabled: false });
+			});
 
 			await act(async () => {
 				vi.advanceTimersByTime(2000);
@@ -273,7 +295,9 @@ describe("useAutoSave", () => {
 			);
 
 			// Make a change while disabled
-			rerender({ value: "changed", enabled: false });
+			act(() => {
+				rerender({ value: "changed", enabled: false });
+			});
 
 			await act(async () => {
 				vi.advanceTimersByTime(2000);
@@ -282,14 +306,18 @@ describe("useAutoSave", () => {
 			expect(onSave).not.toHaveBeenCalled();
 
 			// Re-enable
-			rerender({ value: "changed", enabled: true });
+			act(() => {
+				rerender({ value: "changed", enabled: true });
+			});
 
 			await act(async () => {
 				vi.advanceTimersByTime(2000);
 			});
 
 			// Should have saved now
-			await vi.runOnlyPendingTimersAsync();
+			await act(async () => {
+				await vi.runOnlyPendingTimersAsync();
+			});
 			expect(onSave).toHaveBeenCalledTimes(1);
 		});
 	});
@@ -364,7 +392,9 @@ describe("useAutoSave", () => {
 				});
 			}
 
-			await vi.runOnlyPendingTimersAsync();
+			await act(async () => {
+				await vi.runOnlyPendingTimersAsync();
+			});
 			expect(onSave).toHaveBeenCalledTimes(4); // 1 initial + 3 retries
 			expect(result.current.saveState).toBe("error");
 			expect(result.current.saveError).toEqual(new Error("Save failed"));
@@ -443,13 +473,16 @@ describe("useAutoSave", () => {
 				},
 			);
 
-			rerender({
-				value: { content: "changed" },
-				isInitialized: true,
+			act(() => {
+				rerender({
+					value: { content: "changed" },
+					isInitialized: true,
+				});
 			});
 
 			await act(async () => {
 				window.dispatchEvent(new Event("blur"));
+				await Promise.resolve();
 			});
 
 			expect(onSave).toHaveBeenCalledTimes(1);
@@ -477,37 +510,46 @@ describe("useAutoSave", () => {
 			);
 
 			// Simulate document loading - value changes before editor ready
-			rerender({
-				value: { content: "loaded content" },
-				isInitialized: false,
+			act(() => {
+				rerender({
+					value: { content: "loaded content" },
+					isInitialized: false,
+				});
 			});
 
 			await act(async () => {
 				window.dispatchEvent(new Event("blur"));
+				await Promise.resolve();
 			});
 			expect(onSave).not.toHaveBeenCalled();
 
 			// Editor becomes ready - baseline is reset to current value
 			// Changes from loading should NOT trigger save
-			rerender({
-				value: { content: "loaded content" },
-				isInitialized: true,
+			act(() => {
+				rerender({
+					value: { content: "loaded content" },
+					isInitialized: true,
+				});
 			});
 
 			await act(async () => {
 				window.dispatchEvent(new Event("blur"));
+				await Promise.resolve();
 			});
 			// No save because "loaded content" is now the baseline (no unsaved changes)
 			expect(onSave).not.toHaveBeenCalled();
 
 			// User makes actual changes AFTER initialization
-			rerender({
-				value: { content: "user edited content" },
-				isInitialized: true,
+			act(() => {
+				rerender({
+					value: { content: "user edited content" },
+					isInitialized: true,
+				});
 			});
 
 			await act(async () => {
 				window.dispatchEvent(new Event("blur"));
+				await Promise.resolve();
 			});
 			// Now save SHOULD trigger because user made real changes after initialization
 			expect(onSave).toHaveBeenCalledTimes(1);
@@ -532,12 +574,15 @@ describe("useAutoSave", () => {
 				},
 			);
 
-			rerender({
-				value: { content: "changed" },
+			act(() => {
+				rerender({
+					value: { content: "changed" },
+				});
 			});
 
 			await act(async () => {
 				window.dispatchEvent(new Event("blur"));
+				await Promise.resolve();
 			});
 
 			expect(onSave).toHaveBeenCalledTimes(1);
