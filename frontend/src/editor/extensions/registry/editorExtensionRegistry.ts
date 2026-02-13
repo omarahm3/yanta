@@ -4,8 +4,12 @@ export type EditorExtensionContribution = unknown;
 
 const registry = new Map<string, EditorExtensionContribution[]>();
 const listeners = new Set<() => void>();
+let snapshotVersion = 0;
+let cachedSnapshotVersion = -1;
+let cachedSnapshot: EditorExtensionContribution[] = [];
 
 function emitChange(): void {
+	snapshotVersion += 1;
 	for (const listener of listeners) {
 		listener();
 	}
@@ -23,11 +27,17 @@ export function removeEditorExtensions(source: string): void {
 }
 
 export function getAllEditorExtensions(): EditorExtensionContribution[] {
+	if (cachedSnapshotVersion === snapshotVersion) {
+		return cachedSnapshot;
+	}
+
 	const result: EditorExtensionContribution[] = [];
 	for (const list of registry.values()) {
 		result.push(...list);
 	}
-	return result;
+	cachedSnapshot = result;
+	cachedSnapshotVersion = snapshotVersion;
+	return cachedSnapshot;
 }
 
 function subscribe(listener: () => void): () => void {

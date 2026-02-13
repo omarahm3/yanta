@@ -8,7 +8,6 @@ import {
 	type PartialBlock,
 } from "@blocknote/core";
 import { useCreateBlockNote } from "@blocknote/react";
-import { Link } from "@tiptap/extension-link";
 import { Browser, System } from "@wailsio/runtime";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { extractTitleFromBlocks } from "../../document/utils/documentUtils";
@@ -90,10 +89,6 @@ export function useRichEditorInner({
 			createExtension({
 				key: "rtl",
 				tiptapExtensions: [RTLExtension],
-			}),
-			createExtension({
-				key: "disableLinkClick",
-				tiptapExtensions: [Link.extend({ inclusive: false }).configure({ openOnClick: false })],
 			}),
 			...(pluginExtensions as any[]),
 		],
@@ -249,6 +244,24 @@ export function useRichEditorInner({
 	useEffect(() => {
 		if (editor) editor.isEditable = editable;
 	}, [editor, editable]);
+
+	useEffect(() => {
+		if (!container) return;
+
+		// Prevent navigation when clicking links inside the editor while editing.
+		const handleClick = (event: MouseEvent) => {
+			if (!editable) return;
+			const target = event.target;
+			if (!(target instanceof Element)) return;
+			if (!target.closest("a[href]")) return;
+			event.preventDefault();
+		};
+
+		container.addEventListener("click", handleClick);
+		return () => {
+			container.removeEventListener("click", handleClick);
+		};
+	}, [container, editable]);
 
 	useEffect(() => {
 		if (!editor || !isReady || !isLinux) {
