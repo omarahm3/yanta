@@ -30,6 +30,12 @@ export interface PreferencesLayoutOverrides {
 	maxPanes?: number;
 }
 
+export type LinuxGraphicsMode = "auto" | "native" | "compat" | "software";
+
+export interface PreferencesGraphicsOverrides {
+	linuxMode?: LinuxGraphicsMode;
+}
+
 export interface PreferencesPluginOverrides {
 	[pluginId: string]: Record<string, unknown>;
 }
@@ -38,6 +44,7 @@ export interface PreferencesOverrides {
 	timeouts?: PreferencesTimeoutsOverrides;
 	shortcuts?: PreferencesShortcutsOverrides;
 	layout?: PreferencesLayoutOverrides;
+	graphics?: PreferencesGraphicsOverrides;
 	plugins?: PreferencesPluginOverrides;
 }
 
@@ -53,6 +60,7 @@ export function preferencesFromModel(model: {
 	};
 	Shortcuts?: Record<string, Record<string, string>>;
 	Layout?: { MaxPanes?: number };
+	Graphics?: { LinuxMode?: LinuxGraphicsMode };
 	Plugins?: Record<string, Record<string, unknown>>;
 }): PreferencesOverrides {
 	const overrides: PreferencesOverrides = {};
@@ -92,6 +100,9 @@ export function preferencesFromModel(model: {
 	if (model.Layout?.MaxPanes) {
 		overrides.layout = { maxPanes: model.Layout.MaxPanes };
 	}
+	if (model.Graphics?.LinuxMode) {
+		overrides.graphics = { linuxMode: model.Graphics.LinuxMode };
+	}
 	if (model.Plugins && typeof model.Plugins === "object" && Object.keys(model.Plugins).length > 0) {
 		overrides.plugins = model.Plugins as PreferencesPluginOverrides;
 	}
@@ -103,17 +114,20 @@ export function preferencesToModel(overrides: PreferencesOverrides): {
 	Timeouts: Record<string, number>;
 	Shortcuts: Record<string, Record<string, string>>;
 	Layout: Record<string, number>;
+	Graphics: Record<string, LinuxGraphicsMode>;
 	Plugins: Record<string, Record<string, unknown>>;
 } {
 	const model: {
 		Timeouts: Record<string, number>;
 		Shortcuts: Record<string, Record<string, string>>;
 		Layout: Record<string, number>;
+		Graphics: Record<string, LinuxGraphicsMode>;
 		Plugins: Record<string, Record<string, unknown>>;
 	} = {
 		Timeouts: {},
 		Shortcuts: {},
 		Layout: {},
+		Graphics: {},
 		Plugins: {},
 	};
 	if (overrides.timeouts) {
@@ -149,6 +163,9 @@ export function preferencesToModel(overrides: PreferencesOverrides): {
 	}
 	if (overrides.layout?.maxPanes) {
 		model.Layout.MaxPanes = overrides.layout.maxPanes;
+	}
+	if (overrides.graphics?.linuxMode) {
+		model.Graphics.LinuxMode = overrides.graphics.linuxMode;
 	}
 	if (
 		overrides.plugins &&

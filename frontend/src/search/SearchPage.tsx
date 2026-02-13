@@ -342,7 +342,7 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 							placeholder="Search entries... (try: project:alias, tag:name, title:text, -exclude, AND, OR)"
 							value={rawQuery}
 							onChange={(e) => setRawQuery((e.target as HTMLInputElement).value)}
-							className="flex-1 text-base bg-glass-bg/20 backdrop-blur-sm border-glass-border"
+							className="flex-1 text-base bg-surface/80 border-border"
 						/>
 					</div>
 
@@ -500,10 +500,6 @@ const SearchResultCard: React.FC<SearchResultCardProps> = React.memo(
 			onOpen(index);
 		};
 
-		const handleMouseEnter: React.MouseEventHandler<HTMLDivElement> = () => {
-			onSelect(index);
-		};
-
 		const handleFocus: React.FocusEventHandler<HTMLDivElement> = () => {
 			onSelect(index);
 		};
@@ -511,10 +507,10 @@ const SearchResultCard: React.FC<SearchResultCardProps> = React.memo(
 		const isNote = result.type === "note";
 		const projectAlias = result.projectAlias || result.path.split("/")[1] || "unknown";
 
-		const cardClasses = `relative p-5 bg-glass-bg/20 backdrop-blur-md border border-glass-border rounded-xl transition-all cursor-pointer outline-none shadow-sm ${
+		const cardClasses = `relative p-5 bg-surface/85 border border-border rounded-xl transition-colors cursor-pointer outline-none ${
 			isSelected
-				? "border-accent ring-1 ring-accent/30 bg-glass-bg/30 shadow-md transform scale-[1.01]"
-				: "hover:bg-glass-bg/30 hover:shadow-md hover:border-glass-border/80"
+				? "border-accent ring-1 ring-accent/30 bg-surface"
+				: "hover:bg-surface hover:border-glass-border/80"
 		}`;
 
 		return (
@@ -523,7 +519,6 @@ const SearchResultCard: React.FC<SearchResultCardProps> = React.memo(
 				tabIndex={0}
 				className={cardClasses}
 				onClick={handleClick}
-				onMouseEnter={handleMouseEnter}
 				onFocus={handleFocus}
 			>
 				<div className="absolute -left-8 top-4 text-text-dim text-[11px] w-7 text-right">

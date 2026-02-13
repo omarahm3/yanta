@@ -1,11 +1,15 @@
 import React from "react";
 import { ENABLE_TOOLTIP_HINTS } from "../config/featureFlags";
+import type { LinuxGraphicsMode } from "../config/preferences";
 import { useAppearanceStore } from "../shared/stores/appearance.store";
 import { Label, Select, type SelectOption, SettingsSection, Toggle } from "../shared/ui";
 
 interface AppearanceSectionProps {
+	platform?: string;
 	appScale: number;
 	onAppScaleChange: (scale: number) => void;
+	linuxGraphicsMode: LinuxGraphicsMode;
+	onLinuxGraphicsModeChange: (mode: LinuxGraphicsMode) => void;
 	sidebarVisible: boolean;
 	onSidebarVisibleChange: (visible: boolean) => void;
 	sidebarLoading?: boolean;
@@ -20,8 +24,11 @@ interface AppearanceSectionProps {
 export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSectionProps>(
 	(
 		{
+			platform = "",
 			appScale,
 			onAppScaleChange,
+			linuxGraphicsMode,
+			onLinuxGraphicsModeChange,
 			sidebarVisible,
 			onSidebarVisibleChange,
 			sidebarLoading = false,
@@ -34,6 +41,7 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 		},
 		ref,
 	) => {
+		const isLinux = platform.includes("linux");
 		const reducedEffects = useAppearanceStore((s) => s.reducedEffects);
 		const setReducedEffects = useAppearanceStore((s) => s.setReducedEffects);
 
@@ -53,6 +61,13 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 			);
 			return matchingOption ? matchingOption.value : scale.toString();
 		};
+
+		const linuxGraphicsOptions: SelectOption[] = [
+			{ value: "auto", label: "Auto (native-first with fallback)" },
+			{ value: "native", label: "Native GPU rendering" },
+			{ value: "compat", label: "Compatibility mode" },
+			{ value: "software", label: "Software rendering only" },
+		];
 
 		return (
 			<div ref={ref}>
@@ -125,6 +140,20 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 								<span className="font-mono text-accent">{Math.round(appScale * 100)}%</span>
 							</div>
 						</div>
+
+						{isLinux && (
+							<div className="space-y-2 pt-4 border-t border-border">
+								<Label variant="uppercase">Linux Graphics Mode</Label>
+								<Select
+									value={linuxGraphicsMode}
+									onChange={(value) => onLinuxGraphicsModeChange(value as LinuxGraphicsMode)}
+									options={linuxGraphicsOptions}
+								/>
+								<div className="text-xs text-text-dim">
+									Controls GPU/compatibility behavior on Linux. Restart required after changes.
+								</div>
+							</div>
+						)}
 					</div>
 				</SettingsSection>
 			</div>

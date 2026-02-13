@@ -36,8 +36,6 @@ func main() {
 }
 
 func run() {
-	app.ConfigureGraphicsEnvironment()
-
 	if err := config.Init(); err != nil {
 		writeStartupError(fmt.Sprintf("Failed to initialize config: %v", err))
 		log.Fatalf("failed to initialize config: %v", err)
@@ -47,6 +45,8 @@ func run() {
 		writeStartupError(fmt.Sprintf("Failed to initialize logger: %v", err))
 		log.Fatalf("failed to initialize logger: %v", err)
 	}
+
+	graphicsState := app.ConfigureGraphicsEnvironment()
 
 	logger.Info("starting YANTA...")
 
@@ -159,7 +159,7 @@ func run() {
 		},
 		Linux: application.LinuxWindow{
 			WindowIsTranslucent: false,
-			WebviewGpuPolicy:    getOptimalGpuPolicy(),
+			WebviewGpuPolicy:    graphicsState.GpuPolicy,
 		},
 	})
 
@@ -170,6 +170,7 @@ func run() {
 		func(event *application.ApplicationEvent) {
 			logger.Debug("ApplicationStarted event fired, calling app.Startup()")
 			a.Startup(context.Background())
+			app.MarkGraphicsStartupSuccessful()
 
 			// If this is a quick launch, open Quick Capture window
 			if isQuickLaunch {
@@ -240,26 +241,6 @@ func getWindowsCustomTheme() application.ThemeSettings {
 			BorderColour:    application.NewRGBPtr(230, 230, 230),
 		},
 	}
-}
-
-func getOptimalGpuPolicy() application.WebviewGpuPolicy {
-	if isNVIDIA() && isWayland() {
-		logger.Info("Using software rendering for NVIDIA + Wayland compatibility")
-		return application.WebviewGpuPolicyNever
-	}
-
-	logger.Info("Using hardware acceleration when available")
-	return application.WebviewGpuPolicyOnDemand
-}
-
-func isNVIDIA() bool {
-	return os.Getenv("__NV_PRIME_RENDER_OFFLOAD") != "" ||
-		os.Getenv("__GLX_VENDOR_LIBRARY_NAME") == "nvidia"
-}
-
-func isWayland() bool {
-	return os.Getenv("XDG_SESSION_TYPE") == "wayland" ||
-		os.Getenv("WAYLAND_DISPLAY") != ""
 }
 
 // hasQuickFlag checks if --quick or -q flag is present in args

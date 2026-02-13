@@ -19,7 +19,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 	return (
 		<div
 			className={cn(
-				"bg-glass-bg/20 backdrop-blur-md border border-glass-border rounded-xl p-6 mb-6 shadow-sm",
+				"bg-surface/85 border border-border rounded-xl p-6 mb-6",
 				className,
 			)}
 		>

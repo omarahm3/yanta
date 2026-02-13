@@ -225,6 +225,12 @@ Each store uses custom `PersistStorage` for validation, backwards-compatible for
 - **`useHotkeyProviderValue.ts`** — `isDialogOpenRef` for dialog check; useMemo depends only on `hotkeys`; `bubbleMatchersAndHandlers` precomputed in memo (no matcher creation in effect); capture/special/space/ctrlW handlers use ref.
 - **`useDocumentPersistence.ts`** — `blocksHash` computed in `useLayoutEffect` and stored in state; `compareKey` useMemo deps are `[blocksHash, formData.title, formData.tags]` (no `formData.blocks`).
 
+**Completed (2026-02-13, Linux scroll follow-up):**
+
+- **Global reduced-effects gate expanded:** `data-reduced-effects="true"` now disables expensive visual effects globally (blur/animation-heavy transitions/shadows/filters) and uses opaque glass colors.
+- **Settings route hardening:** shortcut reference table in `ShortcutsSection` is collapsible and defaults to collapsed in reduced-effects mode to reduce initial render cost.
+- **UI primitive tuning:** shared `Select` and `Switch` primitives moved from `transition-all` to cheaper transition scope; key chips in `KeyDisplay` now use opaque surface style.
+
 ---
 
 ### Item 54 – Command Registry (Follow-Up)

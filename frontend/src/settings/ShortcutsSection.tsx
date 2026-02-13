@@ -1,6 +1,8 @@
 import React from "react";
 import type { GlobalHotkeyConfig } from "../shared/types";
+import { useReducedEffects } from "../shared/stores/appearance.store";
 import {
+	Button,
 	Heading,
 	HotkeyEditor,
 	HotkeyInput,
@@ -44,6 +46,13 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 		},
 		ref,
 	) => {
+		const reducedEffects = useReducedEffects();
+		const [showShortcutReference, setShowShortcutReference] = React.useState(!reducedEffects);
+		React.useEffect(() => {
+			if (reducedEffects) {
+				setShowShortcutReference(false);
+			}
+		}, [reducedEffects]);
 		const isWindows = platform === "windows";
 		const isLinux = platform === "linux";
 		const isMac = platform === "darwin";
@@ -204,13 +213,32 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 
 						{/* Application Shortcuts Section */}
 						<div>
-							<Heading as="h3" size="sm" variant="bright" weight="medium" className="mb-2">
-								Application Shortcuts
-							</Heading>
-							<Text size="sm" variant="dim" className="mb-4">
-								Keyboard shortcuts available within YANTA
-							</Text>
-							<ShortcutsTable shortcuts={shortcuts} />
+							<div className="mb-2 flex items-center justify-between gap-3">
+								<Heading as="h3" size="sm" variant="bright" weight="medium">
+									Application Shortcuts
+								</Heading>
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={() => setShowShortcutReference((v) => !v)}
+									className="text-xs"
+								>
+									{showShortcutReference ? "Hide table" : "Show table"}
+								</Button>
+							</div>
+							{!showShortcutReference && (
+								<div className="rounded border border-border p-3 text-xs text-text-dim">
+									Shortcut reference is collapsed to reduce render load on this page.
+								</div>
+							)}
+							{showShortcutReference && (
+								<>
+									<Text size="sm" variant="dim" className="mb-4">
+										Keyboard shortcuts available within YANTA
+									</Text>
+									<ShortcutsTable shortcuts={shortcuts} />
+								</>
+							)}
 						</div>
 					</div>
 				</SettingsSection>

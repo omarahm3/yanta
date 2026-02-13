@@ -25,7 +25,7 @@ interface SettingsProps {
 }
 
 const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
-	const { shortcuts: mergedShortcuts } = useMergedConfig();
+	const { shortcuts: mergedShortcuts, graphics: mergedGraphics } = useMergedConfig();
 	const { setOverrides } = usePreferencesOverrides();
 	const shortcutsForSettings: Shortcut[] = useMemo(
 		() =>
@@ -93,6 +93,17 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		[setOverrides, controller.platform],
 	);
 
+	const handleLinuxGraphicsModeChange = useCallback(
+		async (mode: "auto" | "native" | "compat" | "software") => {
+			await setOverrides({
+				graphics: {
+					linuxMode: mode,
+				},
+			});
+		},
+		[setOverrides],
+	);
+
 	return (
 		<Layout
 			sidebarSections={sidebarSections}
@@ -129,8 +140,11 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 
 						<AppearanceSection
 							ref={appearanceRef}
+							platform={controller.platform}
 							appScale={controller.appScale}
 							onAppScaleChange={controller.handlers.handleAppScaleChange}
+							linuxGraphicsMode={mergedGraphics.linuxMode}
+							onLinuxGraphicsModeChange={handleLinuxGraphicsModeChange}
 							sidebarVisible={sidebarVisible}
 							onSidebarVisibleChange={setSidebarVisible}
 							sidebarLoading={sidebarLoading}

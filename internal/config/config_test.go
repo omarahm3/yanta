@@ -311,6 +311,42 @@ func TestConfig_ShowFooterHints(t *testing.T) {
 	})
 }
 
+func TestConfig_LinuxGraphicsMode(t *testing.T) {
+	tempDir := t.TempDir()
+	cleanup := testenv.SetTestHome(t, tempDir)
+	defer cleanup()
+
+	instance = nil
+	instanceOnce = newOnce()
+
+	err := Init()
+	require.NoError(t, err)
+
+	t.Run("default mode is auto", func(t *testing.T) {
+		assert.Equal(t, LinuxGraphicsModeAuto, GetLinuxGraphicsMode())
+	})
+
+	t.Run("persists valid mode", func(t *testing.T) {
+		err := SetPreferencesOverrides(PreferencesOverrides{
+			Graphics: PreferencesGraphicsOverrides{
+				LinuxMode: LinuxGraphicsModeCompat,
+			},
+		})
+		require.NoError(t, err)
+		assert.Equal(t, LinuxGraphicsModeCompat, GetLinuxGraphicsMode())
+	})
+
+	t.Run("invalid mode falls back to auto", func(t *testing.T) {
+		err := SetPreferencesOverrides(PreferencesOverrides{
+			Graphics: PreferencesGraphicsOverrides{
+				LinuxMode: "broken-mode",
+			},
+		})
+		require.NoError(t, err)
+		assert.Equal(t, LinuxGraphicsModeAuto, GetLinuxGraphicsMode())
+	})
+}
+
 func newOnce() sync.Once {
 	return sync.Once{}
 }

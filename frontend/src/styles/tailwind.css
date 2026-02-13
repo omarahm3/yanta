@@ -200,6 +200,20 @@
 	--color-glass-bg: rgba(22, 27, 34, 0.97);
 	--color-glass-border: rgba(48, 54, 61, 0.8);
 }
+[data-reduced-effects="true"] *,
+[data-reduced-effects="true"] *::before,
+[data-reduced-effects="true"] *::after {
+	animation: none !important;
+	transition: none !important;
+	box-shadow: none !important;
+	text-shadow: none !important;
+	filter: none !important;
+}
+[data-reduced-effects="true"] [class*="bg-glass-bg/"],
+[data-reduced-effects="true"] [class*="border-glass-border"] {
+	background-color: var(--color-surface) !important;
+	border-color: var(--color-border) !important;
+}
 
 /* Custom component styles */
 @layer components {

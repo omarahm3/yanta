@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { LAYOUT } from "../../config/layout";
 import type { PreferencesOverrides } from "../../config/preferences";
+import type { LinuxGraphicsMode } from "../../config/preferences";
 import type { ShortcutDef } from "../../config/shortcuts";
 import {
 	COMMAND_LINE_SHORTCUTS,
@@ -43,6 +44,10 @@ export interface MergedLayout {
 	maxPanes: number;
 }
 
+export interface MergedGraphics {
+	linuxMode: LinuxGraphicsMode;
+}
+
 export interface MergedShortcuts {
 	global: Record<string, ShortcutDef>;
 	sidebar: Record<string, ShortcutDef>;
@@ -60,6 +65,7 @@ export interface MergedShortcuts {
 export interface MergedConfig {
 	timeouts: MergedTimeouts;
 	layout: MergedLayout;
+	graphics: MergedGraphics;
 	shortcuts: MergedShortcuts;
 }
 
@@ -110,6 +116,12 @@ function mergeTimeouts(overrides?: PreferencesOverrides["timeouts"]): MergedTime
 function mergeLayout(overrides?: PreferencesOverrides["layout"]): MergedLayout {
 	return {
 		maxPanes: overrides?.maxPanes ?? LAYOUT.maxPanes,
+	};
+}
+
+function mergeGraphics(overrides?: PreferencesOverrides["graphics"]): MergedGraphics {
+	return {
+		linuxMode: overrides?.linuxMode ?? "auto",
 	};
 }
 
@@ -221,6 +233,7 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
 				timeouts: { ...existing.timeouts, ...newOverrides.timeouts },
 				shortcuts: Object.keys(mergedShortcuts).length > 0 ? mergedShortcuts : undefined,
 				layout: { ...existing.layout, ...newOverrides.layout },
+				graphics: { ...existing.graphics, ...newOverrides.graphics },
 				plugins: Object.keys(mergedPlugins).length > 0 ? mergedPlugins : undefined,
 			};
 			await setPreferencesOverrides(merged);
@@ -236,6 +249,7 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
 		return {
 			timeouts: mergeTimeouts(overrides?.timeouts),
 			layout: mergeLayout(overrides?.layout),
+			graphics: mergeGraphics(overrides?.graphics),
 			shortcuts: mergeShortcuts(overrides?.shortcuts),
 		};
 	},
@@ -246,6 +260,7 @@ export function useMergedConfig(): MergedConfig {
 	return {
 		timeouts: mergeTimeouts(overrides?.timeouts),
 		layout: mergeLayout(overrides?.layout),
+		graphics: mergeGraphics(overrides?.graphics),
 		shortcuts: mergeShortcuts(overrides?.shortcuts),
 	};
 }
@@ -256,6 +271,7 @@ export function getMergedConfig(): MergedConfig {
 	return {
 		timeouts: mergeTimeouts(overrides?.timeouts),
 		layout: mergeLayout(overrides?.layout),
+		graphics: mergeGraphics(overrides?.graphics),
 		shortcuts: mergeShortcuts(overrides?.shortcuts),
 	};
 }

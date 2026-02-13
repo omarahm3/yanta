@@ -1,6 +1,40 @@
 # Scroll Performance Issue on Linux (NVIDIA + Wayland)
 
-## Status: Unresolved
+## Status: Mitigation Applied on Branch (Needs Runtime Validation)
+
+## Branch Update (2026-02-13)
+
+The originally proposed fixes are now applied in code:
+
+- Frontend:
+  - `frontend/src/shared/ui/SettingsSection.tsx` now uses opaque surfaces (no `backdrop-blur`).
+  - `frontend/src/search/SearchPage.tsx` search input/cards now use opaque surfaces; result cards no longer use `transition-all`; hover `onMouseEnter` selection updates removed.
+  - `frontend/src/settings/hooks/useSettingsPage.ts` replaced `currentSectionIndex` React state with `useRef` to avoid extra Settings page re-renders during section navigation hotkeys.
+- Backend:
+  - `internal/app/graphics.go` no longer forces `WEBKIT_DISABLE_COMPOSITING_MODE=1` / `GSK_RENDERER=cairo` for NVIDIA + Wayland.
+  - `main.go` now always uses `WebviewGpuPolicyOnDemand`.
+  - Safety env remains: `WEBKIT_DISABLE_DMABUF_RENDERER=1`.
+
+Expected result: scroll FPS on Settings/Search should improve substantially on Linux NVIDIA Wayland.  
+Remaining risk: GPU compositing regressions (artifacts/crashes) on some driver/compositor combinations.
+
+## Follow-up Update (2026-02-13, v2)
+
+Additional mitigations applied:
+
+- **Graphics mode override in preferences** (`preferences.graphics.linux_mode`):
+  - `auto` (default, native-first with startup-failure fallback)
+  - `native`
+  - `compat`
+  - `software`
+- **Auto fallback behavior**:
+  - On Linux `auto`, if previous startup did not complete, app falls back to `compat` and sets a sticky fallback flag.
+  - Successful native startup clears fallback flag.
+- **Global reduced-effects performance gate**:
+  - When `data-reduced-effects="true"`, app now disables expensive animations/transitions/shadows/filters globally and forces opaque glass surfaces.
+- **Settings hardening**:
+  - Shortcut reference table is collapsible and defaults to collapsed when reduced effects are enabled.
+  - Select/switch transitions were narrowed from `transition-all` to cheaper transitions.
 
 ## Environment
 

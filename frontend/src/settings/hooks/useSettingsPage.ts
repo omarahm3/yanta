@@ -57,7 +57,7 @@ export function useSettingsPage({ onNavigate }: UseSettingsPageProps) {
 	const syncRef = useRef<HTMLDivElement>(null);
 	const aboutRef = useRef<HTMLDivElement>(null);
 
-	const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+	const currentSectionIndexRef = useRef(0);
 	const [settingsKey, setSettingsKey] = useState(0);
 
 	useEffect(() => {
@@ -83,21 +83,21 @@ export function useSettingsPage({ onNavigate }: UseSettingsPageProps) {
 
 		const index = SECTION_IDS.indexOf(sectionId as (typeof SECTION_IDS)[number]);
 		if (index !== -1) {
-			setCurrentSectionIndex(index);
+			currentSectionIndexRef.current = index;
 		}
 	}, []);
 
 	const handleNextSection = useCallback(() => {
-		const nextIndex = Math.min(currentSectionIndex + 1, SECTION_IDS.length - 1);
-		setCurrentSectionIndex(nextIndex);
+		const nextIndex = Math.min(currentSectionIndexRef.current + 1, SECTION_IDS.length - 1);
+		currentSectionIndexRef.current = nextIndex;
 		scrollToSection(SECTION_IDS[nextIndex]);
-	}, [currentSectionIndex, scrollToSection]);
+	}, [scrollToSection]);
 
 	const handlePreviousSection = useCallback(() => {
-		const prevIndex = Math.max(currentSectionIndex - 1, 0);
-		setCurrentSectionIndex(prevIndex);
+		const prevIndex = Math.max(currentSectionIndexRef.current - 1, 0);
+		currentSectionIndexRef.current = prevIndex;
 		scrollToSection(SECTION_IDS[prevIndex]);
-	}, [currentSectionIndex, scrollToSection]);
+	}, [scrollToSection]);
 
 	const hotkeys = useMemo(
 		() => [
