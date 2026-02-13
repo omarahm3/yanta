@@ -1,6 +1,6 @@
 let initialized = false;
 
 export function registerBuiltInPlugins(): void {
-  if (initialized) return;
-  initialized = true;
+	if (initialized) return;
+	initialized = true;
 }

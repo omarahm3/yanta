@@ -1,6 +1,6 @@
 import React from "react";
-import type { GlobalHotkeyConfig } from "../shared/types";
 import { useReducedEffects } from "../shared/stores/appearance.store";
+import type { GlobalHotkeyConfig } from "../shared/types";
 import {
 	Button,
 	Heading,

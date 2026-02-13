@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { useCommandRegistryStore } from "../../command-palette/registry";
 import { getAllEditorExtensions } from "../../editor/extensions/registry/editorExtensionRegistry";
 import { useSidebarRegistryStore } from "../../sidebar/registry/sidebarRegistry.store";

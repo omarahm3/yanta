@@ -1,9 +1,9 @@
 import { useCallback, useMemo } from "react";
+import { useSidebarRegistryStore } from "../../sidebar/registry/sidebarRegistry.store";
 import { useDocumentCount } from "../stores/documentCount.store";
 import { useProjectContext } from "../stores/project.store";
 import type { Filter, NavigationState, PageName } from "../types";
 import type { SidebarSection } from "../ui";
-import { useSidebarRegistryStore } from "../../sidebar/registry/sidebarRegistry.store";
 import { useNotification } from "./useNotification";
 
 interface UseSidebarSectionsProps {

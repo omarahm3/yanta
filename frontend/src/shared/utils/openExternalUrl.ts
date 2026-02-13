@@ -19,7 +19,10 @@ function getDefaultBaseUrl(): string {
 	return "http://localhost/";
 }
 
-export function resolveExternalUrl(rawUrl: string, baseUrl: string = getDefaultBaseUrl()): URL | null {
+export function resolveExternalUrl(
+	rawUrl: string,
+	baseUrl: string = getDefaultBaseUrl(),
+): URL | null {
 	let resolvedUrl: URL;
 	try {
 		resolvedUrl = new URL(rawUrl, baseUrl);

@@ -1,14 +1,10 @@
-import {
-	type PluginConfigSchema,
-	registerPluginConfig,
-	unregisterPluginConfig,
-} from "../config";
+import { useCommandRegistryStore } from "../command-palette/registry";
+import { type PluginConfigSchema, registerPluginConfig, unregisterPluginConfig } from "../config";
 import {
 	getAllEditorExtensions,
 	removeEditorExtensions,
 	setEditorExtensions,
 } from "../editor/extensions/registry/editorExtensionRegistry";
-import { useCommandRegistryStore } from "../command-palette/registry";
 import { usePreferencesStore } from "../shared/stores/preferences.store";
 import { useSidebarRegistryStore } from "../sidebar/registry/sidebarRegistry.store";
 import type {
@@ -120,7 +116,7 @@ export async function loadPlugin(pluginId: string): Promise<void> {
 				? maybeCleanup
 				: () => {
 						cleanupPluginContributions(pluginId);
-				  };
+					};
 		cleanups.set(pluginId, () => {
 			try {
 				cleanup();

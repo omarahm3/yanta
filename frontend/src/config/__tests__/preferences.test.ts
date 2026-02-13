@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+	type PreferencesOverrides,
 	preferencesFromModel,
 	preferencesToModel,
-	type PreferencesOverrides,
 } from "../preferences";
 
 describe("preferences graphics overrides", () => {

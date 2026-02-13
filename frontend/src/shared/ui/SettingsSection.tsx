@@ -17,12 +17,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 	className,
 }) => {
 	return (
-		<div
-			className={cn(
-				"bg-surface/85 border border-border rounded-xl p-6 mb-6",
-				className,
-			)}
-		>
+		<div className={cn("bg-surface/85 border border-border rounded-xl p-6 mb-6", className)}>
 			<div className="flex items-center justify-between mb-5 pb-3 border-b border-glass-border">
 				<div>
 					<div className="text-text-bright text-base font-semibold">{title}</div>

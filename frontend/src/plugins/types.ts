@@ -1,7 +1,7 @@
 import type { z } from "zod";
-import type { CommandOption, SidebarSection } from "../shared/ui";
 import type { PluginConfigSchema } from "../config";
 import type { EditorExtensionContribution } from "../editor/extensions/registry/editorExtensionRegistry";
+import type { CommandOption, SidebarSection } from "../shared/ui";
 
 export type PluginCapability = "commands" | "sidebar" | "editorExtensions" | "settings";
 

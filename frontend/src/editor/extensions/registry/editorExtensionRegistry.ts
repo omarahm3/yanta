@@ -15,7 +15,10 @@ function emitChange(): void {
 	}
 }
 
-export function setEditorExtensions(source: string, extensions: EditorExtensionContribution[]): void {
+export function setEditorExtensions(
+	source: string,
+	extensions: EditorExtensionContribution[],
+): void {
 	registry.set(source, extensions);
 	emitChange();
 }

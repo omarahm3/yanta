@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { LAYOUT } from "../../config/layout";
-import type { PreferencesOverrides } from "../../config/preferences";
-import type { LinuxGraphicsMode } from "../../config/preferences";
+import type { LinuxGraphicsMode, PreferencesOverrides } from "../../config/preferences";
 import type { ShortcutDef } from "../../config/shortcuts";
 import {
 	COMMAND_LINE_SHORTCUTS,
