@@ -6,7 +6,7 @@ import { MoveDocumentDialog } from "../MoveDocumentDialog";
 const mockOpenDialog = vi.fn();
 const mockCloseDialog = vi.fn();
 
-vi.mock("../../../contexts/DialogContext", () => ({
+vi.mock("../../../shared/stores/dialog.store", () => ({
 	useDialog: () => ({
 		isDialogOpen: false,
 		openDialog: mockOpenDialog,
@@ -41,7 +41,7 @@ const mockProjects: Project[] = [
 	},
 ];
 
-vi.mock("../../../contexts/ProjectContext", () => ({
+vi.mock("../../../project", () => ({
 	useProjectContext: () => ({
 		projects: mockProjects,
 		currentProject: mockProjects[2],

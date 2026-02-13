@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { FC, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useProgressStore } from "../../../shared/stores/progress.store";
 import { UserProgressProvider, useUserProgressContext } from "../../context";
 import { MilestoneHintManager } from "../MilestoneHintManager";
 
@@ -22,6 +23,13 @@ describe("MilestoneHintManager", () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 		localStorage.clear();
+		// Reset Zustand store to defaults
+		useProgressStore.setState({
+			documentsCreated: 0,
+			journalEntriesCreated: 0,
+			projectsSwitched: 0,
+			hintsShown: [],
+		});
 	});
 
 	afterEach(() => {
@@ -288,16 +296,13 @@ describe("MilestoneHintManager", () => {
 		});
 
 		it("shows journal-nav hint when first-save already shown", () => {
-			// Pre-set the first-save hint as shown in localStorage
-			localStorage.setItem(
-				"yanta_user_progress",
-				JSON.stringify({
-					documentsCreated: 1,
-					journalEntriesCreated: 1,
-					projectsSwitched: 0,
-					hintsShown: ["first-save"],
-				}),
-			);
+			// Pre-set the first-save hint as shown in store
+			useProgressStore.setState({
+				documentsCreated: 1,
+				journalEntriesCreated: 1,
+				projectsSwitched: 0,
+				hintsShown: ["first-save"],
+			});
 
 			render(
 				<TestWrapper>

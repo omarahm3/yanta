@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      "@/app": path.resolve(__dirname, "./src/app/index.ts"),
       "@": path.resolve(__dirname, "./src"),
     },
   },
@@ -14,6 +15,12 @@ export default defineConfig({
     setupFiles: "./vitest.setup.ts",
     globals: true,
     css: false,
-    fileParallelism: false,
+    pool: "forks",
+    poolOptions: {
+      forks: {
+        execArgv: ["--max-old-space-size=8192"],
+      },
+    },
+    testTimeout: 5000,
   },
 });

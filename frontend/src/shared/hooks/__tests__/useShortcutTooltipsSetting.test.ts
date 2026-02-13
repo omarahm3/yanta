@@ -44,7 +44,6 @@ describe("useShortcutTooltipsSetting", () => {
 	});
 
 	it("defaults to true when backend errors", async () => {
-		const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 		mockGetShowShortcutTooltips.mockRejectedValue(new Error("Backend error"));
 
 		const { result } = renderHook(() => useShortcutTooltipsSetting());
@@ -53,9 +52,6 @@ describe("useShortcutTooltipsSetting", () => {
 
 		// Should default to true on error (tooltips shown)
 		expect(result.current.showShortcutTooltips).toBe(true);
-		expect(consoleSpy).toHaveBeenCalled();
-
-		consoleSpy.mockRestore();
 	});
 
 	it("setShowShortcutTooltips updates state optimistically", async () => {

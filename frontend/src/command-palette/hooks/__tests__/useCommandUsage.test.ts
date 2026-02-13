@@ -128,7 +128,8 @@ describe("useCommandUsage", () => {
 			});
 
 			const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-			expect(stored["nav-dashboard"]).toEqual({ lastUsed: 5000, useCount: 1 });
+			// Zustand persist writes versioned format: { version: 1, usage: {...} }
+			expect(stored.usage["nav-dashboard"]).toEqual({ lastUsed: 5000, useCount: 1 });
 		});
 	});
 

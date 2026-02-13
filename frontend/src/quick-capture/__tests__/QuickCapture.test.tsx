@@ -25,6 +25,17 @@ const MOCK_PROJECTS = [
 	{ id: "2", alias: "work", name: "Work" },
 ];
 
+// Mock useNotification with stable references (avoid infinite re-render loops)
+const mockNotify = {
+	success: vi.fn(),
+	error: vi.fn(),
+	info: vi.fn(),
+	warning: vi.fn(),
+};
+vi.mock("../../shared/hooks", () => ({
+	useNotification: () => mockNotify,
+}));
+
 // Mock the journal service
 vi.mock("../../../bindings/yanta/internal/journal/wailsservice", () => ({
 	AppendEntry: vi.fn(() => Promise.resolve({ id: "abc123", content: "Test" })),

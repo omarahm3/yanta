@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useOnboardingStore } from "../../../shared/stores/onboarding.store";
 import { WelcomeOverlay } from "../WelcomeOverlay";
 
 const STORAGE_KEY = "yanta_onboarding";
@@ -7,6 +8,7 @@ const STORAGE_KEY = "yanta_onboarding";
 describe("WelcomeOverlay", () => {
 	beforeEach(() => {
 		localStorage.clear();
+		useOnboardingStore.setState({ onboardingData: null });
 		vi.useFakeTimers();
 	});
 
@@ -16,12 +18,13 @@ describe("WelcomeOverlay", () => {
 
 	describe("visibility", () => {
 		it("does not render when onboarding is complete", () => {
-			const existingData = {
-				completedWelcome: true,
-				completedAt: 1000,
-				version: "1.0.0",
-			};
-			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingData));
+			useOnboardingStore.setState({
+				onboardingData: {
+					completedWelcome: true,
+					completedAt: 1000,
+					version: "1.0.0",
+				},
+			});
 
 			render(<WelcomeOverlay />);
 
@@ -135,6 +138,11 @@ describe("WelcomeOverlay", () => {
 
 			act(() => {
 				vi.advanceTimersByTime(500);
+			});
+
+			// Focus happens after an additional timeout (focusRestoreMs)
+			act(() => {
+				vi.advanceTimersByTime(100);
 			});
 
 			const button = screen.getByTestId("welcome-dismiss-button");

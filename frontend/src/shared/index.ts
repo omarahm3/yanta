@@ -1,8 +1,4 @@
 export { useLatestRef } from "./hooks/useLatestRef";
-export {
-	type UseLocalStorageOptions,
-	useLocalStorage,
-} from "./hooks/useLocalStorage";
 export { type UseDialogReturn, useDialog } from "./stores/dialog.store";
 export { useDocumentCommandStore } from "./stores/documentCommand.store";
 export { useDocumentCountStore } from "./stores/documentCount.store";

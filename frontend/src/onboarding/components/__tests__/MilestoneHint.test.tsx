@@ -261,9 +261,10 @@ describe("MilestoneHint", () => {
 			render(<MilestoneHint hintId="test-hint" text="Test hint" onDismiss={onDismiss} />);
 
 			const hint = screen.getByTestId("milestone-hint");
-			expect(hint).toHaveClass("bg-surface");
+			expect(hint).toHaveClass("bg-glass-bg/80");
+			expect(hint).toHaveClass("backdrop-blur-xl");
 			expect(hint).toHaveClass("border");
-			expect(hint).toHaveClass("border-border");
+			expect(hint).toHaveClass("border-glass-border");
 			expect(hint).toHaveClass("shadow-lg");
 			expect(hint).toHaveClass("rounded-lg");
 		});

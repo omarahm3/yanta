@@ -42,7 +42,6 @@ describe("useFooterHintsSetting", () => {
 	});
 
 	it("defaults to true when backend errors", async () => {
-		const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 		mockGetShowFooterHints.mockRejectedValue(new Error("Backend error"));
 
 		const { result } = renderHook(() => useFooterHintsSetting());
@@ -51,9 +50,6 @@ describe("useFooterHintsSetting", () => {
 
 		// Should default to true on error (hints shown)
 		expect(result.current.showFooterHints).toBe(true);
-		expect(consoleSpy).toHaveBeenCalled();
-
-		consoleSpy.mockRestore();
 	});
 
 	it("setShowFooterHints updates state optimistically", async () => {

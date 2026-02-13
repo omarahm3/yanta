@@ -6,11 +6,11 @@ import { HotkeyProvider, useHotkeyContext } from "../hotkeys";
 import { Settings } from "../settings";
 import type { HotkeyContextValue } from "../shared/types/hotkeys";
 
-vi.mock("../hooks/useHelp", () => ({
+vi.mock("../help", () => ({
 	useHelp: () => ({ setPageContext: vi.fn() }),
 }));
 
-vi.mock("../hooks/useSidebarSections", () => ({
+vi.mock("../shared/hooks/useSidebarSections", () => ({
 	useSidebarSections: () => [],
 }));
 
@@ -72,8 +72,8 @@ vi.mock("../settings/useSettingsController", () => ({
 	}),
 }));
 
-vi.mock("../contexts", async () => {
-	const actual = await vi.importActual<typeof import("../contexts")>("../contexts");
+vi.mock("../project", async () => {
+	const actual = await vi.importActual<typeof import("../project")>("../project");
 	return {
 		...actual,
 		useProjectContext: () => ({

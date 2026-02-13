@@ -32,7 +32,7 @@ vi.mock("../hooks/usePaneLayout", () => ({
 	}),
 }));
 
-vi.mock("../../hooks/useHotkey", () => ({
+vi.mock("../../hotkeys", () => ({
 	useHotkeys: (hotkeys: any[]) => {
 		registeredHotkeys.length = 0;
 		registeredHotkeys.push(...hotkeys);

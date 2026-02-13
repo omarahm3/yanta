@@ -54,7 +54,7 @@ vi.mock("../EmptyPaneDocumentPicker", () => ({
 	EmptyPaneDocumentPicker: () => <div data-testid="empty-pane-picker" />,
 }));
 
-vi.mock("../../../hooks/useHotkey", () => ({
+vi.mock("../../../hotkeys", () => ({
 	useHotkey: () => {},
 }));
 

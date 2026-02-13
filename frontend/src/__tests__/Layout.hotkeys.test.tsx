@@ -1,25 +1,18 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
-import React from "react";
+import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
-import { DialogProvider, TitleBarProvider } from "../app/context";
-import { HotkeyProvider, useHotkeyContext } from "../hotkeys";
-import type { HotkeyContextValue } from "../shared/types/hotkeys";
 
-const mockSuccess = vi.fn();
-const mockError = vi.fn();
-
-vi.mock("../hooks/useNotification", () => ({
-	useNotification: () => ({
-		success: mockSuccess,
-		error: mockError,
-	}),
+vi.mock("../config", () => ({
+	SIDEBAR_SHORTCUTS: {
+		toggle: { key: "ctrl+b", description: "Toggle sidebar", category: "navigation" },
+	},
+	LAYOUT: { maxPanes: 4 },
 }));
 
 // Mock useSidebarSetting to start with sidebar visible for testing
 const mockToggleSidebar = vi.fn();
 let mockSidebarVisible = true;
 
-vi.mock("../hooks/useSidebarSetting", () => ({
+vi.mock("../shared/hooks/useSidebarSetting", () => ({
 	useSidebarSetting: () => ({
 		sidebarVisible: mockSidebarVisible,
 		isLoading: false,
@@ -31,21 +24,26 @@ vi.mock("../hooks/useSidebarSetting", () => ({
 	}),
 }));
 
-vi.mock("../hooks/useFooterHints", () => ({
+vi.mock("../shared/hooks/useFooterHints", () => ({
 	useFooterHints: () => ({
 		hints: [{ key: "Ctrl+K", label: "Commands" }],
 	}),
 }));
 
-vi.mock("../contexts", async () => {
-	const actual = await vi.importActual<typeof import("../contexts")>("../contexts");
-	return {
-		...actual,
-		useProjectContext: () => ({
-			currentProject: { name: "Test Project", alias: "test-project" },
-		}),
-	};
-});
+vi.mock("../shared/hooks/useFooterHintsSetting", () => ({
+	useFooterHintsSetting: () => ({
+		showFooterHints: true,
+		isLoading: false,
+		setShowFooterHints: vi.fn(),
+		toggleFooterHints: vi.fn(),
+	}),
+}));
+
+vi.mock("../project", () => ({
+	useProjectContext: () => ({
+		currentProject: { name: "Test Project", alias: "test-project" },
+	}),
+}));
 
 vi.mock("../shared/ui", () => ({
 	__esModule: true,
@@ -53,66 +51,51 @@ vi.mock("../shared/ui", () => ({
 		<div data-testid="header">{currentPage}</div>
 	),
 	Sidebar: ({ title }: { title?: string }) => <div data-testid="sidebar">{title ?? "Sidebar"}</div>,
-	ContextBar: () => <div data-testid="context-bar-mock" />,
 	FooterHintBar: ({ hints }: { hints: { key: string; label: string }[] }) => (
 		<div data-testid="footer-hint-bar-mock">{hints.length} hints</div>
 	),
 }));
 
-import { Layout } from "../app";
+// Capture registered hotkeys from the useHotkeys mock
+let capturedHotkeys: Array<{ key: string; handler: (e: KeyboardEvent) => void }> = [];
 
-const HotkeyProbe: React.FC<{ onReady: (ctx: HotkeyContextValue) => void }> = ({ onReady }) => {
-	const ctx = useHotkeyContext();
-	React.useEffect(() => {
-		onReady(ctx);
-	}, [ctx, onReady]);
-	return null;
-};
+vi.mock("../hotkeys", () => ({
+	useHotkeys: (configs: Array<{ key: string; handler: (e: KeyboardEvent) => void }>) => {
+		capturedHotkeys = configs;
+	},
+	useHotkey: vi.fn(),
+	HotkeyProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+	useHotkeyContext: () => ({ getRegisteredHotkeys: () => [] }),
+	createHotkeyMatcher: vi.fn(),
+}));
+
+import type React from "react";
+import { Layout } from "../app";
 
 describe("Layout hotkeys", () => {
 	beforeEach(() => {
-		mockSuccess.mockClear();
-		mockError.mockClear();
 		mockToggleSidebar.mockClear();
-		mockSidebarVisible = true; // Reset sidebar to visible state for each test
+		mockSidebarVisible = true;
+		capturedHotkeys = [];
 	});
 
-	const Wrapper: React.FC<{ onContext: (ctx: HotkeyContextValue) => void }> = ({ onContext }) => (
-		<DialogProvider>
-			<HotkeyProvider>
-				<TitleBarProvider>
-					<HotkeyProbe onReady={onContext} />
-					<Layout sidebarTitle="Test Sidebar" currentPage="dashboard">
-						<div data-testid="content">content</div>
-					</Layout>
-				</TitleBarProvider>
-			</HotkeyProvider>
-		</DialogProvider>
-	);
+	it("registers ctrl+b hotkey that toggles sidebar", () => {
+		render(
+			<Layout currentPage="dashboard">
+				<div data-testid="content">content</div>
+			</Layout>,
+		);
 
-	const setup = async () => {
-		let context: HotkeyContextValue | null = null;
-		// biome-ignore lint/suspicious/noAssignInExpressions: Test callback pattern
-		render(<Wrapper onContext={(ctx) => (context = ctx)} />);
-		await waitFor(() => expect(context).not.toBeNull());
-		// biome-ignore lint/style/noNonNullAssertion: Test utility function ensures non-null
-		return context!;
-	};
-
-	it("toggles sidebar with ctrl+b", async () => {
-		const ctx = await setup();
 		const root = screen.getByTestId("layout-root");
-		// Initial state should be visible (from mock)
 		expect(root).toHaveAttribute("data-sidebar-visible", "true");
 
-		const hotkey = ctx.getRegisteredHotkeys().find((h) => h.key === "ctrl+b");
-		expect(hotkey).toBeDefined();
+		// Verify Layout registered the sidebar toggle hotkey
+		const toggleHotkey = capturedHotkeys.find((h) => h.key === "ctrl+b");
+		expect(toggleHotkey).toBeDefined();
 
-		await act(async () => {
-			hotkey?.handler(new KeyboardEvent("keydown", { key: "b", ctrlKey: true, code: "KeyB" }));
-		});
+		// Invoke the handler directly
+		toggleHotkey!.handler(new KeyboardEvent("keydown", { key: "b", ctrlKey: true, code: "KeyB" }));
 
-		// Verify toggleSidebar was called
 		expect(mockToggleSidebar).toHaveBeenCalledTimes(1);
 	});
 });

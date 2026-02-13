@@ -150,7 +150,11 @@ export function preferencesToModel(overrides: PreferencesOverrides): {
 	if (overrides.layout?.maxPanes) {
 		model.Layout.MaxPanes = overrides.layout.maxPanes;
 	}
-	if (overrides.plugins && typeof overrides.plugins === "object" && Object.keys(overrides.plugins).length > 0) {
+	if (
+		overrides.plugins &&
+		typeof overrides.plugins === "object" &&
+		Object.keys(overrides.plugins).length > 0
+	) {
 		model.Plugins = overrides.plugins;
 	}
 	return model;

@@ -141,7 +141,8 @@ vi.mock("../../app", async (importOriginal) => {
 			{children}
 		</div>
 	);
-	return { ...actual, Layout };
+	const GranularErrorBoundary = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+	return { ...actual, Layout, GranularErrorBoundary };
 });
 
 import { Dashboard } from "..";

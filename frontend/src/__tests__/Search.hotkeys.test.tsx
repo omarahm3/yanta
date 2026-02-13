@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import type React from "react";
+import type { ReactNode } from "react";
 import { vi } from "vitest";
 import { DialogProvider } from "../app/context";
 import { HotkeyProvider } from "../hotkeys";
@@ -7,20 +7,20 @@ import { Search } from "../search";
 
 const onNavigate = vi.fn();
 
-vi.mock("../hooks/useNotification", () => ({
+vi.mock("../shared/hooks/useNotification", () => ({
 	useNotification: () => ({ success: vi.fn(), error: vi.fn(), info: vi.fn() }),
 }));
 
-vi.mock("../hooks/useSidebarSections", () => ({
+vi.mock("../shared/hooks/useSidebarSections", () => ({
 	useSidebarSections: () => [],
 }));
 
-vi.mock("../hooks/useHelp", () => ({
+vi.mock("../help", () => ({
 	useHelp: () => ({ setPageContext: vi.fn() }),
 }));
 
-vi.mock("../contexts", async () => {
-	const actual = await vi.importActual<typeof import("../contexts")>("../contexts");
+vi.mock("../project", async () => {
+	const actual = await vi.importActual<typeof import("../project")>("../project");
 	return {
 		...actual,
 		useProjectContext: () => ({
@@ -45,7 +45,7 @@ vi.mock("../app", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("../app")>();
 	return {
 		...actual,
-		Layout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		Layout: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 	};
 });
 

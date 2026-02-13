@@ -508,7 +508,7 @@ export function useDashboardController({
 		handleToggleArchived,
 		handleDeleteSelectedDocuments,
 		handleMoveSelectedDocuments,
-		handleToggleSelection: () => handleToggleSelection(),
+		handleToggleSelection,
 		handleOpenHighlightedDocument,
 		highlightNext,
 		highlightPrevious,

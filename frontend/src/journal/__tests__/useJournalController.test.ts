@@ -3,19 +3,26 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useJournalController } from "../useJournalController";
 
 // Mock project context
-vi.mock("../../contexts", () => ({
+vi.mock("../../project", () => ({
 	useProjectContext: () => ({
 		currentProject: { alias: "personal", name: "Personal" },
 	}),
 }));
 
-// Mock sidebar sections hook
-vi.mock("../../hooks/useSidebarSections", () => ({
+// Mock shared hooks with stable references (avoid infinite re-render loops)
+const mockNotify = {
+	success: vi.fn(),
+	error: vi.fn(),
+	info: vi.fn(),
+	warning: vi.fn(),
+};
+vi.mock("../../shared/hooks", () => ({
 	useSidebarSections: () => [],
+	useNotification: () => mockNotify,
 }));
 
 // Mock help hook
-vi.mock("../../hooks", () => ({
+vi.mock("../../help", () => ({
 	useHelp: () => ({
 		setPageContext: vi.fn(),
 	}),

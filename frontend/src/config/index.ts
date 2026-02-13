@@ -4,17 +4,15 @@ export { EDITOR_HELP_COMMANDS, EDITOR_SHORTCUTS } from "./editorCommands";
 export { ENABLE_TOOLTIP_HINTS } from "./featureFlags";
 export { GLOBAL_COMMANDS } from "./globalCommands";
 export { LAYOUT } from "./layout";
-export type { PreferencesOverrides, PreferencesPluginOverrides } from "./preferences";
+export type { PluginConfigSchema } from "./pluginConfigRegistry";
 export {
 	getPluginConfigDefinition,
 	getRegisteredPluginIds,
 	registerPluginConfig,
 } from "./pluginConfigRegistry";
-export type { PluginConfigSchema } from "./pluginConfigRegistry";
-export { validatePluginConfig } from "./pluginConfigValidation";
 export type { ValidatePluginConfigResult } from "./pluginConfigValidation";
-export { usePluginConfig } from "./usePluginConfig";
-export type { UsePluginConfigResult } from "./usePluginConfig";
+export { validatePluginConfig } from "./pluginConfigValidation";
+export type { PreferencesOverrides, PreferencesPluginOverrides } from "./preferences";
 export type { ShortcutDef } from "./shortcuts";
 export {
 	ALL_SHORTCUT_KEYS,
@@ -36,6 +34,8 @@ export {
 	SIDEBAR_SHORTCUTS,
 } from "./shortcuts";
 export { TIMEOUTS } from "./timeouts";
+export type { UsePluginConfigResult } from "./usePluginConfig";
+export { usePluginConfig } from "./usePluginConfig";
 export {
 	useMergedConfig,
 	usePreferencesOverrides,

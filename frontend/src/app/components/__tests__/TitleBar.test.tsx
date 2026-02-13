@@ -54,6 +54,19 @@ vi.mock("../../../bindings/yanta/internal/system/service", () => ({
 	BackgroundQuit: vi.fn(() => Promise.resolve()),
 }));
 
+// Mock useToast (requires ToastProvider otherwise)
+vi.mock("../../../shared/ui/Toast", () => ({
+	useToast: () => ({
+		show: vi.fn(),
+		success: vi.fn(),
+		error: vi.fn(),
+		info: vi.fn(),
+		warning: vi.fn(),
+		dismiss: vi.fn(),
+		dismissAll: vi.fn(),
+	}),
+}));
+
 const renderWithProvider = () =>
 	render(
 		<TitleBarProvider>

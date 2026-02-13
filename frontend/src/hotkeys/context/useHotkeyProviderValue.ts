@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useDialog } from "../../shared/stores/dialog.store";
+import { useDialogStore } from "../../shared/stores/dialog.store";
 import type {
 	HotkeyConfig,
 	HotkeyContextValue,
@@ -17,15 +17,21 @@ const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(
 	"value",
 )?.set;
 
+const getIsDialogOpen = () => useDialogStore.getState().openCount > 0;
+
 export function useHotkeyProviderValue(): HotkeyContextValue {
-	const { isDialogOpen } = useDialog();
-	const isDialogOpenRef = useRef(isDialogOpen);
+	const isDialogOpenRef = useRef(getIsDialogOpen());
 	const [hotkeys, setHotkeys] = useState<Map<string, RegisteredHotkey>>(new Map());
 	const nextIdRef = useRef(0);
 
+	// Sync ref via store subscription — avoids re-renders when dialog opens/closes
 	useEffect(() => {
-		isDialogOpenRef.current = isDialogOpen;
-	}, [isDialogOpen]);
+		isDialogOpenRef.current = getIsDialogOpen();
+		const unsub = useDialogStore.subscribe(() => {
+			isDialogOpenRef.current = getIsDialogOpen();
+		});
+		return unsub;
+	}, []);
 
 	const register = useCallback((config: HotkeyConfig): string => {
 		const id = `hotkey-${nextIdRef.current}`;
@@ -132,23 +138,40 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 			};
 		}, [hotkeys]);
 
+	// Bubble listener: add/remove via store subscription to avoid re-renders when dialog opens/closes
 	useEffect(() => {
-		if (isDialogOpen || bubbleMatchersAndHandlers.length === 0) {
-			return;
-		}
+		if (bubbleMatchersAndHandlers.length === 0) return;
 
-		const handleBubble = (event: KeyboardEvent) => {
-			for (const { matcher, handler } of bubbleMatchersAndHandlers) {
-				if (matcher(event)) {
-					handler(event);
-					break;
-				}
+		let cleanup: (() => void) | null = null;
+
+		const setupListener = () => {
+			if (cleanup) {
+				cleanup();
+				cleanup = null;
 			}
+			if (getIsDialogOpen()) return;
+
+			const handleBubble = (event: KeyboardEvent) => {
+				for (const { matcher, handler } of bubbleMatchersAndHandlers) {
+					if (matcher(event)) {
+						handler(event);
+						break;
+					}
+				}
+			};
+
+			document.addEventListener("keydown", handleBubble, false);
+			cleanup = () => document.removeEventListener("keydown", handleBubble, false);
 		};
 
-		document.addEventListener("keydown", handleBubble, false);
-		return () => document.removeEventListener("keydown", handleBubble, false);
-	}, [bubbleMatchersAndHandlers, isDialogOpen]);
+		setupListener();
+		const unsub = useDialogStore.subscribe(setupListener);
+
+		return () => {
+			unsub();
+			if (cleanup) cleanup();
+		};
+	}, [bubbleMatchersAndHandlers]);
 
 	useEffect(() => {
 		if (captureHotkeysWithMatchers.length === 0) {

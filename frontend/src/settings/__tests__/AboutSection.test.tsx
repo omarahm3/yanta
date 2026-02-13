@@ -2,6 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DialogProvider } from "../../app/context";
+import { useOnboardingStore } from "../../shared/stores/onboarding.store";
+import { useProgressStore } from "../../shared/stores/progress.store";
 import type { SystemInfo } from "../../shared/types";
 import { AboutSection } from "../AboutSection";
 
@@ -18,9 +20,6 @@ vi.mock("../../shared/ui/Toast", () => ({
 		dismissAll: vi.fn(),
 	}),
 }));
-
-const ONBOARDING_STORAGE_KEY = "yanta_onboarding";
-const PROGRESS_STORAGE_KEY = "yanta_user_progress";
 
 const mockSystemInfo: SystemInfo = {
 	app: {
@@ -51,6 +50,13 @@ const renderAboutSection = (systemInfo: SystemInfo | null = mockSystemInfo) => {
 describe("AboutSection", () => {
 	beforeEach(() => {
 		localStorage.clear();
+		useOnboardingStore.setState({ onboardingData: null });
+		useProgressStore.setState({
+			documentsCreated: 0,
+			journalEntriesCreated: 0,
+			projectsSwitched: 0,
+			hintsShown: [],
+		});
 	});
 
 	describe("system info display", () => {
@@ -143,24 +149,23 @@ describe("AboutSection", () => {
 		});
 
 		it("resets onboarding when confirmed", () => {
-			// Set up completed onboarding
-			localStorage.setItem(
-				ONBOARDING_STORAGE_KEY,
-				JSON.stringify({
+			// Set up completed onboarding via store
+			useOnboardingStore.setState({
+				onboardingData: {
 					completedWelcome: true,
 					completedAt: Date.now(),
 					version: "1.0.0",
-				}),
-			);
+				},
+			});
 
 			renderAboutSection();
 
 			fireEvent.click(screen.getByRole("button", { name: "Reset Onboarding" }));
 			fireEvent.click(screen.getByRole("button", { name: "Reset" }));
 
-			// useLocalStorage persists null as the string "null"
-			const stored = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-			expect(stored === null || stored === "null").toBe(true);
+			// Store should be reset to null
+			const state = useOnboardingStore.getState();
+			expect(state.onboardingData).toBeNull();
 		});
 
 		it("closes dialog after confirming reset", () => {
@@ -197,29 +202,25 @@ describe("AboutSection", () => {
 		});
 
 		it("resets progress when confirmed", () => {
-			// Set up some progress data
-			localStorage.setItem(
-				PROGRESS_STORAGE_KEY,
-				JSON.stringify({
-					documentsCreated: 5,
-					journalEntriesCreated: 3,
-					projectsSwitched: 2,
-					hintsShown: ["first-save", "journal-nav"],
-				}),
-			);
+			// Set up some progress data via store
+			useProgressStore.setState({
+				documentsCreated: 5,
+				journalEntriesCreated: 3,
+				projectsSwitched: 2,
+				hintsShown: ["first-save", "journal-nav"],
+			});
 
 			renderAboutSection();
 
 			fireEvent.click(screen.getByRole("button", { name: "Reset Hints" }));
 			fireEvent.click(screen.getByRole("button", { name: "Reset" }));
 
-			// resetProgress removes key then useLocalStorage persists default state
-			expect(JSON.parse(localStorage.getItem(PROGRESS_STORAGE_KEY)!)).toEqual({
-				documentsCreated: 0,
-				journalEntriesCreated: 0,
-				projectsSwitched: 0,
-				hintsShown: [],
-			});
+			// resetProgress resets store to defaults
+			const state = useProgressStore.getState();
+			expect(state.documentsCreated).toBe(0);
+			expect(state.journalEntriesCreated).toBe(0);
+			expect(state.projectsSwitched).toBe(0);
+			expect(state.hintsShown).toEqual([]);
 		});
 
 		it("closes dialog after confirming reset", () => {
@@ -232,15 +233,12 @@ describe("AboutSection", () => {
 		});
 
 		it("displays hint count when hints have been shown", () => {
-			localStorage.setItem(
-				PROGRESS_STORAGE_KEY,
-				JSON.stringify({
-					documentsCreated: 5,
-					journalEntriesCreated: 3,
-					projectsSwitched: 2,
-					hintsShown: ["first-save", "journal-nav", "quick-switch"],
-				}),
-			);
+			useProgressStore.setState({
+				documentsCreated: 5,
+				journalEntriesCreated: 3,
+				projectsSwitched: 2,
+				hintsShown: ["first-save", "journal-nav", "quick-switch"],
+			});
 
 			renderAboutSection();
 
@@ -248,16 +246,6 @@ describe("AboutSection", () => {
 		});
 
 		it("does not display hint count when no hints shown", () => {
-			localStorage.setItem(
-				PROGRESS_STORAGE_KEY,
-				JSON.stringify({
-					documentsCreated: 0,
-					journalEntriesCreated: 0,
-					projectsSwitched: 0,
-					hintsShown: [],
-				}),
-			);
-
 			renderAboutSection();
 
 			expect(screen.queryByText(/hints shown/)).not.toBeInTheDocument();

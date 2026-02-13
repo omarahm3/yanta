@@ -2,6 +2,17 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useJournal } from "../useJournal";
 
+// Mock useNotification with stable references (avoid infinite re-render loops)
+const mockNotify = {
+	success: vi.fn(),
+	error: vi.fn(),
+	info: vi.fn(),
+	warning: vi.fn(),
+};
+vi.mock("../../shared/hooks", () => ({
+	useNotification: () => mockNotify,
+}));
+
 // Mock the journal service
 vi.mock("../../../bindings/yanta/internal/journal/wailsservice", () => ({
 	GetActiveEntries: vi.fn(),

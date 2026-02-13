@@ -9,10 +9,11 @@
     "build:dev": "vite build --minify false --mode development",
     "build": "tsc && vite build --mode production",
     "preview": "vite preview",
-    "test": "vitest",
-    "test:hotkeys": "vitest run src/__tests__ --test-timeout=5000",
+    "test": "cross-env CI=1 NODE_OPTIONS=--max-old-space-size=6144 vitest run",
+    "test:watch": "vitest",
+    "test:hotkeys": "cross-env CI=1 vitest run src/__tests__ --test-timeout=5000",
     "test:hotkeys:watch": "vitest src/__tests__ --test-timeout=5000",
-    "test:coverage": "vitest run --coverage src/__tests__",
+    "test:coverage": "cross-env CI=1 vitest run --coverage src/__tests__",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
@@ -52,6 +53,7 @@
     "zustand": "^4.5.0"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "@biomejs/biome": "2.3.2",
     "@tailwindcss/vite": "^4.1.16",
     "@testing-library/jest-dom": "^6.6.3",

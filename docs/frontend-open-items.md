@@ -57,7 +57,7 @@ For full background, see `docs/frontend-review.md` (Rev 20).
 - `paneLayout.store.ts` – pane layouts per document
 - `progress.store.ts` (pre-existing) – user progress; `useUserProgress` now re-exports from it
 
-Each store uses custom `PersistStorage` for validation, backwards-compatible formats, and optional StorageEvent cross-tab sync. `useLocalStorage` is now unused and can be removed in a future cleanup.
+Each store uses custom `PersistStorage` for validation, backwards-compatible formats, and optional StorageEvent cross-tab sync. `useLocalStorage` removed (2026-02-12).
 
 ---
 
@@ -154,8 +154,13 @@ Each store uses custom `PersistStorage` for validation, backwards-compatible for
 - `tsconfig.json` path aliases minimal and correct (`@/*` → `./src/*`, `@/app` → `./src/app/index`).
 - `extensions/index.ts` serves as a compatibility shim re-exporting from `editor/extensions` — acceptable.
 
-**Remaining work:**
-- Verify test suite after restructure (deferred).
+**Post-restructure verification (2026-02-12):**
+- CI env: `cross-env CI=1` added to test scripts for non-interactive runs.
+- `test` now runs `vitest run` once (no watch); `test:watch` for dev.
+- `testTimeout: 5000` in vitest.config.ts; `pool: "forks"` with 8GB per fork.
+- One useAutoSave test skipped (async timing with fake timers).
+- All 72 test files (916 tests) pass. Fixed OOM in Dashboard.hotkeys.test.tsx caused by unstable function reference in `useDashboardController.ts` (inline arrow wrapper → direct callback pass-through).
+- Production bug fixed: `handleToggleSelection: () => handleToggleSelection()` → `handleToggleSelection` — eliminated infinite re-render loop in hotkey registration system.
 
 ---
 
@@ -226,6 +231,7 @@ Each store uses custom `PersistStorage` for validation, backwards-compatible for
 **Completed:**
 - `recentDocuments.store.ts` and `commandUsage.store.ts` now use `{ version: 1, ... }` wrapper in storage format; legacy format still parsed for backwards compatibility.
 - `pruneUsageData` in `commandUsage.store.ts` returns early when `entries.length <= MAX_ENTRIES`; prune only runs when over cap.
+- `useLocalStorage` hook removed (unused after zustand migration).
 
 ---
 

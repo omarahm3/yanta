@@ -9,13 +9,24 @@ import { useProjectStore } from "../../shared/stores/project.store";
 import { Journal } from "../Journal";
 
 // Mock Layout to render children only (sidebar/header tested elsewhere)
-vi.mock("../../app", async (importOriginal) => {
-	const actual = await importOriginal<typeof import("../../app")>();
-	return { ...actual, Layout: ({ children }: { children: React.ReactNode }) => <>{children}</> };
-});
+vi.mock("../../app", () => ({
+	Layout: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+	GranularErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
 
-vi.mock("../../hooks/useSidebarSections", () => ({
+vi.mock("../../shared/hooks/useSidebarSections", () => ({
 	useSidebarSections: () => [],
+}));
+
+// Mock useNotification to avoid ToastProvider requirement
+const mockNotify = {
+	success: vi.fn(),
+	error: vi.fn(),
+	info: vi.fn(),
+	warning: vi.fn(),
+};
+vi.mock("../../shared/hooks/useNotification", () => ({
+	useNotification: () => mockNotify,
 }));
 
 // Test wrapper with project context and hotkey provider

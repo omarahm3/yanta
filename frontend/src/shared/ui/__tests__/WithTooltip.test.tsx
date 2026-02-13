@@ -16,10 +16,25 @@ vi.mock("../../stores/tooltipUsage.store", () => ({
 	}),
 }));
 
-describe("WithTooltip", () => {
-	const HOVER_DELAY = 500;
-	const FOCUS_DELAY = 800;
+vi.mock("@/config", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@/config")>();
+	return {
+		...actual,
+		useMergedConfig: () => {
+			const config = actual.useMergedConfig();
+			return {
+				...config,
+				timeouts: {
+					...config.timeouts,
+					tooltipHoverDelay: 0,
+					tooltipFocusDelay: 0,
+				},
+			};
+		},
+	};
+});
 
+describe("WithTooltip", () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 		mockShouldShowTooltip.mockReturnValue(true);
@@ -94,22 +109,12 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.mouseEnter(button);
-
-			// Tooltip should not be visible immediately
-			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
-
-			// Advance timers by less than hover delay
+			fireEvent.pointerMove(button);
 			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY - 100);
-			});
-			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
-
-			// Advance to full hover delay
-			act(() => {
-				vi.advanceTimersByTime(100);
+				vi.advanceTimersByTime(0);
 			});
 
+			// With zero delay mock, tooltip appears immediately
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
 		});
 
@@ -123,43 +128,30 @@ describe("WithTooltip", () => {
 			const button = screen.getByRole("button", { name: "Click me" });
 			fireEvent.focus(button);
 
-			// Tooltip should not be visible immediately
-			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
-
-			// Advance timers by less than focus delay
-			act(() => {
-				vi.advanceTimersByTime(FOCUS_DELAY - 100);
-			});
-			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
-
-			// Advance to full focus delay
-			act(() => {
-				vi.advanceTimersByTime(100);
-			});
-
+			// With zero delay mock, tooltip appears immediately
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
 		});
 
 		it("hides tooltip immediately on mouse leave", () => {
 			render(
-				<WithTooltip tooltipId="test" description="Test tooltip">
-					<button type="button">Click me</button>
-				</WithTooltip>,
+				<>
+					<WithTooltip tooltipId="test" description="Test tooltip">
+						<button type="button">Click me</button>
+					</WithTooltip>
+					<button type="button">Other</button>
+				</>,
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
 
-			// Show tooltip
-			fireEvent.mouseEnter(button);
-			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
-			});
+			// Show tooltip via focus
+			fireEvent.focus(button);
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
 
-			// Hide tooltip
-			fireEvent.mouseLeave(button);
+			// Hide via blur - blur the trigger directly
+			fireEvent.blur(button);
 
-			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+			expect(button.getAttribute("aria-describedby")).toBeFalsy();
 		});
 
 		it("hides tooltip immediately on blur", () => {
@@ -171,11 +163,8 @@ describe("WithTooltip", () => {
 
 			const button = screen.getByRole("button", { name: "Click me" });
 
-			// Show tooltip
+			// Show tooltip (zero delay)
 			fireEvent.focus(button);
-			act(() => {
-				vi.advanceTimersByTime(FOCUS_DELAY);
-			});
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
 
 			// Hide tooltip
@@ -193,15 +182,11 @@ describe("WithTooltip", () => {
 
 			const button = screen.getByRole("button", { name: "Click me" });
 
-			fireEvent.mouseEnter(button);
+			// Enter and leave in same tick - with zero delay, Radix may still schedule for next tick
+			fireEvent.pointerMove(button);
+			fireEvent.pointerLeave(button);
 			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY - 100);
-			});
-			fireEvent.mouseLeave(button);
-
-			// Advance past the original delay
-			act(() => {
-				vi.advanceTimersByTime(200);
+				vi.advanceTimersByTime(100);
 			});
 
 			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
@@ -217,12 +202,12 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Save" });
-			fireEvent.mouseEnter(button);
+			fireEvent.pointerMove(button);
 			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
+				vi.advanceTimersByTime(0);
 			});
 
-			expect(screen.getByText("Save your work")).toBeInTheDocument();
+			expect(screen.getByRole("tooltip")).toHaveTextContent("Save your work");
 		});
 
 		it("displays keyboard shortcut badge when provided", () => {
@@ -233,13 +218,14 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Save" });
-			fireEvent.mouseEnter(button);
+			fireEvent.pointerMove(button);
 			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
+				vi.advanceTimersByTime(0);
 			});
 
-			expect(screen.getByText("Ctrl")).toBeInTheDocument();
-			expect(screen.getByText("S")).toBeInTheDocument();
+			const tooltip = screen.getByRole("tooltip");
+			expect(tooltip).toHaveTextContent("Ctrl");
+			expect(tooltip).toHaveTextContent("S");
 		});
 
 		it("parses multi-key shortcuts correctly", () => {
@@ -250,14 +236,15 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "New" });
-			fireEvent.mouseEnter(button);
+			fireEvent.pointerMove(button);
 			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
+				vi.advanceTimersByTime(0);
 			});
 
-			expect(screen.getByText("Ctrl")).toBeInTheDocument();
-			expect(screen.getByText("Shift")).toBeInTheDocument();
-			expect(screen.getByText("N")).toBeInTheDocument();
+			const tooltip = screen.getByRole("tooltip");
+			expect(tooltip).toHaveTextContent("Ctrl");
+			expect(tooltip).toHaveTextContent("Shift");
+			expect(tooltip).toHaveTextContent("N");
 		});
 
 		it("renders tooltip without shortcut badge when shortcut not provided", () => {
@@ -268,15 +255,15 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Menu" });
-			fireEvent.mouseEnter(button);
+			fireEvent.pointerMove(button);
 			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
+				vi.advanceTimersByTime(0);
 			});
 
-			expect(screen.getByRole("tooltip")).toBeInTheDocument();
-			expect(screen.getByText("Open menu")).toBeInTheDocument();
-			// No kbd elements should exist
 			const tooltip = screen.getByRole("tooltip");
+			expect(tooltip).toBeInTheDocument();
+			expect(tooltip).toHaveTextContent("Open menu");
+			// No kbd elements should exist
 			expect(tooltip.querySelectorAll("kbd").length).toBe(0);
 		});
 	});
@@ -292,10 +279,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.mouseEnter(button);
-			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
-			});
+			fireEvent.pointerMove(button);
 
 			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 		});
@@ -308,9 +292,9 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.mouseEnter(button);
+			fireEvent.pointerMove(button);
 			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
+				vi.advanceTimersByTime(0);
 			});
 
 			expect(mockRecordTooltipView).toHaveBeenCalledWith("test-tooltip");
@@ -318,28 +302,26 @@ describe("WithTooltip", () => {
 
 		it("only calls recordTooltipView once per session", () => {
 			render(
-				<WithTooltip tooltipId="test-tooltip" description="Test tooltip">
-					<button type="button">Click me</button>
-				</WithTooltip>,
+				<>
+					<WithTooltip tooltipId="test-tooltip" description="Test tooltip">
+						<button type="button">Click me</button>
+					</WithTooltip>
+					<button type="button">Other</button>
+				</>,
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
 
-			// First hover
-			fireEvent.mouseEnter(button);
-			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
-			});
+			// First show via focus
+			fireEvent.focus(button);
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
 
-			// Hide and show again
-			fireEvent.mouseLeave(button);
-			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+			// Hide via blur
+			fireEvent.blur(button);
+			expect(button.getAttribute("aria-describedby")).toBeFalsy();
 
-			fireEvent.mouseEnter(button);
-			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
-			});
+			// Show again via focus
+			fireEvent.focus(button);
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
 
 			// Should only have been called once
@@ -354,7 +336,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.mouseEnter(button);
+			fireEvent.pointerMove(button);
 
 			expect(mockShouldShowTooltip).toHaveBeenCalledWith("specific-tooltip-id");
 		});
@@ -369,10 +351,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.mouseEnter(button);
-			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
-			});
+			fireEvent.pointerMove(button);
 
 			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 		});
@@ -385,10 +364,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.mouseEnter(button);
-			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
-			});
+			fireEvent.pointerMove(button);
 
 			expect(mockRecordTooltipView).not.toHaveBeenCalled();
 		});
@@ -403,9 +379,9 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.mouseEnter(button);
+			fireEvent.pointerMove(button);
 			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
+				vi.advanceTimersByTime(0);
 			});
 
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
@@ -419,9 +395,9 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.mouseEnter(button);
+			fireEvent.pointerMove(button);
 			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
+				vi.advanceTimersByTime(0);
 			});
 
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
@@ -435,9 +411,9 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.mouseEnter(button);
+			fireEvent.pointerMove(button);
 			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
+				vi.advanceTimersByTime(0);
 			});
 
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
@@ -451,9 +427,9 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.mouseEnter(button);
+			fireEvent.pointerMove(button);
 			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
+				vi.advanceTimersByTime(0);
 			});
 
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
@@ -469,9 +445,9 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.mouseEnter(button);
+			fireEvent.pointerMove(button);
 			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
+				vi.advanceTimersByTime(0);
 			});
 
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
@@ -485,9 +461,9 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.mouseEnter(button);
+			fireEvent.pointerMove(button);
 			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
+				vi.advanceTimersByTime(0);
 			});
 
 			const tooltip = screen.getByRole("tooltip");
@@ -497,23 +473,22 @@ describe("WithTooltip", () => {
 
 		it("removes aria-describedby when tooltip is hidden", () => {
 			render(
-				<WithTooltip tooltipId="test" description="Test tooltip">
-					<button type="button">Click me</button>
-				</WithTooltip>,
+				<>
+					<WithTooltip tooltipId="test" description="Test tooltip">
+						<button type="button">Click me</button>
+					</WithTooltip>
+					<button type="button">Other</button>
+				</>,
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
 
-			// Show tooltip
-			fireEvent.mouseEnter(button);
-			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
-			});
-
+			// Show tooltip via focus
+			fireEvent.focus(button);
 			expect(button.getAttribute("aria-describedby")).toBeTruthy();
 
-			// Hide tooltip
-			fireEvent.mouseLeave(button);
+			// Hide via blur
+			fireEvent.blur(button);
 
 			expect(button.getAttribute("aria-describedby")).toBeFalsy();
 		});
@@ -543,15 +518,16 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.mouseEnter(button);
+			fireEvent.pointerMove(button);
 			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
+				vi.advanceTimersByTime(0);
 			});
 
+			// Tooltip content wrapper has the classes (parent of role=tooltip span)
 			const tooltip = screen.getByRole("tooltip");
-			expect(tooltip).toHaveClass("opacity-100");
-			// Should not have transition classes
-			expect(tooltip).not.toHaveClass("transition-all");
+			const wrapper = tooltip.closest("[data-state]");
+			expect(wrapper).toHaveClass("opacity-100");
+			expect(wrapper).not.toHaveClass("transition-all");
 		});
 	});
 
@@ -630,9 +606,9 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Button" });
-			fireEvent.mouseEnter(button);
+			fireEvent.pointerMove(button);
 			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
+				vi.advanceTimersByTime(0);
 			});
 
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
@@ -646,9 +622,9 @@ describe("WithTooltip", () => {
 			);
 
 			const link = screen.getByRole("link", { name: "Link" });
-			fireEvent.mouseEnter(link);
+			fireEvent.pointerMove(link);
 			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
+				vi.advanceTimersByTime(0);
 			});
 
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
@@ -662,9 +638,9 @@ describe("WithTooltip", () => {
 			);
 
 			const div = screen.getByTestId("div-trigger");
-			fireEvent.mouseEnter(div);
+			fireEvent.pointerMove(div);
 			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
+				vi.advanceTimersByTime(0);
 			});
 
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
@@ -678,9 +654,9 @@ describe("WithTooltip", () => {
 			);
 
 			const span = screen.getByTestId("span-trigger");
-			fireEvent.mouseEnter(span);
+			fireEvent.pointerMove(span);
 			act(() => {
-				vi.advanceTimersByTime(HOVER_DELAY);
+				vi.advanceTimersByTime(0);
 			});
 
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();

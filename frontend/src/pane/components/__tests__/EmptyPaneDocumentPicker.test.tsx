@@ -26,7 +26,7 @@ let mockRecentDocs = [
 	},
 ];
 
-vi.mock("../../../hooks/useRecentDocuments", () => ({
+vi.mock("../../../shared/hooks/useRecentDocuments", () => ({
 	useRecentDocuments: () => ({
 		recentDocuments: mockRecentDocs,
 		addRecentDocument: vi.fn(),
@@ -47,7 +47,7 @@ vi.mock("../../../pane", async (importOriginal) => {
 	};
 });
 
-vi.mock("../../../contexts/ProjectContext", () => ({
+vi.mock("../../../project", () => ({
 	useProjectContext: () => ({
 		projects: [
 			{ id: "1", alias: "proj", name: "Project" },
