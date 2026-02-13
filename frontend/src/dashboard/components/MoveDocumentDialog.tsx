@@ -34,18 +34,34 @@ export const MoveDocumentDialog: React.FC<MoveDocumentDialogProps> = ({
 	const [error, setError] = useState<string | null>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const listRef = useRef<HTMLDivElement>(null);
+	const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	useEffect(() => {
+		if (focusTimeoutRef.current !== null) {
+			clearTimeout(focusTimeoutRef.current);
+			focusTimeoutRef.current = null;
+		}
+
 		if (isOpen) {
 			openDialog();
 			setFilterQuery("");
 			setHighlightedIndex(0);
 			setError(null);
-			setTimeout(() => inputRef.current?.focus(), timeouts.focusRestoreMs);
+			focusTimeoutRef.current = setTimeout(() => {
+				inputRef.current?.focus();
+				focusTimeoutRef.current = null;
+			}, timeouts.focusRestoreMs);
 		} else {
 			closeDialog();
 		}
-	}, [isOpen, openDialog, closeDialog]);
+
+		return () => {
+			if (focusTimeoutRef.current !== null) {
+				clearTimeout(focusTimeoutRef.current);
+				focusTimeoutRef.current = null;
+			}
+		};
+	}, [isOpen, openDialog, closeDialog, timeouts.focusRestoreMs]);
 
 	const filteredProjects = useMemo(
 		() =>

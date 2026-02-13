@@ -142,10 +142,11 @@ export function useRichEditorInner({
 
 	useEffect(() => {
 		if (editor) {
-			setTimeout(() => {
+			const readyTimeout = setTimeout(() => {
 				setIsReady(true);
 				if (onReady) onReady(editor);
 			}, 50);
+			return () => clearTimeout(readyTimeout);
 		}
 	}, [editor, onReady]);
 
@@ -164,9 +165,10 @@ export function useRichEditorInner({
 
 	useEffect(() => {
 		if (editor && editable && isReady && autoFocus) {
-			setTimeout(() => {
+			const focusTimeout = setTimeout(() => {
 				editor.focus();
 			}, 0);
+			return () => clearTimeout(focusTimeout);
 		}
 	}, [editor, editable, isReady, autoFocus]);
 

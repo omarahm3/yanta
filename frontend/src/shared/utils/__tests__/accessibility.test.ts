@@ -75,6 +75,7 @@ describe("announceForScreenReaders", () => {
 		const liveRegion = document.querySelector('[role="status"][aria-live]');
 		expect(liveRegion?.textContent).toBe("");
 
+		vi.clearAllTimers();
 		vi.useRealTimers();
 	});
 });

@@ -496,7 +496,7 @@ export function useDashboardController({
 						error(err instanceof Error ? err.message : "Command failed");
 					} finally {
 						setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
-						setTimeout(() => commandInputRef.current?.focus(), 0);
+						queueMicrotask(() => commandInputRef.current?.focus());
 					}
 				},
 			});

@@ -40,6 +40,23 @@ interface RecentDocumentsState {
 	setDocuments: (docs: RecentDocument[]) => void;
 }
 
+function areRecentDocumentsEqual(a: RecentDocument[], b: RecentDocument[]): boolean {
+	if (a.length !== b.length) {
+		return false;
+	}
+	for (let i = 0; i < a.length; i++) {
+		if (
+			a[i].path !== b[i].path ||
+			a[i].title !== b[i].title ||
+			a[i].projectAlias !== b[i].projectAlias ||
+			a[i].lastOpened !== b[i].lastOpened
+		) {
+			return false;
+		}
+	}
+	return true;
+}
+
 function parseStoredDocuments(raw: string): RecentDocument[] | null {
 	try {
 		const parsed = JSON.parse(raw) as unknown;
@@ -204,6 +221,9 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 		).then((results) => {
 			if (cancelled) return;
 			const validated = results.filter((d): d is RecentDocument => d !== null);
+			if (areRecentDocumentsEqual(validated, documents)) {
+				return;
+			}
 			setDocuments(validated);
 		});
 

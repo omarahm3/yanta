@@ -94,15 +94,22 @@ export const EmptyPaneDocumentPicker: React.FC<EmptyPaneDocumentPickerProps> = (
 	}, [activePaneId, paneId]);
 
 	useEffect(() => {
+		const clearDebounceTimer = () => {
+			if (debounceRef.current !== null) {
+				clearTimeout(debounceRef.current);
+				debounceRef.current = null;
+			}
+		};
+
 		if (query === "") {
+			clearDebounceTimer();
 			setSearchResults([]);
 			setHighlightedIndex(0);
 			return;
 		}
 
-		if (debounceRef.current) {
-			clearTimeout(debounceRef.current);
-		}
+		clearDebounceTimer();
+		let cancelled = false;
 
 		debounceRef.current = setTimeout(async () => {
 			const lowerQuery = query.toLowerCase();
@@ -134,16 +141,22 @@ export const EmptyPaneDocumentPicker: React.FC<EmptyPaneDocumentPickerProps> = (
 				return true;
 			});
 
+			if (cancelled) {
+				return;
+			}
 			setSearchResults(deduped.slice(0, 20));
 			setHighlightedIndex(0);
+			debounceRef.current = null;
 		}, timeouts.documentPickerFilterDebounceMs);
 
 		return () => {
-			if (debounceRef.current) {
+			cancelled = true;
+			if (debounceRef.current !== null) {
 				clearTimeout(debounceRef.current);
+				debounceRef.current = null;
 			}
 		};
-	}, [query]);
+	}, [query, timeouts.documentPickerFilterDebounceMs]);
 
 	const openItem = useCallback(
 		(item: DisplayItem) => {

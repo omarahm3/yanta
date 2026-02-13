@@ -4,11 +4,16 @@
 
 // Keep a reference to a persistent live region to avoid creating multiple
 let liveRegion: HTMLElement | null = null;
+let clearMessageTimeout: ReturnType<typeof setTimeout> | null = null;
 
 /**
  * Resets the internal live region state. Used for testing purposes.
  */
 export function _resetLiveRegion(): void {
+	if (clearMessageTimeout !== null) {
+		clearTimeout(clearMessageTimeout);
+		clearMessageTimeout = null;
+	}
 	if (liveRegion?.parentNode) {
 		liveRegion.parentNode.removeChild(liveRegion);
 	}
@@ -64,9 +69,13 @@ export function announceForScreenReaders(
 	});
 
 	// Clear after a delay to allow subsequent announcements
-	setTimeout(() => {
+	if (clearMessageTimeout !== null) {
+		clearTimeout(clearMessageTimeout);
+	}
+	clearMessageTimeout = setTimeout(() => {
 		if (liveRegion) {
 			liveRegion.textContent = "";
 		}
+		clearMessageTimeout = null;
 	}, 1000);
 }

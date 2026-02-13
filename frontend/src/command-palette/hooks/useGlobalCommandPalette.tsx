@@ -1,5 +1,5 @@
 import { FileText } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMergedConfig } from "../../config";
 import { useDocumentContext } from "../../document";
 import { usePaneLayout } from "../../pane";
@@ -79,6 +79,7 @@ export function useGlobalCommandPalette(
 	const [gitError, setGitError] = useState<ParsedGitError | null>(null);
 	const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
 	const [showRecentDocuments, setShowRecentDocuments] = useState(false);
+	const clearGitErrorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const { timeouts } = useMergedConfig();
 
 	const showGitError = useCallback((error: unknown) => {
@@ -89,8 +90,24 @@ export function useGlobalCommandPalette(
 
 	const closeErrorDialog = useCallback(() => {
 		setIsErrorDialogOpen(false);
-		setTimeout(() => setGitError(null), timeouts.gitErrorDismissMs);
+		if (clearGitErrorTimeoutRef.current !== null) {
+			clearTimeout(clearGitErrorTimeoutRef.current);
+		}
+		clearGitErrorTimeoutRef.current = setTimeout(() => {
+			setGitError(null);
+			clearGitErrorTimeoutRef.current = null;
+		}, timeouts.gitErrorDismissMs);
 	}, [timeouts.gitErrorDismissMs]);
+
+	useEffect(
+		() => () => {
+			if (clearGitErrorTimeoutRef.current !== null) {
+				clearTimeout(clearGitErrorTimeoutRef.current);
+				clearGitErrorTimeoutRef.current = null;
+			}
+		},
+		[],
+	);
 
 	const handleClose = useCallback(() => {
 		setShowRecentDocuments(false);

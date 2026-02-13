@@ -4,6 +4,23 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockOpenDocumentInPane = vi.fn();
 const mockSetActivePane = vi.fn();
+const { mockListByProject } = vi.hoisted(() => ({
+	mockListByProject: vi.fn((alias: string) => {
+		if (alias === "proj") {
+			return Promise.resolve([
+				{ path: "proj/doc-1", title: "First Document", projectAlias: "proj", updated: new Date() },
+				{ path: "proj/doc-2", title: "Second Document", projectAlias: "proj", updated: new Date() },
+				{ path: "proj/alpha-note", title: "Alpha Note", projectAlias: "proj", updated: new Date() },
+			]);
+		}
+		if (alias === "other") {
+			return Promise.resolve([
+				{ path: "other/doc-3", title: "Third Document", projectAlias: "other", updated: new Date() },
+			]);
+		}
+		return Promise.resolve([]);
+	}),
+}));
 
 let mockRecentDocs = [
 	{
@@ -58,21 +75,7 @@ vi.mock("../../../project", () => ({
 
 vi.mock("../../../shared/services/DocumentService", () => ({
 	DocumentServiceWrapper: {
-		listByProject: vi.fn().mockImplementation((alias: string) => {
-			if (alias === "proj") {
-				return Promise.resolve([
-					{ path: "proj/doc-1", title: "First Document", projectAlias: "proj", updated: new Date() },
-					{ path: "proj/doc-2", title: "Second Document", projectAlias: "proj", updated: new Date() },
-					{ path: "proj/alpha-note", title: "Alpha Note", projectAlias: "proj", updated: new Date() },
-				]);
-			}
-			if (alias === "other") {
-				return Promise.resolve([
-					{ path: "other/doc-3", title: "Third Document", projectAlias: "other", updated: new Date() },
-				]);
-			}
-			return Promise.resolve([]);
-		}),
+		listByProject: mockListByProject,
 	},
 }));
 
@@ -82,10 +85,19 @@ vi.mock("../../../utils/dateUtils", () => ({
 
 import { EmptyPaneDocumentPicker } from "../EmptyPaneDocumentPicker";
 
+async function renderPicker(
+	props: Partial<React.ComponentProps<typeof EmptyPaneDocumentPicker>> = {},
+) {
+	const view = render(<EmptyPaneDocumentPicker paneId="pane-1" {...props} />);
+	await waitFor(() => expect(mockListByProject).toHaveBeenCalledTimes(2));
+	return view;
+}
+
 describe("EmptyPaneDocumentPicker", () => {
 	beforeEach(() => {
 		mockOpenDocumentInPane.mockClear();
 		mockSetActivePane.mockClear();
+		mockListByProject.mockClear();
 		mockRecentDocs = [
 			{
 				path: "proj/doc-1",
@@ -108,8 +120,8 @@ describe("EmptyPaneDocumentPicker", () => {
 		];
 	});
 
-	it("renders search input and recent documents on mount", () => {
-		render(<EmptyPaneDocumentPicker paneId="pane-1" />);
+	it("renders search input and recent documents on mount", async () => {
+		await renderPicker();
 
 		expect(screen.getByPlaceholderText("Search documents...")).toBeInTheDocument();
 		expect(screen.getByText("First Document")).toBeInTheDocument();
@@ -117,15 +129,15 @@ describe("EmptyPaneDocumentPicker", () => {
 		expect(screen.getByText("Third Document")).toBeInTheDocument();
 	});
 
-	it("auto-focuses the search input", () => {
-		render(<EmptyPaneDocumentPicker paneId="pane-1" />);
+	it("auto-focuses the search input", async () => {
+		await renderPicker();
 
 		const input = screen.getByPlaceholderText("Search documents...");
 		expect(document.activeElement).toBe(input);
 	});
 
 	it("filters documents when typing in search", async () => {
-		render(<EmptyPaneDocumentPicker paneId="pane-1" />);
+		await renderPicker();
 
 		const input = screen.getByPlaceholderText("Search documents...");
 		fireEvent.change(input, { target: { value: "Alpha" } });
@@ -139,8 +151,8 @@ describe("EmptyPaneDocumentPicker", () => {
 		});
 	});
 
-	it("ArrowDown/ArrowUp navigates the list", () => {
-		const { container } = render(<EmptyPaneDocumentPicker paneId="pane-1" />);
+	it("ArrowDown/ArrowUp navigates the list", async () => {
+		const { container } = await renderPicker();
 		const wrapper = container.firstChild as HTMLElement;
 
 		// First item highlighted by default
@@ -159,8 +171,8 @@ describe("EmptyPaneDocumentPicker", () => {
 		expect(buttonsAfterUp[0].className).toContain("bg-accent/10");
 	});
 
-	it("Ctrl+N/Ctrl+P navigates the list", () => {
-		const { container } = render(<EmptyPaneDocumentPicker paneId="pane-1" />);
+	it("Ctrl+N/Ctrl+P navigates the list", async () => {
+		const { container } = await renderPicker();
 		const wrapper = container.firstChild as HTMLElement;
 
 		// Ctrl+N highlights second item
@@ -175,8 +187,8 @@ describe("EmptyPaneDocumentPicker", () => {
 		expect(buttonsAfterPrev[0].className).toContain("bg-accent/10");
 	});
 
-	it("Enter opens highlighted document in pane", () => {
-		const { container } = render(<EmptyPaneDocumentPicker paneId="pane-1" />);
+	it("Enter opens highlighted document in pane", async () => {
+		const { container } = await renderPicker();
 		const wrapper = container.firstChild as HTMLElement;
 
 		fireEvent.keyDown(wrapper, { key: "Enter" });
@@ -185,8 +197,8 @@ describe("EmptyPaneDocumentPicker", () => {
 		expect(mockSetActivePane).toHaveBeenCalledWith("pane-1");
 	});
 
-	it("click opens document in pane", () => {
-		render(<EmptyPaneDocumentPicker paneId="pane-1" />);
+	it("click opens document in pane", async () => {
+		await renderPicker();
 
 		fireEvent.click(screen.getByText("Second Document"));
 
@@ -194,17 +206,17 @@ describe("EmptyPaneDocumentPicker", () => {
 		expect(mockSetActivePane).toHaveBeenCalledWith("pane-1");
 	});
 
-	it("shows drag-over state when isDragOver is true", () => {
-		render(<EmptyPaneDocumentPicker paneId="pane-1" isDragOver={true} />);
+	it("shows drag-over state when isDragOver is true", async () => {
+		await renderPicker({ isDragOver: true });
 
 		expect(screen.getByText("Drop to open here")).toBeInTheDocument();
 		expect(screen.queryByPlaceholderText("Search documents...")).not.toBeInTheDocument();
 	});
 
-	it("shows empty state when no recent documents", () => {
+	it("shows empty state when no recent documents", async () => {
 		mockRecentDocs = [];
 
-		render(<EmptyPaneDocumentPicker paneId="pane-1" />);
+		await renderPicker();
 
 		expect(screen.getByText("No recent documents")).toBeInTheDocument();
 	});

@@ -6,13 +6,13 @@ export const useDocumentEditor = () => {
 
 	const handleEditorReady = useCallback((editor: BlockNoteEditor) => {
 		editorRef.current = editor;
-		setTimeout(() => {
+		queueMicrotask(() => {
 			editor.focus();
 			const lastBlock = editor.document[editor.document.length - 1];
 			if (lastBlock) {
 				editor.setTextCursorPosition(lastBlock, "end");
 			}
-		}, 0);
+		});
 	}, []);
 
 	return {

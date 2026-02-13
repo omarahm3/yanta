@@ -42,11 +42,34 @@ export function useHelpModalController(): UseHelpModalControllerResult {
 	const [announcement, setAnnouncement] = useState("");
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const closeButtonRef = useRef<HTMLButtonElement>(null);
+	const announceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(
+		() => () => {
+			if (announceTimeoutRef.current !== null) {
+				clearTimeout(announceTimeoutRef.current);
+				announceTimeoutRef.current = null;
+			}
+			if (focusTimeoutRef.current !== null) {
+				clearTimeout(focusTimeoutRef.current);
+				focusTimeoutRef.current = null;
+			}
+		},
+		[],
+	);
 
 	const announce = useCallback(
 		(message: string) => {
+			if (announceTimeoutRef.current !== null) {
+				clearTimeout(announceTimeoutRef.current);
+				announceTimeoutRef.current = null;
+			}
 			setAnnouncement("");
-			setTimeout(() => setAnnouncement(message), timeouts.helpAnnounceDelayMs);
+			announceTimeoutRef.current = setTimeout(() => {
+				setAnnouncement(message);
+				announceTimeoutRef.current = null;
+			}, timeouts.helpAnnounceDelayMs);
 		},
 		[timeouts.helpAnnounceDelayMs],
 	);
@@ -56,9 +79,16 @@ export function useHelpModalController(): UseHelpModalControllerResult {
 			setExpandedSections(getDefaultExpandedSections(pageName));
 			setSearchQuery("");
 			setAnnouncement("");
-			setTimeout(() => {
+			if (focusTimeoutRef.current !== null) {
+				clearTimeout(focusTimeoutRef.current);
+			}
+			focusTimeoutRef.current = setTimeout(() => {
 				searchInputRef.current?.focus();
+				focusTimeoutRef.current = null;
 			}, timeouts.focusRestoreMs);
+		} else if (focusTimeoutRef.current !== null) {
+			clearTimeout(focusTimeoutRef.current);
+			focusTimeoutRef.current = null;
 		}
 	}, [isOpen, pageName, timeouts.focusRestoreMs]);
 

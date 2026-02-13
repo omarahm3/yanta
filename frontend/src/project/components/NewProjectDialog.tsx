@@ -20,17 +20,33 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
 	const [endDate, setEndDate] = useState("");
 	const [errors, setErrors] = useState<{ name?: string; alias?: string }>({});
 	const nameInputRef = useRef<HTMLInputElement>(null);
+	const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const { timeouts } = useMergedConfig();
 
 	useEffect(() => {
+		if (focusTimeoutRef.current !== null) {
+			clearTimeout(focusTimeoutRef.current);
+			focusTimeoutRef.current = null;
+		}
+
 		if (isOpen) {
 			setName("");
 			setAlias("");
 			setStartDate(new Date().toISOString().split("T")[0]);
 			setEndDate("");
 			setErrors({});
-			setTimeout(() => nameInputRef.current?.focus(), timeouts.focusRestoreMs);
+			focusTimeoutRef.current = setTimeout(() => {
+				nameInputRef.current?.focus();
+				focusTimeoutRef.current = null;
+			}, timeouts.focusRestoreMs);
 		}
+
+		return () => {
+			if (focusTimeoutRef.current !== null) {
+				clearTimeout(focusTimeoutRef.current);
+				focusTimeoutRef.current = null;
+			}
+		};
 	}, [isOpen, timeouts.focusRestoreMs]);
 
 	const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
