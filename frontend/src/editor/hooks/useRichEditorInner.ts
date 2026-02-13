@@ -8,15 +8,17 @@ import {
 	type PartialBlock,
 } from "@blocknote/core";
 import { useCreateBlockNote } from "@blocknote/react";
-import { Browser, System } from "@wailsio/runtime";
+import { System } from "@wailsio/runtime";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { extractTitleFromBlocks } from "../../document/utils/documentUtils";
 import { useProjectContext } from "../../project";
+import { useNotification } from "../../shared/hooks";
 import { useScale } from "../../shared/stores/scale.store";
 import type { BlockNoteBlock } from "../../shared/types/Document";
 import { uploadFile } from "../../shared/utils/assetUpload";
 import { registerClipboardImagePlugin } from "../../shared/utils/clipboard";
 import { computeContentHash } from "../../shared/utils/contentHash";
+import { openExternalUrl } from "../../shared/utils/openExternalUrl";
 import { useEditorExtensions } from "../extensions/registry/editorExtensionRegistry";
 import { RTLExtension } from "../extensions/rtl";
 import { useBlockNoteMenuPosition } from "./useBlockNoteMenuPosition";
@@ -40,6 +42,7 @@ export function useRichEditorInner({
 	autoFocus,
 }: UseRichEditorInnerProps) {
 	const { currentProject } = useProjectContext();
+	const { error: notifyError } = useNotification();
 	const { scale } = useScale();
 	const pluginExtensions = useEditorExtensions() as any[];
 
@@ -246,24 +249,6 @@ export function useRichEditorInner({
 	}, [editor, editable]);
 
 	useEffect(() => {
-		if (!container) return;
-
-		// Prevent navigation when clicking links inside the editor while editing.
-		const handleClick = (event: MouseEvent) => {
-			if (!editable) return;
-			const target = event.target;
-			if (!(target instanceof Element)) return;
-			if (!target.closest("a[href]")) return;
-			event.preventDefault();
-		};
-
-		container.addEventListener("click", handleClick);
-		return () => {
-			container.removeEventListener("click", handleClick);
-		};
-	}, [container, editable]);
-
-	useEffect(() => {
 		if (!editor || !isReady || !isLinux) {
 			return;
 		}
@@ -280,29 +265,28 @@ export function useRichEditorInner({
 		setContainer(node);
 	}, []);
 
-	const openLinkExternally = useCallback((url: string) => {
-		Browser.OpenURL(url).catch(() => {
-			window.open(url, "_blank", "noopener,noreferrer");
-		});
-	}, []);
-
-	const allowedProtocols = useRef(new Set(["http:", "https:", "mailto:", "tel:"])).current;
+	const openLinkExternally = useCallback(
+		async (rawUrl: string) => {
+			const result = await openExternalUrl(rawUrl);
+			if (!result.ok) {
+				notifyError("Couldn't open link in your default browser.");
+			}
+		},
+		[notifyError],
+	);
 
 	useEffect(() => {
 		if (!container) {
 			return;
 		}
 
-		let isMounted = true;
-		const pendingTimeouts = new Set<ReturnType<typeof setTimeout>>();
-
-		const handleMouseDown = (event: MouseEvent) => {
+		const handleLinkActivate = (event: MouseEvent) => {
 			if (event.button !== 0 && event.button !== 1) {
 				return;
 			}
 
-			const target = event.target as HTMLElement | null;
-			if (!target) {
+			const target = event.target;
+			if (!(target instanceof Element)) {
 				return;
 			}
 
@@ -316,41 +300,17 @@ export function useRichEditorInner({
 				return;
 			}
 
-			let resolvedUrl: URL;
-			try {
-				resolvedUrl = new URL(href, window.location.href);
-			} catch {
-				return;
-			}
-
-			if (!allowedProtocols.has(resolvedUrl.protocol)) {
-				return;
-			}
-
-			anchor.removeAttribute("href");
-			anchor.setAttribute("data-href-temp", href);
-
-			openLinkExternally(resolvedUrl.href);
-
-			const timeoutId = setTimeout(() => {
-				pendingTimeouts.delete(timeoutId);
-				if (!isMounted) return;
-				const tempHref = anchor.getAttribute("data-href-temp");
-				if (tempHref) {
-					anchor.setAttribute("href", tempHref);
-					anchor.removeAttribute("data-href-temp");
-				}
-			}, 100);
-			pendingTimeouts.add(timeoutId);
+			event.preventDefault();
+			event.stopPropagation();
+			void openLinkExternally(href);
 		};
 
-		container.addEventListener("mousedown", handleMouseDown, true);
+		container.addEventListener("click", handleLinkActivate, true);
+		container.addEventListener("auxclick", handleLinkActivate, true);
 
 		return () => {
-			isMounted = false;
-			pendingTimeouts.forEach(clearTimeout);
-			pendingTimeouts.clear();
-			container.removeEventListener("mousedown", handleMouseDown, true);
+			container.removeEventListener("click", handleLinkActivate, true);
+			container.removeEventListener("auxclick", handleLinkActivate, true);
 		};
 	}, [container, openLinkExternally]);
 

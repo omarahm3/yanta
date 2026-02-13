@@ -6,32 +6,24 @@ import {
 	useComponentsContext,
 	useDictionary,
 } from "@blocknote/react";
-import { Browser } from "@wailsio/runtime";
 import { ExternalLink } from "lucide-react";
 import { useCallback } from "react";
-
-const resolveUrl = (url: string, baseUrl: string): string => {
-	try {
-		return new URL(url, baseUrl).href;
-	} catch {
-		return url;
-	}
-};
-
-const openLinkExternally = (url: string): void => {
-	Browser.OpenURL(url).catch(() => {
-		window.open(url, "_blank", "noopener,noreferrer");
-	});
-};
+import { useNotification } from "../../../shared/hooks";
+import { openExternalUrl } from "../../../shared/utils/openExternalUrl";
 
 const CustomOpenLinkButton = ({ url }: Pick<LinkToolbarProps, "url">) => {
 	const Components = useComponentsContext();
 	if (!Components) throw new Error("Components context not found");
 	const dict = useDictionary();
+	const { error: notifyError } = useNotification();
 
 	const handleClick = useCallback(() => {
-		openLinkExternally(resolveUrl(url, window.location.href));
-	}, [url]);
+		void openExternalUrl(url).then((result) => {
+			if (!result.ok) {
+				notifyError("Couldn't open link in your default browser.");
+			}
+		});
+	}, [notifyError, url]);
 
 	return (
 		<Components.LinkToolbar.Button

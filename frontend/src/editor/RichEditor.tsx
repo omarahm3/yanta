@@ -4,7 +4,6 @@ import type { Block, BlockNoteEditor, PartialBlock } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/shadcn";
 import "@blocknote/shadcn/style.css";
 import { cn } from "../shared/utils/cn";
-import { CustomLinkToolbarController } from "./extensions/link-toolbar";
 import "../styles/blocknote-dark.css";
 import "../styles/blocknote-scale.css";
 import "./extensions/rtl/rtl.css";
@@ -77,9 +76,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 				className={cn("rich-editor flex-1 overflow-y-auto h-full", className)}
 				style={{ "--editor-scale": scale } as React.CSSProperties}
 			>
-				<BlockNoteView editor={editor} theme="dark" linkToolbar={false}>
-					<CustomLinkToolbarController />
-				</BlockNoteView>
+				<BlockNoteView editor={editor} theme="dark" />
 			</div>
 		);
 	},
