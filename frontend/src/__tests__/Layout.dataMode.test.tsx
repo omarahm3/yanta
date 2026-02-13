@@ -2,12 +2,16 @@ import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 import { DialogProvider, TitleBarProvider } from "../app/context";
 
-vi.mock("../config", () => ({
-	SIDEBAR_SHORTCUTS: {
-		toggle: { key: "ctrl+b", description: "Toggle sidebar" },
-	},
-	LAYOUT: { maxPanes: 4 },
-}));
+vi.mock("../config", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../config")>();
+	return {
+		...actual,
+		SIDEBAR_SHORTCUTS: {
+			toggle: { key: "ctrl+b", description: "Toggle sidebar" },
+		},
+		LAYOUT: { maxPanes: 4 },
+	};
+});
 
 vi.mock("../hotkeys", () => ({
 	useHotkeys: vi.fn(),

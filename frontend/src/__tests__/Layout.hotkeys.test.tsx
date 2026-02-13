@@ -1,12 +1,16 @@
 import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 
-vi.mock("../config", () => ({
-	SIDEBAR_SHORTCUTS: {
-		toggle: { key: "ctrl+b", description: "Toggle sidebar", category: "navigation" },
-	},
-	LAYOUT: { maxPanes: 4 },
-}));
+vi.mock("../config", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../config")>();
+	return {
+		...actual,
+		SIDEBAR_SHORTCUTS: {
+			toggle: { key: "ctrl+b", description: "Toggle sidebar", category: "navigation" },
+		},
+		LAYOUT: { maxPanes: 4 },
+	};
+});
 
 // Mock useSidebarSetting to start with sidebar visible for testing
 const mockToggleSidebar = vi.fn();

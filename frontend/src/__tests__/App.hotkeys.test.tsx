@@ -112,30 +112,34 @@ vi.mock("../pane", () => ({
 	}),
 }));
 
-vi.mock("../config", () => ({
-	GLOBAL_SHORTCUTS: {
-		help: { key: "shift+/", description: "Toggle help" },
-		quit: { key: "ctrl+q", description: "Quit (background if enabled)" },
-		forceQuit: {
-			key: "ctrl+shift+q",
-			description: "Force quit application",
+vi.mock("../config", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../config")>();
+	return {
+		...actual,
+		GLOBAL_SHORTCUTS: {
+			help: { key: "shift+/", description: "Toggle help" },
+			quit: { key: "ctrl+q", description: "Quit (background if enabled)" },
+			forceQuit: {
+				key: "ctrl+shift+q",
+				description: "Force quit application",
+			},
+			commandPalette: { key: "mod+K", description: "Open command palette" },
+			today: { key: "mod+T", description: "Jump to today's journal" },
+			switchProject: {
+				key: "ctrl+Tab",
+				description: "Switch to last project",
+			},
 		},
-		commandPalette: { key: "mod+K", description: "Open command palette" },
-		today: { key: "mod+T", description: "Jump to today's journal" },
-		switchProject: {
-			key: "ctrl+Tab",
-			description: "Switch to last project",
+		SIDEBAR_SHORTCUTS: {
+			toggle: {
+				key: "ctrl+b",
+				description: "Toggle sidebar",
+				category: "navigation",
+			},
 		},
-	},
-	SIDEBAR_SHORTCUTS: {
-		toggle: {
-			key: "ctrl+b",
-			description: "Toggle sidebar",
-			category: "navigation",
-		},
-	},
-	LAYOUT: { maxPanes: 4 },
-}));
+		LAYOUT: { maxPanes: 4 },
+	};
+});
 
 vi.mock("../onboarding", () => ({
 	useUserProgressContext: () => ({

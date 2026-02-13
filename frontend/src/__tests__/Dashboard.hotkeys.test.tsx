@@ -225,36 +225,40 @@ vi.mock("../app", () => ({
 }));
 
 // Static config mock — useMergedConfig returns stable reference to prevent infinite loops
-vi.mock("../config", () => ({
-	DocumentCommand: {
-		DocumentCommandNew: "new",
-		DocumentCommandDoc: "doc",
-		DocumentCommandArchive: "archive",
-		DocumentCommandUnarchive: "unarchive",
-		DocumentCommandDelete: "delete",
-	},
-	LAYOUT: { maxPanes: 4 },
-	TIMEOUTS: { debounce: 300, autoSave: 1000, toastDuration: 3000 },
-	DASHBOARD_SHORTCUTS,
-	PANE_SHORTCUTS,
-	GLOBAL_SHORTCUTS: {},
-	SIDEBAR_SHORTCUTS: {},
-	DOCUMENT_SHORTCUTS: {},
-	JOURNAL_SHORTCUTS: {},
-	PROJECT_SHORTCUTS: {},
-	QUICK_CAPTURE_SHORTCUTS: {},
-	SETTINGS_SHORTCUTS: {},
-	COMMAND_LINE_SHORTCUTS: {},
-	SEARCH_SHORTCUTS: {},
-	EDITOR_SHORTCUTS: [],
-	EDITOR_HELP_COMMANDS: [],
-	GLOBAL_COMMANDS: [],
-	ENABLE_TOOLTIP_HINTS: false,
-	useMergedConfig: () => mockMergedConfig,
-	getMergedConfig: () => ({}),
-	validatePluginConfig: () => ({ valid: true }),
-	usePluginConfig: () => ({}),
-}));
+vi.mock("../config", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../config")>();
+	return {
+		...actual,
+		DocumentCommand: {
+			DocumentCommandNew: "new",
+			DocumentCommandDoc: "doc",
+			DocumentCommandArchive: "archive",
+			DocumentCommandUnarchive: "unarchive",
+			DocumentCommandDelete: "delete",
+		},
+		LAYOUT: { maxPanes: 4 },
+		TIMEOUTS: { debounce: 300, autoSave: 1000, toastDuration: 3000 },
+		DASHBOARD_SHORTCUTS,
+		PANE_SHORTCUTS,
+		GLOBAL_SHORTCUTS: {},
+		SIDEBAR_SHORTCUTS: {},
+		DOCUMENT_SHORTCUTS: {},
+		JOURNAL_SHORTCUTS: {},
+		PROJECTS_SHORTCUTS: {},
+		QUICK_CAPTURE_SHORTCUTS: {},
+		SETTINGS_SHORTCUTS: {},
+		COMMAND_LINE_SHORTCUTS: {},
+		SEARCH_SHORTCUTS: {},
+		EDITOR_SHORTCUTS: [],
+		EDITOR_HELP_COMMANDS: [],
+		GLOBAL_COMMANDS: [],
+		ENABLE_TOOLTIP_HINTS: false,
+		useMergedConfig: () => mockMergedConfig,
+		getMergedConfig: () => mockMergedConfig,
+		validatePluginConfig: () => ({ valid: true }),
+		usePluginConfig: () => ({}),
+	};
+});
 
 import { Dashboard } from "../dashboard";
 
@@ -277,6 +281,7 @@ describe("Dashboard hotkeys", () => {
 		mockError.mockClear();
 		softDeleteMock.mockClear();
 		restoreMock.mockClear();
+		vi.clearAllTimers();
 		vi.useRealTimers();
 	});
 
@@ -396,6 +401,7 @@ describe("Dashboard hotkeys", () => {
 			);
 		});
 		vi.runAllTimers();
+		vi.clearAllTimers();
 		vi.useRealTimers();
 		mockSuccess.mockClear();
 

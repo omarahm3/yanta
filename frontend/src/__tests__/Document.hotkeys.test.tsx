@@ -68,12 +68,16 @@ vi.mock("../document/hooks/useDocumentController", () => ({
 	}),
 }));
 
-vi.mock("../config", () => ({
-	SIDEBAR_SHORTCUTS: {
-		toggle: { key: "ctrl+b", description: "Toggle sidebar", category: "navigation" },
-	},
-	LAYOUT: { maxPanes: 4 },
-}));
+vi.mock("../config", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../config")>();
+	return {
+		...actual,
+		SIDEBAR_SHORTCUTS: {
+			toggle: { key: "ctrl+b", description: "Toggle sidebar", category: "navigation" },
+		},
+		LAYOUT: { maxPanes: 4 },
+	};
+});
 
 // Capture hotkey configs registered by the Document component
 let capturedHotkeys: Array<{ key: string; handler: (e: KeyboardEvent) => void }> = [];
