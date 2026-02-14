@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { usePreferencesStore } from "../shared/stores/preferences.store";
 import { registerBuiltInPlugins } from "./bootstrap";
-import { loadEnabledPlugins } from "./registry";
+import { loadEnabledPlugins, registerInstalledPlugins } from "./registry";
 
 export function PluginBootstrap() {
 	const isLoadingPreferences = usePreferencesStore((s) => s.isLoading);
@@ -14,7 +14,10 @@ export function PluginBootstrap() {
 	useEffect(() => {
 		if (isLoadingPreferences || hasStartedRef.current) return;
 		hasStartedRef.current = true;
-		void loadEnabledPlugins();
+		void (async () => {
+			await registerInstalledPlugins();
+			await loadEnabledPlugins();
+		})();
 	}, [isLoadingPreferences]);
 
 	return null;

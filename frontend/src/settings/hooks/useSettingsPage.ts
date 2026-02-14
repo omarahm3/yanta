@@ -13,7 +13,7 @@ import {
 import type { PageName } from "../../shared/types";
 import { useSettingsController } from "../useSettingsController";
 
-const SECTION_IDS = [
+const BASE_SECTION_IDS = [
 	"general",
 	"appearance",
 	"database",
@@ -23,12 +23,17 @@ const SECTION_IDS = [
 	"sync",
 	"about",
 ] as const;
+type SettingsSectionId = (typeof BASE_SECTION_IDS)[number] | "plugins";
 
 export interface UseSettingsPageProps {
 	onNavigate?: (page: PageName) => void;
+	enablePluginsSection?: boolean;
 }
 
-export function useSettingsPage({ onNavigate }: UseSettingsPageProps) {
+export function useSettingsPage({
+	onNavigate,
+	enablePluginsSection = false,
+}: UseSettingsPageProps) {
 	const controller = useSettingsController();
 	const { setPageContext } = useHelp();
 	const { sidebarVisible, setSidebarVisible, isLoading: sidebarLoading } = useSidebarSetting();
@@ -50,6 +55,7 @@ export function useSettingsPage({ onNavigate }: UseSettingsPageProps) {
 
 	const generalRef = useRef<HTMLDivElement>(null);
 	const appearanceRef = useRef<HTMLDivElement>(null);
+	const pluginsRef = useRef<HTMLDivElement>(null);
 	const databaseRef = useRef<HTMLDivElement>(null);
 	const shortcutsRef = useRef<HTMLDivElement>(null);
 	const loggingRef = useRef<HTMLDivElement>(null);
@@ -59,45 +65,66 @@ export function useSettingsPage({ onNavigate }: UseSettingsPageProps) {
 
 	const currentSectionIndexRef = useRef(0);
 	const [settingsKey, setSettingsKey] = useState(0);
+	const sectionIds = useMemo<SettingsSectionId[]>(
+		() =>
+			enablePluginsSection
+				? [
+						"general",
+						"appearance",
+						"plugins",
+						"database",
+						"shortcuts",
+						"logging",
+						"backup",
+						"sync",
+						"about",
+					]
+				: [...BASE_SECTION_IDS],
+		[enablePluginsSection],
+	);
 
 	useEffect(() => {
 		setPageContext([], "Settings");
 	}, [setPageContext]);
 
-	const scrollToSection = useCallback((sectionId: string) => {
-		const refMap: Record<string, React.RefObject<HTMLDivElement | null>> = {
-			general: generalRef,
-			appearance: appearanceRef,
-			database: databaseRef,
-			shortcuts: shortcutsRef,
-			logging: loggingRef,
-			backup: backupRef,
-			sync: syncRef,
-			about: aboutRef,
-		};
+	const scrollToSection = useCallback(
+		(sectionId: string) => {
+			const refMap: Record<string, React.RefObject<HTMLDivElement | null>> = {
+				general: generalRef,
+				appearance: appearanceRef,
+				plugins: pluginsRef,
+				database: databaseRef,
+				shortcuts: shortcutsRef,
+				logging: loggingRef,
+				backup: backupRef,
+				sync: syncRef,
+				about: aboutRef,
+			};
 
-		const ref = refMap[sectionId];
-		if (ref?.current) {
-			ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
-		}
+			const ref = refMap[sectionId];
+			if (ref?.current) {
+				ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+			}
 
-		const index = SECTION_IDS.indexOf(sectionId as (typeof SECTION_IDS)[number]);
-		if (index !== -1) {
-			currentSectionIndexRef.current = index;
-		}
-	}, []);
+			const index = sectionIds.indexOf(sectionId as SettingsSectionId);
+			if (index !== -1) {
+				currentSectionIndexRef.current = index;
+			}
+		},
+		[sectionIds],
+	);
 
 	const handleNextSection = useCallback(() => {
-		const nextIndex = Math.min(currentSectionIndexRef.current + 1, SECTION_IDS.length - 1);
+		const nextIndex = Math.min(currentSectionIndexRef.current + 1, sectionIds.length - 1);
 		currentSectionIndexRef.current = nextIndex;
-		scrollToSection(SECTION_IDS[nextIndex]);
-	}, [scrollToSection]);
+		scrollToSection(sectionIds[nextIndex]);
+	}, [scrollToSection, sectionIds]);
 
 	const handlePreviousSection = useCallback(() => {
 		const prevIndex = Math.max(currentSectionIndexRef.current - 1, 0);
 		currentSectionIndexRef.current = prevIndex;
-		scrollToSection(SECTION_IDS[prevIndex]);
-	}, [scrollToSection]);
+		scrollToSection(sectionIds[prevIndex]);
+	}, [scrollToSection, sectionIds]);
 
 	const hotkeys = useMemo(
 		() => [
@@ -111,12 +138,12 @@ export function useSettingsPage({ onNavigate }: UseSettingsPageProps) {
 
 	const settingsItems = useMemo(
 		() =>
-			SECTION_IDS.map((id) => ({
+			sectionIds.map((id) => ({
 				id,
 				label: id,
 				onClick: () => scrollToSection(id),
 			})),
-		[scrollToSection],
+		[scrollToSection, sectionIds],
 	);
 
 	const sidebarSections = useSidebarSections({
@@ -150,6 +177,7 @@ export function useSettingsPage({ onNavigate }: UseSettingsPageProps) {
 		// Section refs and navigation
 		generalRef,
 		appearanceRef,
+		pluginsRef,
 		databaseRef,
 		shortcutsRef,
 		loggingRef,

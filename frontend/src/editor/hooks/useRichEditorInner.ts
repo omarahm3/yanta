@@ -9,7 +9,7 @@ import {
 } from "@blocknote/core";
 import { useCreateBlockNote } from "@blocknote/react";
 import { System } from "@wailsio/runtime";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { extractTitleFromBlocks } from "../../document/utils/documentUtils";
 import { useProjectContext } from "../../project";
 import { useNotification } from "../../shared/hooks";
@@ -19,7 +19,14 @@ import { uploadFile } from "../../shared/utils/assetUpload";
 import { registerClipboardImagePlugin } from "../../shared/utils/clipboard";
 import { computeContentHash } from "../../shared/utils/contentHash";
 import { openExternalUrl } from "../../shared/utils/openExternalUrl";
-import { useEditorExtensions } from "../extensions/registry/editorExtensionRegistry";
+import {
+	useEditorBlockSpecs,
+	useEditorExtensions,
+	useEditorLifecycleHooks,
+	useEditorSlashMenuItems,
+	useEditorStyleSpecs,
+	useEditorTipTapExtensions,
+} from "../extensions/registry/editorExtensionRegistry";
 import { RTLExtension } from "../extensions/rtl";
 import { useBlockNoteMenuPosition } from "./useBlockNoteMenuPosition";
 import { usePlainTextClipboard } from "./usePlainTextClipboard";
@@ -45,6 +52,11 @@ export function useRichEditorInner({
 	const { error: notifyError } = useNotification();
 	const { scale } = useScale();
 	const pluginExtensions = useEditorExtensions() as any[];
+	const pluginTipTapExtensions = useEditorTipTapExtensions();
+	const pluginBlockSpecs = useEditorBlockSpecs();
+	const pluginStyleSpecs = useEditorStyleSpecs();
+	const pluginSlashMenuItems = useEditorSlashMenuItems();
+	const pluginLifecycleHooks = useEditorLifecycleHooks();
 
 	useBlockNoteMenuPosition();
 
@@ -70,13 +82,27 @@ export function useRichEditorInner({
 		[currentProject],
 	);
 
-	const schema = useRef(
-		BlockNoteSchema.create().extend({
-			blockSpecs: {
-				codeBlock: createCodeBlockSpec(codeBlockOptions),
-			},
-		}),
-	).current;
+	const schema = useMemo(
+		() =>
+			BlockNoteSchema.create().extend({
+				blockSpecs: {
+					...pluginBlockSpecs,
+					codeBlock: createCodeBlockSpec(codeBlockOptions),
+				},
+				styleSpecs: pluginStyleSpecs,
+			}),
+		[pluginBlockSpecs, pluginStyleSpecs],
+	);
+
+	const pluginTipTapAggregateExtension = useMemo(() => {
+		if (pluginTipTapExtensions.length === 0) {
+			return null;
+		}
+		return createExtension({
+			key: "yanta.plugin.tiptap.aggregate",
+			tiptapExtensions: pluginTipTapExtensions,
+		});
+	}, [pluginTipTapExtensions]);
 
 	const editor = useCreateBlockNote({
 		schema,
@@ -93,6 +119,7 @@ export function useRichEditorInner({
 				key: "rtl",
 				tiptapExtensions: [RTLExtension],
 			}),
+			...(pluginTipTapAggregateExtension ? [pluginTipTapAggregateExtension] : []),
 			...(pluginExtensions as any[]),
 		],
 	});
@@ -163,6 +190,44 @@ export function useRichEditorInner({
 			return () => cancelAnimationFrame(raf);
 		}
 	}, [editor, isReady]);
+
+	useEffect(() => {
+		if (!editor || !isReady) return;
+
+		const context = {
+			editor,
+			editable,
+		};
+		const cleanupFns: Array<() => void> = [];
+
+		for (const hooks of pluginLifecycleHooks) {
+			try {
+				const cleanup = hooks.onEditorReady?.(context);
+				if (typeof cleanup === "function") {
+					cleanupFns.push(cleanup);
+				}
+			} catch (err) {
+				console.error("[plugin] onEditorReady hook failed", err);
+			}
+		}
+
+		return () => {
+			for (let i = cleanupFns.length - 1; i >= 0; i -= 1) {
+				try {
+					cleanupFns[i]();
+				} catch (err) {
+					console.error("[plugin] editor lifecycle cleanup failed", err);
+				}
+			}
+			for (const hooks of pluginLifecycleHooks) {
+				try {
+					hooks.onEditorDestroy?.(context);
+				} catch (err) {
+					console.error("[plugin] onEditorDestroy hook failed", err);
+				}
+			}
+		};
+	}, [editor, editable, isReady, pluginLifecycleHooks]);
 
 	useEffect(() => {
 		if (editor && editable && isReady && autoFocus) {
@@ -319,5 +384,6 @@ export function useRichEditorInner({
 		isReady,
 		scale,
 		containerRefCallback,
+		pluginSlashMenuItems,
 	};
 }

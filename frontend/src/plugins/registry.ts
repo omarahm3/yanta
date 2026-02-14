@@ -1,9 +1,27 @@
+import type { InstallRecord } from "../../bindings/yanta/internal/plugins/models";
+import {
+	GetCommunityPluginsEnabled,
+	GetSupportedPluginAPIMajor,
+	ListInstalled,
+	ReadPluginEntrypoint,
+} from "../../bindings/yanta/internal/plugins/wailsservice";
 import { useCommandRegistryStore } from "../command-palette/registry";
 import { type PluginConfigSchema, registerPluginConfig, unregisterPluginConfig } from "../config";
 import {
+	getAllEditorBlockSpecs,
 	getAllEditorExtensions,
-	removeEditorExtensions,
+	getAllEditorSlashMenuItems,
+	getAllEditorStyleSpecs,
+	getAllEditorTipTapExtensions,
+	removeAllEditorPluginContributions,
+	setEditorBlockActions,
+	setEditorBlockSpecs,
 	setEditorExtensions,
+	setEditorLifecycleHooks,
+	setEditorSlashMenuItems,
+	setEditorStyleSpecs,
+	setEditorTipTapExtensions,
+	setEditorTools,
 } from "../editor/extensions/registry/editorExtensionRegistry";
 import { usePreferencesStore } from "../shared/stores/preferences.store";
 import { useSidebarRegistryStore } from "../sidebar/registry/sidebarRegistry.store";
@@ -20,6 +38,8 @@ const PLUGIN_STATE_ENABLED_KEY = "enabled";
 const definitions = new Map<string, PluginDefinition>();
 const cleanups = new Map<string, () => void>();
 const runtime = new Map<string, PluginRuntimeRecord>();
+let supportedPluginAPIMajor: number | null = null;
+let supportedPluginAPIMajorPromise: Promise<number> | null = null;
 
 function toSource(pluginId: string): string {
 	return `plugin:${pluginId}`;
@@ -68,6 +88,27 @@ function createPluginAPI(pluginId: string): PluginAPI {
 		registerEditorExtensions: (extensions) => {
 			setEditorExtensions(source, extensions);
 		},
+		registerEditorTipTapExtensions: (extensions) => {
+			setEditorTipTapExtensions(source, extensions);
+		},
+		registerEditorBlockSpecs: (blockSpecs) => {
+			setEditorBlockSpecs(source, blockSpecs);
+		},
+		registerEditorStyleSpecs: (styleSpecs) => {
+			setEditorStyleSpecs(source, styleSpecs);
+		},
+		registerEditorSlashMenuItems: (items) => {
+			setEditorSlashMenuItems(source, items);
+		},
+		registerEditorTools: (tools) => {
+			setEditorTools(source, tools);
+		},
+		registerEditorBlockActions: (actions) => {
+			setEditorBlockActions(source, actions);
+		},
+		registerEditorLifecycleHooks: (hooks) => {
+			setEditorLifecycleHooks(source, hooks);
+		},
 		registerConfig: registerConfigForPlugin,
 	};
 }
@@ -76,8 +117,49 @@ function cleanupPluginContributions(pluginId: string): void {
 	const source = toSource(pluginId);
 	useCommandRegistryStore.getState().removeSource(source);
 	useSidebarRegistryStore.getState().removeSource(source);
-	removeEditorExtensions(source);
+	removeAllEditorPluginContributions(source);
 	unregisterPluginConfig(pluginId);
+}
+
+function getPluginIsolationMode(entry: string): PluginRuntimeRecord["isolationMode"] {
+	if (entry.startsWith("builtin:")) {
+		return "builtin_trusted";
+	}
+	return "external_local";
+}
+
+function isRuntimeEntryAllowed(def: PluginDefinition): boolean {
+	return Boolean(def.manifest.entry);
+}
+
+function isAPIVersionCompatible(apiVersion: string, supportedMajor: number): boolean {
+	const trimmed = apiVersion.trim();
+	if (!trimmed) return false;
+	const majorPart = trimmed.includes(".") ? trimmed.slice(0, trimmed.indexOf(".")) : trimmed;
+	const parsed = Number.parseInt(majorPart, 10);
+	return Number.isInteger(parsed) && parsed === supportedMajor;
+}
+
+async function resolveSupportedPluginAPIMajor(): Promise<number> {
+	if (supportedPluginAPIMajor !== null) {
+		return supportedPluginAPIMajor;
+	}
+	if (supportedPluginAPIMajorPromise) {
+		return supportedPluginAPIMajorPromise;
+	}
+	supportedPluginAPIMajorPromise = GetSupportedPluginAPIMajor()
+		.then((major) => {
+			const parsed = Number(major);
+			if (!Number.isInteger(parsed) || parsed <= 0) {
+				throw new Error(`invalid supported plugin API major: ${String(major)}`);
+			}
+			supportedPluginAPIMajor = parsed;
+			return parsed;
+		})
+		.finally(() => {
+			supportedPluginAPIMajorPromise = null;
+		});
+	return supportedPluginAPIMajorPromise;
 }
 
 function setRuntime(pluginId: string, patch: Partial<PluginRuntimeRecord>): void {
@@ -85,6 +167,7 @@ function setRuntime(pluginId: string, patch: Partial<PluginRuntimeRecord>): void
 	if (!def) return;
 	const prev = runtime.get(pluginId) ?? {
 		manifest: def.manifest,
+		isolationMode: getPluginIsolationMode(def.manifest.entry),
 		isActive: false,
 	};
 	runtime.set(pluginId, { ...prev, ...patch });
@@ -94,9 +177,108 @@ export function registerPlugin(definition: PluginDefinition): void {
 	definitions.set(definition.manifest.id, definition);
 	setRuntime(definition.manifest.id, {
 		manifest: definition.manifest,
+		isolationMode: getPluginIsolationMode(definition.manifest.entry),
 		isActive: false,
 		lastError: undefined,
 	});
+}
+
+function toPluginDefinitionManifest(record: InstallRecord): PluginDefinition["manifest"] {
+	return {
+		id: record.manifest.ID,
+		name: record.manifest.Name,
+		version: record.manifest.Version,
+		apiVersion: record.manifest.APIVersion,
+		entry: record.manifest.Entry,
+		capabilities: Array.isArray(record.manifest.Capabilities)
+			? (record.manifest.Capabilities as PluginDefinition["manifest"]["capabilities"])
+			: [],
+		description: record.manifest.Description,
+		author: record.manifest.Author,
+		homepage: record.manifest.Homepage,
+	};
+}
+
+function sanitizePluginIdForSourceURL(pluginId: string): string {
+	return pluginId.replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
+async function importPluginModule(code: string, pluginId: string): Promise<unknown> {
+	const source = `${code}\n//# sourceURL=yanta-plugin-${sanitizePluginIdForSourceURL(pluginId)}.mjs`;
+	const moduleURL = `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`;
+	return import(/* @vite-ignore */ moduleURL);
+}
+
+function resolvePluginSetupExport(moduleValue: unknown): PluginDefinition["setup"] | null {
+	if (!moduleValue || typeof moduleValue !== "object") {
+		return null;
+	}
+	const moduleLike = moduleValue as {
+		default?: unknown;
+		setup?: unknown;
+	};
+	if (typeof moduleLike.setup === "function") {
+		return moduleLike.setup as PluginDefinition["setup"];
+	}
+	if (moduleLike.default && typeof moduleLike.default === "object") {
+		const defaultExport = moduleLike.default as {
+			setup?: unknown;
+		};
+		if (typeof defaultExport.setup === "function") {
+			return defaultExport.setup as PluginDefinition["setup"];
+		}
+	}
+	return null;
+}
+
+export async function registerInstalledPlugins(): Promise<void> {
+	const installed = await ListInstalled();
+	if (!Array.isArray(installed)) {
+		return;
+	}
+
+	const sorted = [...installed].sort((a, b) => a.manifest.ID.localeCompare(b.manifest.ID));
+	for (const record of sorted) {
+		const manifest = toPluginDefinitionManifest(record as InstallRecord);
+		if (!manifest.id || definitions.has(manifest.id)) {
+			continue;
+		}
+		if (manifest.entry.startsWith("builtin:")) {
+			continue;
+		}
+		if (record.status !== "ok") {
+			continue;
+		}
+
+		try {
+			const entrySource = await ReadPluginEntrypoint(manifest.id);
+			const moduleValue = await importPluginModule(entrySource, manifest.id);
+			const setup = resolvePluginSetupExport(moduleValue);
+			if (!setup) {
+				registerPlugin({
+					manifest,
+					setup: () => {
+						throw new Error(
+							`Plugin "${manifest.id}" entrypoint must export a setup function (named "setup" or default.setup).`,
+						);
+					},
+				});
+				continue;
+			}
+			registerPlugin({
+				manifest,
+				setup,
+			});
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			registerPlugin({
+				manifest,
+				setup: () => {
+					throw new Error(`Unable to load plugin entrypoint: ${message}`);
+				},
+			});
+		}
+	}
 }
 
 export function listPlugins(): PluginRuntimeRecord[] {
@@ -107,6 +289,31 @@ export async function loadPlugin(pluginId: string): Promise<void> {
 	const def = definitions.get(pluginId);
 	if (!def) return;
 	if (cleanups.has(pluginId)) return;
+	if (!isRuntimeEntryAllowed(def)) {
+		setRuntime(pluginId, {
+			isActive: false,
+			lastError: "Sandbox policy blocks plugin entrypoint.",
+		});
+		return;
+	}
+	let supportedMajor: number;
+	try {
+		supportedMajor = await resolveSupportedPluginAPIMajor();
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		setRuntime(pluginId, {
+			isActive: false,
+			lastError: `Unable to resolve supported plugin API major: ${message}`,
+		});
+		return;
+	}
+	if (!isAPIVersionCompatible(def.manifest.apiVersion, supportedMajor)) {
+		setRuntime(pluginId, {
+			isActive: false,
+			lastError: `Unsupported plugin API version "${def.manifest.apiVersion}" (expected major ${supportedMajor}).`,
+		});
+		return;
+	}
 
 	const api = createPluginAPI(pluginId);
 	try {
@@ -159,10 +366,24 @@ export async function disablePlugin(pluginId: string): Promise<void> {
 
 export async function loadEnabledPlugins(): Promise<void> {
 	const state = readPersistedState();
+	let communityEnabled = false;
+	try {
+		communityEnabled = await GetCommunityPluginsEnabled();
+	} catch {
+		communityEnabled = false;
+	}
 	const allDefs = Array.from(definitions.values()).sort((a, b) =>
 		a.manifest.id.localeCompare(b.manifest.id),
 	);
 	for (const def of allDefs) {
+		if (!communityEnabled && !def.manifest.entry.startsWith("builtin:")) {
+			unloadPlugin(def.manifest.id);
+			setRuntime(def.manifest.id, {
+				isActive: false,
+				lastError: "Community plugins are disabled by Restricted Mode.",
+			});
+			continue;
+		}
 		const enabled = state.enabled[def.manifest.id] ?? true;
 		if (enabled) {
 			await loadPlugin(def.manifest.id);
@@ -176,6 +397,22 @@ export function getRegisteredEditorExtensionCount(): number {
 	return getAllEditorExtensions().length;
 }
 
+export function getRegisteredEditorTipTapExtensionCount(): number {
+	return getAllEditorTipTapExtensions().length;
+}
+
+export function getRegisteredEditorBlockSpecCount(): number {
+	return Object.keys(getAllEditorBlockSpecs()).length;
+}
+
+export function getRegisteredEditorStyleSpecCount(): number {
+	return Object.keys(getAllEditorStyleSpecs()).length;
+}
+
+export function getRegisteredEditorSlashMenuItemCount(): number {
+	return getAllEditorSlashMenuItems().length;
+}
+
 export function __resetPluginRegistryForTests(): void {
 	for (const id of Array.from(cleanups.keys())) {
 		unloadPlugin(id);
@@ -183,4 +420,6 @@ export function __resetPluginRegistryForTests(): void {
 	definitions.clear();
 	cleanups.clear();
 	runtime.clear();
+	supportedPluginAPIMajor = null;
+	supportedPluginAPIMajorPromise = null;
 }

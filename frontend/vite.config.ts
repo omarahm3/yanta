@@ -12,6 +12,9 @@ export default defineConfig({
     "import.meta.env.YANTA_ENABLE_TOOLTIP_HINTS": JSON.stringify(
       process.env.YANTA_ENABLE_TOOLTIP_HINTS === "true",
     ),
+    "import.meta.env.YANTA_ENABLE_PLUGINS": JSON.stringify(
+      process.env.YANTA_ENABLE_PLUGINS === "true",
+    ),
   },
   plugins: [
     react(),
