@@ -1,0 +1,44 @@
+/* node_modules/@defensestation/blocknote-mermaid/dist/assets/index.css */
+.accordion__section {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+.accordion {
+  background-color: #eee;
+  color: #444;
+  cursor: pointer;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  border: none;
+  outline: none;
+  transition: background-color .2s ease;
+}
+.accordion:hover,
+.active {
+  background-color: #ccc;
+}
+.accordion__title {
+  font-family: Open Sans, sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  text-align: left;
+}
+.accordion__icon {
+  margin-left: auto;
+  transition: transform .2s ease;
+}
+.rotate {
+  transform: rotate(90deg);
+}
+.accordion__content {
+  overflow: hidden;
+  transition: max-height .2s ease;
+}
+.accordion__text {
+  font-family: Open Sans, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  padding: 18px;
+}

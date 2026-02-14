@@ -1,0 +1,14 @@
+{
+  "name": "@yanta-example/blocknote-mermaid-plugin",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild plugin.ts --bundle --format=esm --platform=browser --target=es2022 --outfile=main.js"
+  },
+  "dependencies": {
+    "@defensestation/blocknote-mermaid": "^1.0.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.9"
+  }
+}

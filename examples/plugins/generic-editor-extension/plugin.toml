@@ -1,0 +1,15 @@
+id = "example.generic-editor-extension"
+name = "Generic Editor Extension Example"
+version = "1.0.0"
+api_version = "1"
+entry = "main.js"
+capabilities = [
+  "commands",
+  "sidebar",
+  "editorExtensions",
+  "editorTipTapExtensions",
+  "editorBlockSpecs",
+  "editorStyleSpecs",
+  "editorSlashMenu",
+  "editorLifecycle",
+]
