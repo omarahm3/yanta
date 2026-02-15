@@ -8,9 +8,12 @@ const mockSetShowShortcutTooltips = vi.fn();
 vi.mock("../../../../bindings/yanta/internal/system/service.js", () => ({
 	GetShowShortcutTooltips: () => mockGetShowShortcutTooltips(),
 	SetShowShortcutTooltips: (show: boolean) => mockSetShowShortcutTooltips(show),
+	LogFromFrontend: vi.fn(),
 }));
 
-vi.mock("../../../config/featureFlags", () => ({ ENABLE_TOOLTIP_HINTS: true }));
+vi.mock("../useFeatureFlag", () => ({
+	useFeatureFlag: () => ({ enabled: true, isLoading: false }),
+}));
 
 describe("useShortcutTooltipsSetting", () => {
 	beforeEach(() => {

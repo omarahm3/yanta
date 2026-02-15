@@ -5,6 +5,7 @@ import { useHelp } from "../../help";
 import { useHotkeys } from "../../hotkeys";
 import {
 	useFooterHintsSetting,
+	useFeatureFlag,
 	useGitStatus,
 	useShortcutTooltipsSetting,
 	useSidebarSections,
@@ -42,6 +43,7 @@ export function useSettingsPage({ onNavigate }: UseSettingsPageProps) {
 		setShowShortcutTooltips,
 		isLoading: shortcutTooltipsLoading,
 	} = useShortcutTooltipsSetting();
+	const { enabled: tooltipHintsFeatureEnabled } = useFeatureFlag("tooltipHints");
 	const {
 		status: gitStatus,
 		isLoading: gitStatusLoading,
@@ -143,6 +145,7 @@ export function useSettingsPage({ onNavigate }: UseSettingsPageProps) {
 		showShortcutTooltips,
 		setShowShortcutTooltips,
 		shortcutTooltipsLoading,
+		tooltipHintsFeatureEnabled,
 		// Git status
 		gitStatus,
 		gitStatusLoading,

@@ -1,5 +1,4 @@
 import React from "react";
-import { ENABLE_TOOLTIP_HINTS } from "../config/featureFlags";
 import type { LinuxGraphicsMode } from "../config/preferences";
 import { useAppearanceStore } from "../shared/stores/appearance.store";
 import { Label, Select, type SelectOption, SettingsSection, Toggle } from "../shared/ui";
@@ -19,6 +18,7 @@ interface AppearanceSectionProps {
 	showShortcutTooltips: boolean;
 	onShowShortcutTooltipsChange: (show: boolean) => void;
 	shortcutTooltipsLoading?: boolean;
+	tooltipHintsFeatureEnabled: boolean;
 }
 
 export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSectionProps>(
@@ -38,6 +38,7 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 			showShortcutTooltips,
 			onShowShortcutTooltipsChange,
 			shortcutTooltipsLoading = false,
+			tooltipHintsFeatureEnabled,
 		},
 		ref,
 	) => {
@@ -101,7 +102,7 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 							/>
 						</div>
 
-						{ENABLE_TOOLTIP_HINTS && (
+						{tooltipHintsFeatureEnabled && (
 							<div className="flex items-center justify-between">
 								<div>
 									<div className="text-sm text-text">Show Shortcut Tooltips</div>

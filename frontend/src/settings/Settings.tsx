@@ -50,6 +50,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		showShortcutTooltips,
 		setShowShortcutTooltips,
 		shortcutTooltipsLoading,
+		tooltipHintsFeatureEnabled,
 		gitStatus,
 		gitStatusLoading,
 		refreshGitStatus,
@@ -154,6 +155,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 							showShortcutTooltips={showShortcutTooltips}
 							onShowShortcutTooltipsChange={setShowShortcutTooltips}
 							shortcutTooltipsLoading={shortcutTooltipsLoading}
+							tooltipHintsFeatureEnabled={tooltipHintsFeatureEnabled}
 						/>
 
 						<DatabaseSection

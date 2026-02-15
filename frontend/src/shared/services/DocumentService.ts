@@ -14,6 +14,10 @@ import {
 	documentWithTagsFromModel,
 	type SaveDocumentRequest,
 } from "../types/Document";
+import {
+	recordDocumentGetInFlightDelta,
+	recordDocumentGetTiming,
+} from "../monitoring/appMonitor";
 
 export async function saveDocument(request: SaveDocumentRequest): Promise<string> {
 	const backendRequest = new documentModels.SaveRequest({
@@ -28,8 +32,20 @@ export async function saveDocument(request: SaveDocumentRequest): Promise<string
 }
 
 export async function getDocument(path: string): Promise<DocumentWithTags> {
-	const model = await Get(path);
-	return documentWithTagsFromModel(model);
+	const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+	recordDocumentGetInFlightDelta(1);
+	try {
+		const model = await Get(path);
+		const finishedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+		recordDocumentGetTiming(finishedAt - startedAt, true);
+		return documentWithTagsFromModel(model);
+	} catch (err) {
+		const finishedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+		recordDocumentGetTiming(finishedAt - startedAt, false);
+		throw err;
+	} finally {
+		recordDocumentGetInFlightDelta(-1);
+	}
 }
 
 export async function listDocumentsByProject(

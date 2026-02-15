@@ -12,6 +12,12 @@ export default defineConfig({
     "import.meta.env.YANTA_ENABLE_TOOLTIP_HINTS": JSON.stringify(
       process.env.YANTA_ENABLE_TOOLTIP_HINTS === "true",
     ),
+    "import.meta.env.YANTA_ENABLE_APP_MONITOR": JSON.stringify(
+      process.env.YANTA_ENABLE_APP_MONITOR === "true",
+    ),
+    "import.meta.env.YANTA_ENABLE_COMMAND_LINE": JSON.stringify(
+      process.env.YANTA_ENABLE_COMMAND_LINE === "true",
+    ),
   },
   plugins: [
     react(),

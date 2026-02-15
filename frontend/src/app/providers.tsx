@@ -7,7 +7,9 @@ import { PluginBootstrap } from "../plugins";
 import { ReducedEffectsInit } from "../shared/stores/appearance.store";
 import { ToastProvider } from "../shared/ui";
 import { ResizeHandles, TitleBar } from "./components";
+import { AppMonitorInit } from "./AppMonitorInit";
 import { DocumentCountStoreInit } from "./DocumentCountStoreInit";
+import { FeatureFlagsStoreInit } from "./FeatureFlagsStoreInit";
 import { AppGlobalEffects, GlobalCommandHotkey } from "./global-hotkeys";
 import { PreferencesStoreInit } from "./PreferencesStoreInit";
 import { ProjectStoreInit } from "./ProjectStoreInit";
@@ -18,6 +20,8 @@ export function AppProviders() {
 		<ToastProvider>
 			<ReducedEffectsInit />
 			<ScaleStoreInit />
+			<FeatureFlagsStoreInit />
+			<AppMonitorInit />
 			<DocumentCountStoreInit />
 			<PreferencesStoreInit />
 			<PluginBootstrap />
