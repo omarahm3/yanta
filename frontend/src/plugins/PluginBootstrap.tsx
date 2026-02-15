@@ -1,11 +1,11 @@
 import * as BlockNoteCoreRuntime from "@blocknote/core";
 import * as BlockNoteReactRuntime from "@blocknote/react";
-import { useEffect, useRef } from "react";
 import * as ReactRuntime from "react";
+import { useEffect, useRef } from "react";
+import * as JSXDevRuntime from "react/jsx-dev-runtime";
+import * as JSXRuntime from "react/jsx-runtime";
 import * as ReactDOMRuntime from "react-dom";
 import * as ReactDOMClientRuntime from "react-dom/client";
-import * as JSXRuntime from "react/jsx-runtime";
-import * as JSXDevRuntime from "react/jsx-dev-runtime";
 import * as YjsRuntime from "yjs";
 import { usePreferencesStore } from "../shared/stores/preferences.store";
 import { registerBuiltInPlugins } from "./bootstrap";

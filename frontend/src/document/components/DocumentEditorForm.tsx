@@ -103,7 +103,9 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 			`A plugin issue was detected (${pluginLabel}). The document is reopened in safe mode.`,
 		);
 		setEditorKey((k) => k + 1);
-		notifyError(`Plugin issue detected: ${pluginLabel}. Disabled external plugins and reopened editor.`);
+		notifyError(
+			`Plugin issue detected: ${pluginLabel}. Disabled external plugins and reopened editor.`,
+		);
 		void disableExternalPluginsForEditorRecovery(reason);
 	}, [editorRecoveryMode, notifyError]);
 
