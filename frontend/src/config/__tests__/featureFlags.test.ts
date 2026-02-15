@@ -7,12 +7,14 @@ describe("featureFlagsFromModel", () => {
 			TooltipHints: true,
 			AppMonitor: true,
 			CommandLine: false,
+			Plugins: true,
 		});
 
 		expect(result).toEqual({
 			tooltipHints: true,
 			appMonitor: true,
 			commandLine: false,
+			plugins: true,
 		});
 	});
 
@@ -21,5 +23,6 @@ describe("featureFlagsFromModel", () => {
 		expect(typeof result.tooltipHints).toBe("boolean");
 		expect(typeof result.appMonitor).toBe("boolean");
 		expect(typeof result.commandLine).toBe("boolean");
+		expect(typeof result.plugins).toBe("boolean");
 	});
 });

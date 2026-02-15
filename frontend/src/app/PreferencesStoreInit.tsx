@@ -12,4 +12,3 @@ export function PreferencesStoreInit() {
 
 	return null;
 }
-

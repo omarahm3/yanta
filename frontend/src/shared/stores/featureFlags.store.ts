@@ -30,4 +30,3 @@ export const useFeatureFlagsStore = create<FeatureFlagsState>((set, get) => ({
 	},
 	getFlag: (name: FeatureFlagName) => get().flags[name],
 }));
-

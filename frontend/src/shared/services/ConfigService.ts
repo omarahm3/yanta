@@ -1,12 +1,20 @@
 import {
+	type FeatureFlags,
+	featureFlagsFromModel,
+	getEnvDefaultFeatureFlags,
+} from "@/config/featureFlags";
+import {
+	type PreferencesOverrides,
+	preferencesFromModel,
+	preferencesToModel,
+} from "@/config/preferences";
+import {
 	PreferencesLayoutOverrides as PreferencesLayoutOverridesModel,
 	PreferencesOverrides as PreferencesOverridesModel,
 	PreferencesShortcutsOverrides as PreferencesShortcutsOverridesModel,
 	PreferencesTimeoutsOverrides as PreferencesTimeoutsOverridesModel,
 } from "../../../bindings/yanta/internal/config/models";
 import * as ConfigBindings from "../../../bindings/yanta/internal/config/wailsservice";
-import { type FeatureFlags, featureFlagsFromModel, getEnvDefaultFeatureFlags } from "@/config/featureFlags";
-import { type PreferencesOverrides, preferencesFromModel, preferencesToModel } from "@/config/preferences";
 
 export async function getPreferencesOverrides(): Promise<PreferencesOverrides> {
 	const model = await ConfigBindings.GetPreferencesOverrides();

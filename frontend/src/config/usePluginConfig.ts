@@ -36,4 +36,3 @@ export function usePluginConfig<T>(pluginId: string): UsePluginConfigResult<T> {
 
 	return { config, setConfig, isLoading };
 }
-

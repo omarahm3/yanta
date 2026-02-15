@@ -7,6 +7,7 @@ import {
 	Save,
 	SoftDelete,
 } from "../../../bindings/yanta/internal/document/service";
+import { recordDocumentGetInFlightDelta, recordDocumentGetTiming } from "../monitoring/appMonitor";
 import {
 	type Document,
 	type DocumentWithTags,
@@ -14,10 +15,6 @@ import {
 	documentWithTagsFromModel,
 	type SaveDocumentRequest,
 } from "../types/Document";
-import {
-	recordDocumentGetInFlightDelta,
-	recordDocumentGetTiming,
-} from "../monitoring/appMonitor";
 
 export async function saveDocument(request: SaveDocumentRequest): Promise<string> {
 	const backendRequest = new documentModels.SaveRequest({

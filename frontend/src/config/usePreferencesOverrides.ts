@@ -29,4 +29,3 @@ export function usePreferencesOverrides() {
 
 /** Re-export for convenience. */
 export { useMergedConfig } from "@/shared/stores/preferences.store";
-

@@ -129,4 +129,3 @@ export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ className }) => 
 		</div>
 	);
 };
-

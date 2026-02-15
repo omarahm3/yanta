@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { DocumentCommand } from "@/config/public";
 import { ParseWithContext } from "../../../bindings/yanta/internal/commandline/documentcommands";
 import { Restore, SoftDelete } from "../../../bindings/yanta/internal/document/service";
-import { DocumentCommand } from "@/config/public";
 import { useDocumentContext } from "../../document";
 import { useHelp } from "../../help";
 import { useNotification, useRecentDocuments, useSidebarSections } from "../../shared/hooks";
@@ -560,4 +560,3 @@ export function useDashboardController({
 		hotkeys,
 	};
 }
-
