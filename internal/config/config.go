@@ -32,6 +32,14 @@ type HotkeyConfig struct {
 	QuickCaptureKey       string   `toml:"quick_capture_key"`       // e.g., "N"
 }
 
+// FeatureFlags defines launch-time feature gates loaded from config.toml [feature_flags].
+// Environment variables can override each flag at runtime.
+type FeatureFlags struct {
+	TooltipHints bool `toml:"tooltip_hints"`
+	AppMonitor   bool `toml:"app_monitor"`
+	CommandLine  bool `toml:"command_line"`
+}
+
 // PreferencesOverrides holds user-configurable overrides for shortcuts, timeouts, and layout.
 // Stored in config.toml under [preferences]. Only non-zero/non-empty values are applied.
 type PreferencesTimeoutsOverrides struct {
@@ -92,6 +100,7 @@ type Config struct {
 	SidebarVisible       bool                 `toml:"sidebar_visible"`
 	ShowFooterHints      bool                 `toml:"show_footer_hints"`
 	ShowShortcutTooltips bool                 `toml:"show_shortcut_tooltips"`
+	FeatureFlags         FeatureFlags         `toml:"feature_flags"`
 	Preferences          PreferencesOverrides `toml:"preferences"`
 }
 
@@ -158,6 +167,12 @@ func Init() error {
 		if cfg.Backup.MaxBackups == 0 {
 			cfg.Backup.MaxBackups = 10
 		}
+
+		logrus.WithFields(logrus.Fields{
+			"tooltip_hints": resolveFeatureFlag(cfg.FeatureFlags.TooltipHints, "YANTA_ENABLE_TOOLTIP_HINTS"),
+			"app_monitor":   resolveFeatureFlag(cfg.FeatureFlags.AppMonitor, "YANTA_ENABLE_APP_MONITOR"),
+			"command_line":  resolveFeatureFlag(cfg.FeatureFlags.CommandLine, "YANTA_ENABLE_COMMAND_LINE"),
+		}).Info("feature flags resolved")
 
 		instance = cfg
 	})
@@ -524,6 +539,39 @@ func SetPreferencesOverrides(overrides PreferencesOverrides) error {
 
 	instance.Preferences = validated
 	return save(instance)
+}
+
+func parseEnvBool(name string) (bool, bool) {
+	raw, ok := os.LookupEnv(name)
+	if !ok {
+		return false, false
+	}
+	value := strings.TrimSpace(strings.ToLower(raw))
+	switch value {
+	case "1", "true", "yes", "on":
+		return true, true
+	case "0", "false", "no", "off":
+		return false, true
+	default:
+		return false, false
+	}
+}
+
+func resolveFeatureFlag(configValue bool, envName string) bool {
+	if envValue, ok := parseEnvBool(envName); ok {
+		return envValue
+	}
+	return configValue
+}
+
+// GetFeatureFlags returns resolved feature flags with env vars taking precedence over config.
+func GetFeatureFlags() FeatureFlags {
+	cfg := Get()
+	return FeatureFlags{
+		TooltipHints: resolveFeatureFlag(cfg.FeatureFlags.TooltipHints, "YANTA_ENABLE_TOOLTIP_HINTS"),
+		AppMonitor:   resolveFeatureFlag(cfg.FeatureFlags.AppMonitor, "YANTA_ENABLE_APP_MONITOR"),
+		CommandLine:  resolveFeatureFlag(cfg.FeatureFlags.CommandLine, "YANTA_ENABLE_COMMAND_LINE"),
+	}
 }
 
 func GetLinuxGraphicsMode() string {

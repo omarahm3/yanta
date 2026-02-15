@@ -22,7 +22,6 @@ export const useDocumentLoader = (documentPath?: string) => {
 	const [data, setData] = useState<Document | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-
 	const prevPathRef = useRef<string | undefined>(documentPath);
 
 	useEffect(() => {
@@ -40,6 +39,7 @@ export const useDocumentLoader = (documentPath?: string) => {
 
 		if (hasPathChanged) {
 			setData(null);
+			setError(null);
 		}
 
 		const loadDocument = async () => {
@@ -64,7 +64,7 @@ export const useDocumentLoader = (documentPath?: string) => {
 			}
 		};
 
-		loadDocument();
+		void loadDocument();
 
 		return () => {
 			cancelled = true;

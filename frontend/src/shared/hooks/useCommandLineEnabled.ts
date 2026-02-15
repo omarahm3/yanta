@@ -11,8 +11,7 @@ export interface UseCommandLineEnabledReturn {
 
 /**
  * Hook to check if the command line feature is enabled.
- * Controlled by YANTA_ENABLE_COMMAND_LINE environment variable.
- * Defaults to false (disabled).
+ * Controlled by backend-resolved feature flags (config.toml + env override).
  */
 export function useCommandLineEnabled(): UseCommandLineEnabledReturn {
 	const [enabled, setEnabled] = useState<boolean>(false);

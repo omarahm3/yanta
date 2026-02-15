@@ -6,7 +6,7 @@ import {
 	ReadPluginEntrypoint,
 } from "../../bindings/yanta/internal/plugins/wailsservice";
 import { useCommandRegistryStore } from "../command-palette/registry";
-import { type PluginConfigSchema, registerPluginConfig, unregisterPluginConfig } from "../config";
+import { type PluginConfigSchema, registerPluginConfig, unregisterPluginConfig } from "@/config/public";
 import {
 	getAllEditorBlockSpecs,
 	getAllEditorExtensions,
@@ -23,7 +23,7 @@ import {
 	setEditorTipTapExtensions,
 	setEditorTools,
 } from "../editor/extensions/registry/editorExtensionRegistry";
-import { usePreferencesStore } from "../shared/stores/preferences.store";
+import { usePreferencesStore } from "@/shared/stores/preferences.store";
 import { useSidebarRegistryStore } from "../sidebar/registry/sidebarRegistry.store";
 import type {
 	PersistedPluginState,
@@ -458,3 +458,4 @@ export function __resetPluginRegistryForTests(): void {
 	supportedPluginAPIMajor = null;
 	supportedPluginAPIMajorPromise = null;
 }
+

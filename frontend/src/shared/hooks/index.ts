@@ -12,6 +12,8 @@ export { DEPRECATED_COMMAND_MAPPINGS, useCommandDeprecation } from "./useCommand
 export { useCommandLineEnabled } from "./useCommandLineEnabled";
 export type { UseEscapeHandlerOptions } from "./useEscapeHandler";
 export { useEscapeHandler } from "./useEscapeHandler";
+export type { UseFeatureFlagResult } from "./useFeatureFlag";
+export { useFeatureFlag } from "./useFeatureFlag";
 export type { PageContext, UseFooterHintsOptions, UseFooterHintsReturn } from "./useFooterHints";
 export { getHintsForPage, useFooterHints } from "./useFooterHints";
 export type { UseFooterHintsSettingReturn } from "./useFooterHintsSetting";

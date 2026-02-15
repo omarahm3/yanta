@@ -847,7 +847,7 @@ func (s *Service) SetShowShortcutTooltips(ctx context.Context, show bool) error 
 }
 
 // IsCommandLineEnabled returns whether the command line feature is enabled.
-// Controlled by YANTA_ENABLE_COMMAND_LINE environment variable.
+// Value is resolved from config.toml [feature_flags].command_line with env override.
 func (s *Service) IsCommandLineEnabled(ctx context.Context) bool {
-	return os.Getenv("YANTA_ENABLE_COMMAND_LINE") == "true" || os.Getenv("YANTA_ENABLE_COMMAND_LINE") == "1"
+	return config.GetFeatureFlags().CommandLine
 }

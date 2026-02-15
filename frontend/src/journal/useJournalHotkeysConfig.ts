@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { JOURNAL_SHORTCUTS } from "../config";
+import { JOURNAL_SHORTCUTS } from "@/config/public";
 import type { HotkeyConfig } from "../shared/types/hotkeys";
 
 export interface UseJournalHotkeysConfigOptions {
@@ -134,3 +134,4 @@ export function useJournalHotkeysConfig({
 		],
 	);
 }
+

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useMergedConfig } from "../../config";
+import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import type { HotkeyConfig } from "../../shared/types/hotkeys";
 
 export interface UseDashboardHotkeysConfigOptions {
@@ -183,3 +183,4 @@ export function useDashboardHotkeysConfig({
 		],
 	);
 }
+

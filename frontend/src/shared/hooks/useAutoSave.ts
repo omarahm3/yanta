@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useMergedConfig } from "@/config";
+import { useMergedConfig } from "@/shared/stores/preferences.store";
 
 export type SaveState = "idle" | "saving" | "saved" | "error";
 

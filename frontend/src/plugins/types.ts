@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { PluginConfigSchema } from "../config";
+import type { PluginConfigSchema } from "@/config/public";
 import type {
 	EditorBlockActionContribution,
 	EditorBlockSpecContribution,

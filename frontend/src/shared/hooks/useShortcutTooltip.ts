@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { useMergedConfig } from "@/config";
+import { useMergedConfig } from "@/shared/stores/preferences.store";
 import { useTooltipUsage } from "../stores/tooltipUsage.store";
 
 export type TooltipPlacement = "top" | "bottom" | "left" | "right";

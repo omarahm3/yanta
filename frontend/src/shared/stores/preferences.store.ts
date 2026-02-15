@@ -1,7 +1,7 @@
 import { create } from "zustand";
-import { LAYOUT } from "../../config/layout";
-import type { LinuxGraphicsMode, PreferencesOverrides } from "../../config/preferences";
-import type { ShortcutDef } from "../../config/shortcuts";
+import { LAYOUT } from "@/config/layout";
+import type { LinuxGraphicsMode, PreferencesOverrides } from "@/config/preferences";
+import type { ShortcutDef } from "@/config/shortcuts";
 import {
 	COMMAND_LINE_SHORTCUTS,
 	DASHBOARD_SHORTCUTS,
@@ -15,8 +15,8 @@ import {
 	SEARCH_SHORTCUTS,
 	SETTINGS_SHORTCUTS,
 	SIDEBAR_SHORTCUTS,
-} from "../../config/shortcuts";
-import { TIMEOUTS } from "../../config/timeouts";
+} from "@/config/shortcuts";
+import { TIMEOUTS } from "@/config/timeouts";
 import { getPreferencesOverrides, setPreferencesOverrides } from "../services/ConfigService";
 import { BackendLogger } from "../utils/backendLogger";
 
@@ -274,3 +274,4 @@ export function getMergedConfig(): MergedConfig {
 		shortcuts: mergeShortcuts(overrides?.shortcuts),
 	};
 }
+

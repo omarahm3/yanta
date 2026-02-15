@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { DOCUMENT_SHORTCUTS } from "../../config";
+import { DOCUMENT_SHORTCUTS } from "@/config/public";
 import type { HotkeyConfig } from "../../shared/types/hotkeys";
 
 export interface UseDocumentHotkeysConfigOptions {
@@ -113,3 +113,4 @@ export function useDocumentHotkeysConfig({
 		],
 	);
 }
+

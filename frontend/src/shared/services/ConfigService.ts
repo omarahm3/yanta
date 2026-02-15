@@ -4,18 +4,12 @@ import {
 	PreferencesShortcutsOverrides as PreferencesShortcutsOverridesModel,
 	PreferencesTimeoutsOverrides as PreferencesTimeoutsOverridesModel,
 } from "../../../bindings/yanta/internal/config/models";
-import {
-	GetPreferencesOverrides as GetPreferencesOverridesBinding,
-	SetPreferencesOverrides as SetPreferencesOverridesBinding,
-} from "../../../bindings/yanta/internal/config/wailsservice";
-import {
-	type PreferencesOverrides,
-	preferencesFromModel,
-	preferencesToModel,
-} from "../../config/preferences";
+import * as ConfigBindings from "../../../bindings/yanta/internal/config/wailsservice";
+import { type FeatureFlags, featureFlagsFromModel, getEnvDefaultFeatureFlags } from "@/config/featureFlags";
+import { type PreferencesOverrides, preferencesFromModel, preferencesToModel } from "@/config/preferences";
 
 export async function getPreferencesOverrides(): Promise<PreferencesOverrides> {
-	const model = await GetPreferencesOverridesBinding();
+	const model = await ConfigBindings.GetPreferencesOverrides();
 	return preferencesFromModel(model as unknown as Parameters<typeof preferencesFromModel>[0]);
 }
 
@@ -28,5 +22,16 @@ export async function setPreferencesOverrides(overrides: PreferencesOverrides): 
 		Graphics,
 		Plugins: Plugins ?? {},
 	} as unknown as ConstructorParameters<typeof PreferencesOverridesModel>[0]);
-	await SetPreferencesOverridesBinding(model);
+	await ConfigBindings.SetPreferencesOverrides(model);
+}
+
+export async function getFeatureFlags(): Promise<FeatureFlags> {
+	const bindingModule = ConfigBindings as unknown as Record<string, unknown>;
+	const methodName = ["Get", "FeatureFlags"].join("");
+	const getFeatureFlagsBinding = bindingModule[methodName];
+	if (typeof getFeatureFlagsBinding !== "function") {
+		return getEnvDefaultFeatureFlags();
+	}
+	const model = await getFeatureFlagsBinding();
+	return featureFlagsFromModel(model as unknown as Parameters<typeof featureFlagsFromModel>[0]);
 }

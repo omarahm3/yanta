@@ -146,6 +146,7 @@ export const useRecentDocumentsStore = create<RecentDocumentsState>()(
 				set((state) => {
 					const idx = state.documents.findIndex((d) => d.path === path);
 					if (idx < 0) return state;
+					if (state.documents[idx].title === title) return state;
 					const updated = [...state.documents];
 					updated[idx] = { ...updated[idx], title };
 					return { documents: updated };
@@ -175,6 +176,7 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 	const clearRecentDocuments = useRecentDocumentsStore((s) => s.clearRecentDocuments);
 	const updateRecentDocumentTitle = useRecentDocumentsStore((s) => s.updateRecentDocumentTitle);
 	const setDocuments = useRecentDocumentsStore((s) => s.setDocuments);
+	const documentsPathSignature = useMemo(() => documents.map((d) => d.path).join("|"), [documents]);
 
 	// Cross-tab sync + event subscriptions: single effect for external listeners
 	useEffect(() => {
@@ -230,7 +232,7 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 		return () => {
 			cancelled = true;
 		};
-	}, [documents, setDocuments]);
+	}, [documentsPathSignature, setDocuments]);
 
 	return useMemo<UseRecentDocumentsReturn>(
 		() => ({

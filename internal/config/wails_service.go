@@ -19,3 +19,8 @@ func (s *WailsService) GetPreferencesOverrides(ctx context.Context) (Preferences
 func (s *WailsService) SetPreferencesOverrides(ctx context.Context, overrides PreferencesOverrides) error {
 	return SetPreferencesOverrides(overrides)
 }
+
+// GetFeatureFlags returns resolved feature flags (env overrides config values).
+func (s *WailsService) GetFeatureFlags(ctx context.Context) (FeatureFlags, error) {
+	return GetFeatureFlags(), nil
+}

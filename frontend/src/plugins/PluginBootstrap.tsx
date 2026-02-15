@@ -7,7 +7,7 @@ import * as JSXRuntime from "react/jsx-runtime";
 import * as ReactDOMRuntime from "react-dom";
 import * as ReactDOMClientRuntime from "react-dom/client";
 import * as YjsRuntime from "yjs";
-import { usePreferencesStore } from "../shared/stores/preferences.store";
+import { usePreferencesStore } from "@/shared/stores/preferences.store";
 import { registerBuiltInPlugins } from "./bootstrap";
 import { loadEnabledPlugins, registerInstalledPlugins } from "./registry";
 
