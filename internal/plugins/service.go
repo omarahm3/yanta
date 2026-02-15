@@ -23,19 +23,24 @@ const pluginSourceLocal = "local"
 const pluginSourcePackage = "package"
 const installMetadataFile = ".yanta-install.json"
 const requiredPluginEntrypoint = "main.js"
+const requiredPluginBuildMetadataFile = "main.meta.json"
 
 const (
-	PluginErrInvalidManifest   = "PLUGIN_INVALID_MANIFEST"
-	PluginErrIncompatibleAPI   = "PLUGIN_INCOMPATIBLE_API"
-	PluginErrAlreadyInstalled  = "PLUGIN_ALREADY_INSTALLED"
-	PluginErrNotInstalled      = "PLUGIN_NOT_INSTALLED"
-	PluginErrNotOperational    = "PLUGIN_NOT_OPERATIONAL"
-	PluginErrSandboxRestricted = "PLUGIN_SANDBOX_RESTRICTED"
-	PluginErrBadSource         = "PLUGIN_BAD_SOURCE"
-	PluginErrUnsignedPackage   = "PLUGIN_UNSIGNED_PACKAGE"
-	PluginErrTamperedPackage   = "PLUGIN_TAMPERED_PACKAGE"
-	PluginErrInvalidSignature  = "PLUGIN_INVALID_SIGNATURE"
-	PluginErrUntrustedSigner   = "PLUGIN_UNTRUSTED_SIGNER"
+	PluginErrInvalidManifest      = "PLUGIN_INVALID_MANIFEST"
+	PluginErrIncompatibleAPI      = "PLUGIN_INCOMPATIBLE_API"
+	PluginErrAlreadyInstalled     = "PLUGIN_ALREADY_INSTALLED"
+	PluginErrNotInstalled         = "PLUGIN_NOT_INSTALLED"
+	PluginErrNotOperational       = "PLUGIN_NOT_OPERATIONAL"
+	PluginErrSandboxRestricted    = "PLUGIN_SANDBOX_RESTRICTED"
+	PluginErrBadSource            = "PLUGIN_BAD_SOURCE"
+	PluginErrUnsignedPackage      = "PLUGIN_UNSIGNED_PACKAGE"
+	PluginErrTamperedPackage      = "PLUGIN_TAMPERED_PACKAGE"
+	PluginErrInvalidSignature     = "PLUGIN_INVALID_SIGNATURE"
+	PluginErrUntrustedSigner      = "PLUGIN_UNTRUSTED_SIGNER"
+	PluginErrBuildMetadataMissing = "PLUGIN_BUILD_METADATA_MISSING"
+	PluginErrBuildMetadataInvalid = "PLUGIN_BUILD_METADATA_INVALID"
+	PluginErrBuildHashMismatch    = "PLUGIN_BUILD_HASH_MISMATCH"
+	PluginErrForbiddenBundle      = "PLUGIN_FORBIDDEN_BUNDLE"
 )
 
 type PluginStatus string
@@ -184,6 +189,14 @@ func (s *Service) scanLocalPlugins() ([]InstallRecord, error) {
 			publisherID = metadata.PublisherID
 			signingKeyID = metadata.SigningKeyID
 		}
+		if buildFailure := checkPluginBuildMetadata(pluginPath); buildFailure != nil {
+			canExecute = false
+			issues = append(issues, ValidationIssue{
+				Code:    buildFailure.Code,
+				Message: buildFailure.Message,
+				Field:   requiredPluginBuildMetadataFile,
+			})
+		}
 		enabled := enabledMap[manifest.ID] && canExecute && communityEnabled
 		records = append(records, InstallRecord{
 			Manifest:           manifest,
@@ -327,6 +340,9 @@ func (s *Service) InstallFromDirectory(sourcePath string) (InstallRecord, error)
 			PluginErrInvalidManifest,
 			fmt.Sprintf("required runtime entry %q must be a file", requiredPluginEntrypoint),
 		)
+	}
+	if buildFailure := checkPluginBuildMetadata(trimmedPath); buildFailure != nil {
+		return InstallRecord{}, pluginError(buildFailure.Code, buildFailure.Message)
 	}
 
 	root, err := s.pluginDir()

@@ -38,6 +38,8 @@ func main() {
 	}
 
 	switch os.Args[1] {
+	case "build":
+		runBuild(os.Args[2:])
 	case "keygen":
 		runKeygen(os.Args[2:])
 	case "sign":
@@ -219,10 +221,12 @@ Usage:
   yanta-plugin <command> [flags]
 
 Commands:
+  build    Build plugin entrypoint with Bun and generate main.meta.json
   keygen   Generate publisher keypair
   sign     Sign plugin directory and write signature.json
 
 Examples:
+  go run ./cmd/yanta-plugin build -plugin ./examples/plugins/generic-editor-extension -entry plugin.ts -out main.js
   go run ./cmd/yanta-plugin keygen -out ./my-plugin/.keys
   go run ./cmd/yanta-plugin sign -plugin ./my-plugin -private-key ./my-plugin/.keys/private.key -publisher-id my.publisher -key-id my-key-1`)
 }

@@ -3,13 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild plugin.ts --bundle --format=esm --platform=browser --target=es2022 --outfile=main.js"
+    "build": "go run ../../../cmd/yanta-plugin build -plugin . -entry plugin.ts -out main.js -meta main.meta.json"
   },
   "dependencies": {
-    "@blocknote/core": "latest",
-    "@tiptap/core": "latest"
-  },
-  "devDependencies": {
-    "esbuild": "^0.25.9"
+    "@blocknote/core": "^0.43.0",
+    "@tiptap/core": "^3.11.0"
   }
 }

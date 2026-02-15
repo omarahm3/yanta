@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -127,6 +128,7 @@ capabilities = ["commands"]
 `), 0o644))
 	require.NoError(t, os.WriteFile(filepath.Join(sourceDir, "main.js"), []byte("console.log('ok')"), 0o644))
 	require.NoError(t, os.WriteFile(filepath.Join(sourceDir, "nested", "readme.txt"), []byte("hello"), 0o644))
+	writePluginBuildMetadata(t, sourceDir, nil)
 
 	svc := NewService()
 	record, err := svc.InstallFromDirectory(sourceDir)
@@ -179,6 +181,51 @@ capabilities = []
 	require.Error(t, err)
 	require.Contains(t, err.Error(), PluginErrInvalidManifest)
 	require.Contains(t, err.Error(), "required runtime entry")
+
+	missingMetadataDir := filepath.Join(tempDir, "missing-metadata.plugin")
+	require.NoError(t, os.MkdirAll(missingMetadataDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(missingMetadataDir, "plugin.toml"), []byte(`id = "missing.metadata"
+name = "Missing Metadata"
+version = "1.0.0"
+api_version = "1"
+entry = "main.js"
+capabilities = []
+`), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(missingMetadataDir, "main.js"), []byte("console.log('meta')"), 0o644))
+	_, err = svc.InstallFromDirectory(missingMetadataDir)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), PluginErrBuildMetadataMissing)
+
+	forbiddenBundleDir := filepath.Join(tempDir, "forbidden-bundle.plugin")
+	require.NoError(t, os.MkdirAll(forbiddenBundleDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(forbiddenBundleDir, "plugin.toml"), []byte(`id = "forbidden.bundle"
+name = "Forbidden Bundle"
+version = "1.0.0"
+api_version = "1"
+entry = "main.js"
+capabilities = []
+`), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(forbiddenBundleDir, "main.js"), []byte("console.log('forbidden')"), 0o644))
+	writePluginBuildMetadata(t, forbiddenBundleDir, []string{"react"})
+	_, err = svc.InstallFromDirectory(forbiddenBundleDir)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), PluginErrForbiddenBundle)
+
+	hashMismatchDir := filepath.Join(tempDir, "hash-mismatch.plugin")
+	require.NoError(t, os.MkdirAll(hashMismatchDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(hashMismatchDir, "plugin.toml"), []byte(`id = "hash.mismatch"
+name = "Hash Mismatch"
+version = "1.0.0"
+api_version = "1"
+entry = "main.js"
+capabilities = []
+`), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(hashMismatchDir, "main.js"), []byte("console.log('hash-1')"), 0o644))
+	writePluginBuildMetadata(t, hashMismatchDir, nil)
+	require.NoError(t, os.WriteFile(filepath.Join(hashMismatchDir, "main.js"), []byte("console.log('hash-2')"), 0o644))
+	_, err = svc.InstallFromDirectory(hashMismatchDir)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), PluginErrBuildHashMismatch)
 
 	incompatibleDir := filepath.Join(tempDir, "incompatible.plugin")
 	require.NoError(t, os.MkdirAll(incompatibleDir, 0o755))
@@ -289,6 +336,34 @@ func TestService_CommunityPluginsMode(t *testing.T) {
 	require.True(t, svc.GetCommunityPluginsEnabled())
 }
 
+func TestService_ListInstalledDisablesPluginWithMissingBuildMetadata(t *testing.T) {
+	tempDir := t.TempDir()
+	cleanup := testenv.SetTestHome(t, tempDir)
+	defer cleanup()
+
+	config.ResetForTesting()
+	require.NoError(t, config.Init())
+
+	pluginDir := filepath.Join(tempDir, ".yanta", "plugins", "missing.meta")
+	require.NoError(t, os.MkdirAll(pluginDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(pluginDir, "plugin.toml"), []byte(`id = "missing.meta"
+name = "Missing Meta"
+version = "1.0.0"
+api_version = "1"
+entry = "main.js"
+capabilities = ["commands"]
+`), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(pluginDir, "main.js"), []byte("console.log('x')"), 0o644))
+
+	svc := NewService()
+	list, err := svc.ListInstalled()
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+	require.False(t, list[0].CanExecute)
+	require.NotEmpty(t, list[0].Issues)
+	require.Equal(t, PluginErrBuildMetadataMissing, list[0].Issues[0].Code)
+}
+
 func TestService_ReadPluginEntrypointFromSignedPackage(t *testing.T) {
 	tempDir := t.TempDir()
 	cleanup := testenv.SetTestHome(t, tempDir)
@@ -347,6 +422,7 @@ entry = "main.js"
 capabilities = ["commands"]
 `), 0o644))
 	require.NoError(t, os.WriteFile(filepath.Join(sourceDir, "main.js"), []byte("console.log('local')"), 0o644))
+	writePluginBuildMetadata(t, sourceDir, nil)
 
 	svc := NewService()
 	_, err := svc.InstallFromDirectory(sourceDir)
@@ -482,6 +558,7 @@ func createSignedPluginPackage(t *testing.T, root string, opts signedPackageOpti
 	require.NoError(t, os.MkdirAll(sourceDir, 0o755))
 	require.NoError(t, os.WriteFile(filepath.Join(sourceDir, "plugin.toml"), []byte(opts.ManifestTOML), 0o644))
 	require.NoError(t, os.WriteFile(filepath.Join(sourceDir, "main.js"), []byte("export default {}"), 0o644))
+	writePluginBuildMetadata(t, sourceDir, nil)
 
 	digest, err := computePluginDigest(sourceDir)
 	require.NoError(t, err)
@@ -501,6 +578,7 @@ func createSignedPluginPackage(t *testing.T, root string, opts signedPackageOpti
 
 	if opts.MutateAfterSign {
 		require.NoError(t, os.WriteFile(filepath.Join(sourceDir, "main.js"), []byte("export const tampered = true"), 0o644))
+		writePluginBuildMetadata(t, sourceDir, nil)
 	}
 
 	packagePath := filepath.Join(root, "plugin-"+opts.KeyID+".yplg")
@@ -556,5 +634,29 @@ func createInstalledPlugin(t *testing.T, homeDir, folderName, manifest string) s
 	pluginDir := filepath.Join(homeDir, ".yanta", "plugins", folderName)
 	require.NoError(t, os.MkdirAll(pluginDir, 0o755))
 	require.NoError(t, os.WriteFile(filepath.Join(pluginDir, "plugin.toml"), []byte(manifest), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(pluginDir, "main.js"), []byte("console.log('installed')"), 0o644))
+	writePluginBuildMetadata(t, pluginDir, nil)
 	return pluginDir
+}
+
+func writePluginBuildMetadata(t *testing.T, pluginDir string, bundledPackages []string) {
+	t.Helper()
+	entryPath := filepath.Join(pluginDir, "main.js")
+	entryData, err := os.ReadFile(entryPath)
+	require.NoError(t, err)
+	sum := sha256.Sum256(entryData)
+
+	meta := PluginBuildMetadata{
+		Builder:                 pluginBuildMetadataBuilder,
+		BuilderVersion:          "test",
+		BuildTool:               pluginBuildMetadataTool,
+		Format:                  pluginBuildMetadataFormat,
+		HostExternals:           append([]string(nil), forbiddenBundledRuntimePackages...),
+		DetectedBundledPackages: append([]string(nil), bundledPackages...),
+		EntryHashSHA256:         hex.EncodeToString(sum[:]),
+		GeneratedAt:             "2026-01-01T00:00:00Z",
+	}
+	encoded, err := json.MarshalIndent(meta, "", "  ")
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(pluginDir, requiredPluginBuildMetadataFile), encoded, 0o644))
 }

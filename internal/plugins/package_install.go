@@ -55,6 +55,9 @@ func (s *Service) InstallFromPackage(sourcePath string) (InstallRecord, error) {
 			return InstallRecord{}, pluginError(PluginErrInvalidManifest, fmt.Sprintf("entry file %q does not exist in package", manifest.Entry))
 		}
 	}
+	if buildFailure := checkPluginBuildMetadata(extractDir); buildFailure != nil {
+		return InstallRecord{}, pluginError(buildFailure.Code, buildFailure.Message)
+	}
 
 	keys, err := s.loadTrustedKeys()
 	if err != nil {

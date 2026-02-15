@@ -40,6 +40,38 @@ function toErrorMessage(err: unknown): string {
 	if (raw.startsWith("PLUGIN_BAD_SOURCE:")) {
 		return raw.replace("PLUGIN_BAD_SOURCE:", "Invalid plugin source:").trim();
 	}
+	if (raw.startsWith("PLUGIN_BUILD_METADATA_MISSING:")) {
+		return raw
+			.replace(
+				"PLUGIN_BUILD_METADATA_MISSING:",
+				"Plugin build metadata is missing. Rebuild with `yanta-plugin build`:",
+			)
+			.trim();
+	}
+	if (raw.startsWith("PLUGIN_BUILD_METADATA_INVALID:")) {
+		return raw
+			.replace(
+				"PLUGIN_BUILD_METADATA_INVALID:",
+				"Plugin build metadata is invalid. Rebuild with `yanta-plugin build`:",
+			)
+			.trim();
+	}
+	if (raw.startsWith("PLUGIN_BUILD_HASH_MISMATCH:")) {
+		return raw
+			.replace(
+				"PLUGIN_BUILD_HASH_MISMATCH:",
+				"Plugin bundle hash mismatch. Rebuild with `yanta-plugin build`:",
+			)
+			.trim();
+	}
+	if (raw.startsWith("PLUGIN_FORBIDDEN_BUNDLE:")) {
+		return raw
+			.replace(
+				"PLUGIN_FORBIDDEN_BUNDLE:",
+				"Plugin bundles forbidden host runtime dependencies. Externalize them via `yanta-plugin build`:",
+			)
+			.trim();
+	}
 	if (raw.startsWith("PLUGIN_SANDBOX_RESTRICTED:")) {
 		return raw.replace("PLUGIN_SANDBOX_RESTRICTED:", "Plugin cannot execute:").trim();
 	}
