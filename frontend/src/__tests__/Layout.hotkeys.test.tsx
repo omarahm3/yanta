@@ -76,6 +76,18 @@ vi.mock("../hotkeys", () => ({
 import type React from "react";
 import { Layout } from "../app";
 
+function getRequiredHotkey(
+	key: string,
+	hotkeys: Array<{ key: string; handler: (e: KeyboardEvent) => void }>,
+) {
+	const hotkey = hotkeys.find((h) => h.key === key);
+	expect(hotkey).toBeDefined();
+	if (!hotkey) {
+		throw new Error(`Expected hotkey "${key}" to be registered`);
+	}
+	return hotkey;
+}
+
 describe("Layout hotkeys", () => {
 	beforeEach(() => {
 		mockToggleSidebar.mockClear();
@@ -94,11 +106,10 @@ describe("Layout hotkeys", () => {
 		expect(root).toHaveAttribute("data-sidebar-visible", "true");
 
 		// Verify Layout registered the sidebar toggle hotkey
-		const toggleHotkey = capturedHotkeys.find((h) => h.key === "ctrl+b");
-		expect(toggleHotkey).toBeDefined();
+		const toggleHotkey = getRequiredHotkey("ctrl+b", capturedHotkeys);
 
 		// Invoke the handler directly
-		toggleHotkey!.handler(new KeyboardEvent("keydown", { key: "b", ctrlKey: true, code: "KeyB" }));
+		toggleHotkey.handler(new KeyboardEvent("keydown", { key: "b", ctrlKey: true, code: "KeyB" }));
 
 		expect(mockToggleSidebar).toHaveBeenCalledTimes(1);
 	});

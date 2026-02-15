@@ -54,9 +54,15 @@ describe("editorExtensionRegistry", () => {
 	});
 
 	it("registers and removes generic editor contribution types", () => {
-		setEditorTipTapExtensions(TEST_SOURCES[0], [{} as any]);
-		setEditorBlockSpecs(TEST_SOURCES[0], { testBlock: {} } as any);
-		setEditorStyleSpecs(TEST_SOURCES[0], { testStyle: {} } as any);
+		setEditorTipTapExtensions(TEST_SOURCES[0], [
+			{} as unknown as ReturnType<typeof getAllEditorTipTapExtensions>[number],
+		]);
+		setEditorBlockSpecs(TEST_SOURCES[0], { testBlock: {} } as unknown as ReturnType<
+			typeof getAllEditorBlockSpecs
+		>);
+		setEditorStyleSpecs(TEST_SOURCES[0], { testStyle: {} } as unknown as ReturnType<
+			typeof getAllEditorStyleSpecs
+		>);
 		setEditorSlashMenuItems(TEST_SOURCES[0], [
 			{
 				title: "Test Slash Item",

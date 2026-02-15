@@ -62,8 +62,6 @@ describe("HelpModal keyboard navigation", () => {
 	});
 
 	it("expands/collapses sections when clicking header", () => {
-		const toggleSection = vi.fn();
-		// Re-render needs a stateful mock; verify toggleSection is called instead
 		render(<HelpModal />);
 
 		const sectionHeaders = screen.getAllByRole("button");

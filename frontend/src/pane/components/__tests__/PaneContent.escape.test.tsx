@@ -1,6 +1,7 @@
 import { act, render } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { PaneLayoutState } from "../../types";
 
 const mockClosePane = vi.fn();
 const mockSetActivePane = vi.fn();
@@ -8,7 +9,7 @@ const mockOpenDocumentInPane = vi.fn();
 const mockSwapPaneDocuments = vi.fn();
 const mockOnNavigate = vi.fn();
 
-let mockLayout = {
+let mockLayout: PaneLayoutState = {
 	root: {
 		type: "split" as const,
 		id: "split-1",
@@ -93,7 +94,7 @@ describe("PaneContent escape handling", () => {
 
 	it("does nothing on ESC when only one empty pane exists", () => {
 		mockLayout = {
-			root: { type: "leaf" as const, id: "pane-1", documentPath: null } as any,
+			root: { type: "leaf", id: "pane-1", documentPath: null },
 			activePaneId: "pane-1",
 			primaryDocumentPath: null,
 		};
@@ -146,7 +147,7 @@ describe("PaneContent escape handling", () => {
 
 	it("does not handle ESC for panes with a document loaded", () => {
 		mockLayout = {
-			root: { type: "leaf" as const, id: "pane-1", documentPath: "proj/doc1" } as any,
+			root: { type: "leaf", id: "pane-1", documentPath: "proj/doc1" },
 			activePaneId: "pane-1",
 			primaryDocumentPath: "proj/doc1",
 		};

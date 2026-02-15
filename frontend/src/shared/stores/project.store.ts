@@ -23,7 +23,7 @@ interface ProjectState extends ProjectContextValue {
 }
 
 export const useProjectStore = create<ProjectState>()(
-	subscribeWithSelector((set, get) => ({
+	subscribeWithSelector((set, _get) => ({
 		currentProject: undefined,
 		previousProject: undefined,
 		projects: [],

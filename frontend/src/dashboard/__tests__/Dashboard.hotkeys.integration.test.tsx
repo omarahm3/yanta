@@ -1,9 +1,9 @@
 import { fireEvent, render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { UseDashboardHotkeysConfigOptions } from "../hooks/useDashboardHotkeysConfig";
-import { useDashboardHotkeysConfig } from "../hooks/useDashboardHotkeysConfig";
 import { HotkeyProvider, useHotkeys } from "../../hotkeys";
 import { isMacPlatform } from "../../hotkeys/utils/hotkeyMatcher";
+import type { UseDashboardHotkeysConfigOptions } from "../hooks/useDashboardHotkeysConfig";
+import { useDashboardHotkeysConfig } from "../hooks/useDashboardHotkeysConfig";
 
 const dashboardShortcuts = {
 	newDocument: { key: "mod+N", description: "Create new document" },

@@ -139,8 +139,8 @@ export const PluginsSection = React.forwardRef<HTMLDivElement, PluginsSectionPro
 
 									{issues.length > 0 && (
 										<div className="text-xs text-yellow">
-											{issues.map((issue, idx) => (
-												<div key={`${pluginId}-issue-${idx}`}>
+											{issues.map((issue) => (
+												<div key={`${pluginId}-issue-${issue.field ?? "general"}-${issue.message}`}>
 													{issue.field ? `${issue.field}: ` : ""}
 													{issue.message}
 												</div>

@@ -41,7 +41,7 @@ export interface PluginManifest {
 
 export interface PluginDefinition {
 	manifest: PluginManifest;
-	setup: (api: PluginAPI) => void | (() => void) | Promise<void | (() => void)>;
+	setup: (api: PluginAPI) => void | (() => void) | Promise<(() => void) | undefined>;
 }
 
 export interface PluginAPI {

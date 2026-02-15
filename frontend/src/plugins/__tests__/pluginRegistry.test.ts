@@ -93,9 +93,15 @@ describe("plugin registry", () => {
 					},
 				]);
 				api.registerEditorExtensions([{}]);
-				api.registerEditorTipTapExtensions([{} as any]);
-				api.registerEditorBlockSpecs({ pluginBlock: {} } as any);
-				api.registerEditorStyleSpecs({ pluginStyle: {} } as any);
+				api.registerEditorTipTapExtensions([
+					{} as unknown as ReturnType<typeof getAllEditorTipTapExtensions>[number],
+				]);
+				api.registerEditorBlockSpecs({ pluginBlock: {} } as unknown as ReturnType<
+					typeof getAllEditorBlockSpecs
+				>);
+				api.registerEditorStyleSpecs({ pluginStyle: {} } as unknown as ReturnType<
+					typeof getAllEditorStyleSpecs
+				>);
 				api.registerEditorSlashMenuItems([
 					{
 						title: "Plugin slash action",

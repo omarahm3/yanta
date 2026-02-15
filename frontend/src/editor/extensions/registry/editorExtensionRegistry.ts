@@ -10,7 +10,7 @@ export type EditorBlockSpecContribution = BlockSpecs;
 export type EditorStyleSpecContribution = StyleSpecs;
 
 export interface EditorPluginExecutionContext {
-	editor: BlockNoteEditor<any, any, any>;
+	editor: BlockNoteEditor;
 	editable: boolean;
 }
 
@@ -42,7 +42,7 @@ export interface EditorBlockActionContribution {
 }
 
 export interface EditorLifecycleHooks {
-	onEditorReady?: (ctx: EditorPluginExecutionContext) => void | (() => void);
+	onEditorReady?: (ctx: EditorPluginExecutionContext) => (() => void) | undefined;
 	onEditorDestroy?: (ctx: EditorPluginExecutionContext) => void;
 }
 
