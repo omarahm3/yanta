@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { usePreferencesStore } from "../shared/stores/preferences.store";
+import { usePreferencesStore } from "@/shared/stores/preferences.store";
 
 /**
  * Loads preferences overrides from backend on mount.
@@ -12,3 +12,4 @@ export function PreferencesStoreInit() {
 
 	return null;
 }
+

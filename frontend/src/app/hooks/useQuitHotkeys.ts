@@ -1,5 +1,5 @@
 import { BackgroundQuit, ForceQuit } from "../../../bindings/yanta/internal/system/service";
-import { GLOBAL_SHORTCUTS } from "../../config";
+import { GLOBAL_SHORTCUTS } from "@/config/public";
 import { useHotkey } from "../../hotkeys";
 
 export function useQuitHotkeys(): void {
@@ -23,3 +23,4 @@ export function useQuitHotkeys(): void {
 		allowInInput: true,
 	});
 }
+

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { create } from "zustand";
 import type { PersistStorage } from "zustand/middleware";
 import { persist } from "zustand/middleware";
-import { getMergedConfig } from "@/config";
+import { getMergedConfig } from "@/shared/stores/preferences.store";
 import { BackendLogger } from "../utils/backendLogger";
 
 const STORAGE_KEY = "yanta_onboarding";
@@ -157,3 +157,4 @@ export function useOnboarding(): UseOnboardingReturn {
 		dismissWelcome,
 	};
 }
+

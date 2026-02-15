@@ -1,6 +1,6 @@
 import { FileText, Search } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useMergedConfig } from "../../config";
+import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import { useProjectContext } from "../../project";
 import { type RecentDocument, useRecentDocuments } from "../../shared/hooks";
 import { DocumentServiceWrapper } from "../../shared/services/DocumentService";
@@ -284,3 +284,4 @@ const PickerItemRow: React.FC<PickerItemRowProps> = React.memo(
 	),
 );
 PickerItemRow.displayName = "PickerItemRow";
+

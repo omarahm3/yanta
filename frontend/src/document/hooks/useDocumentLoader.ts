@@ -9,14 +9,14 @@ export const useDocumentLoader = (documentPath?: string) => {
 	const [error, setError] = useState<string | null>(null);
 
 	const prevPathRef = useRef(documentPath);
-	if (prevPathRef.current !== documentPath) {
-		prevPathRef.current = documentPath;
-		setData(null);
-		setIsLoading(!!documentPath);
-		setError(null);
-	}
 
 	useEffect(() => {
+		if (prevPathRef.current !== documentPath) {
+			prevPathRef.current = documentPath;
+			setData(null);
+			setError(null);
+		}
+
 		if (!documentPath) {
 			setData(null);
 			setIsLoading(false);

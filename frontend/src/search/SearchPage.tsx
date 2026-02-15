@@ -4,7 +4,7 @@ import type * as searchModels from "../../bindings/yanta/internal/search/models"
 import { Query } from "../../bindings/yanta/internal/search/service";
 import type * as tagModels from "../../bindings/yanta/internal/tag/models";
 import { ListActive as ListActiveTags } from "../../bindings/yanta/internal/tag/service";
-import { useMergedConfig } from "../config";
+import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import { useHelp } from "../help";
 import { useProjectContext } from "../project";
 import { useNotification, useSidebarSections } from "../shared/hooks";
@@ -561,3 +561,4 @@ const SearchResultCard: React.FC<SearchResultCardProps> = React.memo(
 		);
 	},
 );
+

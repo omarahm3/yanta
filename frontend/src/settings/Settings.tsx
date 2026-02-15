@@ -4,9 +4,8 @@ import {
 	formatShortcutKeyForDisplay,
 	getShortcutsForSettingsFromMerged,
 	parseDisplayKeyToConfigKey,
-	useMergedConfig,
-	usePreferencesOverrides,
-} from "../config";
+} from "@/config/shortcuts";
+import { useMergedConfig, usePreferencesOverrides } from "@/config/usePreferencesOverrides";
 import type { PageName } from "../shared/types";
 import { ConfirmDialog, MigrationConflictDialog, type Shortcut } from "../shared/ui";
 import { AboutSection } from "./AboutSection";
@@ -50,6 +49,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		showShortcutTooltips,
 		setShowShortcutTooltips,
 		shortcutTooltipsLoading,
+		tooltipHintsFeatureEnabled,
 		gitStatus,
 		gitStatusLoading,
 		refreshGitStatus,
@@ -154,6 +154,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 							showShortcutTooltips={showShortcutTooltips}
 							onShowShortcutTooltipsChange={setShowShortcutTooltips}
 							shortcutTooltipsLoading={shortcutTooltipsLoading}
+							tooltipHintsFeatureEnabled={tooltipHintsFeatureEnabled}
 						/>
 
 						<DatabaseSection
@@ -248,3 +249,4 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 };
 
 export const Settings = React.memo(SettingsComponent);
+

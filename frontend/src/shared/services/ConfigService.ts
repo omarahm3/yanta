@@ -5,14 +5,12 @@ import {
 	PreferencesTimeoutsOverrides as PreferencesTimeoutsOverridesModel,
 } from "../../../bindings/yanta/internal/config/models";
 import {
+	GetFeatureFlags as GetFeatureFlagsBinding,
 	GetPreferencesOverrides as GetPreferencesOverridesBinding,
 	SetPreferencesOverrides as SetPreferencesOverridesBinding,
 } from "../../../bindings/yanta/internal/config/wailsservice";
-import {
-	type PreferencesOverrides,
-	preferencesFromModel,
-	preferencesToModel,
-} from "../../config/preferences";
+import { type FeatureFlags, featureFlagsFromModel } from "@/config/featureFlags";
+import { type PreferencesOverrides, preferencesFromModel, preferencesToModel } from "@/config/preferences";
 
 export async function getPreferencesOverrides(): Promise<PreferencesOverrides> {
 	const model = await GetPreferencesOverridesBinding();
@@ -29,4 +27,9 @@ export async function setPreferencesOverrides(overrides: PreferencesOverrides): 
 		Plugins: Plugins ?? {},
 	} as unknown as ConstructorParameters<typeof PreferencesOverridesModel>[0]);
 	await SetPreferencesOverridesBinding(model);
+}
+
+export async function getFeatureFlags(): Promise<FeatureFlags> {
+	const model = await GetFeatureFlagsBinding();
+	return featureFlagsFromModel(model as unknown as Parameters<typeof featureFlagsFromModel>[0]);
 }

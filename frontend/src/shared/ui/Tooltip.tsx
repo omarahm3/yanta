@@ -1,6 +1,6 @@
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import React, { type ReactNode, useCallback, useEffect, useState } from "react";
-import { useMergedConfig } from "@/config";
+import { useMergedConfig } from "@/shared/stores/preferences.store";
 import { useShortcutTooltipsSetting, useTooltipUsage } from "../hooks";
 import { cn } from "../utils/cn";
 

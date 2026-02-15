@@ -1,6 +1,6 @@
 import { FileText } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useMergedConfig } from "../../config";
+import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import { useDocumentContext } from "../../document";
 import { usePaneLayout } from "../../pane";
 import { useProjectContext } from "../../project";
@@ -236,3 +236,4 @@ export function useGlobalCommandPalette(
 		gitError,
 	};
 }
+

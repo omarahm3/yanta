@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { PANE_SHORTCUTS } from "../../config";
+import { PANE_SHORTCUTS } from "@/config/public";
 import { useHotkeys } from "../../hotkeys";
 import type { HotkeyConfig } from "../../shared/types/hotkeys";
 import { countLeaves, getPaneInDirection, type PaneDirection } from "../utils/paneLayoutUtils";
@@ -79,3 +79,4 @@ export const usePaneHotkeys = (): void => {
 
 	useHotkeys(hotkeys);
 };
+

@@ -15,6 +15,7 @@
     "test:hotkeys:watch": "vitest src/__tests__ --test-timeout=5000",
     "test:coverage": "cross-env CI=1 vitest run --coverage src/__tests__",
     "lint": "biome check .",
+    "lint:imports": "node ./scripts/check-import-boundaries.mjs",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "format:check": "biome format ."

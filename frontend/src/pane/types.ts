@@ -1,4 +1,4 @@
-import { LAYOUT } from "../config";
+import { LAYOUT } from "@/config/public";
 
 export type SplitDirection = "horizontal" | "vertical";
 
@@ -43,3 +43,4 @@ export function createDefaultPaneLayout(): PaneLayoutState {
 		primaryDocumentPath: null,
 	};
 }
+

@@ -4,8 +4,8 @@ import {
 	formatShortcutKeyForDisplay,
 	GLOBAL_COMMANDS,
 	getHelpShortcutsFromMerged,
-	useMergedConfig,
-} from "../../config";
+} from "@/config/public";
+import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import { useHotkeyContext } from "../../hotkeys";
 import type { HelpSectionData, HelpSectionId } from "../utils/helpModalUtils";
 import { categorizeHotkey, getDefaultExpandedSections } from "../utils/helpModalUtils";
@@ -277,3 +277,4 @@ export function useHelpModalController(): UseHelpModalControllerResult {
 		handleClearSearch,
 	};
 }
+

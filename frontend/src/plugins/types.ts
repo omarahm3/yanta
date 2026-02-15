@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { PluginConfigSchema } from "../config";
+import type { PluginConfigSchema } from "@/config/public";
 import type { EditorExtensionContribution } from "../editor/extensions/registry/editorExtensionRegistry";
 import type { CommandOption, SidebarSection } from "../shared/ui";
 
@@ -40,3 +40,4 @@ export interface PersistedPluginState {
 }
 
 export type ZodSchema<T> = z.ZodType<T>;
+

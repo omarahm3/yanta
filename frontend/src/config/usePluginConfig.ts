@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { usePreferencesStore } from "../shared/stores/preferences.store";
+import { usePreferencesStore } from "@/shared/stores/preferences.store";
 import { validatePluginConfig } from "./pluginConfigValidation";
 
 export interface UsePluginConfigResult<T> {
@@ -36,3 +36,4 @@ export function usePluginConfig<T>(pluginId: string): UsePluginConfigResult<T> {
 
 	return { config, setConfig, isLoading };
 }
+

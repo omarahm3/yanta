@@ -350,3 +350,84 @@ func TestConfig_LinuxGraphicsMode(t *testing.T) {
 func newOnce() sync.Once {
 	return sync.Once{}
 }
+
+func TestConfig_FeatureFlags(t *testing.T) {
+	tempDir := t.TempDir()
+	cleanup := testenv.SetTestHome(t, tempDir)
+	defer cleanup()
+
+	instance = nil
+	instanceOnce = newOnce()
+
+	err := Init()
+	require.NoError(t, err)
+
+	t.Run("defaults to false", func(t *testing.T) {
+		flags := GetFeatureFlags()
+		assert.False(t, flags.TooltipHints)
+		assert.False(t, flags.AppMonitor)
+		assert.False(t, flags.CommandLine)
+	})
+
+	t.Run("reads values from config struct", func(t *testing.T) {
+		mu.Lock()
+		if instance == nil {
+			instance = &Config{}
+		}
+		instance.FeatureFlags = FeatureFlags{
+			TooltipHints: true,
+			AppMonitor:   true,
+			CommandLine:  true,
+		}
+		mu.Unlock()
+
+		flags := GetFeatureFlags()
+		assert.True(t, flags.TooltipHints)
+		assert.True(t, flags.AppMonitor)
+		assert.True(t, flags.CommandLine)
+	})
+
+	t.Run("env overrides config values", func(t *testing.T) {
+		mu.Lock()
+		if instance == nil {
+			instance = &Config{}
+		}
+		instance.FeatureFlags = FeatureFlags{
+			TooltipHints: false,
+			AppMonitor:   false,
+			CommandLine:  false,
+		}
+		mu.Unlock()
+
+		t.Setenv("YANTA_ENABLE_TOOLTIP_HINTS", "true")
+		t.Setenv("YANTA_ENABLE_APP_MONITOR", "1")
+		t.Setenv("YANTA_ENABLE_COMMAND_LINE", "true")
+
+		flags := GetFeatureFlags()
+		assert.True(t, flags.TooltipHints)
+		assert.True(t, flags.AppMonitor)
+		assert.True(t, flags.CommandLine)
+	})
+
+	t.Run("explicit false env disables flag", func(t *testing.T) {
+		mu.Lock()
+		if instance == nil {
+			instance = &Config{}
+		}
+		instance.FeatureFlags = FeatureFlags{
+			TooltipHints: true,
+			AppMonitor:   true,
+			CommandLine:  true,
+		}
+		mu.Unlock()
+
+		t.Setenv("YANTA_ENABLE_TOOLTIP_HINTS", "false")
+		t.Setenv("YANTA_ENABLE_APP_MONITOR", "0")
+		t.Setenv("YANTA_ENABLE_COMMAND_LINE", "off")
+
+		flags := GetFeatureFlags()
+		assert.False(t, flags.TooltipHints)
+		assert.False(t, flags.AppMonitor)
+		assert.False(t, flags.CommandLine)
+	})
+}

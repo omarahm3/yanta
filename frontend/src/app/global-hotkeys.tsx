@@ -1,5 +1,5 @@
 import { GlobalCommandPalette, useCommandPaletteStore } from "../command-palette";
-import { GLOBAL_SHORTCUTS } from "../config";
+import { GLOBAL_SHORTCUTS } from "@/config/public";
 import { useHelp } from "../help";
 import { useHotkey } from "../hotkeys";
 import { useProjectContext } from "../project";
@@ -70,3 +70,4 @@ const GlobalCommandHotkey = () => {
 };
 
 export { AppGlobalEffects, GlobalCommandHotkey };
+

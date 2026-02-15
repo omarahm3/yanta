@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from "react";
-import { useMergedConfig } from "@/config";
+import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import { DocumentEditorActions, DocumentEditorForm } from "../../document/components";
 import { useDocumentController } from "../../document/hooks/useDocumentController";
 import { useHotkeys } from "../../hotkeys";
@@ -183,3 +183,4 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 );
 
 PaneDocumentView.displayName = "PaneDocumentView";
+

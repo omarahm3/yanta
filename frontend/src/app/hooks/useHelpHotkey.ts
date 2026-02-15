@@ -1,4 +1,4 @@
-import { GLOBAL_SHORTCUTS } from "../../config";
+import { GLOBAL_SHORTCUTS } from "@/config/public";
 import { useHelp } from "../../help";
 import { useHotkey } from "../../hotkeys";
 
@@ -10,3 +10,4 @@ export function useHelpHotkey(): void {
 		allowInInput: false,
 	});
 }
+

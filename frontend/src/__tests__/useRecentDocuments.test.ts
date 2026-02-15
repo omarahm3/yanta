@@ -367,6 +367,37 @@ describe("useRecentDocuments", () => {
 			vi.useFakeTimers();
 		});
 
+		it("should not refetch documents when yanta/entry/updated title is unchanged", async () => {
+			vi.clearAllTimers();
+			vi.useRealTimers();
+			const existingDocs = [
+				{ path: "/doc1", title: "Doc 1", projectAlias: "proj1", lastOpened: 1000 },
+			];
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(existingDocs));
+			await useRecentDocumentsStore.persist.rehydrate();
+
+			const { result } = renderHook(() => useRecentDocuments());
+
+			await waitFor(() => {
+				expect(result.current.recentDocuments).toHaveLength(1);
+			});
+
+			const documentService = await import("../shared/services/DocumentService");
+			const getDocumentMock = vi.mocked(documentService.getDocument);
+			const initialCalls = getDocumentMock.mock.calls.length;
+
+			const onUpdated = getEventCallback("yanta/entry/updated");
+			act(() => {
+				onUpdated({ data: { path: "/doc1", title: "Doc 1" } });
+			});
+
+			await waitFor(() => {
+				expect(result.current.recentDocuments[0].title).toBe("Doc 1");
+			});
+			expect(getDocumentMock.mock.calls.length).toBe(initialCalls);
+			vi.useFakeTimers();
+		});
+
 		it("should remove doc when yanta/entry/deleted event fires for a matching doc", async () => {
 			vi.clearAllTimers();
 			vi.useRealTimers();

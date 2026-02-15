@@ -1,6 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useRef } from "react";
-import { getMergedConfig } from "../../config";
+import { getMergedConfig } from "@/shared/stores/preferences.store";
 import { useDialog } from "../../shared/stores/dialog.store";
 import { cn } from "../../shared/utils/cn";
 import { useOnboarding } from "../hooks";
@@ -129,3 +129,4 @@ export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ className }) => 
 		</div>
 	);
 };
+

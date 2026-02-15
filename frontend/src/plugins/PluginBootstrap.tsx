@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { usePreferencesStore } from "../shared/stores/preferences.store";
+import { usePreferencesStore } from "@/shared/stores/preferences.store";
 import { registerBuiltInPlugins } from "./bootstrap";
 import { loadEnabledPlugins } from "./registry";
 
@@ -19,3 +19,4 @@ export function PluginBootstrap() {
 
 	return null;
 }
+

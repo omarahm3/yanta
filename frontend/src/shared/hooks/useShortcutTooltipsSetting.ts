@@ -3,8 +3,8 @@ import {
 	GetShowShortcutTooltips,
 	SetShowShortcutTooltips,
 } from "../../../bindings/yanta/internal/system/service.js";
-import { ENABLE_TOOLTIP_HINTS } from "../../config/featureFlags";
 import { BackendLogger } from "../utils/backendLogger";
+import { useFeatureFlag } from "./useFeatureFlag";
 
 export interface UseShortcutTooltipsSettingReturn {
 	showShortcutTooltips: boolean;
@@ -18,11 +18,17 @@ export interface UseShortcutTooltipsSettingReturn {
  * When disabled (or when YANTA_ENABLE_TOOLTIP_HINTS is not set), tooltips will not appear.
  */
 export function useShortcutTooltipsSetting(): UseShortcutTooltipsSettingReturn {
+	const { enabled: tooltipHintsEnabled, isLoading: featureFlagLoading } =
+		useFeatureFlag("tooltipHints");
 	const [showShortcutTooltips, setShowShortcutTooltipsState] = useState<boolean>(true);
-	const [isLoading, setIsLoading] = useState<boolean>(ENABLE_TOOLTIP_HINTS);
+	const [isLoading, setIsLoading] = useState<boolean>(true);
 
 	useEffect(() => {
-		if (!ENABLE_TOOLTIP_HINTS) {
+		if (featureFlagLoading) {
+			setIsLoading(true);
+			return;
+		}
+		if (!tooltipHintsEnabled) {
 			setShowShortcutTooltipsState(false);
 			setIsLoading(false);
 			return;
@@ -41,11 +47,11 @@ export function useShortcutTooltipsSetting(): UseShortcutTooltipsSettingReturn {
 			.finally(() => {
 				setIsLoading(false);
 			});
-	}, []);
+	}, [featureFlagLoading, tooltipHintsEnabled]);
 
 	const setShowShortcutTooltipsAsync = useCallback(
 		async (show: boolean) => {
-			if (!ENABLE_TOOLTIP_HINTS) return;
+			if (!tooltipHintsEnabled) return;
 			const previousValue = showShortcutTooltips;
 			setShowShortcutTooltipsState(show);
 			try {
@@ -59,16 +65,16 @@ export function useShortcutTooltipsSetting(): UseShortcutTooltipsSettingReturn {
 				throw err;
 			}
 		},
-		[showShortcutTooltips],
+		[showShortcutTooltips, tooltipHintsEnabled],
 	);
 
 	const toggleShortcutTooltips = useCallback(async () => {
-		if (!ENABLE_TOOLTIP_HINTS) return;
+		if (!tooltipHintsEnabled) return;
 		await setShowShortcutTooltipsAsync(!showShortcutTooltips);
-	}, [showShortcutTooltips, setShowShortcutTooltipsAsync]);
+	}, [showShortcutTooltips, setShowShortcutTooltipsAsync, tooltipHintsEnabled]);
 
 	return {
-		showShortcutTooltips: ENABLE_TOOLTIP_HINTS ? showShortcutTooltips : false,
+		showShortcutTooltips: tooltipHintsEnabled ? showShortcutTooltips : false,
 		isLoading,
 		setShowShortcutTooltips: setShowShortcutTooltipsAsync,
 		toggleShortcutTooltips,
