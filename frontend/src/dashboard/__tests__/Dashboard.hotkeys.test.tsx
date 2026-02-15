@@ -1,32 +1,15 @@
-import { act, render, waitFor } from "@testing-library/react";
-import React from "react";
-import { vi } from "vitest";
-import { Restore, SoftDelete } from "../../../bindings/yanta/internal/document/service";
-import { DialogProvider } from "../../app/context";
-import { HotkeyProvider, useHotkeyContext } from "../../hotkeys";
-import type { HotkeyContextValue } from "../../shared/types/hotkeys";
+import { act, renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { useDashboardHotkeysConfig } from "../hooks/useDashboardHotkeysConfig";
 
-const onNavigate = vi.fn();
-const selectNext = vi.fn();
-const selectPrevious = vi.fn();
-const loadDocuments = vi.fn();
-const setSelectedIndex = vi.fn();
-const mockSuccess = vi.fn();
-const mockError = vi.fn();
-const mockRemoveRecentDocument = vi.fn();
-const mockAddRecentDocument = vi.fn();
-const mockSetPageContext = vi.fn();
+const mockUseMergedConfig = vi.fn();
 
-// Hoisted stable objects for config mock — must be defined before vi.mock calls
-const {
-	DASHBOARD_SHORTCUTS,
-	PANE_SHORTCUTS,
-	mockMergedConfig,
-	mockDocuments,
-	mockSidebarSections,
-	mockRecentDocs,
-} = vi.hoisted(() => {
-	const DASHBOARD_SHORTCUTS = {
+vi.mock("@/config/usePreferencesOverrides", () => ({
+	useMergedConfig: () => mockUseMergedConfig(),
+}));
+
+function createDashboardShortcuts() {
+	return {
 		newDocument: { key: "mod+N", description: "Create new document" },
 		toggleArchived: { key: "mod+shift+A", description: "Toggle archived documents view" },
 		softDelete: { key: "mod+D", description: "Soft delete selected documents" },
@@ -40,382 +23,149 @@ const {
 		move: { key: "mod+M", description: "Move selected documents" },
 		archive: { key: "mod+A", description: "Archive selected documents" },
 		restore: { key: "mod+U", description: "Restore archived documents" },
-		exportMd: { key: "mod+E", description: "Export to markdown" },
-		exportPdf: { key: "mod+shift+E", description: "Export to PDF" },
+		exportMd: { key: "mod+E", description: "Export selected documents to markdown" },
+		exportPdf: { key: "mod+shift+E", description: "Export selected documents to PDF" },
 	};
-	const PANE_SHORTCUTS = {
-		focusLeft: { key: "mod+alt+ArrowLeft", description: "Focus left pane" },
-		focusDown: { key: "mod+alt+ArrowDown", description: "Focus pane below" },
-		focusUp: { key: "mod+alt+ArrowUp", description: "Focus pane above" },
-		focusRight: { key: "mod+alt+ArrowRight", description: "Focus right pane" },
-		splitRight: { key: "mod+\\", description: "Split pane right" },
-		splitDown: { key: "mod+shift+\\", description: "Split pane down" },
-		closePane: { key: "mod+alt+W", description: "Close current pane" },
-	};
-	// Stable config object — same reference across renders to prevent infinite re-render loops
-	const mockMergedConfig = {
-		timeouts: { debounce: 300, autoSave: 1000, toastDuration: 3000 },
-		layout: { maxPanes: 4 },
-		shortcuts: {
-			global: {},
-			sidebar: {},
-			document: {},
-			dashboard: DASHBOARD_SHORTCUTS,
-			journal: {},
-			projects: {},
-			quickCapture: {},
-			settings: {},
-			commandLine: {},
-			search: {},
-			pane: PANE_SHORTCUTS,
-		},
-	};
-	// Stable documents array — same reference across renders
-	const mockDocuments = [
-		{ path: "proj/doc1", title: "Doc 1" },
-		{ path: "proj/doc2", title: "Doc 2" },
-	];
-	// Stable empty array for sidebar sections
-	const mockSidebarSections: never[] = [];
-	// Stable empty array for recent docs
-	const mockRecentDocs: never[] = [];
+}
+
+function createHookOptions() {
 	return {
-		DASHBOARD_SHORTCUTS,
-		PANE_SHORTCUTS,
-		mockMergedConfig,
-		mockDocuments,
-		mockSidebarSections,
-		mockRecentDocs,
+		handleNewDocument: vi.fn(),
+		handleToggleArchived: vi.fn(),
+		handleDeleteSelectedDocuments: vi.fn(),
+		handleMoveSelectedDocuments: vi.fn(),
+		handleToggleSelection: vi.fn(),
+		handleOpenHighlightedDocument: vi.fn(),
+		highlightNext: vi.fn(),
+		highlightPrevious: vi.fn(),
+		handleArchiveSelectedDocuments: vi.fn().mockResolvedValue(undefined),
+		handleRestoreSelectedDocuments: vi.fn().mockResolvedValue(undefined),
+		handleExportSelectedMarkdown: vi.fn().mockResolvedValue(undefined),
+		handleExportSelectedPDF: vi.fn().mockResolvedValue(undefined),
 	};
-});
+}
 
-vi.mock("../../shared/hooks/useNotification", () => ({
-	useNotification: () => ({
-		success: mockSuccess,
-		error: mockError,
-	}),
-}));
-
-// CRITICAL: All mock return values must be stable references (module-level or hoisted)
-// to prevent infinite re-render loops in useCallback/useMemo/useEffect dependency arrays.
-vi.mock("../../shared/hooks", () => ({
-	useNotification: () => ({
-		success: mockSuccess,
-		error: mockError,
-	}),
-	useRecentDocuments: () => ({
-		removeRecentDocument: mockRemoveRecentDocument,
-		addRecentDocument: mockAddRecentDocument,
-		recentDocuments: mockRecentDocs,
-	}),
-	useSidebarSections: () => mockSidebarSections,
-}));
-
-vi.mock("../../help", () => ({
-	useHelp: () => ({ setPageContext: mockSetPageContext }),
-}));
-
-vi.mock("../../shared/hooks/useSidebarSections", () => ({
-	__esModule: true,
-	useSidebarSections: () => mockSidebarSections,
-}));
-
-const mockCurrentProject = { alias: "proj", name: "Project" };
-const mockProjects = [
-	{ alias: "proj", name: "Project" },
-	{ alias: "other", name: "Other" },
-];
-
-vi.mock("../../project/context", () => ({
-	useProjectContext: () => ({
-		currentProject: mockCurrentProject,
-		projects: mockProjects,
-		archivedProjects: [],
-		isLoading: false,
-	}),
-}));
-
-vi.mock("../../project", () => ({
-	useProjectContext: () => ({
-		currentProject: mockCurrentProject,
-		projects: mockProjects,
-		archivedProjects: [],
-		isLoading: false,
-	}),
-}));
-
-vi.mock("../../document", () => ({
-	useDocumentContext: () => ({
-		documents: mockDocuments,
-		loadDocuments,
-		isLoading: false,
-		selectedIndex: 0,
-		setSelectedIndex,
-		selectNext,
-		selectPrevious,
-	}),
-}));
-
-vi.mock("../components/DocumentList", () => ({
-	__esModule: true,
-	DocumentList: ({
-		highlightedIndex,
-		selectedDocuments,
-	}: {
-		highlightedIndex?: number;
-		selectedDocuments?: Set<string>;
-	}) => (
-		<div
-			data-testid="document-list"
-			data-highlighted={highlightedIndex ?? -1}
-			data-selected={Array.from(selectedDocuments ?? new Set()).join(",")}
-		/>
-	),
-}));
-
-vi.mock("../components/StatusBar", () => ({
-	__esModule: true,
-	StatusBar: () => <div data-testid="status-bar" />,
-}));
-
-vi.mock("../components/MoveDocumentDialog", () => ({
-	__esModule: true,
-	MoveDocumentDialog: () => null,
-}));
-
-vi.mock("../../../bindings/yanta/internal/commandline/documentcommands", () => ({
-	ParseWithContext: vi.fn(async () => ({ success: true })),
-}));
-
-vi.mock("../../../bindings/yanta/internal/document/service", () => ({
-	SoftDelete: vi.fn(),
-	Restore: vi.fn(),
-	ExportDocument: vi.fn(),
-}));
-
-vi.mock("../../../bindings/yanta/internal/document/models", () => ({
-	ExportDocumentRequest: {},
-}));
-
-vi.mock("../../shared/services/DocumentService", () => ({
-	DocumentServiceWrapper: {
-		save: vi.fn(async () => "proj/new-doc-path"),
-	},
-	moveDocumentToProject: vi.fn(),
-}));
-
-const softDeleteMock = SoftDelete as unknown as ReturnType<typeof vi.fn>;
-const restoreMock = Restore as unknown as ReturnType<typeof vi.fn>;
-
-vi.mock("../../../wailsjs/go/models", () => ({
-	commandline: {
-		DocumentCommand: {
-			New: "new",
-			Doc: "doc",
-			Archive: "archive",
-			Unarchive: "unarchive",
-			Delete: "delete",
-		},
-	},
-}));
-
-vi.mock("../../app", () => ({
-	Layout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-	GranularErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-
-// Static config mock — useMergedConfig returns stable reference to prevent infinite loops
-vi.mock("../../config", async (importOriginal) => {
-	const actual = await importOriginal<typeof import("../../config")>();
+function createKeyboardEventStub() {
 	return {
-		...actual,
-		DocumentCommand: {
-			DocumentCommandNew: "new",
-			DocumentCommandDoc: "doc",
-			DocumentCommandArchive: "archive",
-			DocumentCommandUnarchive: "unarchive",
-			DocumentCommandDelete: "delete",
-		},
-		LAYOUT: { maxPanes: 4 },
-		TIMEOUTS: { debounce: 300, autoSave: 1000, toastDuration: 3000 },
-		DASHBOARD_SHORTCUTS,
-		PANE_SHORTCUTS,
-		GLOBAL_SHORTCUTS: {},
-		SIDEBAR_SHORTCUTS: {},
-		DOCUMENT_SHORTCUTS: {},
-		JOURNAL_SHORTCUTS: {},
-		PROJECTS_SHORTCUTS: {},
-		QUICK_CAPTURE_SHORTCUTS: {},
-		SETTINGS_SHORTCUTS: {},
-		COMMAND_LINE_SHORTCUTS: {},
-		SEARCH_SHORTCUTS: {},
-		EDITOR_SHORTCUTS: [],
-		EDITOR_HELP_COMMANDS: [],
-		GLOBAL_COMMANDS: [],
-		ENABLE_TOOLTIP_HINTS: false,
-		useMergedConfig: () => mockMergedConfig,
-		getMergedConfig: () => mockMergedConfig,
-		validatePluginConfig: () => ({ valid: true }),
-		usePluginConfig: () => ({}),
-	};
-});
+		preventDefault: vi.fn(),
+		stopPropagation: vi.fn(),
+	} as unknown as KeyboardEvent;
+}
 
-import { Dashboard } from "..";
-
-const HotkeyProbe: React.FC<{ onReady: (ctx: HotkeyContextValue) => void }> = ({ onReady }) => {
-	const ctx = useHotkeyContext();
-	React.useEffect(() => {
-		onReady(ctx);
-	}, [ctx, onReady]);
-	return null;
-};
-
-describe("Dashboard hotkeys", () => {
+describe("useDashboardHotkeysConfig", () => {
 	beforeEach(() => {
-		onNavigate.mockClear();
-		selectNext.mockClear();
-		selectPrevious.mockClear();
-		loadDocuments.mockClear();
-		setSelectedIndex.mockClear();
-		mockSuccess.mockClear();
-		mockError.mockClear();
-		softDeleteMock.mockClear();
-		restoreMock.mockClear();
-		vi.clearAllTimers();
-		vi.useRealTimers();
+		mockUseMergedConfig.mockReturnValue({
+			shortcuts: {
+				dashboard: createDashboardShortcuts(),
+			},
+		});
 	});
 
-	const Wrapper: React.FC<{ onContext: (ctx: HotkeyContextValue) => void }> = ({ onContext }) => (
-		<DialogProvider>
-			<HotkeyProvider>
-				<HotkeyProbe onReady={onContext} />
-				<Dashboard onNavigate={onNavigate} onRegisterToggleArchived={() => {}} />
-			</HotkeyProvider>
-		</DialogProvider>
-	);
+	it("returns all dashboard hotkeys from merged config", () => {
+		const options = createHookOptions();
+		const { result } = renderHook(() => useDashboardHotkeysConfig(options));
 
-	const renderDashboard = async () => {
-		let ctx: HotkeyContextValue | null = null;
-		// biome-ignore lint/suspicious/noAssignInExpressions: Test callback pattern
-		render(<Wrapper onContext={(value) => (ctx = value)} />);
-		await waitFor(() => expect(ctx).not.toBeNull());
-		// biome-ignore lint/style/noNonNullAssertion: Test utility function ensures non-null
-		return ctx!;
-	};
-
-	const getHotkey = (ctx: HotkeyContextValue, key: string) => {
-		const hotkey = ctx.getRegisteredHotkeys().find((h) => h.key === key);
-		expect(hotkey).toBeDefined();
-		// biome-ignore lint/style/noNonNullAssertion: Test utility function ensures non-null
-		return hotkey!;
-	};
-
-	it("navigates to new document with mod+N", async () => {
-		const ctx = await renderDashboard();
-		const modN = getHotkey(ctx, "mod+N");
-		await act(async () => {
-			modN.handler(new KeyboardEvent("keydown", { key: "n", ctrlKey: true }));
-		});
-		await waitFor(() =>
-			expect(onNavigate).toHaveBeenCalledWith("document", {
-				documentPath: "proj/new-doc-path",
-				newDocument: true,
-			}),
+		expect(result.current).toHaveLength(15);
+		expect(result.current.every((hotkey) => hotkey.allowInInput === false)).toBe(true);
+		expect(result.current.map((hotkey) => hotkey.key)).toEqual(
+			expect.arrayContaining([
+				"mod+N",
+				"mod+shift+A",
+				"mod+D",
+				"mod+shift+D",
+				"Space",
+				"Enter",
+				"j",
+				"k",
+				"ArrowDown",
+				"ArrowUp",
+				"mod+M",
+				"mod+A",
+				"mod+U",
+				"mod+E",
+				"mod+shift+E",
+			]),
 		);
 	});
 
-	it("toggles archived view with mod+shift+A", async () => {
-		const ctx = await renderDashboard();
-		const toggleHotkey = getHotkey(ctx, "mod+shift+A");
-		await act(async () => {
-			toggleHotkey.handler(
-				new KeyboardEvent("keydown", {
-					key: "A",
-					ctrlKey: true,
-					shiftKey: true,
-				}),
-			);
+	it("routes delete hotkeys with correct hard-delete flag", () => {
+		const options = createHookOptions();
+		const { result } = renderHook(() => useDashboardHotkeysConfig(options));
+
+		const softDeleteHotkey = result.current.find((hotkey) => hotkey.key === "mod+D");
+		const hardDeleteHotkey = result.current.find((hotkey) => hotkey.key === "mod+shift+D");
+
+		expect(softDeleteHotkey).toBeDefined();
+		expect(hardDeleteHotkey).toBeDefined();
+
+		const event = createKeyboardEventStub();
+		act(() => {
+			softDeleteHotkey?.handler(event);
+			hardDeleteHotkey?.handler(event);
 		});
-		expect(mockSuccess).not.toHaveBeenCalled();
+
+		expect(options.handleDeleteSelectedDocuments).toHaveBeenNthCalledWith(1, false);
+		expect(options.handleDeleteSelectedDocuments).toHaveBeenNthCalledWith(2, true);
+		expect(event.preventDefault).toHaveBeenCalled();
+		expect(event.stopPropagation).toHaveBeenCalled();
 	});
 
-	it("moves selection down with j", async () => {
-		const ctx = await renderDashboard();
-		const jHotkey = getHotkey(ctx, "j");
-		await act(async () => {
-			jHotkey.handler(new KeyboardEvent("keydown", { key: "j" }));
+	it("routes navigation and selection hotkeys", () => {
+		const options = createHookOptions();
+		const { result } = renderHook(() => useDashboardHotkeysConfig(options));
+		const event = createKeyboardEventStub();
+
+		const nextHotkey = result.current.find((hotkey) => hotkey.key === "j");
+		const downHotkey = result.current.find((hotkey) => hotkey.key === "ArrowDown");
+		const prevHotkey = result.current.find((hotkey) => hotkey.key === "k");
+		const upHotkey = result.current.find((hotkey) => hotkey.key === "ArrowUp");
+		const toggleSelectionHotkey = result.current.find((hotkey) => hotkey.key === "Space");
+		const openHighlightedHotkey = result.current.find((hotkey) => hotkey.key === "Enter");
+
+		act(() => {
+			nextHotkey?.handler(event);
+			downHotkey?.handler(event);
+			prevHotkey?.handler(event);
+			upHotkey?.handler(event);
+			toggleSelectionHotkey?.handler(event);
+			openHighlightedHotkey?.handler(event);
 		});
-		expect(selectNext).toHaveBeenCalled();
+
+		expect(options.highlightNext).toHaveBeenCalledTimes(2);
+		expect(options.highlightPrevious).toHaveBeenCalledTimes(2);
+		expect(options.handleToggleSelection).toHaveBeenCalledTimes(1);
+		expect(options.handleOpenHighlightedDocument).toHaveBeenCalledTimes(1);
 	});
 
-	it("moves selection with arrow keys", async () => {
-		const ctx = await renderDashboard();
-		const downHotkey = getHotkey(ctx, "ArrowDown");
-		const upHotkey = getHotkey(ctx, "ArrowUp");
-		await act(async () => {
-			downHotkey.handler(new KeyboardEvent("keydown", { key: "ArrowDown" }));
-			upHotkey.handler(new KeyboardEvent("keydown", { key: "ArrowUp" }));
-		});
-		expect(selectNext).toHaveBeenCalled();
-		expect(selectPrevious).toHaveBeenCalled();
-	});
+	it("routes async action hotkeys", () => {
+		const options = createHookOptions();
+		const { result } = renderHook(() => useDashboardHotkeysConfig(options));
+		const event = createKeyboardEventStub();
 
-	it("opens selected document with Enter", async () => {
-		const ctx = await renderDashboard();
-		const enterHotkey = getHotkey(ctx, "Enter");
-		await act(async () => {
-			enterHotkey.handler(new KeyboardEvent("keydown", { key: "Enter" }));
-		});
-		expect(onNavigate).toHaveBeenCalledWith("document", {
-			documentPath: "proj/doc1",
-		});
-	});
+		const archiveHotkey = result.current.find((hotkey) => hotkey.key === "mod+A");
+		const restoreHotkey = result.current.find((hotkey) => hotkey.key === "mod+U");
+		const exportMdHotkey = result.current.find((hotkey) => hotkey.key === "mod+E");
+		const exportPdfHotkey = result.current.find((hotkey) => hotkey.key === "mod+shift+E");
+		const moveHotkey = result.current.find((hotkey) => hotkey.key === "mod+M");
+		const newDocHotkey = result.current.find((hotkey) => hotkey.key === "mod+N");
+		const toggleArchivedHotkey = result.current.find((hotkey) => hotkey.key === "mod+shift+A");
 
-	it("archives selected documents with mod+A", async () => {
-		const ctx = await renderDashboard();
-		const spaceHotkey = getHotkey(ctx, "Space");
-		const archiveHotkey = getHotkey(ctx, "mod+A");
-
-		await act(async () => {
-			spaceHotkey.handler(new KeyboardEvent("keydown", { key: " " }));
+		act(() => {
+			archiveHotkey?.handler(event);
+			restoreHotkey?.handler(event);
+			exportMdHotkey?.handler(event);
+			exportPdfHotkey?.handler(event);
+			moveHotkey?.handler(event);
+			newDocHotkey?.handler(event);
+			toggleArchivedHotkey?.handler(event);
 		});
 
-		await act(async () => {
-			archiveHotkey.handler(new KeyboardEvent("keydown", { key: "a", ctrlKey: true }));
-		});
-
-		await waitFor(() => expect(softDeleteMock).toHaveBeenCalledWith("proj/doc1"));
-	});
-
-	it("restores selected documents with mod+U when archived view is shown", async () => {
-		const ctx = await renderDashboard();
-		const toggleHotkey = getHotkey(ctx, "mod+shift+A");
-		vi.useFakeTimers();
-		await act(async () => {
-			toggleHotkey.handler(
-				new KeyboardEvent("keydown", {
-					key: "A",
-					ctrlKey: true,
-					shiftKey: true,
-				}),
-			);
-		});
-		vi.runAllTimers();
-		vi.clearAllTimers();
-		vi.useRealTimers();
-		mockSuccess.mockClear();
-
-		const spaceHotkey = getHotkey(ctx, "Space");
-		const restoreHotkey = getHotkey(ctx, "mod+U");
-
-		await act(async () => {
-			spaceHotkey.handler(new KeyboardEvent("keydown", { key: " " }));
-		});
-
-		await act(async () => {
-			restoreHotkey.handler(new KeyboardEvent("keydown", { key: "u", ctrlKey: true }));
-		});
-
-		await waitFor(() => expect(restoreMock).toHaveBeenCalledWith("proj/doc1"));
+		expect(options.handleArchiveSelectedDocuments).toHaveBeenCalledTimes(1);
+		expect(options.handleRestoreSelectedDocuments).toHaveBeenCalledTimes(1);
+		expect(options.handleExportSelectedMarkdown).toHaveBeenCalledTimes(1);
+		expect(options.handleExportSelectedPDF).toHaveBeenCalledTimes(1);
+		expect(options.handleMoveSelectedDocuments).toHaveBeenCalledTimes(1);
+		expect(options.handleNewDocument).toHaveBeenCalledTimes(1);
+		expect(options.handleToggleArchived).toHaveBeenCalledTimes(1);
 	});
 });

@@ -16,7 +16,6 @@ A fast, keyboard-driven note-taking app built for developers.
   <img src="screenshots/collage.png" alt="Yanta app interface collage" width="100%">
 </div>
 
-
 ## Why Yanta?
 
 Most note-taking apps get in your way. Yanta doesn't.
@@ -99,6 +98,9 @@ go test ./...
 # Frontend tests
 cd frontend
 npm run test
+
+# Frontend tests (watch mode)
+npm run test:watch
 ```
 
 ### Building
