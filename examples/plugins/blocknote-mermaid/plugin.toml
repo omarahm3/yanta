@@ -1,6 +1,0 @@
-id = "example.blocknote-mermaid"
-name = "BlockNote Mermaid Example"
-version = "1.0.0"
-api_version = "1"
-entry = "main.js"
-capabilities = ["editorBlockSpecs", "editorSlashMenu"]
