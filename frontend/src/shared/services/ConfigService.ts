@@ -9,11 +9,8 @@ import {
 	GetPreferencesOverrides as GetPreferencesOverridesBinding,
 	SetPreferencesOverrides as SetPreferencesOverridesBinding,
 } from "../../../bindings/yanta/internal/config/wailsservice";
-import {
-	type FeatureFlags,
-	featureFlagsFromModel,
-} from "../../config";
-import { type PreferencesOverrides, preferencesFromModel, preferencesToModel } from "../../config/preferences";
+import { type FeatureFlags, featureFlagsFromModel } from "@/config/featureFlags";
+import { type PreferencesOverrides, preferencesFromModel, preferencesToModel } from "@/config/preferences";
 
 export async function getPreferencesOverrides(): Promise<PreferencesOverrides> {
 	const model = await GetPreferencesOverridesBinding();

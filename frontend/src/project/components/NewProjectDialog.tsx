@@ -1,6 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useMergedConfig } from "../../config";
+import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import { Modal } from "../../shared/ui/Modal";
 
 export interface NewProjectDialogProps {
@@ -206,3 +206,4 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
 		</Modal>
 	);
 };
+

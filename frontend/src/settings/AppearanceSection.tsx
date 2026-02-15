@@ -1,5 +1,5 @@
 import React from "react";
-import type { LinuxGraphicsMode } from "../config/preferences";
+import type { LinuxGraphicsMode } from "@/config/preferences";
 import { useAppearanceStore } from "../shared/stores/appearance.store";
 import { Label, Select, type SelectOption, SettingsSection, Toggle } from "../shared/ui";
 
@@ -163,3 +163,4 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 );
 
 AppearanceSection.displayName = "AppearanceSection";
+

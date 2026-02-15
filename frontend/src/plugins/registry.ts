@@ -1,11 +1,11 @@
 import { useCommandRegistryStore } from "../command-palette/registry";
-import { type PluginConfigSchema, registerPluginConfig, unregisterPluginConfig } from "../config";
+import { type PluginConfigSchema, registerPluginConfig, unregisterPluginConfig } from "@/config/public";
 import {
 	getAllEditorExtensions,
 	removeEditorExtensions,
 	setEditorExtensions,
 } from "../editor/extensions/registry/editorExtensionRegistry";
-import { usePreferencesStore } from "../shared/stores/preferences.store";
+import { usePreferencesStore } from "@/shared/stores/preferences.store";
 import { useSidebarRegistryStore } from "../sidebar/registry/sidebarRegistry.store";
 import type {
 	PersistedPluginState,
@@ -184,3 +184,4 @@ export function __resetPluginRegistryForTests(): void {
 	cleanups.clear();
 	runtime.clear();
 }
+

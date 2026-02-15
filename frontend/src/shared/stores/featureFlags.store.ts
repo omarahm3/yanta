@@ -1,5 +1,9 @@
 import { create } from "zustand";
-import { type FeatureFlagName, type FeatureFlags, getEnvDefaultFeatureFlags } from "../../config";
+import {
+	type FeatureFlagName,
+	type FeatureFlags,
+	getEnvDefaultFeatureFlags,
+} from "@/config/featureFlags";
 import { getFeatureFlags as getFeatureFlagsFromBackend } from "../services/ConfigService";
 import { BackendLogger } from "../utils/backendLogger";
 
@@ -26,3 +30,4 @@ export const useFeatureFlagsStore = create<FeatureFlagsState>((set, get) => ({
 	},
 	getFlag: (name: FeatureFlagName) => get().flags[name],
 }));
+

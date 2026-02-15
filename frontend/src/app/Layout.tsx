@@ -1,6 +1,6 @@
 import type React from "react";
 import { type ReactNode, useEffect, useMemo } from "react";
-import { SIDEBAR_SHORTCUTS } from "../config";
+import { SIDEBAR_SHORTCUTS } from "@/config/public";
 import { useHotkeys } from "../hotkeys";
 import { useProjectContext } from "../project";
 import { useFooterHints, useFooterHintsSetting, useSidebarSetting } from "../shared/hooks";
@@ -163,3 +163,4 @@ export const Layout: React.FC<LayoutProps> = ({
 		</div>
 	);
 };
+

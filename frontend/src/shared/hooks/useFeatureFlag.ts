@@ -1,4 +1,4 @@
-import type { FeatureFlagName } from "../../config";
+import type { FeatureFlagName } from "@/config/featureFlags";
 import { useFeatureFlagsStore } from "../stores/featureFlags.store";
 
 export interface UseFeatureFlagResult {
@@ -11,3 +11,4 @@ export function useFeatureFlag(name: FeatureFlagName): UseFeatureFlagResult {
 	const isLoading = useFeatureFlagsStore((s) => s.isLoading);
 	return { enabled, isLoading };
 }
+

@@ -1,6 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useMergedConfig } from "../../config";
+import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import { useProjectContext } from "../../project";
 import { moveDocumentToProject } from "../../shared/services/DocumentService";
 import { useDialog } from "../../shared/stores/dialog.store";
@@ -191,3 +191,4 @@ export const MoveDocumentDialog: React.FC<MoveDocumentDialogProps> = ({
 		</Dialog>
 	);
 };
+

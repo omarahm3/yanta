@@ -1,9 +1,9 @@
 import { useCallback } from "react";
-import type { MergedConfig } from "../shared/stores/preferences.store";
-import { useMergedConfig, usePreferencesStore } from "../shared/stores/preferences.store";
+import type { MergedConfig } from "@/shared/stores/preferences.store";
+import { useMergedConfig, usePreferencesStore } from "@/shared/stores/preferences.store";
 import type { PreferencesOverrides } from "./preferences";
 
-export type { MergedConfig } from "../shared/stores/preferences.store";
+export type { MergedConfig } from "@/shared/stores/preferences.store";
 
 /** Hook for components that need to read and mutate preferences overrides. */
 export function usePreferencesOverrides() {
@@ -28,4 +28,5 @@ export function usePreferencesOverrides() {
 }
 
 /** Re-export for convenience. */
-export { useMergedConfig } from "../shared/stores/preferences.store";
+export { useMergedConfig } from "@/shared/stores/preferences.store";
+

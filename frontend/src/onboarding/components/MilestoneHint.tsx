@@ -1,6 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getMergedConfig } from "../../config";
+import { getMergedConfig } from "@/shared/stores/preferences.store";
 import { cn } from "../../shared/utils/cn";
 
 export interface MilestoneHintProps {
@@ -114,3 +114,4 @@ export const MilestoneHint: React.FC<MilestoneHintProps> = ({
 		</div>
 	);
 };
+

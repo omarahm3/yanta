@@ -8,7 +8,7 @@ import {
 	GetAllDocumentCounts,
 	GetAllLastDocumentDates,
 } from "../../bindings/yanta/internal/project/service";
-import { PROJECTS_SHORTCUTS } from "../config";
+import { PROJECTS_SHORTCUTS } from "@/config/public";
 import { useHotkeys } from "../hotkeys";
 import { useNotification, useSidebarSections } from "../shared/hooks";
 import { type ExtendedProject, extendProject, type PageName } from "../shared/types";
@@ -495,3 +495,4 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 };
 
 export const Projects = React.memo(ProjectsComponent);
+

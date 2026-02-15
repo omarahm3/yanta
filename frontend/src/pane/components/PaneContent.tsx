@@ -1,6 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
-import { PANE_SHORTCUTS } from "../../config";
+import { PANE_SHORTCUTS } from "@/config/public";
 import { useHotkey } from "../../hotkeys";
 import { useEscapeHandler } from "../../shared/hooks";
 import { useLatestRef } from "../../shared/hooks/useLatestRef";
@@ -141,3 +141,4 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 		</div>
 	);
 };
+

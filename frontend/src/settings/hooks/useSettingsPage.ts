@@ -1,6 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { SETTINGS_SHORTCUTS } from "../../config";
+import { SETTINGS_SHORTCUTS } from "@/config/shortcuts";
 import { useHelp } from "../../help";
 import { useHotkeys } from "../../hotkeys";
 import {
@@ -165,3 +165,4 @@ export function useSettingsPage({ onNavigate }: UseSettingsPageProps) {
 		sidebarSections,
 	};
 }
+
