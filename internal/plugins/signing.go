@@ -14,6 +14,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"yanta/internal/config"
 )
 
 const packageSignatureFile = "signature.json"
@@ -36,11 +38,11 @@ type TrustedPublisherKey struct {
 }
 
 func (s *Service) trustedKeysPath() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("resolve home directory: %w", err)
+	dataDir := strings.TrimSpace(config.GetDataDirectory())
+	if dataDir == "" {
+		return "", fmt.Errorf("resolve data directory: empty data directory")
 	}
-	return filepath.Join(home, ".yanta", "plugins", "trusted_keys.json"), nil
+	return filepath.Join(dataDir, "plugins", "trusted_keys.json"), nil
 }
 
 func (s *Service) loadTrustedKeys() (map[string]TrustedPublisherKey, error) {

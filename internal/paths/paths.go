@@ -26,6 +26,9 @@ func GetLogsPath() string {
 }
 
 func GetConfigPath() string {
+	if os.Getenv("YANTA_DATA_DIR") != "" {
+		return filepath.Join(config.GetDataDirectory(), "config.toml")
+	}
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".yanta", "config.toml")
 }

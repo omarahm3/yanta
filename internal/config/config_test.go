@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -192,6 +193,29 @@ func TestConfig_DataDirectory_EnvVar(t *testing.T) {
 		expectedDefault := filepath.Join(tempDir, ".yanta")
 		assert.Equal(t, expectedDefault, dataDir, "Empty config should fall back to default ~/.yanta")
 	})
+}
+
+func TestConfigPath_UsesYantaDataDirWhenSet(t *testing.T) {
+	tempDir := t.TempDir()
+	cleanup := testenv.SetTestHome(t, tempDir)
+	defer cleanup()
+
+	instance = nil
+	instanceOnce = newOnce()
+
+	envDir := filepath.Join(tempDir, "isolated-dev")
+	cleanupEnv := testenv.SetTestDataDir(t, envDir)
+	defer cleanupEnv()
+
+	err := Init()
+	require.NoError(t, err)
+
+	err = SetLogLevel("debug")
+	require.NoError(t, err)
+
+	expectedConfigPath := filepath.Join(envDir, "config.toml")
+	_, statErr := os.Stat(expectedConfigPath)
+	require.NoError(t, statErr)
 }
 
 func TestConfig_ExistingFields(t *testing.T) {

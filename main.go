@@ -205,11 +205,10 @@ func run() {
 }
 
 func writeStartupError(message string) {
-	home, err := os.UserHomeDir()
-	if err != nil {
+	errorFile := filepath.Join(config.GetDataDirectory(), "startup-error.log")
+	if err := os.MkdirAll(filepath.Dir(errorFile), 0o755); err != nil {
 		return
 	}
-	errorFile := filepath.Join(home, ".yanta", "startup-error.log")
 	f, err := os.OpenFile(errorFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
 	if err != nil {
 		return

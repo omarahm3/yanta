@@ -385,9 +385,8 @@ func (a *App) writeCrashReport(location string, panicValue any) {
 	crashFile := fmt.Sprintf("crash-%s-%s.log", location, timestamp)
 
 	var crashPath string
-	if home, err := os.UserHomeDir(); err == nil {
-		crashDir := filepath.Join(home, ".yanta", "crashes")
-		os.MkdirAll(crashDir, 0o755)
+	crashDir := filepath.Join(config.GetDataDirectory(), "crashes")
+	if err := os.MkdirAll(crashDir, 0o755); err == nil {
 		crashPath = filepath.Join(crashDir, crashFile)
 	} else {
 		crashPath = crashFile

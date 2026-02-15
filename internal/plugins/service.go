@@ -123,11 +123,11 @@ func NewService() *Service {
 }
 
 func (s *Service) pluginDir() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("resolve home directory: %w", err)
+	dataDir := strings.TrimSpace(config.GetDataDirectory())
+	if dataDir == "" {
+		return "", fmt.Errorf("resolve data directory: empty data directory")
 	}
-	return filepath.Join(home, ".yanta", "plugins"), nil
+	return filepath.Join(dataDir, "plugins"), nil
 }
 
 func (s *Service) scanLocalPlugins() ([]InstallRecord, error) {
