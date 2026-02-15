@@ -8,7 +8,6 @@ import {
 	type PartialBlock,
 } from "@blocknote/core";
 import { useCreateBlockNote } from "@blocknote/react";
-import type { AnyExtension } from "@tiptap/core";
 import { System } from "@wailsio/runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { extractTitleFromBlocks } from "../../document/utils/documentUtils";
@@ -54,7 +53,7 @@ export function useRichEditorInner({
 	const { currentProject } = useProjectContext();
 	const { error: notifyError } = useNotification();
 	const { scale } = useScale();
-	const pluginExtensions = useEditorExtensions() as AnyExtension[];
+	const pluginExtensions = useEditorExtensions();
 	const pluginTipTapExtensions = useEditorTipTapExtensions();
 	const pluginBlockSpecs = useEditorBlockSpecs();
 	const pluginStyleSpecs = useEditorStyleSpecs();

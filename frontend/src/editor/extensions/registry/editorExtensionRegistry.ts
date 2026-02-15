@@ -1,10 +1,15 @@
-import type { BlockNoteEditor, BlockSpecs, StyleSpecs } from "@blocknote/core";
+import type {
+	BlockNoteEditor,
+	BlockSpecs,
+	ExtensionFactoryInstance,
+	StyleSpecs,
+} from "@blocknote/core";
 import type { DefaultReactSuggestionItem } from "@blocknote/react";
 import type { AnyExtension } from "@tiptap/core";
 import { useSyncExternalStore } from "react";
 
 // Legacy "editorExtensions" contributions. Keep broad for compatibility.
-export type EditorExtensionContribution = unknown;
+export type EditorExtensionContribution = ExtensionFactoryInstance;
 export type EditorTipTapExtensionContribution = AnyExtension;
 export type EditorBlockSpecContribution = BlockSpecs;
 export type EditorStyleSpecContribution = StyleSpecs;

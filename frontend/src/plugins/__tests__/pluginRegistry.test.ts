@@ -1,3 +1,4 @@
+import { createExtension } from "@blocknote/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useCommandRegistryStore } from "../../command-palette/registry";
 import {
@@ -92,7 +93,7 @@ describe("plugin registry", () => {
 						items: [{ id: "test-plugin-item", label: "plugin item" }],
 					},
 				]);
-				api.registerEditorExtensions([{}]);
+				api.registerEditorExtensions([createExtension({ key: "test.plugin.extension" })]);
 				api.registerEditorTipTapExtensions([
 					{} as unknown as ReturnType<typeof getAllEditorTipTapExtensions>[number],
 				]);

@@ -1,3 +1,4 @@
+import { createExtension } from "@blocknote/core";
 import { afterEach, describe, expect, it } from "vitest";
 import {
 	getAllEditorBlockActions,
@@ -37,12 +38,12 @@ describe("editorExtensionRegistry", () => {
 	it("updates snapshot reference only when contributions change", () => {
 		const before = getAllEditorExtensions();
 
-		setEditorExtensions(TEST_SOURCES[0], [{ key: "ext-a" }]);
+		setEditorExtensions(TEST_SOURCES[0], [createExtension({ key: "ext-a" })]);
 		const afterSet = getAllEditorExtensions();
 		expect(afterSet).not.toBe(before);
 		expect(getAllEditorExtensions()).toBe(afterSet);
 
-		setEditorExtensions(TEST_SOURCES[1], [{ key: "ext-b" }]);
+		setEditorExtensions(TEST_SOURCES[1], [createExtension({ key: "ext-b" })]);
 		const afterSecondSet = getAllEditorExtensions();
 		expect(afterSecondSet).not.toBe(afterSet);
 		expect(getAllEditorExtensions()).toBe(afterSecondSet);
