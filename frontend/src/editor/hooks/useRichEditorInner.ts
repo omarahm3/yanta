@@ -38,6 +38,7 @@ export interface UseRichEditorInnerProps {
 	onReady?: (editor: BlockNoteEditor) => void;
 	editable: boolean;
 	autoFocus: boolean;
+	disablePluginContributions?: boolean;
 }
 
 export function useRichEditorInner({
@@ -47,6 +48,7 @@ export function useRichEditorInner({
 	onReady,
 	editable,
 	autoFocus,
+	disablePluginContributions = false,
 }: UseRichEditorInnerProps) {
 	const { currentProject } = useProjectContext();
 	const { error: notifyError } = useNotification();
@@ -57,6 +59,13 @@ export function useRichEditorInner({
 	const pluginStyleSpecs = useEditorStyleSpecs();
 	const pluginSlashMenuItems = useEditorSlashMenuItems();
 	const pluginLifecycleHooks = useEditorLifecycleHooks();
+
+	const effectivePluginExtensions = disablePluginContributions ? [] : pluginExtensions;
+	const effectivePluginTipTapExtensions = disablePluginContributions ? [] : pluginTipTapExtensions;
+	const effectivePluginBlockSpecs = disablePluginContributions ? {} : pluginBlockSpecs;
+	const effectivePluginStyleSpecs = disablePluginContributions ? {} : pluginStyleSpecs;
+	const effectivePluginSlashMenuItems = disablePluginContributions ? [] : pluginSlashMenuItems;
+	const effectivePluginLifecycleHooks = disablePluginContributions ? [] : pluginLifecycleHooks;
 
 	useBlockNoteMenuPosition();
 
@@ -86,23 +95,23 @@ export function useRichEditorInner({
 		() =>
 			BlockNoteSchema.create().extend({
 				blockSpecs: {
-					...pluginBlockSpecs,
+					...effectivePluginBlockSpecs,
 					codeBlock: createCodeBlockSpec(codeBlockOptions),
 				},
-				styleSpecs: pluginStyleSpecs,
+				styleSpecs: effectivePluginStyleSpecs,
 			}),
-		[pluginBlockSpecs, pluginStyleSpecs],
+		[effectivePluginBlockSpecs, effectivePluginStyleSpecs],
 	);
 
 	const pluginTipTapAggregateExtension = useMemo(() => {
-		if (pluginTipTapExtensions.length === 0) {
+		if (effectivePluginTipTapExtensions.length === 0) {
 			return null;
 		}
 		return createExtension({
 			key: "yanta.plugin.tiptap.aggregate",
-			tiptapExtensions: pluginTipTapExtensions,
+			tiptapExtensions: effectivePluginTipTapExtensions,
 		});
-	}, [pluginTipTapExtensions]);
+	}, [effectivePluginTipTapExtensions]);
 
 	const editor = useCreateBlockNote({
 		schema,
@@ -120,7 +129,7 @@ export function useRichEditorInner({
 				tiptapExtensions: [RTLExtension],
 			}),
 			...(pluginTipTapAggregateExtension ? [pluginTipTapAggregateExtension] : []),
-			...(pluginExtensions as any[]),
+			...(effectivePluginExtensions as any[]),
 		],
 	});
 	const [isReady, setIsReady] = useState(false);
@@ -200,7 +209,7 @@ export function useRichEditorInner({
 		};
 		const cleanupFns: Array<() => void> = [];
 
-		for (const hooks of pluginLifecycleHooks) {
+		for (const hooks of effectivePluginLifecycleHooks) {
 			try {
 				const cleanup = hooks.onEditorReady?.(context);
 				if (typeof cleanup === "function") {
@@ -219,7 +228,7 @@ export function useRichEditorInner({
 					console.error("[plugin] editor lifecycle cleanup failed", err);
 				}
 			}
-			for (const hooks of pluginLifecycleHooks) {
+			for (const hooks of effectivePluginLifecycleHooks) {
 				try {
 					hooks.onEditorDestroy?.(context);
 				} catch (err) {
@@ -227,7 +236,7 @@ export function useRichEditorInner({
 				}
 			}
 		};
-	}, [editor, editable, isReady, pluginLifecycleHooks]);
+	}, [editor, editable, isReady, effectivePluginLifecycleHooks]);
 
 	useEffect(() => {
 		if (editor && editable && isReady && autoFocus) {
@@ -384,6 +393,6 @@ export function useRichEditorInner({
 		isReady,
 		scale,
 		containerRefCallback,
-		pluginSlashMenuItems,
+		pluginSlashMenuItems: effectivePluginSlashMenuItems,
 	};
 }

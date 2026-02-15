@@ -1,6 +1,12 @@
 import type { Block, BlockNoteEditor } from "@blocknote/core";
 import React, { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import { GranularErrorBoundary } from "@/app";
+import {
+	disableExternalPluginsForEditorRecovery,
+	getActiveExternalPluginIds,
+	hasActiveExternalPlugins,
+} from "../../plugins/registry";
+import { useNotification } from "../../shared/hooks";
 import type { BlockNoteBlock } from "../../shared/types/Document";
 import { Button } from "../../shared/ui";
 
@@ -70,14 +76,45 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 
 	const blocksJson = useMemo(() => (blocks.length > 0 ? JSON.stringify(blocks) : ""), [blocks]);
 	const [editorKey, setEditorKey] = useState(0);
+	const [editorRecoveryMode, setEditorRecoveryMode] = useState(false);
+	const [editorBoundaryMessage, setEditorBoundaryMessage] = useState(
+		"Something went wrong in the editor.",
+	);
+	const { error: notifyError } = useNotification();
+
+	const handleEditorBoundaryError = useCallback(() => {
+		if (editorRecoveryMode) {
+			setEditorBoundaryMessage("Something went wrong in the editor.");
+			return;
+		}
+
+		if (!hasActiveExternalPlugins()) {
+			setEditorBoundaryMessage("Something went wrong in the editor.");
+			return;
+		}
+
+		const activePluginIds = getActiveExternalPluginIds();
+		const pluginLabel =
+			activePluginIds.length > 0 ? activePluginIds.join(", ") : "one or more external plugins";
+		const reason = `PLUGIN_AUTO_DISABLED_ON_CRASH: editor crash recovery triggered for ${pluginLabel}`;
+
+		setEditorRecoveryMode(true);
+		setEditorBoundaryMessage(
+			`A plugin issue was detected (${pluginLabel}). The document is reopened in safe mode.`,
+		);
+		setEditorKey((k) => k + 1);
+		notifyError(`Plugin issue detected: ${pluginLabel}. Disabled external plugins and reopened editor.`);
+		void disableExternalPluginsForEditorRecovery(reason);
+	}, [editorRecoveryMode, notifyError]);
 
 	return (
 		<div className="flex flex-col flex-1 w-full overflow-hidden document-editor-form">
 			<div className="flex-1 w-full px-2 overflow-hidden">
 				<GranularErrorBoundary
 					key={editorKey}
-					message="Something went wrong in the editor."
+					message={editorBoundaryMessage}
 					onRetry={() => setEditorKey((k) => k + 1)}
+					onError={handleEditorBoundaryError}
 				>
 					<Suspense fallback={<EditorLoader />}>
 						<RichEditor
@@ -89,6 +126,7 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 							editable={!isLoading && !isReadOnly}
 							isLoading={isLoading && isEditMode}
 							autoFocus={autoFocus}
+							disablePluginContributions={editorRecoveryMode}
 							className="h-full"
 						/>
 					</Suspense>

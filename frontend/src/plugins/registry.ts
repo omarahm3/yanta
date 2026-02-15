@@ -173,6 +173,10 @@ function setRuntime(pluginId: string, patch: Partial<PluginRuntimeRecord>): void
 	runtime.set(pluginId, { ...prev, ...patch });
 }
 
+function isExternalPluginManifestEntry(entry: string): boolean {
+	return !entry.startsWith("builtin:");
+}
+
 export function registerPlugin(definition: PluginDefinition): void {
 	definitions.set(definition.manifest.id, definition);
 	setRuntime(definition.manifest.id, {
@@ -376,7 +380,7 @@ export async function loadEnabledPlugins(): Promise<void> {
 		a.manifest.id.localeCompare(b.manifest.id),
 	);
 	for (const def of allDefs) {
-		if (!communityEnabled && !def.manifest.entry.startsWith("builtin:")) {
+		if (!communityEnabled && isExternalPluginManifestEntry(def.manifest.entry)) {
 			unloadPlugin(def.manifest.id);
 			setRuntime(def.manifest.id, {
 				isActive: false,
@@ -391,6 +395,37 @@ export async function loadEnabledPlugins(): Promise<void> {
 			unloadPlugin(def.manifest.id);
 		}
 	}
+}
+
+export function getActiveExternalPluginIds(): string[] {
+	return Array.from(runtime.values())
+		.filter((record) => isExternalPluginManifestEntry(record.manifest.entry) && record.isActive)
+		.map((record) => record.manifest.id)
+		.sort((a, b) => a.localeCompare(b));
+}
+
+export function hasActiveExternalPlugins(): boolean {
+	return getActiveExternalPluginIds().length > 0;
+}
+
+export async function disableExternalPluginsForEditorRecovery(reason: string): Promise<string[]> {
+	const activeIds = getActiveExternalPluginIds();
+	for (const pluginId of activeIds) {
+		setRuntime(pluginId, {
+			isActive: false,
+			lastError: reason,
+		});
+		try {
+			await disablePlugin(pluginId);
+		} catch {
+			unloadPlugin(pluginId);
+			setRuntime(pluginId, {
+				isActive: false,
+				lastError: reason,
+			});
+		}
+	}
+	return activeIds;
 }
 
 export function getRegisteredEditorExtensionCount(): number {

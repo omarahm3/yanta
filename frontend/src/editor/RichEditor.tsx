@@ -22,6 +22,7 @@ export interface RichEditorProps {
 	isLoading?: boolean;
 	docKey?: string;
 	autoFocus?: boolean;
+	disablePluginContributions?: boolean;
 }
 
 const createDefaultInitialBlock = (): PartialBlock => ({
@@ -44,6 +45,7 @@ type EditorInnerProps = {
 	className?: string;
 	editable: boolean;
 	autoFocus: boolean;
+	disablePluginContributions: boolean;
 };
 
 interface PluginSlashMenuProps {
@@ -65,7 +67,12 @@ const PluginSlashMenu: React.FC<PluginSlashMenuProps> = ({ editor, editable, ite
 				return {
 					...rest,
 					onItemClick: () => {
-						void onItemClick({ editor, editable });
+						void Promise.resolve(onItemClick({ editor, editable })).catch((err) => {
+							console.error("[plugin] slash menu action failed", {
+								itemTitle: rest.title,
+								error: err,
+							});
+						});
 					},
 				};
 			});
@@ -78,7 +85,19 @@ const PluginSlashMenu: React.FC<PluginSlashMenuProps> = ({ editor, editable, ite
 };
 
 const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
-	({ blocks, onChange, onTitleChange, onReady, className, editable, autoFocus }, ref) => {
+	(
+		{
+			blocks,
+			onChange,
+			onTitleChange,
+			onReady,
+			className,
+			editable,
+			autoFocus,
+			disablePluginContributions,
+		},
+		ref,
+	) => {
 		const { editor, isReady, scale, containerRefCallback, pluginSlashMenuItems } = useRichEditorInner(
 			{
 				blocks,
@@ -87,6 +106,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 				onReady,
 				editable,
 				autoFocus,
+				disablePluginContributions,
 			},
 		);
 
@@ -134,6 +154,7 @@ export const RichEditor = React.forwardRef<HTMLDivElement, RichEditorProps>(
 			isLoading = false,
 			docKey,
 			autoFocus = true,
+			disablePluginContributions = false,
 		},
 		ref,
 	) => {
@@ -180,6 +201,7 @@ export const RichEditor = React.forwardRef<HTMLDivElement, RichEditorProps>(
 				className={className}
 				editable={editable}
 				autoFocus={autoFocus}
+				disablePluginContributions={disablePluginContributions}
 			/>
 		);
 	},
