@@ -37,8 +37,14 @@ export function AppMonitorInit() {
 	const heapSummary = useMemo(() => {
 		const used = snapshot.lastSample?.heapUsedBytes ?? null;
 		const total = snapshot.lastSample?.heapTotalBytes ?? null;
+		if (used === null && total === null) {
+			return "Heap: unavailable in this runtime";
+		}
+		if (used !== null && total === null) {
+			return `Heap: ${formatMb(used)}`;
+		}
 		if (used === null || total === null) {
-			return "Heap: n/a";
+			return `Heap: ${formatMb(used)} / ${formatMb(total)}`;
 		}
 		return `Heap: ${formatMb(used)} / ${formatMb(total)} (${formatPercent(used, total)})`;
 	}, [snapshot.lastSample?.heapTotalBytes, snapshot.lastSample?.heapUsedBytes]);
@@ -48,7 +54,7 @@ export function AppMonitorInit() {
 	}
 
 	return (
-		<div className="fixed bottom-3 right-3 z-[9999] rounded border border-border-subtle bg-overlay/90 px-3 py-2 text-[11px] text-text-dim shadow-lg backdrop-blur">
+		<div className="fixed bottom-3 right-3 z-[9999] rounded border border-border-subtle bg-overlay/90 px-3 py-2 text-xs text-text-dim shadow-lg backdrop-blur">
 			<div className="font-medium text-text-bright">App Monitor</div>
 			<div>{heapSummary}</div>
 			<div>

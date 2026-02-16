@@ -109,7 +109,11 @@ function getMemoryData(): MemoryData | null {
 	}
 	const perfWithMemory = performance as Performance & { memory?: MemoryData };
 	if (!perfWithMemory.memory) {
-		return null;
+		const consoleWithMemory = console as Console & { memory?: MemoryData };
+		if (!consoleWithMemory.memory) {
+			return null;
+		}
+		return consoleWithMemory.memory;
 	}
 	return perfWithMemory.memory;
 }
