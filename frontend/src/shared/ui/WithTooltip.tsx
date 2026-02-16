@@ -10,6 +10,8 @@ export interface WithTooltipProps {
 	shortcut?: string;
 	/** Preferred placement of the tooltip relative to the trigger */
 	placement?: TooltipPlacement;
+	/** Optional delay in milliseconds before tooltip shows on hover */
+	delay?: number;
 	/** The trigger element - must be a single React element that accepts event handlers */
 	children: ReactElement;
 	/** Disable the tooltip entirely (useful for conditional rendering) */
@@ -21,6 +23,7 @@ export const WithTooltip: React.FC<WithTooltipProps> = ({
 	description,
 	shortcut,
 	placement = "top",
+	delay,
 	children,
 	disabled = false,
 }) => {
@@ -30,6 +33,7 @@ export const WithTooltip: React.FC<WithTooltipProps> = ({
 			content={description}
 			shortcut={shortcut}
 			placement={placement}
+			delay={delay}
 			disabled={disabled}
 		>
 			{children}

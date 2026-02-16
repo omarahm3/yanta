@@ -191,4 +191,3 @@ export const MoveDocumentDialog: React.FC<MoveDocumentDialogProps> = ({
 		</Dialog>
 	);
 };
-

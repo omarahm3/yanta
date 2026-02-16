@@ -10,6 +10,8 @@ export interface ShortcutTooltipProps {
 	shortcut?: string;
 	/** Preferred placement of the tooltip relative to the trigger */
 	placement?: TooltipPlacement;
+	/** Optional delay in milliseconds before tooltip shows on hover */
+	delay?: number;
 	/** The trigger element that the tooltip is anchored to */
 	children: ReactNode;
 	/** Additional class name for the wrapper */
@@ -23,6 +25,7 @@ export const ShortcutTooltip: React.FC<ShortcutTooltipProps> = ({
 	description,
 	shortcut,
 	placement = "top",
+	delay,
 	children,
 	className,
 	disabled = false,
@@ -33,6 +36,7 @@ export const ShortcutTooltip: React.FC<ShortcutTooltipProps> = ({
 			content={description}
 			shortcut={shortcut}
 			placement={placement}
+			delay={delay}
 			disabled={disabled}
 		>
 			<div className={className}>{children}</div>

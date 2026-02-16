@@ -1,6 +1,7 @@
 import { formatRelative } from "date-fns";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Layout } from "@/app";
+import { PROJECTS_SHORTCUTS } from "@/config/public";
 import type { ProjectResult } from "../../bindings/yanta/internal/commandline/models";
 import { Parse } from "../../bindings/yanta/internal/commandline/projectcommands";
 import {
@@ -8,7 +9,6 @@ import {
 	GetAllDocumentCounts,
 	GetAllLastDocumentDates,
 } from "../../bindings/yanta/internal/project/service";
-import { PROJECTS_SHORTCUTS } from "@/config/public";
 import { useHotkeys } from "../hotkeys";
 import { useNotification, useSidebarSections } from "../shared/hooks";
 import { type ExtendedProject, extendProject, type PageName } from "../shared/types";
@@ -495,4 +495,3 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 };
 
 export const Projects = React.memo(ProjectsComponent);
-

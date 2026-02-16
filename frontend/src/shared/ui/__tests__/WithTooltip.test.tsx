@@ -113,7 +113,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.pointerMove(button);
+			fireEvent.focus(button);
 			act(() => {
 				vi.advanceTimersByTime(0);
 			});
@@ -179,18 +179,18 @@ describe("WithTooltip", () => {
 
 		it("cancels show timeout when mouse leaves before delay", () => {
 			render(
-				<WithTooltip tooltipId="test" description="Test tooltip">
+				<WithTooltip tooltipId="test" description="Test tooltip" delay={500}>
 					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
 
-			// Enter and leave in same tick - with zero delay, Radix may still schedule for next tick
-			fireEvent.pointerMove(button);
-			fireEvent.pointerLeave(button);
+			// Enter and leave before delay expires
+			fireEvent.mouseEnter(button);
+			fireEvent.mouseLeave(button);
 			act(() => {
-				vi.advanceTimersByTime(100);
+				vi.advanceTimersByTime(600);
 			});
 
 			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
@@ -206,7 +206,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Save" });
-			fireEvent.pointerMove(button);
+			fireEvent.focus(button);
 			act(() => {
 				vi.advanceTimersByTime(0);
 			});
@@ -222,7 +222,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Save" });
-			fireEvent.pointerMove(button);
+			fireEvent.focus(button);
 			act(() => {
 				vi.advanceTimersByTime(0);
 			});
@@ -240,7 +240,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "New" });
-			fireEvent.pointerMove(button);
+			fireEvent.focus(button);
 			act(() => {
 				vi.advanceTimersByTime(0);
 			});
@@ -259,7 +259,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Menu" });
-			fireEvent.pointerMove(button);
+			fireEvent.focus(button);
 			act(() => {
 				vi.advanceTimersByTime(0);
 			});
@@ -283,7 +283,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.pointerMove(button);
+			fireEvent.focus(button);
 
 			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 		});
@@ -296,7 +296,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.pointerMove(button);
+			fireEvent.focus(button);
 			act(() => {
 				vi.advanceTimersByTime(0);
 			});
@@ -340,7 +340,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.pointerMove(button);
+			fireEvent.focus(button);
 
 			expect(mockShouldShowTooltip).toHaveBeenCalledWith("specific-tooltip-id");
 		});
@@ -355,7 +355,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.pointerMove(button);
+			fireEvent.focus(button);
 
 			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 		});
@@ -368,7 +368,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.pointerMove(button);
+			fireEvent.focus(button);
 
 			expect(mockRecordTooltipView).not.toHaveBeenCalled();
 		});
@@ -383,7 +383,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.pointerMove(button);
+			fireEvent.focus(button);
 			act(() => {
 				vi.advanceTimersByTime(0);
 			});
@@ -399,7 +399,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.pointerMove(button);
+			fireEvent.focus(button);
 			act(() => {
 				vi.advanceTimersByTime(0);
 			});
@@ -415,7 +415,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.pointerMove(button);
+			fireEvent.focus(button);
 			act(() => {
 				vi.advanceTimersByTime(0);
 			});
@@ -431,7 +431,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.pointerMove(button);
+			fireEvent.focus(button);
 			act(() => {
 				vi.advanceTimersByTime(0);
 			});
@@ -449,7 +449,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.pointerMove(button);
+			fireEvent.focus(button);
 			act(() => {
 				vi.advanceTimersByTime(0);
 			});
@@ -465,7 +465,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.pointerMove(button);
+			fireEvent.focus(button);
 			act(() => {
 				vi.advanceTimersByTime(0);
 			});
@@ -522,7 +522,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
-			fireEvent.pointerMove(button);
+			fireEvent.focus(button);
 			act(() => {
 				vi.advanceTimersByTime(0);
 			});
@@ -610,7 +610,7 @@ describe("WithTooltip", () => {
 			);
 
 			const button = screen.getByRole("button", { name: "Button" });
-			fireEvent.pointerMove(button);
+			fireEvent.focus(button);
 			act(() => {
 				vi.advanceTimersByTime(0);
 			});
@@ -626,7 +626,7 @@ describe("WithTooltip", () => {
 			);
 
 			const link = screen.getByRole("link", { name: "Link" });
-			fireEvent.pointerMove(link);
+			fireEvent.focus(link);
 			act(() => {
 				vi.advanceTimersByTime(0);
 			});
@@ -642,7 +642,7 @@ describe("WithTooltip", () => {
 			);
 
 			const div = screen.getByTestId("div-trigger");
-			fireEvent.pointerMove(div);
+			fireEvent.focus(div);
 			act(() => {
 				vi.advanceTimersByTime(0);
 			});
@@ -658,7 +658,7 @@ describe("WithTooltip", () => {
 			);
 
 			const span = screen.getByTestId("span-trigger");
-			fireEvent.pointerMove(span);
+			fireEvent.focus(span);
 			act(() => {
 				vi.advanceTimersByTime(0);
 			});

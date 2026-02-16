@@ -1,5 +1,4 @@
-import { act, render, waitFor } from "@testing-library/react";
-import React from "react";
+import { render } from "@testing-library/react";
 import { vi } from "vitest";
 
 const mockSaveNow = vi.fn(async () => {});
@@ -126,6 +125,18 @@ vi.mock("../onboarding", () => ({
 
 import { Document } from "../document/DocumentPage";
 
+function getRequiredHotkey(
+	key: string,
+	hotkeys: Array<{ key: string; handler: (e: KeyboardEvent) => void }>,
+) {
+	const hotkey = hotkeys.find((h) => h.key === key);
+	expect(hotkey).toBeDefined();
+	if (!hotkey) {
+		throw new Error(`Expected hotkey "${key}" to be registered`);
+	}
+	return hotkey;
+}
+
 describe("Document hotkeys", () => {
 	beforeEach(() => {
 		mockSaveNow.mockClear();
@@ -138,10 +149,9 @@ describe("Document hotkeys", () => {
 	it("triggers auto-save immediately on mod+s", () => {
 		render(<Document onNavigate={vi.fn()} initialTitle="Sample" />);
 
-		const hotkey = capturedHotkeys.find((h) => h.key === "mod+s");
-		expect(hotkey).toBeDefined();
+		const hotkey = getRequiredHotkey("mod+s", capturedHotkeys);
 
-		hotkey!.handler(new KeyboardEvent("keydown", { key: "s", ctrlKey: true, code: "KeyS" }));
+		hotkey.handler(new KeyboardEvent("keydown", { key: "s", ctrlKey: true, code: "KeyS" }));
 
 		expect(mockSaveNow).toHaveBeenCalledTimes(1);
 	});
@@ -149,10 +159,9 @@ describe("Document hotkeys", () => {
 	it("handles escape key", () => {
 		render(<Document onNavigate={vi.fn()} initialTitle="Sample" />);
 
-		const hotkey = capturedHotkeys.find((h) => h.key === "Escape");
-		expect(hotkey).toBeDefined();
+		const hotkey = getRequiredHotkey("Escape", capturedHotkeys);
 
-		hotkey!.handler(new KeyboardEvent("keydown", { key: "Escape", code: "Escape" }));
+		hotkey.handler(new KeyboardEvent("keydown", { key: "Escape", code: "Escape" }));
 
 		expect(mockHandleEscape).toHaveBeenCalledTimes(1);
 	});
@@ -160,10 +169,9 @@ describe("Document hotkeys", () => {
 	it("handles mod+C to unfocus editor", () => {
 		render(<Document onNavigate={vi.fn()} initialTitle="Sample" />);
 
-		const hotkey = capturedHotkeys.find((h) => h.key === "mod+C");
-		expect(hotkey).toBeDefined();
+		const hotkey = getRequiredHotkey("mod+C", capturedHotkeys);
 
-		hotkey!.handler(new KeyboardEvent("keydown", { key: "c", ctrlKey: true, code: "KeyC" }));
+		hotkey.handler(new KeyboardEvent("keydown", { key: "c", ctrlKey: true, code: "KeyC" }));
 
 		expect(mockHandleUnfocus).toHaveBeenCalledTimes(1);
 	});
@@ -171,10 +179,9 @@ describe("Document hotkeys", () => {
 	it("focuses editor on Enter", () => {
 		render(<Document onNavigate={vi.fn()} initialTitle="Sample" />);
 
-		const hotkey = capturedHotkeys.find((h) => h.key === "Enter");
-		expect(hotkey).toBeDefined();
+		const hotkey = getRequiredHotkey("Enter", capturedHotkeys);
 
-		hotkey!.handler(new KeyboardEvent("keydown", { key: "Enter", code: "Enter" }));
+		hotkey.handler(new KeyboardEvent("keydown", { key: "Enter", code: "Enter" }));
 
 		expect(mockEditorFocus).toHaveBeenCalledTimes(1);
 	});

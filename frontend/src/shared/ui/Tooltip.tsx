@@ -1,5 +1,5 @@
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import React, { type ReactNode, useCallback, useEffect, useState } from "react";
+import React, { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useMergedConfig } from "@/shared/stores/preferences.store";
 import { useShortcutTooltipsSetting, useTooltipUsage } from "../hooks";
 import { cn } from "../utils/cn";
@@ -42,6 +42,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
 	const [hasBeenShown, setHasBeenShown] = useState(false);
 	const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 	const [isOpen, setIsOpen] = useState(false);
+	const openTimerRef = useRef<number | null>(null);
 
 	const { showShortcutTooltips } = useShortcutTooltipsSetting();
 	const { shouldShowTooltip, recordTooltipView } = useTooltipUsage({
@@ -74,6 +75,33 @@ export const Tooltip: React.FC<TooltipProps> = ({
 		[disabled, shouldShowTooltip, tooltipId, hasBeenShown, recordTooltipView],
 	);
 
+	const clearOpenTimer = useCallback(() => {
+		if (openTimerRef.current !== null) {
+			window.clearTimeout(openTimerRef.current);
+			openTimerRef.current = null;
+		}
+	}, []);
+
+	const scheduleOpen = useCallback(
+		(openDelay: number) => {
+			clearOpenTimer();
+			openTimerRef.current = window.setTimeout(
+				() => {
+					handleOpenChange(true);
+					openTimerRef.current = null;
+				},
+				Math.max(0, openDelay),
+			);
+		},
+		[clearOpenTimer, handleOpenChange],
+	);
+
+	useEffect(() => {
+		return () => {
+			clearOpenTimer();
+		};
+	}, [clearOpenTimer]);
+
 	const shouldRender = !disabled && shouldShowTooltip(tooltipId);
 
 	if (!shouldRender) {
@@ -85,7 +113,25 @@ export const Tooltip: React.FC<TooltipProps> = ({
 	return (
 		<TooltipPrimitive.Provider delayDuration={delay} skipDelayDuration={0}>
 			<TooltipPrimitive.Root open={isOpen} onOpenChange={handleOpenChange} delayDuration={delay}>
-				<TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
+				<TooltipPrimitive.Trigger
+					asChild
+					onPointerMove={() => {
+						scheduleOpen(delay);
+					}}
+					onPointerLeave={() => {
+						clearOpenTimer();
+						handleOpenChange(false);
+					}}
+					onFocus={() => {
+						scheduleOpen(timeouts.tooltipFocusDelay);
+					}}
+					onBlur={() => {
+						clearOpenTimer();
+						handleOpenChange(false);
+					}}
+				>
+					{children}
+				</TooltipPrimitive.Trigger>
 				<TooltipPrimitive.Portal>
 					<TooltipPrimitive.Content
 						side={placement}

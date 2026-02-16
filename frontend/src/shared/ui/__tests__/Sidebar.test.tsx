@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import type React from "react";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -39,7 +39,9 @@ vi.mock("../Tooltip", () => ({
 				{visible && (
 					<div role="tooltip" data-tooltip-id={tooltipId}>
 						<span>{content}</span>
-						{shortcut && shortcut.split("+").map((k) => <kbd key={k}>{k.trim()}</kbd>)}
+						{shortcut?.split("+").map((k) => (
+							<kbd key={k}>{k.trim()}</kbd>
+						))}
 					</div>
 				)}
 			</div>
@@ -48,8 +50,6 @@ vi.mock("../Tooltip", () => ({
 }));
 
 describe("Sidebar", () => {
-	const HOVER_DELAY = 500;
-
 	const basicSections: SidebarSection[] = [
 		{
 			id: "navigation",

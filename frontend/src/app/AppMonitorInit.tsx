@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useFeatureFlag } from "../shared/hooks";
 import {
+	type AppMonitorSnapshot,
 	getAppMonitorSnapshot,
 	startAppMonitor,
-	type AppMonitorSnapshot,
 } from "../shared/monitoring/appMonitor";
-import { useFeatureFlag } from "../shared/hooks";
 
 function formatMb(bytes: number | null): string {
 	if (bytes === null) {

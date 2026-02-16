@@ -1,3 +1,4 @@
+import { ENABLE_PLUGINS } from "../config/featureFlags";
 import { DocumentProvider } from "../document";
 import { HelpModal, HelpProvider } from "../help";
 import { HotkeyProvider } from "../hotkeys";
@@ -6,8 +7,8 @@ import { PaneLayoutProvider } from "../pane";
 import { PluginBootstrap } from "../plugins";
 import { ReducedEffectsInit } from "../shared/stores/appearance.store";
 import { ToastProvider } from "../shared/ui";
-import { ResizeHandles, TitleBar } from "./components";
 import { AppMonitorInit } from "./AppMonitorInit";
+import { ResizeHandles, TitleBar } from "./components";
 import { DocumentCountStoreInit } from "./DocumentCountStoreInit";
 import { FeatureFlagsStoreInit } from "./FeatureFlagsStoreInit";
 import { AppGlobalEffects, GlobalCommandHotkey } from "./global-hotkeys";
@@ -24,7 +25,7 @@ export function AppProviders() {
 			<AppMonitorInit />
 			<DocumentCountStoreInit />
 			<PreferencesStoreInit />
-			<PluginBootstrap />
+			{ENABLE_PLUGINS && <PluginBootstrap />}
 			<ProjectStoreInit />
 			<HotkeyProvider>
 				<HelpProvider>

@@ -9,7 +9,7 @@ import {
 } from "@blocknote/core";
 import { useCreateBlockNote } from "@blocknote/react";
 import { System } from "@wailsio/runtime";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { extractTitleFromBlocks } from "../../document/utils/documentUtils";
 import { useProjectContext } from "../../project";
 import { useNotification } from "../../shared/hooks";
@@ -19,7 +19,14 @@ import { uploadFile } from "../../shared/utils/assetUpload";
 import { registerClipboardImagePlugin } from "../../shared/utils/clipboard";
 import { computeContentHash } from "../../shared/utils/contentHash";
 import { openExternalUrl } from "../../shared/utils/openExternalUrl";
-import { useEditorExtensions } from "../extensions/registry/editorExtensionRegistry";
+import {
+	useEditorBlockSpecs,
+	useEditorExtensions,
+	useEditorLifecycleHooks,
+	useEditorSlashMenuItems,
+	useEditorStyleSpecs,
+	useEditorTipTapExtensions,
+} from "../extensions/registry/editorExtensionRegistry";
 import { RTLExtension } from "../extensions/rtl";
 import { useBlockNoteMenuPosition } from "./useBlockNoteMenuPosition";
 import { usePlainTextClipboard } from "./usePlainTextClipboard";
@@ -31,6 +38,7 @@ export interface UseRichEditorInnerProps {
 	onReady?: (editor: BlockNoteEditor) => void;
 	editable: boolean;
 	autoFocus: boolean;
+	disablePluginContributions?: boolean;
 }
 
 export function useRichEditorInner({
@@ -40,11 +48,24 @@ export function useRichEditorInner({
 	onReady,
 	editable,
 	autoFocus,
+	disablePluginContributions = false,
 }: UseRichEditorInnerProps) {
 	const { currentProject } = useProjectContext();
 	const { error: notifyError } = useNotification();
 	const { scale } = useScale();
-	const pluginExtensions = useEditorExtensions() as any[];
+	const pluginExtensions = useEditorExtensions();
+	const pluginTipTapExtensions = useEditorTipTapExtensions();
+	const pluginBlockSpecs = useEditorBlockSpecs();
+	const pluginStyleSpecs = useEditorStyleSpecs();
+	const pluginSlashMenuItems = useEditorSlashMenuItems();
+	const pluginLifecycleHooks = useEditorLifecycleHooks();
+
+	const effectivePluginExtensions = disablePluginContributions ? [] : pluginExtensions;
+	const effectivePluginTipTapExtensions = disablePluginContributions ? [] : pluginTipTapExtensions;
+	const effectivePluginBlockSpecs = disablePluginContributions ? {} : pluginBlockSpecs;
+	const effectivePluginStyleSpecs = disablePluginContributions ? {} : pluginStyleSpecs;
+	const effectivePluginSlashMenuItems = disablePluginContributions ? [] : pluginSlashMenuItems;
+	const effectivePluginLifecycleHooks = disablePluginContributions ? [] : pluginLifecycleHooks;
 
 	useBlockNoteMenuPosition();
 
@@ -70,13 +91,27 @@ export function useRichEditorInner({
 		[currentProject],
 	);
 
-	const schema = useRef(
-		BlockNoteSchema.create().extend({
-			blockSpecs: {
-				codeBlock: createCodeBlockSpec(codeBlockOptions),
-			},
-		}),
-	).current;
+	const schema = useMemo(
+		() =>
+			BlockNoteSchema.create().extend({
+				blockSpecs: {
+					...effectivePluginBlockSpecs,
+					codeBlock: createCodeBlockSpec(codeBlockOptions),
+				},
+				styleSpecs: effectivePluginStyleSpecs,
+			}),
+		[effectivePluginBlockSpecs, effectivePluginStyleSpecs],
+	);
+
+	const pluginTipTapAggregateExtension = useMemo(() => {
+		if (effectivePluginTipTapExtensions.length === 0) {
+			return null;
+		}
+		return createExtension({
+			key: "yanta.plugin.tiptap.aggregate",
+			tiptapExtensions: effectivePluginTipTapExtensions,
+		});
+	}, [effectivePluginTipTapExtensions]);
 
 	const editor = useCreateBlockNote({
 		schema,
@@ -93,7 +128,8 @@ export function useRichEditorInner({
 				key: "rtl",
 				tiptapExtensions: [RTLExtension],
 			}),
-			...(pluginExtensions as any[]),
+			...(pluginTipTapAggregateExtension ? [pluginTipTapAggregateExtension] : []),
+			...effectivePluginExtensions,
 		],
 	});
 	const [isReady, setIsReady] = useState(false);
@@ -163,6 +199,44 @@ export function useRichEditorInner({
 			return () => cancelAnimationFrame(raf);
 		}
 	}, [editor, isReady]);
+
+	useEffect(() => {
+		if (!editor || !isReady) return;
+
+		const context = {
+			editor,
+			editable,
+		};
+		const cleanupFns: Array<() => void> = [];
+
+		for (const hooks of effectivePluginLifecycleHooks) {
+			try {
+				const cleanup = hooks.onEditorReady?.(context);
+				if (typeof cleanup === "function") {
+					cleanupFns.push(cleanup);
+				}
+			} catch (err) {
+				console.error("[plugin] onEditorReady hook failed", err);
+			}
+		}
+
+		return () => {
+			for (let i = cleanupFns.length - 1; i >= 0; i -= 1) {
+				try {
+					cleanupFns[i]();
+				} catch (err) {
+					console.error("[plugin] editor lifecycle cleanup failed", err);
+				}
+			}
+			for (const hooks of effectivePluginLifecycleHooks) {
+				try {
+					hooks.onEditorDestroy?.(context);
+				} catch (err) {
+					console.error("[plugin] onEditorDestroy hook failed", err);
+				}
+			}
+		};
+	}, [editor, editable, isReady, effectivePluginLifecycleHooks]);
 
 	useEffect(() => {
 		if (editor && editable && isReady && autoFocus) {
@@ -319,5 +393,6 @@ export function useRichEditorInner({
 		isReady,
 		scale,
 		containerRefCallback,
+		pluginSlashMenuItems: effectivePluginSlashMenuItems,
 	};
 }

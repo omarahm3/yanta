@@ -8,6 +8,8 @@ export interface GranularErrorBoundaryProps {
 	message: string;
 	/** Called when user clicks reload; parent should remount this boundary (e.g. by changing key). */
 	onRetry?: () => void;
+	/** Optional observer for logging/recovery flows at parent level. */
+	onError?: (error: Error, info: React.ErrorInfo) => void;
 }
 
 interface State {
@@ -30,6 +32,7 @@ export class GranularErrorBoundary extends React.Component<GranularErrorBoundary
 		if (info.componentStack) {
 			BackendLogger.error("[GranularErrorBoundary] Component stack:", info.componentStack);
 		}
+		this.props.onError?.(error, info);
 	}
 
 	handleRetry = () => {

@@ -1,0 +1,12 @@
+{
+  "name": "@yanta-example/generic-editor-extension-plugin",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "go run ../../../cmd/yanta-plugin build -plugin . -entry plugin.ts -out main.js -meta main.meta.json"
+  },
+  "dependencies": {
+    "@blocknote/core": "^0.43.0",
+    "@tiptap/core": "^3.11.0"
+  }
+}

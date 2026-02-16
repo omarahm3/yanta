@@ -266,6 +266,10 @@ func SetStartHidden(hidden bool) error {
 }
 
 func getConfigPath() (string, error) {
+	if envDir := strings.TrimSpace(os.Getenv("YANTA_DATA_DIR")); envDir != "" {
+		return filepath.Join(envDir, "config.toml"), nil
+	}
+
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get home directory: %w", err)

@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo } from "react";
 import { GranularErrorBoundary, Layout } from "@/app";
+import { ENABLE_PLUGINS } from "@/config/featureFlags";
 import {
 	formatShortcutKeyForDisplay,
 	getShortcutsForSettingsFromMerged,
@@ -16,7 +17,9 @@ import { GeneralSection } from "./GeneralSection";
 import { GitSyncSection } from "./GitSyncSection";
 import { useSettingsPage } from "./hooks/useSettingsPage";
 import { LoggingSection } from "./LoggingSection";
+import { PluginsSection } from "./PluginsSection";
 import { ShortcutsSection } from "./ShortcutsSection";
+import { usePluginSettings } from "./usePluginSettings";
 
 interface SettingsProps {
 	onNavigate?: (page: PageName) => void;
@@ -26,6 +29,7 @@ interface SettingsProps {
 const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
 	const { shortcuts: mergedShortcuts, graphics: mergedGraphics } = useMergedConfig();
 	const { setOverrides } = usePreferencesOverrides();
+	const pluginSettings = usePluginSettings(ENABLE_PLUGINS);
 	const shortcutsForSettings: Shortcut[] = useMemo(
 		() =>
 			getShortcutsForSettingsFromMerged(mergedShortcuts).map(({ id, action, key }) => ({
@@ -55,6 +59,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		refreshGitStatus,
 		generalRef,
 		appearanceRef,
+		pluginsRef,
 		databaseRef,
 		shortcutsRef,
 		loggingRef,
@@ -64,7 +69,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		settingsKey,
 		setSettingsKey,
 		sidebarSections,
-	} = useSettingsPage({ onNavigate });
+	} = useSettingsPage({ onNavigate, enablePluginsSection: ENABLE_PLUGINS });
 
 	const handleShortcutOverride = useCallback(
 		async (id: string, displayKey: string) => {
@@ -156,6 +161,22 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 							shortcutTooltipsLoading={shortcutTooltipsLoading}
 							tooltipHintsFeatureEnabled={tooltipHintsFeatureEnabled}
 						/>
+
+						{ENABLE_PLUGINS && (
+							<PluginsSection
+								ref={pluginsRef}
+								plugins={pluginSettings.plugins}
+								isLoading={pluginSettings.isLoading}
+								errorMessage={pluginSettings.errorMessage}
+								pluginDirectory={pluginSettings.pluginDirectory}
+								communityPluginsEnabled={pluginSettings.communityPluginsEnabled}
+								onReload={pluginSettings.reload}
+								onInstall={pluginSettings.installPlugin}
+								onToggleEnabled={pluginSettings.setPluginEnabled}
+								onUninstall={pluginSettings.uninstallPlugin}
+								onCommunityPluginsEnabledChange={pluginSettings.setCommunityPluginsEnabled}
+							/>
+						)}
 
 						<DatabaseSection
 							ref={databaseRef}
@@ -249,4 +270,3 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 };
 
 export const Settings = React.memo(SettingsComponent);
-

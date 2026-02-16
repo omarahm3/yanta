@@ -38,7 +38,7 @@ export interface DocumentContentProps {
 export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 	({
 		sidebarSections,
-		currentProject,
+		currentProject: _currentProject,
 		formData,
 		isEditMode,
 		isLoading,

@@ -10,4 +10,3 @@ export function useHelpHotkey(): void {
 		allowInInput: false,
 	});
 }
-

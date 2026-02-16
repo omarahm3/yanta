@@ -206,4 +206,3 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
 		</Modal>
 	);
 };
-

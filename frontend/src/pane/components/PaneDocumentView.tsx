@@ -183,4 +183,3 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 );
 
 PaneDocumentView.displayName = "PaneDocumentView";
-

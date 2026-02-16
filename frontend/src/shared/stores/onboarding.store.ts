@@ -157,4 +157,3 @@ export function useOnboarding(): UseOnboardingReturn {
 		dismissWelcome,
 	};
 }
-
