@@ -284,4 +284,3 @@ const PickerItemRow: React.FC<PickerItemRowProps> = React.memo(
 	),
 );
 PickerItemRow.displayName = "PickerItemRow";
-

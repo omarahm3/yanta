@@ -141,4 +141,3 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 		</div>
 	);
 };
-

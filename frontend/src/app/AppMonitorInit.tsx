@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useFeatureFlag } from "../shared/hooks";
 import {
+	type AppMonitorSnapshot,
 	getAppMonitorSnapshot,
 	startAppMonitor,
-	type AppMonitorSnapshot,
 } from "../shared/monitoring/appMonitor";
-import { useFeatureFlag } from "../shared/hooks";
 
 function formatMb(bytes: number | null): string {
 	if (bytes === null) {
@@ -48,13 +48,18 @@ export function AppMonitorInit() {
 	}
 
 	return (
-		<div className="fixed bottom-3 right-3 z-[9999] rounded border border-border-subtle bg-overlay/90 px-3 py-2 text-[11px] text-text-dim shadow-lg backdrop-blur">
+		<div className="fixed top-3 right-3 z-[9999] rounded border border-border-subtle bg-overlay/90 px-3 py-2 text-xs leading-tight text-text-dim shadow-lg backdrop-blur">
 			<div className="font-medium text-text-bright">App Monitor</div>
 			<div>{heapSummary}</div>
 			<div>
 				DocGet: {snapshot.documentGetCalls} calls, {snapshot.documentGetErrors} errors, in-flight{" "}
 				{snapshot.documentGetInFlight}, avg {snapshot.documentGetAvgMs.toFixed(1)}ms
 			</div>
+			<div>
+				GitOps: sync {snapshot.inFlightCommands.syncNow}, pull {snapshot.inFlightCommands.gitPull},
+				status {snapshot.inFlightCommands.gitStatus}
+			</div>
+			<div>Pending logs: {snapshot.pendingBackendLogs}</div>
 			<div>Samples: {snapshot.samples.length}</div>
 		</div>
 	);

@@ -4,10 +4,12 @@ package system
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -27,13 +29,22 @@ var (
 )
 
 type Service struct {
-	db                        *sql.DB
-	dbPath                    string
-	eventBus                  *events.EventBus
-	shutdownHandler           func()
-	hotkeyReconfigureHandler  func(config.HotkeyConfig) error
-	indexer                   *indexer.Indexer
+	db                       *sql.DB
+	dbPath                   string
+	eventBus                 *events.EventBus
+	shutdownHandler          func()
+	hotkeyReconfigureHandler func(config.HotkeyConfig) error
+	indexer                  *indexer.Indexer
+	gitOpMu                  sync.Mutex
+	gitOpInFlight            string
 }
+
+const (
+	maxFrontendLogFields      = 20
+	maxFrontendLogStringChars = 400
+	maxFrontendMessageChars   = 2000
+	gitTopLevelTimeout        = 95 * time.Second
+)
 
 func NewService(db *sql.DB, eventBus *events.EventBus) *Service {
 	return &Service{
@@ -165,7 +176,8 @@ func (s *Service) LogFromFrontend(
 	message string,
 	data map[string]any,
 ) {
-	fields := logger.Log.WithFields(data)
+	fields := logger.Log.WithFields(sanitizeFrontendLogData(data))
+	message = truncateMessage(message, maxFrontendMessageChars)
 
 	switch level {
 	case "debug":
@@ -179,6 +191,103 @@ func (s *Service) LogFromFrontend(
 	default:
 		fields.Info("[FRONTEND] " + message)
 	}
+}
+
+func truncateMessage(message string, maxChars int) string {
+	if len(message) <= maxChars {
+		return message
+	}
+	return fmt.Sprintf("%s...[truncated %d chars]", message[:maxChars], len(message)-maxChars)
+}
+
+func sanitizeFrontendLogData(data map[string]any) map[string]any {
+	if len(data) == 0 {
+		return map[string]any{}
+	}
+
+	result := make(map[string]any, 0)
+	count := 0
+	for key, value := range data {
+		if count >= maxFrontendLogFields {
+			break
+		}
+		result[key] = sanitizeFrontendLogValue(value, 0)
+		count++
+	}
+
+	if omitted := len(data) - count; omitted > 0 {
+		result["__omittedFields"] = omitted
+	}
+
+	return result
+}
+
+func sanitizeFrontendLogValue(value any, depth int) any {
+	if value == nil {
+		return nil
+	}
+	if depth > 2 {
+		return "[depth-limited]"
+	}
+
+	switch v := value.(type) {
+	case string:
+		return truncateMessage(v, maxFrontendLogStringChars)
+	case bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+		return v
+	case error:
+		return truncateMessage(v.Error(), maxFrontendLogStringChars)
+	case []string:
+		limit := 10
+		if len(v) < limit {
+			limit = len(v)
+		}
+		out := make([]string, 0, limit+1)
+		for i := 0; i < limit; i++ {
+			out = append(out, truncateMessage(v[i], maxFrontendLogStringChars))
+		}
+		if len(v) > limit {
+			out = append(out, fmt.Sprintf("[%d more items]", len(v)-limit))
+		}
+		return out
+	case map[string]any:
+		return sanitizeFrontendLogData(v)
+	default:
+		return truncateMessage(fmt.Sprintf("%T", value), maxFrontendLogStringChars)
+	}
+}
+
+func (s *Service) beginGitOperation(operation string) (func(), error) {
+	s.gitOpMu.Lock()
+	defer s.gitOpMu.Unlock()
+
+	if s.gitOpInFlight != "" {
+		return nil, fmt.Errorf("GIT_OPERATION_IN_PROGRESS:\nAnother git operation is already running (%s).", s.gitOpInFlight)
+	}
+
+	s.gitOpInFlight = operation
+	released := false
+	return func() {
+		s.gitOpMu.Lock()
+		defer s.gitOpMu.Unlock()
+		if released {
+			return
+		}
+		released = true
+		s.gitOpInFlight = ""
+	}, nil
+}
+
+func normalizeGitTimeoutError(ctx context.Context, err error, operation string) error {
+	if err == nil {
+		return nil
+	}
+
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		return fmt.Errorf("GIT_TIMEOUT:\nGit %s timed out after %s.\n\nTry again or check remote connectivity/authentication.", operation, gitTopLevelTimeout)
+	}
+
+	return err
 }
 
 func (s *Service) SetLogLevel(ctx context.Context, level string) error {
@@ -325,6 +434,15 @@ func (s *Service) SetGitSyncConfig(ctx context.Context, cfg config.GitSyncConfig
 }
 
 func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
+	release, err := s.beginGitOperation("sync")
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+
+	ctx, cancel := context.WithTimeout(ctx, gitTopLevelTimeout)
+	defer cancel()
+
 	gitCfg := config.GetGitSyncConfig()
 	if !gitCfg.Enabled {
 		return nil, fmt.Errorf("GIT_NOT_ENABLED:\nGit sync is not enabled.\n\nGo to Settings → Git Sync and enable it first.")
@@ -337,7 +455,7 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 
 	isRepo, err := gitService.IsRepository(dataDir)
 	if err != nil {
-		return nil, fmt.Errorf("REPO_CHECK_FAILED:\nFailed to check git repository: %v\n\nDirectory: %s", err, dataDir)
+		return nil, normalizeGitTimeoutError(ctx, fmt.Errorf("REPO_CHECK_FAILED:\nFailed to check git repository: %v\n\nDirectory: %s", err, dataDir), "sync")
 	}
 	if !isRepo {
 		return nil, fmt.Errorf(
@@ -367,11 +485,17 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 	if hasRemote {
 		logger.Info("fetching from remote")
 		if err := gitService.Fetch(ctx, dataDir, "origin"); err != nil {
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				return nil, normalizeGitTimeoutError(ctx, err, "sync")
+			}
 			logger.WithError(err).Warn("fetch failed, continuing with local sync")
 		}
 
 		logger.Info("pulling from remote")
 		if err := gitService.Pull(ctx, dataDir, "origin", branch); err != nil {
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				return nil, normalizeGitTimeoutError(ctx, err, "sync")
+			}
 			errStr := err.Error()
 			if strings.Contains(errStr, "MERGE_CONFLICT") {
 				return &git.SyncResult{
@@ -387,12 +511,12 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 
 	logger.Info("staging changes")
 	if err := gitService.AddAll(ctx, dataDir); err != nil {
-		return nil, fmt.Errorf("STAGING_FAILED:\nFailed to stage changes: %v\n\nDirectory: %s", err, dataDir)
+		return nil, normalizeGitTimeoutError(ctx, fmt.Errorf("STAGING_FAILED:\nFailed to stage changes: %v\n\nDirectory: %s", err, dataDir), "sync")
 	}
 
 	status, err := gitService.GetStatus(ctx, dataDir)
 	if err != nil {
-		return nil, fmt.Errorf("STATUS_FAILED:\nFailed to read git status: %v\n\nDirectory: %s", err, dataDir)
+		return nil, normalizeGitTimeoutError(ctx, fmt.Errorf("STATUS_FAILED:\nFailed to read git status: %v\n\nDirectory: %s", err, dataDir), "sync")
 	}
 
 	if status.Clean {
@@ -417,6 +541,9 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 	logger.Info("committing changes")
 	commitMsg := fmt.Sprintf("sync: %d file(s) at %s", filesChanged, time.Now().Format("2006-01-02 15:04:05"))
 	if err := gitService.Commit(ctx, dataDir, commitMsg); err != nil {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return nil, normalizeGitTimeoutError(ctx, err, "sync")
+		}
 		if strings.Contains(err.Error(), "nothing to commit") {
 			logger.Info("nothing to commit after staging")
 			result.Status = git.SyncStatusNoChanges
@@ -434,6 +561,9 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 	if hasRemote {
 		logger.Info("pushing to remote")
 		if err := gitService.Push(ctx, dataDir, "origin", branch); err != nil {
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				return result, normalizeGitTimeoutError(ctx, err, "sync")
+			}
 			errStr := err.Error()
 			result.Status = git.SyncStatusPushFailed
 			result.PushError = errStr
@@ -533,6 +663,15 @@ func (s *Service) GetCurrentGitBranch(ctx context.Context) (string, error) {
 }
 
 func (s *Service) GitPush(ctx context.Context) error {
+	release, err := s.beginGitOperation("push")
+	if err != nil {
+		return err
+	}
+	defer release()
+
+	ctx, cancel := context.WithTimeout(ctx, gitTopLevelTimeout)
+	defer cancel()
+
 	gitCfg := config.GetGitSyncConfig()
 	if !gitCfg.Enabled {
 		return fmt.Errorf(
@@ -547,11 +686,11 @@ func (s *Service) GitPush(ctx context.Context) error {
 
 	isRepo, err := gitService.IsRepository(dataDir)
 	if err != nil {
-		return fmt.Errorf(
+		return normalizeGitTimeoutError(ctx, fmt.Errorf(
 			"REPO_CHECK_FAILED:\nFailed to check git repository: %v\n\nDirectory: %s",
 			err,
 			dataDir,
-		)
+		), "push")
 	}
 	if !isRepo {
 		return fmt.Errorf(
@@ -568,6 +707,9 @@ func (s *Service) GitPush(ctx context.Context) error {
 
 	logger.Info("pushing to remote")
 	if err := gitService.Push(ctx, dataDir, "origin", branch); err != nil {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return normalizeGitTimeoutError(ctx, err, "push")
+		}
 		errMsg := err.Error()
 		if strings.Contains(errMsg, "rejected") && strings.Contains(errMsg, "non-fast-forward") {
 			return fmt.Errorf(
@@ -590,6 +732,15 @@ func (s *Service) GitPush(ctx context.Context) error {
 }
 
 func (s *Service) GitPull(ctx context.Context) error {
+	release, err := s.beginGitOperation("pull")
+	if err != nil {
+		return err
+	}
+	defer release()
+
+	ctx, cancel := context.WithTimeout(ctx, gitTopLevelTimeout)
+	defer cancel()
+
 	gitCfg := config.GetGitSyncConfig()
 	if !gitCfg.Enabled {
 		return fmt.Errorf(
@@ -604,11 +755,11 @@ func (s *Service) GitPull(ctx context.Context) error {
 
 	isRepo, err := gitService.IsRepository(dataDir)
 	if err != nil {
-		return fmt.Errorf(
+		return normalizeGitTimeoutError(ctx, fmt.Errorf(
 			"REPO_CHECK_FAILED:\nFailed to check git repository: %v\n\nDirectory: %s",
 			err,
 			dataDir,
-		)
+		), "pull")
 	}
 	if !isRepo {
 		return fmt.Errorf(
@@ -625,7 +776,7 @@ func (s *Service) GitPull(ctx context.Context) error {
 
 	logger.Info("pulling from remote")
 	if err := gitService.Pull(ctx, dataDir, "origin", branch); err != nil {
-		return err
+		return normalizeGitTimeoutError(ctx, err, "pull")
 	}
 
 	logger.Info("pull completed successfully")

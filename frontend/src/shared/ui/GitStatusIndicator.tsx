@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowDown, ArrowUp, Check, Cloud, CloudOff, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, Check, Cloud, RefreshCw } from "lucide-react";
 import type React from "react";
 import type { GitStatus } from "../hooks/useGitStatus";
 

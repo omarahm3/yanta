@@ -1,4 +1,4 @@
-import { BackendLogger } from "../utils/backendLogger";
+import { BackendLogger, setBackendLogPendingTracker } from "../utils/backendLogger";
 
 const SAMPLE_INTERVAL_MS = 10_000;
 const LOG_INTERVAL_MS = 60_000;
@@ -30,6 +30,13 @@ export interface AppMonitorSnapshot {
 	documentGetErrors: number;
 	documentGetInFlight: number;
 	documentGetAvgMs: number;
+	pendingBackendLogs: number;
+	inFlightCommands: {
+		syncNow: number;
+		gitPull: number;
+		gitStatus: number;
+	};
+	lastGitCommandAt: number | null;
 	lastSample: AppMonitorSample | null;
 	samples: AppMonitorSample[];
 }
@@ -54,6 +61,16 @@ const state = {
 	documentGetErrors: 0,
 	documentGetInFlight: 0,
 	documentGetTotalDurationMs: 0,
+	pendingBackendLogs: 0,
+	inFlightCommands: {
+		syncNow: 0,
+		gitPull: 0,
+		gitStatus: 0,
+	},
+	lastGitCommandAt: null as number | null,
+	largeHeapJumpCount: 0,
+	lastLargeHeapWarningAt: 0,
+	suppressSnapshotLogs: false,
 	samples: [] as AppMonitorSample[],
 	sampleTimer: null as ReturnType<typeof setInterval> | null,
 	logTimer: null as ReturnType<typeof setInterval> | null,
@@ -153,11 +170,25 @@ function recordSample() {
 		const delta = sample.heapUsedBytes - prev.heapUsedBytes;
 		const deltaMb = delta / (1024 * 1024);
 		if (deltaMb > 120) {
+			state.largeHeapJumpCount += 1;
+			const now = sample.timestamp;
+			const warningCooldownMs = 30_000;
+			const suppressionThreshold = 5;
+			if (state.largeHeapJumpCount >= suppressionThreshold) {
+				state.suppressSnapshotLogs = true;
+			}
+			if (now - state.lastLargeHeapWarningAt < warningCooldownMs) {
+				updateStoredSession(false);
+				return;
+			}
+			state.lastLargeHeapWarningAt = now;
 			BackendLogger.warn("[AppMonitor] Large heap jump detected", {
 				prevHeapMb: toMb(prev.heapUsedBytes),
 				nextHeapMb: toMb(sample.heapUsedBytes),
 				deltaMb: Math.round(deltaMb * 10) / 10,
 				documentGetInFlight: sample.documentGetInFlight,
+				largeHeapJumpCount: state.largeHeapJumpCount,
+				snapshotLoggingSuppressed: state.suppressSnapshotLogs,
 			});
 		}
 	}
@@ -165,6 +196,9 @@ function recordSample() {
 }
 
 function logSnapshot() {
+	if (state.suppressSnapshotLogs) {
+		return;
+	}
 	const snapshot = getAppMonitorSnapshot();
 	const last = snapshot.lastSample;
 
@@ -177,6 +211,11 @@ function logSnapshot() {
 		documentGetErrors: snapshot.documentGetErrors,
 		documentGetInFlight: snapshot.documentGetInFlight,
 		documentGetAvgMs: snapshot.documentGetAvgMs,
+		pendingBackendLogs: snapshot.pendingBackendLogs,
+		inFlightSyncNow: snapshot.inFlightCommands.syncNow,
+		inFlightGitPull: snapshot.inFlightCommands.gitPull,
+		inFlightGitStatus: snapshot.inFlightCommands.gitStatus,
+		lastGitCommandAt: snapshot.lastGitCommandAt,
 		sampleCount: snapshot.samples.length,
 	});
 }
@@ -277,6 +316,26 @@ export function recordDocumentGetInFlightDelta(delta: 1 | -1) {
 	state.documentGetInFlight = Math.max(0, state.documentGetInFlight + delta);
 }
 
+export function recordBackendLogPendingDelta(delta: 1 | -1) {
+	if (!state.running) {
+		return;
+	}
+	state.pendingBackendLogs = Math.max(0, state.pendingBackendLogs + delta);
+}
+
+export function recordCommandInFlightDelta(
+	command: "syncNow" | "gitPull" | "gitStatus",
+	delta: 1 | -1,
+) {
+	if (!state.running) {
+		return;
+	}
+	state.inFlightCommands[command] = Math.max(0, state.inFlightCommands[command] + delta);
+	if (delta > 0) {
+		state.lastGitCommandAt = Date.now();
+	}
+}
+
 export function getAppMonitorSnapshot(): AppMonitorSnapshot {
 	const lastSample = state.samples[state.samples.length - 1] ?? null;
 	const documentGetAvgMs =
@@ -291,7 +350,12 @@ export function getAppMonitorSnapshot(): AppMonitorSnapshot {
 		documentGetErrors: state.documentGetErrors,
 		documentGetInFlight: state.documentGetInFlight,
 		documentGetAvgMs,
+		pendingBackendLogs: state.pendingBackendLogs,
+		inFlightCommands: { ...state.inFlightCommands },
+		lastGitCommandAt: state.lastGitCommandAt,
 		lastSample,
 		samples: [...state.samples],
 	};
 }
+
+setBackendLogPendingTracker(recordBackendLogPendingDelta);

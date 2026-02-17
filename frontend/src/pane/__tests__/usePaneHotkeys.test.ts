@@ -1,5 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import type { HotkeyConfig } from "../../shared/types/hotkeys";
 
 const mockSplitPane = vi.fn();
 const mockClosePane = vi.fn();
@@ -20,7 +21,7 @@ const mockLayout = {
 	primaryDocumentPath: "doc1",
 };
 
-const registeredHotkeys: any[] = [];
+const registeredHotkeys: HotkeyConfig[] = [];
 
 vi.mock("../hooks/usePaneLayout", () => ({
 	usePaneLayout: () => ({
@@ -33,7 +34,7 @@ vi.mock("../hooks/usePaneLayout", () => ({
 }));
 
 vi.mock("../../hotkeys", () => ({
-	useHotkeys: (hotkeys: any[]) => {
+	useHotkeys: (hotkeys: HotkeyConfig[]) => {
 		registeredHotkeys.length = 0;
 		registeredHotkeys.push(...hotkeys);
 	},

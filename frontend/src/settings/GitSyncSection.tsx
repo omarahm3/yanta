@@ -44,6 +44,7 @@ interface GitSyncSectionProps {
 	onPickDirectory: () => void;
 	onMigration: () => void;
 	onSyncNow: () => void;
+	syncNowInFlight?: boolean;
 	onRefreshStatus?: () => void;
 }
 
@@ -170,6 +171,7 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 			onPickDirectory,
 			onMigration,
 			onSyncNow,
+			syncNowInFlight = false,
 			onRefreshStatus,
 		},
 		ref,
@@ -335,8 +337,13 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 								)}
 
 								<div className="space-y-2">
-									<Button variant="primary" size="sm" onClick={onSyncNow} disabled={!gitInstalled}>
-										Sync Now
+									<Button
+										variant="primary"
+										size="sm"
+										onClick={onSyncNow}
+										disabled={!gitInstalled || syncNowInFlight}
+									>
+										{syncNowInFlight ? "Syncing..." : "Sync Now"}
 									</Button>
 								</div>
 							</>

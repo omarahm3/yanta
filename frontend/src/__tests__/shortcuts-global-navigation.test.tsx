@@ -7,7 +7,6 @@
 
 import { act, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import React from "react";
 import { vi } from "vitest";
 import type { HotkeyContextValue } from "../shared/types/hotkeys";
 import type { NavigationState, PageName } from "../shared/types/navigation";

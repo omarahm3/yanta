@@ -19,7 +19,7 @@ export interface PluginManifest {
 
 export interface PluginDefinition {
 	manifest: PluginManifest;
-	setup: (api: PluginAPI) => void | (() => void) | Promise<void | (() => void)>;
+	setup: (api: PluginAPI) => void | (() => void) | Promise<undefined | (() => void)>;
 }
 
 export interface PluginAPI {
@@ -40,4 +40,3 @@ export interface PersistedPluginState {
 }
 
 export type ZodSchema<T> = z.ZodType<T>;
-

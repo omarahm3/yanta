@@ -1,8 +1,8 @@
 import { Window } from "@wailsio/runtime";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ListActive } from "../../bindings/yanta/internal/project/service";
 import { QUICK_CAPTURE_SHORTCUTS } from "@/config/public";
+import { ListActive } from "../../bindings/yanta/internal/project/service";
 import { useHotkeys } from "../hotkeys";
 import { useUserProgressContext } from "../onboarding";
 import { useNotification } from "../shared/hooks";
@@ -203,4 +203,3 @@ export const QuickCapture: React.FC = () => {
 		</div>
 	);
 };
-

@@ -139,7 +139,7 @@ describe("paneLayoutUtils", () => {
 		});
 
 		it("rejects null layout", () => {
-			expect(validateLayout(null as any)).toBe(false);
+			expect(validateLayout(null as unknown as Parameters<typeof validateLayout>[0])).toBe(false);
 		});
 
 		it("rejects when activePaneId does not reference a leaf", () => {

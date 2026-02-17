@@ -98,7 +98,7 @@ describe("Layout hotkeys", () => {
 		expect(toggleHotkey).toBeDefined();
 
 		// Invoke the handler directly
-		toggleHotkey!.handler(new KeyboardEvent("keydown", { key: "b", ctrlKey: true, code: "KeyB" }));
+		toggleHotkey?.handler(new KeyboardEvent("keydown", { key: "b", ctrlKey: true, code: "KeyB" }));
 
 		expect(mockToggleSidebar).toHaveBeenCalledTimes(1);
 	});

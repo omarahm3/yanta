@@ -274,4 +274,3 @@ export function getMergedConfig(): MergedConfig {
 		shortcuts: mergeShortcuts(overrides?.shortcuts),
 	};
 }
-

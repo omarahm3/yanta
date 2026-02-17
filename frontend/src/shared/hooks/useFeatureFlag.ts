@@ -11,4 +11,3 @@ export function useFeatureFlag(name: FeatureFlagName): UseFeatureFlagResult {
 	const isLoading = useFeatureFlagsStore((s) => s.isLoading);
 	return { enabled, isLoading };
 }
-

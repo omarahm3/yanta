@@ -277,4 +277,3 @@ export function useHelpModalController(): UseHelpModalControllerResult {
 		handleClearSearch,
 	};
 }
-

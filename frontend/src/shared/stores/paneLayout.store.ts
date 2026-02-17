@@ -2,10 +2,10 @@ import { useEffect, useRef } from "react";
 import { create } from "zustand";
 import type { PersistStorage } from "zustand/middleware";
 import { persist } from "zustand/middleware";
+import { getMergedConfig } from "@/shared/stores/preferences.store";
 import type { PaneLayoutState } from "../../pane/types";
 import { createDefaultPaneLayout } from "../../pane/types";
 import { restoreLayout } from "../../pane/utils/paneLayoutUtils";
-import { getMergedConfig } from "@/shared/stores/preferences.store";
 import { BackendLogger } from "../utils/backendLogger";
 
 const OLD_STORAGE_KEY = "yanta_pane_layout";
@@ -189,4 +189,3 @@ export function usePanePersistence(state: PaneLayoutState): void {
 		};
 	}, [state]);
 }
-

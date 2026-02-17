@@ -163,4 +163,3 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 );
 
 AppearanceSection.displayName = "AppearanceSection";
-

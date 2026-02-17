@@ -4,8 +4,8 @@ import { SETTINGS_SHORTCUTS } from "@/config/shortcuts";
 import { useHelp } from "../../help";
 import { useHotkeys } from "../../hotkeys";
 import {
-	useFooterHintsSetting,
 	useFeatureFlag,
+	useFooterHintsSetting,
 	useGitStatus,
 	useShortcutTooltipsSetting,
 	useSidebarSections,
@@ -165,4 +165,3 @@ export function useSettingsPage({ onNavigate }: UseSettingsPageProps) {
 		sidebarSections,
 	};
 }
-

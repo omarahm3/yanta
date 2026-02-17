@@ -44,7 +44,9 @@ export function useRichEditorInner({
 	const { currentProject } = useProjectContext();
 	const { error: notifyError } = useNotification();
 	const { scale } = useScale();
-	const pluginExtensions = useEditorExtensions() as any[];
+	type EditorOptions = Parameters<typeof useCreateBlockNote>[0];
+	type EditorExtension = NonNullable<EditorOptions["extensions"]>[number];
+	const pluginExtensions = useEditorExtensions() as EditorExtension[];
 
 	useBlockNoteMenuPosition();
 
@@ -59,10 +61,6 @@ export function useRichEditorInner({
 
 	const uploadFileFn = useCallback(
 		async (file: File) => {
-			console.warn("[RichEditor] uploadFileFn called by BlockNote!", {
-				fileName: file.name,
-				size: file.size,
-			});
 			const alias = currentProject?.alias ?? "";
 			if (!alias) throw new Error("No project selected");
 			return await uploadFile(file, alias);
@@ -93,7 +91,7 @@ export function useRichEditorInner({
 				key: "rtl",
 				tiptapExtensions: [RTLExtension],
 			}),
-			...(pluginExtensions as any[]),
+			...pluginExtensions,
 		],
 	});
 	const [isReady, setIsReady] = useState(false);
@@ -130,7 +128,9 @@ export function useRichEditorInner({
 					};
 				}
 			} catch (err) {
-				console.warn("[RichEditor] Failed to apply Linux image accept workaround", err);
+				if (import.meta.env.DEV) {
+					console.warn("[RichEditor] Failed to apply Linux image accept workaround", err);
+				}
 			}
 		};
 
@@ -156,9 +156,6 @@ export function useRichEditorInner({
 			const raf = requestAnimationFrame(() => {
 				baselineHashRef.current = computeContentHash(editor.document);
 				hasEstablishedBaseline.current = true;
-				console.log("[RichEditor] Baseline established", {
-					hash: baselineHashRef.current?.substring(0, 50),
-				});
 			});
 			return () => cancelAnimationFrame(raf);
 		}
@@ -211,12 +208,10 @@ export function useRichEditorInner({
 			}
 
 			if (didModify) {
-				console.log("[RichEditor] onChange: didModify=true, skipping propagation");
 				return;
 			}
 
 			if (!hasEstablishedBaseline.current) {
-				console.log("[RichEditor] onChange: baseline not established, skipping");
 				return;
 			}
 
@@ -224,14 +219,8 @@ export function useRichEditorInner({
 			const currentHash = computeContentHash(finalBlocks);
 
 			if (currentHash === baselineHashRef.current) {
-				console.log("[RichEditor] onChange: hash matches baseline, skipping");
 				return;
 			}
-
-			console.log("[RichEditor] onChange: PROPAGATING change", {
-				baselineHash: baselineHashRef.current?.substring(0, 30),
-				currentHash: currentHash.substring(0, 30),
-			});
 			onChange(finalBlocks);
 			baselineHashRef.current = currentHash;
 

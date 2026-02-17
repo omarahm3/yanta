@@ -1,5 +1,4 @@
-import { act, render, waitFor } from "@testing-library/react";
-import React from "react";
+import { render } from "@testing-library/react";
 import { vi } from "vitest";
 
 const mockSaveNow = vi.fn(async () => {});
@@ -141,7 +140,7 @@ describe("Document hotkeys", () => {
 		const hotkey = capturedHotkeys.find((h) => h.key === "mod+s");
 		expect(hotkey).toBeDefined();
 
-		hotkey!.handler(new KeyboardEvent("keydown", { key: "s", ctrlKey: true, code: "KeyS" }));
+		hotkey?.handler(new KeyboardEvent("keydown", { key: "s", ctrlKey: true, code: "KeyS" }));
 
 		expect(mockSaveNow).toHaveBeenCalledTimes(1);
 	});
@@ -152,7 +151,7 @@ describe("Document hotkeys", () => {
 		const hotkey = capturedHotkeys.find((h) => h.key === "Escape");
 		expect(hotkey).toBeDefined();
 
-		hotkey!.handler(new KeyboardEvent("keydown", { key: "Escape", code: "Escape" }));
+		hotkey?.handler(new KeyboardEvent("keydown", { key: "Escape", code: "Escape" }));
 
 		expect(mockHandleEscape).toHaveBeenCalledTimes(1);
 	});
@@ -163,7 +162,7 @@ describe("Document hotkeys", () => {
 		const hotkey = capturedHotkeys.find((h) => h.key === "mod+C");
 		expect(hotkey).toBeDefined();
 
-		hotkey!.handler(new KeyboardEvent("keydown", { key: "c", ctrlKey: true, code: "KeyC" }));
+		hotkey?.handler(new KeyboardEvent("keydown", { key: "c", ctrlKey: true, code: "KeyC" }));
 
 		expect(mockHandleUnfocus).toHaveBeenCalledTimes(1);
 	});
@@ -174,7 +173,7 @@ describe("Document hotkeys", () => {
 		const hotkey = capturedHotkeys.find((h) => h.key === "Enter");
 		expect(hotkey).toBeDefined();
 
-		hotkey!.handler(new KeyboardEvent("keydown", { key: "Enter", code: "Enter" }));
+		hotkey?.handler(new KeyboardEvent("keydown", { key: "Enter", code: "Enter" }));
 
 		expect(mockEditorFocus).toHaveBeenCalledTimes(1);
 	});

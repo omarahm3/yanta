@@ -43,4 +43,3 @@ export function createDefaultPaneLayout(): PaneLayoutState {
 		primaryDocumentPath: null,
 	};
 }
-

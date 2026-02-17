@@ -18,6 +18,8 @@ type Service struct {
 	configuredRepos sync.Map
 }
 
+const maxGitOutputChars = 4000
+
 func NewService() *Service {
 	return &Service{}
 }
@@ -155,7 +157,7 @@ func (s *Service) AddAll(ctx context.Context, path string) error {
 			return fmt.Errorf("git add timed out after 30s")
 		}
 		output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
-		return fmt.Errorf("git add failed (exit status %d):\n%s", cmd.ProcessState.ExitCode(), output)
+		return fmt.Errorf("git add failed (exit status %d):\n%s", cmd.ProcessState.ExitCode(), boundOutput(output))
 	}
 
 	stdoutStr := strings.TrimSpace(stdout.String())
@@ -188,7 +190,7 @@ func (s *Service) Commit(ctx context.Context, path, message string) error {
 		}
 		output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
 		if output != "" {
-			logger.Debugf("git commit output (error):\n%s", output)
+			logger.Debugf("git commit output (error):\n%s", boundOutput(output))
 		}
 		if strings.Contains(output, "nothing to commit") || strings.Contains(output, "nothing added to commit") {
 			return fmt.Errorf("nothing to commit")
@@ -196,7 +198,7 @@ func (s *Service) Commit(ctx context.Context, path, message string) error {
 		if strings.Contains(output, "Author identity unknown") || strings.Contains(output, "Please tell me who you are") {
 			return fmt.Errorf("GIT_IDENTITY_NOT_CONFIGURED:\nGit identity not configured.\n\nYou need to configure your git identity before using git sync.\n\nRun these commands in your terminal:\n\n  git config --global user.name \"Your Name\"\n  git config --global user.email \"your.email@example.com\"")
 		}
-		return fmt.Errorf("git commit failed (exit status %d):\n%s", cmd.ProcessState.ExitCode(), output)
+		return fmt.Errorf("git commit failed (exit status %d):\n%s", cmd.ProcessState.ExitCode(), boundOutput(output))
 	}
 
 	logger.Debugf("git commit output:\n%s\n%s", stdout.String(), stderr.String())
@@ -250,7 +252,7 @@ func (s *Service) Push(ctx context.Context, path, remote, branch string) error {
 			return fmt.Errorf("git push timed out after 30s\n\nThis usually means:\n- Network connectivity issues\n- Authentication required (SSH key or credentials)\n- Remote repository is unreachable\n\nCheck your git configuration and network connection")
 		}
 		output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
-		return fmt.Errorf("git push failed (exit status %d):\n%s", cmd.ProcessState.ExitCode(), output)
+		return fmt.Errorf("git push failed (exit status %d):\n%s", cmd.ProcessState.ExitCode(), boundOutput(output))
 	}
 
 	logger.Debugf("git push output:\n%s\n%s", stdout.String(), stderr.String())
@@ -283,7 +285,7 @@ func (s *Service) Fetch(ctx context.Context, path, remote string) error {
 			return fmt.Errorf("git fetch timed out after 30s\n\nThis usually means:\n- Network connectivity issues\n- Authentication required (SSH key or credentials)\n- Remote repository is unreachable")
 		}
 		output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
-		return fmt.Errorf("git fetch failed (exit status %d):\n%s", cmd.ProcessState.ExitCode(), output)
+		return fmt.Errorf("git fetch failed (exit status %d):\n%s", cmd.ProcessState.ExitCode(), boundOutput(output))
 	}
 
 	logger.Debug("git fetch completed")
@@ -417,27 +419,34 @@ func (s *Service) Pull(ctx context.Context, path, remote, branch string) error {
 		output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
 
 		if strings.Contains(output, "CONFLICT") {
-			return fmt.Errorf("MERGE_CONFLICT:\nMerge conflicts detected. Please resolve conflicts manually:\n\n%s\n\nSteps to resolve:\n1. Check conflicted files with 'git status'\n2. Edit files to resolve conflicts (look for <<<<<<<, =======, >>>>>>>)\n3. Stage resolved files with 'git add <file>'\n4. Commit with 'git commit'", output)
+			return fmt.Errorf("MERGE_CONFLICT:\nMerge conflicts detected. Please resolve conflicts manually:\n\n%s\n\nSteps to resolve:\n1. Check conflicted files with 'git status'\n2. Edit files to resolve conflicts (look for <<<<<<<, =======, >>>>>>>)\n3. Stage resolved files with 'git add <file>'\n4. Commit with 'git commit'", boundOutput(output))
 		}
 
 		if strings.Contains(output, "divergent branches") || strings.Contains(output, "have diverged") {
-			return fmt.Errorf("DIVERGED_BRANCHES:\nLocal and remote branches have diverged.\n\n%s\n\nYou need to:\n1. Review remote changes\n2. Either merge or rebase\n3. Then push your changes", output)
+			return fmt.Errorf("DIVERGED_BRANCHES:\nLocal and remote branches have diverged.\n\n%s\n\nYou need to:\n1. Review remote changes\n2. Either merge or rebase\n3. Then push your changes", boundOutput(output))
 		}
 
 		if strings.Contains(output, "refusing to merge unrelated histories") {
-			return fmt.Errorf("UNRELATED_HISTORIES:\nRepositories have unrelated commit histories.\n\n%s\n\nUse 'git pull --allow-unrelated-histories' if you're sure you want to merge.", output)
+			return fmt.Errorf("UNRELATED_HISTORIES:\nRepositories have unrelated commit histories.\n\n%s\n\nUse 'git pull --allow-unrelated-histories' if you're sure you want to merge.", boundOutput(output))
 		}
 
-		return fmt.Errorf("git pull failed (exit status %d):\n%s", cmd.ProcessState.ExitCode(), output)
+		return fmt.Errorf("git pull failed (exit status %d):\n%s", cmd.ProcessState.ExitCode(), boundOutput(output))
 	}
 
 	output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
-	logger.Debugf("git pull output:\n%s", output)
+	logger.Debugf("git pull output:\n%s", boundOutput(output))
 	if strings.Contains(output, "Already up to date") || strings.Contains(output, "Already up-to-date") {
 		return nil
 	}
 
 	return nil
+}
+
+func boundOutput(output string) string {
+	if len(output) <= maxGitOutputChars {
+		return output
+	}
+	return fmt.Sprintf("%s\n...[truncated %d chars]", output[:maxGitOutputChars], len(output)-maxGitOutputChars)
 }
 
 // Stash saves uncommitted changes to the stash stack.

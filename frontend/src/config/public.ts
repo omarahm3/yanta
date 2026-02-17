@@ -1,12 +1,12 @@
 export { DocumentCommand, ProjectCommand } from "../../bindings/yanta/internal/commandline";
 export { EDITOR_HELP_COMMANDS, EDITOR_SHORTCUTS } from "./editorCommands";
+export type { FeatureFlagName, FeatureFlags } from "./featureFlags";
 export {
 	ENABLE_APP_MONITOR,
 	ENABLE_TOOLTIP_HINTS,
 	featureFlagsFromModel,
 	getEnvDefaultFeatureFlags,
 } from "./featureFlags";
-export type { FeatureFlagName, FeatureFlags } from "./featureFlags";
 export { GLOBAL_COMMANDS } from "./globalCommands";
 export { LAYOUT } from "./layout";
 export type { PluginConfigSchema } from "./pluginConfigRegistry";
