@@ -19,6 +19,7 @@ export interface EmptyPaneDocumentPickerProps {
 	paneId: string;
 	isDragOver?: boolean;
 	onClose?: () => void;
+	onEscapeBack?: () => void;
 }
 
 function recentToDisplayItem(doc: RecentDocument): DisplayItem {
@@ -34,6 +35,7 @@ export const EmptyPaneDocumentPicker: React.FC<EmptyPaneDocumentPickerProps> = (
 	paneId,
 	isDragOver = false,
 	onClose,
+	onEscapeBack,
 }) => {
 	const [query, setQuery] = useState("");
 	const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -169,9 +171,13 @@ export const EmptyPaneDocumentPicker: React.FC<EmptyPaneDocumentPickerProps> = (
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent) => {
-			if (e.key === "Escape" && onClose) {
+			if (e.key === "Escape") {
 				e.preventDefault();
-				onClose();
+				if (onClose) {
+					onClose();
+					return;
+				}
+				onEscapeBack?.();
 			} else if (e.key === "ArrowDown" || (e.ctrlKey && e.key === "n")) {
 				e.preventDefault();
 				setHighlightedIndex((prev) => Math.min(prev + 1, displayItems.length - 1));
@@ -186,7 +192,7 @@ export const EmptyPaneDocumentPicker: React.FC<EmptyPaneDocumentPickerProps> = (
 				}
 			}
 		},
-		[displayItems, highlightedIndex, openItem, onClose],
+		[displayItems, highlightedIndex, openItem, onClose, onEscapeBack],
 	);
 
 	const handleHighlightIndex = useCallback((index: number) => {

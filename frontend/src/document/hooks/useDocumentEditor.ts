@@ -6,13 +6,30 @@ export const useDocumentEditor = () => {
 
 	const handleEditorReady = useCallback((editor: BlockNoteEditor) => {
 		editorRef.current = editor;
-		queueMicrotask(() => {
-			editor.focus();
-			const lastBlock = editor.document[editor.document.length - 1];
-			if (lastBlock) {
-				editor.setTextCursorPosition(lastBlock, "end");
+
+		const tryFocus = (attempt: number) => {
+			try {
+				const dom = editor.domElement;
+				if (!dom || !dom.isConnected) {
+					if (attempt < 10) {
+						requestAnimationFrame(() => tryFocus(attempt + 1));
+					}
+					return;
+				}
+
+				editor.focus();
+				const lastBlock = editor.document[editor.document.length - 1];
+				if (lastBlock) {
+					editor.setTextCursorPosition(lastBlock, "end");
+				}
+			} catch {
+				if (attempt < 10) {
+					requestAnimationFrame(() => tryFocus(attempt + 1));
+				}
 			}
-		});
+		};
+
+		requestAnimationFrame(() => tryFocus(0));
 	}, []);
 
 	return {

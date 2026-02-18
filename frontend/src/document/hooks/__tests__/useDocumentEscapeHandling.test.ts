@@ -94,11 +94,25 @@ describe("useDocumentEscapeHandling", () => {
 		expect(onNavigateBack).not.toHaveBeenCalled();
 	});
 
-	it("does nothing when editor ref is null", () => {
+	it("navigates back when editor ref is null and pane is active", () => {
 		const editorRef = { current: null };
 		const onNavigateBack = vi.fn();
 
 		const { result } = renderHook(() => useDocumentEscapeHandling({ editorRef, onNavigateBack }));
+
+		const event = new KeyboardEvent("keydown", { key: "Escape" });
+		result.current.handleEscape(event);
+
+		expect(onNavigateBack).toHaveBeenCalled();
+	});
+
+	it("does not navigate when editor ref is null and pane is inactive", () => {
+		const editorRef = { current: null };
+		const onNavigateBack = vi.fn();
+
+		const { result } = renderHook(() =>
+			useDocumentEscapeHandling({ editorRef, onNavigateBack, isActivePane: false }),
+		);
 
 		const event = new KeyboardEvent("keydown", { key: "Escape" });
 		result.current.handleEscape(event);

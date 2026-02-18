@@ -39,7 +39,9 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 			when: activePaneId === paneId,
 			onEscape: (e) => {
 				if (suppressEscapeRef.current) {
-					e.preventDefault();
+					controller.escapeHandler(e);
+					e.stopPropagation();
+					e.stopImmediatePropagation();
 					return;
 				}
 				controller.escapeHandler(e);
@@ -156,7 +158,7 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 						)}
 					</div>
 				)}
-				<div ref={scrollContainerRef} className="flex-1 overflow-auto min-h-0">
+				<div ref={scrollContainerRef} className="flex flex-col flex-1 min-h-0 overflow-auto">
 					<DocumentEditorForm
 						blocks={contentProps.formData.blocks}
 						tags={contentProps.formData.tags}

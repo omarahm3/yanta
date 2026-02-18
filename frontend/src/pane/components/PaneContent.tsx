@@ -38,7 +38,9 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 			e.stopImmediatePropagation();
 			if (countLeaves(layoutRef.current.root) > 1) {
 				closePane(paneId);
+				return;
 			}
+			appOnNavigate?.("dashboard");
 		},
 	});
 
@@ -135,7 +137,11 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 			) : (
 				<>
 					<PaneHeader paneId={paneId} documentPath={null} />
-					<EmptyPaneDocumentPicker paneId={paneId} isDragOver={isDragOver} />
+					<EmptyPaneDocumentPicker
+						paneId={paneId}
+						isDragOver={isDragOver}
+						onEscapeBack={() => appOnNavigate?.("dashboard")}
+					/>
 				</>
 			)}
 		</div>

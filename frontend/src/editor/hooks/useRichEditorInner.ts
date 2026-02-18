@@ -88,10 +88,7 @@ export function useRichEditorInner({
 				"data-scale": "true",
 			},
 		},
-		extensions: [
-			createExtension(rtlExtension),
-			...pluginExtensions,
-		],
+		extensions: [createExtension(rtlExtension), ...pluginExtensions],
 	});
 	const [isReady, setIsReady] = useState(false);
 
@@ -141,13 +138,41 @@ export function useRichEditorInner({
 	}, [editor]);
 
 	useEffect(() => {
-		if (editor) {
-			const readyTimeout = setTimeout(() => {
-				setIsReady(true);
-				if (onReady) onReady(editor);
-			}, 50);
-			return () => clearTimeout(readyTimeout);
+		if (!editor) {
+			return;
 		}
+
+		setIsReady(true);
+		let cancelled = false;
+		let rafId = 0;
+		let attempts = 0;
+
+		const notifyReady = () => {
+			if (cancelled) {
+				return;
+			}
+
+			const dom = editor.domElement;
+			if (dom?.isConnected) {
+				onReady?.(editor);
+				return;
+			}
+
+			if (attempts < 10) {
+				attempts += 1;
+				rafId = requestAnimationFrame(notifyReady);
+				return;
+			}
+
+			onReady?.(editor);
+		};
+
+		rafId = requestAnimationFrame(notifyReady);
+
+		return () => {
+			cancelled = true;
+			cancelAnimationFrame(rafId);
+		};
 	}, [editor, onReady]);
 
 	useEffect(() => {
@@ -163,7 +188,18 @@ export function useRichEditorInner({
 	useEffect(() => {
 		if (editor && editable && isReady && autoFocus) {
 			const focusTimeout = setTimeout(() => {
-				editor.focus();
+				const dom = editor.domElement;
+				if (!dom || !dom.isConnected) {
+					return;
+				}
+
+				try {
+					editor.focus();
+				} catch (err) {
+					if (import.meta.env.DEV) {
+						console.warn("[RichEditor] Failed to autofocus editor before mount", err);
+					}
+				}
 			}, 0);
 			return () => clearTimeout(focusTimeout);
 		}
