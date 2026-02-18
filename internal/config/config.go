@@ -38,6 +38,7 @@ type FeatureFlags struct {
 	TooltipHints bool `toml:"tooltip_hints"`
 	AppMonitor   bool `toml:"app_monitor"`
 	CommandLine  bool `toml:"command_line"`
+	Plugins      bool `toml:"plugins"`
 }
 
 // PreferencesOverrides holds user-configurable overrides for shortcuts, timeouts, and layout.
@@ -172,6 +173,7 @@ func Init() error {
 			"tooltip_hints": resolveFeatureFlag(cfg.FeatureFlags.TooltipHints, "YANTA_ENABLE_TOOLTIP_HINTS"),
 			"app_monitor":   resolveFeatureFlag(cfg.FeatureFlags.AppMonitor, "YANTA_ENABLE_APP_MONITOR"),
 			"command_line":  resolveFeatureFlag(cfg.FeatureFlags.CommandLine, "YANTA_ENABLE_COMMAND_LINE"),
+			"plugins":       resolveFeatureFlag(cfg.FeatureFlags.Plugins, "YANTA_ENABLE_PLUGINS"),
 		}).Info("feature flags resolved")
 
 		instance = cfg
@@ -595,6 +597,7 @@ func GetFeatureFlags() FeatureFlags {
 		TooltipHints: resolveFeatureFlag(cfg.FeatureFlags.TooltipHints, "YANTA_ENABLE_TOOLTIP_HINTS"),
 		AppMonitor:   resolveFeatureFlag(cfg.FeatureFlags.AppMonitor, "YANTA_ENABLE_APP_MONITOR"),
 		CommandLine:  resolveFeatureFlag(cfg.FeatureFlags.CommandLine, "YANTA_ENABLE_COMMAND_LINE"),
+		Plugins:      resolveFeatureFlag(cfg.FeatureFlags.Plugins, "YANTA_ENABLE_PLUGINS"),
 	}
 }
 

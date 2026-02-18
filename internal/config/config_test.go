@@ -397,6 +397,7 @@ func TestConfig_FeatureFlags(t *testing.T) {
 		assert.False(t, flags.TooltipHints)
 		assert.False(t, flags.AppMonitor)
 		assert.False(t, flags.CommandLine)
+		assert.False(t, flags.Plugins)
 	})
 
 	t.Run("reads values from config struct", func(t *testing.T) {
@@ -408,6 +409,7 @@ func TestConfig_FeatureFlags(t *testing.T) {
 			TooltipHints: true,
 			AppMonitor:   true,
 			CommandLine:  true,
+			Plugins:      true,
 		}
 		mu.Unlock()
 
@@ -415,6 +417,7 @@ func TestConfig_FeatureFlags(t *testing.T) {
 		assert.True(t, flags.TooltipHints)
 		assert.True(t, flags.AppMonitor)
 		assert.True(t, flags.CommandLine)
+		assert.True(t, flags.Plugins)
 	})
 
 	t.Run("env overrides config values", func(t *testing.T) {
@@ -426,17 +429,20 @@ func TestConfig_FeatureFlags(t *testing.T) {
 			TooltipHints: false,
 			AppMonitor:   false,
 			CommandLine:  false,
+			Plugins:      false,
 		}
 		mu.Unlock()
 
 		t.Setenv("YANTA_ENABLE_TOOLTIP_HINTS", "true")
 		t.Setenv("YANTA_ENABLE_APP_MONITOR", "1")
 		t.Setenv("YANTA_ENABLE_COMMAND_LINE", "true")
+		t.Setenv("YANTA_ENABLE_PLUGINS", "true")
 
 		flags := GetFeatureFlags()
 		assert.True(t, flags.TooltipHints)
 		assert.True(t, flags.AppMonitor)
 		assert.True(t, flags.CommandLine)
+		assert.True(t, flags.Plugins)
 	})
 
 	t.Run("explicit false env disables flag", func(t *testing.T) {
@@ -448,16 +454,19 @@ func TestConfig_FeatureFlags(t *testing.T) {
 			TooltipHints: true,
 			AppMonitor:   true,
 			CommandLine:  true,
+			Plugins:      true,
 		}
 		mu.Unlock()
 
 		t.Setenv("YANTA_ENABLE_TOOLTIP_HINTS", "false")
 		t.Setenv("YANTA_ENABLE_APP_MONITOR", "0")
 		t.Setenv("YANTA_ENABLE_COMMAND_LINE", "off")
+		t.Setenv("YANTA_ENABLE_PLUGINS", "off")
 
 		flags := GetFeatureFlags()
 		assert.False(t, flags.TooltipHints)
 		assert.False(t, flags.AppMonitor)
 		assert.False(t, flags.CommandLine)
+		assert.False(t, flags.Plugins)
 	})
 }
