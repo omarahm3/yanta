@@ -274,6 +274,38 @@ func (s *Service) ListByProject(ctx context.Context, projectAlias string, includ
 		return nil, fmt.Errorf("listing documents: %w", err)
 	}
 
+	cleanedAliases := make(map[string]struct{})
+	filtered := make([]*Document, 0, len(docs))
+	for _, doc := range docs {
+		exists, existsErr := s.fm.FileExists(doc.Path)
+		if existsErr != nil {
+			logger.WithError(existsErr).WithField("path", doc.Path).Warn("failed to verify document file existence")
+			filtered = append(filtered, doc)
+			continue
+		}
+		if exists {
+			filtered = append(filtered, doc)
+			continue
+		}
+
+		logger.WithFields(map[string]any{
+			"path":         doc.Path,
+			"projectAlias": doc.ProjectAlias,
+		}).Warn("document metadata exists but file is missing; pruning stale record")
+
+		if err := s.store.HardDelete(ctx, doc.Path); err != nil {
+			logger.WithError(err).WithField("path", doc.Path).Warn("failed to prune stale document metadata")
+			continue
+		}
+
+		if err := s.indexer.RemoveDocument(ctx, doc.Path); err != nil {
+			logger.WithError(err).WithField("path", doc.Path).Warn("failed to remove stale document from index")
+		}
+
+		cleanedAliases[doc.ProjectAlias] = struct{}{}
+	}
+	docs = filtered
+
 	if offset >= len(docs) {
 		return []*Document{}, nil
 	}
@@ -291,6 +323,10 @@ func (s *Service) ListByProject(ctx context.Context, projectAlias string, includ
 		"limit":     limit,
 		"offset":    offset,
 	})
+
+	for alias := range cleanedAliases {
+		s.emitDocumentCountChange(ctx, alias)
+	}
 
 	return result, nil
 }
@@ -416,8 +452,12 @@ func (s *Service) HardDelete(ctx context.Context, path string) error {
 	}
 
 	if err := s.fm.DeleteFile(path); err != nil {
-		logger.WithError(err).WithField("path", path).Error("failed to delete document file from vault")
-		return fmt.Errorf("deleting document file: %w", err)
+		if errors.Is(err, ErrNotFound) {
+			logger.WithField("path", path).Warn("document file already missing; removing metadata only")
+		} else {
+			logger.WithError(err).WithField("path", path).Error("failed to delete document file from vault")
+			return fmt.Errorf("deleting document file: %w", err)
+		}
 	}
 
 	if err := s.store.HardDelete(ctx, path); err != nil {

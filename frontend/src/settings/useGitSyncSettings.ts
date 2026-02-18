@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { SyncStatus } from "../../bindings/yanta/internal/git/models";
 import {
-	GetAppHomeEnvVar,
 	CheckGitInstalled,
+	GetAppHomeEnvVar,
 	GetCurrentDataDirectory,
 	GetCurrentGitBranch,
 	GetGitBranches,
