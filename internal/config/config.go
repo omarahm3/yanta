@@ -266,11 +266,11 @@ func SetStartHidden(hidden bool) error {
 }
 
 func getConfigPath() (string, error) {
-	home, err := os.UserHomeDir()
+	root, err := getAppRootDirectory()
 	if err != nil {
-		return "", fmt.Errorf("failed to get home directory: %w", err)
+		return "", fmt.Errorf("failed to get app root directory: %w", err)
 	}
-	return filepath.Join(home, ".yanta", "config.toml"), nil
+	return filepath.Join(root, "config.toml"), nil
 }
 
 func save(cfg *Config) error {
@@ -298,7 +298,7 @@ func save(cfg *Config) error {
 }
 
 func GetDataDirectory() string {
-	if envDir := os.Getenv("YANTA_DATA_DIR"); envDir != "" {
+	if envDir := os.Getenv("YANTA_HOME"); envDir != "" {
 		return envDir
 	}
 
@@ -307,20 +307,48 @@ func GetDataDirectory() string {
 		return cfg.DataDirectory
 	}
 
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".yanta")
+	root, err := getAppRootDirectory()
+	if err != nil {
+		home, _ := os.UserHomeDir()
+		return filepath.Join(home, ".yanta")
+	}
+	return root
 }
 
-// IsDataDirectoryOverridden returns true if YANTA_DATA_DIR env var is set,
-// which overrides any config file setting. This is useful for warning users
-// that changing the data directory via the UI won't take effect.
+// IsDataDirectoryOverridden returns true if YANTA_HOME is set, which takes
+// precedence over config file settings. This is useful for warning users that
+// changing the data directory via the UI won't take effect.
 func IsDataDirectoryOverridden() bool {
-	return os.Getenv("YANTA_DATA_DIR") != ""
+	return os.Getenv("YANTA_HOME") != ""
 }
 
-// GetDataDirectoryEnvVar returns the value of YANTA_DATA_DIR if set, empty string otherwise.
-func GetDataDirectoryEnvVar() string {
-	return os.Getenv("YANTA_DATA_DIR")
+// GetAppHomeEnvVar returns the value of YANTA_HOME if set, empty string otherwise.
+func GetAppHomeEnvVar() string {
+	return os.Getenv("YANTA_HOME")
+}
+
+// GetAppRootDirectory returns the base directory used for app-scoped files
+// (config, logs, plugins, crashes). Precedence:
+// 1. YANTA_HOME
+// 2. ~/.yanta
+func GetAppRootDirectory() string {
+	root, err := getAppRootDirectory()
+	if err != nil {
+		home, _ := os.UserHomeDir()
+		return filepath.Join(home, ".yanta")
+	}
+	return root
+}
+
+func getAppRootDirectory() (string, error) {
+	if envDir := os.Getenv("YANTA_HOME"); envDir != "" {
+		return envDir, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
+	return filepath.Join(home, ".yanta"), nil
 }
 
 func SetDataDirectory(dir string) error {

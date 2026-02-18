@@ -352,16 +352,16 @@ func (s *Service) GetCurrentDataDirectory(ctx context.Context) string {
 	return config.GetDataDirectory()
 }
 
-// IsDataDirectoryOverridden returns true if YANTA_DATA_DIR environment variable is set,
-// which means any changes to the data directory via the UI won't take effect until
-// the env var is unset.
+// IsDataDirectoryOverridden returns true when YANTA_HOME overrides the
+// configured data directory. In that case, changes via the UI won't take
+// effect until the env var is unset.
 func (s *Service) IsDataDirectoryOverridden(ctx context.Context) bool {
 	return config.IsDataDirectoryOverridden()
 }
 
-// GetDataDirectoryEnvVar returns the YANTA_DATA_DIR value if set, empty string otherwise.
-func (s *Service) GetDataDirectoryEnvVar(ctx context.Context) string {
-	return config.GetDataDirectoryEnvVar()
+// GetAppHomeEnvVar returns the YANTA_HOME value if set, empty string otherwise.
+func (s *Service) GetAppHomeEnvVar(ctx context.Context) string {
+	return config.GetAppHomeEnvVar()
 }
 
 func (s *Service) OpenDirectoryDialog(ctx context.Context) (string, error) {

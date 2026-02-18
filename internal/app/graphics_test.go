@@ -9,7 +9,7 @@ import (
 
 func TestResolveEffectiveMode(t *testing.T) {
 	tempDir := t.TempDir()
-	cleanupDataDir := testenv.SetTestDataDir(t, tempDir)
+	cleanupDataDir := testenv.SetTestAppHome(t, tempDir)
 	defer cleanupDataDir()
 	clearAutoFallbackFlag()
 	defer clearAutoFallbackFlag()

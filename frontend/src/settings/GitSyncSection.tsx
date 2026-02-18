@@ -230,12 +230,12 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 								<div className="p-4 border border-blue-700 rounded bg-blue-900/30">
 									<div className="flex items-start gap-2">
 										<AlertTriangle className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
-										<div>
-											<div className="mb-1 font-medium text-blue-400">Environment Override Active</div>
-											<div className="text-sm text-blue-300">
-												The <code className="px-1 py-0.5 bg-blue-800/50 rounded">YANTA_DATA_DIR</code>{" "}
-												environment variable is set to:
-											</div>
+									<div>
+										<div className="mb-1 font-medium text-blue-400">Environment Override Active</div>
+										<div className="text-sm text-blue-300">
+											The <code className="px-1 py-0.5 bg-blue-800/50 rounded">YANTA_HOME</code>{" "}
+											environment variable is set to:
+										</div>
 											<div className="mt-1 text-xs font-mono text-blue-200 break-all">{dataDirEnvVar}</div>
 											<div className="mt-2 text-sm text-blue-300">
 												Migration is disabled while this variable is set. Unset the environment variable and

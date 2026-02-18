@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { SyncStatus } from "../../bindings/yanta/internal/git/models";
 import {
+	GetAppHomeEnvVar,
 	CheckGitInstalled,
 	GetCurrentDataDirectory,
 	GetCurrentGitBranch,
-	GetDataDirectoryEnvVar,
 	GetGitBranches,
 	GetGitSyncConfig,
 	IsDataDirectoryOverridden,
@@ -61,7 +61,7 @@ export function useGitSyncSettings() {
 			.then((overridden) => setDataDirOverridden(overridden))
 			.catch((err) => BackendLogger.error("Failed to check data directory override:", err));
 
-		GetDataDirectoryEnvVar()
+		GetAppHomeEnvVar()
 			.then((envVar) => setDataDirEnvVar(envVar))
 			.catch((err) => BackendLogger.error("Failed to get data directory env var:", err));
 

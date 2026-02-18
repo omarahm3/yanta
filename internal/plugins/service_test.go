@@ -48,3 +48,21 @@ capabilities = ["commands", "sidebar"]
 	require.Len(t, list, 1)
 	require.True(t, list[0].Enabled)
 }
+
+func TestService_PluginDirectoryFollowsAppRoot(t *testing.T) {
+	tempDir := t.TempDir()
+	cleanup := testenv.SetTestHome(t, tempDir)
+	defer cleanup()
+
+	appRoot := filepath.Join(tempDir, "isolated-home")
+	cleanupAppRoot := testenv.SetTestAppHome(t, appRoot)
+	defer cleanupAppRoot()
+
+	config.ResetForTesting()
+	require.NoError(t, config.Init())
+
+	svc := NewService()
+	dir, err := svc.GetPluginDirectory()
+	require.NoError(t, err)
+	require.Equal(t, filepath.Join(appRoot, "plugins"), dir)
+}

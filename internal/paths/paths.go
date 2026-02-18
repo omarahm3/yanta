@@ -2,7 +2,6 @@
 package paths
 
 import (
-	"os"
 	"path/filepath"
 	"yanta/internal/config"
 )
@@ -16,18 +15,11 @@ func GetDatabasePath() string {
 }
 
 func GetLogsPath() string {
-	// If YANTA_DATA_DIR is set, logs should follow it for complete isolation
-	if os.Getenv("YANTA_DATA_DIR") != "" {
-		return filepath.Join(config.GetDataDirectory(), "logs")
-	}
-	// Otherwise, keep logs in home directory
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".yanta", "logs")
+	return filepath.Join(config.GetAppRootDirectory(), "logs")
 }
 
 func GetConfigPath() string {
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".yanta", "config.toml")
+	return filepath.Join(config.GetAppRootDirectory(), "config.toml")
 }
 
 func GetBackupsPath() string {

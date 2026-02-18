@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/sha1"
 	"embed"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
@@ -74,6 +76,8 @@ func run() {
 	// Check if this is a quick capture launch
 	isQuickLaunch := hasQuickFlag(os.Args)
 	logger.Infof("quick launch mode: %v", isQuickLaunch)
+	singleInstanceID := buildSingleInstanceID()
+	logger.Infof("single instance id: %s", singleInstanceID)
 
 	wailsApp := application.New(application.Options{
 		Name:        "YANTA",
@@ -82,7 +86,7 @@ func run() {
 		// SingleInstance ensures only one Yanta instance runs.
 		// Second instance launches trigger OnSecondInstanceLaunch.
 		SingleInstance: &application.SingleInstanceOptions{
-			UniqueID: "com.yanta.app",
+			UniqueID: singleInstanceID,
 			OnSecondInstanceLaunch: func(data application.SecondInstanceData) {
 				logger.Infof("second instance launched with args: %v", data.Args)
 
@@ -205,11 +209,14 @@ func run() {
 }
 
 func writeStartupError(message string) {
-	home, err := os.UserHomeDir()
-	if err != nil {
+	root := config.GetAppRootDirectory()
+	if root == "" {
 		return
 	}
-	errorFile := filepath.Join(home, ".yanta", "startup-error.log")
+	errorFile := filepath.Join(root, "startup-error.log")
+	if err := os.MkdirAll(filepath.Dir(errorFile), 0o755); err != nil {
+		return
+	}
 	f, err := os.OpenFile(errorFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
 	if err != nil {
 		return
@@ -241,6 +248,21 @@ func getWindowsCustomTheme() application.ThemeSettings {
 			BorderColour:    application.NewRGBPtr(230, 230, 230),
 		},
 	}
+}
+
+func buildSingleInstanceID() string {
+	root := config.GetAppRootDirectory()
+	if root == "" {
+		return "com.yanta.app"
+	}
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		absRoot = root
+	}
+	normalized := strings.ToLower(filepath.Clean(absRoot))
+	hash := sha1.Sum([]byte(normalized))
+	suffix := hex.EncodeToString(hash[:8])
+	return "com.yanta.app." + suffix
 }
 
 // hasQuickFlag checks if --quick or -q flag is present in args

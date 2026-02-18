@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -149,11 +150,11 @@ func TestConfig_DataDirectory_EnvVar(t *testing.T) {
 
 		// Now set env var - it should take priority
 		envDir := filepath.Join(tempDir, "env-dir")
-		cleanupEnv := testenv.SetTestDataDir(t, envDir)
+		cleanupEnv := testenv.SetTestAppHome(t, envDir)
 		defer cleanupEnv()
 
 		dataDir := GetDataDirectory()
-		assert.Equal(t, envDir, dataDir, "YANTA_DATA_DIR env var should override config file setting")
+		assert.Equal(t, envDir, dataDir, "YANTA_HOME env var should override config file setting")
 	})
 
 	t.Run("empty env var falls back to config", func(t *testing.T) {
@@ -168,8 +169,8 @@ func TestConfig_DataDirectory_EnvVar(t *testing.T) {
 		err = SetDataDirectory(configDir)
 		require.NoError(t, err)
 
-		// Ensure YANTA_DATA_DIR is not set
-		cleanupEnv := testenv.SetTestDataDir(t, "")
+		// Ensure YANTA_HOME is not set
+		cleanupEnv := testenv.SetTestAppHome(t, "")
 		// Immediately restore - we want it unset
 		cleanupEnv()
 
@@ -191,6 +192,35 @@ func TestConfig_DataDirectory_EnvVar(t *testing.T) {
 		dataDir := GetDataDirectory()
 		expectedDefault := filepath.Join(tempDir, ".yanta")
 		assert.Equal(t, expectedDefault, dataDir, "Empty config should fall back to default ~/.yanta")
+	})
+}
+
+func TestConfig_AppRootDirectory(t *testing.T) {
+	tempDir := t.TempDir()
+	cleanup := testenv.SetTestHome(t, tempDir)
+	defer cleanup()
+	oldHomeDir := os.Getenv("YANTA_HOME")
+	_ = os.Unsetenv("YANTA_HOME")
+	t.Cleanup(func() {
+		if oldHomeDir == "" {
+			_ = os.Unsetenv("YANTA_HOME")
+		} else {
+			_ = os.Setenv("YANTA_HOME", oldHomeDir)
+		}
+	})
+
+	t.Run("default app root directory", func(t *testing.T) {
+		root := GetAppRootDirectory()
+		assert.Equal(t, filepath.Join(tempDir, ".yanta"), root)
+	})
+
+	t.Run("app root follows YANTA_HOME when set", func(t *testing.T) {
+		envDir := filepath.Join(tempDir, "isolated-dev")
+		cleanupEnv := testenv.SetTestAppHome(t, envDir)
+		defer cleanupEnv()
+
+		root := GetAppRootDirectory()
+		assert.Equal(t, envDir, root)
 	})
 }
 
