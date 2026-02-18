@@ -1,5 +1,5 @@
 import { codeBlockOptions } from "@blocknote/code-block";
-import type { BlockNoteEditor, Extension, ExtensionFactoryInstance } from "@blocknote/core";
+import type { BlockNoteEditor, ExtensionFactoryInstance } from "@blocknote/core";
 import {
 	type Block,
 	BlockNoteSchema,
