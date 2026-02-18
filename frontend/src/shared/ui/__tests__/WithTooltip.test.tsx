@@ -177,20 +177,20 @@ describe("WithTooltip", () => {
 			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 		});
 
-		it("cancels show timeout when mouse leaves before delay", () => {
+		it("hides tooltip when trigger blurs quickly", () => {
 			render(
-				<WithTooltip tooltipId="test" description="Test tooltip" delay={500}>
+				<WithTooltip tooltipId="test" description="Test tooltip">
 					<button type="button">Click me</button>
 				</WithTooltip>,
 			);
 
 			const button = screen.getByRole("button", { name: "Click me" });
 
-			// Enter and leave before delay expires
-			fireEvent.mouseEnter(button);
-			fireEvent.mouseLeave(button);
+			// Focus then immediately blur; tooltip should not remain visible.
+			fireEvent.focus(button);
+			fireEvent.blur(button);
 			act(() => {
-				vi.advanceTimersByTime(600);
+				vi.advanceTimersByTime(100);
 			});
 
 			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();

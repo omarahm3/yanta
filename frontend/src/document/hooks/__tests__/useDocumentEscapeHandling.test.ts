@@ -1,5 +1,6 @@
 import type { BlockNoteEditor } from "@blocknote/core";
 import { renderHook } from "@testing-library/react";
+import type { MutableRefObject } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { useDocumentEscapeHandling } from "../useDocumentEscapeHandling";
 
@@ -9,15 +10,21 @@ function createMockEditor(focused: boolean) {
 		editor: {
 			isFocused: () => focused,
 			domElement: { blur: blurFn },
-		} as unknown as BlockNoteEditor,
+		},
 		blurFn,
 	};
+}
+
+function toEditorRef(
+	editor: ReturnType<typeof createMockEditor>["editor"],
+): MutableRefObject<BlockNoteEditor | null> {
+	return { current: editor as unknown as BlockNoteEditor };
 }
 
 describe("useDocumentEscapeHandling", () => {
 	it("blurs focused editor on escape (does not navigate back)", () => {
 		const { editor, blurFn } = createMockEditor(true);
-		const editorRef = { current: editor };
+		const editorRef = toEditorRef(editor);
 		const onNavigateBack = vi.fn();
 
 		const { result } = renderHook(() => useDocumentEscapeHandling({ editorRef, onNavigateBack }));
@@ -31,7 +38,7 @@ describe("useDocumentEscapeHandling", () => {
 
 	it("navigates back when editor is not focused", () => {
 		const { editor } = createMockEditor(false);
-		const editorRef = { current: editor };
+		const editorRef = toEditorRef(editor);
 		const onNavigateBack = vi.fn();
 
 		const { result } = renderHook(() => useDocumentEscapeHandling({ editorRef, onNavigateBack }));
@@ -44,7 +51,7 @@ describe("useDocumentEscapeHandling", () => {
 
 	it("does not navigate back when isActivePane is false", () => {
 		const { editor } = createMockEditor(false);
-		const editorRef = { current: editor };
+		const editorRef = toEditorRef(editor);
 		const onNavigateBack = vi.fn();
 
 		const { result } = renderHook(() =>
@@ -59,7 +66,7 @@ describe("useDocumentEscapeHandling", () => {
 
 	it("still blurs editor when isActivePane is false and editor is focused", () => {
 		const { editor, blurFn } = createMockEditor(true);
-		const editorRef = { current: editor };
+		const editorRef = toEditorRef(editor);
 		const onNavigateBack = vi.fn();
 
 		const { result } = renderHook(() =>
@@ -75,7 +82,7 @@ describe("useDocumentEscapeHandling", () => {
 
 	it("handleUnfocus blurs editor without navigating back", () => {
 		const { editor, blurFn } = createMockEditor(true);
-		const editorRef = { current: editor };
+		const editorRef = toEditorRef(editor);
 		const onNavigateBack = vi.fn();
 
 		const { result } = renderHook(() => useDocumentEscapeHandling({ editorRef, onNavigateBack }));
@@ -87,11 +94,25 @@ describe("useDocumentEscapeHandling", () => {
 		expect(onNavigateBack).not.toHaveBeenCalled();
 	});
 
-	it("does nothing when editor ref is null", () => {
+	it("navigates back when editor ref is null and pane is active", () => {
 		const editorRef = { current: null };
 		const onNavigateBack = vi.fn();
 
 		const { result } = renderHook(() => useDocumentEscapeHandling({ editorRef, onNavigateBack }));
+
+		const event = new KeyboardEvent("keydown", { key: "Escape" });
+		result.current.handleEscape(event);
+
+		expect(onNavigateBack).toHaveBeenCalled();
+	});
+
+	it("does not navigate when editor ref is null and pane is inactive", () => {
+		const editorRef = { current: null };
+		const onNavigateBack = vi.fn();
+
+		const { result } = renderHook(() =>
+			useDocumentEscapeHandling({ editorRef, onNavigateBack, isActivePane: false }),
+		);
 
 		const event = new KeyboardEvent("keydown", { key: "Escape" });
 		result.current.handleEscape(event);

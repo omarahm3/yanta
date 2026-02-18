@@ -2,7 +2,7 @@
 # Migration Note: This file replaces the legacy wails.json (v2 config) which has been removed.
 # All configuration is now managed through this build/config.yml and Taskfile.yml.
 # See: https://v3alpha.wails.io/learn/build/ for schema documentation.
-version: '3'
+version: "3"
 
 # Application info
 info:
@@ -18,7 +18,7 @@ info:
 # Schema reference: https://v3alpha.wails.io/learn/build/
 dev_mode:
   root_path: .
-  log_level: warn
+  log_level: debug
   debounce: 1000
   frontend_dev_server_url: "http://localhost:34115"
   ignore:
@@ -44,9 +44,9 @@ dev_mode:
   git_ignore: true
   # Execute types: once, blocking, background, primary
   executes:
-    - cmd: wails3 task build
+    - cmd: task build
       type: blocking
-    - cmd: wails3 task build:dev:frontend
+    - cmd: powershell -NoProfile -ExecutionPolicy Bypass -File build/scripts/wails-task-wrapper.ps1 -TaskName build:dev:frontend
       type: background
-    - cmd: wails3 task run
+    - cmd: powershell -NoProfile -ExecutionPolicy Bypass -File build/scripts/wails-task-wrapper.ps1 -TaskName run
       type: primary

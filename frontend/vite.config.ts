@@ -1,10 +1,9 @@
-import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { visualizer } from "rollup-plugin-visualizer";
 import tailwindcss from "@tailwindcss/vite";
+import { visualizer } from "rollup-plugin-visualizer";
+import { defineConfig, type BuildOptions } from "vite";
 import wails from "@wailsio/runtime/plugins/vite";
 import path from "path";
-import type { BuildOptions } from "vite";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -23,6 +22,27 @@ export default defineConfig({
 		),
 	},
 	plugins: [
+		{
+			name: "wails-custom-js-404",
+			apply: "serve",
+			configureServer(server) {
+				server.middlewares.use((req, res, next) => {
+					if (!req.url) {
+						next();
+						return;
+					}
+
+					if (req.url.startsWith("/wails/custom.js")) {
+						res.statusCode = 404;
+						res.setHeader("Content-Type", "text/plain; charset=utf-8");
+						res.end("Not found");
+						return;
+					}
+
+					next();
+				});
+			},
+		},
 		react(),
 		tailwindcss(),
 		wails("./bindings"),
@@ -61,13 +81,8 @@ export default defineConfig({
 		rollupOptions: {
 			output: {
 				manualChunks: {
-					// Core React libraries
 					"vendor-react": ["react", "react-dom"],
-
-					// BlockNote editor (very heavy - separate chunk)
 					"vendor-blocknote": ["@blocknote/core", "@blocknote/react", "@blocknote/shadcn"],
-
-					// Utilities
 					"vendor-utils": ["clsx", "class-variance-authority", "tailwind-merge"],
 				},
 			},
@@ -77,7 +92,6 @@ export default defineConfig({
 		cssCodeSplit: true,
 	},
 
-	// Optimize dependency pre-bundling
 	optimizeDeps: {
 		include: ["react", "react-dom", "@blocknote/react"],
 	},

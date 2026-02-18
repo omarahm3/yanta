@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { create } from "zustand";
 import { LAYOUT } from "@/config/layout";
 import type { LinuxGraphicsMode, PreferencesOverrides } from "@/config/preferences";
@@ -256,12 +257,15 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
 
 export function useMergedConfig(): MergedConfig {
 	const overrides = usePreferencesStore((s) => s.overrides);
-	return {
-		timeouts: mergeTimeouts(overrides?.timeouts),
-		layout: mergeLayout(overrides?.layout),
-		graphics: mergeGraphics(overrides?.graphics),
-		shortcuts: mergeShortcuts(overrides?.shortcuts),
-	};
+	return useMemo(
+		() => ({
+			timeouts: mergeTimeouts(overrides?.timeouts),
+			layout: mergeLayout(overrides?.layout),
+			graphics: mergeGraphics(overrides?.graphics),
+			shortcuts: mergeShortcuts(overrides?.shortcuts),
+		}),
+		[overrides],
+	);
 }
 
 /** Get merged config from store (for use in non-React code such as zustand stores). */

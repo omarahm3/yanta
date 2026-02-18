@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { GetGitStatus } from "../../../bindings/yanta/internal/system/service";
+import { recordCommandInFlightDelta } from "../monitoring/appMonitor";
 
 export interface GitStatus {
 	enabled: boolean;
@@ -55,6 +56,7 @@ export function useGitStatus(pollInterval: number = 0): UseGitStatusReturn {
 	const [error, setError] = useState<string | null>(null);
 
 	const refresh = useCallback(async () => {
+		recordCommandInFlightDelta("gitStatus", 1);
 		try {
 			setIsLoading(true);
 			setError(null);
@@ -69,6 +71,7 @@ export function useGitStatus(pollInterval: number = 0): UseGitStatusReturn {
 			setStatus(null);
 		} finally {
 			setIsLoading(false);
+			recordCommandInFlightDelta("gitStatus", -1);
 		}
 	}, []);
 

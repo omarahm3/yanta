@@ -660,3 +660,21 @@ func writePluginBuildMetadata(t *testing.T, pluginDir string, bundledPackages []
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(filepath.Join(pluginDir, requiredPluginBuildMetadataFile), encoded, 0o644))
 }
+
+func TestService_PluginDirectoryFollowsAppRoot(t *testing.T) {
+	tempDir := t.TempDir()
+	cleanup := testenv.SetTestHome(t, tempDir)
+	defer cleanup()
+
+	appRoot := filepath.Join(tempDir, "isolated-home")
+	cleanupAppRoot := testenv.SetTestAppHome(t, appRoot)
+	defer cleanupAppRoot()
+
+	config.ResetForTesting()
+	require.NoError(t, config.Init())
+
+	svc := NewService()
+	dir, err := svc.GetPluginDirectory()
+	require.NoError(t, err)
+	require.Equal(t, filepath.Join(appRoot, "plugins"), dir)
+}

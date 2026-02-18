@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 # Yanta - Task Build System
 # Clean, DRY architecture with separate concerns
@@ -24,11 +24,11 @@ includes:
 
 vars:
   APP_NAME: "yanta"
-  DEV_PORT: '{{.WAILS_VITE_PORT | default 34115}}'
+  DEV_PORT: "{{.WAILS_VITE_PORT | default 34115}}"
   DIST_DIR: '{{.DIST_DIR | default "build/dist"}}'
-  BIN_DIR: 'build/bin'
+  BIN_DIR: "build/bin"
 
-output: interleaved  # Changed from 'group' to get real-time output
+output: interleaved # Changed from 'group' to get real-time output
 
 silent: false
 
@@ -54,17 +54,18 @@ tasks:
   dev:
     summary: Launch Wails development mode with live reload
     desc: |
-      Runs development mode with YANTA_DATA_DIR set to ~/.yanta-dev, providing
-      complete isolation from production data in ~/.yanta. This allows developers
-      to test freely without affecting their real notes.
+      Runs development mode with YANTA_HOME set to ~/.yanta-dev,
+      providing complete isolation from production state in ~/.yanta (data, config,
+      logs, plugins, and crash reports). This allows developers to test freely
+      without affecting their real notes.
     deps:
       - build:ensure:wails
     env:
-      YANTA_DATA_DIR: '{{if eq OS "windows"}}{{.USERPROFILE}}{{else}}{{.HOME}}{{end}}/.yanta-dev'
+      YANTA_HOME: '{{if eq OS "windows"}}{{.USERPROFILE}}{{else}}{{.HOME}}{{end}}/.yanta-dev'
     cmds:
       - task: common:log:info
         vars:
-          MSG: "Using isolated data directory: {{if eq OS \"windows\"}}%YANTA_DATA_DIR%{{else}}$YANTA_DATA_DIR{{end}}"
+          MSG: 'Using isolated app root: {{if eq OS "windows"}}%YANTA_HOME%{{else}}$YANTA_HOME{{end}}'
       - wails3 dev -config ./build/config.yml -port {{.DEV_PORT}}
 
   # ============================================================================
@@ -153,12 +154,12 @@ tasks:
     deps:
       - task: frontend:build
         vars:
-          PRODUCTION: '{{.PRODUCTION}}'
+          PRODUCTION: "{{.PRODUCTION}}"
     cmds:
       - task: build:go:build
         vars:
-          TARGET: '{{.TARGET}}'
-          DEBUG: '{{.DEBUG}}'
+          TARGET: "{{.TARGET}}"
+          DEBUG: "{{.DEBUG}}"
 
   build:win:
     label: "build:win (PRODUCTION={{.PRODUCTION}})"
@@ -168,7 +169,7 @@ tasks:
     deps:
       - task: frontend:build
         vars:
-          PRODUCTION: '{{.PRODUCTION}}'
+          PRODUCTION: "{{.PRODUCTION}}"
     cmds:
       - task: build:go:build
         vars:
@@ -182,7 +183,7 @@ tasks:
     deps:
       - task: frontend:build
         vars:
-          PRODUCTION: '{{.PRODUCTION}}'
+          PRODUCTION: "{{.PRODUCTION}}"
     cmds:
       - task: build:go:build
         vars:
@@ -196,7 +197,7 @@ tasks:
     deps:
       - task: frontend:build
         vars:
-          PRODUCTION: '{{.PRODUCTION}}'
+          PRODUCTION: "{{.PRODUCTION}}"
     cmds:
       - task: build:go:build
         vars:
@@ -210,7 +211,7 @@ tasks:
     deps:
       - task: frontend:build
         vars:
-          PRODUCTION: '{{.PRODUCTION}}'
+          PRODUCTION: "{{.PRODUCTION}}"
     cmds:
       - task: build:go:build
         vars:

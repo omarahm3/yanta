@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/sha1"
 	"embed"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
@@ -74,6 +76,8 @@ func run() {
 	// Check if this is a quick capture launch
 	isQuickLaunch := hasQuickFlag(os.Args)
 	logger.Infof("quick launch mode: %v", isQuickLaunch)
+	singleInstanceID := buildSingleInstanceID()
+	logger.Infof("single instance id: %s", singleInstanceID)
 
 	wailsApp := application.New(application.Options{
 		Name:        "YANTA",
@@ -82,7 +86,7 @@ func run() {
 		// SingleInstance ensures only one Yanta instance runs.
 		// Second instance launches trigger OnSecondInstanceLaunch.
 		SingleInstance: &application.SingleInstanceOptions{
-			UniqueID: "com.yanta.app",
+			UniqueID: singleInstanceID,
 			OnSecondInstanceLaunch: func(data application.SecondInstanceData) {
 				logger.Infof("second instance launched with args: %v", data.Args)
 
@@ -185,13 +189,22 @@ func run() {
 		a.Shutdown()
 	})
 
+	isQuitting := false
 	mainWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
 		logger.Debug("WindowClosing event fired")
+		if isQuitting {
+			logger.Debug("quit already in progress, allowing close")
+			return
+		}
+
 		if a.BeforeClose() {
 			logger.Debug("Window close prevented, hiding to background")
 			e.Cancel()
 		} else {
-			logger.Debug("Window close allowed, application will exit")
+			logger.Debug("Window close allowed, requesting application quit")
+			e.Cancel()
+			isQuitting = true
+			wailsApp.Quit()
 		}
 	})
 
@@ -205,7 +218,11 @@ func run() {
 }
 
 func writeStartupError(message string) {
-	errorFile := filepath.Join(config.GetDataDirectory(), "startup-error.log")
+	root := config.GetAppRootDirectory()
+	if root == "" {
+		root = config.GetDataDirectory()
+	}
+	errorFile := filepath.Join(root, "startup-error.log")
 	if err := os.MkdirAll(filepath.Dir(errorFile), 0o755); err != nil {
 		return
 	}
@@ -240,6 +257,21 @@ func getWindowsCustomTheme() application.ThemeSettings {
 			BorderColour:    application.NewRGBPtr(230, 230, 230),
 		},
 	}
+}
+
+func buildSingleInstanceID() string {
+	root := config.GetAppRootDirectory()
+	if root == "" {
+		return "com.yanta.app"
+	}
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		absRoot = root
+	}
+	normalized := strings.ToLower(filepath.Clean(absRoot))
+	hash := sha1.Sum([]byte(normalized))
+	suffix := hex.EncodeToString(hash[:8])
+	return "com.yanta.app." + suffix
 }
 
 // hasQuickFlag checks if --quick or -q flag is present in args

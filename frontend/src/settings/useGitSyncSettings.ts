@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { SyncStatus } from "../../bindings/yanta/internal/git/models";
 import {
 	CheckGitInstalled,
+	GetAppHomeEnvVar,
 	GetCurrentDataDirectory,
 	GetCurrentGitBranch,
-	GetDataDirectoryEnvVar,
 	GetGitBranches,
 	GetGitSyncConfig,
 	IsDataDirectoryOverridden,
@@ -12,6 +12,7 @@ import {
 	SyncNow,
 } from "../../bindings/yanta/internal/system/service";
 import { useNotification } from "../shared/hooks";
+import { recordCommandInFlightDelta } from "../shared/monitoring/appMonitor";
 import type { SelectOption } from "../shared/ui";
 import { BackendLogger } from "../shared/utils/backendLogger";
 
@@ -44,6 +45,7 @@ export function useGitSyncSettings() {
 	});
 	const [gitBranches, setGitBranches] = useState<string[]>([]);
 	const [currentGitBranch, setCurrentGitBranch] = useState<string>("");
+	const [syncNowInFlight, setSyncNowInFlight] = useState(false);
 	const { success, error, info, warning } = useNotification();
 
 	useEffect(() => {
@@ -59,7 +61,7 @@ export function useGitSyncSettings() {
 			.then((overridden) => setDataDirOverridden(overridden))
 			.catch((err) => BackendLogger.error("Failed to check data directory override:", err));
 
-		GetDataDirectoryEnvVar()
+		GetAppHomeEnvVar()
 			.then((envVar) => setDataDirEnvVar(envVar))
 			.catch((err) => BackendLogger.error("Failed to get data directory env var:", err));
 
@@ -160,6 +162,12 @@ export function useGitSyncSettings() {
 	);
 
 	const handleSyncNow = useCallback(async () => {
+		if (syncNowInFlight) {
+			info("Sync is already in progress");
+			return;
+		}
+		setSyncNowInFlight(true);
+		recordCommandInFlightDelta("syncNow", 1);
 		try {
 			const result = await SyncNow();
 			if (!result) {
@@ -192,8 +200,11 @@ export function useGitSyncSettings() {
 			const errorMessage = String(err);
 			const cleanedMessage = errorMessage.replace(/^[A-Z_]+:\s*/, "");
 			error(`Sync failed:\n\n${cleanedMessage}`);
+		} finally {
+			recordCommandInFlightDelta("syncNow", -1);
+			setSyncNowInFlight(false);
 		}
-	}, [success, error, info, warning]);
+	}, [syncNowInFlight, success, error, info, warning]);
 
 	return {
 		gitInstalled,
@@ -209,5 +220,6 @@ export function useGitSyncSettings() {
 		handleAutoPushToggle,
 		handleBranchChange,
 		handleSyncNow,
+		syncNowInFlight,
 	};
 }

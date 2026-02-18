@@ -130,6 +130,23 @@ export interface ClipboardPluginOptions {
 	}) => void;
 }
 
+type TiptapClipboardEditor = {
+	isDestroyed?: boolean;
+	isInitialized?: boolean;
+	registerPlugin: (plugin: Plugin) => unknown;
+	unregisterPlugin: (
+		nameOrPluginKeyToRemove: string | PluginKey | (string | PluginKey)[],
+	) => unknown;
+};
+
+const isEditorViewUnavailableError = (error: unknown): boolean => {
+	if (!(error instanceof Error)) {
+		return false;
+	}
+
+	return error.message.includes("The editor view is not available");
+};
+
 export const registerClipboardImagePlugin = (
 	editor: BlockNoteEditor,
 	options: ClipboardPluginOptions,
@@ -241,16 +258,59 @@ export const registerClipboardImagePlugin = (
 		},
 	});
 
-	console.log("[clipboard] registering image paste plugin");
+	const tiptapEditor = (
+		editor as BlockNoteEditor & {
+			_tiptapEditor?: TiptapClipboardEditor;
+		}
+	)._tiptapEditor;
 
-	editor._tiptapEditor.registerPlugin(plugin);
+	if (!tiptapEditor) {
+		console.warn("[clipboard] tiptap editor not available; skipping image paste plugin registration");
+		return () => {};
+	}
 
-	console.log("[clipboard] image paste plugin registered");
+	let active = true;
+	let registered = false;
+	let rafId: number | null = null;
+
+	const registerWhenMounted = () => {
+		if (!active || tiptapEditor.isDestroyed) {
+			return;
+		}
+
+		if (!tiptapEditor.isInitialized) {
+			rafId = requestAnimationFrame(registerWhenMounted);
+			return;
+		}
+
+		try {
+			tiptapEditor.registerPlugin(plugin);
+			registered = true;
+			console.log("[clipboard] image paste plugin registered");
+		} catch (err) {
+			if (isEditorViewUnavailableError(err)) {
+				rafId = requestAnimationFrame(registerWhenMounted);
+				return;
+			}
+
+			console.warn("[clipboard] registerPlugin failed:", err);
+		}
+	};
+
+	registerWhenMounted();
 
 	return () => {
-		console.log("[clipboard] unregistering image paste plugin");
+		active = false;
+		if (rafId !== null) {
+			cancelAnimationFrame(rafId);
+		}
+
+		if (!registered || tiptapEditor.isDestroyed) {
+			return;
+		}
+
 		try {
-			editor._tiptapEditor.unregisterPlugin(pluginKey);
+			tiptapEditor.unregisterPlugin(pluginKey);
 		} catch (err) {
 			console.warn("[clipboard] unregisterPlugin failed:", err);
 		}

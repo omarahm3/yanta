@@ -92,7 +92,7 @@ describe("PaneContent escape handling", () => {
 		expect(mockOnNavigate).not.toHaveBeenCalled();
 	});
 
-	it("does nothing on ESC when only one empty pane exists", () => {
+	it("navigates to dashboard on ESC when only one empty pane exists", () => {
 		mockLayout = {
 			root: { type: "leaf", id: "pane-1", documentPath: null },
 			activePaneId: "pane-1",
@@ -111,7 +111,7 @@ describe("PaneContent escape handling", () => {
 		});
 
 		expect(mockClosePane).not.toHaveBeenCalled();
-		expect(mockOnNavigate).not.toHaveBeenCalled();
+		expect(mockOnNavigate).toHaveBeenCalledWith("dashboard");
 	});
 
 	it("does not handle ESC when pane is not active", () => {

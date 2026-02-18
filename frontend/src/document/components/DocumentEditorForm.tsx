@@ -110,8 +110,8 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 	}, [editorRecoveryMode, notifyError]);
 
 	return (
-		<div className="flex flex-col flex-1 w-full overflow-hidden document-editor-form">
-			<div className="flex-1 w-full px-2 overflow-hidden">
+		<div className="document-editor-form flex flex-col min-h-full w-full">
+			<div className="flex-1 min-h-0 w-full px-2 overflow-hidden">
 				<GranularErrorBoundary
 					key={editorKey}
 					message={editorBoundaryMessage}

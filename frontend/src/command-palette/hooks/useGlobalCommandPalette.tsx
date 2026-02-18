@@ -81,6 +81,25 @@ export function useGlobalCommandPalette(
 	const [showRecentDocuments, setShowRecentDocuments] = useState(false);
 	const clearGitErrorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const { timeouts } = useMergedConfig();
+	const onCloseRef = useRef(onClose);
+	onCloseRef.current = onClose;
+	const onNavigateRef = useRef(onNavigate);
+	onNavigateRef.current = onNavigate;
+	const getSelectedDocumentRef = useRef(getSelectedDocument);
+	getSelectedDocumentRef.current = getSelectedDocument;
+	const notificationRef = useRef(notification);
+	notificationRef.current = notification;
+	const onToggleArchivedRef = useRef(onToggleArchived);
+	onToggleArchivedRef.current = onToggleArchived;
+	const onToggleSidebarRef = useRef(onToggleSidebar);
+	onToggleSidebarRef.current = onToggleSidebar;
+	const onShowHelpRef = useRef(onShowHelp);
+	onShowHelpRef.current = onShowHelp;
+	const resetLayoutRef = useRef(resetLayout);
+	resetLayoutRef.current = resetLayout;
+	const hasToggleArchived = Boolean(onToggleArchived);
+	const hasToggleSidebar = Boolean(onToggleSidebar);
+	const hasShowHelp = Boolean(onShowHelp);
 
 	const showGitError = useCallback((error: unknown) => {
 		const parsed = parseGitError(error);
@@ -111,11 +130,35 @@ export function useGlobalCommandPalette(
 
 	const handleClose = useCallback(() => {
 		setShowRecentDocuments(false);
-		onClose();
-	}, [onClose]);
+		onCloseRef.current();
+	}, []);
 
 	const handleSubPaletteBack = useCallback(() => {
 		setShowRecentDocuments(false);
+	}, []);
+
+	const navigate = useCallback((page: PageName, state?: NavigationState) => {
+		onNavigateRef.current(page, state);
+	}, []);
+
+	const getSelectedDocumentLatest = useCallback(() => {
+		return getSelectedDocumentRef.current();
+	}, []);
+
+	const onToggleArchivedLatest = useCallback(() => {
+		onToggleArchivedRef.current?.();
+	}, []);
+
+	const onToggleSidebarLatest = useCallback(() => {
+		onToggleSidebarRef.current?.();
+	}, []);
+
+	const onShowHelpLatest = useCallback(() => {
+		onShowHelpRef.current?.();
+	}, []);
+
+	const resetLayoutLatest = useCallback(() => {
+		resetLayoutRef.current();
 	}, []);
 
 	const handleCommandSelect = useCallback(
@@ -132,11 +175,11 @@ export function useGlobalCommandPalette(
 			text: doc.title || "Untitled",
 			hint: formatRelativeTimeFromTimestamp(doc.lastOpened),
 			action: () => {
-				onNavigate("document", { path: doc.path, projectAlias: doc.projectAlias });
+				navigate("document", { path: doc.path, projectAlias: doc.projectAlias });
 				handleClose();
 			},
 		}));
-	}, [recentDocuments, onNavigate, handleClose]);
+	}, [recentDocuments, navigate, handleClose]);
 
 	// Registry: stable reference so domain registration runs only when context changes
 	const registry = useMemo(() => {
@@ -151,7 +194,7 @@ export function useGlobalCommandPalette(
 	// Build context for domain command registration
 	const ctx: CommandRegistryContext = useMemo(
 		() => ({
-			onNavigate,
+			onNavigate: navigate,
 			handleClose,
 			currentPage,
 			currentProject: currentProject ?? null,
@@ -159,18 +202,23 @@ export function useGlobalCommandPalette(
 			projects,
 			setCurrentProject,
 			switchToLastProject,
-			getSelectedDocument,
-			notification,
+			getSelectedDocument: getSelectedDocumentLatest,
+			notification: {
+				success: (msg: string) => notificationRef.current.success(msg),
+				error: (msg: string) => notificationRef.current.error(msg),
+				info: (msg: string) => notificationRef.current.info(msg),
+				warning: (msg: string) => notificationRef.current.warning(msg),
+			},
 			showGitError,
-			onToggleArchived,
+			onToggleArchived: hasToggleArchived ? onToggleArchivedLatest : undefined,
 			showArchived,
-			onToggleSidebar,
-			onShowHelp,
-			resetLayout,
+			onToggleSidebar: hasToggleSidebar ? onToggleSidebarLatest : undefined,
+			onShowHelp: hasShowHelp ? onShowHelpLatest : undefined,
+			resetLayout: resetLayoutLatest,
 			setShowRecentDocuments,
 		}),
 		[
-			onNavigate,
+			navigate,
 			handleClose,
 			currentPage,
 			currentProject,
@@ -178,19 +226,21 @@ export function useGlobalCommandPalette(
 			projects,
 			setCurrentProject,
 			switchToLastProject,
-			getSelectedDocument,
-			notification,
+			getSelectedDocumentLatest,
 			showGitError,
-			onToggleArchived,
+			hasToggleArchived,
+			onToggleArchivedLatest,
 			showArchived,
-			onToggleSidebar,
-			onShowHelp,
-			resetLayout,
+			hasToggleSidebar,
+			onToggleSidebarLatest,
+			hasShowHelp,
+			onShowHelpLatest,
+			resetLayoutLatest,
 			setShowRecentDocuments,
 		],
 	);
 
-	// Register all domain commands whenever context changes; cleanup on unmount
+	// Register all domain commands whenever relevant command composition state changes
 	useEffect(() => {
 		registerNavigationCommands(registry, ctx);
 		registerCreateCommands(registry, ctx);
@@ -198,12 +248,16 @@ export function useGlobalCommandPalette(
 		registerGitCommands(registry, ctx);
 		registerProjectCommands(registry, ctx);
 		registerApplicationCommands(registry, ctx);
+	}, [registry, ctx]);
+
+	// Cleanup only on unmount
+	useEffect(() => {
 		return () => {
 			for (const source of REGISTRY_SOURCES) {
 				registry.removeSource(source);
 			}
 		};
-	}, [registry, ctx]);
+	}, [registry]);
 
 	// Subscribe to sources so we only recompute when registry actually changes
 	const sources = useCommandRegistryStore((state) => state.sources);

@@ -50,6 +50,8 @@ vi.mock("../Tooltip", () => ({
 }));
 
 describe("Sidebar", () => {
+	const _HOVER_DELAY = 500;
+
 	const basicSections: SidebarSection[] = [
 		{
 			id: "navigation",

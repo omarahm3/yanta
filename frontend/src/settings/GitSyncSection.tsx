@@ -44,6 +44,7 @@ interface GitSyncSectionProps {
 	onPickDirectory: () => void;
 	onMigration: () => void;
 	onSyncNow: () => void;
+	syncNowInFlight?: boolean;
 	onRefreshStatus?: () => void;
 }
 
@@ -170,6 +171,7 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 			onPickDirectory,
 			onMigration,
 			onSyncNow,
+			syncNowInFlight = false,
 			onRefreshStatus,
 		},
 		ref,
@@ -231,8 +233,8 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 										<div>
 											<div className="mb-1 font-medium text-blue-400">Environment Override Active</div>
 											<div className="text-sm text-blue-300">
-												The <code className="px-1 py-0.5 bg-blue-800/50 rounded">YANTA_DATA_DIR</code>{" "}
-												environment variable is set to:
+												The <code className="px-1 py-0.5 bg-blue-800/50 rounded">YANTA_HOME</code> environment
+												variable is set to:
 											</div>
 											<div className="mt-1 text-xs font-mono text-blue-200 break-all">{dataDirEnvVar}</div>
 											<div className="mt-2 text-sm text-blue-300">
@@ -335,8 +337,13 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 								)}
 
 								<div className="space-y-2">
-									<Button variant="primary" size="sm" onClick={onSyncNow} disabled={!gitInstalled}>
-										Sync Now
+									<Button
+										variant="primary"
+										size="sm"
+										onClick={onSyncNow}
+										disabled={!gitInstalled || syncNowInFlight}
+									>
+										{syncNowInFlight ? "Syncing..." : "Sync Now"}
 									</Button>
 								</div>
 							</>

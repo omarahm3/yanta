@@ -1,9 +1,13 @@
 import { CloudDownload, CloudUpload, GitCommit } from "lucide-react";
 import { SyncStatus } from "../../../../bindings/yanta/internal/git/models";
 import { GitPull, GitPush, SyncNow } from "../../../../bindings/yanta/internal/system/service";
+import { recordCommandInFlightDelta } from "../../../shared/monitoring/appMonitor";
 import type { CommandOption } from "../../../shared/ui";
 import { getShortcutForCommand } from "../../../shared/utils/shortcuts";
 import type { CommandRegistry, CommandRegistryContext } from "../types";
+
+let gitSyncInFlight = false;
+let gitPullInFlight = false;
 
 export function registerGitCommands(registry: CommandRegistry, ctx: CommandRegistryContext): void {
 	const { handleClose, notification, showGitError } = ctx;
@@ -18,6 +22,12 @@ export function registerGitCommands(registry: CommandRegistry, ctx: CommandRegis
 			keywords: ["save", "backup", "commit", "push"],
 			action: async () => {
 				handleClose();
+				if (gitSyncInFlight) {
+					notification.info("Sync is already in progress");
+					return;
+				}
+				gitSyncInFlight = true;
+				recordCommandInFlightDelta("syncNow", 1);
 				try {
 					const result = await SyncNow();
 					if (!result) {
@@ -48,6 +58,9 @@ export function registerGitCommands(registry: CommandRegistry, ctx: CommandRegis
 					}
 				} catch (err) {
 					showGitError(err);
+				} finally {
+					recordCommandInFlightDelta("syncNow", -1);
+					gitSyncInFlight = false;
 				}
 			},
 		},
@@ -75,11 +88,20 @@ export function registerGitCommands(registry: CommandRegistry, ctx: CommandRegis
 			group: "Git",
 			action: async () => {
 				handleClose();
+				if (gitPullInFlight) {
+					notification.info("Pull is already in progress");
+					return;
+				}
+				gitPullInFlight = true;
+				recordCommandInFlightDelta("gitPull", 1);
 				try {
 					await GitPull();
 					notification.success("Pulled from remote successfully");
 				} catch (err) {
 					showGitError(err);
+				} finally {
+					recordCommandInFlightDelta("gitPull", -1);
+					gitPullInFlight = false;
 				}
 			},
 		},

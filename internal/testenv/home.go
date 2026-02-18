@@ -39,26 +39,16 @@ func SetTestHome(t *testing.T, dir string) func() {
 	}
 }
 
-// SetTestDataDir sets YANTA_DATA_DIR for testing.
-// This provides complete isolation without needing to mock the home directory.
-//
-// Usage:
-//
-//	func TestMyFunc(t *testing.T) {
-//	    tempDir := t.TempDir()
-//	    cleanup := testenv.SetTestDataDir(t, tempDir)
-//	    defer cleanup()
-//	    // ... test code
-//	}
-func SetTestDataDir(t *testing.T, dir string) func() {
+// SetTestAppHome sets YANTA_HOME for testing.
+func SetTestAppHome(t *testing.T, dir string) func() {
 	t.Helper()
-	old := os.Getenv("YANTA_DATA_DIR")
-	os.Setenv("YANTA_DATA_DIR", dir)
+	old := os.Getenv("YANTA_HOME")
+	os.Setenv("YANTA_HOME", dir)
 	return func() {
 		if old == "" {
-			_ = os.Unsetenv("YANTA_DATA_DIR")
+			_ = os.Unsetenv("YANTA_HOME")
 		} else {
-			_ = os.Setenv("YANTA_DATA_DIR", old)
+			_ = os.Setenv("YANTA_HOME", old)
 		}
 	}
 }

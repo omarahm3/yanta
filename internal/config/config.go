@@ -38,6 +38,7 @@ type FeatureFlags struct {
 	TooltipHints bool `toml:"tooltip_hints"`
 	AppMonitor   bool `toml:"app_monitor"`
 	CommandLine  bool `toml:"command_line"`
+	Plugins      bool `toml:"plugins"`
 }
 
 // PreferencesOverrides holds user-configurable overrides for shortcuts, timeouts, and layout.
@@ -172,6 +173,7 @@ func Init() error {
 			"tooltip_hints": resolveFeatureFlag(cfg.FeatureFlags.TooltipHints, "YANTA_ENABLE_TOOLTIP_HINTS"),
 			"app_monitor":   resolveFeatureFlag(cfg.FeatureFlags.AppMonitor, "YANTA_ENABLE_APP_MONITOR"),
 			"command_line":  resolveFeatureFlag(cfg.FeatureFlags.CommandLine, "YANTA_ENABLE_COMMAND_LINE"),
+			"plugins":       resolveFeatureFlag(cfg.FeatureFlags.Plugins, "YANTA_ENABLE_PLUGINS"),
 		}).Info("feature flags resolved")
 
 		instance = cfg
@@ -266,15 +268,11 @@ func SetStartHidden(hidden bool) error {
 }
 
 func getConfigPath() (string, error) {
-	if envDir := strings.TrimSpace(os.Getenv("YANTA_DATA_DIR")); envDir != "" {
-		return filepath.Join(envDir, "config.toml"), nil
-	}
-
-	home, err := os.UserHomeDir()
+	root, err := getAppRootDirectory()
 	if err != nil {
-		return "", fmt.Errorf("failed to get home directory: %w", err)
+		return "", fmt.Errorf("failed to get app root directory: %w", err)
 	}
-	return filepath.Join(home, ".yanta", "config.toml"), nil
+	return filepath.Join(root, "config.toml"), nil
 }
 
 func save(cfg *Config) error {
@@ -302,7 +300,7 @@ func save(cfg *Config) error {
 }
 
 func GetDataDirectory() string {
-	if envDir := os.Getenv("YANTA_DATA_DIR"); envDir != "" {
+	if envDir := os.Getenv("YANTA_HOME"); envDir != "" {
 		return envDir
 	}
 
@@ -311,20 +309,48 @@ func GetDataDirectory() string {
 		return cfg.DataDirectory
 	}
 
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".yanta")
+	root, err := getAppRootDirectory()
+	if err != nil {
+		home, _ := os.UserHomeDir()
+		return filepath.Join(home, ".yanta")
+	}
+	return root
 }
 
-// IsDataDirectoryOverridden returns true if YANTA_DATA_DIR env var is set,
-// which overrides any config file setting. This is useful for warning users
-// that changing the data directory via the UI won't take effect.
+// IsDataDirectoryOverridden returns true if YANTA_HOME is set, which takes
+// precedence over config file settings. This is useful for warning users that
+// changing the data directory via the UI won't take effect.
 func IsDataDirectoryOverridden() bool {
-	return os.Getenv("YANTA_DATA_DIR") != ""
+	return os.Getenv("YANTA_HOME") != ""
 }
 
-// GetDataDirectoryEnvVar returns the value of YANTA_DATA_DIR if set, empty string otherwise.
-func GetDataDirectoryEnvVar() string {
-	return os.Getenv("YANTA_DATA_DIR")
+// GetAppHomeEnvVar returns the value of YANTA_HOME if set, empty string otherwise.
+func GetAppHomeEnvVar() string {
+	return os.Getenv("YANTA_HOME")
+}
+
+// GetAppRootDirectory returns the base directory used for app-scoped files
+// (config, logs, plugins, crashes). Precedence:
+// 1. YANTA_HOME
+// 2. ~/.yanta
+func GetAppRootDirectory() string {
+	root, err := getAppRootDirectory()
+	if err != nil {
+		home, _ := os.UserHomeDir()
+		return filepath.Join(home, ".yanta")
+	}
+	return root
+}
+
+func getAppRootDirectory() (string, error) {
+	if envDir := os.Getenv("YANTA_HOME"); envDir != "" {
+		return envDir, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
+	return filepath.Join(home, ".yanta"), nil
 }
 
 func SetDataDirectory(dir string) error {
@@ -571,6 +597,7 @@ func GetFeatureFlags() FeatureFlags {
 		TooltipHints: resolveFeatureFlag(cfg.FeatureFlags.TooltipHints, "YANTA_ENABLE_TOOLTIP_HINTS"),
 		AppMonitor:   resolveFeatureFlag(cfg.FeatureFlags.AppMonitor, "YANTA_ENABLE_APP_MONITOR"),
 		CommandLine:  resolveFeatureFlag(cfg.FeatureFlags.CommandLine, "YANTA_ENABLE_COMMAND_LINE"),
+		Plugins:      resolveFeatureFlag(cfg.FeatureFlags.Plugins, "YANTA_ENABLE_PLUGINS"),
 	}
 }
 

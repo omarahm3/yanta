@@ -339,7 +339,7 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 	});
 
 	shortcuts.push({
-		key: "mod+C",
+		key: "mod+shift+C",
 		description: "Unfocus editor",
 		context: "document",
 		source: "useDocumentController.ts",

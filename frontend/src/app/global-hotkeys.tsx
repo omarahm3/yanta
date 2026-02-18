@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { GLOBAL_SHORTCUTS } from "@/config/public";
 import { GlobalCommandPalette, useCommandPaletteStore } from "../command-palette";
 import { useHelp } from "../help";
@@ -17,6 +18,9 @@ const GlobalCommandHotkey = () => {
 	const nav = useAppNavigation();
 	const openCommandPalette = useCommandPaletteStore((s) => s.open);
 	const closeCommandPalette = useCommandPaletteStore((s) => s.close);
+	const handleCloseCommandPalette = useCallback(() => {
+		closeCommandPalette();
+	}, [closeCommandPalette]);
 
 	useHotkey({
 		...GLOBAL_SHORTCUTS.commandPalette,
@@ -50,7 +54,7 @@ const GlobalCommandHotkey = () => {
 	return (
 		<>
 			<GlobalCommandPalette
-				onClose={() => closeCommandPalette()}
+				onClose={handleCloseCommandPalette}
 				onNavigate={nav.onNavigate}
 				currentPage={nav.currentPage}
 				onToggleArchived={nav.onToggleArchived}

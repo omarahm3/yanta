@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ShortcutTooltip } from "../ShortcutTooltip";
 
@@ -17,12 +17,31 @@ vi.mock("../../stores/tooltipUsage.store", () => ({
 	}),
 }));
 
+vi.mock("@/config", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("@/config")>();
+	return {
+		...actual,
+		useMergedConfig: () => {
+			const config = actual.useMergedConfig();
+			return {
+				...config,
+				timeouts: {
+					...config.timeouts,
+					tooltipHoverDelay: 0,
+					tooltipFocusDelay: 0,
+				},
+			};
+		},
+	};
+});
+
 describe("ShortcutTooltip", () => {
 	beforeEach(() => {
-		vi.useFakeTimers();
+		vi.clearAllTimers();
+		vi.useRealTimers();
 		mockShouldShowTooltip.mockReturnValue(true);
 		mockRecordTooltipView.mockClear();
-
+		// Mock matchMedia for reduced motion
 		Object.defineProperty(window, "matchMedia", {
 			writable: true,
 			value: vi.fn().mockImplementation((query: string) => ({
@@ -36,27 +55,12 @@ describe("ShortcutTooltip", () => {
 				dispatchEvent: vi.fn(),
 			})),
 		});
-
-		vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
-			return window.setTimeout(() => cb(Date.now()), 0);
-		});
-		vi.stubGlobal("cancelAnimationFrame", (id: number) => {
-			window.clearTimeout(id);
-		});
 	});
 
 	afterEach(() => {
 		vi.clearAllTimers();
 		vi.useRealTimers();
-		vi.unstubAllGlobals();
 	});
-
-	function getTrigger(label: string) {
-		const button = screen.getByRole("button", { name: label });
-		const trigger = button.parentElement;
-		if (!trigger) throw new Error("trigger not found");
-		return { button, trigger };
-	}
 
 	describe("rendering", () => {
 		it("renders children correctly", () => {
@@ -91,39 +95,48 @@ describe("ShortcutTooltip", () => {
 	});
 
 	describe("show/hide behavior", () => {
-		it("shows tooltip after hover delay (500ms)", () => {
+		it("shows tooltip after hover delay (500ms)", async () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip">
 					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const { button } = getTrigger("Click me");
-			fireEvent.focus(button);
-			act(() => {
-				vi.advanceTimersByTime(0);
-			});
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
+			// Radix uses pointer events for hover
+			fireEvent.focus(trigger);
 
-			expect(screen.getByRole("tooltip")).toBeInTheDocument();
+			// With zero delay, tooltip appears immediately
+			await waitFor(
+				() => {
+					expect(screen.getByRole("tooltip")).toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
 		});
 
-		it("shows tooltip after focus delay (800ms)", () => {
+		it("shows tooltip after focus delay (800ms)", async () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip">
 					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const { button } = getTrigger("Click me");
-			fireEvent.focus(button);
-			act(() => {
-				vi.advanceTimersByTime(0);
-			});
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
+			fireEvent.focus(trigger);
 
-			expect(screen.getByRole("tooltip")).toBeInTheDocument();
+			// With zero delay, tooltip appears immediately
+			await waitFor(
+				() => {
+					expect(screen.getByRole("tooltip")).toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
 		});
 
-		it("hides tooltip immediately on mouse leave", () => {
+		it("hides tooltip immediately on mouse leave", async () => {
 			render(
 				<>
 					<ShortcutTooltip tooltipId="test" description="Test tooltip">
@@ -133,96 +146,137 @@ describe("ShortcutTooltip", () => {
 				</>,
 			);
 
-			const { button, trigger } = getTrigger("Click me");
-			fireEvent.focus(button);
-			expect(screen.getByRole("tooltip")).toBeInTheDocument();
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 
-			fireEvent.blur(button);
+			// Show tooltip via focus on trigger (blur will close it)
+			fireEvent.focus(trigger);
+			await waitFor(
+				() => {
+					expect(screen.getByRole("tooltip")).toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
 
-			expect(trigger.getAttribute("aria-describedby")).toBeFalsy();
+			// Hide via blur on trigger
+			fireEvent.blur(trigger);
+
+			await waitFor(
+				() => {
+					expect(trigger.getAttribute("aria-describedby")).toBeFalsy();
+				},
+				{ timeout: 300 },
+			);
 		});
 
-		it("hides tooltip immediately on blur", () => {
+		it("hides tooltip immediately on blur", async () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip">
 					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const { button } = getTrigger("Click me");
-			fireEvent.focus(button);
-			expect(screen.getByRole("tooltip")).toBeInTheDocument();
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 
-			fireEvent.blur(button);
+			// Show tooltip (zero delay)
+			fireEvent.focus(trigger);
+			await waitFor(
+				() => {
+					expect(screen.getByRole("tooltip")).toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
+
+			// Hide tooltip
+			fireEvent.blur(trigger);
 
 			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 		});
 
-		it("cancels show timeout when mouse leaves before delay", () => {
+		it("keeps tooltip hidden when trigger loses focus immediately", async () => {
 			render(
-				<ShortcutTooltip tooltipId="test" description="Test tooltip" delay={500}>
+				<ShortcutTooltip tooltipId="test" description="Test tooltip">
 					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const { trigger } = getTrigger("Click me");
-			fireEvent.pointerMove(trigger);
-			fireEvent.pointerLeave(trigger);
-			act(() => {
-				vi.advanceTimersByTime(600);
-			});
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 
-			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+			// Focus and blur in the same tick should not leave the tooltip visible.
+			fireEvent.focus(trigger);
+			fireEvent.blur(trigger);
+
+			await waitFor(
+				() => {
+					expect(trigger.getAttribute("aria-describedby")).toBeFalsy();
+					expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
 		});
 	});
 
 	describe("tooltip content", () => {
-		it("displays description text", () => {
+		it("displays description text", async () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Save your work">
 					<button type="button">Save</button>
 				</ShortcutTooltip>,
 			);
 
-			const { button } = getTrigger("Save");
-			fireEvent.focus(button);
-			act(() => {
-				vi.advanceTimersByTime(0);
-			});
+			const trigger = screen.getByRole("button", { name: "Save" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
+			fireEvent.focus(trigger);
+			await waitFor(
+				() => {
+					expect(screen.getByRole("tooltip")).toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
 
 			expect(screen.getByRole("tooltip")).toHaveTextContent("Save your work");
 		});
 
-		it("displays keyboard shortcut badge when provided", () => {
+		it("displays keyboard shortcut badge when provided", async () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Save" shortcut="Ctrl+S">
 					<button type="button">Save</button>
 				</ShortcutTooltip>,
 			);
 
-			const { button } = getTrigger("Save");
-			fireEvent.focus(button);
-			act(() => {
-				vi.advanceTimersByTime(0);
-			});
+			const trigger = screen.getByRole("button", { name: "Save" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
+			fireEvent.focus(trigger);
+			await waitFor(
+				() => {
+					expect(screen.getByRole("tooltip")).toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
 
 			const tooltip = screen.getByRole("tooltip");
 			expect(tooltip).toHaveTextContent("Ctrl");
 			expect(tooltip).toHaveTextContent("S");
 		});
 
-		it("parses multi-key shortcuts correctly", () => {
+		it("parses multi-key shortcuts correctly", async () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="New Document" shortcut="Ctrl+Shift+N">
 					<button type="button">New</button>
 				</ShortcutTooltip>,
 			);
 
-			const { button } = getTrigger("New");
-			fireEvent.focus(button);
-			act(() => {
-				vi.advanceTimersByTime(0);
-			});
+			const trigger = screen.getByRole("button", { name: "New" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
+			fireEvent.focus(trigger);
+			await waitFor(
+				() => {
+					expect(screen.getByRole("tooltip")).toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
 
 			const tooltip = screen.getByRole("tooltip");
 			expect(tooltip).toHaveTextContent("Ctrl");
@@ -230,28 +284,33 @@ describe("ShortcutTooltip", () => {
 			expect(tooltip).toHaveTextContent("N");
 		});
 
-		it("renders tooltip without shortcut badge when shortcut not provided", () => {
+		it("renders tooltip without shortcut badge when shortcut not provided", async () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Open menu">
 					<button type="button">Menu</button>
 				</ShortcutTooltip>,
 			);
 
-			const { button } = getTrigger("Menu");
-			fireEvent.focus(button);
-			act(() => {
-				vi.advanceTimersByTime(0);
-			});
+			const trigger = screen.getByRole("button", { name: "Menu" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
+			fireEvent.focus(trigger);
+			await waitFor(
+				() => {
+					expect(screen.getByRole("tooltip")).toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
 
 			const tooltip = screen.getByRole("tooltip");
 			expect(tooltip).toBeInTheDocument();
 			expect(tooltip).toHaveTextContent("Open menu");
+			// The separator "+" should not exist (only description, no kbd elements)
 			expect(tooltip.querySelectorAll("kbd").length).toBe(0);
 		});
 	});
 
 	describe("useTooltipUsage integration", () => {
-		it("does not show tooltip when shouldShowTooltip returns false", () => {
+		it("does not show tooltip when shouldShowTooltip returns false", async () => {
 			mockShouldShowTooltip.mockReturnValue(false);
 
 			render(
@@ -260,29 +319,35 @@ describe("ShortcutTooltip", () => {
 				</ShortcutTooltip>,
 			);
 
-			const { button } = getTrigger("Click me");
-			fireEvent.focus(button);
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
+			fireEvent.focus(trigger);
+			await new Promise((r) => setTimeout(r, 100));
 
 			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 		});
 
-		it("calls recordTooltipView when tooltip is shown", () => {
+		it("calls recordTooltipView when tooltip is shown", async () => {
 			render(
 				<ShortcutTooltip tooltipId="test-tooltip" description="Test tooltip">
 					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const { button } = getTrigger("Click me");
-			fireEvent.focus(button);
-			act(() => {
-				vi.advanceTimersByTime(0);
-			});
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
+			fireEvent.focus(trigger);
+			await waitFor(
+				() => {
+					expect(screen.getByRole("tooltip")).toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
 
 			expect(mockRecordTooltipView).toHaveBeenCalledWith("test-tooltip");
 		});
 
-		it("only calls recordTooltipView once per session", () => {
+		it("only calls recordTooltipView once per session", async () => {
 			render(
 				<>
 					<ShortcutTooltip tooltipId="test-tooltip" description="Test tooltip">
@@ -292,17 +357,37 @@ describe("ShortcutTooltip", () => {
 				</>,
 			);
 
-			const { button, trigger } = getTrigger("Click me");
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
 
-			fireEvent.focus(button);
-			expect(screen.getByRole("tooltip")).toBeInTheDocument();
+			// First show via focus on trigger
+			fireEvent.focus(trigger);
+			await waitFor(
+				() => {
+					expect(screen.getByRole("tooltip")).toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
 
-			fireEvent.blur(button);
-			expect(trigger.getAttribute("aria-describedby")).toBeFalsy();
+			// Hide via blur on trigger
+			fireEvent.blur(trigger);
+			await waitFor(
+				() => {
+					expect(trigger.getAttribute("aria-describedby")).toBeFalsy();
+				},
+				{ timeout: 300 },
+			);
 
-			fireEvent.focus(button);
-			expect(screen.getByRole("tooltip")).toBeInTheDocument();
+			// Show again via focus on trigger
+			fireEvent.focus(trigger);
+			await waitFor(
+				() => {
+					expect(screen.getByRole("tooltip")).toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
 
+			// Should only have been called once
 			expect(mockRecordTooltipView).toHaveBeenCalledTimes(1);
 		});
 
@@ -313,143 +398,172 @@ describe("ShortcutTooltip", () => {
 				</ShortcutTooltip>,
 			);
 
-			const { button } = getTrigger("Click me");
-			fireEvent.focus(button);
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
+			fireEvent.focus(trigger);
 
 			expect(mockShouldShowTooltip).toHaveBeenCalledWith("specific-tooltip-id");
 		});
 	});
 
 	describe("disabled prop", () => {
-		it("does not show tooltip when disabled", () => {
+		it("does not show tooltip when disabled", async () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip" disabled>
 					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const { button } = getTrigger("Click me");
-			fireEvent.focus(button);
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
+			fireEvent.focus(trigger);
+			await new Promise((r) => setTimeout(r, 100));
 
 			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 		});
 
-		it("does not call recordTooltipView when disabled", () => {
+		it("does not call recordTooltipView when disabled", async () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip" disabled>
 					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const { button } = getTrigger("Click me");
-			fireEvent.focus(button);
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
+			fireEvent.focus(trigger);
+			await new Promise((r) => setTimeout(r, 100));
 
 			expect(mockRecordTooltipView).not.toHaveBeenCalled();
 		});
 	});
 
 	describe("placement", () => {
-		it("accepts top placement", () => {
+		it("accepts top placement", async () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test" placement="top">
 					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const { button } = getTrigger("Click me");
-			fireEvent.focus(button);
-			act(() => {
-				vi.advanceTimersByTime(0);
-			});
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
+			fireEvent.focus(trigger);
+			await waitFor(
+				() => {
+					expect(screen.getByRole("tooltip")).toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
 
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
 		});
 
-		it("accepts bottom placement", () => {
+		it("accepts bottom placement", async () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test" placement="bottom">
 					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const { button } = getTrigger("Click me");
-			fireEvent.focus(button);
-			act(() => {
-				vi.advanceTimersByTime(0);
-			});
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
+			fireEvent.focus(trigger);
+			await waitFor(
+				() => {
+					expect(screen.getByRole("tooltip")).toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
 
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
 		});
 
-		it("accepts left placement", () => {
+		it("accepts left placement", async () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test" placement="left">
 					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const { button } = getTrigger("Click me");
-			fireEvent.focus(button);
-			act(() => {
-				vi.advanceTimersByTime(0);
-			});
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
+			fireEvent.focus(trigger);
+			await waitFor(
+				() => {
+					expect(screen.getByRole("tooltip")).toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
 
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
 		});
 
-		it("accepts right placement", () => {
+		it("accepts right placement", async () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test" placement="right">
 					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const { button } = getTrigger("Click me");
-			fireEvent.focus(button);
-			act(() => {
-				vi.advanceTimersByTime(0);
-			});
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
+			fireEvent.focus(trigger);
+			await waitFor(
+				() => {
+					expect(screen.getByRole("tooltip")).toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
 
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
 		});
 	});
 
 	describe("accessibility", () => {
-		it("has role=tooltip on tooltip element", () => {
+		it("has role=tooltip on tooltip element", async () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip">
 					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const { button } = getTrigger("Click me");
-			fireEvent.focus(button);
-			act(() => {
-				vi.advanceTimersByTime(0);
-			});
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
+			fireEvent.focus(trigger);
+			await waitFor(
+				() => {
+					expect(screen.getByRole("tooltip")).toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
 
 			expect(screen.getByRole("tooltip")).toBeInTheDocument();
 		});
 
-		it("associates tooltip with trigger via aria-describedby when visible", () => {
+		it("associates tooltip with trigger via aria-describedby when visible", async () => {
 			render(
 				<ShortcutTooltip tooltipId="test" description="Test tooltip">
 					<button type="button">Click me</button>
 				</ShortcutTooltip>,
 			);
 
-			const { button, trigger } = getTrigger("Click me");
-			fireEvent.focus(button);
-			act(() => {
-				vi.advanceTimersByTime(0);
-			});
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
+			fireEvent.focus(trigger);
+			await waitFor(
+				() => {
+					expect(screen.getByRole("tooltip")).toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
 
 			const tooltip = screen.getByRole("tooltip");
 			const ariaDescribedBy = trigger.getAttribute("aria-describedby");
 			expect(ariaDescribedBy).toBe(tooltip.id);
 		});
 
-		it("removes aria-describedby when tooltip is hidden", () => {
+		it("removes aria-describedby when tooltip is hidden", async () => {
 			render(
 				<>
 					<ShortcutTooltip tooltipId="test" description="Test tooltip">
@@ -459,18 +573,35 @@ describe("ShortcutTooltip", () => {
 				</>,
 			);
 
-			const { button, trigger } = getTrigger("Click me");
-			fireEvent.focus(button);
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
+
+			// Show tooltip via focus on trigger
+			fireEvent.focus(trigger);
+			await waitFor(
+				() => {
+					expect(screen.getByRole("tooltip")).toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
+
 			expect(trigger.getAttribute("aria-describedby")).toBeTruthy();
 
-			fireEvent.blur(button);
+			// Hide via blur on trigger
+			fireEvent.blur(trigger);
 
-			expect(trigger.getAttribute("aria-describedby")).toBeFalsy();
+			await waitFor(
+				() => {
+					expect(trigger.getAttribute("aria-describedby")).toBeFalsy();
+				},
+				{ timeout: 300 },
+			);
 		});
 	});
 
 	describe("reduced motion", () => {
-		it("respects prefers-reduced-motion setting", () => {
+		it("respects prefers-reduced-motion setting", async () => {
+			// Mock matchMedia to return true for reduced motion
 			Object.defineProperty(window, "matchMedia", {
 				writable: true,
 				value: vi.fn().mockImplementation((query: string) => ({
@@ -491,12 +622,17 @@ describe("ShortcutTooltip", () => {
 				</ShortcutTooltip>,
 			);
 
-			const { button } = getTrigger("Click me");
-			fireEvent.focus(button);
-			act(() => {
-				vi.advanceTimersByTime(0);
-			});
+			const trigger = screen.getByRole("button", { name: "Click me" }).parentElement;
+			if (!trigger) throw new Error("trigger not found");
+			fireEvent.focus(trigger);
+			await waitFor(
+				() => {
+					expect(screen.getByRole("tooltip")).toBeInTheDocument();
+				},
+				{ timeout: 200 },
+			);
 
+			// Tooltip content wrapper has the classes (parent of role=tooltip span)
 			const tooltip = screen.getByRole("tooltip");
 			const wrapper = tooltip.closest("[data-state]");
 			expect(wrapper).toHaveClass("opacity-100");

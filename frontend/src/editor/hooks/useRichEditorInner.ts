@@ -1,5 +1,5 @@
 import { codeBlockOptions } from "@blocknote/code-block";
-import type { BlockNoteEditor } from "@blocknote/core";
+import type { BlockNoteEditor, ExtensionFactoryInstance } from "@blocknote/core";
 import {
 	type Block,
 	BlockNoteSchema,
@@ -53,7 +53,7 @@ export function useRichEditorInner({
 	const { currentProject } = useProjectContext();
 	const { error: notifyError } = useNotification();
 	const { scale } = useScale();
-	const pluginExtensions = useEditorExtensions();
+	const pluginExtensions = useEditorExtensions() as ExtensionFactoryInstance[];
 	const pluginTipTapExtensions = useEditorTipTapExtensions();
 	const pluginBlockSpecs = useEditorBlockSpecs();
 	const pluginStyleSpecs = useEditorStyleSpecs();
@@ -80,10 +80,6 @@ export function useRichEditorInner({
 
 	const uploadFileFn = useCallback(
 		async (file: File) => {
-			console.warn("[RichEditor] uploadFileFn called by BlockNote!", {
-				fileName: file.name,
-				size: file.size,
-			});
 			const alias = currentProject?.alias ?? "";
 			if (!alias) throw new Error("No project selected");
 			return await uploadFile(file, alias);
@@ -166,7 +162,9 @@ export function useRichEditorInner({
 					};
 				}
 			} catch (err) {
-				console.warn("[RichEditor] Failed to apply Linux image accept workaround", err);
+				if (import.meta.env.DEV) {
+					console.warn("[RichEditor] Failed to apply Linux image accept workaround", err);
+				}
 			}
 		};
 
@@ -178,13 +176,41 @@ export function useRichEditorInner({
 	}, [editor]);
 
 	useEffect(() => {
-		if (editor) {
-			const readyTimeout = setTimeout(() => {
-				setIsReady(true);
-				if (onReady) onReady(editor);
-			}, 50);
-			return () => clearTimeout(readyTimeout);
+		if (!editor) {
+			return;
 		}
+
+		setIsReady(true);
+		let cancelled = false;
+		let rafId = 0;
+		let attempts = 0;
+
+		const notifyReady = () => {
+			if (cancelled) {
+				return;
+			}
+
+			const dom = editor.domElement;
+			if (dom?.isConnected) {
+				onReady?.(editor);
+				return;
+			}
+
+			if (attempts < 10) {
+				attempts += 1;
+				rafId = requestAnimationFrame(notifyReady);
+				return;
+			}
+
+			onReady?.(editor);
+		};
+
+		rafId = requestAnimationFrame(notifyReady);
+
+		return () => {
+			cancelled = true;
+			cancelAnimationFrame(rafId);
+		};
 	}, [editor, onReady]);
 
 	useEffect(() => {
@@ -192,9 +218,6 @@ export function useRichEditorInner({
 			const raf = requestAnimationFrame(() => {
 				baselineHashRef.current = computeContentHash(editor.document);
 				hasEstablishedBaseline.current = true;
-				console.log("[RichEditor] Baseline established", {
-					hash: baselineHashRef.current?.substring(0, 50),
-				});
 			});
 			return () => cancelAnimationFrame(raf);
 		}
@@ -241,7 +264,18 @@ export function useRichEditorInner({
 	useEffect(() => {
 		if (editor && editable && isReady && autoFocus) {
 			const focusTimeout = setTimeout(() => {
-				editor.focus();
+				const dom = editor.domElement;
+				if (!dom || !dom.isConnected) {
+					return;
+				}
+
+				try {
+					editor.focus();
+				} catch (err) {
+					if (import.meta.env.DEV) {
+						console.warn("[RichEditor] Failed to autofocus editor before mount", err);
+					}
+				}
 			}, 0);
 			return () => clearTimeout(focusTimeout);
 		}
@@ -285,12 +319,10 @@ export function useRichEditorInner({
 			}
 
 			if (didModify) {
-				console.log("[RichEditor] onChange: didModify=true, skipping propagation");
 				return;
 			}
 
 			if (!hasEstablishedBaseline.current) {
-				console.log("[RichEditor] onChange: baseline not established, skipping");
 				return;
 			}
 
@@ -298,14 +330,8 @@ export function useRichEditorInner({
 			const currentHash = computeContentHash(finalBlocks);
 
 			if (currentHash === baselineHashRef.current) {
-				console.log("[RichEditor] onChange: hash matches baseline, skipping");
 				return;
 			}
-
-			console.log("[RichEditor] onChange: PROPAGATING change", {
-				baselineHash: baselineHashRef.current?.substring(0, 30),
-				currentHash: currentHash.substring(0, 30),
-			});
 			onChange(finalBlocks);
 			baselineHashRef.current = currentHash;
 

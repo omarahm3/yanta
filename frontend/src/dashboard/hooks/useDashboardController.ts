@@ -66,7 +66,7 @@ export interface DashboardControllerResult {
 	sidebarSections: ReturnType<typeof useSidebarSections>;
 	commandInput: string;
 	setCommandInput: (value: string) => void;
-	commandInputRef: React.RefObject<HTMLInputElement>;
+	commandInputRef: React.RefObject<HTMLInputElement | null>;
 	handleCommandSubmit: (command: string) => Promise<void>;
 	handleDocumentClick: (path: string) => void;
 	documentList: {

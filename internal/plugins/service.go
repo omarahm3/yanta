@@ -123,11 +123,11 @@ func NewService() *Service {
 }
 
 func (s *Service) pluginDir() (string, error) {
-	dataDir := strings.TrimSpace(config.GetDataDirectory())
-	if dataDir == "" {
-		return "", fmt.Errorf("resolve data directory: empty data directory")
+	root := config.GetAppRootDirectory()
+	if root == "" {
+		return "", fmt.Errorf("resolve app root directory: empty path")
 	}
-	return filepath.Join(dataDir, "plugins"), nil
+	return filepath.Join(root, "plugins"), nil
 }
 
 func (s *Service) scanLocalPlugins() ([]InstallRecord, error) {

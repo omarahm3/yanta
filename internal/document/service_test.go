@@ -345,6 +345,29 @@ func TestService_ListByProject_EmptyAlias(t *testing.T) {
 	assert.Error(t, err, "Expected error for empty project_alias")
 }
 
+func TestService_ListByProject_PrunesMissingFileMetadata(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	req := SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "Ghost Document",
+		Blocks:       []BlockNoteBlock{},
+	}
+	path, err := service.Save(context.Background(), req)
+	require.NoError(t, err)
+
+	err = service.fm.DeleteFile(path)
+	require.NoError(t, err)
+
+	docs, err := service.ListByProject(context.Background(), "@test", false, 10, 0)
+	require.NoError(t, err)
+	assert.Empty(t, docs, "missing-file document should be pruned from dashboard list")
+
+	_, err = service.store.GetByPathIncludingDeleted(context.Background(), path)
+	assert.Error(t, err, "stale metadata should be removed when file is missing")
+}
+
 func TestService_SoftDelete(t *testing.T) {
 	service, _, cleanup := setupServiceTest(t)
 	defer cleanup()
@@ -459,6 +482,28 @@ func TestService_HardDelete_RemovesFromVault(t *testing.T) {
 
 	exists, _ = service.fm.FileExists(path)
 	assert.False(t, exists, "File should not exist after hard delete")
+}
+
+func TestService_HardDelete_MissingFileStillDeletesMetadata(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	req := SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "Missing File Delete",
+		Blocks:       []BlockNoteBlock{},
+	}
+	path, err := service.Save(context.Background(), req)
+	require.NoError(t, err)
+
+	err = service.fm.DeleteFile(path)
+	require.NoError(t, err)
+
+	err = service.HardDelete(context.Background(), path)
+	require.NoError(t, err, "HardDelete should succeed even if file was already missing")
+
+	_, err = service.store.GetByPathIncludingDeleted(context.Background(), path)
+	assert.Error(t, err, "metadata should be removed even when file is missing")
 }
 
 func TestService_HardDeleteBatch(t *testing.T) {

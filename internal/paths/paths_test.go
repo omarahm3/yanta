@@ -75,13 +75,13 @@ func TestGetLogsPath(t *testing.T) {
 	err := config.Init()
 	require.NoError(t, err)
 
-	t.Run("logs always in home directory when env var not set", func(t *testing.T) {
+	t.Run("logs default to app root", func(t *testing.T) {
 		logsPath := GetLogsPath()
 		expectedPath := filepath.Join(tempDir, ".yanta", "logs")
 		assert.Equal(t, expectedPath, logsPath)
 	})
 
-	t.Run("logs path independent of data directory config", func(t *testing.T) {
+	t.Run("logs path independent of configured data_directory", func(t *testing.T) {
 		customDir := filepath.Join(tempDir, "my-git-repo")
 		err := config.SetDataDirectory(customDir)
 		require.NoError(t, err)
@@ -102,20 +102,20 @@ func TestGetLogsPath_WithEnvVar(t *testing.T) {
 	err := config.Init()
 	require.NoError(t, err)
 
-	t.Run("logs follow YANTA_DATA_DIR when set", func(t *testing.T) {
+	t.Run("logs follow YANTA_HOME when set", func(t *testing.T) {
 		envDir := filepath.Join(tempDir, "isolated-dev")
-		cleanupEnv := testenv.SetTestDataDir(t, envDir)
+		cleanupEnv := testenv.SetTestAppHome(t, envDir)
 		defer cleanupEnv()
 
 		logsPath := GetLogsPath()
 		expectedPath := filepath.Join(envDir, "logs")
-		assert.Equal(t, expectedPath, logsPath, "Logs should follow YANTA_DATA_DIR for complete isolation")
+		assert.Equal(t, expectedPath, logsPath, "Logs should follow YANTA_HOME")
 	})
 
 	t.Run("logs return to home directory when env var unset", func(t *testing.T) {
 		// Set and then unset the env var
 		envDir := filepath.Join(tempDir, "isolated-dev")
-		cleanupEnv := testenv.SetTestDataDir(t, envDir)
+		cleanupEnv := testenv.SetTestAppHome(t, envDir)
 
 		// Verify it's set
 		logsPath := GetLogsPath()
@@ -142,9 +142,9 @@ func TestGetConfigPath(t *testing.T) {
 		assert.Equal(t, expectedPath, configPath)
 	})
 
-	t.Run("config follows YANTA_DATA_DIR when set", func(t *testing.T) {
+	t.Run("config follows YANTA_HOME when set", func(t *testing.T) {
 		envDir := filepath.Join(tempDir, "isolated-dev")
-		cleanupEnv := testenv.SetTestDataDir(t, envDir)
+		cleanupEnv := testenv.SetTestAppHome(t, envDir)
 		defer cleanupEnv()
 
 		configPath := GetConfigPath()
@@ -156,4 +156,5 @@ func TestGetConfigPath(t *testing.T) {
 func resetConfig() {
 	config.ResetForTesting()
 	os.Setenv("YANTA_LOG_LEVEL", "")
+	_ = os.Unsetenv("YANTA_HOME")
 }

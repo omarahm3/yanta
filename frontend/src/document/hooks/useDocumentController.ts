@@ -138,11 +138,11 @@ export function useDocumentController({
 
 	const { autoSave } = useDocumentPersistence({
 		formData,
-		hasChanges: isArchived ? false : hasChanges,
+		hasChanges: isArchived || Boolean(loadError) ? false : hasChanges,
 		currentProject,
 		documentPath,
 		isEditMode,
-		isLoading,
+		isLoading: isLoading || Boolean(loadError),
 		shouldAutoSave: !isArchived && shouldAutoSave,
 		resetChanges,
 		onAutoSaveComplete: resetAutoSave,
@@ -160,6 +160,14 @@ export function useDocumentController({
 		isArchivedRef.current = isArchived;
 		currentProjectRef.current = currentProject;
 	});
+
+	const saveNowForHotkey = useCallback(async () => {
+		if (loadError) {
+			error("Document could not be loaded.");
+			return;
+		}
+		return autoSaveRef.current.saveNow();
+	}, [error, loadError]);
 
 	useEffect(() => {
 		return () => {
@@ -182,6 +190,10 @@ export function useDocumentController({
 				error("Restore the document before saving.");
 				return;
 			}
+			if (loadError) {
+				error("Document could not be loaded.");
+				return;
+			}
 			autoSaveRef.current.saveNow().catch((err) => {
 				BackendLogger.error("[Document] Failed to save from command palette:", err);
 				error("Failed to save document");
@@ -191,7 +203,7 @@ export function useDocumentController({
 		return () => {
 			useDocumentCommandStore.getState().registerSaveHandler(null);
 		};
-	}, [error]);
+	}, [error, loadError]);
 
 	const handleCancel = useCallback(() => {
 		if (autoSave.hasUnsavedChanges && !isEditMode) {
@@ -217,7 +229,7 @@ export function useDocumentController({
 		isActivePaneRef,
 		isArchived,
 		error,
-		saveNow: autoSave.saveNow,
+		saveNow: saveNowForHotkey,
 		handleExportToMarkdown,
 		handleExportToPDF,
 		handleEscape,

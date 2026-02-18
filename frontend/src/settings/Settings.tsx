@@ -240,6 +240,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 							onPickDirectory={controller.handlers.handlePickDirectory}
 							onMigration={controller.handlers.handleMigration}
 							onSyncNow={controller.handlers.handleSyncNow}
+							syncNowInFlight={controller.syncNowInFlight}
 							onRefreshStatus={refreshGitStatus}
 						/>
 

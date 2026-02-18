@@ -19,14 +19,14 @@ func setupTestDataDir(t *testing.T) string {
 
 	dataDir := t.TempDir()
 
-	// Set YANTA_DATA_DIR for the test
-	oldDataDir := os.Getenv("YANTA_DATA_DIR")
-	os.Setenv("YANTA_DATA_DIR", dataDir)
+	// Set YANTA_HOME for the test
+	oldDataDir := os.Getenv("YANTA_HOME")
+	os.Setenv("YANTA_HOME", dataDir)
 	t.Cleanup(func() {
 		if oldDataDir == "" {
-			os.Unsetenv("YANTA_DATA_DIR")
+			os.Unsetenv("YANTA_HOME")
 		} else {
-			os.Setenv("YANTA_DATA_DIR", oldDataDir)
+			os.Setenv("YANTA_HOME", oldDataDir)
 		}
 	})
 
@@ -620,7 +620,7 @@ func TestCalculateDirSize(t *testing.T) {
 		file1 := filepath.Join(tempDir, "file1.txt")
 		file2 := filepath.Join(tempDir, "file2.txt")
 
-		content1 := []byte("12345") // 5 bytes
+		content1 := []byte("12345")      // 5 bytes
 		content2 := []byte("1234567890") // 10 bytes
 
 		err := os.WriteFile(file1, content1, 0644)
@@ -718,19 +718,19 @@ func TestBackupIntegration(t *testing.T) {
 	})
 }
 
-// TestBackupWithDataDirectoryChange tests backup behavior when YANTA_DATA_DIR changes
+// TestBackupWithDataDirectoryChange tests backup behavior when YANTA_HOME changes
 func TestBackupWithDataDirectoryChange(t *testing.T) {
 	service := NewService()
 
 	// Setup first data directory
 	dataDir1 := t.TempDir()
-	oldEnv := os.Getenv("YANTA_DATA_DIR")
-	os.Setenv("YANTA_DATA_DIR", dataDir1)
+	oldEnv := os.Getenv("YANTA_HOME")
+	os.Setenv("YANTA_HOME", dataDir1)
 	defer func() {
 		if oldEnv == "" {
-			os.Unsetenv("YANTA_DATA_DIR")
+			os.Unsetenv("YANTA_HOME")
 		} else {
-			os.Setenv("YANTA_DATA_DIR", oldEnv)
+			os.Setenv("YANTA_HOME", oldEnv)
 		}
 	}()
 

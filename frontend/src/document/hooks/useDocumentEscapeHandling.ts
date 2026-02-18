@@ -35,6 +35,11 @@ export const useDocumentEscapeHandling = ({
 		(e: KeyboardEvent) => {
 			const editor = editorRef.current;
 			if (!editor) {
+				if (isActivePane) {
+					e.preventDefault();
+					e.stopPropagation();
+					onNavigateBack();
+				}
 				return;
 			}
 

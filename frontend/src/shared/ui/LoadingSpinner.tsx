@@ -11,29 +11,22 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 	fullScreen = true,
 }) => {
 	useEffect(() => {
-		console.log("[LoadingSpinner] Mounted with message:", message);
 		const startTime = Date.now();
 
 		const timer = setInterval(() => {
 			const seconds = Math.floor((Date.now() - startTime) / 1000);
 
-			// Use console.log instead of console.warn to avoid spamming backend logs
-			// These are dev-only diagnostics and shouldn't trigger RPC calls
-			if (seconds === 3) {
-				console.log("[LoadingSpinner] Still loading after 3 seconds");
-			}
 			if (seconds === 10) {
-				// Keep this as error since 10+ seconds indicates a real problem
-				console.error("[LoadingSpinner] Still loading after 10 seconds - likely stuck!");
+				if (import.meta.env.DEV) {
+					console.error("[LoadingSpinner] Still loading after 10 seconds - likely stuck!");
+				}
 			}
 		}, 1000);
 
 		return () => {
-			const elapsed = Math.floor((Date.now() - startTime) / 1000);
-			console.log("[LoadingSpinner] Unmounted after", elapsed, "seconds");
 			clearInterval(timer);
 		};
-	}, [message]);
+	}, []);
 
 	const containerClass = fullScreen
 		? "fixed inset-0 flex items-center justify-center bg-glass-bg/40 backdrop-blur-sm z-50"

@@ -43,7 +43,7 @@ export function useTestPageController() {
 		source: "none",
 	});
 
-	const objectUrlRef = useRef<string>();
+	const objectUrlRef = useRef<string | undefined>(undefined);
 	const { editor: baselineBlockNoteEditor, diagnostics: baselineDiagnostics } =
 		useBlockNoteTestEditor();
 	const { editor: overrideBlockNoteEditor, diagnostics: overrideDiagnostics } =

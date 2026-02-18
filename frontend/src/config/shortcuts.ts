@@ -39,7 +39,7 @@ export const DOCUMENT_SHORTCUTS = {
 	exportMd: { key: "mod+e", description: "Export to Markdown" },
 	exportPdf: { key: "mod+shift+e", description: "Export to PDF" },
 	back: { key: "Escape", description: "Unfocus editor, or go back to dashboard" },
-	unfocus: { key: "mod+C", description: "Unfocus editor" },
+	unfocus: { key: "mod+shift+C", description: "Unfocus editor" },
 	focusEditor: { key: "Enter", description: "Focus editor when unfocused" },
 	deleteBlock: { key: "ctrl+d", description: "Delete block (Document page)" },
 } as const satisfies Record<string, ShortcutDef>;
