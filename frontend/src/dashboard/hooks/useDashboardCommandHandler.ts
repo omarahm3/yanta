@@ -20,7 +20,7 @@ interface DashboardCommandHandlerOptions {
 	success: (message: string) => void;
 	error: (message: string) => void;
 	setCommandInput: (value: string) => void;
-	commandInputRef: RefObject<HTMLInputElement>;
+	commandInputRef: RefObject<HTMLInputElement | null>;
 	onConfirmationRequired?: (data: {
 		title: string;
 		message: string;

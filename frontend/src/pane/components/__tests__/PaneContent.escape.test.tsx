@@ -111,7 +111,7 @@ describe("PaneContent escape handling", () => {
 		});
 
 		expect(mockClosePane).not.toHaveBeenCalled();
-		expect(mockOnNavigate).toHaveBeenCalledWith("dashboard", undefined);
+		expect(mockOnNavigate).toHaveBeenCalledWith("dashboard");
 	});
 
 	it("does not handle ESC when pane is not active", () => {

@@ -5,7 +5,10 @@ import { useEffect } from "react";
  * Debug hook for the Test page: observes a container and logs file input
  * change/click events for all input[type="file"] elements (including dynamically added).
  */
-export function useFileInputDebug(containerRef: RefObject<HTMLElement>, label: string): void {
+export function useFileInputDebug(
+	containerRef: RefObject<HTMLElement | null>,
+	label: string,
+): void {
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
