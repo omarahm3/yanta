@@ -387,9 +387,11 @@ func (a *App) writeCrashReport(location string, panicValue any) {
 	var crashPath string
 	if root := config.GetAppRootDirectory(); root != "" {
 		crashDir := filepath.Join(root, "crashes")
-		os.MkdirAll(crashDir, 0o755)
-		crashPath = filepath.Join(crashDir, crashFile)
-	} else {
+		if err := os.MkdirAll(crashDir, 0o755); err == nil {
+			crashPath = filepath.Join(crashDir, crashFile)
+		}
+	}
+	if crashPath == "" {
 		crashPath = crashFile
 	}
 

@@ -72,6 +72,21 @@ vi.mock("../settings/useSettingsController", () => ({
 	}),
 }));
 
+vi.mock("../settings/usePluginSettings", () => ({
+	usePluginSettings: () => ({
+		plugins: [],
+		isLoading: false,
+		errorMessage: null,
+		pluginDirectory: "",
+		communityPluginsEnabled: false,
+		reload: vi.fn(),
+		installPlugin: vi.fn(),
+		setPluginEnabled: vi.fn(),
+		uninstallPlugin: vi.fn(),
+		setCommunityPluginsEnabled: vi.fn(),
+	}),
+}));
+
 vi.mock("../project", async () => {
 	const actual = await vi.importActual<typeof import("../project")>("../project");
 	return {

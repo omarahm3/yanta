@@ -365,18 +365,49 @@ func (s *Service) GetAppHomeEnvVar(ctx context.Context) string {
 }
 
 func (s *Service) OpenDirectoryDialog(ctx context.Context) (string, error) {
+	return s.OpenDirectoryDialogWithTitle(ctx, "Select Git Directory")
+}
+
+func (s *Service) OpenDirectoryDialogWithTitle(ctx context.Context, title string) (string, error) {
 	app := s.eventBus.GetApp()
 	if app == nil {
 		return "", fmt.Errorf("app not available")
+	}
+	dialogTitle := strings.TrimSpace(title)
+	if dialogTitle == "" {
+		dialogTitle = "Select Directory"
 	}
 
 	selection, err := app.Dialog.OpenFile().
 		CanChooseDirectories(true).
 		CanChooseFiles(false).
-		SetTitle("Select Git Directory").
+		SetTitle(dialogTitle).
 		PromptForSingleSelection()
 	if err != nil {
 		logger.Errorf("failed to open directory dialog: %v", err)
+		return "", err
+	}
+
+	return selection, nil
+}
+
+func (s *Service) OpenFileDialogWithTitle(ctx context.Context, title string) (string, error) {
+	app := s.eventBus.GetApp()
+	if app == nil {
+		return "", fmt.Errorf("app not available")
+	}
+	dialogTitle := strings.TrimSpace(title)
+	if dialogTitle == "" {
+		dialogTitle = "Select File"
+	}
+
+	selection, err := app.Dialog.OpenFile().
+		CanChooseDirectories(false).
+		CanChooseFiles(true).
+		SetTitle(dialogTitle).
+		PromptForSingleSelection()
+	if err != nil {
+		logger.Errorf("failed to open file dialog: %v", err)
 		return "", err
 	}
 

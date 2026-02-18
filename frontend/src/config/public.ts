@@ -3,6 +3,8 @@ export { EDITOR_HELP_COMMANDS, EDITOR_SHORTCUTS } from "./editorCommands";
 export type { FeatureFlagName, FeatureFlags } from "./featureFlags";
 export {
 	ENABLE_APP_MONITOR,
+	ENABLE_COMMAND_LINE,
+	ENABLE_PLUGINS,
 	ENABLE_TOOLTIP_HINTS,
 	featureFlagsFromModel,
 	getEnvDefaultFeatureFlags,

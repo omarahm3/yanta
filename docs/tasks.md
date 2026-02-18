@@ -1,6 +1,6 @@
 # Yanta Pending Tasks
 
-Last updated: 2026-02-13
+Last updated: 2026-02-14
 
 ## Plugin Architecture (Item 17)
 - Implement plugin installation and uninstall flows beyond local directory discovery and enabled-state toggles.
@@ -9,10 +9,10 @@ Last updated: 2026-02-13
   - Install and uninstall
   - Enable and disable
   - Error states and recovery
-- Finalize plugin API versioning and compatibility policy.
+- Finalize plugin API versioning and compatibility policy. ✅ (see `examples/plugins/plugin-policy.md`)
 - Improve manifest validation and plugin error reporting UX.
-- Decide and implement stronger plugin isolation model if required.
-- Expand editor plugin interface for richer block and tooling contributions with clear lifecycle hooks.
+- Decide and implement stronger plugin isolation model if required. ✅ (restricted mode gate + folder-based community plugin model)
+- Expand editor plugin interface for richer block and tooling contributions with clear lifecycle hooks. ✅
 
 ## Tier 6 Platform Work (53a–53d)
 - 53a: Implement full runtime theme system with token architecture and support for user-created themes.

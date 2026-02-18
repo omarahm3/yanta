@@ -136,7 +136,7 @@ func TestGetConfigPath(t *testing.T) {
 	cleanup := testenv.SetTestHome(t, tempDir)
 	defer cleanup()
 
-	t.Run("config always in home directory", func(t *testing.T) {
+	t.Run("config in home directory when env var not set", func(t *testing.T) {
 		configPath := GetConfigPath()
 		expectedPath := filepath.Join(tempDir, ".yanta", "config.toml")
 		assert.Equal(t, expectedPath, configPath)
@@ -151,7 +151,6 @@ func TestGetConfigPath(t *testing.T) {
 		expectedPath := filepath.Join(envDir, "config.toml")
 		assert.Equal(t, expectedPath, configPath)
 	})
-
 }
 
 func resetConfig() {

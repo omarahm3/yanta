@@ -220,7 +220,7 @@ func run() {
 func writeStartupError(message string) {
 	root := config.GetAppRootDirectory()
 	if root == "" {
-		return
+		root = config.GetDataDirectory()
 	}
 	errorFile := filepath.Join(root, "startup-error.log")
 	if err := os.MkdirAll(filepath.Dir(errorFile), 0o755); err != nil {

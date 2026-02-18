@@ -1,7 +1,7 @@
 import { act, render } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { PaneLayoutState } from "../../../pane/types";
+import type { PaneLayoutState } from "../../types";
 
 const mockClosePane = vi.fn();
 const mockSetActivePane = vi.fn();

@@ -1,9 +1,31 @@
 import type { z } from "zod";
 import type { PluginConfigSchema } from "@/config/public";
-import type { EditorExtensionContribution } from "../editor/extensions/registry/editorExtensionRegistry";
+import type {
+	EditorBlockActionContribution,
+	EditorBlockSpecContribution,
+	EditorExtensionContribution,
+	EditorLifecycleHooks,
+	EditorSlashMenuItemContribution,
+	EditorStyleSpecContribution,
+	EditorTipTapExtensionContribution,
+	EditorToolContribution,
+} from "../editor/extensions/registry/editorExtensionRegistry";
 import type { CommandOption, SidebarSection } from "../shared/ui";
 
-export type PluginCapability = "commands" | "sidebar" | "editorExtensions" | "settings";
+export type PluginCapability =
+	| "commands"
+	| "sidebar"
+	| "editorExtensions"
+	| "editorTipTapExtensions"
+	| "editorBlockSpecs"
+	| "editorStyleSpecs"
+	| "editorSlashMenu"
+	| "editorTools"
+	| "editorBlockActions"
+	| "editorLifecycle"
+	| "settings";
+
+export type PluginIsolationMode = "builtin_trusted" | "external_local";
 
 export interface PluginManifest {
 	id: string;
@@ -19,18 +41,26 @@ export interface PluginManifest {
 
 export interface PluginDefinition {
 	manifest: PluginManifest;
-	setup: (api: PluginAPI) => void | (() => void) | Promise<undefined | (() => void)>;
+	setup: (api: PluginAPI) => void | (() => void) | Promise<(() => void) | undefined>;
 }
 
 export interface PluginAPI {
 	registerCommands: (commands: CommandOption[]) => void;
 	registerSidebarSections: (sections: SidebarSection[]) => void;
 	registerEditorExtensions: (extensions: EditorExtensionContribution[]) => void;
+	registerEditorTipTapExtensions: (extensions: EditorTipTapExtensionContribution[]) => void;
+	registerEditorBlockSpecs: (blockSpecs: EditorBlockSpecContribution) => void;
+	registerEditorStyleSpecs: (styleSpecs: EditorStyleSpecContribution) => void;
+	registerEditorSlashMenuItems: (items: EditorSlashMenuItemContribution[]) => void;
+	registerEditorTools: (tools: EditorToolContribution[]) => void;
+	registerEditorBlockActions: (actions: EditorBlockActionContribution[]) => void;
+	registerEditorLifecycleHooks: (hooks: EditorLifecycleHooks) => void;
 	registerConfig: <T>(def: PluginConfigSchema<T>) => void;
 }
 
 export interface PluginRuntimeRecord {
 	manifest: PluginManifest;
+	isolationMode: PluginIsolationMode;
 	isActive: boolean;
 	lastError?: string;
 }

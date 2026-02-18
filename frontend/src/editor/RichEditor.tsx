@@ -1,11 +1,14 @@
 import React from "react";
 import "@blocknote/core/fonts/inter.css";
 import type { Block, BlockNoteEditor, PartialBlock } from "@blocknote/core";
+import { filterSuggestionItems } from "@blocknote/core/extensions";
+import { getDefaultReactSlashMenuItems, SuggestionMenuController } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/shadcn";
 import "@blocknote/shadcn/style.css";
 import { cn } from "../shared/utils/cn";
 import "../styles/blocknote-dark.css";
 import "../styles/blocknote-scale.css";
+import type { EditorSlashMenuItemContribution } from "./extensions/registry/editorExtensionRegistry";
 import "./extensions/rtl/rtl.css";
 import { useRichEditorInner } from "./hooks/useRichEditorInner";
 
@@ -19,6 +22,7 @@ export interface RichEditorProps {
 	isLoading?: boolean;
 	docKey?: string;
 	autoFocus?: boolean;
+	disablePluginContributions?: boolean;
 }
 
 const createDefaultInitialBlock = (): PartialBlock => ({
@@ -41,18 +45,70 @@ type EditorInnerProps = {
 	className?: string;
 	editable: boolean;
 	autoFocus: boolean;
+	disablePluginContributions: boolean;
+};
+
+interface PluginSlashMenuProps {
+	editor: BlockNoteEditor;
+	editable: boolean;
+	items: EditorSlashMenuItemContribution[];
+}
+
+const PluginSlashMenu: React.FC<PluginSlashMenuProps> = ({ editor, editable, items }) => {
+	const getItems = React.useCallback(
+		async (query: string) => {
+			const defaultItems = getDefaultReactSlashMenuItems(editor);
+			if (items.length === 0) {
+				return filterSuggestionItems(defaultItems, query);
+			}
+
+			const pluginItems = items.map((item) => {
+				const { order: _order, onItemClick, ...rest } = item;
+				return {
+					...rest,
+					onItemClick: () => {
+						void Promise.resolve(onItemClick({ editor, editable })).catch((err) => {
+							console.error("[plugin] slash menu action failed", {
+								itemTitle: rest.title,
+								error: err,
+							});
+						});
+					},
+				};
+			});
+			return filterSuggestionItems([...defaultItems, ...pluginItems], query);
+		},
+		[editor, editable, items],
+	);
+
+	return <SuggestionMenuController triggerCharacter="/" getItems={getItems} />;
 };
 
 const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
-	({ blocks, onChange, onTitleChange, onReady, className, editable, autoFocus }, ref) => {
-		const { editor, isReady, scale, containerRefCallback } = useRichEditorInner({
+	(
+		{
 			blocks,
 			onChange,
 			onTitleChange,
 			onReady,
+			className,
 			editable,
 			autoFocus,
-		});
+			disablePluginContributions,
+		},
+		ref,
+	) => {
+		const { editor, isReady, scale, containerRefCallback, pluginSlashMenuItems } = useRichEditorInner(
+			{
+				blocks,
+				onChange,
+				onTitleChange,
+				onReady,
+				editable,
+				autoFocus,
+				disablePluginContributions,
+			},
+		);
 
 		const mergedRef = React.useCallback(
 			(node: HTMLDivElement | null) => {
@@ -76,7 +132,9 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 				className={cn("rich-editor flex-1 overflow-y-auto h-full", className)}
 				style={{ "--editor-scale": scale } as React.CSSProperties}
 			>
-				<BlockNoteView editor={editor} theme="dark" />
+				<BlockNoteView editor={editor} theme="dark" slashMenu={false}>
+					<PluginSlashMenu editor={editor} editable={editable} items={pluginSlashMenuItems} />
+				</BlockNoteView>
 			</div>
 		);
 	},
@@ -96,6 +154,7 @@ export const RichEditor = React.forwardRef<HTMLDivElement, RichEditorProps>(
 			isLoading = false,
 			docKey,
 			autoFocus = true,
+			disablePluginContributions = false,
 		},
 		ref,
 	) => {
@@ -142,6 +201,7 @@ export const RichEditor = React.forwardRef<HTMLDivElement, RichEditorProps>(
 				className={className}
 				editable={editable}
 				autoFocus={autoFocus}
+				disablePluginContributions={disablePluginContributions}
 			/>
 		);
 	},

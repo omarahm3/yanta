@@ -1,3 +1,4 @@
+import { ENABLE_PLUGINS } from "../config/featureFlags";
 import { DocumentProvider } from "../document";
 import { HelpModal, HelpProvider } from "../help";
 import { HotkeyProvider } from "../hotkeys";
@@ -24,7 +25,7 @@ export function AppProviders() {
 			<AppMonitorInit />
 			<DocumentCountStoreInit />
 			<PreferencesStoreInit />
-			<PluginBootstrap />
+			{ENABLE_PLUGINS && <PluginBootstrap />}
 			<ProjectStoreInit />
 			<HotkeyProvider>
 				<HelpProvider>
