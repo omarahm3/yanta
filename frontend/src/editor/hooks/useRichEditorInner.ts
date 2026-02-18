@@ -1,5 +1,5 @@
 import { codeBlockOptions } from "@blocknote/code-block";
-import type { BlockNoteEditor } from "@blocknote/core";
+import type { BlockNoteEditor, Extension, ExtensionFactoryInstance } from "@blocknote/core";
 import {
 	type Block,
 	BlockNoteSchema,
@@ -44,9 +44,7 @@ export function useRichEditorInner({
 	const { currentProject } = useProjectContext();
 	const { error: notifyError } = useNotification();
 	const { scale } = useScale();
-	type EditorOptions = Parameters<typeof useCreateBlockNote>[0];
-	type EditorExtension = NonNullable<EditorOptions["extensions"]>[number];
-	const pluginExtensions = useEditorExtensions() as EditorExtension[];
+	const pluginExtensions = useEditorExtensions() as ExtensionFactoryInstance[];
 
 	useBlockNoteMenuPosition();
 
@@ -75,6 +73,10 @@ export function useRichEditorInner({
 			},
 		}),
 	).current;
+	const rtlExtension: Extension = {
+		key: "rtl",
+		tiptapExtensions: [RTLExtension],
+	};
 
 	const editor = useCreateBlockNote({
 		schema,
@@ -87,10 +89,7 @@ export function useRichEditorInner({
 			},
 		},
 		extensions: [
-			createExtension({
-				key: "rtl",
-				tiptapExtensions: [RTLExtension],
-			}),
+			createExtension(rtlExtension),
 			...pluginExtensions,
 		],
 	});
