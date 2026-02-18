@@ -20,6 +20,27 @@ export default defineConfig({
     ),
   },
   plugins: [
+    {
+      name: "wails-custom-js-404",
+      apply: "serve",
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (!req.url) {
+            next();
+            return;
+          }
+
+          if (req.url.startsWith("/wails/custom.js")) {
+            res.statusCode = 404;
+            res.setHeader("Content-Type", "text/plain; charset=utf-8");
+            res.end("Not found");
+            return;
+          }
+
+          next();
+        });
+      },
+    },
     react(),
     tailwindcss(),
     wails("./bindings"),

@@ -150,11 +150,8 @@ export function enableBackendLogging() {
 
 	console.log = (...args) => {
 		originalLog(...args);
-		if (import.meta.env.PROD) return;
-		if (!shouldLog("info")) return;
-		const { message, data } = formatLogArgs(args);
-		pushEntry("info", message);
-		sendToBackend("info", message, data);
+		// Intentionally never forward console.log to backend.
+		// Dev tooling (HMR, warnings, verbose libs) can generate high-volume logs.
 	};
 
 	console.error = (...args) => {

@@ -17,17 +17,62 @@ interface CommandRegistryState {
 	getAllCommands: () => CommandOption[];
 }
 
+function areKeywordArraysEqual(a?: string[], b?: string[]): boolean {
+	if (a === b) return true;
+	const aa = a ?? [];
+	const bb = b ?? [];
+	if (aa.length !== bb.length) return false;
+	for (let i = 0; i < aa.length; i += 1) {
+		if (aa[i] !== bb[i]) return false;
+	}
+	return true;
+}
+
+function areCommandsEquivalent(
+	previous: CommandOption[] | undefined,
+	next: CommandOption[],
+): boolean {
+	if (!previous) return false;
+	if (previous.length !== next.length) return false;
+	for (let i = 0; i < previous.length; i += 1) {
+		const a = previous[i];
+		const b = next[i];
+		if (
+			a.id !== b.id ||
+			a.text !== b.text ||
+			a.hint !== b.hint ||
+			a.shortcut !== b.shortcut ||
+			a.group !== b.group ||
+			a.keepOpen !== b.keepOpen
+		) {
+			return false;
+		}
+		if (!areKeywordArraysEqual(a.keywords, b.keywords)) {
+			return false;
+		}
+	}
+	return true;
+}
+
 export const useCommandRegistryStore = create<CommandRegistryState>((set, get) => ({
 	sources: {},
 
 	setCommands: (source, commands) => {
-		set((state) => ({
-			sources: { ...state.sources, [source]: commands },
-		}));
+		set((state) => {
+			if (areCommandsEquivalent(state.sources[source], commands)) {
+				return state;
+			}
+			return {
+				sources: { ...state.sources, [source]: commands },
+			};
+		});
 	},
 
 	removeSource: (source) => {
 		set((state) => {
+			if (!(source in state.sources)) {
+				return state;
+			}
 			const next = { ...state.sources };
 			delete next[source];
 			return { sources: next };

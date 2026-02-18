@@ -7,6 +7,14 @@
   <title>YANTA</title>
   <script>
     // Early diagnostic - runs before any modules load
+    const DEBUG_BUFFER_LIMIT = 100;
+    function boundedPush(list, item) {
+      list.push(item);
+      if (list.length > DEBUG_BUFFER_LIMIT) {
+        list.splice(0, list.length - DEBUG_BUFFER_LIMIT);
+      }
+    }
+
     window.__YANTA_DEBUG__ = {
       htmlLoaded: Date.now(),
       errors: [],
@@ -15,12 +23,11 @@
 
     document.addEventListener('DOMContentLoaded', function () {
       window.__YANTA_DEBUG__.domReady = Date.now();
-      console.log('[HTML] DOM Content Loaded at', new Date().toISOString());
     });
 
     // Capture all errors
     window.addEventListener('error', function (event) {
-      window.__YANTA_DEBUG__.errors.push({
+      boundedPush(window.__YANTA_DEBUG__.errors, {
         message: event.message,
         filename: event.filename,
         lineno: event.lineno,
