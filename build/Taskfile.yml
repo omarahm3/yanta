@@ -202,14 +202,20 @@ tasks:
       DEV_PORT: '{{.WAILS_VITE_PORT | default "34115"}}'
     env:
       # Cross-platform: env: directive properly passes environment variable to npm
-      WAILS_VITE_PORT: '{{.DEV_PORT}}'
+      WAILS_VITE_PORT: "{{.DEV_PORT}}"
     cmds:
       # Log the port being used
       - task: common:log:info
         vars:
           MSG: "Starting frontend dev server on port {{.DEV_PORT}}..."
-      # Cross-platform: npm run dev works natively on all platforms
-      - npm run dev
+      # Windows: treat Ctrl+C (0xC000013A) as graceful shutdown in dev mode
+      # Unix: default npm run dev behavior
+      - |
+        {{if eq OS "windows"}}
+        powershell -NoProfile -Command "npm run dev; $code = $LASTEXITCODE; if ($code -eq -1073741510 -or $code -eq 3221225786) { exit 0 }; exit $code"
+        {{else}}
+        npm run dev
+        {{end}}
 
   # ============================================================================
   # Go Build (Core Build Logic)
@@ -235,16 +241,16 @@ tasks:
       GO_CACHE_DIR: '{{.GO_CACHE_DIR | default ".gocache"}}'
     env:
       # Pass build parameters to PowerShell script via environment variables
-      BUILD_TARGET: '{{.TARGET}}'
-      BUILD_DEBUG: '{{.DEBUG}}'
-      APP_NAME: '{{.APP_NAME}}'
-      BIN_DIR: '{{.BIN_DIR}}'
-      GO_CACHE_DIR: '{{.GO_CACHE_DIR}}'
+      BUILD_TARGET: "{{.TARGET}}"
+      BUILD_DEBUG: "{{.DEBUG}}"
+      APP_NAME: "{{.APP_NAME}}"
+      BIN_DIR: "{{.BIN_DIR}}"
+      GO_CACHE_DIR: "{{.GO_CACHE_DIR}}"
     cmds:
       # Ensure bin directory exists (cross-platform)
       - task: common:dir:ensure
         vars:
-          DIR: '{{.BIN_DIR}}'
+          DIR: "{{.BIN_DIR}}"
       # Log build start
       - task: common:log:info
         vars:

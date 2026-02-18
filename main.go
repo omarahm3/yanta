@@ -189,13 +189,22 @@ func run() {
 		a.Shutdown()
 	})
 
+	isQuitting := false
 	mainWindow.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
 		logger.Debug("WindowClosing event fired")
+		if isQuitting {
+			logger.Debug("quit already in progress, allowing close")
+			return
+		}
+
 		if a.BeforeClose() {
 			logger.Debug("Window close prevented, hiding to background")
 			e.Cancel()
 		} else {
-			logger.Debug("Window close allowed, application will exit")
+			logger.Debug("Window close allowed, requesting application quit")
+			e.Cancel()
+			isQuitting = true
+			wailsApp.Quit()
 		}
 	})
 
