@@ -50,7 +50,7 @@ vi.mock("../document/hooks/useDocumentController", () => ({
 				capture: true,
 			},
 			{
-				key: "mod+C",
+				key: "mod+shift+C",
 				description: "Unfocus editor",
 				handler: () => mockHandleUnfocus(),
 				allowInInput: true,
@@ -156,13 +156,15 @@ describe("Document hotkeys", () => {
 		expect(mockHandleEscape).toHaveBeenCalledTimes(1);
 	});
 
-	it("handles mod+C to unfocus editor", () => {
+	it("handles mod+shift+C to unfocus editor", () => {
 		render(<Document onNavigate={vi.fn()} initialTitle="Sample" />);
 
-		const hotkey = capturedHotkeys.find((h) => h.key === "mod+C");
+		const hotkey = capturedHotkeys.find((h) => h.key === "mod+shift+C");
 		expect(hotkey).toBeDefined();
 
-		hotkey?.handler(new KeyboardEvent("keydown", { key: "c", ctrlKey: true, code: "KeyC" }));
+		hotkey?.handler(
+			new KeyboardEvent("keydown", { key: "c", ctrlKey: true, shiftKey: true, code: "KeyC" }),
+		);
 
 		expect(mockHandleUnfocus).toHaveBeenCalledTimes(1);
 	});
