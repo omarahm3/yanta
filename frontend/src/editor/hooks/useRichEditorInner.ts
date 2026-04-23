@@ -284,7 +284,23 @@ export function useRichEditorInner({
 	useEffect(() => {
 		if (!editor || !onChange) return;
 
+		// Tiptap/BlockNote can fire one final onChange during the editor's
+		// destroy phase (when <EditorInner key=...> remounts on doc switch).
+		// If we mutate the editor there, we queue a transaction against a
+		// torn-down view and Tiptap throws "view['posAtDOM']... not mounted yet".
+		// Guard against that: if the DOM is detached or the underlying editor
+		// is flagged destroyed, skip this onChange entirely.
+		const isEditorAlive = (): boolean => {
+			if (!editor.domElement?.isConnected) return false;
+			const tiptap = (editor as BlockNoteEditor & { _tiptapEditor?: { isDestroyed?: boolean } })
+				._tiptapEditor;
+			if (tiptap?.isDestroyed) return false;
+			return true;
+		};
+
 		const unsubscribe = editor.onChange(() => {
+			if (!isEditorAlive()) return;
+
 			const currentBlocks = editor.document;
 
 			let didModify = false;
@@ -294,6 +310,7 @@ export function useRichEditorInner({
 					const url = block.props.url as string;
 					if (url.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
 						convertedBlocksRef.current.add(block.id);
+						if (!isEditorAlive()) return;
 						editor.updateBlock(block.id, {
 							type: "image",
 							props: { url },
@@ -310,6 +327,7 @@ export function useRichEditorInner({
 				(firstBlock.props as { level?: number })?.level !== 1;
 
 			if (needsH1) {
+				if (!isEditorAlive()) return;
 				editor.insertBlocks(
 					[{ type: "heading", props: { level: 1 }, content: [] }],
 					currentBlocks[0],
