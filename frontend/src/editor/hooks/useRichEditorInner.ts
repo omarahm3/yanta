@@ -27,6 +27,7 @@ import {
 	useEditorStyleSpecs,
 	useEditorTipTapExtensions,
 } from "../extensions/registry/editorExtensionRegistry";
+import { CodeBlockFenceOnEnter } from "../extensions/codeBlockFence";
 import { RTLExtension } from "../extensions/rtl";
 import { useBlockNoteMenuPosition } from "./useBlockNoteMenuPosition";
 import { usePlainTextClipboard } from "./usePlainTextClipboard";
@@ -123,6 +124,26 @@ export function useRichEditorInner({
 			createExtension({
 				key: "rtl",
 				tiptapExtensions: [RTLExtension],
+			}),
+			createExtension({
+				key: "codeBlockFenceOnEnter",
+				tiptapExtensions: [
+					// Typing ``` + Enter (optionally ```lang + Enter) converts the
+					// paragraph into a code block. BlockNote's built-in input rule
+					// only fires on space/tab, so Enter was doing nothing — this
+					// restores the standard Markdown / Notion behavior users expect.
+					CodeBlockFenceOnEnter.configure({
+						defaultLanguage: codeBlockOptions.defaultLanguage ?? "text",
+						resolveLanguage: (name: string): string => {
+							const supported = codeBlockOptions.supportedLanguages ?? {};
+							for (const [id, lang] of Object.entries(supported)) {
+								const aliases = (lang as { aliases?: string[] }).aliases ?? [];
+								if (id === name || aliases.includes(name)) return id;
+							}
+							return name;
+						},
+					}),
+				],
 			}),
 			...(pluginTipTapAggregateExtension ? [pluginTipTapAggregateExtension] : []),
 			...effectivePluginExtensions,
