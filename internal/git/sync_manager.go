@@ -3,6 +3,7 @@ package git
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -233,16 +234,44 @@ func (sm *SyncManager) performSync(reasons []string) {
 	}).Info("auto-sync: committed successfully")
 
 	if gitCfg.AutoPush && hasRemote {
-		logger.Debug("auto-sync: pushing to remote")
-		if err := sm.gitService.Push(ctx, dataDir, "origin", branch); err != nil {
-			logger.WithField("error", err).Warn("auto-sync: push failed (commit was successful locally)")
-		} else {
-			logger.WithFields(map[string]any{
-				"time":   time.Now().Format("15:04:05"),
-				"branch": branch,
-			}).Info("auto-sync: pushed to remote successfully")
-		}
+		sm.pushWithRebaseRetry(ctx, dataDir, branch)
 	}
+}
+
+// pushWithRebaseRetry pushes and, if the remote is ahead (non-fast-forward),
+// runs `git pull --rebase` and retries the push exactly once. Conflicts during
+// rebase are surfaced and the rebase is aborted so the user can resolve manually.
+func (sm *SyncManager) pushWithRebaseRetry(ctx context.Context, dataDir, branch string) {
+	logger.Debug("auto-sync: pushing to remote")
+	err := sm.gitService.Push(ctx, dataDir, "origin", branch)
+	if err == nil {
+		logger.WithFields(map[string]any{
+			"time":   time.Now().Format("15:04:05"),
+			"branch": branch,
+		}).Info("auto-sync: pushed to remote successfully")
+		return
+	}
+
+	if !errors.Is(err, ErrNonFastForward) {
+		logger.WithField("error", err).Warn("auto-sync: push failed (commit was successful locally)")
+		return
+	}
+
+	logger.WithField("branch", branch).Info("auto-sync: push rejected (remote ahead); attempting pull --rebase")
+	if rebaseErr := sm.gitService.PullRebase(ctx, dataDir, "origin", branch); rebaseErr != nil {
+		logger.WithField("error", rebaseErr).Warn("auto-sync: pull --rebase failed; push not retried (local commit intact)")
+		return
+	}
+
+	logger.Debug("auto-sync: rebase succeeded; retrying push")
+	if err := sm.gitService.Push(ctx, dataDir, "origin", branch); err != nil {
+		logger.WithField("error", err).Warn("auto-sync: push failed after rebase (commit was successful locally)")
+		return
+	}
+	logger.WithFields(map[string]any{
+		"time":   time.Now().Format("15:04:05"),
+		"branch": branch,
+	}).Info("auto-sync: pushed to remote successfully (after rebase)")
 }
 
 func (sm *SyncManager) buildCommitMessage(reasons []string) string {

@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,6 +12,83 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestIsNonFastForwardOutput(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want bool
+	}{
+		{"explicit non-fast-forward", "! [rejected] master -> master (non-fast-forward)", true},
+		{"fetch first hint", "hint: Updates were rejected because the remote contains work that you do not have locally.\nhint: (e.g. fetch first)", true},
+		{"tip behind", "! [rejected] master -> master\nhint: Updates were rejected because the tip of your current branch is behind", true},
+		{"auth failure", "remote: Permission to repo denied", false},
+		{"timeout style", "fatal: unable to access 'https://...'", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, isNonFastForwardOutput(tc.in))
+		})
+	}
+}
+
+func TestPushNonFastForward(t *testing.T) {
+	skipIfNoGit(t)
+
+	ctx := context.Background()
+	service := NewService()
+
+	// Set up a bare "remote"
+	remoteDir := t.TempDir()
+	bareCmd := exec.CommandContext(ctx, "git", "init", "--bare", remoteDir)
+	require.NoError(t, bareCmd.Run())
+
+	// Clone A: commits and pushes to create an initial branch on the remote
+	cloneA := t.TempDir()
+	require.NoError(t, service.Init(ctx, cloneA))
+	require.NoError(t, runGit(ctx, cloneA, "config", "user.email", "a@example.com"))
+	require.NoError(t, runGit(ctx, cloneA, "config", "user.name", "A"))
+	require.NoError(t, service.SetRemote(ctx, cloneA, "origin", remoteDir))
+	require.NoError(t, os.WriteFile(filepath.Join(cloneA, "a.txt"), []byte("a"), 0o644))
+	require.NoError(t, service.AddAll(ctx, cloneA))
+	require.NoError(t, service.Commit(ctx, cloneA, "first"))
+	branch, err := service.GetCurrentBranch(ctx, cloneA)
+	require.NoError(t, err)
+	require.NoError(t, service.Push(ctx, cloneA, "origin", branch))
+
+	// Clone B: clones the remote, commits locally
+	cloneB := t.TempDir()
+	require.NoError(t, runGit(ctx, "", "clone", remoteDir, cloneB))
+	require.NoError(t, runGit(ctx, cloneB, "config", "user.email", "b@example.com"))
+	require.NoError(t, runGit(ctx, cloneB, "config", "user.name", "B"))
+	require.NoError(t, os.WriteFile(filepath.Join(cloneB, "b.txt"), []byte("b"), 0o644))
+	require.NoError(t, service.AddAll(ctx, cloneB))
+	require.NoError(t, service.Commit(ctx, cloneB, "from B"))
+	require.NoError(t, service.Push(ctx, cloneB, "origin", branch))
+
+	// A commits locally *without* fetching B's changes, then tries to push.
+	require.NoError(t, os.WriteFile(filepath.Join(cloneA, "a2.txt"), []byte("a2"), 0o644))
+	require.NoError(t, service.AddAll(ctx, cloneA))
+	require.NoError(t, service.Commit(ctx, cloneA, "second on A"))
+
+	pushErr := service.Push(ctx, cloneA, "origin", branch)
+	require.Error(t, pushErr)
+	assert.True(t, errors.Is(pushErr, ErrNonFastForward), "expected ErrNonFastForward, got: %v", pushErr)
+
+	// PullRebase should succeed (no conflict — different files).
+	require.NoError(t, service.PullRebase(ctx, cloneA, "origin", branch))
+
+	// Retry push — should now succeed.
+	require.NoError(t, service.Push(ctx, cloneA, "origin", branch))
+}
+
+func runGit(ctx context.Context, dir string, args ...string) error {
+	cmd := exec.CommandContext(ctx, "git", args...)
+	if dir != "" {
+		cmd.Dir = dir
+	}
+	return cmd.Run()
+}
 
 func TestCheckInstalled(t *testing.T) {
 	service := NewService()

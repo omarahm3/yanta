@@ -235,6 +235,11 @@ func (s *Service) SetRemote(ctx context.Context, path, name, url string) error {
 	return nil
 }
 
+// ErrNonFastForward signals that `git push` was rejected because the remote
+// branch has diverged (remote is ahead). Callers can use errors.Is to detect
+// this and trigger a pull-rebase + retry.
+var ErrNonFastForward = fmt.Errorf("non-fast-forward: remote branch is ahead")
+
 func (s *Service) Push(ctx context.Context, path, remote, branch string) error {
 	s.ensureLFConfig(ctx, path)
 
@@ -252,10 +257,60 @@ func (s *Service) Push(ctx context.Context, path, remote, branch string) error {
 			return fmt.Errorf("git push timed out after 30s\n\nThis usually means:\n- Network connectivity issues\n- Authentication required (SSH key or credentials)\n- Remote repository is unreachable\n\nCheck your git configuration and network connection")
 		}
 		output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
+		if isNonFastForwardOutput(output) {
+			return fmt.Errorf("%w\n%s", ErrNonFastForward, boundOutput(output))
+		}
 		return fmt.Errorf("git push failed (exit status %d):\n%s", cmd.ProcessState.ExitCode(), boundOutput(output))
 	}
 
 	logger.Debugf("git push output:\n%s\n%s", stdout.String(), stderr.String())
+	return nil
+}
+
+func isNonFastForwardOutput(output string) bool {
+	return strings.Contains(output, "non-fast-forward") ||
+		strings.Contains(output, "fetch first") ||
+		(strings.Contains(output, "rejected") && strings.Contains(output, "tip of your current branch is behind"))
+}
+
+// PullRebase runs `git pull --rebase remote branch`. Returns a descriptive
+// error on conflicts or unrelated histories, leaving the rebase aborted on
+// conflicts so the working tree is restored.
+func (s *Service) PullRebase(ctx context.Context, path, remote, branch string) error {
+	if err := s.validateRepoPath(path); err != nil {
+		return fmt.Errorf("git pull --rebase: %w", err)
+	}
+	s.ensureLFConfig(ctx, path)
+
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
+	cmd := s.newGitCmd(ctx, path, "pull", "--rebase", remote, branch)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return fmt.Errorf("git pull --rebase timed out after 60s")
+		}
+		output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
+
+		if strings.Contains(output, "CONFLICT") || strings.Contains(output, "could not apply") {
+			// Abort rebase so the working tree is left clean for the user.
+			abortCtx, abortCancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer abortCancel()
+			abortCmd := s.newGitCmd(abortCtx, path, "rebase", "--abort")
+			_ = abortCmd.Run()
+			return fmt.Errorf("REBASE_CONFLICT:\nRebase conflicts detected. Rebase was aborted; your working tree is unchanged.\n\n%s\n\nResolve by pulling manually:\n1. 'git pull --rebase' in the data directory\n2. Edit conflicted files (look for <<<<<<<, =======, >>>>>>>)\n3. 'git add <file>' then 'git rebase --continue'", boundOutput(output))
+		}
+		if strings.Contains(output, "refusing to merge unrelated histories") {
+			return fmt.Errorf("UNRELATED_HISTORIES:\nRepositories have unrelated commit histories.\n\n%s", boundOutput(output))
+		}
+		return fmt.Errorf("git pull --rebase failed (exit status %d):\n%s", cmd.ProcessState.ExitCode(), boundOutput(output))
+	}
+
+	logger.Debugf("git pull --rebase output:\n%s", boundOutput(strings.TrimSpace(stdout.String()+"\n"+stderr.String())))
 	return nil
 }
 
@@ -763,6 +818,15 @@ func (s *Service) ensureLFConfig(ctx context.Context, path string) {
 		return
 	}
 
+	// Only touch config on an actual git repository. Otherwise `git config`
+	// fails with "fatal: not in a git directory" which spams the log on
+	// data-dir paths that haven't been initialized yet.
+	if isRepo, err := s.IsRepository(cleanPath); err != nil || !isRepo {
+		// Undo the LoadOrStore so we retry once the directory becomes a repo.
+		s.configuredRepos.Delete(cleanPath)
+		return
+	}
+
 	configs := [][2]string{
 		{"core.autocrlf", "false"},
 		{"core.eol", "lf"},
@@ -780,17 +844,33 @@ func (s *Service) setGitConfig(ctx context.Context, path, key, value string) err
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	cmd := s.newGitCmd(ctx, path, "config", key, value)
+	const maxAttempts = 3
+	var lastErr error
+	var lastStderr string
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		cmd := s.newGitCmd(ctx, path, "config", key, value)
+		var stderr bytes.Buffer
+		cmd.Stderr = &stderr
 
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
+		err := cmd.Run()
+		if err == nil {
+			return nil
+		}
 		if ctx.Err() == context.DeadlineExceeded {
 			return fmt.Errorf("git config %s timed out", key)
 		}
-		return fmt.Errorf("git config %s failed: %w: %s", key, err, strings.TrimSpace(stderr.String()))
+		lastErr = err
+		lastStderr = strings.TrimSpace(stderr.String())
+		// Another git process holds the config lock; back off and retry briefly.
+		if strings.Contains(lastStderr, "could not lock config file") {
+			select {
+			case <-ctx.Done():
+				return fmt.Errorf("git config %s cancelled while waiting for lock", key)
+			case <-time.After(time.Duration(50*(attempt+1)) * time.Millisecond):
+			}
+			continue
+		}
+		break
 	}
-
-	return nil
+	return fmt.Errorf("git config %s failed: %w: %s", key, lastErr, lastStderr)
 }
