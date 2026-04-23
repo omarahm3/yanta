@@ -7,8 +7,11 @@
 .bn-container {
 	background: transparent !important;
 	color: var(--color-text, #c9d1d9) !important;
-	overflow: hidden !important;
-	position: relative !important;
+	/* Do NOT set overflow: hidden here — BlockNote renders the table/row/block
+	   drag-handle popover menus inside .bn-container, and clipping them makes
+	   the menu text get cut off (see issues.md #14). The outer `.rich-editor`
+	   div already handles scrolling. Also avoid `position: relative` so this
+	   element does not become the containing block for the popover wrappers. */
 }
 
 .bn-editor {
@@ -106,6 +109,8 @@
 	padding-bottom: 40vh !important;
 }
 
-.rich-editor {
-	position: relative !important;
-}
+/* NB: previously `.rich-editor { position: relative !important }` — removed.
+   It made `.rich-editor` the containing block for BlockNote's popover
+   wrappers, which combined with `overflow-y-auto` (from Tailwind) clipped
+   the menus horizontally. Outer scroll is still provided by the Tailwind
+   class on the div; we no longer need to make this a positioned ancestor. */

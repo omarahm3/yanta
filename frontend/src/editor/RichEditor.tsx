@@ -11,6 +11,7 @@ import "../styles/blocknote-scale.css";
 import type { EditorSlashMenuItemContribution } from "./extensions/registry/editorExtensionRegistry";
 import "./extensions/rtl/rtl.css";
 import { useRichEditorInner } from "./hooks/useRichEditorInner";
+import { portalledShadCNComponents } from "./portalledShadCN";
 
 export interface RichEditorProps {
 	initialContent?: string;
@@ -132,7 +133,12 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 				className={cn("rich-editor flex-1 overflow-y-auto h-full", className)}
 				style={{ "--editor-scale": scale } as React.CSSProperties}
 			>
-				<BlockNoteView editor={editor} theme="dark" slashMenu={false}>
+				<BlockNoteView
+					editor={editor}
+					theme="dark"
+					slashMenu={false}
+					shadCNComponents={portalledShadCNComponents}
+				>
 					<PluginSlashMenu editor={editor} editable={editable} items={pluginSlashMenuItems} />
 				</BlockNoteView>
 			</div>
