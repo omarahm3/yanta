@@ -2,11 +2,13 @@
 package logger
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -14,6 +16,16 @@ import (
 	"yanta/internal/config"
 	"yanta/internal/paths"
 )
+
+// isTestBinary reports whether the current process is a `go test` run.
+// Used so test runs don't append errors to the user's real yanta.log.
+func isTestBinary() bool {
+	if flag.Lookup("test.v") != nil {
+		return true
+	}
+	exe := strings.ToLower(filepath.Base(os.Args[0]))
+	return strings.HasSuffix(exe, ".test") || strings.HasSuffix(exe, ".test.exe")
+}
 
 var (
 	Log     *logrus.Logger
@@ -54,6 +66,12 @@ func Init(config *Config) error {
 
 	if config == nil {
 		config = DefaultConfig()
+	}
+
+	// Under `go test`, never write to the user's real yanta.log. Tests can
+	// still opt in to a file target by passing YANTA_LOG_DIR explicitly.
+	if isTestBinary() && os.Getenv("YANTA_LOG_DIR") == "" && os.Getenv("YANTA_LOG_FILE") == "" {
+		config.LogFile = ""
 	}
 
 	Log = logrus.New()
@@ -97,7 +115,16 @@ func Init(config *Config) error {
 		writers = append(writers, logFile)
 	}
 
-	writers = append(writers, os.Stdout)
+	if isTestBinary() {
+		// In tests, keep logrus functional but silent by default so noisy
+		// expected-error log lines don't spam `go test` output or the user's
+		// real yanta.log. Tests that want visibility can set YANTA_LOG_DIR.
+		if len(writers) == 0 {
+			writers = append(writers, io.Discard)
+		}
+	} else {
+		writers = append(writers, os.Stdout)
+	}
 
 	Log.SetOutput(io.MultiWriter(writers...))
 	Log.WithFields(logrus.Fields{
