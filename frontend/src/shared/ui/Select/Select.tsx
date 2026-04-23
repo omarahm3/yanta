@@ -29,6 +29,16 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
 			ghost: "bg-transparent border-none shadow-none",
 		};
 
+		if (import.meta.env.DEV) {
+			const emptyValueOption = options.find((o) => o.value === "");
+			if (emptyValueOption) {
+				throw new Error(
+					`Select: option with empty-string value is not allowed (label="${emptyValueOption.label}"). ` +
+						"Radix reserves empty string to clear selection. Use a sentinel value (e.g. '__none__') and map to '' at the call site.",
+				);
+			}
+		}
+
 		return (
 			<ShadcnSelect value={value} onValueChange={onChange} disabled={disabled}>
 				<SelectTrigger ref={ref} className={cn("w-full", variantClasses[variant], className)}>
