@@ -216,7 +216,12 @@ export function useRecentDocuments(): UseRecentDocumentsReturn {
 					if (fetched.deletedAt) return null;
 					return { ...doc, title: fetched.title || doc.title };
 				} catch (err) {
-					BackendLogger.error("[useRecentDocuments] Error fetching document:", err);
+					const message = err instanceof Error ? err.message : String(err ?? "");
+					if (message.includes("document not found")) {
+						BackendLogger.info("[useRecentDocuments] dropping stale recent:", doc.path);
+					} else {
+						BackendLogger.error("[useRecentDocuments] Error fetching document:", err);
+					}
 					return null;
 				}
 			}),

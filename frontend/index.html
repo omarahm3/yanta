@@ -26,7 +26,24 @@
     });
 
     // Capture all errors
+    function isHarmlessLoadError(message, filename) {
+      if (!message) return false;
+      // Benign browser notification — same-frame layout readjustment.
+      if (message.indexOf('ResizeObserver loop completed with undelivered notifications') !== -1) return true;
+      if (message.indexOf('ResizeObserver loop limit exceeded') !== -1) return true;
+      // Wails serves /wails/custom.js from its runtime; when no custom.js is
+      // registered some builds return HTML, producing a one-shot SyntaxError.
+      if (filename && filename.indexOf('/wails/custom.js') !== -1 && message.indexOf('Unexpected token') !== -1) return true;
+      return false;
+    }
+
     window.addEventListener('error', function (event) {
+      if (isHarmlessLoadError(event.message, event.filename)) {
+        // Keep in the in-memory ring for debugging but do not console.error
+        // (which would forward to backend once logging is initialized).
+        event.stopImmediatePropagation();
+        return;
+      }
       boundedPush(window.__YANTA_DEBUG__.errors, {
         message: event.message,
         filename: event.filename,

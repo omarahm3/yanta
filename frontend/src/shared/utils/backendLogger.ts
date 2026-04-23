@@ -64,18 +64,47 @@ export function formatLogArgs(args: LogValue[]): {
 	data: Record<string, unknown>;
 } {
 	const rawMessage = args
-		.map((arg) => (typeof arg === "object" ? safeStringify(arg) : String(arg)))
+		.map((arg) => {
+			if (arg instanceof Error) return formatErrorForMessage(arg);
+			if (typeof arg === "object") return safeStringify(arg);
+			return String(arg);
+		})
 		.join(" ");
 	const message = clampString(rawMessage, MAX_MESSAGE_LENGTH);
 
 	const data: Record<string, unknown> = {};
+	let errorIndex = 0;
 	args.forEach((arg) => {
+		if (arg instanceof Error) {
+			const key = errorIndex === 0 ? "error" : `error_${errorIndex}`;
+			data[key] = serializeError(arg);
+			errorIndex += 1;
+			return;
+		}
 		if (typeof arg === "object" && arg !== null) {
 			Object.assign(data, arg);
 		}
 	});
 
 	return { message, data: sanitizeData(data) };
+}
+
+function serializeError(err: Error): Record<string, unknown> {
+	const out: Record<string, unknown> = {
+		name: err.name,
+		message: err.message,
+	};
+	if (err.stack) out.stack = err.stack;
+	const cause = (err as { cause?: unknown }).cause;
+	if (cause !== undefined) {
+		out.cause = cause instanceof Error ? serializeError(cause) : cause;
+	}
+	return out;
+}
+
+function formatErrorForMessage(err: Error): string {
+	const head = `${err.name || "Error"}: ${err.message || "(no message)"}`;
+	return err.stack ? `${head}\n${err.stack}` : head;
 }
 
 /** Sends pre-formatted message/data to backend. Call formatLogArgs once at call site to avoid duplicate work (js-cache-function-results). */
@@ -184,10 +213,16 @@ function clampString(value: string, maxLength: number): string {
 	return `${value.slice(0, maxLength)}...[truncated ${value.length - maxLength} chars]`;
 }
 
+const MAX_STACK_LENGTH = 2000;
+
 function sanitizeData(data: Record<string, unknown>): Record<string, unknown> {
 	const entries = Object.entries(data).slice(0, MAX_DATA_FIELDS);
 	const sanitized: Record<string, unknown> = {};
 	for (const [key, value] of entries) {
+		if ((key === "error" || key.startsWith("error_")) && isErrorShape(value)) {
+			sanitized[key] = sanitizeErrorShape(value as Record<string, unknown>);
+			continue;
+		}
 		sanitized[key] = sanitizeValue(value, 0);
 	}
 	const omitted = Object.keys(data).length - entries.length;
@@ -253,6 +288,27 @@ function isRateLimited(level: LogLevel, signature: string): boolean {
 	}
 	signatureLastSentAt.set(signature, now);
 	return false;
+}
+
+function isErrorShape(value: unknown): boolean {
+	return (
+		typeof value === "object" &&
+		value !== null &&
+		typeof (value as { message?: unknown }).message === "string"
+	);
+}
+
+function sanitizeErrorShape(value: Record<string, unknown>): Record<string, unknown> {
+	const out: Record<string, unknown> = {};
+	if (typeof value.name === "string") out.name = clampString(value.name, 200);
+	if (typeof value.message === "string") out.message = clampString(value.message, MAX_MESSAGE_LENGTH);
+	if (typeof value.stack === "string") out.stack = clampString(value.stack, MAX_STACK_LENGTH);
+	if (value.cause !== undefined) {
+		out.cause = isErrorShape(value.cause)
+			? sanitizeErrorShape(value.cause as Record<string, unknown>)
+			: sanitizeValue(value.cause, 0);
+	}
+	return out;
 }
 
 function safeStringify(value: unknown): string {
