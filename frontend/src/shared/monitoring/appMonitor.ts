@@ -186,11 +186,29 @@ function recordSample() {
 				return;
 			}
 			state.lastLargeHeapWarningAt = now;
+			const documentGetAvgMs =
+				state.documentGetCalls > 0
+					? Math.round((state.documentGetTotalDurationMs / state.documentGetCalls) * 100) / 100
+					: 0;
+			const domNodeCount =
+				typeof document !== "undefined" && document.getElementsByTagName
+					? document.getElementsByTagName("*").length
+					: null;
 			BackendLogger.warn("[AppMonitor] Large heap jump detected", {
 				prevHeapMb: toMb(prev.heapUsedBytes),
 				nextHeapMb: toMb(sample.heapUsedBytes),
 				deltaMb: Math.round(deltaMb * 10) / 10,
+				heapTotalMb: toMb(sample.heapTotalBytes),
+				heapLimitMb: toMb(sample.heapLimitBytes),
 				documentGetInFlight: sample.documentGetInFlight,
+				documentGetCalls: state.documentGetCalls,
+				documentGetAvgMs,
+				pendingBackendLogs: state.pendingBackendLogs,
+				inFlightSyncNow: state.inFlightCommands.syncNow,
+				inFlightGitPull: state.inFlightCommands.gitPull,
+				inFlightGitStatus: state.inFlightCommands.gitStatus,
+				lastGitCommandAt: state.lastGitCommandAt,
+				domNodeCount,
 				largeHeapJumpCount: state.largeHeapJumpCount,
 				snapshotLoggingSuppressed: state.suppressSnapshotLogs,
 			});
