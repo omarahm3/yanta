@@ -5,6 +5,7 @@ import { filterSuggestionItems } from "@blocknote/core/extensions";
 import { getDefaultReactSlashMenuItems, SuggestionMenuController } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/shadcn";
 import "@blocknote/shadcn/style.css";
+import { useResolvedTheme } from "../shared/stores/theme.store";
 import { cn } from "../shared/utils/cn";
 import "../styles/blocknote-dark.css";
 import "../styles/blocknote-scale.css";
@@ -99,6 +100,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 		},
 		ref,
 	) => {
+		const resolvedTheme = useResolvedTheme();
 		const { editor, isReady, scale, containerRefCallback, pluginSlashMenuItems } = useRichEditorInner(
 			{
 				blocks,
@@ -135,7 +137,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 			>
 				<BlockNoteView
 					editor={editor}
-					theme="dark"
+					theme={resolvedTheme}
 					slashMenu={false}
 					shadCNComponents={portalledShadCNComponents}
 				>

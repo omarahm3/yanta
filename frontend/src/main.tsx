@@ -10,6 +10,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { App, CrashBoundary } from "@/app";
 import { ReducedEffectsInit } from "@/shared/stores/appearance.store";
+import { ThemeInit } from "@/shared/stores/theme.store";
 import { HotkeyProvider } from "./hotkeys";
 import { QuickCapture } from "./quick-capture";
 import { ToastProvider } from "./shared/ui";
@@ -53,6 +54,7 @@ if (isQuickCapture) {
 			<CrashBoundary>
 				<ToastProvider>
 					<HotkeyProvider>
+						<ThemeInit />
 						<ReducedEffectsInit />
 						<QuickCapture />
 					</HotkeyProvider>

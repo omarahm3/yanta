@@ -1,6 +1,7 @@
 import React from "react";
 import type { LinuxGraphicsMode } from "@/config/preferences";
 import { useAppearanceStore } from "../shared/stores/appearance.store";
+import { type ThemeMode, useThemeStore } from "../shared/stores/theme.store";
 import { Label, Select, type SelectOption, SettingsSection, Toggle } from "../shared/ui";
 
 interface AppearanceSectionProps {
@@ -45,6 +46,14 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 		const isLinux = platform.includes("linux");
 		const reducedEffects = useAppearanceStore((s) => s.reducedEffects);
 		const setReducedEffects = useAppearanceStore((s) => s.setReducedEffects);
+		const theme = useThemeStore((s) => s.theme);
+		const setTheme = useThemeStore((s) => s.setTheme);
+
+		const themeOptions: SelectOption[] = [
+			{ value: "dark", label: "Dark" },
+			{ value: "light", label: "Light" },
+			{ value: "system", label: "System" },
+		];
 
 		const scaleOptions: SelectOption[] = [
 			{ value: "0.75", label: "Small (75%)" },
@@ -74,6 +83,18 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 			<div ref={ref}>
 				<SettingsSection title="Appearance" subtitle="Customize the look and feel of the application">
 					<div className="space-y-4">
+						<div className="space-y-2">
+							<Label variant="uppercase">Theme</Label>
+							<Select
+								value={theme}
+								onChange={(value) => setTheme(value as ThemeMode)}
+								options={themeOptions}
+							/>
+							<div className="text-xs text-text-dim">
+								Choose dark, light, or follow the operating system setting.
+							</div>
+						</div>
+
 						<div className="flex items-center justify-between">
 							<div>
 								<div className="text-sm text-text">Show Sidebar</div>
