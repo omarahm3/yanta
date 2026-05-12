@@ -93,6 +93,13 @@ export default defineConfig({
 	},
 
 	optimizeDeps: {
-		include: ["react", "react-dom", "@blocknote/react"],
+		include: [
+			"react",
+			"react-dom",
+			"@blocknote/react",
+			"@blocknote/core",
+			"@blocknote/shadcn",
+			"@blocknote/code-block",
+		],
 	},
 });
