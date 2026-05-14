@@ -1,2 +1,2 @@
-export { CodeBlockFenceOnEnter } from "./CodeBlockFenceOnEnter";
 export type { CodeBlockFenceOnEnterOptions } from "./CodeBlockFenceOnEnter";
+export { CodeBlockFenceOnEnter } from "./CodeBlockFenceOnEnter";

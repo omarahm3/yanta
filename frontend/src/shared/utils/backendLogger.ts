@@ -301,7 +301,8 @@ function isErrorShape(value: unknown): boolean {
 function sanitizeErrorShape(value: Record<string, unknown>): Record<string, unknown> {
 	const out: Record<string, unknown> = {};
 	if (typeof value.name === "string") out.name = clampString(value.name, 200);
-	if (typeof value.message === "string") out.message = clampString(value.message, MAX_MESSAGE_LENGTH);
+	if (typeof value.message === "string")
+		out.message = clampString(value.message, MAX_MESSAGE_LENGTH);
 	if (typeof value.stack === "string") out.stack = clampString(value.stack, MAX_STACK_LENGTH);
 	if (value.cause !== undefined) {
 		out.cause = isErrorShape(value.cause)

@@ -19,6 +19,7 @@ import { uploadFile } from "../../shared/utils/assetUpload";
 import { registerClipboardImagePlugin } from "../../shared/utils/clipboard";
 import { computeContentHash } from "../../shared/utils/contentHash";
 import { openExternalUrl } from "../../shared/utils/openExternalUrl";
+import { CodeBlockFenceOnEnter } from "../extensions/codeBlockFence";
 import {
 	useEditorBlockSpecs,
 	useEditorExtensions,
@@ -27,7 +28,6 @@ import {
 	useEditorStyleSpecs,
 	useEditorTipTapExtensions,
 } from "../extensions/registry/editorExtensionRegistry";
-import { CodeBlockFenceOnEnter } from "../extensions/codeBlockFence";
 import { RTLExtension } from "../extensions/rtl";
 import { useBlockNoteMenuPosition } from "./useBlockNoteMenuPosition";
 import { usePlainTextClipboard } from "./usePlainTextClipboard";
