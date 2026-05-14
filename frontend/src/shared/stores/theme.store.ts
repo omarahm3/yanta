@@ -1,72 +1,74 @@
 import { useEffect, useState } from "react";
 import { create } from "zustand";
-import type { PersistStorage } from "zustand/middleware";
-import { persist } from "zustand/middleware";
+import { getPreferencesOverrides, setPreferencesOverrides } from "../services/ConfigService";
 import { BackendLogger } from "../utils/backendLogger";
 
-const STORAGE_KEY = "yanta_theme";
+const CACHE_KEY = "yanta_theme_cache";
+const DEFAULT_THEME: ThemeMode = "system";
 
 export type ThemeMode = "dark" | "light" | "system";
 export type ResolvedTheme = "dark" | "light";
 
 interface ThemeState {
 	theme: ThemeMode;
-	setTheme: (value: ThemeMode) => void;
+	hydrated: boolean;
+	setTheme: (value: ThemeMode) => Promise<void>;
+	hydrate: () => Promise<void>;
 }
 
 function isThemeMode(v: unknown): v is ThemeMode {
 	return v === "dark" || v === "light" || v === "system";
 }
 
-function validateTheme(data: unknown): { theme: ThemeMode } | null {
-	if (typeof data !== "object" || data === null || Array.isArray(data)) return null;
-	const parsed = data as Record<string, unknown>;
-	if (!isThemeMode(parsed.theme)) return null;
-	return { theme: parsed.theme };
+function readCache(): ThemeMode {
+	try {
+		const raw = localStorage.getItem(CACHE_KEY);
+		if (raw && isThemeMode(raw)) return raw;
+	} catch (err) {
+		BackendLogger.error("[theme.store] cache read failed:", err);
+	}
+	return DEFAULT_THEME;
 }
 
-const themeStorage: PersistStorage<{ theme: ThemeMode }> = {
-	getItem: (name) => {
-		try {
-			const raw = localStorage.getItem(name);
-			if (!raw) return null;
-			const parsed = JSON.parse(raw) as unknown;
-			const validated = validateTheme(parsed);
-			return validated !== null ? { state: validated } : null;
-		} catch (err) {
-			BackendLogger.error("[theme.store] Failed to load:", err);
-			return null;
-		}
-	},
-	setItem: (name, value) => {
-		try {
-			localStorage.setItem(name, JSON.stringify(value.state));
-		} catch (err) {
-			BackendLogger.error("[theme.store] Failed to save:", err);
-		}
-	},
-	removeItem: (name) => {
-		try {
-			localStorage.removeItem(name);
-		} catch (err) {
-			BackendLogger.error("[theme.store] Failed to clear:", err);
-		}
-	},
-};
+function writeCache(value: ThemeMode): void {
+	try {
+		localStorage.setItem(CACHE_KEY, value);
+	} catch (err) {
+		BackendLogger.error("[theme.store] cache write failed:", err);
+	}
+}
 
-export const useThemeStore = create<ThemeState>()(
-	persist(
-		(set) => ({
-			theme: "dark",
-			setTheme: (value) => set({ theme: value }),
-		}),
-		{
-			name: STORAGE_KEY,
-			storage: themeStorage,
-			partialize: (s) => ({ theme: s.theme }),
-		},
-	),
-);
+export const useThemeStore = create<ThemeState>()((set, get) => ({
+	theme: readCache(),
+	hydrated: false,
+	setTheme: async (value) => {
+		const prev = get().theme;
+		set({ theme: value });
+		writeCache(value);
+		try {
+			const current = await getPreferencesOverrides();
+			await setPreferencesOverrides({
+				...current,
+				appearance: { ...current.appearance, theme: value },
+			});
+		} catch (err) {
+			BackendLogger.error("[theme.store] persist failed, reverting:", err);
+			set({ theme: prev });
+			writeCache(prev);
+		}
+	},
+	hydrate: async () => {
+		try {
+			const prefs = await getPreferencesOverrides();
+			const fromConfig = prefs.appearance?.theme ?? DEFAULT_THEME;
+			set({ theme: fromConfig, hydrated: true });
+			writeCache(fromConfig);
+		} catch (err) {
+			BackendLogger.error("[theme.store] hydrate failed:", err);
+			set({ hydrated: true });
+		}
+	},
+}));
 
 export function useTheme(): ThemeMode {
 	return useThemeStore((s) => s.theme);
@@ -97,12 +99,14 @@ export function useResolvedTheme(): ResolvedTheme {
 	return resolved;
 }
 
-/**
- * Sets data-theme on document.documentElement based on theme store.
- * Resolves "system" via prefers-color-scheme and reacts to OS changes.
- */
 export function ThemeInit() {
 	const mode = useTheme();
+	const hydrate = useThemeStore((s) => s.hydrate);
+	const hydrated = useThemeStore((s) => s.hydrated);
+
+	useEffect(() => {
+		if (!hydrated) void hydrate();
+	}, [hydrated, hydrate]);
 
 	useEffect(() => {
 		const apply = () => {

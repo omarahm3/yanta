@@ -74,6 +74,10 @@ type PreferencesGraphicsOverrides struct {
 	LinuxMode string `toml:"linux_mode"`
 }
 
+type PreferencesAppearanceOverrides struct {
+	Theme string `toml:"theme"` // "dark", "light", "system" (empty = default)
+}
+
 // PreferencesPluginConfig holds key-value overrides for a single plugin.
 // Schema validation is done on the frontend; backend stores and passes through.
 type PreferencesPluginConfig map[string]any
@@ -81,11 +85,12 @@ type PreferencesPluginConfig map[string]any
 // PreferencesOverrides holds user-configurable overrides for shortcuts, timeouts, layout, and plugins.
 // Stored in config.toml under [preferences]. Plugin config under [preferences.plugins.<plugin-id>].
 type PreferencesOverrides struct {
-	Timeouts  PreferencesTimeoutsOverrides       `toml:"timeouts"`
-	Shortcuts PreferencesShortcutsOverrides      `toml:"shortcuts"`
-	Layout    PreferencesLayoutOverrides         `toml:"layout"`
-	Graphics  PreferencesGraphicsOverrides       `toml:"graphics"`
-	Plugins   map[string]PreferencesPluginConfig `toml:"plugins"`
+	Timeouts   PreferencesTimeoutsOverrides       `toml:"timeouts"`
+	Shortcuts  PreferencesShortcutsOverrides      `toml:"shortcuts"`
+	Layout     PreferencesLayoutOverrides         `toml:"layout"`
+	Graphics   PreferencesGraphicsOverrides       `toml:"graphics"`
+	Appearance PreferencesAppearanceOverrides     `toml:"appearance"`
+	Plugins    map[string]PreferencesPluginConfig `toml:"plugins"`
 }
 
 type Config struct {
@@ -113,6 +118,10 @@ const (
 	LinuxGraphicsModeNative   = "native"
 	LinuxGraphicsModeCompat   = "compat"
 	LinuxGraphicsModeSoftware = "software"
+
+	ThemeDark   = "dark"
+	ThemeLight  = "light"
+	ThemeSystem = "system"
 )
 
 var (
@@ -662,5 +671,25 @@ func validatePreferencesOverrides(overrides PreferencesOverrides) PreferencesOve
 		}
 	}
 
+	// Appearance: theme enum
+	if validated.Appearance.Theme != "" {
+		switch validated.Appearance.Theme {
+		case ThemeDark, ThemeLight, ThemeSystem:
+			// valid
+		default:
+			logrus.Warnf("preferences.appearance.theme %q is invalid, using default", validated.Appearance.Theme)
+			validated.Appearance.Theme = ""
+		}
+	}
+
 	return validated
+}
+
+// GetTheme returns the configured theme, falling back to "system" if unset.
+func GetTheme() string {
+	theme := GetPreferencesOverrides().Appearance.Theme
+	if theme == "" {
+		return ThemeSystem
+	}
+	return theme
 }
