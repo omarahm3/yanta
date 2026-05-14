@@ -41,8 +41,8 @@ type FeatureFlags struct {
 	Plugins      bool `toml:"plugins"`
 }
 
-// PreferencesOverrides holds user-configurable overrides for shortcuts, timeouts, and layout.
-// Stored in config.toml under [preferences]. Only non-zero/non-empty values are applied.
+// PreferencesTimeoutsOverrides holds user-configurable timeout/debounce overrides.
+// Stored in config.toml under [preferences.timeouts]. Only non-zero values are applied.
 type PreferencesTimeoutsOverrides struct {
 	AutoSaveDebounceMs        int `toml:"auto_save_debounce_ms"`
 	TooltipHoverDelay         int `toml:"tooltip_hover_delay"`
