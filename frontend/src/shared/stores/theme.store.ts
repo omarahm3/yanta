@@ -38,12 +38,17 @@ function writeCache(value: ThemeMode): void {
 	}
 }
 
+// Monotonic counter to detect stale async results from interleaved
+// setTheme/hydrate calls; a later op invalidates earlier in-flight ones.
+let opSeq = 0;
+
 export const useThemeStore = create<ThemeState>()((set, get) => ({
 	theme: readCache(),
 	hydrated: false,
 	setTheme: async (value) => {
+		const op = ++opSeq;
 		const prev = get().theme;
-		set({ theme: value });
+		set({ theme: value, hydrated: true });
 		writeCache(value);
 		try {
 			const current = await getPreferencesOverrides();
@@ -52,18 +57,25 @@ export const useThemeStore = create<ThemeState>()((set, get) => ({
 				appearance: { ...current.appearance, theme: value },
 			});
 		} catch (err) {
+			if (op !== opSeq) {
+				BackendLogger.error("[theme.store] stale setTheme rollback dropped:", err);
+				return;
+			}
 			BackendLogger.error("[theme.store] persist failed, reverting:", err);
 			set({ theme: prev });
 			writeCache(prev);
 		}
 	},
 	hydrate: async () => {
+		const op = ++opSeq;
 		try {
 			const prefs = await getPreferencesOverrides();
+			if (op !== opSeq) return;
 			const fromConfig = prefs.appearance?.theme ?? DEFAULT_THEME;
 			set({ theme: fromConfig, hydrated: true });
 			writeCache(fromConfig);
 		} catch (err) {
+			if (op !== opSeq) return;
 			BackendLogger.error("[theme.store] hydrate failed:", err);
 			set({ hydrated: true });
 		}

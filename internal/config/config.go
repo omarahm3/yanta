@@ -685,11 +685,13 @@ func validatePreferencesOverrides(overrides PreferencesOverrides) PreferencesOve
 	return validated
 }
 
-// GetTheme returns the configured theme, falling back to "system" if unset.
+// GetTheme returns the configured theme, falling back to "system" if unset or invalid.
 func GetTheme() string {
 	theme := GetPreferencesOverrides().Appearance.Theme
-	if theme == "" {
+	switch theme {
+	case ThemeDark, ThemeLight, ThemeSystem:
+		return theme
+	default:
 		return ThemeSystem
 	}
-	return theme
 }
