@@ -36,22 +36,6 @@ if (typeof window !== "undefined") {
 
 enableBackendLogging();
 
-// Apply cached theme before React mount to avoid FOUC. Config-backed value
-// hydrates inside ThemeInit and overwrites the cache.
-try {
-	const cached = localStorage.getItem("yanta_theme_cache");
-	const mode = cached === "dark" || cached === "light" || cached === "system" ? cached : "system";
-	const resolved =
-		mode === "system"
-			? window.matchMedia?.("(prefers-color-scheme: light)").matches
-				? "light"
-				: "dark"
-			: mode;
-	document.documentElement.setAttribute("data-theme", resolved);
-} catch {
-	// ignore — ThemeInit will set the attribute once mounted
-}
-
 const container = document.getElementById("root");
 
 if (!container) {

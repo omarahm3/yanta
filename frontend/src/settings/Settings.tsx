@@ -7,6 +7,7 @@ import {
 	parseDisplayKeyToConfigKey,
 } from "@/config/shortcuts";
 import { useMergedConfig, usePreferencesOverrides } from "@/config/usePreferencesOverrides";
+import { type ThemeMode, useTheme } from "../shared/stores/theme.store";
 import type { PageName } from "../shared/types";
 import { ConfirmDialog, MigrationConflictDialog, type Shortcut } from "../shared/ui";
 import { AboutSection } from "./AboutSection";
@@ -109,6 +110,14 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		[setOverrides],
 	);
 
+	const theme = useTheme();
+	const handleThemeChange = useCallback(
+		async (value: ThemeMode) => {
+			await setOverrides({ appearance: { theme: value } });
+		},
+		[setOverrides],
+	);
+
 	return (
 		<Layout
 			sidebarSections={sidebarSections}
@@ -148,6 +157,8 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 							platform={controller.platform}
 							appScale={controller.appScale}
 							onAppScaleChange={controller.handlers.handleAppScaleChange}
+							theme={theme}
+							onThemeChange={handleThemeChange}
 							linuxGraphicsMode={mergedGraphics.linuxMode}
 							onLinuxGraphicsModeChange={handleLinuxGraphicsModeChange}
 							sidebarVisible={sidebarVisible}
