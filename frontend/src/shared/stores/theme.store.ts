@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { create } from "zustand";
 import { getPreferencesOverrides, setPreferencesOverrides } from "../services/ConfigService";
 import { BackendLogger } from "../utils/backendLogger";
@@ -11,6 +11,7 @@ export type ResolvedTheme = "dark" | "light";
 
 interface ThemeState {
 	theme: ThemeMode;
+	resolved: ResolvedTheme;
 	hydrated: boolean;
 	setTheme: (value: ThemeMode) => Promise<void>;
 	hydrate: () => Promise<void>;
@@ -38,17 +39,29 @@ function writeCache(value: ThemeMode): void {
 	}
 }
 
+function getSystemTheme(): ResolvedTheme {
+	if (typeof window === "undefined" || !window.matchMedia) return "dark";
+	return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
+
+export function resolveTheme(mode: ThemeMode): ResolvedTheme {
+	return mode === "system" ? getSystemTheme() : mode;
+}
+
 // Monotonic counter to detect stale async results from interleaved
 // setTheme/hydrate calls; a later op invalidates earlier in-flight ones.
 let opSeq = 0;
 
+const initialTheme = readCache();
+
 export const useThemeStore = create<ThemeState>()((set, get) => ({
-	theme: readCache(),
+	theme: initialTheme,
+	resolved: resolveTheme(initialTheme),
 	hydrated: false,
 	setTheme: async (value) => {
 		const op = ++opSeq;
 		const prev = get().theme;
-		set({ theme: value, hydrated: true });
+		set({ theme: value, resolved: resolveTheme(value), hydrated: true });
 		writeCache(value);
 		try {
 			const current = await getPreferencesOverrides();
@@ -62,7 +75,7 @@ export const useThemeStore = create<ThemeState>()((set, get) => ({
 				return;
 			}
 			BackendLogger.error("[theme.store] persist failed, reverting:", err);
-			set({ theme: prev });
+			set({ theme: prev, resolved: resolveTheme(prev) });
 			writeCache(prev);
 		}
 	},
@@ -72,7 +85,7 @@ export const useThemeStore = create<ThemeState>()((set, get) => ({
 			const prefs = await getPreferencesOverrides();
 			if (op !== opSeq) return;
 			const fromConfig = prefs.appearance?.theme ?? DEFAULT_THEME;
-			set({ theme: fromConfig, hydrated: true });
+			set({ theme: fromConfig, resolved: resolveTheme(fromConfig), hydrated: true });
 			writeCache(fromConfig);
 		} catch (err) {
 			if (op !== opSeq) return;
@@ -86,33 +99,13 @@ export function useTheme(): ThemeMode {
 	return useThemeStore((s) => s.theme);
 }
 
-function getSystemTheme(): ResolvedTheme {
-	if (typeof window === "undefined" || !window.matchMedia) return "dark";
-	return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
-}
-
-export function resolveTheme(mode: ThemeMode): ResolvedTheme {
-	return mode === "system" ? getSystemTheme() : mode;
-}
-
 export function useResolvedTheme(): ResolvedTheme {
-	const mode = useTheme();
-	const [resolved, setResolved] = useState<ResolvedTheme>(() => resolveTheme(mode));
-
-	useEffect(() => {
-		setResolved(resolveTheme(mode));
-		if (mode !== "system" || typeof window === "undefined" || !window.matchMedia) return;
-		const mql = window.matchMedia("(prefers-color-scheme: light)");
-		const onChange = () => setResolved(getSystemTheme());
-		mql.addEventListener("change", onChange);
-		return () => mql.removeEventListener("change", onChange);
-	}, [mode]);
-
-	return resolved;
+	return useThemeStore((s) => s.resolved);
 }
 
 export function ThemeInit() {
 	const mode = useTheme();
+	const resolved = useResolvedTheme();
 	const hydrate = useThemeStore((s) => s.hydrate);
 	const hydrated = useThemeStore((s) => s.hydrated);
 
@@ -121,15 +114,15 @@ export function ThemeInit() {
 	}, [hydrated, hydrate]);
 
 	useEffect(() => {
-		const apply = () => {
-			const resolved = resolveTheme(mode);
-			document.documentElement.setAttribute("data-theme", resolved);
-		};
-		apply();
+		document.documentElement.setAttribute("data-theme", resolved);
+	}, [resolved]);
 
-		if (mode !== "system") return;
+	useEffect(() => {
+		if (mode !== "system" || typeof window === "undefined" || !window.matchMedia) return;
 		const mql = window.matchMedia("(prefers-color-scheme: light)");
-		const onChange = () => apply();
+		const onChange = () => {
+			useThemeStore.setState({ resolved: getSystemTheme() });
+		};
 		mql.addEventListener("change", onChange);
 		return () => mql.removeEventListener("change", onChange);
 	}, [mode]);

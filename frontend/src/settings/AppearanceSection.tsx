@@ -4,6 +4,29 @@ import { useAppearanceStore } from "../shared/stores/appearance.store";
 import { type ThemeMode, useThemeStore } from "../shared/stores/theme.store";
 import { Label, Select, type SelectOption, SettingsSection, Toggle } from "../shared/ui";
 
+const THEME_OPTIONS: SelectOption[] = [
+	{ value: "dark", label: "Dark" },
+	{ value: "light", label: "Light" },
+	{ value: "system", label: "System" },
+];
+
+const SCALE_OPTIONS: SelectOption[] = [
+	{ value: "0.75", label: "Small (75%)" },
+	{ value: "0.85", label: "Medium-Small (85%)" },
+	{ value: "1.0", label: "Normal (100%)" },
+	{ value: "1.15", label: "Medium-Large (115%)" },
+	{ value: "1.25", label: "Large (125%)" },
+	{ value: "1.5", label: "Extra Large (150%)" },
+	{ value: "2.0", label: "Huge (200%)" },
+];
+
+const LINUX_GRAPHICS_OPTIONS: SelectOption[] = [
+	{ value: "auto", label: "Auto (native-first with fallback)" },
+	{ value: "native", label: "Native GPU rendering" },
+	{ value: "compat", label: "Compatibility mode" },
+	{ value: "software", label: "Software rendering only" },
+];
+
 interface AppearanceSectionProps {
 	platform?: string;
 	appScale: number;
@@ -49,35 +72,12 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 		const theme = useThemeStore((s) => s.theme);
 		const setTheme = useThemeStore((s) => s.setTheme);
 
-		const themeOptions: SelectOption[] = [
-			{ value: "dark", label: "Dark" },
-			{ value: "light", label: "Light" },
-			{ value: "system", label: "System" },
-		];
-
-		const scaleOptions: SelectOption[] = [
-			{ value: "0.75", label: "Small (75%)" },
-			{ value: "0.85", label: "Medium-Small (85%)" },
-			{ value: "1.0", label: "Normal (100%)" },
-			{ value: "1.15", label: "Medium-Large (115%)" },
-			{ value: "1.25", label: "Large (125%)" },
-			{ value: "1.5", label: "Extra Large (150%)" },
-			{ value: "2.0", label: "Huge (200%)" },
-		];
-
 		const formatScaleValue = (scale: number): string => {
-			const matchingOption = scaleOptions.find(
+			const matchingOption = SCALE_OPTIONS.find(
 				(opt) => Math.abs(parseFloat(opt.value) - scale) < 0.001,
 			);
 			return matchingOption ? matchingOption.value : scale.toString();
 		};
-
-		const linuxGraphicsOptions: SelectOption[] = [
-			{ value: "auto", label: "Auto (native-first with fallback)" },
-			{ value: "native", label: "Native GPU rendering" },
-			{ value: "compat", label: "Compatibility mode" },
-			{ value: "software", label: "Software rendering only" },
-		];
 
 		return (
 			<div ref={ref}>
@@ -88,7 +88,7 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 							<Select
 								value={theme}
 								onChange={(value) => setTheme(value as ThemeMode)}
-								options={themeOptions}
+								options={THEME_OPTIONS}
 							/>
 							<div className="text-xs text-text-dim">
 								Choose dark, light, or follow the operating system setting.
@@ -155,7 +155,7 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 							<Select
 								value={formatScaleValue(appScale)}
 								onChange={(value) => onAppScaleChange(parseFloat(value))}
-								options={scaleOptions}
+								options={SCALE_OPTIONS}
 							/>
 							<div className="text-xs text-text-dim">
 								Adjust the size of text and UI elements throughout the app. Current scale:{" "}
@@ -169,7 +169,7 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 								<Select
 									value={linuxGraphicsMode}
 									onChange={(value) => onLinuxGraphicsModeChange(value as LinuxGraphicsMode)}
-									options={linuxGraphicsOptions}
+									options={LINUX_GRAPHICS_OPTIONS}
 								/>
 								<div className="text-xs text-text-dim">
 									Controls GPU/compatibility behavior on Linux. Restart required after changes.
