@@ -17,7 +17,7 @@ license: "MIT"
 release: "1"
 
 contents:
-  - src: "./bin/"
+  - src: "./build/bin/"
     dst: "/usr/local/bin/"
   - src: "./build/appicon.png"
     dst: "/usr/share/icons/hicolor/128x128/apps/yanta.png"
