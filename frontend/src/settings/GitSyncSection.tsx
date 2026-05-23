@@ -233,8 +233,8 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 										<div>
 											<div className="mb-1 font-medium text-accent">Environment Override Active</div>
 											<div className="text-sm text-text-dim">
-												The <code className="px-1 py-0.5 bg-accent/20 rounded text-accent">YANTA_HOME</code> environment
-												variable is set to:
+												The <code className="px-1 py-0.5 bg-accent/20 rounded text-accent">YANTA_HOME</code>{" "}
+												environment variable is set to:
 											</div>
 											<div className="mt-1 text-xs font-mono text-text break-all">{dataDirEnvVar}</div>
 											<div className="mt-2 text-sm text-text-dim">
