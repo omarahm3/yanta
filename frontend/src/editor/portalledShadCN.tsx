@@ -13,18 +13,17 @@
  *
  * We pass this map to `<BlockNoteView shadCNComponents={...} />`.
  */
+
+import { ShadCNDefaultComponents } from "@blocknote/shadcn";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
-import { ShadCNDefaultComponents } from "@blocknote/shadcn";
 import type { ComponentProps } from "react";
 
 const DefaultDropdownMenuContent = ShadCNDefaultComponents.DropdownMenu.DropdownMenuContent;
 const DefaultDropdownMenuSubContent = ShadCNDefaultComponents.DropdownMenu.DropdownMenuSubContent;
 const DefaultPopoverContent = ShadCNDefaultComponents.Popover.PopoverContent;
 
-function PortalledDropdownMenuContent(
-	props: ComponentProps<typeof DefaultDropdownMenuContent>,
-) {
+function PortalledDropdownMenuContent(props: ComponentProps<typeof DefaultDropdownMenuContent>) {
 	return (
 		<DropdownMenuPrimitive.Portal>
 			<DefaultDropdownMenuContent {...props} />

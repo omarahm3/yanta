@@ -7,10 +7,10 @@
 @source "../../node_modules/@blocknote/shadcn";
 @custom-variant dark (&:is(.dark *));
 
-/* Dark-only app: ShadCN CSS variables mapped to GitHub-dark colors */
-:root {
+/* ShadCN CSS variables mapped to GitHub-dark colors (default) */
+:root,
+:root[data-theme="dark"] {
 	--radius: 0.625rem;
-	/* Map ShadCN semantic colors to GitHub-dark palette */
 	--background: #0d1117;
 	--foreground: #c9d1d9;
 	--card: #161b22;
@@ -43,6 +43,80 @@
 	--sidebar-accent-foreground: #c9d1d9;
 	--sidebar-border: #30363d;
 	--sidebar-ring: #8b949e;
+
+	/* GitHub-dark palette (referenced by @theme below + reduced-effects) */
+	--yanta-bg: #0d1117;
+	--yanta-bg-dark: #0a0e13;
+	--yanta-surface: #161b22;
+	--yanta-border: #30363d;
+	--yanta-text: #c9d1d9;
+	--yanta-text-dim: #8b949e;
+	--yanta-text-bright: #f0f6fc;
+	--yanta-accent: #58a6ff;
+	--yanta-green: #3fb950;
+	--yanta-yellow: #d29922;
+	--yanta-purple: #a371f7;
+	--yanta-orange: #fb8500;
+	--yanta-red: #f85149;
+	--yanta-glass-bg: rgba(22, 27, 34, 0.7);
+	--yanta-glass-border: rgba(48, 54, 61, 0.5);
+	--yanta-glass-bg-solid: rgba(22, 27, 34, 0.97);
+	--yanta-glass-border-solid: rgba(48, 54, 61, 0.8);
+}
+
+/* GitHub-light palette */
+:root[data-theme="light"] {
+	--radius: 0.625rem;
+	--background: #ffffff;
+	--foreground: #1f2328;
+	--card: #f6f8fa;
+	--card-foreground: #1f2328;
+	--popover: #ffffff;
+	--popover-foreground: #1f2328;
+	--primary: #0969da;
+	--primary-foreground: #ffffff;
+	--secondary: #f6f8fa;
+	--secondary-foreground: #1f2328;
+	--muted: #f6f8fa;
+	--muted-foreground: #656d76;
+	--accent: #f6f8fa;
+	--accent-foreground: #1f2328;
+	--destructive: #cf222e;
+	--destructive-foreground: #ffffff;
+	--border: #d0d7de;
+	--input: rgba(208, 215, 222, 0.5);
+	--ring: #656d76;
+	--chart-1: #0969da;
+	--chart-2: #1a7f37;
+	--chart-3: #9a6700;
+	--chart-4: #8250df;
+	--chart-5: #bc4c00;
+	--sidebar: #f6f8fa;
+	--sidebar-foreground: #1f2328;
+	--sidebar-primary: #0969da;
+	--sidebar-primary-foreground: #ffffff;
+	--sidebar-accent: #f6f8fa;
+	--sidebar-accent-foreground: #1f2328;
+	--sidebar-border: #d0d7de;
+	--sidebar-ring: #656d76;
+
+	--yanta-bg: #ffffff;
+	--yanta-bg-dark: #f6f8fa;
+	--yanta-surface: #f6f8fa;
+	--yanta-border: #d0d7de;
+	--yanta-text: #1f2328;
+	--yanta-text-dim: #656d76;
+	--yanta-text-bright: #0a0c0d;
+	--yanta-accent: #0969da;
+	--yanta-green: #1a7f37;
+	--yanta-yellow: #9a6700;
+	--yanta-purple: #8250df;
+	--yanta-orange: #bc4c00;
+	--yanta-red: #cf222e;
+	--yanta-glass-bg: rgba(246, 248, 250, 0.7);
+	--yanta-glass-border: rgba(208, 215, 222, 0.5);
+	--yanta-glass-bg-solid: rgba(246, 248, 250, 0.97);
+	--yanta-glass-border-solid: rgba(208, 215, 222, 0.8);
 }
 
 /* Extending Tailwind theme with ShadCN utility classes */
@@ -85,23 +159,23 @@
 	--color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* GitHub-dark color palette (single source of truth) */
+/* Theme-aware palette (single source of truth; resolves to dark/light via :root vars) */
 @theme {
-	--color-bg: #0d1117;
-	--color-bg-dark: #0a0e13;
-	--color-surface: #161b22;
-	--color-border: #30363d;
-	--color-text: #c9d1d9;
-	--color-text-dim: #8b949e;
-	--color-text-bright: #f0f6fc;
-	--color-accent: #58a6ff;
-	--color-green: #3fb950;
-	--color-yellow: #d29922;
-	--color-purple: #a371f7;
-	--color-orange: #fb8500;
-	--color-red: #f85149;
-	--color-glass-bg: rgba(22, 27, 34, 0.7);
-	--color-glass-border: rgba(48, 54, 61, 0.5);
+	--color-bg: var(--yanta-bg);
+	--color-bg-dark: var(--yanta-bg-dark);
+	--color-surface: var(--yanta-surface);
+	--color-border: var(--yanta-border);
+	--color-text: var(--yanta-text);
+	--color-text-dim: var(--yanta-text-dim);
+	--color-text-bright: var(--yanta-text-bright);
+	--color-accent: var(--yanta-accent);
+	--color-green: var(--yanta-green);
+	--color-yellow: var(--yanta-yellow);
+	--color-purple: var(--yanta-purple);
+	--color-orange: var(--yanta-orange);
+	--color-red: var(--yanta-red);
+	--color-glass-bg: var(--yanta-glass-bg);
+	--color-glass-border: var(--yanta-glass-border);
 }
 
 /* Global styles for desktop app */
@@ -197,8 +271,8 @@
 	backdrop-filter: none !important;
 }
 [data-reduced-effects="true"] {
-	--color-glass-bg: rgba(22, 27, 34, 0.97);
-	--color-glass-border: rgba(48, 54, 61, 0.8);
+	--color-glass-bg: var(--yanta-glass-bg-solid);
+	--color-glass-border: var(--yanta-glass-border-solid);
 }
 [data-reduced-effects="true"] *,
 [data-reduced-effects="true"] *::before,

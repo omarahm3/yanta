@@ -36,6 +36,12 @@ export interface PreferencesGraphicsOverrides {
 	linuxMode?: LinuxGraphicsMode;
 }
 
+export type ThemeMode = "dark" | "light" | "system";
+
+export interface PreferencesAppearanceOverrides {
+	theme?: ThemeMode;
+}
+
 export interface PreferencesPluginOverrides {
 	[pluginId: string]: Record<string, unknown>;
 }
@@ -45,7 +51,12 @@ export interface PreferencesOverrides {
 	shortcuts?: PreferencesShortcutsOverrides;
 	layout?: PreferencesLayoutOverrides;
 	graphics?: PreferencesGraphicsOverrides;
+	appearance?: PreferencesAppearanceOverrides;
 	plugins?: PreferencesPluginOverrides;
+}
+
+function isThemeMode(v: unknown): v is ThemeMode {
+	return v === "dark" || v === "light" || v === "system";
 }
 
 /** Convert backend (PascalCase) model to frontend (camelCase) format. */
@@ -61,6 +72,7 @@ export function preferencesFromModel(model: {
 	Shortcuts?: Record<string, Record<string, string>>;
 	Layout?: { MaxPanes?: number };
 	Graphics?: { LinuxMode?: LinuxGraphicsMode };
+	Appearance?: { Theme?: string };
 	Plugins?: Record<string, Record<string, unknown>>;
 }): PreferencesOverrides {
 	const overrides: PreferencesOverrides = {};
@@ -103,6 +115,9 @@ export function preferencesFromModel(model: {
 	if (model.Graphics?.LinuxMode) {
 		overrides.graphics = { linuxMode: model.Graphics.LinuxMode };
 	}
+	if (model.Appearance?.Theme && isThemeMode(model.Appearance.Theme)) {
+		overrides.appearance = { theme: model.Appearance.Theme };
+	}
 	if (model.Plugins && typeof model.Plugins === "object" && Object.keys(model.Plugins).length > 0) {
 		overrides.plugins = model.Plugins as PreferencesPluginOverrides;
 	}
@@ -115,6 +130,7 @@ export function preferencesToModel(overrides: PreferencesOverrides): {
 	Shortcuts: Record<string, Record<string, string>>;
 	Layout: Record<string, number>;
 	Graphics: Record<string, LinuxGraphicsMode>;
+	Appearance: Record<string, ThemeMode>;
 	Plugins: Record<string, Record<string, unknown>>;
 } {
 	const model: {
@@ -122,12 +138,14 @@ export function preferencesToModel(overrides: PreferencesOverrides): {
 		Shortcuts: Record<string, Record<string, string>>;
 		Layout: Record<string, number>;
 		Graphics: Record<string, LinuxGraphicsMode>;
+		Appearance: Record<string, ThemeMode>;
 		Plugins: Record<string, Record<string, unknown>>;
 	} = {
 		Timeouts: {},
 		Shortcuts: {},
 		Layout: {},
 		Graphics: {},
+		Appearance: {},
 		Plugins: {},
 	};
 	if (overrides.timeouts) {
@@ -166,6 +184,9 @@ export function preferencesToModel(overrides: PreferencesOverrides): {
 	}
 	if (overrides.graphics?.linuxMode) {
 		model.Graphics.LinuxMode = overrides.graphics.linuxMode;
+	}
+	if (overrides.appearance?.theme) {
+		model.Appearance.Theme = overrides.appearance.theme;
 	}
 	if (
 		overrides.plugins &&

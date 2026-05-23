@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Name=YANTA
+Comment=Your Advanced Note Taking Application
+Exec=/usr/local/bin/yanta %u
+Terminal=false
+Type=Application
+Icon=yanta
+Categories=Utility;Office;
+StartupWMClass=yanta
+

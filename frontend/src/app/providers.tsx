@@ -6,6 +6,7 @@ import { MilestoneHintManager, WelcomeOverlay } from "../onboarding";
 import { PaneLayoutProvider } from "../pane";
 import { PluginBootstrap } from "../plugins";
 import { ReducedEffectsInit } from "../shared/stores/appearance.store";
+import { ThemeInit } from "../shared/stores/theme.store";
 import { ToastProvider } from "../shared/ui";
 import { AppMonitorInit } from "./AppMonitorInit";
 import { ResizeHandles, TitleBar } from "./components";
@@ -19,6 +20,7 @@ import { ScaleStoreInit } from "./ScaleStoreInit";
 export function AppProviders() {
 	return (
 		<ToastProvider>
+			<ThemeInit />
 			<ReducedEffectsInit />
 			<ScaleStoreInit />
 			<FeatureFlagsStoreInit />

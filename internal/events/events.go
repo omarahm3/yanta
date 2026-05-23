@@ -49,6 +49,10 @@ type ProjectChangedData struct {
 	Op string `json:"op"`
 }
 
+type ThemeChangedData struct {
+	Theme string `json:"theme"`
+}
+
 func init() {
 	application.RegisterEvent[EntryCreatedData](EntryCreated)
 	application.RegisterEvent[EntryUpdatedData](EntryUpdated)
@@ -56,12 +60,14 @@ func init() {
 	application.RegisterEvent[EntryRestoredData](EntryRestored)
 	application.RegisterEvent[EntryMovedData](EntryMoved)
 	application.RegisterEvent[ProjectChangedData](ProjectChanged)
+	application.RegisterEvent[ThemeChangedData](ThemeChanged)
 }
 
 const (
 	AppReady            = "yanta/app/ready"
 	ToastEvent          = "yanta/ui/toast"
 	WindowHidden        = "yanta/window/hidden"         // payload: {reason}
+	ThemeChanged        = "yanta/app/theme"            // payload: {theme: "dark"|"light"|"system"}
 	ProjectChanged      = "yanta/project/changed"       // payload: {id, op:'create|update|delete|restore'}
 	ProjectCreated      = "yanta/project/created"       // payload: {id, name, alias}
 	ProjectUpdated      = "yanta/project/updated"       // payload: {id, name, alias}
