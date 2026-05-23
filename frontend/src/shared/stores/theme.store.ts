@@ -1,3 +1,4 @@
+import { Events } from "@wailsio/runtime";
 import { useEffect, useSyncExternalStore } from "react";
 import { usePreferencesStore } from "./preferences.store";
 
@@ -47,16 +48,34 @@ export function useResolvedTheme(): ResolvedTheme {
 export function ThemeInit() {
 	const mode = useTheme();
 	useEffect(() => {
-		const apply = () => {
-			const r = resolveTheme(mode);
+		const apply = (m: ThemeMode) => {
+			const r = resolveTheme(m);
 			setResolved(r);
 			document.documentElement.setAttribute("data-theme", r);
 		};
-		apply();
-		if (mode !== "system" || typeof window === "undefined" || !window.matchMedia) return;
+		apply(mode);
+
+		// Listen to Go-emitted theme events for live updates
+		const unsubscribe = Events.On("yanta/app/theme", (ev) => {
+			const t = ev?.data?.theme;
+			if (t === "dark" || t === "light" || t === "system") {
+				apply(t as ThemeMode);
+			}
+		});
+
+		// matchMedia for system theme changes
+		if (mode !== "system" || typeof window === "undefined" || !window.matchMedia) {
+			return () => {
+				if (unsubscribe) unsubscribe();
+			};
+		}
 		const mql = window.matchMedia("(prefers-color-scheme: light)");
-		mql.addEventListener("change", apply);
-		return () => mql.removeEventListener("change", apply);
+		const onMqlChange = () => apply(mode);
+		mql.addEventListener("change", onMqlChange);
+		return () => {
+			if (unsubscribe) unsubscribe();
+			mql.removeEventListener("change", onMqlChange);
+		};
 	}, [mode]);
 	return null;
 }

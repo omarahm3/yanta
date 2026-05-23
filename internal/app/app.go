@@ -235,6 +235,10 @@ func (a *App) Startup(ctx context.Context) {
 		})
 	}
 
+	if a.Bindings != nil && a.Bindings.Config != nil {
+		a.Bindings.Config.EmitCurrentTheme()
+	}
+
 	if a.Bindings != nil {
 		a.Bindings.OnStartup()
 	}

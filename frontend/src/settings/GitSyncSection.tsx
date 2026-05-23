@@ -202,12 +202,12 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 				<SettingsSection title="Git Sync" subtitle="Sync your data with a Git repository">
 					<div className="space-y-4">
 						{!gitInstalled && (
-							<div className="p-4 border border-yellow-700 rounded bg-yellow-900/30">
+							<div className="p-4 border border-yellow/40 rounded bg-yellow/10">
 								<div className="flex items-start gap-2">
-									<AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
+									<AlertTriangle className="w-5 h-5 text-yellow shrink-0 mt-0.5" />
 									<div>
-										<div className="mb-1 font-medium text-yellow-400">Git Not Installed</div>
-										<div className="text-sm text-yellow-300">
+										<div className="mb-1 font-medium text-yellow">Git Not Installed</div>
+										<div className="text-sm text-text-dim">
 											Git is not found in your system PATH. Please install Git to enable sync functionality.
 										</div>
 									</div>
@@ -227,17 +227,17 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 							</div>
 
 							{dataDirOverridden && (
-								<div className="p-4 border border-blue-700 rounded bg-blue-900/30">
+								<div className="p-4 border border-accent/40 rounded bg-accent/10">
 									<div className="flex items-start gap-2">
-										<AlertTriangle className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+										<AlertTriangle className="w-5 h-5 text-accent shrink-0 mt-0.5" />
 										<div>
-											<div className="mb-1 font-medium text-blue-400">Environment Override Active</div>
-											<div className="text-sm text-blue-300">
-												The <code className="px-1 py-0.5 bg-blue-800/50 rounded">YANTA_HOME</code> environment
+											<div className="mb-1 font-medium text-accent">Environment Override Active</div>
+											<div className="text-sm text-text-dim">
+												The <code className="px-1 py-0.5 bg-accent/20 rounded text-accent">YANTA_HOME</code> environment
 												variable is set to:
 											</div>
-											<div className="mt-1 text-xs font-mono text-blue-200 break-all">{dataDirEnvVar}</div>
-											<div className="mt-2 text-sm text-blue-300">
+											<div className="mt-1 text-xs font-mono text-text break-all">{dataDirEnvVar}</div>
+											<div className="mt-2 text-sm text-text-dim">
 												Migration is disabled while this variable is set. Unset the environment variable and
 												restart YANTA to change the data directory.
 											</div>
