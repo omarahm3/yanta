@@ -16,7 +16,7 @@
 import { Extension } from "@tiptap/core";
 import { TextSelection } from "@tiptap/pm/state";
 
-const FENCE_RE = /^```([A-Za-z0-9_+#\-]*)$/;
+const FENCE_RE = /^```([A-Za-z0-9_+#-]*)$/;
 
 export interface CodeBlockFenceOnEnterOptions {
 	/** Resolve a user-typed language alias to a canonical language id. */
@@ -58,8 +58,8 @@ export const CodeBlockFenceOnEnter = Extension.create<CodeBlockFenceOnEnterOptio
 
 				const rawLang = match[1].trim();
 				const resolved = rawLang
-					? this.options.resolveLanguage?.(rawLang) ?? rawLang
-					: this.options.defaultLanguage ?? "text";
+					? (this.options.resolveLanguage?.(rawLang) ?? rawLang)
+					: (this.options.defaultLanguage ?? "text");
 
 				// Replace the whole paragraph with an empty codeBlock node.
 				const paragraphStart = $from.before($from.depth);

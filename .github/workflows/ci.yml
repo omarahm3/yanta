@@ -13,7 +13,7 @@ on:
 jobs:
   test-backend:
     name: Test Backend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
     - name: Checkout code
@@ -38,7 +38,9 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y \
           libgtk-3-dev \
+          libgtk-4-dev \
           libwebkit2gtk-4.1-dev \
+          libwebkitgtk-6.0-dev \
           build-essential \
           pkg-config
 
@@ -64,7 +66,7 @@ jobs:
 
   test-frontend:
     name: Test Frontend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
     - name: Checkout code
@@ -89,7 +91,9 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y \
           libgtk-3-dev \
+          libgtk-4-dev \
           libwebkit2gtk-4.1-dev \
+          libwebkitgtk-6.0-dev \
           build-essential \
           pkg-config
 
@@ -117,7 +121,7 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
     - name: Checkout code
@@ -142,7 +146,9 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y \
           libgtk-3-dev \
+          libgtk-4-dev \
           libwebkit2gtk-4.1-dev \
+          libwebkitgtk-6.0-dev \
           build-essential \
           pkg-config
 
@@ -178,7 +184,7 @@ jobs:
       matrix:
         include:
         - name: linux
-          os: ubuntu-latest
+          os: ubuntu-24.04
         - name: windows
           os: windows-latest
         - name: macos
@@ -211,7 +217,9 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y \
           libgtk-3-dev \
+          libgtk-4-dev \
           libwebkit2gtk-4.1-dev \
+          libwebkitgtk-6.0-dev \
           build-essential \
           pkg-config
 

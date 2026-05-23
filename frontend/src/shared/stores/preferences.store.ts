@@ -234,6 +234,7 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
 				shortcuts: Object.keys(mergedShortcuts).length > 0 ? mergedShortcuts : undefined,
 				layout: { ...existing.layout, ...newOverrides.layout },
 				graphics: { ...existing.graphics, ...newOverrides.graphics },
+				appearance: { ...existing.appearance, ...newOverrides.appearance },
 				plugins: Object.keys(mergedPlugins).length > 0 ? mergedPlugins : undefined,
 			};
 			await setPreferencesOverrides(merged);

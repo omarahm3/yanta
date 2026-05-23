@@ -141,6 +141,22 @@ func run() {
 	// Set app reference for Quick Capture window creation
 	quickcapture.SetApp(wailsApp)
 
+	initTheme := config.GetTheme()
+	bgColour := application.NewRGBA(27, 38, 54, 255)
+	macAppearance := application.NSAppearanceNameDarkAqua
+	customTheme := getWindowsCustomTheme()
+	winTheme := application.Dark
+
+	if initTheme == config.ThemeLight {
+		bgColour = application.NewRGBA(245, 245, 245, 255)
+		macAppearance = application.NSAppearanceNameAqua
+		customTheme = getLightWindowsTheme()
+		winTheme = application.Light
+	} else if initTheme == config.ThemeSystem {
+		macAppearance = ""
+		winTheme = application.SystemDefault
+	}
+
 	mainWindow := wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:            "YANTA",
 		Width:            windowcfg.DefaultWidth,
@@ -150,15 +166,15 @@ func run() {
 		Hidden:           startHidden,
 		Frameless:        frameless,
 		URL:              "/",
-		BackgroundColour: application.NewRGBA(27, 38, 54, 255),
+		BackgroundColour: bgColour,
 		Mac: application.MacWindow{
 			TitleBar:                application.MacTitleBarHiddenInset,
-			Appearance:              application.NSAppearanceNameDarkAqua,
+			Appearance:              macAppearance,
 			InvisibleTitleBarHeight: 50,
 		},
 		Windows: application.WindowsWindow{
-			Theme:        application.SystemDefault,
-			CustomTheme:  getWindowsCustomTheme(),
+			Theme:        winTheme,
+			CustomTheme:  customTheme,
 			BackdropType: application.Mica,
 		},
 		Linux: application.LinuxWindow{
@@ -168,6 +184,7 @@ func run() {
 	})
 
 	a.SetMainWindow(mainWindow)
+	config.InitWailsService(a.Bindings.Config, a.Bindings.EventBus, mainWindow)
 
 	wailsApp.Event.OnApplicationEvent(
 		events.Common.ApplicationStarted,
@@ -246,6 +263,21 @@ func getWindowsCustomTheme() application.ThemeSettings {
 			TitleTextColour: application.NewRGBPtr(140, 140, 140),
 			BorderColour:    application.NewRGBPtr(30, 40, 50),
 		},
+		LightModeActive: &application.WindowTheme{
+			TitleBarColour:  application.NewRGBPtr(245, 245, 245),
+			TitleTextColour: application.NewRGBPtr(30, 30, 30),
+			BorderColour:    application.NewRGBPtr(210, 210, 210),
+		},
+		LightModeInactive: &application.WindowTheme{
+			TitleBarColour:  application.NewRGBPtr(235, 235, 235),
+			TitleTextColour: application.NewRGBPtr(120, 120, 120),
+			BorderColour:    application.NewRGBPtr(230, 230, 230),
+		},
+	}
+}
+
+func getLightWindowsTheme() application.ThemeSettings {
+	return application.ThemeSettings{
 		LightModeActive: &application.WindowTheme{
 			TitleBarColour:  application.NewRGBPtr(245, 245, 245),
 			TitleTextColour: application.NewRGBPtr(30, 30, 30),
