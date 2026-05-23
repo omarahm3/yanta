@@ -1,13 +1,11 @@
 [Desktop Entry]
 Version=1.0
-Name=My Product
-Comment=My Product Description
-# The Exec line includes %u to pass the URL to the application
-Exec=/usr/local/bin/ %u
+Name=YANTA
+Comment=Your Advanced Note Taking Application
+Exec=/usr/local/bin/yanta %u
 Terminal=false
 Type=Application
-Icon=
-Categories=Utility;
-StartupWMClass=
+Icon=yanta
+Categories=Utility;Office;
+StartupWMClass=yanta
 
- 
