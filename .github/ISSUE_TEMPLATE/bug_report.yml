@@ -1,0 +1,48 @@
+name: Bug report
+description: Something is broken, slow, or risks a user's notes.
+labels: ["bug", "needs-goal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing. Every issue is tied to a product goal (G1–G5).
+        Pick the closest goal below — triage will swap `needs-goal` for the
+        matching `goal:*` label, or flag the issue for the CEO if it is unclear.
+  - type: dropdown
+    id: goal
+    attributes:
+      label: Goal
+      description: Which YANTA goal does this map to?
+      options:
+        - "G1 · Reliability & data-safety"
+        - "G2 · Onboarding & usability"
+        - "G3 · UI/UX polish"
+        - "G4 · Distribution & release"
+        - "G5 · Growth & maintenance"
+        - "Not sure — let triage decide"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: YANTA version / OS
+      placeholder: "v0.x.y — macOS 14 / Windows 11 / Linux"
+    validations:
+      required: false

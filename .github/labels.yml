@@ -1,0 +1,35 @@
+# YANTA GitHub issue labels — source of truth.
+#
+# Every issue must carry exactly one `goal:*` label. Goals trace directly to
+# YANTA's product strategy (G1–G5). See .github/TRIAGE.md for the triage rule.
+#
+# This file is authoritative: it is the recoverable, version-controlled record of
+# the label set. To (re)apply it to the GitHub repo, run:
+#
+#     scripts/sync-labels.sh
+#
+# Adding/renaming a goal? Edit here, update TRIAGE.md and the issue templates,
+# then re-run the sync script. The triage workflow keys off the `goal:` prefix,
+# so any label starting with `goal:` counts as a goal label.
+
+goals:
+  - name: "goal:G1-reliability"
+    color: "b60205"
+    description: "G1 · Reliability & data-safety — never corrupt or lose a note"
+  - name: "goal:G2-onboarding"
+    color: "d93f0b"
+    description: "G2 · Onboarding & usability — get users productive fast"
+  - name: "goal:G3-polish"
+    color: "8957e5"
+    description: "G3 · UI/UX polish — spacing, motion, theming, empty states"
+  - name: "goal:G4-distribution"
+    color: "1d76db"
+    description: "G4 · Distribution & release — packaging, signing, updates"
+  - name: "goal:G5-growth"
+    color: "0e8a16"
+    description: "G5 · Growth & maintenance — docs, infra, housekeeping"
+
+triage:
+  - name: "needs-goal"
+    color: "fbca04"
+    description: "Triage: no goal:* label yet — assign a goal or flag for CEO"
