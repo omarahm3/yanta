@@ -35,6 +35,7 @@ export { SettingsSection } from "./SettingsSection";
 export { type Shortcut, ShortcutsTable } from "./ShortcutsTable";
 export { Sidebar, type SidebarItem, type SidebarItemTooltip, type SidebarSection } from "./Sidebar";
 export { StatusBar } from "./StatusBar";
+export { StatusBarItem } from "./StatusBarItem";
 export { StatusMessage } from "./StatusMessage";
 export { Table, type TableColumn, type TableRow } from "./Table";
 export { type Tag, Tags } from "./Tags";

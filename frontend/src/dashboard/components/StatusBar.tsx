@@ -1,5 +1,6 @@
 import type React from "react";
 import { Button } from "../../shared/ui/Button";
+import { StatusBarItem } from "../../shared/ui/StatusBarItem";
 
 interface StatusBarProps {
 	totalEntries: number;
@@ -20,20 +21,29 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 	onExportSelectedMarkdown,
 	onExportSelectedPDF,
 }) => {
-	const entriesLabel = totalEntries === 1 ? "1 entry" : `${totalEntries} entries`;
 	const hasSelection = selectedCount > 0;
 	const selectionLabel =
 		selectedCount === 1 ? "1 document selected" : `${selectedCount} documents selected`;
+	const docTitle = `${totalEntries} ${totalEntries === 1 ? "document" : "documents"}${
+		showArchived ? " (archived view)" : ""
+	}`;
 
 	return (
-		<div className="flex w-full flex-wrap items-center gap-3 border-t border-glass-border bg-glass-bg/40 backdrop-blur-md px-4 py-2 text-xs text-text-dim font-sans">
-			<div className="flex items-center gap-3 whitespace-nowrap text-text">
-				<span>{entriesLabel}</span>
-				{showArchived && <span className="flex items-center gap-1 text-accent">[archived view]</span>}
+		<div className="flex w-full flex-wrap items-center gap-4 border-t border-glass-border bg-glass-bg/40 backdrop-blur-md px-4 py-2 text-xs font-sans">
+			<div className="flex items-center gap-3">
+				<StatusBarItem label="Docs" value={totalEntries} title={docTitle} primary />
+				{showArchived && (
+					<span
+						className="rounded-sm bg-accent/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-accent"
+						title="Showing archived documents"
+					>
+						Archived
+					</span>
+				)}
 			</div>
 			{hasSelection && (
 				<div className="flex flex-wrap items-center gap-2 text-text">
-					<span className="font-semibold">{selectionLabel}</span>
+					<span className="font-medium">{selectionLabel}</span>
 					{onClearSelection && (
 						<Button
 							variant="secondary"
@@ -66,10 +76,12 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 					)}
 				</div>
 			)}
-			<div className="ml-auto flex items-center gap-1 whitespace-nowrap">
-				<span>Context:</span>
-				<span className="text-text">{currentContext}</span>
-			</div>
+			<StatusBarItem
+				label="Project"
+				value={currentContext}
+				title={`Project: ${currentContext}`}
+				className="ml-auto"
+			/>
 		</div>
 	);
 };

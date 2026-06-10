@@ -4,6 +4,7 @@ import { GranularErrorBoundary, Layout } from "@/app";
 import { useHotkeys } from "../hotkeys";
 import type { NavigationState, PageName } from "../shared/types";
 import { ConfirmDialog } from "../shared/ui/ConfirmDialog";
+import { StatusBarItem } from "../shared/ui/StatusBarItem";
 import { cn } from "../shared/utils/cn";
 import { DatePicker } from "./DatePicker";
 import { JournalEntry } from "./JournalEntry";
@@ -228,19 +229,17 @@ const JournalStatusBar: React.FC<JournalStatusBarProps> = ({
 	onPromoteSelected,
 	onDeleteSelected,
 }) => {
-	const entriesLabel = totalEntries === 1 ? "1 entry" : `${totalEntries} entries`;
 	const hasSelection = selectedCount > 0;
 	const selectionLabel =
 		selectedCount === 1 ? "1 entry selected" : `${selectedCount} entries selected`;
+	const entriesTitle = `${totalEntries} ${totalEntries === 1 ? "entry" : "entries"}`;
 
 	return (
-		<div className="flex w-full flex-wrap items-center gap-3 border-t border-glass-border bg-glass-bg/80 backdrop-blur-md px-4 py-2 text-xs text-text-dim font-sans">
-			<div className="flex items-center gap-3 whitespace-nowrap text-text">
-				<span>{entriesLabel}</span>
-			</div>
+		<div className="flex w-full flex-wrap items-center gap-4 border-t border-glass-border bg-glass-bg/80 backdrop-blur-md px-4 py-2 text-xs font-sans">
+			<StatusBarItem label="Entries" value={totalEntries} title={entriesTitle} primary />
 			{hasSelection && (
 				<div className="flex flex-wrap items-center gap-2 text-text">
-					<span className="font-semibold">{selectionLabel}</span>
+					<span className="font-medium">{selectionLabel}</span>
 					{onClearSelection && (
 						<button
 							type="button"
@@ -270,10 +269,12 @@ const JournalStatusBar: React.FC<JournalStatusBarProps> = ({
 					)}
 				</div>
 			)}
-			<div className="ml-auto flex items-center gap-1 whitespace-nowrap">
-				<span>Context:</span>
-				<span className="text-text">{currentContext}</span>
-			</div>
+			<StatusBarItem
+				label="Project"
+				value={currentContext}
+				title={`Project: ${currentContext}`}
+				className="ml-auto"
+			/>
 		</div>
 	);
 };
