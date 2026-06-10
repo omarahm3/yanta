@@ -1,5 +1,5 @@
 import type React from "react";
-import { type ReactNode, useEffect, useMemo } from "react";
+import { type ReactNode, useEffect, useMemo, useRef } from "react";
 import { SIDEBAR_SHORTCUTS } from "@/config/public";
 import { useHotkeys } from "../hotkeys";
 import { useProjectContext } from "../project";
@@ -104,6 +104,20 @@ export const Layout: React.FC<LayoutProps> = ({
 
 	const dataMode = getDataMode(currentPage);
 
+	// Replay the content fade as a deliberate cue when the active project changes.
+	// We retrigger the existing CSS animation imperatively (no remount) so page
+	// state is preserved; prefers-reduced-motion collapses it to an instant swap.
+	const contentRef = useRef<HTMLDivElement>(null);
+	const currentProjectId = currentProject?.id;
+	useEffect(() => {
+		const el = contentRef.current;
+		if (!el || !currentProjectId) return;
+		el.classList.remove("animate-fade-in");
+		// Force a reflow so removing and re-adding the class restarts the animation.
+		void el.offsetWidth;
+		el.classList.add("animate-fade-in");
+	}, [currentProjectId]);
+
 	const layoutStyle = useMemo(() => ({ height: `calc(100vh - ${heightInRem}rem)` }), [heightInRem]);
 
 	return (
@@ -151,6 +165,7 @@ export const Layout: React.FC<LayoutProps> = ({
 				<div className="flex-1 overflow-hidden relative">
 					{/* Content Container with subtle inner shadow/depth */}
 					<div
+						ref={contentRef}
 						id="main-content"
 						className="h-full w-full overflow-y-auto overflow-x-hidden p-0 animate-fade-in scroll-smooth"
 					>
