@@ -13,16 +13,13 @@ describe("StatusBar", () => {
 		expect(screen.getByText("Project")).toBeInTheDocument();
 
 		// Informative-on-hover: native tooltips carry the spelled-out detail.
-		expect(screen.getByText("12").closest("span")).toHaveAttribute("title", "12 documents");
-		expect(screen.getByText("Personal").closest("span")).toHaveAttribute(
-			"title",
-			"Project: Personal",
-		);
+		expect(screen.getByTitle("12 documents")).toHaveTextContent("12");
+		expect(screen.getByTitle("Project: Personal")).toHaveTextContent("Personal");
 	});
 
 	it("singularizes the doc-count tooltip", () => {
 		render(<StatusBar totalEntries={1} currentContext="Work" />);
-		expect(screen.getByText("1").closest("span")).toHaveAttribute("title", "1 document");
+		expect(screen.getByTitle("1 document")).toBeInTheDocument();
 	});
 
 	it("surfaces a quiet archived badge only in archived view", () => {

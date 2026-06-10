@@ -28,16 +28,12 @@ export const StatusBarItem: React.FC<StatusBarItemProps> = ({
 	className,
 }) => {
 	const tooltip =
-		title ??
-		(typeof value === "string" || typeof value === "number" ? `${label}: ${value}` : label);
+		title ?? (typeof value === "string" || typeof value === "number" ? `${label}: ${value}` : label);
 
 	return (
 		<span
 			title={tooltip}
-			className={cn(
-				"group/sbitem inline-flex items-baseline gap-1.5 whitespace-nowrap",
-				className,
-			)}
+			className={cn("group/sbitem inline-flex items-baseline gap-1.5 whitespace-nowrap", className)}
 		>
 			<span className="text-[10px] uppercase tracking-wider text-text-dim/60 transition-colors group-hover/sbitem:text-text-dim">
 				{label}

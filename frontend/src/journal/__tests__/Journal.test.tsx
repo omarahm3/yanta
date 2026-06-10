@@ -150,7 +150,8 @@ describe("Journal", () => {
 		render(<Journal />, { wrapper: TestWrapper });
 
 		await waitFor(() => {
-			expect(screen.getByText("2 entries")).toBeInTheDocument();
+			expect(screen.getByText("Entries")).toBeInTheDocument();
+			expect(screen.getByTitle("2 entries")).toBeInTheDocument();
 		});
 	});
 
@@ -232,7 +233,7 @@ describe("Journal", () => {
 		render(<Journal />, { wrapper: TestWrapper });
 
 		await waitFor(() => {
-			expect(screen.getByText("Context:")).toBeInTheDocument();
+			expect(screen.getByText("Project")).toBeInTheDocument();
 			// "personal" appears twice (header and status bar), use getAllByText
 			const personalTexts = screen.getAllByText("personal");
 			expect(personalTexts.length).toBeGreaterThan(0);
