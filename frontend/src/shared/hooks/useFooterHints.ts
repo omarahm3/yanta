@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { PageName } from "../types";
 import type { FooterHint } from "../ui/FooterHintBar";
+import { getShortcutForCommand } from "../utils/shortcuts";
 
 /**
  * Page types that have specific footer hint configurations
@@ -131,4 +132,18 @@ export function useFooterHints({ currentPage }: UseFooterHintsOptions): UseFoote
 export function getHintsForPage(page: PageContext | PageName): FooterHint[] {
 	const pageKey = page as PageContext;
 	return HINT_CONFIGS[pageKey] ?? DEFAULT_HINTS;
+}
+
+/**
+ * Universal entry-point hints that stay visible on every page, regardless of
+ * which page-specific hints apply. These are the always-available affordances a
+ * first-timer needs to discover the rest of the app without docs: the command
+ * palette and the help overlay. Keys are platform-aware (⌘K on macOS, Ctrl+K
+ * elsewhere) via the shared shortcut formatter.
+ */
+export function getGlobalFooterHints(): FooterHint[] {
+	return [
+		{ key: getShortcutForCommand("command-palette") ?? "Ctrl+K", label: "Commands", priority: 1 },
+		{ key: getShortcutForCommand("show-help") ?? "?", label: "Help", priority: 1 },
+	];
 }

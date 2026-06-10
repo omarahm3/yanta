@@ -3,7 +3,12 @@ import { type ReactNode, useEffect, useMemo } from "react";
 import { SIDEBAR_SHORTCUTS } from "@/config/public";
 import { useHotkeys } from "../hotkeys";
 import { useProjectContext } from "../project";
-import { useFooterHints, useFooterHintsSetting, useSidebarSetting } from "../shared/hooks";
+import {
+	getGlobalFooterHints,
+	useFooterHints,
+	useFooterHintsSetting,
+	useSidebarSetting,
+} from "../shared/hooks";
 import type { PageName } from "../shared/types";
 import { FooterHintBar, HeaderBar, type SidebarSection, Sidebar as UISidebar } from "../shared/ui";
 import { useTitleBarContext } from "./context";
@@ -77,6 +82,10 @@ export const Layout: React.FC<LayoutProps> = ({
 	const { currentProject } = useProjectContext();
 	const { heightInRem } = useTitleBarContext();
 	const { hints: footerHints } = useFooterHints({ currentPage });
+	// The command-palette and help affordances stay pinned on every page so a
+	// first-timer can always discover them without docs (YANA-7).
+	const globalHints = useMemo(() => getGlobalFooterHints(), []);
+	const allFooterHints = useMemo(() => [...globalHints, ...footerHints], [globalHints, footerHints]);
 
 	useEffect(() => {
 		if (onRegisterToggleSidebar) {
@@ -158,7 +167,7 @@ export const Layout: React.FC<LayoutProps> = ({
 					</div>
 				</div>
 
-				{!footerHintsLoading && showFooterHints && <FooterHintBar hints={footerHints} />}
+				{!footerHintsLoading && showFooterHints && <FooterHintBar hints={allFooterHints} />}
 			</div>
 		</div>
 	);
