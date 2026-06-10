@@ -43,7 +43,7 @@ function CommandDialog({
 				<DialogDescription className="sr-only">{description}</DialogDescription>
 				<Command
 					ref={commandRef}
-					className="[&_[cmdk-group-heading]]:text-text-dim/80 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-6 [&_[cmdk-input-wrapper]_svg]:w-6 [&_[cmdk-input]]:h-14 [&_[cmdk-item]]:px-3 [&_[cmdk-item]]:py-4 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
+					className="[&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0"
 				>
 					{children}
 				</Command>
@@ -110,7 +110,7 @@ function CommandGroup({
 		<CommandPrimitive.Group
 			data-slot="command-group"
 			className={cn(
-				"text-text [&_[cmdk-group-heading]]:text-text-dim overflow-hidden p-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider",
+				"text-text [&_[cmdk-group-heading]]:text-text-dim/80 overflow-hidden px-2 py-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider",
 				className,
 			)}
 			{...props}
@@ -136,7 +136,7 @@ function CommandItem({ className, ...props }: React.ComponentProps<typeof Comman
 		<CommandPrimitive.Item
 			data-slot="command-item"
 			className={cn(
-				"data-[selected=true]:bg-accent/10 data-[selected=true]:text-accent-foreground data-[selected=true]:border-l-2 data-[selected=true]:border-accent [&_svg:not([class*='text-'])]:text-text-dim relative flex cursor-pointer items-center gap-3 rounded-md px-3 py-3 text-sm outline-none select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 transition-all duration-200",
+				"data-[selected=true]:bg-accent/10 data-[selected=true]:text-accent-foreground data-[selected=true]:border-l-2 data-[selected=true]:border-accent [&_svg:not([class*='text-'])]:text-text-dim relative flex cursor-pointer items-center gap-3 rounded-md px-3 py-3 text-sm outline-none select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5 transition-all duration-200",
 				className,
 			)}
 			{...props}
@@ -149,7 +149,7 @@ function CommandShortcut({ className, ...props }: React.ComponentProps<"span">) 
 		<span
 			data-slot="command-shortcut"
 			className={cn(
-				"ml-auto text-xs tracking-widest text-text-dim/80 bg-bg-dark/40 border border-glass-border px-1.5 py-0.5 rounded shadow-sm",
+				"ml-auto text-xs tracking-widest text-text-dim/80 bg-bg-dark/40 border border-glass-border px-2 py-1 rounded shadow-sm",
 				className,
 			)}
 			{...props}
