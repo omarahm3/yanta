@@ -1,3 +1,4 @@
+import { useBackendToast } from "./useBackendToast";
 import { useHelpHotkey } from "./useHelpHotkey";
 import { useProjectSwitchTracking } from "./useProjectSwitchTracking";
 import { useQuitHotkeys } from "./useQuitHotkeys";
@@ -8,4 +9,5 @@ export function useAppGlobalEffects(): void {
 	useQuitHotkeys();
 	useWindowHiddenToast();
 	useProjectSwitchTracking();
+	useBackendToast();
 }

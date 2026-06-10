@@ -161,9 +161,13 @@ func (idx *Indexer) ScanAndIndexProjects(ctx context.Context) error {
 	return nil
 }
 
-func (idx *Indexer) ScanAndIndexVault(ctx context.Context) error {
+// ScanAndIndexVault scans the vault directory and indexes all documents.
+// It returns the paths of any corrupt/unreadable files that were skipped,
+// so callers can surface a warning to the user. The scan never aborts on a
+// single corrupt file — all healthy files are indexed regardless.
+func (idx *Indexer) ScanAndIndexVault(ctx context.Context) ([]string, error) {
 	if err := idx.ScanAndIndexProjects(ctx); err != nil {
-		return fmt.Errorf("scanning projects: %w", err)
+		return nil, fmt.Errorf("scanning projects: %w", err)
 	}
 
 	projectsPath := filepath.Join(idx.vault.RootPath(), "projects")
@@ -171,9 +175,9 @@ func (idx *Indexer) ScanAndIndexVault(ctx context.Context) error {
 	entries, err := os.ReadDir(projectsPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil
+			return nil, nil
 		}
-		return fmt.Errorf("reading projects directory: %w", err)
+		return nil, fmt.Errorf("reading projects directory: %w", err)
 	}
 
 	var docPaths []string
@@ -217,9 +221,11 @@ func (idx *Indexer) ScanAndIndexVault(ctx context.Context) error {
 	total := len(docPaths)
 	idx.emitProgress(0, total, "Indexing documents...")
 
+	var corruptPaths []string
 	for i, docPath := range docPaths {
 		if err := idx.IndexDocument(ctx, docPath); err != nil {
-			logger.Warnf("failed to index document %s: %v", docPath, err)
+			logger.Warnf("skipping corrupt document %s: %v", docPath, err)
+			corruptPaths = append(corruptPaths, docPath)
 			continue
 		}
 
@@ -233,7 +239,7 @@ func (idx *Indexer) ScanAndIndexVault(ctx context.Context) error {
 		logger.Warnf("failed to index journals: %v", err)
 	}
 
-	return nil
+	return corruptPaths, nil
 }
 
 func (idx *Indexer) emitProgress(current, total int, message string) {

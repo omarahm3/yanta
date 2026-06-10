@@ -451,7 +451,7 @@ func TestIndexer_ScanAndIndexVault(t *testing.T) {
 		}
 
 		// Run scan and index
-		err = idx.ScanAndIndexVault(ctx)
+		_, err = idx.ScanAndIndexVault(ctx)
 		if err != nil {
 			t.Fatalf("ScanAndIndexVault() failed: %v", err)
 		}
@@ -523,7 +523,7 @@ func TestIndexer_ScanAndIndexVault(t *testing.T) {
 		ctx := context.Background()
 
 		// Should not error on empty vault
-		err = emptyIdx.ScanAndIndexVault(ctx)
+		_, err = emptyIdx.ScanAndIndexVault(ctx)
 		if err != nil {
 			t.Fatalf("ScanAndIndexVault() should not fail on empty vault: %v", err)
 		}
@@ -564,7 +564,7 @@ func TestIndexer_ScanAndIndexVault(t *testing.T) {
 		ctx := context.Background()
 
 		// Should not error on missing projects directory
-		err = newIdx.ScanAndIndexVault(ctx)
+		_, err = newIdx.ScanAndIndexVault(ctx)
 		if err != nil {
 			t.Fatalf("ScanAndIndexVault() should not fail on missing projects dir: %v", err)
 		}
@@ -600,7 +600,7 @@ func TestIndexer_ScanAndIndexVault(t *testing.T) {
 		}
 
 		// Scan should not index the txt file
-		err = idx.ScanAndIndexVault(ctx)
+		_, err = idx.ScanAndIndexVault(ctx)
 		if err != nil {
 			t.Fatalf("ScanAndIndexVault() failed: %v", err)
 		}
@@ -660,7 +660,7 @@ func TestIndexer_ScanAndIndexVault(t *testing.T) {
 		}
 
 		// Scan should update the existing document
-		err = idx.ScanAndIndexVault(ctx)
+		_, err = idx.ScanAndIndexVault(ctx)
 		if err != nil {
 			t.Fatalf("ScanAndIndexVault() failed: %v", err)
 		}
@@ -740,7 +740,7 @@ func TestIndexer_ScanAndIndexVault(t *testing.T) {
 		invalidRelPath := filepath.Join("projects", "invalid-project", "test-doc.json")
 
 		// Scan the vault
-		err = idx.ScanAndIndexVault(ctx)
+		_, err = idx.ScanAndIndexVault(ctx)
 		if err != nil {
 			t.Fatalf("ScanAndIndexVault() failed: %v", err)
 		}
@@ -779,7 +779,7 @@ func TestIndexer_ScanAndIndexVault(t *testing.T) {
 		}
 
 		// Scan again
-		err = idx.ScanAndIndexVault(ctx)
+		_, err = idx.ScanAndIndexVault(ctx)
 		if err != nil {
 			t.Fatalf("ScanAndIndexVault() second scan failed: %v", err)
 		}
@@ -793,4 +793,57 @@ func TestIndexer_ScanAndIndexVault(t *testing.T) {
 			t.Errorf("Expected project name 'Valid Project', got %s", validProject.Name)
 		}
 	})
+}
+
+// TestScanAndIndexVault_CorruptFilesSkipped verifies the G1 acceptance criteria:
+// a corrupt note file does not prevent the app from starting; it is skipped and
+// its path is returned so the caller can surface a warning toast to the user.
+func TestScanAndIndexVault_CorruptFilesSkipped(t *testing.T) {
+	db, v := setupTestEnv(t)
+	defer testutil.CleanupTestDB(t, db)
+
+	docStore := document.NewStore(db)
+	projectStore := project.NewStore(db)
+	ftsStore := search.NewStore(db)
+	tagStore := tag.NewStore(db)
+	linkStore := link.NewStore(db)
+	assetStore := asset.NewStore(db)
+
+	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
+
+	ctx := context.Background()
+
+	// Create one valid and one corrupt document in the same project.
+	validPath := createTestDocument(t, v, "@test-project", "Valid Note", []string{})
+
+	if err := v.EnsureProjectDir("@test-project"); err != nil {
+		t.Fatalf("EnsureProjectDir: %v", err)
+	}
+	absProjectDir := v.ProjectPath("@test-project")
+	corruptAbsPath := filepath.Join(absProjectDir, "doc-corrupt-file.json")
+	if err := os.WriteFile(corruptAbsPath, []byte("{not valid json{{"), 0644); err != nil {
+		t.Fatalf("writing corrupt file: %v", err)
+	}
+	corruptRelPath := "projects/@test-project/doc-corrupt-file.json"
+
+	// Scan must succeed (no error) even with a corrupt file present.
+	corruptPaths, err := idx.ScanAndIndexVault(ctx)
+	if err != nil {
+		t.Fatalf("ScanAndIndexVault() returned error on corrupt file: %v", err)
+	}
+
+	// The corrupt file must be reported.
+	if len(corruptPaths) != 1 || corruptPaths[0] != corruptRelPath {
+		t.Errorf("corruptPaths = %v, want [%s]", corruptPaths, corruptRelPath)
+	}
+
+	// The valid document must be indexed.
+	if _, err := docStore.GetByPath(ctx, validPath); err != nil {
+		t.Errorf("valid document not indexed after scan: %v", err)
+	}
+
+	// The corrupt document must NOT be in the index.
+	if _, err := docStore.GetByPath(ctx, corruptRelPath); err == nil {
+		t.Error("corrupt document should not be indexed")
+	}
 }
