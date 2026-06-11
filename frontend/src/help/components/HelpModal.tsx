@@ -146,8 +146,8 @@ export const HelpModal: React.FC = () => {
 					<div>
 						<DialogTitle className="text-base font-semibold text-text">Keyboard Shortcuts</DialogTitle>
 						<DialogDescription className="sr-only">
-							Press Tab to navigate between elements. Press Enter or Space on section headers to expand
-							or collapse. Press Escape to close.
+							Press Tab to navigate between elements. Press Enter or Space on section headers to expand or
+							collapse. Press Escape to close.
 						</DialogDescription>
 					</div>
 					<button

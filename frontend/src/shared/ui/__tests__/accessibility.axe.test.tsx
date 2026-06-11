@@ -9,8 +9,8 @@ import type { ParsedGitError } from "../../utils/gitErrorParser";
 import { type CommandOption, CommandPalette } from "../CommandPalette";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { GitErrorDialog } from "../GitErrorDialog";
-import { Modal } from "../Modal";
 import { MigrationConflictDialog } from "../MigrationConflictDialog";
+import { Modal } from "../Modal";
 import {
 	Toast,
 	ToastClose,
@@ -231,7 +231,10 @@ describe("accessibility baseline (axe)", () => {
 
 		const dialog = await screen.findByRole("dialog");
 		expect(criticalOrSerious(await axe(dialog, AXE_OPTIONS))).toEqual([]);
-		expect(screen.getByRole("radio", { name: /Use Target/i })).toHaveAttribute("aria-checked", "true");
+		expect(screen.getByRole("radio", { name: /Use Target/i })).toHaveAttribute(
+			"aria-checked",
+			"true",
+		);
 	});
 
 	it("toast has no critical/serious violations", async () => {

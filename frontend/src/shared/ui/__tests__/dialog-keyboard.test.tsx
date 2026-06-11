@@ -86,7 +86,10 @@ describe("dialog keyboard traversal", () => {
 			/>,
 		);
 
-		expect(screen.getByRole("radio", { name: /Use Target/i })).toHaveAttribute("aria-checked", "true");
+		expect(screen.getByRole("radio", { name: /Use Target/i })).toHaveAttribute(
+			"aria-checked",
+			"true",
+		);
 		expect(screen.getByRole("radio", { name: /Use Target/i })).toHaveFocus();
 
 		await user.tab({ shift: true });
@@ -107,7 +110,10 @@ describe("dialog keyboard traversal", () => {
 
 		await user.keyboard("[ArrowDown]");
 		expect(screen.getByRole("radio", { name: /Merge Both/i })).toHaveFocus();
-		expect(screen.getByRole("radio", { name: /Merge Both/i })).toHaveAttribute("aria-checked", "true");
+		expect(screen.getByRole("radio", { name: /Merge Both/i })).toHaveAttribute(
+			"aria-checked",
+			"true",
+		);
 
 		await user.tab();
 		expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
