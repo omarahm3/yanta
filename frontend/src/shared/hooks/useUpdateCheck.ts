@@ -53,28 +53,62 @@ export function useUpdateCheck(options: UseUpdateCheckOptions = {}): UseUpdateCh
 	const [checkFailed, setCheckFailed] = useState(false);
 	const [dismissedVersion, setDismissedVersion] = useState<string | null>(readDismissedVersion);
 
-	const check = useCallback(async (): Promise<UpdateInfo | null> => {
+	// Single attempt; rethrows on failure so callers decide whether to retry.
+	const attemptCheck = useCallback(async (): Promise<UpdateInfo | null> => {
 		setIsChecking(true);
-		setCheckFailed(false);
 		try {
 			const model = await CheckForUpdate();
 			const info = model ? updateInfoFromModel(model) : null;
 			if (info) setUpdateInfo(info);
+			setCheckFailed(false);
 			return info;
+		} finally {
+			setIsChecking(false);
+		}
+	}, []);
+
+	const check = useCallback(async (): Promise<UpdateInfo | null> => {
+		setCheckFailed(false);
+		try {
+			return await attemptCheck();
 		} catch (err) {
 			// Best-effort: a failed check (offline, rate-limited) must never
 			// surface as an error the user has to dismiss.
 			BackendLogger.warn("Update check failed:", err);
 			setCheckFailed(true);
 			return null;
-		} finally {
-			setIsChecking(false);
 		}
-	}, []);
+	}, [attemptCheck]);
 
 	useEffect(() => {
-		if (autoCheck) void check();
-	}, [autoCheck, check]);
+		if (!autoCheck) return;
+		let cancelled = false;
+
+		void (async () => {
+			// On cold start the Wails IPC bridge may not be ready yet, failing
+			// with "Failed to fetch". Retry with backoff before giving up.
+			const RETRY_DELAYS_MS = [1500, 3000, 5000];
+			for (let attempt = 0; !cancelled; attempt++) {
+				try {
+					await attemptCheck();
+					return;
+				} catch (err) {
+					if (cancelled) return;
+					if (attempt < RETRY_DELAYS_MS.length) {
+						await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
+						continue;
+					}
+					BackendLogger.warn("Update check failed:", err);
+					setCheckFailed(true);
+					return;
+				}
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [autoCheck, attemptCheck]);
 
 	const dismiss = useCallback(() => {
 		const version = updateInfo?.latestVersion;
