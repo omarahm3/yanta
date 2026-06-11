@@ -423,6 +423,113 @@ func TestIndexer_ClearIndex(t *testing.T) {
 	}
 }
 
+// TestIndexer_ReindexAfterExternalVaultEdit proves the git-pull scenario:
+// a JSON note that appears in the vault on disk without going through the app's
+// save path (e.g. pulled in from another machine) becomes searchable after the
+// startup reindex (ScanAndIndexVault). This guards G1 reliability & data safety:
+// externally added notes must never be silently invisible to search.
+func TestIndexer_ReindexAfterExternalVaultEdit(t *testing.T) {
+	db, v := setupTestEnv(t)
+	defer testutil.CleanupTestDB(t, db)
+
+	docStore := document.NewStore(db)
+	projectStore := project.NewStore(db)
+	ftsStore := search.NewStore(db)
+	tagStore := tag.NewStore(db)
+	linkStore := link.NewStore(db)
+	assetStore := asset.NewStore(db)
+
+	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
+
+	ctx := context.Background()
+
+	// Initial state: index a pre-existing note so the index is "warm", just like
+	// an app that has been running before a git pull arrives.
+	existingPath := createTestDocument(t, v, "@test-project", "Existing Note", []string{"existing"})
+	if err := idx.ScanAndIndexVault(ctx); err != nil {
+		t.Fatalf("initial ScanAndIndexVault() failed: %v", err)
+	}
+	if _, err := docStore.GetByPath(ctx, existingPath); err != nil {
+		t.Fatalf("existing note not indexed by initial scan: %v", err)
+	}
+
+	// Simulate an external vault edit (git pull): write a brand-new note file
+	// directly to disk, bypassing the app entirely. The unique token lets us
+	// assert search hits this specific note and nothing else.
+	const uniqueToken = "Zarvox"
+	externalDoc := document.NewDocumentFile("@test-project", uniqueToken+" External Note", []string{"pulled"})
+	externalDoc.Blocks = []document.BlockNoteBlock{
+		{
+			ID:      "block-1",
+			Type:    "heading",
+			Props:   map[string]any{"level": float64(1)},
+			Content: mustMarshalContent([]document.BlockNoteContent{{Type: "text", Text: uniqueToken + " External Note"}}),
+		},
+		{
+			ID:      "block-2",
+			Type:    "paragraph",
+			Content: mustMarshalContent([]document.BlockNoteContent{{Type: "text", Text: "Body authored on another machine."}}),
+		},
+	}
+	externalDoc.UpdateTimestamp()
+
+	data, err := externalDoc.ToJSON()
+	if err != nil {
+		t.Fatalf("failed to marshal external note: %v", err)
+	}
+
+	projectPath := v.ProjectPath("@test-project")
+	if err := os.MkdirAll(projectPath, 0755); err != nil {
+		t.Fatalf("failed to ensure project directory: %v", err)
+	}
+	externalFilename := "external-pulled-note.json"
+	if err := os.WriteFile(filepath.Join(projectPath, externalFilename), data, 0644); err != nil {
+		t.Fatalf("failed to write external note to disk: %v", err)
+	}
+	externalRelPath := filepath.ToSlash(filepath.Join("projects", "@test-project", externalFilename))
+
+	// Before reindex: the externally added note is on disk but invisible to search.
+	paths, err := ftsStore.Search(ctx, uniqueToken)
+	if err != nil {
+		t.Fatalf("Search() before reindex failed: %v", err)
+	}
+	if len(paths) != 0 {
+		t.Fatalf("expected external note to be unsearchable before reindex, got %d hits", len(paths))
+	}
+
+	// Reindex after the external edit (the git-pull rebuild path).
+	if err := idx.ScanAndIndexVault(ctx); err != nil {
+		t.Fatalf("ScanAndIndexVault() after external edit failed: %v", err)
+	}
+
+	// Acceptance: the externally added note is now searchable, and the hit
+	// resolves to exactly that file.
+	paths, err = ftsStore.Search(ctx, uniqueToken)
+	if err != nil {
+		t.Fatalf("Search() after reindex failed: %v", err)
+	}
+	if len(paths) != 1 {
+		t.Fatalf("expected 1 search hit for external note after reindex, got %d", len(paths))
+	}
+	if paths[0] != externalRelPath {
+		t.Errorf("search hit path mismatch: got %s, want %s", paths[0], externalRelPath)
+	}
+
+	// And it is a fully indexed document, not just an FTS row.
+	doc, err := docStore.GetByPath(ctx, externalRelPath)
+	if err != nil {
+		t.Fatalf("external note not present in doc table after reindex: %v", err)
+	}
+	if doc.Title != uniqueToken+" External Note" {
+		t.Errorf("external note title mismatch: got %s", doc.Title)
+	}
+
+	// The pre-existing note must remain searchable; reindex doesn't drop it.
+	if _, err := docStore.GetByPath(ctx, existingPath); err != nil {
+		t.Errorf("pre-existing note lost after reindex: %v", err)
+	}
+}
+
 func TestIndexer_ScanAndIndexVault(t *testing.T) {
 	t.Run("indexes existing documents in vault", func(t *testing.T) {
 		db, v := setupTestEnv(t)
