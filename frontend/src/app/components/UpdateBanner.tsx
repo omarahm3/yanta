@@ -51,8 +51,7 @@ export const UpdateBanner: React.FC = () => {
 				</button>
 			</div>
 			<p className="mt-1 text-xs text-text-dim">
-				YANTA{" "}
-				<span className="font-mono text-cyan">v{updateInfo.latestVersion}</span> is available.
+				YANTA <span className="font-mono text-cyan">v{updateInfo.latestVersion}</span> is available.
 				{updateInfo.currentVersion && (
 					<>
 						{" "}
