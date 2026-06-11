@@ -85,7 +85,7 @@
 }
 
 .bn-editor [dir="rtl"]::selection {
-	background-color: rgba(100, 149, 237, 0.3);
+	background-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
 
 .bn-editor [dir="rtl"] .ProseMirror-cursor {
