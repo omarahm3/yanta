@@ -12,6 +12,7 @@ import { useNotification, useSidebarSections } from "../shared/hooks";
 import type { NavigationState, PageName } from "../shared/types";
 import { Button, EmptyState, Input } from "../shared/ui";
 import { BackendLogger } from "../shared/utils/backendLogger";
+import { SearchResultsSkeleton } from "./SearchResultsSkeleton";
 
 interface SearchResult {
 	path: string;
@@ -127,6 +128,7 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 			if (!queryStr.trim()) {
 				setResults([]);
 				setSearchError(null);
+				setIsLoading(false);
 				return;
 			}
 
@@ -410,7 +412,9 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 							<div className="p-4 text-center bg-surface border border-red/30 rounded text-red">
 								Error: {searchError}
 							</div>
-						) : groupedResults.length === 0 && !isLoading ? (
+						) : isLoading && groupedResults.length === 0 ? (
+							<SearchResultsSkeleton />
+						) : groupedResults.length === 0 ? (
 							rawQuery.trim() ? (
 								<EmptyState
 									icon={<SearchX className="h-6 w-6" aria-hidden="true" />}

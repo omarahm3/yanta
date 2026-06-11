@@ -4,6 +4,7 @@ import { useHotkeys } from "../hotkeys";
 import type { NavigationState, PageName } from "../shared/types";
 import { ConfirmDialog } from "../shared/ui/ConfirmDialog";
 import { DocumentList } from "./components/DocumentList";
+import { DocumentListSkeleton } from "./components/DocumentListSkeleton";
 import { FirstRunOnboarding } from "./components/FirstRunOnboarding";
 import { MoveDocumentDialog } from "./components/MoveDocumentDialog";
 import { StatusBar } from "./components/StatusBar";
@@ -57,8 +58,10 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 				onRegisterToggleSidebar={onRegisterToggleSidebar}
 			>
 				{isLoading ? (
-					<div className="flex items-center justify-center py-8">
-						<div className="text-text-dim">Loading...</div>
+					<div className="flex h-full flex-col overflow-hidden">
+						<div className="flex-1 overflow-y-auto p-5">
+							<DocumentListSkeleton />
+						</div>
 					</div>
 				) : isVaultEmpty ? (
 					<FirstRunOnboarding

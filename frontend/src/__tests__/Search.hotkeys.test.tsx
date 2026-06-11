@@ -196,6 +196,34 @@ describe("Search hotkeys", () => {
 		});
 	});
 
+	it("stops showing the loading skeleton when the query is cleared", async () => {
+		let resolveQuery: ((value: Awaited<ReturnType<typeof Query>>) => void) | undefined;
+		vi.mocked(Query).mockImplementationOnce(
+			() =>
+				new Promise((resolve) => {
+					resolveQuery = resolve;
+				}),
+		);
+
+		render(
+			<DialogProvider>
+				<HotkeyProvider>
+					<Search onNavigate={onNavigate} />
+				</HotkeyProvider>
+			</DialogProvider>,
+		);
+
+		const input = (await screen.findByPlaceholderText(/Search entries/)) as HTMLInputElement;
+		fireEvent.change(input, { target: { value: "test" } });
+		await waitFor(() => expect(Query).toHaveBeenCalledTimes(1));
+
+		fireEvent.change(input, { target: { value: "" } });
+
+		expect(await screen.findByText("Search your notes")).toBeInTheDocument();
+
+		resolveQuery?.([]);
+	});
+
 	it("shows a no-results empty state with a clear action", async () => {
 		vi.mocked(Query).mockResolvedValueOnce([]);
 
