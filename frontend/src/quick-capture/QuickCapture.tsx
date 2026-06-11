@@ -128,7 +128,7 @@ export const QuickCapture: React.FC = () => {
 				className="h-full flex items-center justify-center bg-bg-dark text-text-dim font-sans text-sm rounded-xl overflow-hidden border border-glass-border"
 				style={{
 					backgroundImage:
-						"radial-gradient(circle at 20% 50%, rgba(88, 166, 255, 0.06), transparent 50%), radial-gradient(circle at 80% 30%, rgba(163, 113, 247, 0.06), transparent 50%)",
+						"radial-gradient(circle at 20% 50%, color-mix(in srgb, var(--color-accent) 6%, transparent), transparent 50%), radial-gradient(circle at 80% 30%, color-mix(in srgb, var(--color-purple) 6%, transparent), transparent 50%)",
 				}}
 			>
 				<div className="bg-glass-bg/60 backdrop-blur-xl inset-0 absolute" />
@@ -144,7 +144,7 @@ export const QuickCapture: React.FC = () => {
 				{
 					"--wails-draggable": "drag",
 					backgroundImage:
-						"radial-gradient(circle at 20% 50%, rgba(88, 166, 255, 0.06), transparent 50%), radial-gradient(circle at 80% 30%, rgba(163, 113, 247, 0.06), transparent 50%)",
+						"radial-gradient(circle at 20% 50%, color-mix(in srgb, var(--color-accent) 6%, transparent), transparent 50%), radial-gradient(circle at 80% 30%, color-mix(in srgb, var(--color-purple) 6%, transparent), transparent 50%)",
 				} as React.CSSProperties
 			}
 		>
