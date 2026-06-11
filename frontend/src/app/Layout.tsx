@@ -159,7 +159,8 @@ export const Layout: React.FC<LayoutProps> = ({
 			style={layoutStyle}
 		>
 			{/* Glass Sidebar Container */}
-			<div
+			<nav
+				aria-label="Sidebar navigation"
 				className={`sidebar-transition relative z-20 h-full ${
 					!sidebarLoading && !sidebarVisible ? "sidebar-hidden" : "sidebar-visible"
 				}`}
@@ -172,9 +173,12 @@ export const Layout: React.FC<LayoutProps> = ({
 						className="bg-glass-bg/50 backdrop-blur-xl border-r border-glass-border"
 					/>
 				)}
-			</div>
+			</nav>
 
-			<div className="flex flex-col flex-1 overflow-hidden main-content-transition relative z-10 bg-glass-bg/10 backdrop-blur-sm">
+			<div
+				role="main"
+				className="flex flex-col flex-1 overflow-hidden main-content-transition relative z-10 bg-glass-bg/10 backdrop-blur-sm"
+			>
 				<a
 					href="#main-content"
 					className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-40 focus:px-3 focus:py-2 focus:rounded-md focus:bg-accent focus:text-bg"

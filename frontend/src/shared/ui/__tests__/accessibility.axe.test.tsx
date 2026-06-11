@@ -6,9 +6,11 @@ import { DialogProvider } from "../../../app/context";
 import { MoveDocumentDialog } from "../../../dashboard/components/MoveDocumentDialog";
 import { HelpModal } from "../../../help/components/HelpModal";
 import type { ParsedGitError } from "../../utils/gitErrorParser";
+import { Button } from "../Button";
 import { type CommandOption, CommandPalette } from "../CommandPalette";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { GitErrorDialog } from "../GitErrorDialog";
+import { Input } from "../Input";
 import { MigrationConflictDialog } from "../MigrationConflictDialog";
 import { Modal } from "../Modal";
 import {
@@ -235,6 +237,32 @@ describe("accessibility baseline (axe)", () => {
 			"aria-checked",
 			"true",
 		);
+	});
+
+	it("button has no critical/serious violations and sets aria-disabled when disabled", async () => {
+		const { rerender } = render(<Button>Save</Button>);
+		const btn = screen.getByRole("button", { name: "Save" });
+		expect(criticalOrSerious(await axe(btn, AXE_OPTIONS))).toEqual([]);
+
+		rerender(
+			<Button disabled variant="primary">
+				Save
+			</Button>,
+		);
+		const disabledBtn = screen.getByRole("button", { name: "Save" });
+		expect(disabledBtn).toBeDisabled();
+		expect(disabledBtn).toHaveAttribute("aria-disabled", "true");
+	});
+
+	it("input has no critical/serious violations and sets aria-invalid when error", async () => {
+		const { rerender } = render(<Input placeholder="Name" />);
+		const input = screen.getByPlaceholderText("Name");
+		expect(criticalOrSerious(await axe(input, AXE_OPTIONS))).toEqual([]);
+		expect(input).not.toHaveAttribute("aria-invalid");
+
+		rerender(<Input placeholder="Name" error />);
+		const erroredInput = screen.getByPlaceholderText("Name");
+		expect(erroredInput).toHaveAttribute("aria-invalid", "true");
 	});
 
 	it("toast has no critical/serious violations", async () => {

@@ -63,11 +63,18 @@ export const Table: React.FC<TableProps> = ({
 		.join(" ");
 
 	return (
-		<div ref={containerRef} className={cn("w-full min-w-0 overflow-x-auto", className)}>
-			<div className="grid mb-2 border-b border-glass-border" style={{ gridTemplateColumns }}>
+		<div ref={containerRef} role="grid" className={cn("w-full min-w-0 overflow-x-auto", className)}>
+			<div
+				role="row"
+				tabIndex={-1}
+				className="grid mb-2 border-b border-glass-border"
+				style={{ gridTemplateColumns }}
+			>
 				{columns.map((column) => (
 					<div
 						key={column.key}
+						role="columnheader"
+						tabIndex={-1}
 						className={cn(
 							"min-w-0 overflow-hidden px-3 py-2 text-text-dim text-xs uppercase tracking-wider font-medium",
 							getColumnStyles(column),
@@ -82,19 +89,24 @@ export const Table: React.FC<TableProps> = ({
 				{rows.map((row) => (
 					<div
 						key={row.id}
+						role="row"
 						data-row-id={row.id}
 						className={cn(
 							"grid rounded cursor-pointer transition-all duration-200 items-start",
-							"hover:bg-glass-bg/20 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-opacity-50",
+							"hover:bg-glass-bg/20 focus:outline-none focus:ring-2 focus:ring-accent",
 							selectedRowId === row.id && "bg-glass-bg/30 border-l-2 border-accent",
 						)}
 						style={{ gridTemplateColumns }}
 						onClick={() => onRowSelect?.(row)}
 						onDoubleClick={() => onRowDoubleClick?.(row)}
+						tabIndex={0}
+						aria-selected={selectedRowId === row.id || undefined}
 					>
 						{columns.map((column) => (
 							<div
 								key={column.key}
+								role="gridcell"
+								tabIndex={-1}
 								className={cn(
 									"min-w-0 min-h-[2rem] flex items-center overflow-hidden px-3 py-2.5 text-sm",
 									getColumnStyles(column),
