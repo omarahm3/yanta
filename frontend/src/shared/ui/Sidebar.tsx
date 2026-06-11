@@ -37,6 +37,7 @@ export interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ sections, className }) => {
 	return (
 		<aside
+			role="navigation"
 			aria-label="Main navigation"
 			className={cn("h-full w-48 p-4 overflow-y-auto flex flex-col", className)}
 		>

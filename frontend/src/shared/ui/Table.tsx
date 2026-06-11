@@ -86,7 +86,7 @@ export const Table: React.FC<TableProps> = ({
 			</div>
 
 			<div className="space-y-0.5">
-				{rows.map((row) => (
+				{rows.map((row, index) => (
 					<div
 						key={row.id}
 						role="row"
@@ -99,7 +99,13 @@ export const Table: React.FC<TableProps> = ({
 						style={{ gridTemplateColumns }}
 						onClick={() => onRowSelect?.(row)}
 						onDoubleClick={() => onRowDoubleClick?.(row)}
-						tabIndex={0}
+						onKeyDown={(e) => {
+							if (e.key === "Enter" || e.key === " ") {
+								e.preventDefault();
+								onRowSelect?.(row);
+							}
+						}}
+						tabIndex={selectedRowId === row.id || (!selectedRowId && index === 0) ? 0 : -1}
 						aria-selected={selectedRowId === row.id || undefined}
 					>
 						{columns.map((column) => (
