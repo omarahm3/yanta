@@ -41,10 +41,7 @@ function CommandDialog({
 			>
 				<DialogTitle className="sr-only">{title}</DialogTitle>
 				<DialogDescription className="sr-only">{description}</DialogDescription>
-				<Command
-					ref={commandRef}
-					className="[&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0"
-				>
+				<Command ref={commandRef} className="[&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0">
 					{children}
 				</Command>
 			</DialogContent>
