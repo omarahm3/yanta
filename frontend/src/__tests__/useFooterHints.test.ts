@@ -1,6 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { getHintsForPage, useFooterHints } from "../shared/hooks";
+import { getGlobalFooterHints, getHintsForPage, useFooterHints } from "../shared/hooks";
 
 describe("useFooterHints", () => {
 	describe("Dashboard page hints", () => {
@@ -291,5 +291,25 @@ describe("Priority assignments", () => {
 		);
 		// Quick-capture: Save
 		expect(getHintsForPage("quick-capture").find((h) => h.label === "Save")?.priority).toBe(1);
+	});
+});
+
+describe("getGlobalFooterHints", () => {
+	it("always surfaces the command palette and help entry points", () => {
+		const hints = getGlobalFooterHints();
+		expect(hints.some((h) => h.label === "Commands")).toBe(true);
+		expect(hints.some((h) => h.key === "?" && h.label === "Help")).toBe(true);
+	});
+
+	it("renders both global hints at priority 1 so they stay visible on narrow viewports", () => {
+		for (const hint of getGlobalFooterHints()) {
+			expect(hint.priority).toBe(1);
+		}
+	});
+
+	it("uses the platform-aware command-palette key (Ctrl+K off macOS)", () => {
+		// jsdom reports a non-macOS platform, so the formatter yields the Ctrl form.
+		const commands = getGlobalFooterHints().find((h) => h.label === "Commands");
+		expect(commands?.key).toBe("Ctrl+K");
 	});
 });

@@ -15,7 +15,7 @@ export { useEscapeHandler } from "./useEscapeHandler";
 export type { UseFeatureFlagResult } from "./useFeatureFlag";
 export { useFeatureFlag } from "./useFeatureFlag";
 export type { PageContext, UseFooterHintsOptions, UseFooterHintsReturn } from "./useFooterHints";
-export { getHintsForPage, useFooterHints } from "./useFooterHints";
+export { getGlobalFooterHints, getHintsForPage, useFooterHints } from "./useFooterHints";
 export type { UseFooterHintsSettingReturn } from "./useFooterHintsSetting";
 export { useFooterHintsSetting } from "./useFooterHintsSetting";
 export type { GitStatus, UseGitStatusReturn } from "./useGitStatus";
