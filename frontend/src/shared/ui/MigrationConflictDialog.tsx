@@ -90,6 +90,8 @@ const StrategyOption: React.FC<StrategyOptionProps> = ({
 		<button
 			type="button"
 			onClick={() => onSelect(strategy)}
+			role="radio"
+			aria-checked={selected}
 			className={`w-full text-left p-3 rounded-lg border transition-colors ${
 				selected
 					? "border-accent bg-accent/10 backdrop-blur-sm"
@@ -183,7 +185,7 @@ export const MigrationConflictDialog: React.FC<MigrationConflictDialogProps> = (
 						<Label variant="uppercase" className="mb-2 block">
 							Resolution Strategy
 						</Label>
-						<div className="space-y-2">
+						<div className="space-y-2" role="radiogroup" aria-label="Resolution strategy">
 							<StrategyOption
 								strategy={MigrationStrategy.StrategyUseRemote}
 								selected={selectedStrategy === MigrationStrategy.StrategyUseRemote}

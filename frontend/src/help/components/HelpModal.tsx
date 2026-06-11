@@ -3,7 +3,13 @@ import { ChevronRight } from "lucide-react";
 // Value import required at runtime (React.FC in bundle; type-only yields "React is not defined")
 // biome-ignore lint: React used for React.FC and ref casts at runtime
 import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../shared/ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "../../shared/ui/dialog";
 import { Heading } from "../../shared/ui/Heading";
 import { useHelpModalController } from "../hooks";
 
@@ -130,20 +136,20 @@ export const HelpModal: React.FC = () => {
 				}}
 				showCloseButton={false}
 				aria-label="Keyboard shortcuts help modal"
-				aria-describedby="help-modal-description"
 			>
 				<VisuallyHidden>
 					<div role="status" aria-live="polite" aria-atomic="true">
 						{announcement}
 					</div>
-					<p id="help-modal-description">
-						Press Tab to navigate between elements. Press Enter or Space on section headers to expand or
-						collapse. Press Escape to close.
-					</p>
 				</VisuallyHidden>
-
 				<DialogHeader className="flex flex-row items-center justify-between px-4 py-4 border-b border-glass-border">
-					<DialogTitle className="text-base font-semibold text-text">Keyboard Shortcuts</DialogTitle>
+					<div>
+						<DialogTitle className="text-base font-semibold text-text">Keyboard Shortcuts</DialogTitle>
+						<DialogDescription className="sr-only">
+							Press Tab to navigate between elements. Press Enter or Space on section headers to expand
+							or collapse. Press Escape to close.
+						</DialogDescription>
+					</div>
 					<button
 						ref={closeButtonRef as React.RefObject<HTMLButtonElement>}
 						type="button"
