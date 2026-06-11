@@ -111,7 +111,7 @@ export const Layout: React.FC<LayoutProps> = ({
 	const currentProjectId = currentProject?.id;
 	useEffect(() => {
 		const el = contentRef.current;
-		if (!el || !currentProjectId) return;
+		if (!el) return;
 		el.classList.remove("animate-fade-in");
 		// Force a reflow so removing and re-adding the class restarts the animation.
 		void el.offsetWidth;
