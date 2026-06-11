@@ -74,8 +74,8 @@ build_dmg() {
   log "building dmg image..."
   rm -f "$DMG_PATH"
   local staging
-  staging="$(mktemp -d)"
-  cp -R "$APP_PATH" "$staging/"
+  staging="$(mktemp -d -t yanta-staging)"
+  ditto "$APP_PATH" "$staging/$(basename "$APP_PATH")"
   ln -s /Applications "$staging/Applications"
   hdiutil create \
     -volname "YANTA" \
@@ -105,13 +105,25 @@ require xcrun
 
 # Import the Developer ID cert into a throwaway keychain so we never touch the
 # user's login keychain and clean up automatically.
-KEYCHAIN="$(mktemp -d)/yanta-signing.keychain-db"
+KEYCHAIN_DIR="$(mktemp -d -t yanta-signing)"
+KEYCHAIN="${KEYCHAIN_DIR}/yanta-signing.keychain-db"
 KEYCHAIN_PWD="$(openssl rand -base64 24)"
-CERT_FILE="$(mktemp).p12"
+CERT_FILE="$(mktemp -t yanta-cert).p12"
+current_keychains=()
+while IFS= read -r line; do
+  clean_line=$(printf '%s' "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//')
+  if [ -n "$clean_line" ]; then
+    current_keychains+=("$clean_line")
+  fi
+done < <(security list-keychains -d user)
 
 cleanup() {
+  if [ ${#current_keychains[@]} -gt 0 ]; then
+    security list-keychains -d user -s "${current_keychains[@]}" >/dev/null 2>&1 || true
+  fi
   security delete-keychain "$KEYCHAIN" 2>/dev/null || true
   rm -f "$CERT_FILE"
+  rm -rf "$KEYCHAIN_DIR"
 }
 trap cleanup EXIT
 
@@ -120,23 +132,25 @@ security create-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
 security set-keychain-settings -lut 3600 "$KEYCHAIN"
 security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
 
-echo "$MACOS_CERTIFICATE" | base64 --decode > "$CERT_FILE"
+printf '%s' "$MACOS_CERTIFICATE" | base64 -D > "$CERT_FILE"
 security import "$CERT_FILE" -k "$KEYCHAIN" -P "$MACOS_CERTIFICATE_PWD" \
   -T /usr/bin/codesign -T /usr/bin/security
 # Allow codesign to use the key without an interactive prompt.
 security set-key-partition-list -S apple-tool:,apple:,codesign: \
   -s -k "$KEYCHAIN_PWD" "$KEYCHAIN" >/dev/null
 # Make the temp keychain searchable alongside the defaults.
-security list-keychains -d user -s "$KEYCHAIN" \
-  $(security list-keychains -d user | sed s/\"//g)
+security list-keychains -d user -s "$KEYCHAIN" "${current_keychains[@]}"
 
 log "signing app bundle with Hardened Runtime..."
 # Sign nested mach-O content first (dylibs/helpers), then the bundle itself.
-find "$APP_PATH/Contents" -type f \( -name "*.dylib" -o -perm -111 \) 2>/dev/null \
+find "$APP_PATH/Contents" -type f \( -name "*.dylib" -o -perm -111 \) \
   | while IFS= read -r bin; do
-      codesign --force --timestamp --options runtime \
-        --keychain "$KEYCHAIN" \
-        --sign "$MACOS_SIGN_IDENTITY" "$bin" 2>/dev/null || true
+      if file "$bin" | grep -q "Mach-O"; then
+        log "signing nested binary: $bin"
+        codesign --force --timestamp --options runtime \
+          --keychain "$KEYCHAIN" \
+          --sign "$MACOS_SIGN_IDENTITY" "$bin"
+      fi
     done
 codesign --force --timestamp --options runtime \
   --entitlements "$ENTITLEMENTS" \

@@ -367,7 +367,7 @@ tasks:
         MSG: "macOS tarball not found"
     - |
       set -euo pipefail
-      DMG=$(ls {{.DIST_DIR}}/yanta-macos-*.dmg 2>/dev/null | head -n1 || true)
+      DMG=$(ls "{{.DIST_DIR}}"/yanta-macos-*.dmg 2>/dev/null | head -n1 || true)
       if [ -z "$DMG" ]; then
         echo "ERROR: macOS .dmg not found in {{.DIST_DIR}}" >&2
         exit 1
