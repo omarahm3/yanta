@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -224,6 +225,10 @@ func (idx *Indexer) ScanAndIndexVault(ctx context.Context) ([]string, error) {
 	var corruptPaths []string
 	for i, docPath := range docPaths {
 		if err := idx.IndexDocument(ctx, docPath); err != nil {
+			if !errors.Is(err, document.ErrCorrupted) {
+				return nil, fmt.Errorf("indexing document %s: %w", docPath, err)
+			}
+
 			logger.Warnf("skipping corrupt document %s: %v", docPath, err)
 			corruptPaths = append(corruptPaths, docPath)
 			continue

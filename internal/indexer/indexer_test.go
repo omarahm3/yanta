@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"yanta/internal/asset"
+	internaldb "yanta/internal/db"
 	"yanta/internal/document"
 	"yanta/internal/events"
 	"yanta/internal/git"
@@ -845,5 +846,43 @@ func TestScanAndIndexVault_CorruptFilesSkipped(t *testing.T) {
 	// The corrupt document must NOT be in the index.
 	if _, err := docStore.GetByPath(ctx, corruptRelPath); err == nil {
 		t.Error("corrupt document should not be indexed")
+	}
+}
+
+func TestScanAndIndexVault_NonCorruptErrorAbortsScan(t *testing.T) {
+	db, v := setupTestEnv(t)
+	defer testutil.CleanupTestDB(t, db)
+
+	docStore := document.NewStore(db)
+	projectStore := project.NewStore(db)
+	ftsStore := search.NewStore(db)
+	tagStore := tag.NewStore(db)
+	linkStore := link.NewStore(db)
+	assetStore := asset.NewStore(db)
+
+	var dbPath string
+	if err := db.QueryRow("SELECT file FROM pragma_database_list WHERE name = 'main'").Scan(&dbPath); err != nil {
+		t.Fatalf("query database path: %v", err)
+	}
+
+	indexDB, err := internaldb.OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("OpenDB() failed: %v", err)
+	}
+
+	idx := New(indexDB, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
+
+	createTestDocument(t, v, "@test-project", "Valid Note", []string{})
+
+	if err = indexDB.Close(); err != nil {
+		t.Fatalf("Close() failed: %v", err)
+	}
+
+	_, err = idx.ScanAndIndexVault(context.Background())
+	if err == nil {
+		t.Fatal("ScanAndIndexVault() should fail on non-corrupt indexing errors")
+	}
+	if !strings.Contains(err.Error(), "indexing document") {
+		t.Fatalf("ScanAndIndexVault() error = %v, want indexing document context", err)
 	}
 }
