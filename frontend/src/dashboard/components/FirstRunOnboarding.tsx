@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import { Button, Heading, KeyDisplay, Text } from "../../shared/ui";
 
 interface FirstRunOnboardingProps {
@@ -43,8 +43,8 @@ export const FirstRunOnboarding: React.FC<FirstRunOnboardingProps> = ({
 						Welcome to YANTA
 					</Heading>
 					<Text variant="dim" size="base">
-						Your vault is empty and entirely yours. Create your first note to get
-						started — everything is plain JSON you fully own.
+						Your vault is empty and entirely yours. Create your first note to get started — everything is
+						plain JSON you fully own.
 					</Text>
 				</div>
 
@@ -55,7 +55,6 @@ export const FirstRunOnboarding: React.FC<FirstRunOnboardingProps> = ({
 						className="w-full"
 						onClick={onCreateNote}
 						disabled={isCreating}
-						// biome-ignore lint/a11y/noAutofocus: first-run focus lands on the primary action for keyboard users
 						autoFocus
 					>
 						{isCreating ? "Creating…" : "Create your first note"}

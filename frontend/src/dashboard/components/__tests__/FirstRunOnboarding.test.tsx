@@ -32,9 +32,7 @@ describe("FirstRunOnboarding", () => {
 
 	it("disables actions and shows progress while creating", () => {
 		const onCreateNote = vi.fn();
-		render(
-			<FirstRunOnboarding onCreateNote={onCreateNote} onCreateProject={vi.fn()} isCreating />,
-		);
+		render(<FirstRunOnboarding onCreateNote={onCreateNote} onCreateProject={vi.fn()} isCreating />);
 
 		const primary = screen.getByRole("button", { name: /creating/i });
 		expect(primary).toBeDisabled();
