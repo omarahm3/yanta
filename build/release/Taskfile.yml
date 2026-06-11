@@ -300,6 +300,7 @@ tasks:
         MSG: "Building macOS Release Artifacts"
     - task: macos:build
     - task: macos:package
+    - task: macos:dmg
     - task: macos:verify
     - task: common:log:success
       vars:
@@ -334,6 +335,27 @@ tasks:
       tar -C {{.BIN_DIR}} -czf "{{.DIST_DIR}}/yanta-macos.tar.gz" yanta.app
       echo "Created macOS tarball"
 
+  macos:dmg:
+    summary: Build (and, when secrets are present, sign + notarize) the macOS .dmg
+    desc: |
+      macOS-only task - uses native bash commands.
+      Delegates to build/scripts/macos-sign-notarize.sh which:
+        - signs yanta.app with the Hardened Runtime + Developer ID,
+        - packages it into a drag-install .dmg,
+        - notarizes via Apple's notary service and staples the ticket,
+      when the MACOS_* signing secrets are set. Without them it still produces
+      an unsigned .dmg (which trips Gatekeeper) so dev/PR builds keep working.
+      See docs/RELEASE-MACOS.md for the required secrets.
+    internal: true
+    cmds:
+    - |
+      set -euo pipefail
+      cd {{.ROOT_DIR}}
+      APP_PATH="{{.BIN_DIR}}/yanta.app" \
+      DIST_DIR="{{.DIST_DIR}}" \
+      APP_NAME="{{.APP_NAME}}" \
+        ./build/scripts/macos-sign-notarize.sh
+
   macos:verify:
     summary: Verify macOS artifacts exist
     desc: macOS-only task - uses native bash commands
@@ -343,6 +365,14 @@ tasks:
       vars:
         FILE: '{{.DIST_DIR}}/yanta-macos.tar.gz'
         MSG: "macOS tarball not found"
+    - |
+      set -euo pipefail
+      DMG=$(ls "{{.DIST_DIR}}"/yanta-macos-*.dmg 2>/dev/null | head -n1 || true)
+      if [ -z "$DMG" ]; then
+        echo "ERROR: macOS .dmg not found in {{.DIST_DIR}}" >&2
+        exit 1
+      fi
+      echo "macOS dmg verified: $(basename "$DMG")"
 
   # ============================================================================
   # Platform-aware "all" releases (Cross-platform)
