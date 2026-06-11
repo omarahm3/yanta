@@ -12,6 +12,7 @@ export const GLOBAL_SHORTCUTS = {
 	quit: { key: "ctrl+q", description: "Quit (background if enabled)" },
 	forceQuit: { key: "ctrl+shift+q", description: "Force quit application" },
 	commandPalette: { key: "mod+K", description: "Open command palette" },
+	quickSwitcher: { key: "mod+P", description: "Quick-switch to note" },
 	today: { key: "mod+T", description: "Jump to today's journal" },
 	switchProject: { key: "ctrl+Tab", description: "Switch to last project" },
 } as const satisfies Record<string, ShortcutDef>;

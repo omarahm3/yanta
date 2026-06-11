@@ -6,7 +6,7 @@ import { usePaneLayout } from "../../pane";
 import { useProjectContext } from "../../project";
 import { useNotification, useRecentDocuments } from "../../shared/hooks";
 import type { NavigationState, PageName } from "../../shared/types";
-import type { CommandOption, SubPaletteItem } from "../../shared/ui";
+import type { CommandOption, NoteResult, SubPaletteItem } from "../../shared/ui";
 import { formatRelativeTimeFromTimestamp } from "../../shared/utils/date";
 import { type ParsedGitError, parseGitError } from "../../shared/utils/gitErrorParser";
 import { useCommandPaletteStore } from "../commandPalette.store";
@@ -22,6 +22,7 @@ import {
 } from "../registry";
 import { getTopRecentCommandIds, sortCommandsByUsage } from "../utils/commandSorting";
 import { useCommandUsage } from "./useCommandUsage";
+import { useNoteSearch } from "./useNoteSearch";
 
 const REGISTRY_SOURCES = [
 	"navigation",
@@ -31,6 +32,8 @@ const REGISTRY_SOURCES = [
 	"projects",
 	"application",
 ] as const;
+
+const RECENT_GROUP_LIMIT = 5;
 
 export interface UseGlobalCommandPaletteProps {
 	onClose: () => void;
@@ -47,12 +50,17 @@ export interface UseGlobalCommandPaletteReturn {
 	handleClose: () => void;
 	handleCommandSelect: (command: CommandOption) => void;
 	sortedCommands: CommandOption[];
+	recentCommands: CommandOption[];
 	recentDocumentItems: SubPaletteItem[];
 	showRecentDocuments: boolean;
 	handleSubPaletteBack: () => void;
 	isErrorDialogOpen: boolean;
 	closeErrorDialog: () => void;
 	gitError: ParsedGitError | null;
+	noteResults: NoteResult[];
+	isSearchingNotes: boolean;
+	handleSearchChange: (value: string) => void;
+	handleNoteSelect: (result: NoteResult) => void;
 }
 
 export function useGlobalCommandPalette(
@@ -79,6 +87,7 @@ export function useGlobalCommandPalette(
 	const [gitError, setGitError] = useState<ParsedGitError | null>(null);
 	const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
 	const [showRecentDocuments, setShowRecentDocuments] = useState(false);
+	const [searchValue, setSearchValue] = useState("");
 	const clearGitErrorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const { timeouts } = useMergedConfig();
 	const onCloseRef = useRef(onClose);
@@ -100,6 +109,16 @@ export function useGlobalCommandPalette(
 	const hasToggleArchived = Boolean(onToggleArchived);
 	const hasToggleSidebar = Boolean(onToggleSidebar);
 	const hasShowHelp = Boolean(onShowHelp);
+
+	// Note quick-switcher: search by title as user types in the palette
+	const { results: noteResults, isSearching: isSearchingNotes } = useNoteSearch(searchValue);
+
+	// Reset search value when palette closes
+	useEffect(() => {
+		if (!isOpen) {
+			setSearchValue("");
+		}
+	}, [isOpen]);
 
 	const showGitError = useCallback((error: unknown) => {
 		const parsed = parseGitError(error);
@@ -130,11 +149,16 @@ export function useGlobalCommandPalette(
 
 	const handleClose = useCallback(() => {
 		setShowRecentDocuments(false);
+		setSearchValue("");
 		onCloseRef.current();
 	}, []);
 
 	const handleSubPaletteBack = useCallback(() => {
 		setShowRecentDocuments(false);
+	}, []);
+
+	const handleSearchChange = useCallback((value: string) => {
+		setSearchValue(value);
 	}, []);
 
 	const navigate = useCallback((page: PageName, state?: NavigationState) => {
@@ -166,6 +190,21 @@ export function useGlobalCommandPalette(
 			recordCommandUsage(command.id);
 		},
 		[recordCommandUsage],
+	);
+
+	const handleNoteSelect = useCallback(
+		(result: NoteResult) => {
+			const targetProject = projects.find((p) => p.alias === result.projectAlias);
+			if (targetProject) {
+				setCurrentProject(targetProject);
+			}
+			if (result.type === "note") {
+				navigate("journal", { date: result.path.split("/").pop(), noteId: result.noteId });
+			} else {
+				navigate("document", { path: result.path, projectAlias: result.projectAlias });
+			}
+		},
+		[navigate, projects, setCurrentProject],
 	);
 
 	const recentDocumentItems: SubPaletteItem[] = useMemo(() => {
@@ -266,27 +305,37 @@ export function useGlobalCommandPalette(
 		[sources],
 	);
 
-	// Sort commands by usage (recency + frequency) and mark top 5 as isRecent
+	// Sort commands by usage (recency + frequency) and mark top N as isRecent
 	const sortedCommands = useMemo(() => {
 		const usage = getAllCommandUsage();
 		const sorted = sortCommandsByUsage(commandOptions, usage);
-		const recentIds = getTopRecentCommandIds(usage, 5);
+		const recentIds = getTopRecentCommandIds(usage, RECENT_GROUP_LIMIT);
 		return sorted.map((cmd) => ({
 			...cmd,
 			isRecent: recentIds.has(cmd.id),
 		}));
 	}, [commandOptions, getAllCommandUsage]);
 
+	// Extract recently-used commands for the dedicated "Recent" group at the top
+	const recentCommands = useMemo(() => {
+		return sortedCommands.filter((cmd) => cmd.isRecent).slice(0, RECENT_GROUP_LIMIT);
+	}, [sortedCommands]);
+
 	return {
 		isOpen,
 		handleClose,
 		handleCommandSelect,
 		sortedCommands,
+		recentCommands,
 		recentDocumentItems,
 		showRecentDocuments,
 		handleSubPaletteBack,
 		isErrorDialogOpen,
 		closeErrorDialog,
 		gitError,
+		noteResults,
+		isSearchingNotes,
+		handleSearchChange,
+		handleNoteSelect,
 	};
 }

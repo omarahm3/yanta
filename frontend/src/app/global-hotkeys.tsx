@@ -29,6 +29,12 @@ const GlobalCommandHotkey = () => {
 	});
 
 	useHotkey({
+		...GLOBAL_SHORTCUTS.quickSwitcher,
+		handler: () => openCommandPalette(),
+		allowInInput: false,
+	});
+
+	useHotkey({
 		...GLOBAL_SHORTCUTS.today,
 		handler: (e) => {
 			e.preventDefault();

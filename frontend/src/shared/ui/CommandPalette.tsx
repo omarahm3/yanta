@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileText, Loader2 } from "lucide-react";
 import React, { useCallback, useMemo } from "react";
 import { getCommandIdForKeyboardEvent } from "../utils/shortcuts";
 import {
@@ -32,6 +32,14 @@ export interface SubPaletteItem {
 	text: string;
 	hint?: string;
 	action: () => void;
+}
+
+export interface NoteResult {
+	path: string;
+	title: string;
+	projectAlias: string;
+	type: "document" | "note";
+	noteId?: string;
 }
 
 // Define the canonical group order
@@ -129,6 +137,28 @@ const SubPaletteItemRow: React.FC<SubPaletteItemRowProps> = React.memo(({ item, 
 });
 SubPaletteItemRow.displayName = "SubPaletteItemRow";
 
+interface NoteResultRowProps {
+	result: NoteResult;
+	onSelect: (result: NoteResult) => void;
+}
+
+const NoteResultRow: React.FC<NoteResultRowProps> = React.memo(({ result, onSelect }) => {
+	const handleSelect = useCallback(() => {
+		onSelect(result);
+	}, [result, onSelect]);
+
+	return (
+		<CommandItem value={result.title} onSelect={handleSelect}>
+			<span className="w-5">
+				<FileText className="size-4 text-text-dim" aria-hidden="true" />
+			</span>
+			<span className="flex-1 truncate">{result.title}</span>
+			{result.projectAlias && <CommandShortcut>{result.projectAlias}</CommandShortcut>}
+		</CommandItem>
+	);
+});
+NoteResultRow.displayName = "NoteResultRow";
+
 export interface CommandPaletteProps {
 	isOpen: boolean;
 	onClose: () => void;
@@ -138,6 +168,16 @@ export interface CommandPaletteProps {
 	subPaletteItems?: SubPaletteItem[];
 	subPaletteTitle?: string;
 	onSubPaletteBack?: () => void;
+	/** Recently used commands shown at the top in their own group */
+	recentCommands?: CommandOption[];
+	/** Note results from quick-switcher title search */
+	noteResults?: NoteResult[];
+	/** True while note search is in-flight */
+	isSearchingNotes?: boolean;
+	/** Callback fired when the search input value changes */
+	onSearchChange?: (value: string) => void;
+	/** Called when user selects a note from note results */
+	onNoteSelect?: (result: NoteResult) => void;
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
@@ -149,6 +189,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 	subPaletteItems,
 	subPaletteTitle,
 	onSubPaletteBack,
+	recentCommands,
+	noteResults,
+	isSearchingNotes,
+	onSearchChange,
+	onNoteSelect,
 }) => {
 	const isSubPaletteMode = !!subPaletteItems;
 
@@ -169,6 +214,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 			onClose();
 		},
 		[onClose],
+	);
+
+	const handleNoteSelect = useCallback(
+		(result: NoteResult) => {
+			onNoteSelect?.(result);
+			onClose();
+		},
+		[onNoteSelect, onClose],
 	);
 
 	const handleOpenChange = useCallback(
@@ -222,6 +275,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
 	const groupedCommands = useMemo(() => groupCommands(commands), [commands]);
 
+	const hasRecentCommands = recentCommands && recentCommands.length > 0;
+	const hasNoteResults = noteResults && noteResults.length > 0;
+
 	return (
 		<CommandDialog open={isOpen} onOpenChange={handleOpenChange}>
 			<div onKeyDown={handleKeyDown}>
@@ -240,6 +296,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 				)}
 				<CommandInput
 					placeholder={isSubPaletteMode ? `Search ${subPaletteTitle?.toLowerCase()}...` : placeholder}
+					onValueChange={onSearchChange}
 				/>
 				<CommandList>
 					{isSubPaletteMode ? (
@@ -253,7 +310,31 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 						</>
 					) : (
 						<>
-							<CommandEmpty>No commands found.</CommandEmpty>
+							<CommandEmpty>
+								{isSearchingNotes ? (
+									<span className="flex items-center justify-center gap-2">
+										<Loader2 className="size-4 animate-spin" aria-hidden="true" />
+										Searching notes…
+									</span>
+								) : (
+									"No commands found."
+								)}
+							</CommandEmpty>
+
+							{/* Recent Actions — always at the top when present */}
+							{hasRecentCommands && (
+								<CommandGroup heading="Recent" data-testid="recent-group">
+									{recentCommands.map((command) => (
+										<CommandPaletteItem
+											key={`recent-${command.id}`}
+											command={command}
+											onSelect={handleSelect}
+										/>
+									))}
+								</CommandGroup>
+							)}
+
+							{/* Grouped commands */}
 							{Array.from(groupedCommands.entries()).map(([groupName, groupCmds]) => (
 								<CommandGroup key={groupName} heading={groupName}>
 									{groupCmds.map((command) => (
@@ -261,6 +342,19 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 									))}
 								</CommandGroup>
 							))}
+
+							{/* Note quick-switcher results */}
+							{hasNoteResults && (
+								<CommandGroup heading="Notes" data-testid="notes-group">
+									{noteResults.map((result) => (
+										<NoteResultRow
+											key={result.path}
+											result={result}
+											onSelect={handleNoteSelect}
+										/>
+									))}
+								</CommandGroup>
+							)}
 						</>
 					)}
 				</CommandList>

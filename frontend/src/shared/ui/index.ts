@@ -1,5 +1,5 @@
 export { Button } from "./Button";
-export { type CommandOption, CommandPalette, type SubPaletteItem } from "./CommandPalette";
+export { type CommandOption, CommandPalette, type NoteResult, type SubPaletteItem } from "./CommandPalette";
 export { ConfirmDialog, type ConfirmDialogProps } from "./ConfirmDialog";
 export {
 	ContextMenu,
