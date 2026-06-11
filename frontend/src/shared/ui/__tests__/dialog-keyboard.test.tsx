@@ -96,11 +96,17 @@ describe("dialog keyboard traversal", () => {
 		expect(screen.getByRole("radio", { name: /Use Target/i })).toHaveFocus();
 
 		await user.tab();
-		expect(screen.getByRole("radio", { name: /Use Local/i })).toHaveFocus();
+		expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
 
-		await user.tab();
+		await user.tab({ shift: true });
+		expect(screen.getByRole("radio", { name: /Use Target/i })).toHaveFocus();
+
+		await user.keyboard("[ArrowDown]");
+		expect(screen.getByRole("radio", { name: /Use Local/i })).toHaveFocus();
+		expect(screen.getByRole("radio", { name: /Use Local/i })).toHaveAttribute("aria-checked", "true");
+
+		await user.keyboard("[ArrowDown]");
 		expect(screen.getByRole("radio", { name: /Merge Both/i })).toHaveFocus();
-		await user.keyboard("[Space]");
 		expect(screen.getByRole("radio", { name: /Merge Both/i })).toHaveAttribute("aria-checked", "true");
 
 		await user.tab();

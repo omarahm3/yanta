@@ -1,5 +1,5 @@
 import { AlertTriangle, Database, FileText, FolderOpen, HardDrive } from "lucide-react";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import type {
 	MigrationConflictInfo,
 	VaultStats,
@@ -70,28 +70,43 @@ const VaultStatsCard: React.FC<VaultStatsCardProps> = ({ title, path, stats, var
 };
 
 interface StrategyOptionProps {
-	strategy: MigrationStrategy;
+	strategy: SelectableMigrationStrategy;
 	selected: boolean;
-	onSelect: (strategy: MigrationStrategy) => void;
+	onSelect: (strategy: SelectableMigrationStrategy) => void;
+	onFocus: (strategy: SelectableMigrationStrategy) => void;
+	optionRef?: React.Ref<HTMLButtonElement>;
 	title: string;
 	description: string;
 	warning?: string;
 }
 
+const strategyOrder = [
+	MigrationStrategy.StrategyUseRemote,
+	MigrationStrategy.StrategyUseLocal,
+	MigrationStrategy.StrategyMergeBoth,
+] as const;
+
+type SelectableMigrationStrategy = (typeof strategyOrder)[number];
+
 const StrategyOption: React.FC<StrategyOptionProps> = ({
 	strategy,
 	selected,
 	onSelect,
+	onFocus,
+	optionRef,
 	title,
 	description,
 	warning,
 }) => {
 	return (
 		<button
+			ref={optionRef}
 			type="button"
 			onClick={() => onSelect(strategy)}
+			onFocus={() => onFocus(strategy)}
 			role="radio"
 			aria-checked={selected}
+			tabIndex={selected ? 0 : -1}
 			className={`w-full text-left p-3 rounded-lg border transition-colors ${
 				selected
 					? "border-accent bg-accent/10 backdrop-blur-sm"
@@ -128,12 +143,44 @@ export const MigrationConflictDialog: React.FC<MigrationConflictDialogProps> = (
 	onConfirm,
 	isLoading = false,
 }) => {
-	const [selectedStrategy, setSelectedStrategy] = useState<MigrationStrategy>(
+	const [selectedStrategy, setSelectedStrategy] = useState<SelectableMigrationStrategy>(
 		MigrationStrategy.StrategyUseRemote,
 	);
+	const optionRefs = useRef<Record<SelectableMigrationStrategy, HTMLButtonElement | null>>({
+		[MigrationStrategy.StrategyUseRemote]: null,
+		[MigrationStrategy.StrategyUseLocal]: null,
+		[MigrationStrategy.StrategyMergeBoth]: null,
+	});
 
 	const handleConfirm = () => {
 		onConfirm(selectedStrategy);
+	};
+
+	const focusStrategy = (strategy: SelectableMigrationStrategy) => {
+		setSelectedStrategy(strategy);
+		optionRefs.current[strategy]?.focus();
+	};
+
+	const handleStrategyKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+		const currentIndex = strategyOrder.indexOf(selectedStrategy);
+		if (currentIndex === -1) {
+			return;
+		}
+
+		if (
+			event.key !== "ArrowDown" &&
+			event.key !== "ArrowRight" &&
+			event.key !== "ArrowUp" &&
+			event.key !== "ArrowLeft"
+		) {
+			return;
+		}
+
+		event.preventDefault();
+
+		const direction = event.key === "ArrowDown" || event.key === "ArrowRight" ? 1 : -1;
+		const nextIndex = (currentIndex + direction + strategyOrder.length) % strategyOrder.length;
+		focusStrategy(strategyOrder[nextIndex]);
 	};
 
 	// Reset selection when dialog opens
@@ -185,11 +232,20 @@ export const MigrationConflictDialog: React.FC<MigrationConflictDialogProps> = (
 						<Label variant="uppercase" className="mb-2 block">
 							Resolution Strategy
 						</Label>
-						<div className="space-y-2" role="radiogroup" aria-label="Resolution strategy">
+						<div
+							className="space-y-2"
+							role="radiogroup"
+							aria-label="Resolution strategy"
+							onKeyDown={handleStrategyKeyDown}
+						>
 							<StrategyOption
 								strategy={MigrationStrategy.StrategyUseRemote}
 								selected={selectedStrategy === MigrationStrategy.StrategyUseRemote}
 								onSelect={setSelectedStrategy}
+								onFocus={setSelectedStrategy}
+								optionRef={(element) => {
+									optionRefs.current[MigrationStrategy.StrategyUseRemote] = element;
+								}}
 								title="Use Target (Recommended)"
 								description="Keep the target vault data and discard your local data. Best when syncing to an existing shared repository."
 								warning="Your local vault data will be discarded"
@@ -198,6 +254,10 @@ export const MigrationConflictDialog: React.FC<MigrationConflictDialogProps> = (
 								strategy={MigrationStrategy.StrategyUseLocal}
 								selected={selectedStrategy === MigrationStrategy.StrategyUseLocal}
 								onSelect={setSelectedStrategy}
+								onFocus={setSelectedStrategy}
+								optionRef={(element) => {
+									optionRefs.current[MigrationStrategy.StrategyUseLocal] = element;
+								}}
 								title="Use Local"
 								description="Replace the target vault with your local data. A backup of the target will be created first."
 								warning="Target vault data will be overwritten"
@@ -206,6 +266,10 @@ export const MigrationConflictDialog: React.FC<MigrationConflictDialogProps> = (
 								strategy={MigrationStrategy.StrategyMergeBoth}
 								selected={selectedStrategy === MigrationStrategy.StrategyMergeBoth}
 								onSelect={setSelectedStrategy}
+								onFocus={setSelectedStrategy}
+								optionRef={(element) => {
+									optionRefs.current[MigrationStrategy.StrategyMergeBoth] = element;
+								}}
 								title="Merge Both"
 								description="Copy local files that don't exist in target. Existing target files are preserved."
 							/>
