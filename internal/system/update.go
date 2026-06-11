@@ -23,6 +23,8 @@ const (
 	updateCheckTimeout = 8 * time.Second
 )
 
+var updateClient = &http.Client{Timeout: updateCheckTimeout}
+
 // UpdateInfo describes the result of an auto-update check against GitHub
 // Releases. It is intentionally non-error-bearing for the common "no network"
 // case: callers get Available=false and can stay silent rather than nag the
@@ -66,8 +68,7 @@ type githubRelease struct {
 // Development builds (version "dev" or empty) are skipped — they have no
 // meaningful version to compare and should not nag local/dev users.
 func (s *Service) CheckForUpdate(ctx context.Context) (*UpdateInfo, error) {
-	client := &http.Client{Timeout: updateCheckTimeout}
-	return checkForUpdate(ctx, client, githubLatestReleaseURL, BuildVersion)
+	return checkForUpdate(ctx, updateClient, githubLatestReleaseURL, BuildVersion)
 }
 
 // checkForUpdate is the testable core of CheckForUpdate. It is separated from
@@ -205,7 +206,7 @@ func versionCore(v string) ([]int, bool) {
 	nums := make([]int, 0, len(parts))
 	for _, p := range parts {
 		n, err := strconv.Atoi(p)
-		if err != nil {
+		if err != nil || n < 0 {
 			return nil, false
 		}
 		nums = append(nums, n)

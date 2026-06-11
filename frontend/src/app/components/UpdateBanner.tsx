@@ -45,7 +45,7 @@ export const UpdateBanner: React.FC = () => {
 					type="button"
 					onClick={dismiss}
 					aria-label="Dismiss update notification"
-					className="text-text-dim hover:text-text transition-colors -mt-1 -mr-1 p-1 leading-none"
+					className="text-text-dim hover:text-text transition-colors -mt-1 -mr-1 rounded p-1 leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
 				>
 					×
 				</button>
