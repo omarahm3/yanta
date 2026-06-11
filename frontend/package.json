@@ -21,10 +21,10 @@
     "format:check": "biome format ."
   },
   "dependencies": {
-    "@blocknote/code-block": "^0.43.0",
-    "@blocknote/core": "^0.43.0",
-    "@blocknote/react": "^0.43.0",
-    "@blocknote/shadcn": "^0.43.0",
+    "@blocknote/code-block": "^0.51.4",
+    "@blocknote/core": "^0.51.4",
+    "@blocknote/react": "^0.51.4",
+    "@blocknote/shadcn": "^0.51.4",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@fontsource/outfit": "^5.2.8",
     "@radix-ui/react-checkbox": "^1.1.4",
