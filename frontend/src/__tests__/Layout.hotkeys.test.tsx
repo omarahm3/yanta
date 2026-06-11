@@ -32,6 +32,10 @@ vi.mock("../shared/hooks/useFooterHints", () => ({
 	useFooterHints: () => ({
 		hints: [{ key: "Ctrl+K", label: "Commands" }],
 	}),
+	getGlobalFooterHints: () => [
+		{ key: "Ctrl+K", label: "Commands", priority: 1 },
+		{ key: "?", label: "Help", priority: 1 },
+	],
 }));
 
 vi.mock("../shared/hooks/useFooterHintsSetting", () => ({

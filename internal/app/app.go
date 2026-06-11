@@ -155,8 +155,16 @@ func New(cfg Config) (*App, error) {
 	}
 
 	logger.Info("scanning vault for existing documents...")
-	if err := idx.ScanAndIndexVault(context.Background()); err != nil {
+	corruptPaths, err := idx.ScanAndIndexVault(context.Background())
+	if err != nil {
 		logger.Errorf("failed to scan and index vault: %v", err)
+	}
+	if len(corruptPaths) > 0 {
+		logger.Warnf("%d corrupt vault file(s) skipped on load: %v", len(corruptPaths), corruptPaths)
+		eventBus.Emit(events.ToastEvent, map[string]any{
+			"type":    "warning",
+			"message": fmt.Sprintf("%d note file(s) could not be loaded (corrupt JSON) and were skipped. Check the logs for details.", len(corruptPaths)),
+		})
 	}
 
 	projectCommands := commandline.NewProjectCommands(

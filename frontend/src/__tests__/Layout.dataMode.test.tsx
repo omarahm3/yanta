@@ -32,6 +32,10 @@ vi.mock("../shared/hooks/useFooterHints", () => ({
 	useFooterHints: () => ({
 		hints: [{ key: "Ctrl+K", label: "Commands" }],
 	}),
+	getGlobalFooterHints: () => [
+		{ key: "Ctrl+K", label: "Commands", priority: 1 },
+		{ key: "?", label: "Help", priority: 1 },
+	],
 }));
 
 vi.mock("../shared/hooks/useFooterHintsSetting", () => ({
@@ -119,5 +123,10 @@ describe("Layout data-mode attribute", () => {
 		renderWithProviders("unknown-page");
 		const root = screen.getByTestId("layout-root");
 		expect(root).toHaveAttribute("data-mode", "neutral");
+	});
+
+	it("deduplicates global footer hints when a page repeats one", () => {
+		renderWithProviders("dashboard");
+		expect(screen.getByTestId("footer-hint-bar-mock")).toHaveTextContent("2 hints");
 	});
 });

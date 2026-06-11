@@ -3,10 +3,16 @@ import { useDialog } from "../stores/dialog.store";
 import { cn } from "../utils/cn";
 import { Button } from "./Button";
 import { Checkbox } from "./checkbox";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "./dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "./dialog";
 import { Input } from "./Input";
 import { Label } from "./Label";
-import { Text } from "./Text";
 
 export interface ConfirmDialogProps {
 	isOpen: boolean;
@@ -78,9 +84,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 				</DialogHeader>
 
 				<div className="space-y-4">
-					<Text size="sm" variant="dim">
-						{message}
-					</Text>
+					<DialogDescription className="text-sm text-text-dim">{message}</DialogDescription>
 
 					{inputPrompt && expectedInput && (
 						<div className="space-y-2">

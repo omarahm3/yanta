@@ -3,7 +3,14 @@ import type React from "react";
 import { cn } from "../utils/cn";
 import type { ParsedGitError } from "../utils/gitErrorParser";
 import { Button } from "./Button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "./dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "./dialog";
 
 export interface GitErrorDialogProps {
 	isOpen: boolean;
@@ -46,14 +53,16 @@ export const GitErrorDialog: React.FC<GitErrorDialogProps> = ({ isOpen, onClose,
 					<div className="flex items-center gap-3">
 						{getIcon()}
 						<DialogTitle className="text-lg font-semibold text-text-bright">{error.title}</DialogTitle>
+						<DialogDescription className="sr-only">{error.message}</DialogDescription>
 					</div>
 					<Button
 						variant="ghost"
 						size="sm"
 						onClick={onClose}
+						aria-label="Close"
 						className="text-text-dim hover:text-text-bright p-1"
 					>
-						<X className="text-2xl" />
+						<X className="text-2xl" aria-hidden="true" />
 					</Button>
 				</DialogHeader>
 

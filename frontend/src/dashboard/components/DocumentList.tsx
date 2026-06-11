@@ -1,4 +1,5 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { Archive, FilePlus, FolderPlus } from "lucide-react";
 import React, { useEffect, useRef } from "react";
 import type { Document } from "../../shared/types/Document";
 import {
@@ -7,8 +8,8 @@ import {
 	ContextMenuContent,
 	ContextMenuItem,
 	ContextMenuTrigger,
+	EmptyState,
 	Heading,
-	Text,
 } from "../../shared/ui";
 import { cn } from "../../shared/utils/cn";
 import { formatShortDate } from "../../shared/utils/date";
@@ -46,6 +47,11 @@ interface DocumentListProps {
 	onMoveDocument?: (path: string) => void;
 	/** Whether the list is showing archived documents (affects context menu labels). */
 	showArchived?: boolean;
+	currentProjectAlias?: string | null;
+	hasProjects?: boolean;
+	onCreateDocument?: () => void;
+	onShowProjects?: () => void;
+	onShowActiveDocuments?: () => void;
 }
 
 export const DocumentList: React.FC<DocumentListProps> = ({
@@ -60,6 +66,11 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 	onRestoreDocument,
 	onMoveDocument,
 	showArchived = false,
+	currentProjectAlias,
+	hasProjects = false,
+	onCreateDocument,
+	onShowProjects,
+	onShowActiveDocuments,
 }) => {
 	const listRef = useRef<HTMLDivElement>(null);
 
@@ -81,58 +92,45 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 	}, [highlightedIndex, scrollRef, documents.length, virtualizer]);
 
 	if (documents.length === 0) {
-		const placeholders: Document[] = [
-			{
-				path: "projects/work/doc-placeholder1.json",
-				projectAlias: "work",
-				title: "Sample Document 1",
-				blocks: [],
-				tags: ["sample", "placeholder"],
-				created: new Date(),
-				updated: new Date(),
-			},
-			{
-				path: "projects/work/doc-placeholder2.json",
-				projectAlias: "work",
-				title: "Sample Document 2",
-				blocks: [],
-				tags: ["demo"],
-				created: new Date(),
-				updated: new Date(),
-			},
-		];
-
+		const emptyState = showArchived
+			? {
+					icon: <Archive className="h-6 w-6" aria-hidden="true" />,
+					title: "No archived documents yet",
+					description: "Archive documents when you want them out of the way without losing them.",
+					actionLabel: "Show active documents",
+					onAction: onShowActiveDocuments,
+				}
+			: currentProjectAlias
+				? {
+						icon: <FilePlus className="h-6 w-6" aria-hidden="true" />,
+						title: `No documents in @${currentProjectAlias} yet`,
+						description: "Create the first document in this project to get writing.",
+						actionLabel: "Create first document",
+						onAction: onCreateDocument,
+					}
+				: hasProjects
+					? {
+							icon: <FolderPlus className="h-6 w-6" aria-hidden="true" />,
+							title: "No project selected",
+							description: "Select a project from the sidebar or projects page to view its documents.",
+							actionLabel: "Open projects",
+							onAction: onShowProjects,
+						}
+					: {
+							icon: <FolderPlus className="h-6 w-6" aria-hidden="true" />,
+							title: "No projects yet",
+							description: "Create a project first, then you can start adding documents to it.",
+							actionLabel: "Open projects",
+							onAction: onShowProjects,
+						};
 		return (
-			<div className="opacity-50 space-y-2">
-				{placeholders.map((doc) => (
-					<div
-						key={doc.path}
-						className="space-y-2 rounded-lg border border-glass-border bg-glass-bg/10 p-4"
-					>
-						<Heading as="h3" size="lg">
-							{doc.title}
-						</Heading>
-						<div className="mt-2 flex gap-4 text-sm text-text-dim">
-							<Text as="span" variant="dim" size="sm">
-								{doc.projectAlias}
-							</Text>
-							<Text as="span" variant="dim" size="sm">
-								{formatShortDate(doc.updated.toISOString())}
-							</Text>
-						</div>
-						<div className="mt-2 flex gap-2">
-							{doc.tags.map((tag) => (
-								<span key={tag} className="rounded bg-glass-bg/20 px-2 py-1 text-xs text-text-dim">
-									{tag}
-								</span>
-							))}
-						</div>
-					</div>
-				))}
-				<Text className="p-4 mt-4" size="sm" variant="dim">
-					No documents yet. Create one to get started!
-				</Text>
-			</div>
+			<EmptyState
+				icon={emptyState.icon}
+				title={emptyState.title}
+				description={emptyState.description}
+				actionLabel={emptyState.actionLabel}
+				onAction={emptyState.onAction}
+			/>
 		);
 	}
 

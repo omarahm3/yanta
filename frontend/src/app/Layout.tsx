@@ -3,7 +3,12 @@ import { type ReactNode, useEffect, useMemo } from "react";
 import { SIDEBAR_SHORTCUTS } from "@/config/public";
 import { useHotkeys } from "../hotkeys";
 import { useProjectContext } from "../project";
-import { useFooterHints, useFooterHintsSetting, useSidebarSetting } from "../shared/hooks";
+import {
+	getGlobalFooterHints,
+	useFooterHints,
+	useFooterHintsSetting,
+	useSidebarSetting,
+} from "../shared/hooks";
 import type { PageName } from "../shared/types";
 import { FooterHintBar, HeaderBar, type SidebarSection, Sidebar as UISidebar } from "../shared/ui";
 import { useTitleBarContext } from "./context";
@@ -44,6 +49,25 @@ export interface LayoutProps {
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
+const dedupeFooterHints = (
+	hints: Array<{
+		key: string;
+		label: string;
+		priority?: 1 | 2 | 3;
+	}>,
+) => {
+	const seen = new Set<string>();
+
+	return hints.filter((hint) => {
+		const duplicateKey = `${hint.key}-${hint.label}`;
+		if (seen.has(duplicateKey)) {
+			return false;
+		}
+		seen.add(duplicateKey);
+		return true;
+	});
+};
+
 /**
  * Determines the mode based on the current page.
  * - "documents": Dashboard and document pages
@@ -77,6 +101,12 @@ export const Layout: React.FC<LayoutProps> = ({
 	const { currentProject } = useProjectContext();
 	const { heightInRem } = useTitleBarContext();
 	const { hints: footerHints } = useFooterHints({ currentPage });
+	// The command-palette and help affordances stay pinned on every page so a
+	// first-timer can always discover them without docs (YANA-7).
+	const allFooterHints = useMemo(
+		() => dedupeFooterHints([...getGlobalFooterHints(), ...footerHints]),
+		[footerHints],
+	);
 
 	useEffect(() => {
 		if (onRegisterToggleSidebar) {
@@ -158,7 +188,7 @@ export const Layout: React.FC<LayoutProps> = ({
 					</div>
 				</div>
 
-				{!footerHintsLoading && showFooterHints && <FooterHintBar hints={footerHints} />}
+				{!footerHintsLoading && showFooterHints && <FooterHintBar hints={allFooterHints} />}
 			</div>
 		</div>
 	);

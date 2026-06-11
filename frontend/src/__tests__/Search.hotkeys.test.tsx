@@ -195,4 +195,24 @@ describe("Search hotkeys", () => {
 			documentPath: "alpha/doc1",
 		});
 	});
+
+	it("shows a no-results empty state with a clear action", async () => {
+		vi.mocked(Query).mockResolvedValueOnce([]);
+
+		render(
+			<DialogProvider>
+				<HotkeyProvider>
+					<Search onNavigate={onNavigate} />
+				</HotkeyProvider>
+			</DialogProvider>,
+		);
+
+		const input = (await screen.findByPlaceholderText(/Search entries/)) as HTMLInputElement;
+		fireEvent.change(input, { target: { value: "missing" } });
+
+		await screen.findByText("No matches for “missing”");
+		fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+
+		await waitFor(() => expect(input.value).toBe(""));
+	});
 });
