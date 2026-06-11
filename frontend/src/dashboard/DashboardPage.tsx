@@ -4,6 +4,7 @@ import { useHotkeys } from "../hotkeys";
 import type { NavigationState, PageName } from "../shared/types";
 import { ConfirmDialog } from "../shared/ui/ConfirmDialog";
 import { DocumentList } from "./components/DocumentList";
+import { DocumentListSkeleton } from "./components/DocumentListSkeleton";
 import { MoveDocumentDialog } from "./components/MoveDocumentDialog";
 import { StatusBar } from "./components/StatusBar";
 import { useDashboardController } from "./hooks/useDashboardController";
@@ -52,8 +53,8 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 				onRegisterToggleSidebar={onRegisterToggleSidebar}
 			>
 				{isLoading ? (
-					<div className="flex items-center justify-center py-8">
-						<div className="text-text-dim">Loading...</div>
+					<div className="p-5">
+						<DocumentListSkeleton />
 					</div>
 				) : (
 					<div className="flex h-full flex-col overflow-hidden">

@@ -11,6 +11,7 @@ import { useNotification, useSidebarSections } from "../shared/hooks";
 import type { NavigationState, PageName } from "../shared/types";
 import { Button, Input } from "../shared/ui";
 import { BackendLogger } from "../shared/utils/backendLogger";
+import { SearchResultsSkeleton } from "./SearchResultsSkeleton";
 
 interface SearchResult {
 	path: string;
@@ -400,6 +401,8 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 							<div className="p-4 text-center bg-surface border border-red/30 rounded text-red">
 								Error: {searchError}
 							</div>
+						) : isLoading && groupedResults.length === 0 ? (
+							<SearchResultsSkeleton />
 						) : groupedResults.length === 0 && !isLoading ? (
 							<div className="p-8 text-center text-text-dim">
 								{rawQuery.trim() ? (

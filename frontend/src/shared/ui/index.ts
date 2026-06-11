@@ -30,6 +30,7 @@ export { MigrationConflictDialog } from "./MigrationConflictDialog";
 export { Modal } from "./Modal";
 export { RelatedEntries, type RelatedEntry } from "./RelatedEntries";
 export { ResizeHandles } from "./ResizeHandles";
+export { Skeleton } from "./Skeleton";
 export { Select, type SelectOption } from "./Select";
 export { SettingsSection } from "./SettingsSection";
 export { type Shortcut, ShortcutsTable } from "./ShortcutsTable";
