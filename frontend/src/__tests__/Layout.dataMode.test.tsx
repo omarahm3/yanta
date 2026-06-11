@@ -124,4 +124,9 @@ describe("Layout data-mode attribute", () => {
 		const root = screen.getByTestId("layout-root");
 		expect(root).toHaveAttribute("data-mode", "neutral");
 	});
+
+	it("deduplicates global footer hints when a page repeats one", () => {
+		renderWithProviders("dashboard");
+		expect(screen.getByTestId("footer-hint-bar-mock")).toHaveTextContent("2 hints");
+	});
 });

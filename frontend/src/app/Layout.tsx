@@ -49,6 +49,25 @@ export interface LayoutProps {
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
+const dedupeFooterHints = (
+	hints: Array<{
+		key: string;
+		label: string;
+		priority?: 1 | 2 | 3;
+	}>,
+) => {
+	const seen = new Set<string>();
+
+	return hints.filter((hint) => {
+		const duplicateKey = `${hint.key}-${hint.label}`;
+		if (seen.has(duplicateKey)) {
+			return false;
+		}
+		seen.add(duplicateKey);
+		return true;
+	});
+};
+
 /**
  * Determines the mode based on the current page.
  * - "documents": Dashboard and document pages
@@ -84,8 +103,10 @@ export const Layout: React.FC<LayoutProps> = ({
 	const { hints: footerHints } = useFooterHints({ currentPage });
 	// The command-palette and help affordances stay pinned on every page so a
 	// first-timer can always discover them without docs (YANA-7).
-	const globalHints = useMemo(() => getGlobalFooterHints(), []);
-	const allFooterHints = useMemo(() => [...globalHints, ...footerHints], [globalHints, footerHints]);
+	const allFooterHints = useMemo(
+		() => dedupeFooterHints([...getGlobalFooterHints(), ...footerHints]),
+		[footerHints],
+	);
 
 	useEffect(() => {
 		if (onRegisterToggleSidebar) {
