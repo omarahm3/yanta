@@ -6,6 +6,7 @@ import { ListActive } from "../../bindings/yanta/internal/project/service";
 import { useHotkeys } from "../hotkeys";
 import { useUserProgressContext } from "../onboarding";
 import { useNotification } from "../shared/hooks";
+import { LoadingSpinner } from "../shared/ui";
 import type { HotkeyConfig } from "../shared/types/hotkeys";
 import { BackendLogger } from "../shared/utils/backendLogger";
 import type { ProjectOption } from "./ProjectPicker";
@@ -125,14 +126,16 @@ export const QuickCapture: React.FC = () => {
 	if (isLoading) {
 		return (
 			<div
-				className="h-full flex items-center justify-center bg-bg-dark text-text-dim font-sans text-sm rounded-xl overflow-hidden border border-glass-border"
+				className="h-full flex items-center justify-center bg-bg-dark rounded-xl overflow-hidden border border-glass-border"
 				style={{
 					backgroundImage:
 						"radial-gradient(circle at 20% 50%, rgba(88, 166, 255, 0.06), transparent 50%), radial-gradient(circle at 80% 30%, rgba(163, 113, 247, 0.06), transparent 50%)",
 				}}
 			>
 				<div className="bg-glass-bg/60 backdrop-blur-xl inset-0 absolute" />
-				<span className="relative text-text-dim">Loading...</span>
+				<div className="relative">
+					<LoadingSpinner message="Loading projects..." fullScreen={false} />
+				</div>
 			</div>
 		);
 	}

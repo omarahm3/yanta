@@ -1,9 +1,11 @@
+import { NotebookText, PenLine } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import React, { useEffect, useRef, useState } from "react";
 import { GranularErrorBoundary, Layout } from "@/app";
 import { useHotkeys } from "../hotkeys";
 import type { NavigationState, PageName } from "../shared/types";
 import { ConfirmDialog } from "../shared/ui/ConfirmDialog";
+import { EmptyState, LoadingSpinner } from "../shared/ui";
 import { cn } from "../shared/utils/cn";
 import { DatePicker } from "./DatePicker";
 import { JournalEntry } from "./JournalEntry";
@@ -96,19 +98,25 @@ const JournalComponent: React.FC<JournalProps> = ({
 							message="Something went wrong in the journal entry list."
 							onRetry={() => setEntryListKey((k) => k + 1)}
 						>
-							{isLoading && (
+							{isLoading && <LoadingSpinner message="Loading entries..." fullScreen={false} />}
+
+							{error && !isLoading && (
 								<div className="flex items-center justify-center py-8">
-									<div className="text-text-dim">Loading...</div>
+									<div className="max-w-md text-center">
+										<div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red/10">
+											<PenLine className="h-6 w-6 text-red" aria-hidden="true" />
+										</div>
+										<p className="text-red">{error}</p>
+									</div>
 								</div>
 							)}
 
-							{error && <div className="text-center text-red py-8">{error}</div>}
-
-							{isEmpty && !isLoading && (
-								<div className="text-center text-text-dim py-8">
-									<p>No entries for this day.</p>
-									<p className="mt-2 text-sm">Press your quick capture hotkey to add one!</p>
-								</div>
+							{isEmpty && !isLoading && !error && (
+								<EmptyState
+									icon={<NotebookText className="h-6 w-6" aria-hidden="true" />}
+									title="No entries for this day"
+									description="Press your quick capture hotkey to add a note, or pick another date."
+								/>
 							)}
 
 							{!isLoading &&
