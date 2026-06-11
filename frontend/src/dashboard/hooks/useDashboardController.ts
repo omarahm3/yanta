@@ -2,10 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { DocumentCommand } from "@/config/public";
 import { ParseWithContext } from "../../../bindings/yanta/internal/commandline/documentcommands";
 import { Restore, SoftDelete } from "../../../bindings/yanta/internal/document/service";
+import { Create as CreateProject } from "../../../bindings/yanta/internal/project/service";
 import { useDocumentContext } from "../../document";
 import { useHelp } from "../../help";
+import { useProjectContext } from "../../project";
 import { useNotification, useRecentDocuments, useSidebarSections } from "../../shared/hooks";
 import { DocumentServiceWrapper } from "../../shared/services/DocumentService";
+import { useProjectStore } from "../../shared/stores/project.store";
 import type { NavigationState, PageName } from "../../shared/types";
 import type { Document } from "../../shared/types/Document";
 import type { HotkeyConfig } from "../../shared/types/hotkeys";
@@ -62,6 +65,14 @@ export interface DashboardControllerResult {
 	projectsLoading: boolean;
 	documentsLoading: boolean;
 	documents: Document[];
+	/** True on first run / empty vault: no projects exist yet. */
+	isVaultEmpty: boolean;
+	/** Creating the first note (and bootstrapping a default project). */
+	creatingFirstNote: boolean;
+	/** Onboarding: create the first note, bootstrapping a default project if needed. */
+	handleCreateFirstNote: () => Promise<void>;
+	/** Onboarding: navigate to the Projects page to set up the first project. */
+	handleStartFirstProject: () => void;
 	currentProjectAlias: string | null;
 	sidebarSections: ReturnType<typeof useSidebarSections>;
 	commandInput: string;
@@ -107,6 +118,12 @@ export function useDashboardController({
 	const [showArchived, setShowArchived] = useState(false);
 	const { projectsLoading, documentsLoading, documents, currentProject, reloadDocuments } =
 		useDashboardData({ showArchived });
+	const { projects, archivedProjects, loadProjects } = useProjectContext();
+	const [creatingFirstNote, setCreatingFirstNote] = useState(false);
+
+	// First-run / empty-vault: no projects exist at all. Gated on projectsLoading
+	// so onboarding never flashes before the project list has loaded.
+	const isVaultEmpty = !projectsLoading && projects.length === 0 && archivedProjects.length === 0;
 
 	const {
 		selectedIndex: highlightedIndex,
@@ -197,6 +214,48 @@ export function useDashboardController({
 			error(`Failed to create document: ${err}`);
 		}
 	}, [onNavigate, error]);
+
+	// Onboarding: create the first note, bootstrapping a default project when the
+	// vault is brand new so a first-run user reaches the editor in one click.
+	const handleCreateFirstNote = useCallback(async () => {
+		if (creatingFirstNote) return;
+		setCreatingFirstNote(true);
+		try {
+			let project = currentProjectRef.current;
+			if (!project) {
+				await CreateProject("Notes", "notes", "", "");
+				await loadProjects();
+				project = useProjectStore.getState().currentProject ?? null;
+			}
+			if (!project) {
+				error("Could not create a project for your first note");
+				return;
+			}
+			const newPath = await DocumentServiceWrapper.save({
+				projectAlias: project.alias,
+				title: "Untitled",
+				blocks: [
+					{
+						id: "initial-heading",
+						type: "heading",
+						props: { level: 1 },
+						content: [{ type: "text", text: "", styles: {} }],
+					},
+				],
+				tags: [],
+			});
+			onNavigate?.("document", { documentPath: newPath, newDocument: true });
+		} catch (err) {
+			error(`Failed to create your first note: ${err}`);
+		} finally {
+			setCreatingFirstNote(false);
+		}
+	}, [creatingFirstNote, loadProjects, onNavigate, error]);
+
+	// Onboarding: send the user to the Projects page to set up their first project.
+	const handleStartFirstProject = useCallback(() => {
+		onNavigate?.("projects");
+	}, [onNavigate]);
 
 	const handleToggleArchived = useCallback(() => {
 		setShowArchived((prev) => !prev);
@@ -522,6 +581,10 @@ export function useDashboardController({
 		projectsLoading,
 		documentsLoading,
 		documents,
+		isVaultEmpty,
+		creatingFirstNote,
+		handleCreateFirstNote,
+		handleStartFirstProject,
 		currentProjectAlias: currentProject?.alias ?? null,
 		sidebarSections,
 		commandInput,
