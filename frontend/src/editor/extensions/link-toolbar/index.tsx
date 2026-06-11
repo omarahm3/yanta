@@ -47,7 +47,7 @@ const CustomLinkToolbar = (props: LinkToolbarProps) => {
 				url={props.url}
 				text={props.text}
 				range={props.range}
-				setToolbarFrozen={props.setToolbarFrozen}
+				setToolbarPositionFrozen={props.setToolbarPositionFrozen}
 				setToolbarOpen={props.setToolbarOpen}
 			/>
 			<CustomOpenLinkButton url={props.url} />
