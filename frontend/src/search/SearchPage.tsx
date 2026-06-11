@@ -1,4 +1,4 @@
-import { FolderSearch, SearchX } from "lucide-react";
+import { Clock, FolderSearch, SearchX, X } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GranularErrorBoundary, Layout } from "@/app";
 import { useMergedConfig } from "@/config/usePreferencesOverrides";
@@ -13,6 +13,71 @@ import type { NavigationState, PageName } from "../shared/types";
 import { Button, EmptyState, Input } from "../shared/ui";
 import { BackendLogger } from "../shared/utils/backendLogger";
 import { SearchResultsSkeleton } from "./SearchResultsSkeleton";
+
+const RECENT_SEARCHES_KEY = "yanta:recent-searches";
+const MAX_RECENT = 10;
+
+type TypeFilter = "all" | "document" | "note";
+type DateFilter = "all" | "today" | "week" | "month";
+
+function loadRecentSearches(): string[] {
+	try {
+		const raw = localStorage.getItem(RECENT_SEARCHES_KEY);
+		if (!raw) return [];
+		const parsed = JSON.parse(raw);
+		return Array.isArray(parsed) ? parsed.slice(0, MAX_RECENT) : [];
+	} catch {
+		return [];
+	}
+}
+
+function saveRecentSearches(searches: string[]) {
+	try {
+		localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(searches.slice(0, MAX_RECENT)));
+	} catch {
+		/* localStorage may be full; silently ignore */
+	}
+}
+
+function addRecentSearch(query: string): string[] {
+	const trimmed = query.trim();
+	if (!trimmed) return loadRecentSearches();
+	const current = loadRecentSearches();
+	const filtered = current.filter((s) => s !== trimmed);
+	return [trimmed, ...filtered].slice(0, MAX_RECENT);
+}
+
+function removeRecentSearch(query: string): string[] {
+	const current = loadRecentSearches();
+	return current.filter((s) => s !== query);
+}
+
+function isToday(dateStr: string): boolean {
+	const today = new Date();
+	const d = new Date(dateStr + "T00:00:00");
+	return (
+		d.getFullYear() === today.getFullYear() &&
+		d.getMonth() === today.getMonth() &&
+		d.getDate() === today.getDate()
+	);
+}
+
+function isThisWeek(dateStr: string): boolean {
+	const now = new Date();
+	const dayOfWeek = now.getDay();
+	const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+	const monday = new Date(now);
+	monday.setDate(now.getDate() - diffToMonday);
+	monday.setHours(0, 0, 0, 0);
+	const d = new Date(dateStr + "T00:00:00");
+	return d >= monday;
+}
+
+function isThisMonth(dateStr: string): boolean {
+	const now = new Date();
+	const d = new Date(dateStr + "T00:00:00");
+	return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+}
 
 interface SearchResult {
 	path: string;
@@ -47,6 +112,10 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 	const [isLoading, setIsLoading] = useState(false);
 	const [searchError, setSearchError] = useState<string | null>(null);
 	const [queryTime, setQueryTime] = useState<number>(0);
+	const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+	const [dateFilter, setDateFilter] = useState<DateFilter>("all");
+	const [recentSearches, setRecentSearches] = useState<string[]>(() => loadRecentSearches());
+	const [showRecent, setShowRecent] = useState(false);
 
 	const { timeouts } = useMergedConfig();
 	const { error: notifyError } = useNotification();
@@ -60,7 +129,6 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 	const searchGenerationRef = useRef(0);
 	const [resultsKey, setResultsKey] = useState(0);
 
-	// Set page context for help modal
 	useEffect(() => {
 		setPageContext([], "Search");
 	}, [setPageContext]);
@@ -143,7 +211,7 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 				const endTime = performance.now();
 				setQueryTime(Math.round(endTime - startTime));
 
-				if (searchResults && Array.isArray(searchResults)) {
+				if (searchResults && Array.isArray(searchResults) && searchResults.length > 0) {
 					setResults(
 						searchResults
 							.filter((r): r is searchModels.Result => r !== null)
@@ -158,6 +226,9 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 							})),
 					);
 					setSelectedIndex(0);
+					const updated = addRecentSearch(queryStr);
+					saveRecentSearches(updated);
+					setRecentSearches(updated);
 				} else {
 					setResults([]);
 				}
@@ -220,18 +291,50 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 		return Array.from(groups.values());
 	}, [results]);
 
-	useEffect(() => {
-		if (selectedIndex > groupedResults.length - 1) {
-			setSelectedIndex(Math.max(0, groupedResults.length - 1));
+	const filteredResults = useMemo(() => {
+		let filtered = groupedResults;
+
+		if (typeFilter !== "all") {
+			filtered = filtered.filter((r) => r.type === typeFilter);
 		}
-	}, [groupedResults.length, selectedIndex]);
+
+		if (dateFilter !== "all") {
+			filtered = filtered.filter((r) => {
+				if (!r.updated) return false;
+				switch (dateFilter) {
+					case "today":
+						return isToday(r.updated);
+					case "week":
+						return isThisWeek(r.updated);
+					case "month":
+						return isThisMonth(r.updated);
+					default:
+						return true;
+				}
+			});
+		}
+
+		return filtered;
+	}, [groupedResults, typeFilter, dateFilter]);
+
+	const displayResults = filteredResults;
+
+	useEffect(() => {
+		if (selectedIndex > displayResults.length - 1) {
+			setSelectedIndex(Math.max(0, displayResults.length - 1));
+		}
+	}, [displayResults.length, selectedIndex]);
+
+	useEffect(() => {
+		setTypeFilter("all");
+		setDateFilter("all");
+	}, [rawQuery]);
 
 	const openResult = useCallback(
 		(index: number) => {
-			const result = groupedResults[index];
+			const result = displayResults[index];
 			if (!result) return;
 
-			// Set the project context
 			const projectAlias = result.projectAlias || result.path.split("/")[1];
 			const targetProject = projects.find((p) => p.alias === projectAlias);
 			if (targetProject) {
@@ -241,15 +344,12 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 			}
 
 			if (result.type === "note") {
-				// Navigate to Journal page with the date and noteId
-				// result.updated contains the date (YYYY-MM-DD)
 				onNavigate?.("journal", { date: result.updated, noteId: result.noteId });
 			} else {
-				// Navigate to document page
 				onNavigate?.("document", { documentPath: result.path });
 			}
 		},
-		[groupedResults, onNavigate, projects, setCurrentProject],
+		[displayResults, onNavigate, projects, setCurrentProject],
 	);
 
 	useEffect(() => {
@@ -257,11 +357,17 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 			const focused = document.activeElement as HTMLElement | null;
 			const isSearchInputFocused = focused === (searchInputRef.current as unknown as HTMLElement);
 
+			if (e.key === "Escape" && showRecent) {
+				setShowRecent(false);
+				return;
+			}
+
 			if (e.key === "Tab" && isSearchInputFocused && !e.shiftKey) {
 				e.preventDefault();
 				e.stopPropagation();
+				setShowRecent(false);
 
-				if (groupedResults.length > 0) {
+				if (displayResults.length > 0) {
 					const firstResult = document.querySelector('[data-result-item="true"]') as HTMLElement;
 					if (firstResult) {
 						firstResult.focus();
@@ -276,7 +382,7 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 			if (e.key === "Escape" && isSearchInputFocused) {
 				e.preventDefault();
 				searchInputRef.current?.blur();
-				if (groupedResults.length > 0) {
+				if (displayResults.length > 0) {
 					const firstResult = document.querySelector('[data-result-item="true"]') as HTMLElement;
 					firstResult?.focus();
 				}
@@ -289,7 +395,7 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 			if (e.key === "j") {
 				e.preventDefault();
 				setSelectedIndex((prev) => {
-					const newIndex = Math.min(prev + 1, groupedResults.length - 1);
+					const newIndex = Math.min(prev + 1, displayResults.length - 1);
 					const resultElement = document.querySelectorAll('[data-result-item="true"]')[
 						newIndex
 					] as HTMLElement;
@@ -318,7 +424,7 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 
 		document.addEventListener("keydown", onKeyDown);
 		return () => document.removeEventListener("keydown", onKeyDown);
-	}, [groupedResults.length, openResult, selectedIndex]);
+	}, [displayResults.length, openResult, selectedIndex, showRecent]);
 
 	const sidebarSections = useSidebarSections({
 		currentPage: "search",
@@ -326,7 +432,6 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 	});
 
 	const renderSnippet = (snippet: string) => {
-		// biome-ignore lint/security/noDangerouslySetInnerHtml: search result HTML is trusted backend content with highlight marks
 		return <div className="leading-snug text-text" dangerouslySetInnerHTML={{ __html: snippet }} />;
 	};
 
@@ -344,8 +449,7 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 			onRegisterToggleSidebar={onRegisterToggleSidebar}
 		>
 			<div className="flex flex-col h-full">
-				{/* Search Header */}
-				<div className="p-4 border-b bg-transparent border-glass-border shrink-0">
+				<div className="p-4 border-b bg-transparent border-glass-border shrink-0 relative">
 					<div className="flex items-center gap-3 mb-3">
 						<span className="text-base text-accent">/</span>
 						<Input
@@ -354,27 +458,120 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 							placeholder="Search entries... (try: project:alias, tag:name, title:text, -exclude, AND, OR)"
 							value={rawQuery}
 							onChange={(e) => setRawQuery((e.target as HTMLInputElement).value)}
+							onFocus={() => setShowRecent(true)}
+							onBlur={() => setTimeout(() => setShowRecent(false), 200)}
 							className="flex-1 text-base bg-surface/80 border-border"
 						/>
 					</div>
 
-					{/* Filters */}
+					{showRecent && !rawQuery.trim() && recentSearches.length > 0 && (
+						<div className="absolute top-full left-4 right-4 z-50 mt-1 p-3 bg-surface border border-border rounded-xl shadow-lg">
+							<div className="flex items-center justify-between mb-2">
+								<span className="text-[11px] font-semibold uppercase tracking-wider text-text-dim">
+									Recent
+								</span>
+								<button
+									type="button"
+									className="text-[11px] text-text-dim hover:text-text-bright transition-colors"
+									onClick={(e) => {
+										e.preventDefault();
+										saveRecentSearches([]);
+										setRecentSearches([]);
+									}}
+									onMouseDown={(e) => e.preventDefault()}
+								>
+									Clear all
+								</button>
+							</div>
+							<div className="flex flex-wrap gap-2">
+								{recentSearches.map((s) => (
+									<div
+										key={s}
+										className="group inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-bg/80 border border-border rounded-lg text-xs text-text-dim hover:text-text hover:border-accent/40 hover:bg-accent/5 transition-colors cursor-pointer"
+										onMouseDown={(e) => {
+											e.preventDefault();
+											setRawQuery(s);
+											setShowRecent(false);
+										}}
+									>
+										<Clock className="h-3 w-3 shrink-0" />
+										<span className="max-w-48 truncate">{s}</span>
+										<button
+											type="button"
+											className="ml-auto p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-surface hover:text-text-dim transition-all"
+											onMouseDown={(e) => {
+												e.stopPropagation();
+												e.preventDefault();
+												const updated = removeRecentSearch(s);
+												saveRecentSearches(updated);
+												setRecentSearches(updated);
+											}}
+											aria-label={`Remove "${s}" from recent searches`}
+										>
+											<X className="h-3 w-3" />
+										</button>
+									</div>
+								))}
+							</div>
+						</div>
+					)}
+
 					<div className="flex items-center gap-3 text-xs flex-wrap">
-						{/* Projects */}
 						{projects.slice(0, 10).map((p) => (
 							<ProjectFilterButton key={p.alias} alias={p.alias} onAddFilter={handleAddProjectFilter} />
 						))}
 
 						<span className="px-1 text-text-dim">|</span>
 
-						{/* Tags */}
 						{availableTags.map((t) => (
 							<TagFilterButton key={t} tag={t} onAddFilter={handleAddTagFilter} />
 						))}
 					</div>
+
+					{groupedResults.length > 0 && (
+						<div className="flex items-center gap-3 mt-3 pt-3 border-t border-glass-border text-xs flex-wrap">
+							<span className="text-[11px] font-semibold uppercase tracking-wider text-text-dim shrink-0">
+								Type
+							</span>
+							{(["all", "note", "document"] as const).map((t) => (
+								<FilterChip
+									key={t}
+									label={t === "all" ? "All" : t === "note" ? "Notes" : "Documents"}
+									isActive={typeFilter === t}
+									onClick={() => setTypeFilter(t)}
+								/>
+							))}
+
+							<span className="mx-1 text-text-dim">|</span>
+
+							<span className="text-[11px] font-semibold uppercase tracking-wider text-text-dim shrink-0">
+								Date
+							</span>
+							{(["all", "today", "week", "month"] as const).map((d) => (
+								<FilterChip
+									key={d}
+									label={d === "all" ? "All time" : d === "today" ? "Today" : d === "week" ? "This week" : "This month"}
+									isActive={dateFilter === d}
+									onClick={() => setDateFilter(d)}
+								/>
+							))}
+
+							{(typeFilter !== "all" || dateFilter !== "all") && (
+								<button
+									type="button"
+									className="text-[11px] text-red/80 hover:text-red transition-colors ml-auto"
+									onClick={() => {
+										setTypeFilter("all");
+										setDateFilter("all");
+									}}
+								>
+									Clear filters
+								</button>
+							)}
+						</div>
+					)}
 				</div>
 
-				{/* Search Info Bar */}
 				<div className="flex items-center justify-between px-5 py-2 text-xs border-b bg-glass-bg/10 border-glass-border text-text-dim shrink-0">
 					<div className="flex gap-4">
 						{isLoading ? (
@@ -382,8 +579,16 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 						) : (
 							<>
 								<span>
-									Found <span className="font-semibold text-text">{groupedResults.length}</span>{" "}
-									{groupedResults.length === 1 ? "result" : "results"}
+									Found{" "}
+									<span className="font-semibold text-text">
+										{displayResults.length}
+									</span>{" "}
+									{displayResults.length === 1 ? "result" : "results"}
+									{typeFilter !== "all" || dateFilter !== "all" ? (
+										<span className="text-text-dim ml-1">
+											(filtered from {groupedResults.length})
+										</span>
+									) : null}
 								</span>
 								{queryTime > 0 && <span className="text-text-dim">in {queryTime}ms</span>}
 							</>
@@ -396,12 +601,11 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 						<span className="font-mono text-accent">title:text</span>
 						<span className="font-mono text-accent">body:text</span>
 						<span className="font-mono text-accent">-exclude</span>
-						<span className="font-mono text-accent">"phrase"</span>
+						<span className="font-mono text-accent">&quot;phrase&quot;</span>
 						<span className="font-mono text-accent">AND OR</span>
 					</div>
 				</div>
 
-				{/* Results */}
 				<div className="p-5 flex-1 overflow-y-auto">
 					<GranularErrorBoundary
 						key={resultsKey}
@@ -412,13 +616,25 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 							<div className="p-4 text-center bg-surface border border-red/30 rounded text-red">
 								Error: {searchError}
 							</div>
-						) : isLoading && groupedResults.length === 0 ? (
+						) : isLoading && displayResults.length === 0 ? (
 							<SearchResultsSkeleton />
-						) : groupedResults.length === 0 ? (
-							rawQuery.trim() ? (
+						) : displayResults.length === 0 ? (
+							groupedResults.length > 0 ? (
 								<EmptyState
 									icon={<SearchX className="h-6 w-6" aria-hidden="true" />}
-									title={`No matches for “${rawQuery.trim()}”`}
+									title="No results match your filters"
+									description="Try adjusting the type or date filter to see more results."
+									actionLabel="Clear filters"
+									onAction={() => {
+										setTypeFilter("all");
+										setDateFilter("all");
+									}}
+									className="min-h-[22rem]"
+								/>
+							) : rawQuery.trim() ? (
+								<EmptyState
+									icon={<SearchX className="h-6 w-6" aria-hidden="true" />}
+									title={`No matches for "${rawQuery.trim()}"`}
 									description="Try fewer keywords or clear your filters to widen the search."
 									actionLabel="Clear search"
 									onAction={() => setRawQuery("")}
@@ -440,7 +656,7 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 							)
 						) : (
 							<div className="space-y-5">
-								{groupedResults.map((r, idx) => (
+								{displayResults.map((r, idx) => (
 									<SearchResultCard
 										key={r.path}
 										result={r}
@@ -461,6 +677,28 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 };
 
 export const Search = React.memo(SearchComponent);
+
+interface FilterChipProps {
+	label: string;
+	isActive: boolean;
+	onClick: () => void;
+}
+
+const FilterChip: React.FC<FilterChipProps> = React.memo(({ label, isActive, onClick }) => {
+	return (
+		<button
+			type="button"
+			className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+				isActive
+					? "bg-accent/15 text-accent border border-accent/30"
+					: "text-text-dim hover:text-text hover:bg-surface border border-transparent"
+			}`}
+			onClick={onClick}
+		>
+			{label}
+		</button>
+	);
+});
 
 interface ProjectFilterButtonProps {
 	alias: string;
@@ -573,7 +811,6 @@ const SearchResultCard: React.FC<SearchResultCardProps> = React.memo(
 				<div className="space-y-2">
 					{result.snippets.map((snippet, snippetIdx) => (
 						<div
-							// biome-ignore lint/suspicious/noArrayIndexKey: snippets are unique within a result
 							key={snippetIdx}
 							className="text-sm [&_mark]:bg-yellow/20 [&_mark]:text-yellow [&_mark]:px-1 [&_mark]:rounded [&_mark]:font-semibold pl-3 border-l-2 border-border"
 						>
