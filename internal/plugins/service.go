@@ -518,10 +518,6 @@ func copyFile(sourcePath string, destPath string) error {
 	return nil
 }
 
-func isManifestValid(m Manifest) bool {
-	return len(manifestValidationIssues(m)) == 0
-}
-
 func validateManifest(m Manifest, decodeErr error) (PluginStatus, []ValidationIssue) {
 	issues := []ValidationIssue{}
 	if decodeErr != nil {
