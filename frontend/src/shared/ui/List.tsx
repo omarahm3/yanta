@@ -32,7 +32,7 @@ export const ListItem = React.forwardRef<HTMLLIElement, ListItemProps>(
 		const variantClasses = {
 			default: "",
 			sidebar:
-				"sidebar-item flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-all hover:bg-glass-bg/20 hover:text-text mb-1",
+				"sidebar-item flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-all duration-[var(--duration-fast)] ease-[var(--ease-out-quart)] hover:bg-glass-bg/20 hover:text-text mb-1",
 			selectable: "cursor-pointer hover:bg-border rounded-md px-2 py-1",
 		};
 
@@ -42,7 +42,7 @@ export const ListItem = React.forwardRef<HTMLLIElement, ListItemProps>(
 					baseClasses,
 					variantClasses[variant],
 					active &&
-						"active bg-glass-bg/30 text-text-bright font-medium shadow-sm border border-glass-border/50 backdrop-blur-sm",
+						"active bg-glass-bg/30 text-text-bright font-medium shadow-sm border border-glass-border/50 backdrop-blur-sm transition-all duration-[var(--duration-fast)] ease-[var(--ease-out-quart)]",
 					className,
 				)}
 				ref={ref}

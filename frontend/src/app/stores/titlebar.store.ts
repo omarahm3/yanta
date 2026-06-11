@@ -1,23 +1,28 @@
 import { create } from "zustand";
 
+export type TitleBarChrome = "hidden" | "frameless" | "macos";
+
 interface TitleBarState {
 	heightInRem: number;
-	setHeight: (height: number) => void;
+	chrome: TitleBarChrome;
+	setChrome: (chrome: TitleBarChrome, heightInRem: number) => void;
 }
 
 export const useTitleBarStore = create<TitleBarState>((set) => ({
-	heightInRem: 2,
-	setHeight: (height: number) => set({ heightInRem: height }),
+	heightInRem: 0,
+	chrome: "hidden",
+	setChrome: (chrome, heightInRem) => set({ chrome, heightInRem }),
 }));
 
 export interface TitleBarContextType {
 	heightInRem: number;
-	setHeight: (height: number) => void;
+	chrome: TitleBarChrome;
+	setChrome: (chrome: TitleBarChrome, heightInRem: number) => void;
 }
 
-/** Same API as legacy useTitleBarContext — use in components. */
 export function useTitleBarContext(): TitleBarContextType {
 	const heightInRem = useTitleBarStore((s) => s.heightInRem);
-	const setHeight = useTitleBarStore((s) => s.setHeight);
-	return { heightInRem, setHeight };
+	const chrome = useTitleBarStore((s) => s.chrome);
+	const setChrome = useTitleBarStore((s) => s.setChrome);
+	return { heightInRem, chrome, setChrome };
 }

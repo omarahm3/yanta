@@ -120,13 +120,15 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 		>
 			{documentPath ? (
 				<>
-					<PaneDocumentView
-						key={documentPath}
-						paneId={paneId}
-						documentPath={documentPath}
-						onNavigate={handlePaneNavigate}
-						suppressEscape={showPicker}
-					/>
+					<div className="animate-stagger-fade-in flex flex-col flex-1 overflow-hidden">
+						<PaneDocumentView
+							key={documentPath}
+							paneId={paneId}
+							documentPath={documentPath}
+							onNavigate={handlePaneNavigate}
+							suppressEscape={showPicker}
+						/>
+					</div>
 					{showPicker && (
 						<div className="absolute inset-0 z-10 bg-glass-bg/90 backdrop-blur-xl flex flex-col">
 							<PaneHeader paneId={paneId} documentPath={documentPath} />
