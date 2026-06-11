@@ -51,7 +51,7 @@ missing the build produces an unsigned `.dmg`.
      `MACOS_CERTIFICATE_PWD`.
    - Encode for the secret:
      ```sh
-     base64 -i cert.p12 | pbcopy      # paste into MACOS_CERTIFICATE
+     base64 < cert.p12 | pbcopy      # paste into MACOS_CERTIFICATE
      ```
 
 2. **Signing identity string** — find the exact name:
