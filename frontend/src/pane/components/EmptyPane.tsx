@@ -17,7 +17,7 @@ export const EmptyPane: React.FC<EmptyPaneProps> = ({ className, isDragOver = fa
 	return (
 		<div
 			className={cn(
-				"flex flex-1 flex-col items-center justify-center gap-4 text-text-dim select-none transition-colors",
+				"flex flex-1 flex-col items-center justify-center gap-4 text-text-dim select-none transition-colors animate-stagger-fade-in",
 				isDragOver && "bg-accent/5",
 				className,
 			)}

@@ -66,6 +66,28 @@
 	--yanta-glass-border-solid: rgba(48, 54, 61, 0.8);
 }
 
+/* Motion tokens: purposeful easing and duration */
+:root {
+	--ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+	--ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+	--ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+	--duration-instant: 100ms;
+	--duration-fast: 200ms;
+	--duration-normal: 300ms;
+	--duration-entrance: 400ms;
+}
+
+@keyframes stagger-fade-in {
+	0% {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+	100% {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
 /* GitHub-light palette */
 :root[data-theme="light"] {
 	--radius: 0.625rem;
@@ -182,6 +204,16 @@
 	--color-on-accent: var(--yanta-on-accent);
 	--color-glass-bg: var(--yanta-glass-bg);
 	--color-glass-border: var(--yanta-glass-border);
+
+	/* Motion tokens */
+	--ease-out-quart: var(--ease-out-quart);
+	--ease-out-quint: var(--ease-out-quint);
+	--ease-out-expo: var(--ease-out-expo);
+	--duration-instant: var(--duration-instant);
+	--duration-fast: var(--duration-fast);
+	--duration-normal: var(--duration-normal);
+	--duration-entrance: var(--duration-entrance);
+	--animate-stagger-fade-in: stagger-fade-in 0.4s var(--ease-out-quart) both;
 }
 
 /* Global styles for desktop app */
@@ -313,7 +345,7 @@
 @layer components {
 	/* Buttons: Modern, scaling, polished */
 	.btn {
-		@apply px-4 py-2 font-medium transition-all duration-200 rounded-lg flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+		@apply px-4 py-2 font-medium transition-all duration-[var(--duration-fast)] ease-[var(--ease-out-quart)] rounded-lg flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
 	}
 
 	.btn-primary {
@@ -326,7 +358,7 @@
 
 	/* Inputs: Clean, minimal, glass-like */
 	.input {
-		@apply font-mono text-sm bg-surface/50 border border-border rounded-md px-3 py-2 text-text-bright transition-all duration-200 focus:bg-surface focus:border-accent focus:ring-1 focus:ring-accent/20 placeholder:text-text-dim/50;
+		@apply font-mono text-sm bg-surface/50 border border-border rounded-md px-3 py-2 text-text-bright transition-all duration-[var(--duration-fast)] ease-[var(--ease-out-quart)] focus:bg-surface focus:border-accent focus:ring-1 focus:ring-accent/20 placeholder:text-text-dim/50;
 	}
 
 	/* Cards: Glass effect, subtle border */
@@ -336,7 +368,7 @@
 
 	/* Sidebar Items: Refined interactions */
 	.sidebar-item {
-		@apply px-3 py-2 rounded-md cursor-pointer transition-all duration-200 flex items-center justify-between text-text-dim hover:text-text hover:bg-surface my-0.5;
+		@apply px-3 py-2 rounded-md cursor-pointer transition-all duration-[var(--duration-fast)] ease-[var(--ease-out-quart)] flex items-center justify-between text-text-dim hover:text-text hover:bg-surface my-0.5;
 	}
 
 	.sidebar-item.active {
@@ -397,8 +429,8 @@
 	/* Sidebar transition styles */
 	.sidebar-transition {
 		transition:
-			transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
-			opacity 200ms ease-out;
+			transform var(--duration-normal) var(--ease-out-expo),
+			opacity var(--duration-fast) ease-out;
 		flex-shrink: 0;
 	}
 

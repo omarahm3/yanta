@@ -42,7 +42,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 				)}
 			</div>
 			{hasSelection && (
-				<div className="flex flex-wrap items-center gap-2 text-text">
+				<div className="flex flex-wrap items-center gap-2 text-text animate-stagger-fade-in">
 					<span className="font-medium">{selectionLabel}</span>
 					{onClearSelection && (
 						<Button
