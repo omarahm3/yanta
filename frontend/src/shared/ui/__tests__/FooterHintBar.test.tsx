@@ -14,6 +14,12 @@ describe("FooterHintBar", () => {
 		expect(screen.getByTestId("footer-hint-bar")).toBeInTheDocument();
 	});
 
+	it("exposes the hint bar as a labelled region landmark", () => {
+		render(<FooterHintBar hints={defaultHints} />);
+		const region = screen.getByRole("region", { name: "Keyboard shortcut hints" });
+		expect(region).toBe(screen.getByTestId("footer-hint-bar"));
+	});
+
 	it("renders all provided hints", () => {
 		render(<FooterHintBar hints={defaultHints} />);
 		expect(screen.getByText("Navigate")).toBeInTheDocument();

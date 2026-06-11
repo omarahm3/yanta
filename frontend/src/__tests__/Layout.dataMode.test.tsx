@@ -129,4 +129,9 @@ describe("Layout data-mode attribute", () => {
 		renderWithProviders("dashboard");
 		expect(screen.getByTestId("footer-hint-bar-mock")).toHaveTextContent("2 hints");
 	});
+
+	it("does not wrap the sidebar in a nav landmark (avoids nested landmarks)", () => {
+		const { container } = renderWithProviders("dashboard");
+		expect(container.querySelector("nav")).toBeNull();
+	});
 });
