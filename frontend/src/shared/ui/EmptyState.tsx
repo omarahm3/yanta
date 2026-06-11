@@ -1,4 +1,5 @@
 import type React from "react";
+import { cn } from "../utils/cn";
 import { Button } from "./Button";
 import { Heading } from "./Heading";
 import { Text } from "./Text";
@@ -21,7 +22,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 	className,
 }) => (
 	<div
-		className={`flex min-h-[18rem] items-center justify-center rounded-2xl border border-dashed border-glass-border bg-glass-bg/10 px-6 py-10 text-center ${className ?? ""}`}
+		className={cn(
+			"flex min-h-[18rem] items-center justify-center rounded-2xl border border-dashed border-glass-border bg-glass-bg/10 px-6 py-10 text-center",
+			className,
+		)}
 	>
 		<div className="flex max-w-md flex-col items-center gap-4">
 			<div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-glass-bg/40 text-accent">

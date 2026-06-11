@@ -63,6 +63,7 @@ export interface DashboardControllerResult {
 	documentsLoading: boolean;
 	documents: Document[];
 	currentProjectAlias: string | null;
+	hasProjects: boolean;
 	sidebarSections: ReturnType<typeof useSidebarSections>;
 	commandInput: string;
 	setCommandInput: (value: string) => void;
@@ -106,7 +107,7 @@ export function useDashboardController({
 	onRegisterToggleArchived,
 }: DashboardControllerOptions): DashboardControllerResult {
 	const [showArchived, setShowArchived] = useState(false);
-	const { projectsLoading, documentsLoading, documents, currentProject, reloadDocuments } =
+	const { projectsLoading, documentsLoading, documents, currentProject, hasProjects, reloadDocuments } =
 		useDashboardData({ showArchived });
 
 	const {
@@ -524,6 +525,7 @@ export function useDashboardController({
 		documentsLoading,
 		documents,
 		currentProjectAlias: currentProject?.alias ?? null,
+		hasProjects,
 		sidebarSections,
 		commandInput,
 		setCommandInput,

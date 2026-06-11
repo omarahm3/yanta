@@ -76,6 +76,7 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 									onMoveDocument={controller.handleOpenMoveDialog}
 									showArchived={showArchived}
 									currentProjectAlias={controller.currentProjectAlias}
+									hasProjects={controller.hasProjects}
 									onCreateDocument={controller.handleNewDocument}
 									onShowProjects={() => onNavigate?.("projects")}
 									onShowActiveDocuments={controller.handleToggleArchived}

@@ -48,6 +48,7 @@ interface DocumentListProps {
 	/** Whether the list is showing archived documents (affects context menu labels). */
 	showArchived?: boolean;
 	currentProjectAlias?: string | null;
+	hasProjects?: boolean;
 	onCreateDocument?: () => void;
 	onShowProjects?: () => void;
 	onShowActiveDocuments?: () => void;
@@ -66,6 +67,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 	onMoveDocument,
 	showArchived = false,
 	currentProjectAlias,
+	hasProjects = false,
 	onCreateDocument,
 	onShowProjects,
 	onShowActiveDocuments,
@@ -105,6 +107,14 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 						description: "Create the first document in this project to get writing.",
 						actionLabel: "Create first document",
 						onAction: onCreateDocument,
+					}
+			: hasProjects
+				? {
+						icon: <FolderPlus className="h-6 w-6" aria-hidden="true" />,
+						title: "No project selected",
+						description: "Select a project from the sidebar or projects page to view its documents.",
+						actionLabel: "Open projects",
+						onAction: onShowProjects,
 					}
 				: {
 						icon: <FolderPlus className="h-6 w-6" aria-hidden="true" />,

@@ -13,13 +13,14 @@ export interface UseDashboardDataResult {
 	documentsLoading: boolean;
 	documents: Document[];
 	currentProject: Project | null | undefined;
+	hasProjects: boolean;
 	reloadDocuments: () => Promise<void>;
 }
 
 export function useDashboardData({
 	showArchived,
 }: UseDashboardDataOptions): UseDashboardDataResult {
-	const { currentProject, isLoading: projectsLoading } = useProjectContext();
+	const { currentProject, isLoading: projectsLoading, projects } = useProjectContext();
 	const { documents, loadDocuments, isLoading: documentsLoading } = useDocumentContext();
 
 	const currentProjectRef = useRef(currentProject);
@@ -46,6 +47,7 @@ export function useDashboardData({
 		documentsLoading,
 		documents,
 		currentProject,
+		hasProjects: projects.length > 0,
 		reloadDocuments,
 	};
 }
