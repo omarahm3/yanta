@@ -226,7 +226,9 @@ export function useDashboardController({
 				const projectId = await CreateProject("Notes", "notes", "", "");
 				await loadProjects();
 				const { projects } = useProjectStore.getState();
-				project = projects.find((candidate) => candidate.id === projectId || candidate.alias === "notes") ?? null;
+				project =
+					projects.find((candidate) => candidate.id === projectId || candidate.alias === "notes") ??
+					null;
 			}
 			if (!project) {
 				error("Could not create a project for your first note");
