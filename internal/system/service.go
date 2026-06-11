@@ -860,9 +860,19 @@ func (s *Service) ReindexDatabase(ctx context.Context) error {
 	logger.Info("index cleared, scanning vault")
 	s.emitProgress(0, 0, "Scanning vault...")
 
-	if err := s.indexer.ScanAndIndexVault(ctx); err != nil {
+	corruptPaths, err := s.indexer.ScanAndIndexVault(ctx)
+	if err != nil {
 		logger.Errorf("failed to scan and index vault: %v", err)
 		return fmt.Errorf("failed to scan and index vault: %w", err)
+	}
+	if len(corruptPaths) > 0 {
+		logger.Warnf("%d corrupt vault file(s) skipped during reindex: %v", len(corruptPaths), corruptPaths)
+		if s.eventBus != nil {
+			s.eventBus.Emit(events.ToastEvent, map[string]any{
+				"type":    "warning",
+				"message": fmt.Sprintf("%d note file(s) could not be loaded (corrupt JSON) and were skipped. Check the logs for details.", len(corruptPaths)),
+			})
+		}
 	}
 
 	logger.Info("database reindex completed successfully")

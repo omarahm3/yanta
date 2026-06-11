@@ -43,8 +43,8 @@ export {
 	projectsFromModels,
 	projectToModel,
 } from "./Project";
-export type { AppInfo, DatabaseInfo, SystemInfo } from "./System";
-export { systemInfoFromModel } from "./System";
+export type { AppInfo, DatabaseInfo, SystemInfo, UpdateInfo } from "./System";
+export { systemInfoFromModel, updateInfoFromModel } from "./System";
 export type { Tag } from "./Tag";
 export { tagFromModel, tagsFromModels, tagToModel } from "./Tag";
 

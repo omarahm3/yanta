@@ -91,7 +91,7 @@
  * Uncomment to see the resize handles (useful for debugging)
  */
 /* .resize-handle:hover {
-	background-color: rgba(100, 150, 255, 0.15);
+	background-color: color-mix(in srgb, var(--color-accent) 15%, transparent);
 } */
 
 /**

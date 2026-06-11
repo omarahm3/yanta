@@ -1,3 +1,4 @@
+import { FolderSearch, SearchX } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GranularErrorBoundary, Layout } from "@/app";
 import { useMergedConfig } from "@/config/usePreferencesOverrides";
@@ -9,7 +10,7 @@ import { useHelp } from "../help";
 import { useProjectContext } from "../project";
 import { useNotification, useSidebarSections } from "../shared/hooks";
 import type { NavigationState, PageName } from "../shared/types";
-import { Button, Input } from "../shared/ui";
+import { Button, EmptyState, Input } from "../shared/ui";
 import { BackendLogger } from "../shared/utils/backendLogger";
 import { SearchResultsSkeleton } from "./SearchResultsSkeleton";
 
@@ -49,7 +50,7 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 
 	const { timeouts } = useMergedConfig();
 	const { error: notifyError } = useNotification();
-	const { projects, setCurrentProject } = useProjectContext();
+	const { currentProject, projects, setCurrentProject } = useProjectContext();
 	const { setPageContext } = useHelp();
 
 	const [availableTags, setAvailableTags] = useState<string[]>([]);
@@ -112,6 +113,15 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 		},
 		[addFilterToQuery],
 	);
+
+	const handleSeedProjectSearch = useCallback(() => {
+		const targetAlias = currentProject?.alias ?? projects[0]?.alias;
+		if (!targetAlias) {
+			searchInputRef.current?.focus();
+			return;
+		}
+		setRawQuery(`project:${targetAlias}`);
+	}, [currentProject?.alias, projects]);
 
 	const performSearch = useCallback(
 		async (queryStr: string, requestGeneration: number) => {
@@ -405,19 +415,29 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 						) : isLoading && groupedResults.length === 0 ? (
 							<SearchResultsSkeleton />
 						) : groupedResults.length === 0 ? (
-							<div className="p-8 text-center text-text-dim">
-								{rawQuery.trim() ? (
-									<>
-										<div className="text-lg mb-2">No results found</div>
-										<div className="text-sm">Try different keywords or remove some filters</div>
-									</>
-								) : (
-									<>
-										<div className="text-lg mb-2">Start searching</div>
-										<div className="text-sm">Type a query or click filters to search your documents</div>
-									</>
-								)}
-							</div>
+							rawQuery.trim() ? (
+								<EmptyState
+									icon={<SearchX className="h-6 w-6" aria-hidden="true" />}
+									title={`No matches for “${rawQuery.trim()}”`}
+									description="Try fewer keywords or clear your filters to widen the search."
+									actionLabel="Clear search"
+									onAction={() => setRawQuery("")}
+									className="min-h-[22rem]"
+								/>
+							) : (
+								<EmptyState
+									icon={<FolderSearch className="h-6 w-6" aria-hidden="true" />}
+									title="Search your notes"
+									description="Start with plain text or jump in with a project or tag filter."
+									actionLabel={
+										(currentProject?.alias ?? projects[0]?.alias)
+											? `Search @${currentProject?.alias ?? projects[0]?.alias}`
+											: "Focus search"
+									}
+									onAction={handleSeedProjectSearch}
+									className="min-h-[22rem]"
+								/>
+							)
 						) : (
 							<div className="space-y-5">
 								{groupedResults.map((r, idx) => (

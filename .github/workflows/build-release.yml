@@ -105,6 +105,16 @@ jobs:
 
     - name: Build macOS artifacts
       if: matrix.name == 'macos'
+      env:
+        # Developer ID signing + notarization secrets. When unset (forks, PRs,
+        # or before the CEO provisions them) the build falls back to an unsigned
+        # .dmg — see docs/RELEASE-MACOS.md. A real release tag requires these.
+        MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+        MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+        MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+        MACOS_NOTARY_APPLE_ID: ${{ secrets.MACOS_NOTARY_APPLE_ID }}
+        MACOS_NOTARY_TEAM_ID: ${{ secrets.MACOS_NOTARY_TEAM_ID }}
+        MACOS_NOTARY_PASSWORD: ${{ secrets.MACOS_NOTARY_PASSWORD }}
       run: |
         task release:macos
         task release:list
@@ -155,4 +165,12 @@ jobs:
       with:
         name: macos-app${{ inputs.artifact_suffix }}
         path: build/dist/yanta-macos.tar.gz
+        if-no-files-found: error
+
+    - name: Upload macOS dmg
+      if: matrix.name == 'macos'
+      uses: actions/upload-artifact@v6
+      with:
+        name: macos-dmg${{ inputs.artifact_suffix }}
+        path: build/dist/yanta-macos-*.dmg
         if-no-files-found: error

@@ -1,9 +1,14 @@
 import type React from "react";
-import { type ReactNode, useEffect, useMemo } from "react";
+import { type ReactNode, useEffect, useMemo, useRef } from "react";
 import { SIDEBAR_SHORTCUTS } from "@/config/public";
 import { useHotkeys } from "../hotkeys";
 import { useProjectContext } from "../project";
-import { useFooterHints, useFooterHintsSetting, useSidebarSetting } from "../shared/hooks";
+import {
+	getGlobalFooterHints,
+	useFooterHints,
+	useFooterHintsSetting,
+	useSidebarSetting,
+} from "../shared/hooks";
 import type { PageName } from "../shared/types";
 import { FooterHintBar, HeaderBar, type SidebarSection, Sidebar as UISidebar } from "../shared/ui";
 import { useTitleBarContext } from "./context";
@@ -44,6 +49,25 @@ export interface LayoutProps {
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
+const dedupeFooterHints = (
+	hints: Array<{
+		key: string;
+		label: string;
+		priority?: 1 | 2 | 3;
+	}>,
+) => {
+	const seen = new Set<string>();
+
+	return hints.filter((hint) => {
+		const duplicateKey = `${hint.key}-${hint.label}`;
+		if (seen.has(duplicateKey)) {
+			return false;
+		}
+		seen.add(duplicateKey);
+		return true;
+	});
+};
+
 /**
  * Determines the mode based on the current page.
  * - "documents": Dashboard and document pages
@@ -77,6 +101,12 @@ export const Layout: React.FC<LayoutProps> = ({
 	const { currentProject } = useProjectContext();
 	const { heightInRem } = useTitleBarContext();
 	const { hints: footerHints } = useFooterHints({ currentPage });
+	// The command-palette and help affordances stay pinned on every page so a
+	// first-timer can always discover them without docs (YANA-7).
+	const allFooterHints = useMemo(
+		() => dedupeFooterHints([...getGlobalFooterHints(), ...footerHints]),
+		[footerHints],
+	);
 
 	useEffect(() => {
 		if (onRegisterToggleSidebar) {
@@ -103,6 +133,20 @@ export const Layout: React.FC<LayoutProps> = ({
 	useHotkeys(sidebarToggleHotkeys);
 
 	const dataMode = getDataMode(currentPage);
+
+	// Replay the content fade as a deliberate cue when the active project changes.
+	// We retrigger the existing CSS animation imperatively (no remount) so page
+	// state is preserved; prefers-reduced-motion collapses it to an instant swap.
+	const contentRef = useRef<HTMLDivElement>(null);
+	const currentProjectId = currentProject?.id;
+	useEffect(() => {
+		const el = contentRef.current;
+		if (!el) return;
+		el.classList.remove("animate-fade-in");
+		// Force a reflow so removing and re-adding the class restarts the animation.
+		void el.offsetWidth;
+		el.classList.add("animate-fade-in");
+	}, [currentProjectId]);
 
 	const layoutStyle = useMemo(() => ({ height: `calc(100vh - ${heightInRem}rem)` }), [heightInRem]);
 
@@ -151,6 +195,7 @@ export const Layout: React.FC<LayoutProps> = ({
 				<div className="flex-1 overflow-hidden relative">
 					{/* Content Container with subtle inner shadow/depth */}
 					<div
+						ref={contentRef}
 						id="main-content"
 						className="h-full w-full overflow-y-auto overflow-x-hidden p-0 animate-fade-in scroll-smooth"
 					>
@@ -158,7 +203,7 @@ export const Layout: React.FC<LayoutProps> = ({
 					</div>
 				</div>
 
-				{!footerHintsLoading && showFooterHints && <FooterHintBar hints={footerHints} />}
+				{!footerHintsLoading && showFooterHints && <FooterHintBar hints={allFooterHints} />}
 			</div>
 		</div>
 	);

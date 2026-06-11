@@ -1,0 +1,8 @@
+# Force every new issue through a template so it always starts labelled.
+# Blank issues are disabled — this is what makes "backlog is never unlabeled"
+# structural rather than a thing a human has to remember.
+blank_issues_enabled: false
+contact_links:
+  - name: Question or discussion
+    url: https://github.com/omarahm3/yanta/discussions
+    about: For open-ended questions, use Discussions instead of an issue.

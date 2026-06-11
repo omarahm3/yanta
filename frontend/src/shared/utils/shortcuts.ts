@@ -9,6 +9,7 @@ type CommandId =
 	| "new-document"
 	| "git-sync"
 	| "toggle-sidebar"
+	| "command-palette"
 	| "show-help"
 	| "switch-last"
 	| "save-document";
@@ -29,6 +30,7 @@ const COMMAND_SHORTCUTS: Record<CommandId, ShortcutMapping> = {
 	"nav-dashboard": { key: "D", ctrlKey: true },
 	"nav-projects": { key: "P", ctrlKey: true, shiftKey: true },
 	"toggle-sidebar": { key: "B", ctrlKey: true },
+	"command-palette": { key: "K", ctrlKey: true },
 	"show-help": { key: "?" },
 	"nav-recent": { key: "E", ctrlKey: true },
 	"nav-today": { key: "T", ctrlKey: true },

@@ -9,7 +9,7 @@ import { ReducedEffectsInit } from "../shared/stores/appearance.store";
 import { ThemeInit } from "../shared/stores/theme.store";
 import { ToastProvider } from "../shared/ui";
 import { AppMonitorInit } from "./AppMonitorInit";
-import { ResizeHandles, TitleBar } from "./components";
+import { ResizeHandles, TitleBar, UpdateBanner } from "./components";
 import { DocumentCountStoreInit } from "./DocumentCountStoreInit";
 import { FeatureFlagsStoreInit } from "./FeatureFlagsStoreInit";
 import { AppGlobalEffects, GlobalCommandHotkey } from "./global-hotkeys";
@@ -35,6 +35,7 @@ export function AppProviders() {
 						<PaneLayoutProvider>
 							<ResizeHandles />
 							<TitleBar />
+							<UpdateBanner />
 							<AppGlobalEffects />
 							<GlobalCommandHotkey />
 							<HelpModal />

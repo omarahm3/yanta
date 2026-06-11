@@ -26,7 +26,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children, title, 
 
 	return (
 		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
-			<DialogContent className={cn(sizeClasses[size])}>
+			<DialogContent className={cn(sizeClasses[size])} aria-describedby={undefined}>
 				{title && (
 					<DialogHeader>
 						<DialogTitle>{title}</DialogTitle>

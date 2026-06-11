@@ -1,0 +1,61 @@
+name: Triage goal label
+
+# Enforces the triage rule in .github/TRIAGE.md:
+# every issue must carry a `goal:*` label, or it is flagged for the CEO.
+#
+# - Issue has a goal:* label  -> remove the `needs-goal` flag, stay quiet.
+# - Issue has no goal:* label  -> add `needs-goal` and post a one-time flag
+#                                 comment pinging the CEO.
+
+on:
+  issues:
+    types: [opened, edited, reopened, labeled, unlabeled]
+
+permissions:
+  issues: write
+
+# Owner to flag when an issue sits goalless. Update if ownership changes.
+env:
+  CEO_HANDLE: omarahm3
+
+jobs:
+  triage:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Ensure goal label or flag for CEO
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const number = context.payload.issue.number;
+            const ceo = process.env.CEO_HANDLE;
+
+            const { data: issue } = await github.rest.issues.get({ owner, repo, issue_number: number });
+            if (issue.state !== 'open') return;
+
+            const labels = issue.labels.map(l => (typeof l === 'string' ? l : l.name));
+            const hasGoal = labels.some(n => n.startsWith('goal:'));
+            const hasFlag = labels.includes('needs-goal');
+
+            if (hasGoal) {
+              if (hasFlag) {
+                await github.rest.issues.removeLabel({ owner, repo, issue_number: number, name: 'needs-goal' })
+                  .catch(() => {});
+              }
+              return;
+            }
+
+            // No goal label — make sure the flag is on.
+            if (!hasFlag) {
+              await github.rest.issues.addLabels({ owner, repo, issue_number: number, labels: ['needs-goal'] });
+            }
+
+            // Flag the CEO once, so we don't re-comment on every edit.
+            const marker = '<!-- yanta-triage-goal-flag -->';
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number: number });
+            if (comments.some(c => c.body && c.body.includes(marker))) return;
+
+            await github.rest.issues.createComment({
+              owner, repo, issue_number: number,
+              body: `${marker}\n@${ceo} ⚠️ This issue has no \`goal:*\` label. Per [the triage rule](../blob/master/.github/TRIAGE.md), assign one of \`goal:G1-reliability\` … \`goal:G5-growth\` (which clears \`needs-goal\`), or close it. Backlog should never sit goalless.`,
+            });

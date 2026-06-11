@@ -1,6 +1,6 @@
 // TODO: maybe external library would be better for these functions?
 export function getProjectAliasColor(alias: string): string {
-	if (!alias) return "#58a6ff";
+	if (!alias) return "var(--color-accent)";
 
 	let hash = 0;
 	for (let i = 0; i < alias.length; i++) {
@@ -51,5 +51,5 @@ function hslToHex(h: number, s: number, l: number): string {
 }
 
 export function getDefaultProjectColor(): string {
-	return "#58a6ff";
+	return "var(--color-accent)";
 }
