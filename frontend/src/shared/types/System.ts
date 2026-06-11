@@ -22,6 +22,16 @@ export interface SystemInfo {
 	database: DatabaseInfo;
 }
 
+export interface UpdateInfo {
+	available: boolean;
+	currentVersion: string;
+	latestVersion: string;
+	releaseUrl: string;
+	releaseNotes: string;
+	publishedAt: string;
+	checked: boolean;
+}
+
 export function systemInfoFromModel(model: systemModels.SystemInfo): SystemInfo {
 	return {
 		app: {
@@ -39,5 +49,17 @@ export function systemInfoFromModel(model: systemModels.SystemInfo): SystemInfo 
 			tagsCount: model.database.tagsCount,
 			storageUsed: model.database.storageUsed,
 		},
+	};
+}
+
+export function updateInfoFromModel(model: systemModels.UpdateInfo): UpdateInfo {
+	return {
+		available: model.available,
+		currentVersion: model.currentVersion,
+		latestVersion: model.latestVersion,
+		releaseUrl: model.releaseUrl,
+		releaseNotes: model.releaseNotes,
+		publishedAt: model.publishedAt,
+		checked: model.checked,
 	};
 }
