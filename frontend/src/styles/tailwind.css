@@ -309,6 +309,27 @@
 	border-color: transparent !important;
 }
 
+/* Density spacing tokens */
+:root,
+:root[data-density="normal"] {
+	--density-pad-y: 0.625rem;
+	--density-pad-x: 0.75rem;
+	--density-gap: 0.5rem;
+	--density-row-h: 2.25rem;
+}
+:root[data-density="compact"] {
+	--density-pad-y: 0.375rem;
+	--density-pad-x: 0.5rem;
+	--density-gap: 0.25rem;
+	--density-row-h: 1.875rem;
+}
+:root[data-density="comfortable"] {
+	--density-pad-y: 0.875rem;
+	--density-pad-x: 1rem;
+	--density-gap: 0.75rem;
+	--density-row-h: 2.75rem;
+}
+
 /* Custom component styles */
 @layer components {
 	/* Buttons: Modern, scaling, polished */

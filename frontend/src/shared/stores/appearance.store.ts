@@ -6,12 +6,22 @@ import { BackendLogger } from "../utils/backendLogger";
 
 const STORAGE_KEY = "yanta_appearance";
 
+export type DensityMode = "compact" | "normal" | "comfortable";
+
 interface AppearanceState {
 	reducedEffects: boolean;
 	setReducedEffects: (value: boolean) => void;
+	densityMode: DensityMode;
+	setDensityMode: (mode: DensityMode) => void;
 }
 
-function validateAppearance(data: unknown): { reducedEffects: boolean } | null {
+type PersistedAppearance = { reducedEffects: boolean; densityMode: DensityMode };
+
+function isDensityMode(v: unknown): v is DensityMode {
+	return v === "compact" || v === "normal" || v === "comfortable";
+}
+
+function validateAppearance(data: unknown): PersistedAppearance | null {
 	if (typeof data !== "object" || data === null || Array.isArray(data)) {
 		return null;
 	}
@@ -19,10 +29,13 @@ function validateAppearance(data: unknown): { reducedEffects: boolean } | null {
 	if (typeof parsed.reducedEffects !== "boolean") {
 		return null;
 	}
-	return { reducedEffects: parsed.reducedEffects };
+	return {
+		reducedEffects: parsed.reducedEffects,
+		densityMode: isDensityMode(parsed.densityMode) ? parsed.densityMode : "normal",
+	};
 }
 
-const appearanceStorage: PersistStorage<{ reducedEffects: boolean }> = {
+const appearanceStorage: PersistStorage<PersistedAppearance> = {
 	getItem: (name: string) => {
 		try {
 			const raw = localStorage.getItem(name);
@@ -35,7 +48,7 @@ const appearanceStorage: PersistStorage<{ reducedEffects: boolean }> = {
 			return null;
 		}
 	},
-	setItem: (name: string, value: { state: { reducedEffects: boolean } }) => {
+	setItem: (name: string, value: { state: PersistedAppearance }) => {
 		try {
 			localStorage.setItem(name, JSON.stringify(value.state));
 		} catch (err) {
@@ -56,17 +69,23 @@ export const useAppearanceStore = create<AppearanceState>()(
 		(set) => ({
 			reducedEffects: false,
 			setReducedEffects: (value) => set({ reducedEffects: value }),
+			densityMode: "normal" as DensityMode,
+			setDensityMode: (mode) => set({ densityMode: mode }),
 		}),
 		{
 			name: STORAGE_KEY,
 			storage: appearanceStorage,
-			partialize: (s) => ({ reducedEffects: s.reducedEffects }),
+			partialize: (s) => ({ reducedEffects: s.reducedEffects, densityMode: s.densityMode }),
 		},
 	),
 );
 
 export function useReducedEffects(): boolean {
 	return useAppearanceStore((s) => s.reducedEffects);
+}
+
+export function useDensityMode(): DensityMode {
+	return useAppearanceStore((s) => s.densityMode);
 }
 
 /**
@@ -83,6 +102,17 @@ export function ReducedEffectsInit() {
 			document.documentElement.removeAttribute("data-reduced-effects");
 		}
 	}, [reducedEffects]);
+
+	return null;
+}
+
+/** Sets data-density on document.documentElement when the density preference changes. */
+export function DensityInit() {
+	const densityMode = useDensityMode();
+
+	useEffect(() => {
+		document.documentElement.setAttribute("data-density", densityMode);
+	}, [densityMode]);
 
 	return null;
 }
