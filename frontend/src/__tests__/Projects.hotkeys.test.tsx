@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 import { vi } from "vitest";
 import { DialogProvider } from "../app/context";
@@ -15,6 +15,14 @@ const projects = [
 	{ id: "2", name: "Beta", alias: "beta" },
 ];
 const archivedProjects = [{ id: "3", name: "Gamma", alias: "gamma" }];
+const projectContext = {
+	currentProject: projects[0],
+	setCurrentProject,
+	projects,
+	archivedProjects,
+	loadProjects,
+	isLoading: false,
+};
 
 vi.mock("../shared/hooks/useNotification", () => ({
 	useNotification: () => ({
@@ -35,26 +43,22 @@ vi.mock("../shared/hooks/useSidebarSections", () => ({
 // Mock the context module directly (not the barrel) because ProjectsPage
 // imports useProjectContext from "./context", not from the barrel.
 vi.mock("../project/context", () => ({
-	useProjectContext: () => ({
-		currentProject: projects[0],
-		setCurrentProject,
-		projects,
-		archivedProjects,
-		loadProjects,
-		isLoading: false,
-	}),
+	useProjectContext: () => projectContext,
 }));
 
 vi.mock("../app", () => ({
 	Layout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
-vi.mock("../shared/ui", () => ({
-	__esModule: true,
-	Table: ({ selectedRowId }: { selectedRowId: string }) => (
-		<div data-testid="selected-project">{selectedRowId}</div>
-	),
-}));
+vi.mock("../shared/ui", async () => {
+	const actual = await vi.importActual<typeof import("../shared/ui")>("../shared/ui");
+	return {
+		...actual,
+		Table: ({ selectedRowId }: { selectedRowId: string }) => (
+			<div data-testid="selected-project">{selectedRowId}</div>
+		),
+	};
+});
 
 import { Projects } from "../project";
 
@@ -72,6 +76,10 @@ describe("Projects hotkeys", () => {
 		mockError.mockClear();
 		setCurrentProject.mockClear();
 		loadProjects.mockClear();
+		projectContext.currentProject = projects[0];
+		projectContext.projects = projects;
+		projectContext.archivedProjects = archivedProjects;
+		projectContext.isLoading = false;
 	});
 
 	const renderProjects = async () => {
@@ -149,5 +157,24 @@ describe("Projects hotkeys", () => {
 		expect(keys).toContain("mod+A");
 		expect(keys).toContain("mod+U");
 		expect(keys).toContain("mod+D");
+	});
+
+	it("renders an empty projects state with a create action", () => {
+		projectContext.currentProject = undefined;
+		projectContext.projects = [];
+		projectContext.archivedProjects = [];
+
+		render(
+			<DialogProvider>
+				<HotkeyProvider>
+					<Projects />
+				</HotkeyProvider>
+			</DialogProvider>,
+		);
+
+		expect(screen.getByText("No projects yet")).toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole("button", { name: "Create project" }));
+		expect(screen.getByText("New Project")).toBeInTheDocument();
 	});
 });

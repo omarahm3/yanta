@@ -81,4 +81,22 @@ describe("DocumentList", () => {
 		const item = screen.getByRole("listitem");
 		expect(item).toHaveAttribute("data-selected", "true");
 	});
+
+	it("renders an actionable empty state when there are no documents", () => {
+		const onCreateDocument = vi.fn();
+
+		render(
+			<DocumentList
+				documents={[]}
+				onDocumentClick={vi.fn()}
+				currentProjectAlias="alpha"
+				onCreateDocument={onCreateDocument}
+			/>,
+		);
+
+		expect(screen.getByText("No documents in @alpha yet")).toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole("button", { name: "Create first document" }));
+		expect(onCreateDocument).toHaveBeenCalledTimes(1);
+	});
 });

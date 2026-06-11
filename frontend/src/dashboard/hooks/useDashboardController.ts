@@ -69,6 +69,7 @@ export interface DashboardControllerResult {
 	commandInputRef: React.RefObject<HTMLInputElement | null>;
 	handleCommandSubmit: (command: string) => Promise<void>;
 	handleDocumentClick: (path: string) => void;
+	handleNewDocument: () => Promise<void>;
 	documentList: {
 		highlightedIndex: number;
 		setHighlightedIndex: (index: number) => void;
@@ -529,6 +530,7 @@ export function useDashboardController({
 		commandInputRef,
 		handleCommandSubmit,
 		handleDocumentClick,
+		handleNewDocument,
 		documentList: {
 			highlightedIndex,
 			setHighlightedIndex,
