@@ -1,6 +1,8 @@
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMergedConfig } from "@/config/usePreferencesOverrides";
+import { Button } from "../../shared/ui/Button";
+import { Input } from "../../shared/ui/Input";
 import { Modal } from "../../shared/ui/Modal";
 
 export interface NewProjectDialogProps {
@@ -125,51 +127,51 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} title="New Project" size="md">
 			<form onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="space-y-4">
-				<div>
-					<label htmlFor="project-name" className="block text-sm font-medium text-text mb-1">
-						Name <span className="text-red">*</span>
-					</label>
-					<input
-						ref={nameInputRef}
-						id="project-name"
-						type="text"
-						value={name}
-						onChange={handleNameChange}
-						placeholder="My Project"
-						className="w-full px-3 py-2 bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded-md text-text placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-					/>
-					{errors.name && <p className="mt-1 text-sm text-red">{errors.name}</p>}
-				</div>
+			<div>
+				<label htmlFor="project-name" className="block text-sm font-medium text-text mb-1">
+					Name <span className="text-red">*</span>
+				</label>
+				<Input
+					ref={nameInputRef}
+					id="project-name"
+					type="text"
+					value={name}
+					onChange={handleNameChange}
+					placeholder="My Project"
+					error={!!errors.name}
+				/>
+				{errors.name && <p className="mt-1 text-sm text-red">{errors.name}</p>}
+			</div>
 
-				<div>
-					<label htmlFor="project-alias" className="block text-sm font-medium text-text mb-1">
-						Alias <span className="text-red">*</span>
-					</label>
-					<input
-						id="project-alias"
-						type="text"
-						value={alias}
-						onChange={handleAliasChange}
-						placeholder="@my-project"
-						className="w-full px-3 py-2 bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded-md text-text placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent font-mono"
-					/>
-					{errors.alias && <p className="mt-1 text-sm text-red">{errors.alias}</p>}
-					<p className="mt-1 text-xs text-text-dim">
-						Used to reference this project (e.g., @work, @personal)
-					</p>
-				</div>
+			<div>
+				<label htmlFor="project-alias" className="block text-sm font-medium text-text mb-1">
+					Alias <span className="text-red">*</span>
+				</label>
+				<Input
+					id="project-alias"
+					type="text"
+					value={alias}
+					onChange={handleAliasChange}
+					placeholder="@my-project"
+					className="font-mono"
+					error={!!errors.alias}
+				/>
+				{errors.alias && <p className="mt-1 text-sm text-red">{errors.alias}</p>}
+				<p className="mt-1 text-xs text-text-dim">
+					Used to reference this project (e.g., @work, @personal)
+				</p>
+			</div>
 
 				<div className="grid grid-cols-2 gap-4">
 					<div>
 						<label htmlFor="project-start-date" className="block text-sm font-medium text-text mb-1">
 							Start Date
 						</label>
-						<input
+						<Input
 							id="project-start-date"
 							type="date"
 							value={startDate}
 							onChange={(e) => setStartDate(e.target.value)}
-							className="w-full px-3 py-2 bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded-md text-text focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
 						/>
 					</div>
 
@@ -177,31 +179,23 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
 						<label htmlFor="project-end-date" className="block text-sm font-medium text-text mb-1">
 							End Date <span className="text-text-dim">(optional)</span>
 						</label>
-						<input
+						<Input
 							id="project-end-date"
 							type="date"
 							value={endDate}
 							onChange={(e) => setEndDate(e.target.value)}
-							className="w-full px-3 py-2 bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded-md text-text focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
 						/>
 					</div>
 				</div>
 
-				<div className="flex justify-end gap-3 pt-4">
-					<button
-						type="button"
-						onClick={onClose}
-						className="px-4 py-2 text-sm font-medium text-text-dim hover:text-text bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded-md hover:bg-glass-bg/40 transition-colors"
-					>
-						Cancel
-					</button>
-					<button
-						type="submit"
-						className="px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-accent/90 rounded-md transition-colors"
-					>
-						Create Project
-					</button>
-				</div>
+			<div className="flex justify-end gap-3 pt-4">
+				<Button type="button" variant="secondary" size="sm" onClick={onClose}>
+					Cancel
+				</Button>
+				<Button type="submit" variant="primary" size="sm">
+					Create Project
+				</Button>
+			</div>
 			</form>
 		</Modal>
 	);

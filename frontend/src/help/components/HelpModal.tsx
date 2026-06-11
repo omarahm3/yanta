@@ -3,6 +3,7 @@ import { ChevronRight } from "lucide-react";
 // Value import required at runtime (React.FC in bundle; type-only yields "React is not defined")
 // biome-ignore lint: React used for React.FC and ref casts at runtime
 import React from "react";
+import { Input } from "../../shared/ui/Input";
 import {
 	Dialog,
 	DialogContent,
@@ -161,22 +162,21 @@ export const HelpModal: React.FC = () => {
 					</button>
 				</DialogHeader>
 
-				<div className="px-4 pt-4 pb-2">
-					<div className="relative">
-						<label htmlFor="help-search-input" className="sr-only">
-							Search shortcuts
-						</label>
-						<input
-							id="help-search-input"
-							ref={searchInputRef as React.RefObject<HTMLInputElement>}
-							type="search"
-							placeholder="Search shortcuts..."
-							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
-							className="w-full px-3 py-2 bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded-md text-text placeholder-text-dim focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/30 transition-all text-sm"
-							aria-describedby="help-search-results"
-							autoComplete="off"
-						/>
+			<div className="px-4 pt-4 pb-2">
+				<div className="relative">
+					<label htmlFor="help-search-input" className="sr-only">
+						Search shortcuts
+					</label>
+					<Input
+						id="help-search-input"
+						ref={searchInputRef as React.RefObject<HTMLInputElement>}
+						type="search"
+						placeholder="Search shortcuts..."
+						value={searchQuery}
+						onChange={(e) => setSearchQuery(e.target.value)}
+						aria-describedby="help-search-results"
+						autoComplete="off"
+					/>
 						{searchQuery && (
 							<button
 								type="button"

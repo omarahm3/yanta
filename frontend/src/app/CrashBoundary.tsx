@@ -1,10 +1,12 @@
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import React from "react";
+import { Button } from "../shared/ui/Button";
 import { BackendLogger, getLogBuffer } from "../shared/utils/backendLogger";
 
 interface CrashBoundaryState {
 	error: Error | null;
 	componentStack: string | null;
+	showDetails: boolean;
 }
 
 function buildCrashReport(error: Error, componentStack: string | null): string {
@@ -68,7 +70,7 @@ export class CrashBoundary extends React.Component<
 	{ children: React.ReactNode },
 	CrashBoundaryState
 > {
-	state: CrashBoundaryState = { error: null, componentStack: null };
+	state: CrashBoundaryState = { error: null, componentStack: null, showDetails: false };
 
 	static getDerivedStateFromError(error: Error): Partial<CrashBoundaryState> {
 		return { error };
@@ -94,128 +96,58 @@ export class CrashBoundary extends React.Component<
 		window.location.reload();
 	};
 
+	toggleDetails = () => {
+		this.setState((prev) => ({ showDetails: !prev.showDetails }));
+	};
+
 	render() {
 		if (!this.state.error) {
 			return this.props.children;
 		}
 
-		const { error } = this.state;
+		const { error, componentStack, showDetails } = this.state;
 
 		return (
-			<div style={styles.overlay}>
-				<div style={styles.dialog}>
-					<div style={styles.header}>
-						<AlertCircle size={20} color="#ef4444" />
-						<span style={styles.title}>Something went wrong</span>
+			<div className="fixed inset-0 z-[99999] flex items-center justify-center bg-bg-dark/80 backdrop-blur-sm">
+				<div className="w-[480px] max-w-[calc(100%-2rem)] rounded-xl bg-glass-bg/95 backdrop-blur-xl border border-glass-border p-6 shadow-2xl">
+					<div className="flex items-center gap-2.5 mb-3">
+						<AlertCircle className="size-5 text-red shrink-0" aria-hidden />
+						<span className="text-base font-semibold text-text-bright">Something went wrong</span>
 					</div>
 
-					<p style={styles.subtitle}>
+					<p className="text-sm text-text-dim leading-relaxed mb-4">
 						The app crashed unexpectedly. You can download a crash log to help diagnose the issue, then
 						reload to continue.
 					</p>
 
-					<div style={styles.errorBox}>
-						<pre style={styles.errorText}>
-							{error.name}: {error.message}
-						</pre>
-					</div>
+					<button
+						type="button"
+						onClick={this.toggleDetails}
+						className="flex items-center gap-1.5 text-xs text-text-dim hover:text-text transition-colors mb-2"
+						aria-label={showDetails ? "Hide error details" : "Show error details"}
+					>
+						{showDetails ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+						Error details
+					</button>
 
-					<div style={styles.footer}>
-						<button type="button" style={styles.secondaryBtn} onClick={this.handleDownload}>
+					{showDetails && (
+						<div className="bg-bg/50 border border-border rounded-lg p-3 mb-5 max-h-[120px] overflow-y-auto">
+							<pre className="text-xs font-mono text-red m-0 whitespace-pre-wrap break-words">
+								{error.name}: {error.message}
+							</pre>
+						</div>
+					)}
+
+					<div className="flex justify-end gap-2">
+						<Button variant="secondary" size="sm" onClick={this.handleDownload}>
 							Download Crash Log
-						</button>
-						<button type="button" style={styles.primaryBtn} onClick={this.handleReload}>
+						</Button>
+						<Button variant="primary" size="sm" onClick={this.handleReload}>
 							Reload App
-						</button>
+						</Button>
 					</div>
 				</div>
 			</div>
 		);
 	}
 }
-
-const styles: Record<string, React.CSSProperties> = {
-	overlay: {
-		position: "fixed",
-		inset: 0,
-		zIndex: 99999,
-		display: "flex",
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "rgba(0, 0, 0, 0.6)",
-		backdropFilter: "blur(8px)",
-		fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-	},
-	dialog: {
-		backgroundColor: "rgba(30, 30, 36, 0.95)",
-		border: "1px solid rgba(255, 255, 255, 0.08)",
-		borderRadius: "12px",
-		padding: "24px",
-		maxWidth: "480px",
-		width: "calc(100% - 32px)",
-		boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
-	},
-	header: {
-		display: "flex",
-		alignItems: "center",
-		gap: "10px",
-		marginBottom: "12px",
-	},
-	title: {
-		fontSize: "16px",
-		fontWeight: 600,
-		color: "#f0f0f0",
-	},
-	subtitle: {
-		fontSize: "13px",
-		color: "#a0a0a8",
-		lineHeight: "1.5",
-		margin: "0 0 16px 0",
-	},
-	errorBox: {
-		backgroundColor: "rgba(0, 0, 0, 0.3)",
-		border: "1px solid rgba(255, 255, 255, 0.06)",
-		borderRadius: "8px",
-		padding: "12px",
-		marginBottom: "20px",
-		maxHeight: "120px",
-		overflowY: "auto",
-	},
-	errorText: {
-		fontSize: "12px",
-		fontFamily: "'JetBrains Mono', monospace",
-		color: "#ef4444",
-		margin: 0,
-		whiteSpace: "pre-wrap",
-		wordBreak: "break-word",
-	},
-	footer: {
-		display: "flex",
-		justifyContent: "flex-end",
-		gap: "8px",
-	},
-	primaryBtn: {
-		padding: "8px 16px",
-		fontSize: "13px",
-		fontWeight: 500,
-		fontFamily: "inherit",
-		borderRadius: "8px",
-		border: "none",
-		cursor: "pointer",
-		backgroundColor: "#6366f1",
-		color: "#fff",
-		transition: "opacity 0.15s",
-	},
-	secondaryBtn: {
-		padding: "8px 16px",
-		fontSize: "13px",
-		fontWeight: 500,
-		fontFamily: "inherit",
-		borderRadius: "8px",
-		border: "1px solid rgba(255, 255, 255, 0.1)",
-		cursor: "pointer",
-		backgroundColor: "transparent",
-		color: "#a0a0a8",
-		transition: "opacity 0.15s",
-	},
-};

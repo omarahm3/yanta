@@ -1,5 +1,6 @@
 import { AlertCircle } from "lucide-react";
 import React from "react";
+import { Button } from "../shared/ui/Button";
 import { BackendLogger } from "../shared/utils/backendLogger";
 
 export interface GranularErrorBoundaryProps {
@@ -52,13 +53,9 @@ export class GranularErrorBoundary extends React.Component<GranularErrorBoundary
 				<AlertCircle className="size-8 text-red shrink-0" aria-hidden />
 				<p className="text-text-bright font-medium">{this.props.message}</p>
 				{this.props.onRetry && (
-					<button
-						type="button"
-						onClick={this.handleRetry}
-						className="px-4 py-2 rounded-lg bg-accent text-white font-medium hover:opacity-90 transition-opacity"
-					>
+					<Button type="button" variant="primary" size="sm" onClick={this.handleRetry}>
 						Click to reload
-					</button>
+					</Button>
 				)}
 			</div>
 		);

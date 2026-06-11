@@ -1,6 +1,7 @@
 import type React from "react";
 import { useCallback, useEffect, useRef } from "react";
 import { getMergedConfig } from "@/shared/stores/preferences.store";
+import { Button } from "../../shared/ui/Button";
 import { useDialog } from "../../shared/stores/dialog.store";
 import { cn } from "../../shared/utils/cn";
 import { useOnboarding } from "../hooks";
@@ -116,15 +117,17 @@ export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ className }) => 
 				</p>
 
 				{/* Action button */}
-				<button
-					ref={buttonRef}
-					type="button"
-					onClick={handleDismiss}
-					className="w-full btn btn-primary py-3 text-base font-semibold"
-					data-testid="welcome-dismiss-button"
-				>
-					Got it, let's start
-				</button>
+			<Button
+				ref={buttonRef}
+				type="button"
+				variant="primary"
+				size="lg"
+				className="w-full text-base font-semibold"
+				onClick={handleDismiss}
+				data-testid="welcome-dismiss-button"
+			>
+				Got it, let's start
+			</Button>
 			</div>
 		</div>
 	);
