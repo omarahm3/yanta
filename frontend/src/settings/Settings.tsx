@@ -7,6 +7,8 @@ import {
 	parseDisplayKeyToConfigKey,
 } from "@/config/shortcuts";
 import { useMergedConfig, usePreferencesOverrides } from "@/config/usePreferencesOverrides";
+import type { DensityMode } from "@/config/preferences";
+import { usePreferencesStore } from "../shared/stores/preferences.store";
 import { type ThemeMode, useTheme } from "../shared/stores/theme.store";
 import type { PageName } from "../shared/types";
 import { ConfirmDialog, MigrationConflictDialog, type Shortcut } from "../shared/ui";
@@ -118,6 +120,16 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		[setOverrides],
 	);
 
+	const density = usePreferencesStore(
+		(s) => s.overrides?.appearance?.density ?? "comfortable",
+	);
+	const handleDensityChange = useCallback(
+		async (value: DensityMode) => {
+			await setOverrides({ appearance: { density: value } });
+		},
+		[setOverrides],
+	);
+
 	return (
 		<Layout
 			sidebarSections={sidebarSections}
@@ -159,6 +171,8 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 							onAppScaleChange={controller.handlers.handleAppScaleChange}
 							theme={theme}
 							onThemeChange={handleThemeChange}
+							density={density}
+							onDensityChange={handleDensityChange}
 							linuxGraphicsMode={mergedGraphics.linuxMode}
 							onLinuxGraphicsModeChange={handleLinuxGraphicsModeChange}
 							sidebarVisible={sidebarVisible}

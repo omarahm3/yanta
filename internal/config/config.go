@@ -75,7 +75,8 @@ type PreferencesGraphicsOverrides struct {
 }
 
 type PreferencesAppearanceOverrides struct {
-	Theme string `toml:"theme"` // "dark", "light", "system" (empty = default)
+	Theme   string `toml:"theme"`
+	Density string `toml:"density"` // "dark", "light", "system" (empty = default)
 }
 
 // PreferencesPluginConfig holds key-value overrides for a single plugin.
@@ -122,6 +123,9 @@ const (
 	ThemeDark   = "dark"
 	ThemeLight  = "light"
 	ThemeSystem = "system"
+
+	DensityComfortable = "comfortable"
+	DensityCompact     = "compact"
 )
 
 var (
@@ -682,6 +686,17 @@ func validatePreferencesOverrides(overrides PreferencesOverrides) PreferencesOve
 		}
 	}
 
+	// Density: enum
+	if validated.Appearance.Density != "" {
+		switch validated.Appearance.Density {
+		case DensityComfortable, DensityCompact:
+			// valid
+		default:
+			logrus.Warnf("preferences.appearance.density %q is invalid, using default", validated.Appearance.Density)
+			validated.Appearance.Density = ""
+		}
+	}
+
 	return validated
 }
 
@@ -693,5 +708,15 @@ func GetTheme() string {
 		return theme
 	default:
 		return ThemeSystem
+	}
+}
+
+func GetDensity() string {
+	density := GetPreferencesOverrides().Appearance.Density
+	switch density {
+	case DensityComfortable, DensityCompact:
+		return density
+	default:
+		return DensityComfortable
 	}
 }

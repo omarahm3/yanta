@@ -1,14 +1,10 @@
 import React from "react";
-import type { LinuxGraphicsMode } from "@/config/preferences";
+import type { DensityMode, LinuxGraphicsMode } from "@/config/preferences";
 import { useAppearanceStore } from "../shared/stores/appearance.store";
 import type { ThemeMode } from "../shared/stores/theme.store";
 import { Label, Select, type SelectOption, SettingsSection, Toggle } from "../shared/ui";
+import { ThemeGallery } from "./ThemeGallery";
 
-const THEME_OPTIONS: SelectOption[] = [
-	{ value: "dark", label: "Dark" },
-	{ value: "light", label: "Light" },
-	{ value: "system", label: "System" },
-];
 
 const SCALE_OPTIONS: SelectOption[] = [
 	{ value: "0.75", label: "Small (75%)" },
@@ -18,6 +14,11 @@ const SCALE_OPTIONS: SelectOption[] = [
 	{ value: "1.25", label: "Large (125%)" },
 	{ value: "1.5", label: "Extra Large (150%)" },
 	{ value: "2.0", label: "Huge (200%)" },
+];
+
+const DENSITY_OPTIONS: SelectOption[] = [
+	{ value: "comfortable", label: "Comfortable" },
+	{ value: "compact", label: "Compact" },
 ];
 
 const LINUX_GRAPHICS_OPTIONS: SelectOption[] = [
@@ -33,6 +34,8 @@ interface AppearanceSectionProps {
 	onAppScaleChange: (scale: number) => void;
 	theme: ThemeMode;
 	onThemeChange: (theme: ThemeMode) => void;
+	density: DensityMode;
+	onDensityChange: (density: DensityMode) => void;
 	linuxGraphicsMode: LinuxGraphicsMode;
 	onLinuxGraphicsModeChange: (mode: LinuxGraphicsMode) => void;
 	sidebarVisible: boolean;
@@ -55,6 +58,8 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 			onAppScaleChange,
 			theme,
 			onThemeChange,
+			density,
+			onDensityChange,
 			linuxGraphicsMode,
 			onLinuxGraphicsModeChange,
 			sidebarVisible,
@@ -84,16 +89,24 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 		return (
 			<div ref={ref}>
 				<SettingsSection title="Appearance" subtitle="Customize the look and feel of the application">
-					<div className="space-y-4">
-						<div className="space-y-2">
+					<div className="space-y-6">
+						<div className="space-y-3">
 							<Label variant="uppercase">Theme</Label>
+							<ThemeGallery value={theme} onChange={onThemeChange} />
+						</div>
+
+						<div className="space-y-2">
+							<Label variant="uppercase">Density</Label>
 							<Select
-								value={theme}
-								onChange={(value) => onThemeChange(value as ThemeMode)}
-								options={THEME_OPTIONS}
+								value={density}
+								onChange={(value) => onDensityChange(value as DensityMode)}
+								options={DENSITY_OPTIONS}
 							/>
 							<div className="text-xs text-text-dim">
-								Choose dark, light, or follow the operating system setting.
+								{density === "compact"
+									? "Compact mode reduces padding and spacing for a denser interface."
+									: "Comfortable mode uses generous spacing for improved readability."
+								}
 							</div>
 						</div>
 

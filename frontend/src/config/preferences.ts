@@ -37,9 +37,11 @@ export interface PreferencesGraphicsOverrides {
 }
 
 export type ThemeMode = "dark" | "light" | "system";
+export type DensityMode = "comfortable" | "compact";
 
 export interface PreferencesAppearanceOverrides {
 	theme?: ThemeMode;
+	density?: DensityMode;
 }
 
 export interface PreferencesPluginOverrides {
@@ -72,7 +74,7 @@ export function preferencesFromModel(model: {
 	Shortcuts?: Record<string, Record<string, string>>;
 	Layout?: { MaxPanes?: number };
 	Graphics?: { LinuxMode?: LinuxGraphicsMode };
-	Appearance?: { Theme?: string };
+	Appearance?: { Theme?: string; Density?: string };
 	Plugins?: Record<string, Record<string, unknown>>;
 }): PreferencesOverrides {
 	const overrides: PreferencesOverrides = {};
@@ -117,6 +119,9 @@ export function preferencesFromModel(model: {
 	}
 	if (model.Appearance?.Theme && isThemeMode(model.Appearance.Theme)) {
 		overrides.appearance = { theme: model.Appearance.Theme };
+	}
+	if (model.Appearance?.Density === "comfortable" || model.Appearance?.Density === "compact") {
+		overrides.appearance = { ...overrides.appearance, density: model.Appearance.Density as DensityMode };
 	}
 	if (model.Plugins && typeof model.Plugins === "object" && Object.keys(model.Plugins).length > 0) {
 		overrides.plugins = model.Plugins as PreferencesPluginOverrides;
@@ -187,6 +192,9 @@ export function preferencesToModel(overrides: PreferencesOverrides): {
 	}
 	if (overrides.appearance?.theme) {
 		model.Appearance.Theme = overrides.appearance.theme;
+	}
+	if (overrides.appearance?.density) {
+		model.Appearance.Density = overrides.appearance.density;
 	}
 	if (
 		overrides.plugins &&
