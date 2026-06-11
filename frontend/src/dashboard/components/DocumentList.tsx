@@ -108,21 +108,21 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 						actionLabel: "Create first document",
 						onAction: onCreateDocument,
 					}
-			: hasProjects
-				? {
-						icon: <FolderPlus className="h-6 w-6" aria-hidden="true" />,
-						title: "No project selected",
-						description: "Select a project from the sidebar or projects page to view its documents.",
-						actionLabel: "Open projects",
-						onAction: onShowProjects,
-					}
-				: {
-						icon: <FolderPlus className="h-6 w-6" aria-hidden="true" />,
-						title: "No projects yet",
-						description: "Create a project first, then you can start adding documents to it.",
-						actionLabel: "Open projects",
-						onAction: onShowProjects,
-					};
+				: hasProjects
+					? {
+							icon: <FolderPlus className="h-6 w-6" aria-hidden="true" />,
+							title: "No project selected",
+							description: "Select a project from the sidebar or projects page to view its documents.",
+							actionLabel: "Open projects",
+							onAction: onShowProjects,
+						}
+					: {
+							icon: <FolderPlus className="h-6 w-6" aria-hidden="true" />,
+							title: "No projects yet",
+							description: "Create a project first, then you can start adding documents to it.",
+							actionLabel: "Open projects",
+							onAction: onShowProjects,
+						};
 		return (
 			<EmptyState
 				icon={emptyState.icon}

@@ -82,7 +82,6 @@ describe("DocumentList", () => {
 		expect(item).toHaveAttribute("data-selected", "true");
 	});
 
-
 	it("renders a no-project-selected empty state when projects exist but none is active", () => {
 		const onShowProjects = vi.fn();
 
@@ -92,7 +91,7 @@ describe("DocumentList", () => {
 				onDocumentClick={vi.fn()}
 				hasProjects
 				onShowProjects={onShowProjects}
-			/>
+			/>,
 		);
 
 		expect(screen.getByText("No project selected")).toBeInTheDocument();

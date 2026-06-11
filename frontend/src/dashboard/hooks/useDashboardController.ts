@@ -107,8 +107,14 @@ export function useDashboardController({
 	onRegisterToggleArchived,
 }: DashboardControllerOptions): DashboardControllerResult {
 	const [showArchived, setShowArchived] = useState(false);
-	const { projectsLoading, documentsLoading, documents, currentProject, hasProjects, reloadDocuments } =
-		useDashboardData({ showArchived });
+	const {
+		projectsLoading,
+		documentsLoading,
+		documents,
+		currentProject,
+		hasProjects,
+		reloadDocuments,
+	} = useDashboardData({ showArchived });
 
 	const {
 		selectedIndex: highlightedIndex,
