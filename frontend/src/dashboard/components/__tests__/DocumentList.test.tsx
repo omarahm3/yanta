@@ -81,4 +81,40 @@ describe("DocumentList", () => {
 		const item = screen.getByRole("listitem");
 		expect(item).toHaveAttribute("data-selected", "true");
 	});
+
+	it("renders a no-project-selected empty state when projects exist but none is active", () => {
+		const onShowProjects = vi.fn();
+
+		render(
+			<DocumentList
+				documents={[]}
+				onDocumentClick={vi.fn()}
+				hasProjects
+				onShowProjects={onShowProjects}
+			/>,
+		);
+
+		expect(screen.getByText("No project selected")).toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole("button", { name: "Open projects" }));
+		expect(onShowProjects).toHaveBeenCalledTimes(1);
+	});
+
+	it("renders an actionable empty state when there are no documents", () => {
+		const onCreateDocument = vi.fn();
+
+		render(
+			<DocumentList
+				documents={[]}
+				onDocumentClick={vi.fn()}
+				currentProjectAlias="alpha"
+				onCreateDocument={onCreateDocument}
+			/>,
+		);
+
+		expect(screen.getByText("No documents in @alpha yet")).toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole("button", { name: "Create first document" }));
+		expect(onCreateDocument).toHaveBeenCalledTimes(1);
+	});
 });

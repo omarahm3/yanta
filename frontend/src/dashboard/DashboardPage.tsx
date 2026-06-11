@@ -75,6 +75,11 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 									onRestoreDocument={controller.handleRestoreDocument}
 									onMoveDocument={controller.handleOpenMoveDialog}
 									showArchived={showArchived}
+									currentProjectAlias={controller.currentProjectAlias}
+									hasProjects={controller.hasProjects}
+									onCreateDocument={controller.handleNewDocument}
+									onShowProjects={() => onNavigate?.("projects")}
+									onShowActiveDocuments={controller.handleToggleArchived}
 								/>
 							</GranularErrorBoundary>
 						</div>

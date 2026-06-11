@@ -9,6 +9,7 @@ export {
 	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "./context-menu";
+export { EmptyState, type EmptyStateProps } from "./EmptyState";
 export { type FooterHint, FooterHintBar, type FooterHintBarProps } from "./FooterHintBar";
 export { GitErrorDialog } from "./GitErrorDialog";
 export { GitStatusIndicator } from "./GitStatusIndicator";

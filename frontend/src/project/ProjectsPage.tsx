@@ -1,4 +1,5 @@
 import { formatRelative } from "date-fns";
+import { FolderPlus } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Layout } from "@/app";
 import { PROJECTS_SHORTCUTS } from "@/config/public";
@@ -12,7 +13,7 @@ import {
 import { useHotkeys } from "../hotkeys";
 import { useNotification, useSidebarSections } from "../shared/hooks";
 import { type ExtendedProject, extendProject, type PageName } from "../shared/types";
-import { Table, type TableColumn, type TableRow } from "../shared/ui";
+import { EmptyState, Table, type TableColumn, type TableRow } from "../shared/ui";
 import { ConfirmDialog } from "../shared/ui/ConfirmDialog";
 import { BackendLogger } from "../shared/utils/backendLogger";
 import { getProjectAliasColor } from "../shared/utils/color";
@@ -445,6 +446,14 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 						<div className="flex items-center justify-center py-8">
 							<div className="text-text-dim">Loading projects...</div>
 						</div>
+					) : activeProjectDetails.length === 0 && archivedProjectDetails.length === 0 ? (
+						<EmptyState
+							icon={<FolderPlus className="h-6 w-6" aria-hidden="true" />}
+							title="No projects yet"
+							description="Create your first project to organize documents, tags, and search."
+							actionLabel="Create project"
+							onAction={() => setIsNewProjectDialogOpen(true)}
+						/>
 					) : (
 						<Table
 							columns={tableColumns}

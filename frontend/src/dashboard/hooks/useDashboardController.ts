@@ -63,12 +63,14 @@ export interface DashboardControllerResult {
 	documentsLoading: boolean;
 	documents: Document[];
 	currentProjectAlias: string | null;
+	hasProjects: boolean;
 	sidebarSections: ReturnType<typeof useSidebarSections>;
 	commandInput: string;
 	setCommandInput: (value: string) => void;
 	commandInputRef: React.RefObject<HTMLInputElement | null>;
 	handleCommandSubmit: (command: string) => Promise<void>;
 	handleDocumentClick: (path: string) => void;
+	handleNewDocument: () => Promise<void>;
 	documentList: {
 		highlightedIndex: number;
 		setHighlightedIndex: (index: number) => void;
@@ -105,8 +107,14 @@ export function useDashboardController({
 	onRegisterToggleArchived,
 }: DashboardControllerOptions): DashboardControllerResult {
 	const [showArchived, setShowArchived] = useState(false);
-	const { projectsLoading, documentsLoading, documents, currentProject, reloadDocuments } =
-		useDashboardData({ showArchived });
+	const {
+		projectsLoading,
+		documentsLoading,
+		documents,
+		currentProject,
+		hasProjects,
+		reloadDocuments,
+	} = useDashboardData({ showArchived });
 
 	const {
 		selectedIndex: highlightedIndex,
@@ -523,12 +531,14 @@ export function useDashboardController({
 		documentsLoading,
 		documents,
 		currentProjectAlias: currentProject?.alias ?? null,
+		hasProjects,
 		sidebarSections,
 		commandInput,
 		setCommandInput,
 		commandInputRef,
 		handleCommandSubmit,
 		handleDocumentClick,
+		handleNewDocument,
 		documentList: {
 			highlightedIndex,
 			setHighlightedIndex,
