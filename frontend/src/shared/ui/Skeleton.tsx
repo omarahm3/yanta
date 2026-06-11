@@ -16,7 +16,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({ className, style }) => {
 	return (
 		<div
 			aria-hidden="true"
-			className={cn("animate-pulse rounded bg-glass-bg/30", className)}
+			className={cn("motion-safe:animate-pulse rounded bg-glass-bg/30", className)}
 			style={style}
 		/>
 	);

@@ -118,6 +118,7 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 			if (!queryStr.trim()) {
 				setResults([]);
 				setSearchError(null);
+				setIsLoading(false);
 				return;
 			}
 
