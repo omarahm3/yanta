@@ -316,7 +316,7 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 										{doc.title}
 									</Heading>
 									{doc.deletedAt && (
-										<span className="ml-auto rounded border border-accent/60 bg-accent/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-accent">
+										<span className="ml-auto rounded border border-accent/60 bg-accent/10 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-accent">
 											Archived
 										</span>
 									)}

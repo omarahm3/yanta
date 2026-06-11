@@ -58,6 +58,8 @@
 	--yanta-purple: #a371f7;
 	--yanta-orange: #fb8500;
 	--yanta-red: #f85149;
+	--yanta-code-text: #ff7b72; /* inline-code text (GitHub-dark red) */
+	--yanta-on-accent: #ffffff; /* readable foreground on accent fill (both themes) */
 	--yanta-glass-bg: rgba(22, 27, 34, 0.7);
 	--yanta-glass-border: rgba(48, 54, 61, 0.5);
 	--yanta-glass-bg-solid: rgba(22, 27, 34, 0.97);
@@ -113,6 +115,8 @@
 	--yanta-purple: #8250df;
 	--yanta-orange: #bc4c00;
 	--yanta-red: #cf222e;
+	--yanta-code-text: #cf222e; /* inline-code text (GitHub-light red) */
+	--yanta-on-accent: #ffffff; /* readable foreground on accent fill (both themes) */
 	--yanta-glass-bg: rgba(246, 248, 250, 0.7);
 	--yanta-glass-border: rgba(208, 215, 222, 0.5);
 	--yanta-glass-bg-solid: rgba(246, 248, 250, 0.97);
@@ -174,6 +178,8 @@
 	--color-purple: var(--yanta-purple);
 	--color-orange: var(--yanta-orange);
 	--color-red: var(--yanta-red);
+	--color-code-text: var(--yanta-code-text);
+	--color-on-accent: var(--yanta-on-accent);
 	--color-glass-bg: var(--yanta-glass-bg);
 	--color-glass-border: var(--yanta-glass-border);
 }

@@ -97,7 +97,7 @@ const CommandPaletteItem: React.FC<CommandPaletteItemProps> = React.memo(
 					/>
 				)}
 				{command.shortcut ? (
-					<kbd className="ml-auto rounded border border-glass-border bg-bg-dark/40 px-1.5 py-0.5 text-xs font-mono text-text-dim/80 shadow-sm font-semibold tracking-widest">
+					<kbd className="ml-auto rounded border border-glass-border bg-bg-dark/40 px-2 py-1 text-xs font-mono text-text-dim/80 shadow-sm font-semibold tracking-widest">
 						{command.shortcut}
 					</kbd>
 				) : (

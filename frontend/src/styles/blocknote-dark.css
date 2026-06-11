@@ -1,4 +1,4 @@
-/* BlockNote Dark Theme - Minimal overrides */
+/* BlockNote editor overrides - theme-aware (resolves to dark/light via tokens) */
 
 /* ============================================================================
    EDITOR CONTAINER - Colors only, no layout changes
@@ -28,7 +28,7 @@
 	font-family: var(--font-mono, "SF Mono", "Monaco", "Cascadia Code", monospace);
 	font-size: 0.875em;
 	background-color: rgba(110, 118, 129, 0.25);
-	color: #ff7b72;
+	color: var(--color-code-text, #ff7b72);
 	padding: 0.15em 0.4em;
 	margin: 0 0.1em;
 	border-radius: 4px;
@@ -51,7 +51,7 @@
 	border-radius: 4px !important;
 	background-color: rgba(99, 110, 123, 0.4) !important;
 	border: 1px solid rgba(99, 110, 123, 0.5) !important;
-	color: #8b949e !important;
+	color: var(--color-text-dim, #8b949e) !important;
 	cursor: grab !important;
 	transition: all 0.15s ease !important;
 }
@@ -59,21 +59,21 @@
 .bn-table-handle:hover {
 	background-color: rgba(56, 139, 253, 0.6) !important;
 	border-color: rgba(56, 139, 253, 0.8) !important;
-	color: #ffffff !important;
+	color: var(--color-on-accent, #ffffff) !important;
 }
 
 .bn-table-handle:active,
 .bn-table-handle[data-state="open"] {
 	background-color: rgba(56, 139, 253, 0.8) !important;
-	border-color: #388bfd !important;
-	color: #ffffff !important;
+	border-color: var(--color-accent, #388bfd) !important;
+	color: var(--color-on-accent, #ffffff) !important;
 	cursor: grabbing !important;
 }
 
 .bn-table-handle-dragging {
 	background-color: rgba(56, 139, 253, 0.8) !important;
-	border-color: #388bfd !important;
-	color: #ffffff !important;
+	border-color: var(--color-accent, #388bfd) !important;
+	color: var(--color-on-accent, #ffffff) !important;
 	cursor: grabbing !important;
 }
 
