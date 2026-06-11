@@ -21,6 +21,7 @@ import {
 	useCommandRegistryStore,
 } from "../registry";
 import { getTopRecentCommandIds, sortCommandsByUsage } from "../utils/commandSorting";
+import { useAllDocuments } from "./useAllDocuments";
 import { useCommandUsage } from "./useCommandUsage";
 
 const REGISTRY_SOURCES = [
@@ -48,7 +49,10 @@ export interface UseGlobalCommandPaletteReturn {
 	handleCommandSelect: (command: CommandOption) => void;
 	sortedCommands: CommandOption[];
 	recentDocumentItems: SubPaletteItem[];
+	allDocumentItems: SubPaletteItem[];
 	showRecentDocuments: boolean;
+	showAllDocuments: boolean;
+	allDocumentsLoading: boolean;
 	handleSubPaletteBack: () => void;
 	isErrorDialogOpen: boolean;
 	closeErrorDialog: () => void;
@@ -69,6 +73,7 @@ export function useGlobalCommandPalette(
 	} = props;
 
 	const isOpen = useCommandPaletteStore((s) => s.isOpen);
+	const quickSwitcherMode = useCommandPaletteStore((s) => s.quickSwitcherMode);
 	const { projects, currentProject, setCurrentProject, previousProject, switchToLastProject } =
 		useProjectContext();
 	const { getSelectedDocument } = useDocumentContext();
@@ -79,6 +84,7 @@ export function useGlobalCommandPalette(
 	const [gitError, setGitError] = useState<ParsedGitError | null>(null);
 	const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
 	const [showRecentDocuments, setShowRecentDocuments] = useState(false);
+	const [showAllDocuments, setShowAllDocuments] = useState(false);
 	const clearGitErrorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const { timeouts } = useMergedConfig();
 	const onCloseRef = useRef(onClose);
@@ -128,18 +134,29 @@ export function useGlobalCommandPalette(
 		[],
 	);
 
-	const handleClose = useCallback(() => {
-		setShowRecentDocuments(false);
-		onCloseRef.current();
-	}, []);
-
-	const handleSubPaletteBack = useCallback(() => {
-		setShowRecentDocuments(false);
-	}, []);
-
 	const navigate = useCallback((page: PageName, state?: NavigationState) => {
 		onNavigateRef.current(page, state);
 	}, []);
+
+	const handleClose = useCallback(() => {
+		setShowRecentDocuments(false);
+		setShowAllDocuments(false);
+		onCloseRef.current();
+	}, []);
+
+	const {
+		allDocumentItems,
+		isLoading: allDocumentsLoading,
+		loadAllDocuments,
+	} = useAllDocuments(navigate, handleClose);
+
+	const handleSubPaletteBack = useCallback(() => {
+		if (showAllDocuments) {
+			setShowAllDocuments(false);
+			return;
+		}
+		setShowRecentDocuments(false);
+	}, [showAllDocuments]);
 
 	const getSelectedDocumentLatest = useCallback(() => {
 		return getSelectedDocumentRef.current();
@@ -216,6 +233,7 @@ export function useGlobalCommandPalette(
 			onShowHelp: hasShowHelp ? onShowHelpLatest : undefined,
 			resetLayout: resetLayoutLatest,
 			setShowRecentDocuments,
+			setShowAllDocuments,
 		}),
 		[
 			navigate,
@@ -237,6 +255,7 @@ export function useGlobalCommandPalette(
 			onShowHelpLatest,
 			resetLayoutLatest,
 			setShowRecentDocuments,
+			setShowAllDocuments,
 		],
 	);
 
@@ -249,6 +268,20 @@ export function useGlobalCommandPalette(
 		registerProjectCommands(registry, ctx);
 		registerApplicationCommands(registry, ctx);
 	}, [registry, ctx]);
+
+	// Load all documents when quick-switch is activated
+	useEffect(() => {
+		if (showAllDocuments) {
+			loadAllDocuments(projects);
+		}
+	}, [showAllDocuments, loadAllDocuments, projects]);
+
+	// Open quick-switcher mode when triggered via Mod+P
+	useEffect(() => {
+		if (isOpen && quickSwitcherMode) {
+			setShowAllDocuments(true);
+		}
+	}, [isOpen, quickSwitcherMode]);
 
 	// Cleanup only on unmount
 	useEffect(() => {
@@ -283,7 +316,10 @@ export function useGlobalCommandPalette(
 		handleCommandSelect,
 		sortedCommands,
 		recentDocumentItems,
+		allDocumentItems,
 		showRecentDocuments,
+		showAllDocuments,
+		allDocumentsLoading,
 		handleSubPaletteBack,
 		isErrorDialogOpen,
 		closeErrorDialog,

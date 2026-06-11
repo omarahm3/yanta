@@ -1,6 +1,9 @@
 import { useCallback } from "react";
 import { GLOBAL_SHORTCUTS } from "@/config/public";
-import { GlobalCommandPalette, useCommandPaletteStore } from "../command-palette";
+import {
+	GlobalCommandPalette,
+	useCommandPaletteStore,
+} from "../command-palette";
 import { useHelp } from "../help";
 import { useHotkey } from "../hotkeys";
 import { useProjectContext } from "../project";
@@ -18,6 +21,7 @@ const GlobalCommandHotkey = () => {
 	const nav = useAppNavigation();
 	const openCommandPalette = useCommandPaletteStore((s) => s.open);
 	const closeCommandPalette = useCommandPaletteStore((s) => s.close);
+	const setQuickSwitcherMode = useCommandPaletteStore((s) => s.setQuickSwitcherMode);
 	const handleCloseCommandPalette = useCallback(() => {
 		closeCommandPalette();
 	}, [closeCommandPalette]);
@@ -25,6 +29,15 @@ const GlobalCommandHotkey = () => {
 	useHotkey({
 		...GLOBAL_SHORTCUTS.commandPalette,
 		handler: () => openCommandPalette(),
+		allowInInput: false,
+	});
+
+	useHotkey({
+		...GLOBAL_SHORTCUTS.quickSwitch,
+		handler: () => {
+			setQuickSwitcherMode();
+			openCommandPalette();
+		},
 		allowInInput: false,
 	});
 

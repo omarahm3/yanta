@@ -9,3 +9,4 @@ export type {
 	UseGlobalCommandPaletteReturn,
 } from "./useGlobalCommandPalette";
 export { useGlobalCommandPalette } from "./useGlobalCommandPalette";
+export { useAllDocuments } from "./useAllDocuments";

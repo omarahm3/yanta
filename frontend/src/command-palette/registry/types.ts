@@ -30,6 +30,7 @@ export interface CommandRegistryContext {
 	onShowHelp?: () => void;
 	resetLayout: () => void;
 	setShowRecentDocuments: (show: boolean) => void;
+	setShowAllDocuments: (show: boolean) => void;
 }
 
 /** Registry interface: register commands per source and retrieve flattened list. */

@@ -1,4 +1,4 @@
-import { BookOpen, Calendar, Clock, Folder, LayoutDashboard, Search, Settings } from "lucide-react";
+import { BookOpen, Calendar, Clock, Folder, LayoutDashboard, Navigation, Search, Settings } from "lucide-react";
 import type { CommandOption } from "../../../shared/ui";
 import { getShortcutForCommand } from "../../../shared/utils/shortcuts";
 import type { CommandRegistry, CommandRegistryContext } from "../types";
@@ -7,8 +7,21 @@ export function registerNavigationCommands(
 	registry: CommandRegistry,
 	ctx: CommandRegistryContext,
 ): void {
-	const { onNavigate, handleClose, setShowRecentDocuments } = ctx;
+	const { onNavigate, handleClose, setShowRecentDocuments, setShowAllDocuments } = ctx;
 	const commands: CommandOption[] = [
+		{
+			id: "nav-quick-switch",
+			icon: <Navigation className="text-lg" />,
+			text: "Quick Switch: Jump to Document",
+			hint: "Search all documents",
+			shortcut: getShortcutForCommand("nav-quick-switch"),
+			group: "Navigation",
+			keywords: ["quick", "switch", "jump", "go", "document", "find", "goto"],
+			keepOpen: true,
+			action: () => {
+				setShowAllDocuments(true);
+			},
+		},
 		{
 			id: "nav-dashboard",
 			icon: <LayoutDashboard className="text-lg" />,
