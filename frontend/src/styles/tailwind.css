@@ -251,6 +251,15 @@
 	--mode-accent-muted: rgba(88, 166, 255, 0.15);
 }
 
+/* Accessibility baseline: a visible focus ring on every keyboard-focused
+   control. Declared globally (not just inside [data-mode]) so portaled
+   surfaces — dialogs, toasts, the command palette — which mount on
+   document.body outside the [data-mode] container, still get a ring. */
+:focus-visible {
+	outline: 2px solid var(--color-accent);
+	outline-offset: 2px;
+}
+
 [data-mode="documents"] :focus-visible {
 	outline: 2px solid var(--color-accent);
 	outline-offset: 2px;

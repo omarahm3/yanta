@@ -5,7 +5,13 @@ import { useProjectContext } from "../../project";
 import { moveDocumentToProject } from "../../shared/services/DocumentService";
 import { useDialog } from "../../shared/stores/dialog.store";
 import type { Project } from "../../shared/types/Project";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../shared/ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "../../shared/ui/dialog";
 import { Input } from "../../shared/ui/Input";
 import { Text } from "../../shared/ui/Text";
 import { cn } from "../../shared/utils/cn";
@@ -137,6 +143,10 @@ export const MoveDocumentDialog: React.FC<MoveDocumentDialogProps> = ({
 			<DialogContent className="sm:max-w-md" showCloseButton={false}>
 				<DialogHeader>
 					<DialogTitle>{docCount === 1 ? "Move Document" : `Move ${docCount} Documents`}</DialogTitle>
+					<DialogDescription>
+						Choose a destination project. Type to filter, then use the arrow keys or Ctrl+N/Ctrl+P to
+						navigate and Enter to confirm.
+					</DialogDescription>
 				</DialogHeader>
 
 				<div onKeyDown={handleKeyDown} className="space-y-3">
