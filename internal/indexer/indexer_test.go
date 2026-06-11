@@ -447,7 +447,7 @@ func TestIndexer_ReindexAfterExternalVaultEdit(t *testing.T) {
 	// Initial state: index a pre-existing note so the index is "warm", just like
 	// an app that has been running before a git pull arrives.
 	existingPath := createTestDocument(t, v, "@test-project", "Existing Note", []string{"existing"})
-	if err := idx.ScanAndIndexVault(ctx); err != nil {
+	if _, err := idx.ScanAndIndexVault(ctx); err != nil {
 		t.Fatalf("initial ScanAndIndexVault() failed: %v", err)
 	}
 	if _, err := docStore.GetByPath(ctx, existingPath); err != nil {
@@ -499,7 +499,7 @@ func TestIndexer_ReindexAfterExternalVaultEdit(t *testing.T) {
 	}
 
 	// Reindex after the external edit (the git-pull rebuild path).
-	if err := idx.ScanAndIndexVault(ctx); err != nil {
+	if _, err := idx.ScanAndIndexVault(ctx); err != nil {
 		t.Fatalf("ScanAndIndexVault() after external edit failed: %v", err)
 	}
 
