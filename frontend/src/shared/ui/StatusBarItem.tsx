@@ -1,7 +1,7 @@
 import type React from "react";
 import { cn } from "../utils/cn";
 
-interface StatusBarItemProps {
+interface StatusBarItemProps extends React.HTMLAttributes<HTMLSpanElement> {
 	/** Short, fixed label for the metric (e.g. "Docs", "Project"). */
 	label: string;
 	/** The glanceable value. */
@@ -10,7 +10,6 @@ interface StatusBarItemProps {
 	title?: string;
 	/** Primary metrics read brighter/heavier so the eye lands on them first. */
 	primary?: boolean;
-	className?: string;
 }
 
 /**
@@ -26,6 +25,7 @@ export const StatusBarItem: React.FC<StatusBarItemProps> = ({
 	title,
 	primary = false,
 	className,
+	...props
 }) => {
 	const tooltip =
 		title ?? (typeof value === "string" || typeof value === "number" ? `${label}: ${value}` : label);
@@ -34,6 +34,7 @@ export const StatusBarItem: React.FC<StatusBarItemProps> = ({
 		<span
 			title={tooltip}
 			className={cn("group/sbitem inline-flex items-baseline gap-1.5 whitespace-nowrap", className)}
+			{...props}
 		>
 			<span className="text-[10px] uppercase tracking-wider text-text-dim/60 transition-colors group-hover/sbitem:text-text-dim">
 				{label}
