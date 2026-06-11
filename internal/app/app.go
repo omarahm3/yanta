@@ -86,7 +86,7 @@ func New(cfg Config) (*App, error) {
 		return nil, err
 	}
 
-	if !v.HasDocuments() {
+	if demoSeedingEnabled() && !v.HasDocuments() {
 		if err := db.SeedProjects(a.DB); err != nil {
 			logger.Errorf("failed to seed demo projects: %v", err)
 			return nil, err
@@ -148,8 +148,10 @@ func New(cfg Config) (*App, error) {
 
 	logger.Debugf("services created")
 
-	if err := seedDemoDocuments(v, documentStore, idx); err != nil {
-		logger.Warnf("failed to seed demo documents: %v", err)
+	if demoSeedingEnabled() {
+		if err := seedDemoDocuments(v, documentStore, idx); err != nil {
+			logger.Warnf("failed to seed demo documents: %v", err)
+		}
 	}
 
 	logger.Info("scanning vault for existing documents...")
@@ -427,6 +429,15 @@ func (a *App) writeCrashReport(location string, panicValue any) {
 	fmt.Fprintf(f, "%s\n", buf[:n])
 
 	logger.Infof("crash report written to: %s", crashPath)
+}
+
+// demoSeedingEnabled reports whether the app should pre-populate a fresh vault
+// with demo projects and documents. It is OFF by default so a first run lands on
+// the guided onboarding flow (YANA-5) with an empty, user-owned vault instead of
+// sample clutter. Set YANTA_SEED_DEMO=1 to restore demo content (useful for dev
+// and screenshots).
+func demoSeedingEnabled() bool {
+	return os.Getenv("YANTA_SEED_DEMO") == "1"
 }
 
 func seedDemoDocuments(v *vault.Vault, docStore *document.Store, idx *indexer.Indexer) error {
