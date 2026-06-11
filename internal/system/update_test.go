@@ -26,6 +26,8 @@ func TestCompareVersions(t *testing.T) {
 		{"1.2.3-beta", "1.2.3", 0},
 		{"1.3.0-rc1", "1.2.9", 1},
 		// Malformed inputs compare equal so they never trigger a prompt.
+		{"1.-2.3", "1.0.0", 0},
+		{"1.0.0", "1.-2.3", 0},
 		{"garbage", "1.2.3", 0},
 		{"1.2.3", "garbage", 0},
 	}
