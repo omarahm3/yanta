@@ -287,6 +287,7 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 					<div
 						className={cn(itemClasses, "animate-stagger-fade-in")}
 						style={{
+							...style,
 							...borderStyle,
 							...backgroundStyle,
 							animationDelay: style ? `calc(var(--i, 0) * 30ms)` : undefined,

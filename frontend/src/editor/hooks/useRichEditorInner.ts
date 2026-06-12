@@ -460,7 +460,7 @@ export function useRichEditorInner({
 	useEffect(() => {
 		if (!container) return;
 		const handleFocusModeKey = (e: KeyboardEvent) => {
-			if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.key === "z") {
+			if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === "KeyZ") {
 				e.preventDefault();
 				toggleFocusMode();
 			}
