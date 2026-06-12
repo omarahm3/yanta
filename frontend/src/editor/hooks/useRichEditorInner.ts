@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { extractTitleFromBlocks } from "../../document/utils/documentUtils";
 import { useProjectContext } from "../../project";
 import { useNotification } from "../../shared/hooks";
+import { useAppearanceStore } from "../../shared/stores/appearance.store";
 import { useScale } from "../../shared/stores/scale.store";
 import type { BlockNoteBlock } from "../../shared/types/Document";
 import { uploadFile } from "../../shared/utils/assetUpload";
@@ -72,6 +73,8 @@ export function useRichEditorInner({
 
 	const [isLinux, setIsLinux] = useState(false);
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
+	const focusMode = useAppearanceStore((s) => s.focusMode);
+	const toggleFocusMode = useAppearanceStore((s) => s.toggleFocusMode);
 
 	usePlainTextClipboard(container);
 
@@ -453,10 +456,24 @@ export function useRichEditorInner({
 		};
 	}, [container, openLinkExternally]);
 
+	// Alt+Z toggles focus/typewriter mode (matches PANE_SHORTCUTS.focusMode)
+	useEffect(() => {
+		if (!container) return;
+		const handleFocusModeKey = (e: KeyboardEvent) => {
+			if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.key === "z") {
+				e.preventDefault();
+				toggleFocusMode();
+			}
+		};
+		container.addEventListener("keydown", handleFocusModeKey, true);
+		return () => container.removeEventListener("keydown", handleFocusModeKey, true);
+	}, [container, toggleFocusMode]);
+
 	return {
 		editor,
 		isReady,
 		scale,
+		focusMode,
 		containerRefCallback,
 		pluginSlashMenuItems: effectivePluginSlashMenuItems,
 	};

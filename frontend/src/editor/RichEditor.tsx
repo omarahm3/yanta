@@ -101,8 +101,8 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 		ref,
 	) => {
 		const resolvedTheme = useResolvedTheme();
-		const { editor, isReady, scale, containerRefCallback, pluginSlashMenuItems } = useRichEditorInner(
-			{
+		const { editor, isReady, scale, focusMode, containerRefCallback, pluginSlashMenuItems } =
+			useRichEditorInner({
 				blocks,
 				onChange,
 				onTitleChange,
@@ -110,8 +110,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 				editable,
 				autoFocus,
 				disablePluginContributions,
-			},
-		);
+			});
 
 		const mergedRef = React.useCallback(
 			(node: HTMLDivElement | null) => {
@@ -134,6 +133,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 				ref={mergedRef}
 				className={cn("rich-editor flex-1 overflow-y-auto h-full", className)}
 				style={{ "--editor-scale": scale } as React.CSSProperties}
+				data-focus-mode={focusMode ? "true" : undefined}
 			>
 				<BlockNoteView
 					editor={editor}

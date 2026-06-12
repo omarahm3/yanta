@@ -173,8 +173,8 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 								onRestoreDocument={onRestoreDocument}
 								onMoveDocument={onMoveDocument}
 								showArchived={showArchived}
-									style={{ "--i": Math.min(index, 20) }} as React.CSSProperties}
-					/>
+								style={{ "--i": Math.min(index, 20) } as React.CSSProperties}
+							/>
 						</div>
 					);
 				})}
@@ -201,7 +201,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 						onRestoreDocument={onRestoreDocument}
 						onMoveDocument={onMoveDocument}
 						showArchived={showArchived}
-							style={{ "--i": Math.min(index, 20) }} as React.CSSProperties}
+						style={{ "--i": Math.min(index, 20) } as React.CSSProperties}
 					/>
 				);
 			})}
@@ -286,7 +286,11 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 				<ContextMenuTrigger asChild>
 					<div
 						className={cn(itemClasses, "animate-stagger-fade-in")}
-						style={{ ...borderStyle, ...backgroundStyle, animationDelay: style ? `calc(var(--i, 0) * 30ms)` : undefined }}
+						style={{
+							...borderStyle,
+							...backgroundStyle,
+							animationDelay: style ? `calc(var(--i, 0) * 30ms)` : undefined,
+						}}
 						role="listitem"
 						aria-selected={isSelected}
 						tabIndex={isHighlighted ? 0 : -1}

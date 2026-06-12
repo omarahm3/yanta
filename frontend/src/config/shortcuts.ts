@@ -31,6 +31,7 @@ export const PANE_SHORTCUTS = {
 	focusDown: { key: "alt+j", description: "Focus pane down" },
 	focusUp: { key: "alt+k", description: "Focus pane up" },
 	focusRight: { key: "alt+l", description: "Focus pane right" },
+	focusMode: { key: "alt+z", description: "Toggle focus mode (dim surrounding blocks)" },
 } as const satisfies Record<string, ShortcutDef>;
 
 /** Document view (useDocumentController) */

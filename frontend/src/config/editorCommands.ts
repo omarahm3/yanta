@@ -9,6 +9,7 @@ export const EDITOR_HELP_COMMANDS: HelpCommand[] = [
 	{ command: "Ctrl+S", description: "Save the entry" },
 	{ command: "Esc", description: "Cancel and go back" },
 	{ command: "Ctrl+Shift+E", description: "Export to PDF" },
+	{ command: "Alt+Z", description: "Toggle focus/typewriter mode" },
 ];
 
 export const EDITOR_SHORTCUTS = [
