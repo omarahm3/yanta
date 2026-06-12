@@ -13,7 +13,9 @@ interface AppearanceState {
 	toggleFocusMode: () => void;
 }
 
-function validateAppearance(data: unknown): { reducedEffects: boolean; focusMode?: boolean } | null {
+function validateAppearance(
+	data: unknown,
+): { reducedEffects: boolean; focusMode?: boolean } | null {
 	if (typeof data !== "object" || data === null || Array.isArray(data)) {
 		return null;
 	}
@@ -34,7 +36,11 @@ const appearanceStorage: PersistStorage<{ reducedEffects: boolean; focusMode: bo
 			if (!raw) return null;
 			const parsed = JSON.parse(raw) as unknown;
 			const validated = validateAppearance(parsed);
-			return validated !== null ? { state: { reducedEffects: validated.reducedEffects, focusMode: validated.focusMode ?? false } } : null;
+			return validated !== null
+				? {
+						state: { reducedEffects: validated.reducedEffects, focusMode: validated.focusMode ?? false },
+					}
+				: null;
 		} catch (err) {
 			BackendLogger.error("[appearance.store] Failed to load:", err);
 			return null;
