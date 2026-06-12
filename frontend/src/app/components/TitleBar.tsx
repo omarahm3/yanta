@@ -10,30 +10,30 @@ import { useTitleBarContext } from "../stores/titlebar.store";
 
 export const TitleBar: React.FC = () => {
 	const [shouldShow, setShouldShow] = useState<boolean>(false);
-	const { setHeight } = useTitleBarContext();
+	const { setChrome } = useTitleBarContext();
 
 	useEffect(() => {
 		const checkFrameless = async () => {
 			const isLinux = System.IsLinux();
 			if (!isLinux) {
 				setShouldShow(false);
-				setHeight(0);
+				setChrome("hidden", 0);
 				return;
 			}
 
 			try {
 				const frameless = await IsFrameless();
 				setShouldShow(frameless);
-				setHeight(frameless ? 2 : 0);
+				setChrome(frameless ? "frameless" : "hidden", frameless ? 2 : 0);
 			} catch (err) {
 				BackendLogger.error("Failed to check frameless mode:", err);
 				setShouldShow(false);
-				setHeight(0);
+				setChrome("hidden", 0);
 			}
 		};
 
 		checkFrameless();
-	}, [setHeight]);
+	}, [setChrome]);
 
 	const toast = useToast();
 

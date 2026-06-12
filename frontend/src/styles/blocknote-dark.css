@@ -1,4 +1,34 @@
-/* BlockNote editor overrides - theme-aware (resolves to dark/light via tokens) */
+/* BlockNote Dark Theme - Design-token driven overrides */
+
+/* ============================================================================
+   BLOCKNOTE INTERNAL COLOR VARIABLES
+   Override BlockNote's default theme variables to match YANTA design tokens.
+   These drive menus, tooltips, hover states, and the side menu icon.
+   ============================================================================ */
+
+.bn-container {
+	--bn-colors-editor-text: var(--yanta-text);
+	--bn-colors-editor-background: transparent;
+	--bn-colors-menu-text: var(--yanta-text);
+	--bn-colors-menu-background: var(--yanta-glass-bg-solid);
+	--bn-colors-tooltip-text: var(--yanta-text-dim);
+	--bn-colors-tooltip-background: var(--yanta-surface);
+	--bn-colors-hovered-text: var(--yanta-text-bright);
+	--bn-colors-hovered-background: color-mix(in srgb, var(--yanta-accent) 12%, var(--yanta-surface));
+	--bn-colors-selected-text: var(--yanta-text-bright);
+	--bn-colors-selected-background: color-mix(in srgb, var(--yanta-accent) 25%, var(--yanta-surface));
+	--bn-colors-disabled-text: var(--yanta-text-dim);
+	--bn-colors-disabled-background: color-mix(in srgb, var(--yanta-surface) 50%, transparent);
+	--bn-colors-shadow: rgba(0, 0, 0, 0.5);
+	--bn-colors-border: var(--yanta-border);
+	--bn-colors-side-menu: var(--yanta-text-dim);
+	--bn-border-radius: 8px;
+}
+
+:root[data-theme="light"] .bn-container {
+	--bn-colors-shadow: rgba(0, 0, 0, 0.12);
+	--bn-colors-hovered-background: color-mix(in srgb, var(--yanta-accent) 8%, var(--yanta-surface));
+}
 
 /* ============================================================================
    EDITOR CONTAINER - Colors only, no layout changes
@@ -7,11 +37,6 @@
 .bn-container {
 	background: transparent !important;
 	color: var(--color-text, #c9d1d9) !important;
-	/* Do NOT set overflow: hidden here — BlockNote renders the table/row/block
-	   drag-handle popover menus inside .bn-container, and clipping them makes
-	   the menu text get cut off (see issues.md #14). The outer `.rich-editor`
-	   div already handles scrolling. Also avoid `position: relative` so this
-	   element does not become the containing block for the popover wrappers. */
 }
 
 .bn-editor {
@@ -27,12 +52,12 @@
 .bn-inline-content code {
 	font-family: var(--font-mono, "SF Mono", "Monaco", "Cascadia Code", monospace);
 	font-size: 0.875em;
-	background-color: rgba(110, 118, 129, 0.25);
+	background-color: color-mix(in srgb, var(--color-border) 40%, transparent);
 	color: var(--color-code-text, #ff7b72);
 	padding: 0.15em 0.4em;
 	margin: 0 0.1em;
 	border-radius: 4px;
-	border: 1px solid rgba(110, 118, 129, 0.3);
+	border: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
 	white-space: pre-wrap;
 	word-break: break-word;
 }
@@ -49,35 +74,34 @@
 	height: 18px !important;
 	padding: 0 !important;
 	border-radius: 4px !important;
-	background-color: rgba(99, 110, 123, 0.4) !important;
-	border: 1px solid rgba(99, 110, 123, 0.5) !important;
+	background-color: color-mix(in srgb, var(--color-border) 70%, transparent) !important;
+	border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent) !important;
 	color: var(--color-text-dim, #8b949e) !important;
 	cursor: grab !important;
 	transition: all 0.15s ease !important;
 }
 
 .bn-table-handle:hover {
-	background-color: rgba(56, 139, 253, 0.6) !important;
-	border-color: rgba(56, 139, 253, 0.8) !important;
+	background-color: color-mix(in srgb, var(--color-accent) 60%, transparent) !important;
+	border-color: color-mix(in srgb, var(--color-accent) 80%, transparent) !important;
 	color: var(--color-on-accent, #ffffff) !important;
 }
 
 .bn-table-handle:active,
 .bn-table-handle[data-state="open"] {
-	background-color: rgba(56, 139, 253, 0.8) !important;
-	border-color: var(--color-accent, #388bfd) !important;
+	background-color: color-mix(in srgb, var(--color-accent) 80%, transparent) !important;
+	border-color: var(--color-accent) !important;
 	color: var(--color-on-accent, #ffffff) !important;
 	cursor: grabbing !important;
 }
 
 .bn-table-handle-dragging {
-	background-color: rgba(56, 139, 253, 0.8) !important;
-	border-color: var(--color-accent, #388bfd) !important;
+	background-color: color-mix(in srgb, var(--color-accent) 80%, transparent) !important;
+	border-color: var(--color-accent) !important;
 	color: var(--color-on-accent, #ffffff) !important;
 	cursor: grabbing !important;
 }
 
-/* Make the icon smaller to fit the handle */
 .bn-table-handle svg {
 	width: 14px !important;
 	height: 14px !important;
@@ -92,7 +116,7 @@
 .bn-editor a:link {
 	color: inherit;
 	text-decoration: underline;
-	text-decoration-color: rgba(139, 148, 158, 0.5);
+	text-decoration-color: color-mix(in srgb, var(--color-text-dim) 50%, transparent);
 	text-underline-offset: 2px;
 	transition: text-decoration-color 0.15s ease;
 }
@@ -102,15 +126,138 @@
 }
 
 /* ============================================================================
+   TEXT SELECTION - Theme-aware using accent token
+   ============================================================================ */
+
+.bn-editor ::selection,
+.bn-editor .bn-inline-content ::selection {
+	background-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+
+/* ============================================================================
+   BLOCK HOVER AFFORDANCE
+   Subtle background on hover makes blocks feel interactive and selectable.
+   ============================================================================ */
+
+.bn-block-content {
+	border-radius: 4px;
+	transition: background-color var(--duration-instant, 100ms) ease;
+}
+
+.bn-block-outer:hover > .bn-block > .bn-block-content {
+	background-color: color-mix(in srgb, var(--yanta-text) 4%, transparent);
+}
+
+/* ============================================================================
+   SIDE MENU (DRAG HANDLE) - Theme-aware, smooth hover
+   ============================================================================ */
+
+.bn-side-menu .bn-button {
+	color: var(--yanta-text-dim) !important;
+	border-radius: 4px !important;
+	transition:
+		color var(--duration-fast, 200ms) ease,
+		background-color var(--duration-fast, 200ms) ease !important;
+}
+
+.bn-side-menu .bn-button:hover {
+	color: var(--yanta-text-bright) !important;
+	background-color: color-mix(in srgb, var(--yanta-accent) 15%, transparent) !important;
+}
+
+/* ============================================================================
+   FORMATTING TOOLBAR & LINK TOOLBAR - Glass aesthetic
+   ============================================================================ */
+
+.bn-toolbar.bn-formatting-toolbar,
+.bn-toolbar.bn-link-toolbar {
+	backdrop-filter: blur(12px) !important;
+	-webkit-backdrop-filter: blur(12px) !important;
+	background-color: var(--yanta-glass-bg-solid) !important;
+	border-color: color-mix(in srgb, var(--yanta-border) 80%, transparent) !important;
+	box-shadow:
+		0 4px 20px rgba(0, 0, 0, 0.35),
+		0 1px 4px rgba(0, 0, 0, 0.2),
+		inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+:root[data-theme="light"] .bn-toolbar.bn-formatting-toolbar,
+:root[data-theme="light"] .bn-toolbar.bn-link-toolbar {
+	box-shadow:
+		0 4px 16px rgba(0, 0, 0, 0.1),
+		0 1px 4px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* ============================================================================
+   SLASH MENU (SUGGESTION MENU) - Glass aesthetic with elevation
+   ============================================================================ */
+
+#bn-suggestion-menu {
+	backdrop-filter: blur(16px) !important;
+	-webkit-backdrop-filter: blur(16px) !important;
+	background-color: var(--yanta-glass-bg-solid) !important;
+	border-color: color-mix(in srgb, var(--yanta-border) 80%, transparent) !important;
+	box-shadow:
+		0 8px 30px rgba(0, 0, 0, 0.4),
+		0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+:root[data-theme="light"] #bn-suggestion-menu {
+	box-shadow:
+		0 8px 24px rgba(0, 0, 0, 0.12),
+		0 2px 6px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* ============================================================================
+   CODE BLOCK - Bordered container with subtle surface background
+   ============================================================================ */
+
+[data-content-type="codeBlock"] {
+	background-color: color-mix(in srgb, var(--yanta-surface) 60%, transparent) !important;
+	border: 1px solid color-mix(in srgb, var(--yanta-border) 60%, transparent) !important;
+	border-radius: 8px !important;
+	overflow: hidden !important;
+}
+
+/* ============================================================================
+   QUOTE / CALLOUT - Token-based blockquote with subtle accent background
+   ============================================================================ */
+
+[data-content-type="quote"] blockquote {
+	border-left: 2px solid color-mix(in srgb, var(--yanta-accent) 70%, transparent) !important;
+	color: var(--yanta-text) !important;
+	background-color: color-mix(in srgb, var(--yanta-accent) 6%, transparent) !important;
+	border-radius: 0 6px 6px 0 !important;
+	margin: 0 !important;
+	padding: 0.5em 1em !important;
+}
+
+/* ============================================================================
+   FOCUS / TYPEWRITER MODE
+   Toggle with Alt+Z — dims all blocks; hover or focus-within to reveal.
+   Keeps the eye locked on the block you're actively editing.
+   ============================================================================ */
+
+.rich-editor[data-focus-mode="true"] .bn-block-outer {
+	opacity: 0.32;
+	transition: opacity var(--duration-fast, 200ms) ease;
+}
+
+.rich-editor[data-focus-mode="true"] .bn-block-outer:hover,
+.rich-editor[data-focus-mode="true"] .bn-block-outer:focus-within {
+	opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.rich-editor[data-focus-mode="true"] .bn-block-outer {
+		transition: none;
+	}
+}
+
+/* ============================================================================
    EDITOR BOTTOM PADDING - Comfortable writing space at end of document
    ============================================================================ */
 
 .bn-editor {
 	padding-bottom: 40vh !important;
 }
-
-/* NB: previously `.rich-editor { position: relative !important }` — removed.
-   It made `.rich-editor` the containing block for BlockNote's popover
-   wrappers, which combined with `overflow-y-auto` (from Tailwind) clipped
-   the menus horizontally. Outer scroll is still provided by the Tailwind
-   class on the div; we no longer need to make this a positioned ancestor. */

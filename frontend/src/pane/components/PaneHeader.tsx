@@ -82,7 +82,7 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({
 			<ContextMenuTrigger asChild>
 				<div
 					className={cn(
-						"bg-glass-bg/40 backdrop-blur-md border-b border-glass-border px-3 flex items-center justify-between h-8 shrink-0",
+						"bg-glass-bg/40 backdrop-blur-md border-b border-glass-border px-3 flex items-center justify-between h-8 shrink-0 transition-[border-color] duration-[var(--duration-fast)] ease-[var(--ease-out-quart)]",
 						isActive && "border-t-2 border-t-accent",
 						!isActive && "border-t-2 border-t-transparent",
 						documentPath && "cursor-grab active:cursor-grabbing",

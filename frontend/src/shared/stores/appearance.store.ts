@@ -9,9 +9,13 @@ const STORAGE_KEY = "yanta_appearance";
 interface AppearanceState {
 	reducedEffects: boolean;
 	setReducedEffects: (value: boolean) => void;
+	focusMode: boolean;
+	toggleFocusMode: () => void;
 }
 
-function validateAppearance(data: unknown): { reducedEffects: boolean } | null {
+function validateAppearance(
+	data: unknown,
+): { reducedEffects: boolean; focusMode?: boolean } | null {
 	if (typeof data !== "object" || data === null || Array.isArray(data)) {
 		return null;
 	}
@@ -19,23 +23,30 @@ function validateAppearance(data: unknown): { reducedEffects: boolean } | null {
 	if (typeof parsed.reducedEffects !== "boolean") {
 		return null;
 	}
-	return { reducedEffects: parsed.reducedEffects };
+	return {
+		reducedEffects: parsed.reducedEffects,
+		focusMode: typeof parsed.focusMode === "boolean" ? parsed.focusMode : false,
+	};
 }
 
-const appearanceStorage: PersistStorage<{ reducedEffects: boolean }> = {
+const appearanceStorage: PersistStorage<{ reducedEffects: boolean; focusMode: boolean }> = {
 	getItem: (name: string) => {
 		try {
 			const raw = localStorage.getItem(name);
 			if (!raw) return null;
 			const parsed = JSON.parse(raw) as unknown;
 			const validated = validateAppearance(parsed);
-			return validated !== null ? { state: validated } : null;
+			return validated !== null
+				? {
+						state: { reducedEffects: validated.reducedEffects, focusMode: validated.focusMode ?? false },
+					}
+				: null;
 		} catch (err) {
 			BackendLogger.error("[appearance.store] Failed to load:", err);
 			return null;
 		}
 	},
-	setItem: (name: string, value: { state: { reducedEffects: boolean } }) => {
+	setItem: (name: string, value: { state: { reducedEffects: boolean; focusMode: boolean } }) => {
 		try {
 			localStorage.setItem(name, JSON.stringify(value.state));
 		} catch (err) {
@@ -56,17 +67,23 @@ export const useAppearanceStore = create<AppearanceState>()(
 		(set) => ({
 			reducedEffects: false,
 			setReducedEffects: (value) => set({ reducedEffects: value }),
+			focusMode: false,
+			toggleFocusMode: () => set((s) => ({ focusMode: !s.focusMode })),
 		}),
 		{
 			name: STORAGE_KEY,
 			storage: appearanceStorage,
-			partialize: (s) => ({ reducedEffects: s.reducedEffects }),
+			partialize: (s) => ({ reducedEffects: s.reducedEffects, focusMode: s.focusMode }),
 		},
 	),
 );
 
 export function useReducedEffects(): boolean {
 	return useAppearanceStore((s) => s.reducedEffects);
+}
+
+export function useFocusMode(): boolean {
+	return useAppearanceStore((s) => s.focusMode);
 }
 
 /**

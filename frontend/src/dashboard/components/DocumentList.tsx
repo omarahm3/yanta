@@ -173,6 +173,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 								onRestoreDocument={onRestoreDocument}
 								onMoveDocument={onMoveDocument}
 								showArchived={showArchived}
+								style={{ "--i": Math.min(index, 20) } as React.CSSProperties}
 							/>
 						</div>
 					);
@@ -200,6 +201,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 						onRestoreDocument={onRestoreDocument}
 						onMoveDocument={onMoveDocument}
 						showArchived={showArchived}
+						style={{ "--i": Math.min(index, 20) } as React.CSSProperties}
 					/>
 				);
 			})}
@@ -219,6 +221,7 @@ interface DocumentListItemProps {
 	onRestoreDocument?: (path: string) => void;
 	onMoveDocument?: (path: string) => void;
 	showArchived?: boolean;
+	style?: React.CSSProperties;
 }
 
 const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
@@ -234,6 +237,7 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 		onRestoreDocument,
 		onMoveDocument,
 		showArchived = false,
+		style,
 	}) => {
 		const borderStyle = isHighlighted || isSelected ? STYLE_BORDER_ACCENT : STYLE_EMPTY;
 		const backgroundStyle = isHighlighted ? STYLE_BG_HIGHLIGHTED : STYLE_EMPTY;
@@ -281,8 +285,13 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 			<ContextMenu>
 				<ContextMenuTrigger asChild>
 					<div
-						className={itemClasses}
-						style={{ ...borderStyle, ...backgroundStyle }}
+						className={cn(itemClasses, "animate-stagger-fade-in")}
+						style={{
+							...style,
+							...borderStyle,
+							...backgroundStyle,
+							animationDelay: style ? `calc(var(--i, 0) * 30ms)` : undefined,
+						}}
 						role="listitem"
 						aria-selected={isSelected}
 						tabIndex={isHighlighted ? 0 : -1}

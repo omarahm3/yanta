@@ -14,7 +14,7 @@ interface PaneResizeHandleProps {
 const PaneResizeHandle: React.FC<PaneResizeHandleProps> = React.memo(({ direction }) => (
 	<Separator
 		className={cn(
-			"relative flex items-center justify-center transition-colors",
+			"relative flex items-center justify-center transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out-quart)]",
 			"bg-border hover:bg-accent/50 active:bg-accent",
 			direction === "horizontal" ? "w-1" : "h-1",
 		)}
@@ -68,7 +68,7 @@ const PaneLeafView: React.FC<PaneLeafViewProps> = React.memo(({ node }) => {
 			ref={containerRef}
 			tabIndex={-1}
 			className={cn(
-				"flex flex-col h-full w-full overflow-hidden outline-none",
+				"flex flex-col h-full w-full overflow-hidden outline-none transition-[box-shadow] duration-[var(--duration-fast)] ease-[var(--ease-out-quart)]",
 				isActive && "ring-1 ring-accent/30",
 			)}
 			onMouseDown={handleFocus}
