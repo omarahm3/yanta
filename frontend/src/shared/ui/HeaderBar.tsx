@@ -21,6 +21,8 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 }) => {
 	return (
 		<div
+			role="region"
+			aria-label="Page header"
 			className={cn(
 				"bg-glass-bg/40 backdrop-blur-md border-b border-glass-border px-5 py-3 flex items-center justify-between",
 				className,

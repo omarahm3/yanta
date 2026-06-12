@@ -147,6 +147,13 @@ describe("Sidebar", () => {
 			expect(aside).toHaveClass("custom-class");
 		});
 
+		it("exposes the sidebar as a navigation landmark", () => {
+			render(<Sidebar sections={basicSections} />);
+
+			const nav = screen.getByRole("navigation", { name: "Main navigation" });
+			expect(nav.tagName.toLowerCase()).toBe("aside");
+		});
+
 		it("renders item counts when provided", () => {
 			const sectionsWithCounts: SidebarSection[] = [
 				{

@@ -158,7 +158,7 @@ export const Layout: React.FC<LayoutProps> = ({
 			className="layout-root relative flex overflow-hidden font-sans text-sm leading-relaxed bg-bg-dark text-text selection:bg-accent/30 selection:text-text-bright"
 			style={layoutStyle}
 		>
-			{/* Glass Sidebar Container */}
+			{/* Glass Sidebar Container — the Sidebar itself provides the navigation landmark */}
 			<div
 				className={`sidebar-transition relative z-20 h-full ${
 					!sidebarLoading && !sidebarVisible ? "sidebar-hidden" : "sidebar-visible"
@@ -174,7 +174,10 @@ export const Layout: React.FC<LayoutProps> = ({
 				)}
 			</div>
 
-			<div className="flex flex-col flex-1 overflow-hidden main-content-transition relative z-10 bg-glass-bg/10 backdrop-blur-sm">
+			<div
+				role="main"
+				className="flex flex-col flex-1 overflow-hidden main-content-transition relative z-10 bg-glass-bg/10 backdrop-blur-sm"
+			>
 				<a
 					href="#main-content"
 					className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-40 focus:px-3 focus:py-2 focus:rounded-md focus:bg-accent focus:text-bg"

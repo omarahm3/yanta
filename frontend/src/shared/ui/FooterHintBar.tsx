@@ -50,6 +50,8 @@ export const FooterHintBar: React.FC<FooterHintBarProps> = ({ hints, className }
 	return (
 		<div
 			data-testid="footer-hint-bar"
+			role="region"
+			aria-label="Keyboard shortcut hints"
 			className={cn(
 				"min-h-8 py-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 px-3 text-xs bg-glass-bg/60 backdrop-blur-md border-t border-glass-border text-text-dim z-40",
 				className,

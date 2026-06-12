@@ -36,7 +36,11 @@ export interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ sections, className }) => {
 	return (
-		<aside className={cn("h-full w-48 p-4 overflow-y-auto flex flex-col", className)}>
+		<aside
+			role="navigation"
+			aria-label="Main navigation"
+			className={cn("h-full w-48 p-4 overflow-y-auto flex flex-col", className)}
+		>
 			<div className="mb-8 flex items-center px-2">
 				<img src={logoImage} alt="YANTA" className="h-10 w-auto object-contain opacity-90" />
 			</div>
@@ -55,6 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ sections, className }) => {
 										variant="sidebar"
 										active={item.active}
 										onClick={item.onClick}
+										aria-current={item.active ? "page" : undefined}
 										className={cn("sidebar-item", item.active && "active")}
 									>
 										<span className="font-medium">{item.label}</span>

@@ -7,7 +7,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-	({ className, variant = "primary", size = "md", ...props }, ref) => {
+	({ className, variant = "primary", size = "md", disabled, ...props }, ref) => {
 		const baseClasses = "btn";
 		const variantClasses = {
 			primary: "btn-primary",
@@ -26,6 +26,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 			<button
 				className={cn(baseClasses, variantClasses[variant], sizeClasses[size], className)}
 				ref={ref}
+				disabled={disabled}
+				aria-disabled={disabled || undefined}
 				{...props}
 			/>
 		);
