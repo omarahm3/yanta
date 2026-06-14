@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import React, { type RefObject, useCallback, useEffect, useRef } from "react";
 import logoImage from "../../assets/images/logo-universal.png";
 import { useSidebarStateStore } from "../stores/sidebarState.store";
@@ -123,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ sections, className }) => {
 									id={`sidebar-section-${section.id}`}
 									className={cn(
 										"overflow-hidden transition-all duration-200",
-										isCollapsed ? "max-h-0 opacity-0" : "max-h-[500px] opacity-100",
+										isCollapsed ? "max-h-0 opacity-0" : "max-h-[2000px] opacity-100",
 									)}
 								>
 									<List variant="sidebar" className="space-y-0.5">
@@ -151,7 +152,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ sections, className }) => {
 															className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 ml-1 text-text-dim hover:text-text-bright transition-opacity flex-shrink-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded"
 															onClick={item.action.onClick}
 														>
-															{item.action.icon}
+															<X className="w-3 h-3" aria-hidden="true" />
 														</button>
 													)}
 												</ListItem>

@@ -84,8 +84,13 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 							</li>
 						);
 					})}
+					{projectAlias && (
+						<li aria-hidden="true">
+							<span className="mx-1.5 text-text-dim/50 select-none">·</span>
+							<span className="text-text-dim text-sm">{projectAlias}</span>
+						</li>
+					)}
 				</ol>
-				{projectAlias && <span className="text-text-dim ml-2 text-sm">{projectAlias}</span>}
 			</nav>
 			<div className="flex items-center gap-4 text-xs text-text-dim">
 				{shortcuts.map((shortcut) => (
