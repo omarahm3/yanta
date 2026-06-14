@@ -269,24 +269,32 @@ describe("Sidebar", () => {
 	});
 
 	describe("resize handle", () => {
-		it("renders a resize separator", () => {
+		it("renders a resize slider", () => {
 			render(<Sidebar sections={basicSections} />);
 
-			const handle = screen.getByRole("separator", { name: "Resize sidebar" });
+			const handle = screen.getByRole("slider", { name: "Sidebar width" });
 			expect(handle).toBeInTheDocument();
 		});
 
 		it("resize handle is keyboard focusable", () => {
 			render(<Sidebar sections={basicSections} />);
 
-			const handle = screen.getByRole("separator", { name: "Resize sidebar" });
+			const handle = screen.getByRole("slider", { name: "Sidebar width" });
 			expect(handle).toHaveAttribute("tabIndex", "0");
+		});
+
+		it("resize handle exposes aria-valuenow", () => {
+			useSidebarStateStore.setState({ sidebarWidth: 200 });
+			render(<Sidebar sections={basicSections} />);
+
+			const handle = screen.getByRole("slider", { name: "Sidebar width" });
+			expect(handle).toHaveAttribute("aria-valuenow", "200");
 		});
 
 		it("ArrowRight key increases sidebar width", () => {
 			render(<Sidebar sections={basicSections} />);
 
-			const handle = screen.getByRole("separator", { name: "Resize sidebar" });
+			const handle = screen.getByRole("slider", { name: "Sidebar width" });
 			const initialWidth = useSidebarStateStore.getState().sidebarWidth;
 			fireEvent.keyDown(handle, { key: "ArrowRight" });
 
@@ -296,7 +304,7 @@ describe("Sidebar", () => {
 		it("ArrowLeft key decreases sidebar width", () => {
 			render(<Sidebar sections={basicSections} />);
 
-			const handle = screen.getByRole("separator", { name: "Resize sidebar" });
+			const handle = screen.getByRole("slider", { name: "Sidebar width" });
 			const initialWidth = useSidebarStateStore.getState().sidebarWidth;
 			fireEvent.keyDown(handle, { key: "ArrowLeft" });
 
