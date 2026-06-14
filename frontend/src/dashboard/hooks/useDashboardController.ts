@@ -164,6 +164,7 @@ export function useDashboardController({
 	const sidebarSections = useSidebarSections({
 		currentPage: "dashboard",
 		onNavigate,
+		onOpenDocument: (path) => onNavigate?.("document", { documentPath: path }),
 	});
 
 	const { handleExportSelectedMarkdown, handleExportSelectedPDF } = useDashboardExports({

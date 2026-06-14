@@ -323,6 +323,7 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 	const sidebarSections = useSidebarSections({
 		currentPage: "search",
 		onNavigate,
+		onOpenDocument: (path) => onNavigate?.("document", { documentPath: path }),
 	});
 
 	const renderSnippet = (snippet: string) => {

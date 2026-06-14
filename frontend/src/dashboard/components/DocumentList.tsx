@@ -1,6 +1,7 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Archive, FilePlus, FolderPlus } from "lucide-react";
 import React, { useEffect, useRef } from "react";
+import { useSidebarStateStore } from "../../shared/stores/sidebarState.store";
 import type { Document } from "../../shared/types/Document";
 import {
 	Button,
@@ -274,12 +275,28 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 			e.dataTransfer.effectAllowed = "copyMove";
 		};
 
+		const pinDocument = useSidebarStateStore((s) => s.pinDocument);
+		const unpinDocument = useSidebarStateStore((s) => s.unpinDocument);
+		const isPinned = useSidebarStateStore((s) => s.isPinned(doc.path));
+
 		const handleOpen = () => {
 			onHighlightDocument?.(index);
 			onDocumentClick(doc.path);
 		};
 
 		const handleToggleSelect = () => onToggleSelection?.(doc.path);
+
+		const handleTogglePin = () => {
+			if (isPinned) {
+				unpinDocument(doc.path);
+			} else {
+				pinDocument({
+					path: doc.path,
+					title: doc.title,
+					projectAlias: doc.projectAlias ?? "",
+				});
+			}
+		};
 
 		return (
 			<ContextMenu>
@@ -352,6 +369,9 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 					<ContextMenuItem onSelect={handleOpen}>Open</ContextMenuItem>
 					<ContextMenuItem onSelect={handleToggleSelect}>
 						{isSelected ? "Deselect" : "Select"}
+					</ContextMenuItem>
+					<ContextMenuItem onSelect={handleTogglePin}>
+						{isPinned ? "Unpin from sidebar" : "Pin to sidebar"}
 					</ContextMenuItem>
 					{onMoveDocument && (
 						<ContextMenuItem onSelect={() => onMoveDocument(doc.path)}>Move to...</ContextMenuItem>
