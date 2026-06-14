@@ -277,7 +277,7 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 
 		const pinDocument = useSidebarStateStore((s) => s.pinDocument);
 		const unpinDocument = useSidebarStateStore((s) => s.unpinDocument);
-		const isPinned = useSidebarStateStore((s) => s.isPinned(doc.path));
+		const isPinned = useSidebarStateStore((s) => s.pinnedDocuments.some((d) => d.path === doc.path));
 
 		const handleOpen = () => {
 			onHighlightDocument?.(index);

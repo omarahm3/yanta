@@ -4,6 +4,7 @@ import React, { useCallback } from "react";
 import { Layout } from "@/app";
 import type { SaveState } from "../../shared/hooks";
 import { useSidebarStateStore } from "../../shared/stores/sidebarState.store";
+import type { NavigationState, PageName } from "../../shared/types";
 import type { BlockNoteBlock } from "../../shared/types/Document";
 import type { Project } from "../../shared/types/Project";
 import { Button, type SidebarSection } from "../../shared/ui";
@@ -38,6 +39,8 @@ export interface DocumentContentProps {
 	onRestore?: () => void;
 	isRestoring?: boolean;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
+	/** Navigate to another page — used by breadcrumbs to return to the dashboard */
+	onNavigate?: (page: PageName, state?: NavigationState) => void;
 }
 
 const PinButton: React.FC<{
@@ -45,8 +48,9 @@ const PinButton: React.FC<{
 	documentTitle: string;
 	projectAlias?: string;
 }> = ({ documentPath, documentTitle, projectAlias = "" }) => {
-	const { isPinned, pinDocument, unpinDocument } = useSidebarStateStore();
-	const pinned = isPinned(documentPath);
+	const pinned = useSidebarStateStore((s) => s.pinnedDocuments.some((d) => d.path === documentPath));
+	const pinDocument = useSidebarStateStore((s) => s.pinDocument);
+	const unpinDocument = useSidebarStateStore((s) => s.unpinDocument);
 
 	const toggle = useCallback(() => {
 		if (pinned) {
@@ -89,9 +93,13 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 		onRestore,
 		isRestoring = false,
 		onRegisterToggleSidebar,
+		onNavigate,
 	}) => {
 		const breadcrumbs = currentProject
-			? [{ label: currentProject.name }, { label: documentTitle || "Document" }]
+			? [
+					{ label: currentProject.name, onClick: () => onNavigate?.("dashboard") },
+					{ label: documentTitle || "Document" },
+				]
 			: undefined;
 
 		const pinAction =

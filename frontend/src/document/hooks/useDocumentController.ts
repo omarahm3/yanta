@@ -300,6 +300,7 @@ export function useDocumentController({
 		onEditorReady: handleEditorReadyWithRef,
 		onRestore: isArchived ? handleRestore : undefined,
 		onRegisterToggleSidebar,
+		onNavigate,
 	};
 
 	return {
