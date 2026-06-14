@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import type React from "react";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useSidebarStateStore } from "../../stores/sidebarState.store";
 import { Sidebar, type SidebarSection } from "../Sidebar";
 
 // Mock the useTooltipUsage hook
@@ -95,6 +96,13 @@ describe("Sidebar", () => {
 		vi.useFakeTimers();
 		mockShouldShowTooltip.mockReturnValue(true);
 		mockRecordTooltipView.mockClear();
+		// Reset persisted sidebar state before each test
+		localStorage.clear();
+		useSidebarStateStore.setState({
+			collapsedSections: [],
+			sidebarWidth: 192,
+			pinnedDocuments: [],
+		});
 		// Mock matchMedia for reduced motion
 		Object.defineProperty(window, "matchMedia", {
 			writable: true,
@@ -122,6 +130,7 @@ describe("Sidebar", () => {
 		vi.clearAllTimers();
 		vi.useRealTimers();
 		vi.unstubAllGlobals();
+		localStorage.clear();
 	});
 
 	describe("basic rendering", () => {
@@ -207,6 +216,154 @@ describe("Sidebar", () => {
 
 			expect(dashboardItem).toHaveClass("active");
 			expect(journalItem).not.toHaveClass("active");
+		});
+	});
+
+	describe("collapsible sections", () => {
+		it("sections are expanded by default", () => {
+			render(<Sidebar sections={basicSections} />);
+
+			const toggleBtn = screen.getByRole("button", { name: /NAVIGATION/i });
+			expect(toggleBtn).toHaveAttribute("aria-expanded", "true");
+		});
+
+		it("collapses a section on header click", () => {
+			render(<Sidebar sections={basicSections} />);
+
+			const toggleBtn = screen.getByRole("button", { name: /NAVIGATION/i });
+			fireEvent.click(toggleBtn);
+
+			expect(toggleBtn).toHaveAttribute("aria-expanded", "false");
+		});
+
+		it("expands a collapsed section on second click", () => {
+			render(<Sidebar sections={basicSections} />);
+
+			const toggleBtn = screen.getByRole("button", { name: /NAVIGATION/i });
+			fireEvent.click(toggleBtn);
+			expect(toggleBtn).toHaveAttribute("aria-expanded", "false");
+
+			fireEvent.click(toggleBtn);
+			expect(toggleBtn).toHaveAttribute("aria-expanded", "true");
+		});
+
+		it("section toggle button has aria-controls pointing to content", () => {
+			render(<Sidebar sections={basicSections} />);
+
+			const toggleBtn = screen.getByRole("button", { name: /NAVIGATION/i });
+			const controlledId = toggleBtn.getAttribute("aria-controls");
+			expect(controlledId).toBe("sidebar-section-navigation");
+
+			const contentEl = document.getElementById("sidebar-section-navigation");
+			expect(contentEl).toBeInTheDocument();
+		});
+
+		it("persists collapsed state to store", () => {
+			render(<Sidebar sections={basicSections} />);
+
+			const toggleBtn = screen.getByRole("button", { name: /NAVIGATION/i });
+			fireEvent.click(toggleBtn);
+
+			expect(useSidebarStateStore.getState().collapsedSections).toContain("navigation");
+		});
+	});
+
+	describe("resize handle", () => {
+		it("renders a resize separator", () => {
+			render(<Sidebar sections={basicSections} />);
+
+			const handle = screen.getByRole("separator", { name: "Resize sidebar" });
+			expect(handle).toBeInTheDocument();
+		});
+
+		it("resize handle is keyboard focusable", () => {
+			render(<Sidebar sections={basicSections} />);
+
+			const handle = screen.getByRole("separator", { name: "Resize sidebar" });
+			expect(handle).toHaveAttribute("tabIndex", "0");
+		});
+
+		it("ArrowRight key increases sidebar width", () => {
+			render(<Sidebar sections={basicSections} />);
+
+			const handle = screen.getByRole("separator", { name: "Resize sidebar" });
+			const initialWidth = useSidebarStateStore.getState().sidebarWidth;
+			fireEvent.keyDown(handle, { key: "ArrowRight" });
+
+			expect(useSidebarStateStore.getState().sidebarWidth).toBeGreaterThan(initialWidth);
+		});
+
+		it("ArrowLeft key decreases sidebar width", () => {
+			render(<Sidebar sections={basicSections} />);
+
+			const handle = screen.getByRole("separator", { name: "Resize sidebar" });
+			const initialWidth = useSidebarStateStore.getState().sidebarWidth;
+			fireEvent.keyDown(handle, { key: "ArrowLeft" });
+
+			expect(useSidebarStateStore.getState().sidebarWidth).toBeLessThan(initialWidth);
+		});
+
+		it("applies sidebar width from store as inline style", () => {
+			useSidebarStateStore.setState({ sidebarWidth: 240 });
+			const { container } = render(<Sidebar sections={basicSections} />);
+
+			const aside = container.querySelector("aside");
+			expect(aside).toHaveStyle({ width: "240px" });
+		});
+	});
+
+	describe("action buttons", () => {
+		it("renders action button for items with action prop", () => {
+			const handleAction = vi.fn();
+			const sectionsWithAction: SidebarSection[] = [
+				{
+					id: "pinned",
+					title: "PINNED",
+					items: [
+						{
+							id: "pinned-doc",
+							label: "My Note",
+							action: {
+								label: "Unpin",
+								icon: "×",
+								onClick: handleAction,
+							},
+						},
+					],
+				},
+			];
+
+			render(<Sidebar sections={sectionsWithAction} />);
+
+			const actionBtn = screen.getByRole("button", { name: "Unpin" });
+			expect(actionBtn).toBeInTheDocument();
+		});
+
+		it("action button click calls the provided handler", () => {
+			const handleAction = vi.fn();
+			const sectionsWithAction: SidebarSection[] = [
+				{
+					id: "pinned",
+					title: "PINNED",
+					items: [
+						{
+							id: "pinned-doc",
+							label: "My Note",
+							action: {
+								label: "Unpin",
+								icon: "×",
+								onClick: handleAction,
+							},
+						},
+					],
+				},
+			];
+
+			render(<Sidebar sections={sectionsWithAction} />);
+
+			const actionBtn = screen.getByRole("button", { name: "Unpin" });
+			fireEvent.click(actionBtn);
+			expect(handleAction).toHaveBeenCalledTimes(1);
 		});
 	});
 
@@ -349,6 +506,31 @@ describe("Sidebar", () => {
 			expect(screen.getByText("PROJECTS")).toBeInTheDocument();
 			expect(screen.getByText("documents")).toBeInTheDocument();
 			expect(screen.getByText("project-1")).toBeInTheDocument();
+		});
+
+		it("collapsing one section does not affect others", () => {
+			const multipleSections: SidebarSection[] = [
+				{
+					id: "navigation",
+					title: "NAVIGATION",
+					items: [{ id: "dashboard", label: "documents" }],
+				},
+				{
+					id: "projects",
+					title: "PROJECTS",
+					items: [{ id: "project-1", label: "project-1" }],
+				},
+			];
+
+			render(<Sidebar sections={multipleSections} />);
+
+			const navBtn = screen.getByRole("button", { name: /NAVIGATION/i });
+			fireEvent.click(navBtn);
+
+			// navigation collapsed, projects still expanded
+			expect(navBtn).toHaveAttribute("aria-expanded", "false");
+			const projectsBtn = screen.getByRole("button", { name: /PROJECTS/i });
+			expect(projectsBtn).toHaveAttribute("aria-expanded", "true");
 		});
 	});
 });
