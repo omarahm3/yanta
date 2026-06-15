@@ -13,7 +13,7 @@ export { EmptyState, type EmptyStateProps } from "./EmptyState";
 export { type FooterHint, FooterHintBar, type FooterHintBarProps } from "./FooterHintBar";
 export { GitErrorDialog } from "./GitErrorDialog";
 export { GitStatusIndicator } from "./GitStatusIndicator";
-export { HeaderBar } from "./HeaderBar";
+export { type BreadcrumbItem, HeaderBar } from "./HeaderBar";
 export { Heading } from "./Heading";
 export { HotkeyEditor, type HotkeyEditorProps } from "./HotkeyEditor";
 export { HotkeyInput, type HotkeyInputProps } from "./HotkeyInput";

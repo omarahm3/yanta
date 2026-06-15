@@ -10,7 +10,13 @@ import {
 	useSidebarSetting,
 } from "../shared/hooks";
 import type { PageName } from "../shared/types";
-import { FooterHintBar, HeaderBar, type SidebarSection, Sidebar as UISidebar } from "../shared/ui";
+import {
+	type BreadcrumbItem,
+	FooterHintBar,
+	HeaderBar,
+	type SidebarSection,
+	Sidebar as UISidebar,
+} from "../shared/ui";
 import { useTitleBarContext } from "./context";
 
 /**
@@ -40,11 +46,15 @@ export interface LayoutProps {
 	sidebarSections?: SidebarSection[];
 	sidebarContent?: ReactNode;
 	breadcrumb?: string;
+	/** Structured breadcrumbs — takes precedence over `breadcrumb` string */
+	breadcrumbs?: BreadcrumbItem[];
 	currentPage: PageName;
 	headerShortcuts?: Array<{
 		key: string;
 		label: string;
 	}>;
+	/** Extra interactive elements rendered in the header right slot */
+	headerActions?: ReactNode;
 	children: ReactNode;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
@@ -91,8 +101,10 @@ export const Layout: React.FC<LayoutProps> = ({
 	sidebarSections,
 	sidebarContent,
 	breadcrumb,
+	breadcrumbs,
 	currentPage,
 	headerShortcuts = [],
+	headerActions,
 	children,
 	onRegisterToggleSidebar,
 }) => {
@@ -187,10 +199,12 @@ export const Layout: React.FC<LayoutProps> = ({
 				{currentPage !== "settings" && (
 					<div className="bg-glass-bg/40 backdrop-blur-md border-b border-glass-border sticky top-0 z-30">
 						<HeaderBar
+							breadcrumbs={breadcrumbs}
 							breadcrumb={breadcrumb || currentProject?.name || "No Project"}
 							currentPage={getPageDisplayName(currentPage)}
 							projectAlias={currentProject?.alias}
 							shortcuts={headerShortcuts}
+							headerActions={headerActions}
 						/>
 					</div>
 				)}

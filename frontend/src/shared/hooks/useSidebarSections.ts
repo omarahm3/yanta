@@ -1,14 +1,19 @@
-import { useCallback, useMemo } from "react";
+import { type MouseEvent, useCallback, useMemo } from "react";
 import { useSidebarRegistryStore } from "../../sidebar/registry/sidebarRegistry.store";
 import { useDocumentCount } from "../stores/documentCount.store";
 import { useProjectContext } from "../stores/project.store";
+import { useRecentDocumentsStore } from "../stores/recentDocuments.store";
+import { useSidebarStateStore } from "../stores/sidebarState.store";
 import type { Filter, NavigationState, PageName } from "../types";
 import type { SidebarSection } from "../ui";
 import { useNotification } from "./useNotification";
 
+const MAX_RECENTS_IN_SIDEBAR = 5;
+
 interface UseSidebarSectionsProps {
 	currentPage: string;
 	onNavigate?: (page: PageName, state?: NavigationState) => void;
+	onOpenDocument?: (path: string) => void;
 	filters?: Filter[];
 	onFilterSelect?: (filterId: string) => void;
 	additionalSections?: SidebarSection[];
@@ -17,6 +22,7 @@ interface UseSidebarSectionsProps {
 export const useSidebarSections = ({
 	currentPage,
 	onNavigate,
+	onOpenDocument,
 	filters,
 	onFilterSelect,
 	additionalSections = [],
@@ -29,6 +35,10 @@ export const useSidebarSections = ({
 		() => useSidebarRegistryStore.getState().getAllSections(),
 		[sidebarSources],
 	);
+
+	const recentDocuments = useRecentDocumentsStore((s) => s.documents);
+	const pinnedDocuments = useSidebarStateStore((s) => s.pinnedDocuments);
+	const unpinDocument = useSidebarStateStore((s) => s.unpinDocument);
 
 	const handleProjectSelect = useCallback(
 		(projectId: string) => {
@@ -92,6 +102,38 @@ export const useSidebarSections = ({
 			],
 		});
 
+		if (pinnedDocuments.length > 0) {
+			sections.push({
+				id: "pinned",
+				title: "PINNED",
+				items: pinnedDocuments.map((doc) => ({
+					id: `pinned-${doc.path}`,
+					label: doc.title || doc.path.split("/").pop() || doc.path,
+					onClick: () => onOpenDocument?.(doc.path),
+					action: {
+						label: "Unpin",
+						icon: "×",
+						onClick: (e: MouseEvent) => {
+							e.stopPropagation();
+							unpinDocument(doc.path);
+						},
+					},
+				})),
+			});
+		}
+
+		if (recentDocuments.length > 0 && currentPage !== "settings") {
+			sections.push({
+				id: "recents",
+				title: "RECENT",
+				items: recentDocuments.slice(0, MAX_RECENTS_IN_SIDEBAR).map((doc) => ({
+					id: `recent-${doc.path}`,
+					label: doc.title || doc.path.split("/").pop() || doc.path,
+					onClick: () => onOpenDocument?.(doc.path),
+				})),
+			});
+		}
+
 		if (projects.length > 0 && currentPage !== "settings" && currentPage !== "document") {
 			sections.push({
 				id: "projects",
@@ -151,6 +193,7 @@ export const useSidebarSections = ({
 	}, [
 		currentPage,
 		onNavigate,
+		onOpenDocument,
 		projects,
 		currentProject?.id,
 		filters,
@@ -160,5 +203,8 @@ export const useSidebarSections = ({
 		archivedProjects,
 		getCount,
 		handleProjectSelect,
+		pinnedDocuments,
+		recentDocuments,
+		unpinDocument,
 	]);
 };

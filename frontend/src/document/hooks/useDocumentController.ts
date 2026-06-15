@@ -280,11 +280,14 @@ export function useDocumentController({
 	const sidebarSections = useSidebarSections({
 		currentPage: "document",
 		onNavigate,
+		onOpenDocument: (path) => onNavigate?.("document", { documentPath: path }),
 	});
 
 	const contentProps: DocumentContentProps = {
 		sidebarSections,
 		currentProject,
+		documentPath,
+		documentTitle: formData.title,
 		formData,
 		isEditMode,
 		isLoading,
@@ -297,6 +300,7 @@ export function useDocumentController({
 		onEditorReady: handleEditorReadyWithRef,
 		onRestore: isArchived ? handleRestore : undefined,
 		onRegisterToggleSidebar,
+		onNavigate,
 	};
 
 	return {

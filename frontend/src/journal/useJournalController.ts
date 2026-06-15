@@ -173,6 +173,7 @@ export function useJournalController({
 	const sidebarSections = useSidebarSections({
 		currentPage: "journal",
 		onNavigate: (page) => onNavigate?.(page),
+		onOpenDocument: (path) => onNavigate?.("document", { documentPath: path }),
 	});
 
 	// Navigation
