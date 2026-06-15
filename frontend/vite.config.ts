@@ -94,6 +94,7 @@ export default defineConfig({
 	},
 
 	optimizeDeps: {
+		entries: ["index.html", "src/**/*.{ts,tsx}"],
 		include: [
 			"react",
 			"react-dom",
