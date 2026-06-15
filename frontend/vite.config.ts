@@ -59,6 +59,7 @@ export default defineConfig({
 			"@/app": path.resolve(__dirname, "./src/app/index.ts"),
 			"@": path.resolve(__dirname, "./src"),
 		},
+		dedupe: ["@blocknote/core", "@blocknote/react"],
 	},
 
 	server: {
@@ -98,6 +99,7 @@ export default defineConfig({
 			"react-dom",
 			"@blocknote/react",
 			"@blocknote/core",
+			"@blocknote/core/extensions",
 			"@blocknote/shadcn",
 			"@blocknote/code-block",
 		],
