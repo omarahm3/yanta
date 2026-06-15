@@ -61,6 +61,7 @@ func (s *WailsService) applyTheme(theme string) {
 		bgColour = application.NewRGBA(27, 38, 54, 255)
 	}
 	s.window.SetBackgroundColour(bgColour)
+	syncNativeWindowTheme(s.window, theme)
 }
 
 func (s *WailsService) emitTheme(theme string) {
