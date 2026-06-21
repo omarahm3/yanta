@@ -6,6 +6,7 @@ import { MilestoneHintManager, WelcomeOverlay } from "../onboarding";
 import { PaneLayoutProvider } from "../pane";
 import { PluginBootstrap } from "../plugins";
 import { ReducedEffectsInit } from "../shared/stores/appearance.store";
+import { DensityInit } from "../shared/stores/density.store";
 import { ThemeInit } from "../shared/stores/theme.store";
 import { ToastProvider } from "../shared/ui";
 import { AppMonitorInit } from "./AppMonitorInit";
@@ -22,6 +23,7 @@ export function AppProviders() {
 		<ToastProvider>
 			<ThemeInit />
 			<ReducedEffectsInit />
+			<DensityInit />
 			<ScaleStoreInit />
 			<FeatureFlagsStoreInit />
 			<AppMonitorInit />

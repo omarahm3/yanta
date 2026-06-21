@@ -56,7 +56,7 @@ describe("CommandPalette", () => {
 			/>,
 		);
 
-		expect(screen.queryByPlaceholderText("Type a command...")).not.toBeInTheDocument();
+		expect(screen.queryByPlaceholderText("Type a command or search documents...")).not.toBeInTheDocument();
 	});
 
 	it("renders command palette when open", () => {
@@ -69,7 +69,7 @@ describe("CommandPalette", () => {
 			/>,
 		);
 
-		expect(screen.getByPlaceholderText("Type a command...")).toBeInTheDocument();
+		expect(screen.getByPlaceholderText("Type a command or search documents...")).toBeInTheDocument();
 	});
 
 	it("renders group headers for commands with groups", () => {
@@ -316,7 +316,7 @@ describe("CommandPalette", () => {
 				/>,
 			);
 
-			const input = screen.getByPlaceholderText("Type a command...");
+			const input = screen.getByPlaceholderText("Type a command or search documents...");
 
 			// Search by keyword "diary" which is only on nav-journal
 			await userEvent.type(input, "diary");
@@ -338,7 +338,7 @@ describe("CommandPalette", () => {
 				/>,
 			);
 
-			const input = screen.getByPlaceholderText("Type a command...");
+			const input = screen.getByPlaceholderText("Type a command or search documents...");
 
 			// Search by keyword "save" which is only on git-sync
 			await userEvent.type(input, "save");
@@ -358,7 +358,7 @@ describe("CommandPalette", () => {
 				/>,
 			);
 
-			const input = screen.getByPlaceholderText("Type a command...");
+			const input = screen.getByPlaceholderText("Type a command or search documents...");
 
 			// Search by keyword "preferences" which is only on nav-settings
 			await userEvent.type(input, "preferences");
@@ -378,7 +378,7 @@ describe("CommandPalette", () => {
 				/>,
 			);
 
-			const input = screen.getByPlaceholderText("Type a command...");
+			const input = screen.getByPlaceholderText("Type a command or search documents...");
 
 			// Search by command text "Documents"
 			await userEvent.type(input, "Documents");
@@ -398,7 +398,7 @@ describe("CommandPalette", () => {
 				/>,
 			);
 
-			const input = screen.getByPlaceholderText("Type a command...");
+			const input = screen.getByPlaceholderText("Type a command or search documents...");
 
 			// Search by keyword "today" which is only on nav-today
 			await userEvent.type(input, "today");
@@ -470,7 +470,7 @@ describe("CommandPalette", () => {
 				/>,
 			);
 
-			const input = screen.getByPlaceholderText("Type a command...");
+			const input = screen.getByPlaceholderText("Type a command or search documents...");
 			await userEvent.type(input, "Ctrl+N");
 
 			// New Document should be visible since its shortcut is Ctrl+N
@@ -489,7 +489,7 @@ describe("CommandPalette", () => {
 				/>,
 			);
 
-			const input = screen.getByPlaceholderText("Type a command...");
+			const input = screen.getByPlaceholderText("Type a command or search documents...");
 			await userEvent.type(input, "ctrl+n");
 
 			// New Document should be visible
@@ -507,7 +507,7 @@ describe("CommandPalette", () => {
 				/>,
 			);
 
-			const input = screen.getByPlaceholderText("Type a command...");
+			const input = screen.getByPlaceholderText("Type a command or search documents...");
 			await userEvent.type(input, "Ctrl+J");
 
 			// Go to Journal should be visible
@@ -525,7 +525,7 @@ describe("CommandPalette", () => {
 				/>,
 			);
 
-			const input = screen.getByPlaceholderText("Type a command...");
+			const input = screen.getByPlaceholderText("Type a command or search documents...");
 			await userEvent.type(input, "CTRL+N");
 
 			// New Document should still be visible

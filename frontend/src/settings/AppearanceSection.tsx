@@ -1,6 +1,7 @@
 import React from "react";
 import type { LinuxGraphicsMode } from "@/config/preferences";
 import { useAppearanceStore } from "../shared/stores/appearance.store";
+import { type DensityMode, useDensityStore } from "../shared/stores/density.store";
 import type { ThemeMode } from "../shared/stores/theme.store";
 import { Label, Select, type SelectOption, SettingsSection, Toggle } from "../shared/ui";
 
@@ -73,6 +74,13 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 		const isLinux = platform.includes("linux");
 		const reducedEffects = useAppearanceStore((s) => s.reducedEffects);
 		const setReducedEffects = useAppearanceStore((s) => s.setReducedEffects);
+		const densityMode = useDensityStore((s) => s.mode);
+		const setDensityMode = useDensityStore((s) => s.setMode);
+
+		const DENSITY_OPTIONS: SelectOption[] = [
+			{ value: "comfortable", label: "Comfortable" },
+			{ value: "compact", label: "Compact" },
+		];
 
 		const formatScaleValue = (scale: number): string => {
 			const matchingOption = SCALE_OPTIONS.find(
@@ -150,6 +158,18 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 								</div>
 							</div>
 							<Toggle checked={reducedEffects} onChange={setReducedEffects} />
+						</div>
+
+						<div className="space-y-2">
+							<Label variant="uppercase">Density</Label>
+							<Select
+								value={densityMode}
+								onChange={(value) => setDensityMode(value as DensityMode)}
+								options={DENSITY_OPTIONS}
+							/>
+							<div className="text-xs text-text-dim">
+								Compact mode reduces padding and spacing for a denser information layout.
+							</div>
 						</div>
 
 						<div className="space-y-2">

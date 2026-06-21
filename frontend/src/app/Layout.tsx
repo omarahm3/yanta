@@ -3,6 +3,7 @@ import { type ReactNode, useEffect, useMemo, useRef } from "react";
 import { SIDEBAR_SHORTCUTS } from "@/config/public";
 import { useHotkeys } from "../hotkeys";
 import { useProjectContext } from "../project";
+import { useResponsive } from "../shared/hooks/useResponsive";
 import {
 	getGlobalFooterHints,
 	useFooterHints,
@@ -17,11 +18,9 @@ import {
 	type SidebarSection,
 	Sidebar as UISidebar,
 } from "../shared/ui";
+import { cn } from "../shared/utils/cn";
 import { useTitleBarContext } from "./context";
 
-/**
- * Converts the current page identifier to a display-friendly page name.
- */
 const getPageDisplayName = (page: PageName): string => {
 	switch (page) {
 		case "dashboard":
@@ -46,14 +45,12 @@ export interface LayoutProps {
 	sidebarSections?: SidebarSection[];
 	sidebarContent?: ReactNode;
 	breadcrumb?: string;
-	/** Structured breadcrumbs — takes precedence over `breadcrumb` string */
 	breadcrumbs?: BreadcrumbItem[];
 	currentPage: PageName;
 	headerShortcuts?: Array<{
 		key: string;
 		label: string;
 	}>;
-	/** Extra interactive elements rendered in the header right slot */
 	headerActions?: ReactNode;
 	children: ReactNode;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
@@ -67,23 +64,14 @@ const dedupeFooterHints = (
 	}>,
 ) => {
 	const seen = new Set<string>();
-
 	return hints.filter((hint) => {
 		const duplicateKey = `${hint.key}-${hint.label}`;
-		if (seen.has(duplicateKey)) {
-			return false;
-		}
+		if (seen.has(duplicateKey)) return false;
 		seen.add(duplicateKey);
 		return true;
 	});
 };
 
-/**
- * Determines the mode based on the current page.
- * - "documents": Dashboard and document pages
- * - "journal": Journal page
- * - "neutral": Settings, projects, search, and other pages
- */
 const getDataMode = (page: PageName): "documents" | "journal" | "neutral" => {
 	switch (page) {
 		case "dashboard":
@@ -113,8 +101,8 @@ export const Layout: React.FC<LayoutProps> = ({
 	const { currentProject } = useProjectContext();
 	const { heightInRem } = useTitleBarContext();
 	const { hints: footerHints } = useFooterHints({ currentPage });
-	// The command-palette and help affordances stay pinned on every page so a
-	// first-timer can always discover them without docs (YANA-7).
+	const { isBelowLg } = useResponsive();
+
 	const allFooterHints = useMemo(
 		() => dedupeFooterHints([...getGlobalFooterHints(), ...footerHints]),
 		[footerHints],
@@ -146,35 +134,33 @@ export const Layout: React.FC<LayoutProps> = ({
 
 	const dataMode = getDataMode(currentPage);
 
-	// Replay the content fade as a deliberate cue when the active project changes.
-	// We retrigger the existing CSS animation imperatively (no remount) so page
-	// state is preserved; prefers-reduced-motion collapses it to an instant swap.
 	const contentRef = useRef<HTMLDivElement>(null);
 	const currentProjectId = currentProject?.id;
 	useEffect(() => {
 		const el = contentRef.current;
 		if (!el) return;
 		el.classList.remove("animate-fade-in");
-		// Force a reflow so removing and re-adding the class restarts the animation.
 		void el.offsetWidth;
 		el.classList.add("animate-fade-in");
 	}, [currentProjectId]);
 
 	const layoutStyle = useMemo(() => ({ height: `calc(100vh - ${heightInRem}rem)` }), [heightInRem]);
 
+	const effectiveSidebarVisible = sidebarVisible && !isBelowLg;
+
 	return (
 		<div
 			data-testid="layout-root"
-			data-sidebar-visible={sidebarVisible ? "true" : "false"}
+			data-sidebar-visible={effectiveSidebarVisible ? "true" : "false"}
 			data-mode={dataMode}
 			className="layout-root relative flex overflow-hidden font-sans text-sm leading-relaxed bg-bg-dark text-text selection:bg-accent/30 selection:text-text-bright"
 			style={layoutStyle}
 		>
-			{/* Glass Sidebar Container — the Sidebar itself provides the navigation landmark */}
 			<div
-				className={`sidebar-transition relative z-20 h-full ${
-					!sidebarLoading && !sidebarVisible ? "sidebar-hidden" : "sidebar-visible"
-				}`}
+				className={cn(
+					"sidebar-transition relative z-20 h-full",
+					!sidebarLoading && !effectiveSidebarVisible ? "sidebar-hidden" : "sidebar-visible",
+				)}
 			>
 				{sidebarContent ? (
 					sidebarContent
@@ -210,7 +196,6 @@ export const Layout: React.FC<LayoutProps> = ({
 				)}
 
 				<div className="flex-1 overflow-hidden relative">
-					{/* Content Container with subtle inner shadow/depth */}
 					<div
 						ref={contentRef}
 						id="main-content"

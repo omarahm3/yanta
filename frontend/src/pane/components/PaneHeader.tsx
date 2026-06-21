@@ -1,6 +1,7 @@
 import { Columns, Rows, X } from "lucide-react";
 import type React from "react";
 import { useCallback, useMemo } from "react";
+import { useDensity } from "../../shared/stores/density.store";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -13,24 +14,12 @@ import { countLeaves, MAX_PANES, usePaneLayout } from "..";
 export interface PaneHeaderProps {
 	paneId: string;
 	documentPath: string | null;
-	/** Document title to display. Falls back to filename derived from documentPath. */
 	title?: string;
 	className?: string;
 }
 
-/** Custom MIME type for pane drag identification */
 const MIME_PANE_ID = "application/x-yanta-pane-id";
 
-/**
- * PaneHeader displays a compact title bar for each pane with:
- * - Document title (derived from path) or "Empty"
- * - Split horizontal button (Columns icon)
- * - Split vertical button (Rows icon)
- * - Close pane button (X icon, only when multiple panes exist)
- *
- * When a document is loaded, the header is draggable. Dropping it
- * on another pane swaps the documents between the two panes.
- */
 export const PaneHeader: React.FC<PaneHeaderProps> = ({
 	paneId,
 	documentPath,
@@ -38,6 +27,8 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({
 	className,
 }) => {
 	const { layout, activePaneId, splitPane, closePane } = usePaneLayout();
+	const density = useDensity();
+	const isCompact = density === "compact";
 
 	const isActive = activePaneId === paneId;
 	const leafCount = useMemo(() => countLeaves(layout.root), [layout.root]);
@@ -47,7 +38,6 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({
 	const title = useMemo(() => {
 		if (titleProp) return titleProp;
 		if (!documentPath) return "Empty";
-		// Fallback: extract filename without extension from path
 		const segments = documentPath.split("/");
 		const fileName = segments[segments.length - 1] ?? documentPath;
 		return fileName.replace(/\.md$/, "");
@@ -82,19 +72,20 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({
 			<ContextMenuTrigger asChild>
 				<div
 					className={cn(
-						"bg-glass-bg/40 backdrop-blur-md border-b border-glass-border px-3 flex items-center justify-between h-8 shrink-0 transition-[border-color] duration-[var(--duration-fast)] ease-[var(--ease-out-quart)]",
+						"bg-glass-bg/40 backdrop-blur-md border-b border-glass-border px-3 flex items-center justify-between shrink-0 transition-[border-color] duration-[var(--duration-fast)] ease-[var(--ease-out-quart)]",
 						isActive && "border-t-2 border-t-accent",
 						!isActive && "border-t-2 border-t-transparent",
 						documentPath && "cursor-grab active:cursor-grabbing",
+						isCompact ? "h-7" : "h-8",
 						className,
 					)}
 					draggable={!!documentPath}
 					onDragStart={handleDragStart}
 				>
-					{/* Title */}
 					<span
 						className={cn(
-							"text-xs truncate mr-2",
+							"truncate mr-2",
+							isCompact ? "text-[11px]" : "text-xs",
 							documentPath ? "text-text-bright font-medium" : "text-text-dim",
 						)}
 						title={documentPath ?? undefined}
@@ -102,12 +93,12 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({
 						{title}
 					</span>
 
-					{/* Actions */}
 					<div className="flex items-center gap-0.5 shrink-0">
 						<button
 							type="button"
 							className={cn(
-								"flex items-center justify-center w-6 h-6 rounded transition-colors",
+								"flex items-center justify-center rounded transition-colors",
+								isCompact ? "w-5 h-5" : "w-6 h-6",
 								canSplit
 									? "text-text-dim hover:text-text-bright hover:bg-glass-bg/30"
 									: "text-text-dim/30 cursor-not-allowed",
@@ -123,7 +114,8 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({
 						<button
 							type="button"
 							className={cn(
-								"flex items-center justify-center w-6 h-6 rounded transition-colors",
+								"flex items-center justify-center rounded transition-colors",
+								isCompact ? "w-5 h-5" : "w-6 h-6",
 								canSplit
 									? "text-text-dim hover:text-text-bright hover:bg-glass-bg/30"
 									: "text-text-dim/30 cursor-not-allowed",
@@ -139,7 +131,10 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({
 						{canClose && (
 							<button
 								type="button"
-								className="flex items-center justify-center w-6 h-6 rounded text-text-dim hover:text-text-bright hover:bg-glass-bg/30 transition-colors"
+								className={cn(
+									"flex items-center justify-center rounded text-text-dim hover:text-text-bright hover:bg-glass-bg/30 transition-colors",
+									isCompact ? "w-5 h-5" : "w-6 h-6",
+								)}
 								onClick={handleClose}
 								title="Close pane"
 								aria-label="Close pane"

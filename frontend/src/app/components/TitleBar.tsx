@@ -1,111 +1,134 @@
 import { System, Window } from "@wailsio/runtime";
 import { Minus, Square, X } from "lucide-react";
 import type React from "react";
-import { useEffect, useState } from "react";
-import { BackgroundQuit } from "../../../bindings/yanta/internal/system/service";
+import { useCallback, useEffect, useState } from "react";
 import { IsFrameless } from "../../../bindings/yanta/internal/window/service";
-import { Button, useToast } from "../../shared/ui";
-import { BackendLogger } from "../../shared/utils/backendLogger";
+import { BackgroundQuit } from "../../../bindings/yanta/internal/system/service";
+import logoImage from "../../assets/images/logo-universal.png";
+import { cn } from "../../shared/utils/cn";
 import { useTitleBarContext } from "../stores/titlebar.store";
 
+type Platform = "darwin" | "windows" | "linux";
+
+function detectPlatform(): Platform {
+	try {
+		if (System.IsWindows()) return "windows";
+		if (System.IsLinux()) return "linux";
+	} catch {
+		/* Wails runtime not available in test */
+	}
+	return "darwin";
+}
+
+const TITLE_BAR_HEIGHT = 38;
+
 export const TitleBar: React.FC = () => {
-	const [shouldShow, setShouldShow] = useState<boolean>(false);
+	const [platform, setPlatform] = useState<Platform>("darwin");
+	const [isFrameless, setIsFrameless] = useState(false);
 	const { setChrome } = useTitleBarContext();
 
 	useEffect(() => {
+		const plat = detectPlatform();
+		setPlatform(plat);
 		const checkFrameless = async () => {
-			const isLinux = System.IsLinux();
-			if (!isLinux) {
-				setShouldShow(false);
-				setChrome("hidden", 0);
-				return;
+			let frameless = false;
+			if (plat === "linux") {
+				try {
+					frameless = await IsFrameless();
+				} catch {
+					frameless = false;
+				}
 			}
-
-			try {
-				const frameless = await IsFrameless();
-				setShouldShow(frameless);
-				setChrome(frameless ? "frameless" : "hidden", frameless ? 2 : 0);
-			} catch (err) {
-				BackendLogger.error("Failed to check frameless mode:", err);
-				setShouldShow(false);
-				setChrome("hidden", 0);
-			}
+			setIsFrameless(frameless);
+			const shouldShow = plat === "darwin" || frameless;
+			setChrome(
+				shouldShow ? "frameless" : "hidden",
+				shouldShow ? TITLE_BAR_HEIGHT / 16 : 0,
+			);
 		};
-
 		checkFrameless();
 	}, [setChrome]);
 
-	const toast = useToast();
-
-	const handleMinimize = () => {
+	const handleMinimize = useCallback(() => {
 		try {
 			Window.Minimise();
 		} catch {
-			toast.error("Could not minimize window");
+			/* silently fail */
 		}
-	};
+	}, []);
 
-	const handleMaximize = () => {
+	const handleMaximize = useCallback(() => {
 		try {
 			Window.ToggleMaximise();
 		} catch {
-			toast.error("Could not maximize window");
+			/* silently fail */
 		}
-	};
+	}, []);
 
-	const handleClose = () => {
+	const handleClose = useCallback(() => {
 		BackgroundQuit();
-	};
+	}, []);
 
-	if (!shouldShow) {
+	const showChrome = platform === "darwin" || isFrameless;
+
+	if (!showChrome) {
 		return null;
 	}
 
+	const isMac = platform === "darwin";
+
 	return (
 		<div
-			className="flex items-center justify-between h-8 px-3 bg-glass-bg/40 backdrop-blur-md border-b border-glass-border"
-			style={{ "--wails-draggable": "drag" } as React.CSSProperties}
+			className={cn(
+				"chrome-titlebar",
+				isMac ? "chrome-titlebar-mac" : "chrome-titlebar-win",
+			)}
 			role="banner"
-			aria-label="Application window controls"
+			aria-label="Application chrome"
 		>
-			<div className="flex items-center gap-2"></div>
+			<div className="flex items-center gap-2 flex-1 min-w-0">
+				{!isMac && (
+					<>
+						<img src={logoImage} alt="" className="h-5 w-auto object-contain opacity-80" aria-hidden="true" />
+						<span className="text-xs font-semibold text-text-dim/70 tracking-wide select-none">YANTA</span>
+					</>
+				)}
+			</div>
 
-			<div
-				className="flex items-center gap-1"
-				style={{ "--wails-draggable": "no-drag" } as React.CSSProperties}
-			>
-				<Button
-					variant="ghost"
-					size="sm"
+			{!isMac && (
+				<div className="absolute left-1/2 -translate-x-1/2">
+					<span className="text-xs text-text-dim/50 select-none">YANTA</span>
+				</div>
+			)}
+
+			<div className="flex items-center gap-1">
+				<button
+					type="button"
+					className="flex items-center justify-center w-10 h-7 rounded-sm text-text-dim/60 hover:text-text hover:bg-surface transition-colors"
 					onClick={handleMinimize}
-					className="flex items-center justify-center w-8 h-6 text-text-dim transition-colors rounded hover:bg-border hover:text-text p-0"
 					title="Minimize"
 					aria-label="Minimize window"
 				>
-					<Minus className="text-sm" />
-				</Button>
-
-				<Button
-					variant="ghost"
-					size="sm"
+					<Minus className="w-3.5 h-3.5" />
+				</button>
+				<button
+					type="button"
+					className="flex items-center justify-center w-10 h-7 rounded-sm text-text-dim/60 hover:text-text hover:bg-surface transition-colors"
 					onClick={handleMaximize}
-					className="flex items-center justify-center w-8 h-6 text-text-dim transition-colors rounded hover:bg-border hover:text-text p-0"
 					title="Maximize"
 					aria-label="Maximize window"
 				>
-					<Square className="text-sm" />
-				</Button>
-
-				<Button
-					variant="ghost"
-					size="sm"
+					<Square className="w-3 h-3" />
+				</button>
+				<button
+					type="button"
+					className="flex items-center justify-center w-10 h-7 rounded-sm text-text-dim/60 hover:text-red hover:bg-red/10 transition-colors"
 					onClick={handleClose}
-					className="flex items-center justify-center w-8 h-6 text-text-dim transition-colors rounded hover:bg-red hover:text-bg p-0"
 					title="Close"
 					aria-label="Close window"
 				>
-					<X className="text-sm" />
-				</Button>
+					<X className="w-3.5 h-3.5" />
+				</button>
 			</div>
 		</div>
 	);

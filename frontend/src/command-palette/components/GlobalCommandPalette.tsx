@@ -13,9 +13,6 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = (props)
 		handleClose,
 		handleCommandSelect,
 		sortedCommands,
-		recentDocumentItems,
-		showRecentDocuments,
-		handleSubPaletteBack,
 		isErrorDialogOpen,
 		closeErrorDialog,
 		gitError,
@@ -28,10 +25,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = (props)
 				onClose={handleClose}
 				onCommandSelect={handleCommandSelect}
 				commands={sortedCommands}
-				placeholder="Type a command or search..."
-				subPaletteItems={showRecentDocuments ? recentDocumentItems : undefined}
-				subPaletteTitle={showRecentDocuments ? "Recent Documents" : undefined}
-				onSubPaletteBack={handleSubPaletteBack}
+				placeholder="Type a command or search documents..."
 			/>
 			<GitErrorDialog isOpen={isErrorDialogOpen} onClose={closeErrorDialog} error={gitError} />
 		</>

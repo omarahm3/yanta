@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import React, { type RefObject, useCallback, useEffect, useRef } from "react";
 import logoImage from "../../assets/images/logo-universal.png";
+import { useDensity } from "../stores/density.store";
 import { useSidebarStateStore } from "../stores/sidebarState.store";
 import { cn } from "../utils/cn";
 import { List, ListItem } from "./List";
@@ -25,7 +26,6 @@ export interface SidebarItem {
 	active?: boolean;
 	onClick?: () => void;
 	tooltip?: SidebarItemTooltip;
-	/** Action button shown on hover (e.g. unpin) */
 	action?: {
 		label: string;
 		icon: string;
@@ -53,6 +53,8 @@ const ChevronIcon: React.FC<{ collapsed: boolean }> = ({ collapsed }) => (
 
 export const Sidebar: React.FC<SidebarProps> = ({ sections, className }) => {
 	const { collapsedSections, toggleSection, sidebarWidth, setSidebarWidth } = useSidebarStateStore();
+	const density = useDensity();
+	const isCompact = density === "compact";
 
 	const asideRef = useRef<HTMLElement>(null);
 	const isDragging = useRef(false);
@@ -91,17 +93,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ sections, className }) => {
 		};
 	}, [setSidebarWidth]);
 
+	const sidebarPad = isCompact ? "p-2" : "p-4";
+
 	return (
 		<aside
 			ref={asideRef as RefObject<HTMLElement>}
 			role="navigation"
 			aria-label="Main navigation"
-			className={cn("h-full flex flex-col relative overflow-y-auto", className)}
+			className={cn(
+				"h-full flex flex-col relative overflow-y-auto transition-all duration-200",
+				className,
+			)}
 			style={{ width: `${sidebarWidth}px`, minWidth: `${sidebarWidth}px` }}
 		>
-			<div className="flex-1 overflow-y-auto p-4">
-				<div className="mb-8 flex items-center px-2">
-					<img src={logoImage} alt="YANTA" className="h-10 w-auto object-contain opacity-90" />
+			<div className={cn("flex-1 overflow-y-auto", sidebarPad)}>
+				<div className={cn("flex items-center px-2", isCompact ? "mb-4" : "mb-8")}>
+					<img src={logoImage} alt="YANTA" className={cn("w-auto object-contain opacity-90", isCompact ? "h-8" : "h-10")} />
 				</div>
 
 				<div className="space-y-4">
@@ -111,7 +118,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ sections, className }) => {
 							<div key={section.id}>
 								<button
 									type="button"
-									className="w-full px-2 flex items-center justify-between gap-1 text-xs font-semibold uppercase tracking-wider text-text-dim mb-2 opacity-80 hover:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded"
+									className={cn(
+										"w-full px-2 flex items-center justify-between gap-1 text-xs font-semibold uppercase tracking-wider text-text-dim mb-2 opacity-80 hover:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded",
+										isCompact && "text-[10px]",
+									)}
 									onClick={() => toggleSection(section.id)}
 									aria-expanded={!isCollapsed}
 									aria-controls={`sidebar-section-${section.id}`}
@@ -136,11 +146,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ sections, className }) => {
 													active={item.active}
 													onClick={item.onClick}
 													aria-current={item.active ? "page" : undefined}
-													className={cn("sidebar-item group relative", item.active && "active")}
+													className={cn(
+														"sidebar-item group relative",
+														item.active && "active",
+														isCompact && "!py-1 !text-xs",
+													)}
 												>
 													<span className="font-medium flex-1 truncate">{item.label}</span>
 													{item.count !== undefined && (
-														<span className="text-xs bg-bg-dark/30 px-1.5 py-0.5 rounded text-text-dim flex-shrink-0">
+														<span className={cn(
+															"text-xs bg-bg-dark/30 px-1.5 py-0.5 rounded text-text-dim flex-shrink-0",
+															isCompact && "text-[10px]",
+														)}>
 															{item.count}
 														</span>
 													)}
@@ -182,7 +199,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ sections, className }) => {
 				</div>
 			</div>
 
-			{/* Resize handle — slider semantics: ArrowLeft/Right shrink/grow the sidebar */}
 			<div
 				role="slider"
 				aria-label="Sidebar width"

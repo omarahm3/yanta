@@ -6,7 +6,7 @@ import { usePaneLayout } from "../../pane";
 import { useProjectContext } from "../../project";
 import { useNotification, useRecentDocuments } from "../../shared/hooks";
 import type { NavigationState, PageName } from "../../shared/types";
-import type { CommandOption, SubPaletteItem } from "../../shared/ui";
+import type { CommandOption } from "../../shared/ui";
 import { formatRelativeTimeFromTimestamp } from "../../shared/utils/date";
 import { type ParsedGitError, parseGitError } from "../../shared/utils/gitErrorParser";
 import { useCommandPaletteStore } from "../commandPalette.store";
@@ -47,9 +47,6 @@ export interface UseGlobalCommandPaletteReturn {
 	handleClose: () => void;
 	handleCommandSelect: (command: CommandOption) => void;
 	sortedCommands: CommandOption[];
-	recentDocumentItems: SubPaletteItem[];
-	showRecentDocuments: boolean;
-	handleSubPaletteBack: () => void;
 	isErrorDialogOpen: boolean;
 	closeErrorDialog: () => void;
 	gitError: ParsedGitError | null;
@@ -78,7 +75,6 @@ export function useGlobalCommandPalette(
 	const { recordCommandUsage, getAllCommandUsage } = useCommandUsage();
 	const [gitError, setGitError] = useState<ParsedGitError | null>(null);
 	const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
-	const [showRecentDocuments, setShowRecentDocuments] = useState(false);
 	const clearGitErrorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const { timeouts } = useMergedConfig();
 	const onCloseRef = useRef(onClose);
@@ -129,12 +125,7 @@ export function useGlobalCommandPalette(
 	);
 
 	const handleClose = useCallback(() => {
-		setShowRecentDocuments(false);
 		onCloseRef.current();
-	}, []);
-
-	const handleSubPaletteBack = useCallback(() => {
-		setShowRecentDocuments(false);
 	}, []);
 
 	const navigate = useCallback((page: PageName, state?: NavigationState) => {
@@ -168,12 +159,15 @@ export function useGlobalCommandPalette(
 		[recordCommandUsage],
 	);
 
-	const recentDocumentItems: SubPaletteItem[] = useMemo(() => {
+	// Inline recent documents as CommandOption items (quick-switcher)
+	const documentCommands: CommandOption[] = useMemo(() => {
 		return recentDocuments.map((doc) => ({
-			id: `recent-${doc.path}`,
-			icon: <FileText className="w-4 h-4" />,
+			id: `doc-${doc.path}`,
+			icon: <FileText className="size-4" />,
 			text: doc.title || "Untitled",
 			hint: formatRelativeTimeFromTimestamp(doc.lastOpened),
+			group: "Documents" as const,
+			keywords: [doc.title || "Untitled", doc.path],
 			action: () => {
 				navigate("document", { path: doc.path, projectAlias: doc.projectAlias });
 				handleClose();
@@ -189,6 +183,10 @@ export function useGlobalCommandPalette(
 			removeSource: state.removeSource,
 			getAllCommands: state.getAllCommands,
 		};
+	}, []);
+
+	const setShowRecentDocuments = useCallback((_show: boolean) => {
+		// No-op: documents are now inline
 	}, []);
 
 	// Build context for domain command registration
@@ -266,25 +264,24 @@ export function useGlobalCommandPalette(
 		[sources],
 	);
 
-	// Sort commands by usage (recency + frequency) and mark top 5 as isRecent
+	// Merge document commands into the sorted command list (always first group)
 	const sortedCommands = useMemo(() => {
 		const usage = getAllCommandUsage();
 		const sorted = sortCommandsByUsage(commandOptions, usage);
 		const recentIds = getTopRecentCommandIds(usage, 5);
-		return sorted.map((cmd) => ({
+		const marked = sorted.map((cmd) => ({
 			...cmd,
 			isRecent: recentIds.has(cmd.id),
 		}));
-	}, [commandOptions, getAllCommandUsage]);
+		// Prepend document items for the quick-switcher
+		return [...documentCommands, ...marked];
+	}, [commandOptions, getAllCommandUsage, documentCommands]);
 
 	return {
 		isOpen,
 		handleClose,
 		handleCommandSelect,
 		sortedCommands,
-		recentDocumentItems,
-		showRecentDocuments,
-		handleSubPaletteBack,
 		isErrorDialogOpen,
 		closeErrorDialog,
 		gitError,
