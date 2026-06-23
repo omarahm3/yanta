@@ -10,43 +10,36 @@ import { useTitleBarContext } from "../stores/titlebar.store";
 
 type Platform = "darwin" | "windows" | "linux";
 
-function detectPlatform(): Platform {
-	try {
-		if (System.IsWindows()) return "windows";
-		if (System.IsLinux()) return "linux";
-	} catch {
-		/* Wails runtime not available in test */
-	}
+const TITLE_BAR_HEIGHT = 38;
+
+function osToPlatform(os: string): Platform {
+	if (os === "windows") return "windows";
+	if (os === "linux") return "linux";
 	return "darwin";
 }
 
-const TITLE_BAR_HEIGHT = 38;
-
 export const TitleBar: React.FC = () => {
-	const [platform, setPlatform] = useState<Platform>("darwin");
+	const [platform, setPlatform] = useState<Platform | null>(null);
 	const [isFrameless, setIsFrameless] = useState(false);
 	const { setChrome } = useTitleBarContext();
 
 	useEffect(() => {
-		const plat = detectPlatform();
-		setPlatform(plat);
-		const checkFrameless = async () => {
-			let frameless = false;
-			if (plat === "linux") {
-				try {
-					frameless = await IsFrameless();
-				} catch {
-					frameless = false;
-				}
-			}
+		let cancelled = false;
+		// Resolve the OS from the backend, not the sync IsWindows/IsMac cache which
+		// reads false until the runtime injects window._wails.
+		(async () => {
+			const { OS } = await System.Environment();
+			const plat = osToPlatform(OS);
+			const frameless = plat === "linux" ? await IsFrameless() : false;
+			if (cancelled) return;
+			setPlatform(plat);
 			setIsFrameless(frameless);
 			const shouldShow = plat === "darwin" || frameless;
-			setChrome(
-				shouldShow ? "frameless" : "hidden",
-				shouldShow ? TITLE_BAR_HEIGHT / 16 : 0,
-			);
+			setChrome(shouldShow ? "frameless" : "hidden", shouldShow ? TITLE_BAR_HEIGHT / 16 : 0);
+		})();
+		return () => {
+			cancelled = true;
 		};
-		checkFrameless();
 	}, [setChrome]);
 
 	const handleMinimize = useCallback(() => {
@@ -69,8 +62,11 @@ export const TitleBar: React.FC = () => {
 		BackgroundQuit();
 	}, []);
 
-	const showChrome = platform === "darwin" || isFrameless;
+	if (platform === null) {
+		return null;
+	}
 
+	const showChrome = platform === "darwin" || isFrameless;
 	if (!showChrome) {
 		return null;
 	}
@@ -104,7 +100,7 @@ export const TitleBar: React.FC = () => {
 			<div className="flex items-center gap-1">
 				<button
 					type="button"
-					className="flex items-center justify-center w-10 h-7 rounded-sm text-text-dim/60 hover:text-text hover:bg-surface transition-colors"
+					className="flex items-center justify-center w-10 h-7 rounded-sm text-text-dim/60 hover:text-text hover:bg-bg-dark transition-colors"
 					onClick={handleMinimize}
 					title="Minimize"
 					aria-label="Minimize window"
@@ -113,7 +109,7 @@ export const TitleBar: React.FC = () => {
 				</button>
 				<button
 					type="button"
-					className="flex items-center justify-center w-10 h-7 rounded-sm text-text-dim/60 hover:text-text hover:bg-surface transition-colors"
+					className="flex items-center justify-center w-10 h-7 rounded-sm text-text-dim/60 hover:text-text hover:bg-bg-dark transition-colors"
 					onClick={handleMaximize}
 					title="Maximize"
 					aria-label="Maximize window"

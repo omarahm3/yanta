@@ -13,13 +13,15 @@ import (
 func rgb(r, g, b uint8) uint32 { return uint32(r) | uint32(g)<<8 | uint32(b)<<16 }
 
 var (
-	darkTitleBar  = rgb(27, 38, 54)
-	darkTitleText = rgb(220, 220, 220)
-	darkBorder    = rgb(40, 50, 65)
+	// Paper & Ink — dark companion: graphite surface #232629, ink #E6E8EB.
+	darkTitleBar  = rgb(35, 38, 41)
+	darkTitleText = rgb(230, 232, 235)
+	darkBorder    = rgb(51, 55, 60)
 
-	lightTitleBar  = rgb(245, 245, 245)
-	lightTitleText = rgb(30, 30, 30)
-	lightBorder    = rgb(210, 210, 210)
+	// Paper & Ink — light lead: chrome #F4F6F8, ink #1A1C1F, hairline #E2E5EA.
+	lightTitleBar  = rgb(244, 246, 248)
+	lightTitleText = rgb(26, 28, 31)
+	lightBorder    = rgb(226, 229, 234)
 )
 
 // syncNativeWindowTheme repaints the Windows title bar to match the selected
