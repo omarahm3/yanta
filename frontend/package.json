@@ -25,6 +25,7 @@
     "@blocknote/core": "^0.51.4",
     "@blocknote/react": "^0.51.4",
     "@blocknote/shadcn": "^0.51.4",
+    "@fontsource-variable/geist": "^5.2.9",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@fontsource/outfit": "^5.2.8",
     "@radix-ui/react-checkbox": "^1.1.4",

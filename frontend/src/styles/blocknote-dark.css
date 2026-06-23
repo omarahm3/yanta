@@ -166,46 +166,24 @@
 }
 
 /* ============================================================================
-   FORMATTING TOOLBAR & LINK TOOLBAR - Glass aesthetic
+   FORMATTING TOOLBAR & LINK TOOLBAR - Solid surface, defined elevation
    ============================================================================ */
 
 .bn-toolbar.bn-formatting-toolbar,
 .bn-toolbar.bn-link-toolbar {
-	backdrop-filter: blur(12px) !important;
-	-webkit-backdrop-filter: blur(12px) !important;
-	background-color: var(--yanta-glass-bg-solid) !important;
-	border-color: color-mix(in srgb, var(--yanta-border) 80%, transparent) !important;
-	box-shadow:
-		0 4px 20px rgba(0, 0, 0, 0.35),
-		0 1px 4px rgba(0, 0, 0, 0.2),
-		inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
-}
-
-:root[data-theme="light"] .bn-toolbar.bn-formatting-toolbar,
-:root[data-theme="light"] .bn-toolbar.bn-link-toolbar {
-	box-shadow:
-		0 4px 16px rgba(0, 0, 0, 0.1),
-		0 1px 4px rgba(0, 0, 0, 0.06) !important;
+	background-color: var(--color-surface) !important;
+	border: 1px solid var(--color-border) !important;
+	box-shadow: var(--elevation-2) !important;
 }
 
 /* ============================================================================
-   SLASH MENU (SUGGESTION MENU) - Glass aesthetic with elevation
+   SLASH MENU (SUGGESTION MENU) - Solid surface, defined elevation
    ============================================================================ */
 
 #bn-suggestion-menu {
-	backdrop-filter: blur(16px) !important;
-	-webkit-backdrop-filter: blur(16px) !important;
-	background-color: var(--yanta-glass-bg-solid) !important;
-	border-color: color-mix(in srgb, var(--yanta-border) 80%, transparent) !important;
-	box-shadow:
-		0 8px 30px rgba(0, 0, 0, 0.4),
-		0 2px 8px rgba(0, 0, 0, 0.2) !important;
-}
-
-:root[data-theme="light"] #bn-suggestion-menu {
-	box-shadow:
-		0 8px 24px rgba(0, 0, 0, 0.12),
-		0 2px 6px rgba(0, 0, 0, 0.06) !important;
+	background-color: var(--color-surface) !important;
+	border: 1px solid var(--color-border) !important;
+	box-shadow: var(--elevation-2) !important;
 }
 
 /* ============================================================================
