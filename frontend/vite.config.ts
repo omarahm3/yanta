@@ -63,10 +63,13 @@ export default defineConfig({
 	},
 
 	server: {
+		// Bind IPv4 explicitly. Vite otherwise listens on IPv6 (::1), but the Wails
+		// dev proxy dials localhost -> 127.0.0.1 (IPv4), so it can't reach Vite -> 502.
+		host: "127.0.0.1",
 		port: Number(process.env.WAILS_VITE_PORT) || 34115,
 		strictPort: true,
-		// Wails' dev webview serves the app from the wails.localhost host and proxies
-		// here; Vite 7's host allow-list must include it or proxied requests 502.
+		// Wails' dev webview serves from the wails.localhost host and proxies here;
+		// Vite 7's host allow-list must include it or proxied requests are rejected.
 		allowedHosts: ["localhost", "wails.localhost"],
 	},
 

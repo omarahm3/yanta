@@ -169,8 +169,11 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "Build complete: $OutputPath"
 
-# Create Windows installer using NSIS (if available)
-if ($Target -in @("win", "windows")) {
+# Create Windows installer using NSIS (skipped for dev builds via BUILD_SKIP_INSTALLER).
+if ($env:BUILD_SKIP_INSTALLER -eq "1") {
+    Write-Host "Dev build: skipping NSIS installer."
+}
+elseif ($Target -in @("win", "windows")) {
     if (Get-Command "makensis" -ErrorAction SilentlyContinue) {
         Write-Host "Creating Windows installer..."
         $NsiDir = "build\windows\installer"
