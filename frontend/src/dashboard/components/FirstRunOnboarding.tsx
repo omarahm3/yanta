@@ -12,6 +12,7 @@ interface FirstRunOnboardingProps {
 
 const TIPS: { label: string; keys: string[] }[] = [
 	{ label: "Open the command palette to jump anywhere", keys: ["Ctrl / ⌘", "K"] },
+	{ label: "Jump to a section (then d / j / s / p)", keys: ["g"] },
 	{ label: "Create a new note from any screen", keys: ["Ctrl / ⌘", "N"] },
 	{ label: "Toggle keyboard help", keys: ["?"] },
 ];

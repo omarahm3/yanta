@@ -60,7 +60,7 @@ const RailButton: React.FC<{ item: SidebarItem }> = ({ item }) => {
 				className={cn(
 					"flex h-10 w-10 items-center justify-center rounded-lg transition-[color,background-color,transform] duration-[var(--duration-fast)] ease-[var(--ease-out-quint)] active:scale-[0.92] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
 					item.active
-						? "bg-accent/12 text-accent"
+						? "bg-accent/16 text-accent"
 						: "text-text-dim hover:bg-accent/8 hover:text-text",
 				)}
 			>

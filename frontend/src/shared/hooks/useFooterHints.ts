@@ -145,7 +145,7 @@ export function getGlobalFooterHints(): FooterHint[] {
 	return [
 		{ key: getShortcutForCommand("command-palette") ?? "Ctrl+K", label: "Commands", priority: 1 },
 		// Vim leader navigation (see useLeaderKeys): g then d/j/s/p/, jumps anywhere.
-		{ key: "g", label: "Jump (d·j·s·p)", priority: 1 },
+		{ key: "g", label: "Jump (d/j/s/p)", priority: 1 },
 		{ key: getShortcutForCommand("show-help") ?? "?", label: "Help", priority: 1 },
 	];
 }
