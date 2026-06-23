@@ -212,7 +212,7 @@ tasks:
       # Unix: default npm run dev behavior
       - |
         {{if eq OS "windows"}}
-        powershell -NoProfile -Command "npm run dev; $code = $LASTEXITCODE; if ($code -eq -1073741510 -or $code -eq 3221225786) { exit 0 }; exit $code"
+        powershell -NoProfile -Command 'npm run dev; $code = $LASTEXITCODE; if ($code -eq -1073741510 -or $code -eq 3221225786) { exit 0 }; exit $code'
         {{else}}
         npm run dev
         {{end}}
