@@ -65,6 +65,9 @@ export default defineConfig({
 	server: {
 		port: Number(process.env.WAILS_VITE_PORT) || 34115,
 		strictPort: true,
+		// Wails' dev webview serves the app from the wails.localhost host and proxies
+		// here; Vite 7's host allow-list must include it or proxied requests 502.
+		allowedHosts: ["localhost", "wails.localhost"],
 	},
 
 	build: {
