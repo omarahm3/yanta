@@ -1,4 +1,5 @@
-import { type MouseEvent, useCallback, useMemo } from "react";
+import { FileText, FolderGit2, NotebookPen, Search, Settings } from "lucide-react";
+import { createElement, type MouseEvent, useCallback, useMemo } from "react";
 import { useSidebarRegistryStore } from "../../sidebar/registry/sidebarRegistry.store";
 import { useDocumentCount } from "../stores/documentCount.store";
 import { useProjectContext } from "../stores/project.store";
@@ -9,6 +10,7 @@ import type { SidebarSection } from "../ui";
 import { useNotification } from "./useNotification";
 
 const MAX_RECENTS_IN_SIDEBAR = 5;
+const NAV_ICON_CLASS = "h-[18px] w-[18px]";
 
 interface UseSidebarSectionsProps {
 	currentPage: string;
@@ -62,12 +64,19 @@ export const useSidebarSections = ({
 				{
 					id: "dashboard",
 					label: "documents",
+					icon: createElement(FileText, { className: NAV_ICON_CLASS }),
 					active: currentPage === "dashboard",
 					onClick: () => onNavigate?.("dashboard"),
+					tooltip: {
+						tooltipId: "sidebar-documents",
+						description: "Documents",
+						shortcut: "Ctrl+1",
+					},
 				},
 				{
 					id: "journal",
 					label: "journal",
+					icon: createElement(NotebookPen, { className: NAV_ICON_CLASS }),
 					active: currentPage === "journal",
 					onClick: () => onNavigate?.("journal"),
 					tooltip: {
@@ -79,6 +88,7 @@ export const useSidebarSections = ({
 				{
 					id: "search",
 					label: "search",
+					icon: createElement(Search, { className: NAV_ICON_CLASS }),
 					active: currentPage === "search",
 					onClick: () => onNavigate?.("search"),
 					tooltip: {
@@ -90,14 +100,25 @@ export const useSidebarSections = ({
 				{
 					id: "projects",
 					label: "projects",
+					icon: createElement(FolderGit2, { className: NAV_ICON_CLASS }),
 					active: currentPage === "projects",
 					onClick: () => onNavigate?.("projects"),
+					tooltip: {
+						tooltipId: "sidebar-projects",
+						description: "Projects",
+					},
 				},
 				{
 					id: "settings",
 					label: "settings",
+					icon: createElement(Settings, { className: NAV_ICON_CLASS }),
 					active: currentPage === "settings",
 					onClick: () => onNavigate?.("settings"),
+					tooltip: {
+						tooltipId: "sidebar-settings",
+						description: "Settings",
+						shortcut: "Ctrl+,",
+					},
 				},
 			],
 		});

@@ -15,13 +15,9 @@ import {
 import { cn } from "../../shared/utils/cn";
 import { formatShortDate } from "../../shared/utils/date";
 
-const DOCUMENT_ROW_ESTIMATE = 88;
+const DOCUMENT_ROW_ESTIMATE = 64;
 const DOCUMENT_ROW_GAP = 4;
 
-const STYLE_BORDER_ACCENT = {
-	borderLeftColor: "var(--mode-accent)",
-	borderLeftWidth: "2px",
-} as const;
 const STYLE_BG_HIGHLIGHTED = { backgroundColor: "var(--mode-accent-muted)" } as const;
 const STYLE_INDEX_SELECTED = { color: "var(--mode-accent)", fontWeight: "bold" } as const;
 const STYLE_INDEX_HIGHLIGHTED = { color: "var(--mode-accent)" } as const;
@@ -240,10 +236,10 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 		showArchived = false,
 		style,
 	}) => {
-		const borderStyle = isHighlighted || isSelected ? STYLE_BORDER_ACCENT : STYLE_EMPTY;
-		const backgroundStyle = isHighlighted ? STYLE_BG_HIGHLIGHTED : STYLE_EMPTY;
+		const borderStyle = STYLE_EMPTY;
+		const backgroundStyle = isHighlighted || isSelected ? STYLE_BG_HIGHLIGHTED : STYLE_EMPTY;
 		const itemClasses = cn(
-			"group border-b border-glass-border/50 px-4 py-4 transition-colors border-l-4 border-l-transparent hover:bg-glass-bg/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg-dark",
+			"group border-b border-border/70 px-3 py-2.5 transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset",
 		);
 		const indexStyle = isSelected
 			? STYLE_INDEX_SELECTED
@@ -257,7 +253,7 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 		const toggleStyle = isSelected ? STYLE_TOGGLE_SELECTED : STYLE_EMPTY;
 		const toggleClasses = cn(
 			"mt-1 inline-flex h-5 w-5 items-center justify-center rounded border text-xs font-semibold transition-colors",
-			!isSelected && "border-glass-border text-text-dim hover:text-text hover:border-text",
+			!isSelected && "border-border text-text-dim hover:text-text hover:border-text",
 		);
 
 		const handleToggleClick: React.MouseEventHandler<HTMLButtonElement> = (event) => {
@@ -318,7 +314,7 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 						draggable
 						onDragStart={handleDragStart}
 					>
-						<div className="flex items-start gap-3">
+						<div className="flex items-start gap-2.5">
 							<Button
 								variant="ghost"
 								size="sm"
@@ -338,7 +334,7 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 							</span>
 							<div className="flex-1 cursor-pointer" onClick={handleItemClick}>
 								<div className="flex items-center gap-2">
-									<Heading as="h3" size="lg">
+									<Heading as="h3" size="base">
 										{doc.title}
 									</Heading>
 									{doc.deletedAt && (
@@ -347,15 +343,15 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 										</span>
 									)}
 								</div>
-								<div className="flex gap-4 mt-2 text-sm document-meta text-text-dim">
+								<div className="flex gap-3 mt-1 text-xs document-meta text-text-dim">
 									<span>{doc.projectAlias}</span>
 									<span>{formatShortDate(doc.updated.toISOString())}</span>
 								</div>
-								<div className="flex gap-2 mt-2 document-tags">
+								<div className="flex gap-1.5 mt-1.5 document-tags">
 									{doc.tags.map((tag) => (
 										<span
 											key={tag}
-											className="px-2 py-1 text-xs rounded tag bg-glass-bg/20 border border-glass-border/30 text-text-dim"
+											className="px-2 py-1 text-xs rounded tag bg-surface border border-border text-text-dim"
 										>
 											{tag}
 										</span>

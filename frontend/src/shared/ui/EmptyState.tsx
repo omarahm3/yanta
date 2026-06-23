@@ -23,12 +23,12 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => (
 	<div
 		className={cn(
-			"flex min-h-[18rem] items-center justify-center rounded-2xl border border-dashed border-glass-border bg-glass-bg/10 px-6 py-10 text-center animate-stagger-fade-in",
+			"flex min-h-[18rem] items-center justify-center rounded-xl border border-dashed border-border bg-surface px-6 py-10 text-center animate-stagger-fade-in",
 			className,
 		)}
 	>
 		<div className="flex max-w-md flex-col items-center gap-4">
-			<div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-glass-bg/40 text-accent">
+			<div className="flex h-14 w-14 items-center justify-center rounded-xl bg-accent/10 text-accent">
 				{icon}
 			</div>
 			<div className="space-y-2">

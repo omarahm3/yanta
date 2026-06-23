@@ -59,7 +59,7 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 			>
 				{isLoading ? (
 					<div className="flex h-full flex-col overflow-hidden">
-						<div className="flex-1 overflow-y-auto p-5">
+						<div className="flex-1 overflow-y-auto p-4">
 							<DocumentListSkeleton />
 						</div>
 					</div>
@@ -71,7 +71,7 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 					/>
 				) : (
 					<div className="flex h-full flex-col overflow-hidden">
-						<div ref={documentListScrollRef} className="flex-1 overflow-y-auto p-5">
+						<div ref={documentListScrollRef} className="flex-1 overflow-y-auto p-4">
 							<GranularErrorBoundary
 								key={documentListKey}
 								message="Something went wrong in the document list."

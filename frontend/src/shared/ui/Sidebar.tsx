@@ -1,10 +1,8 @@
-import { X } from "lucide-react";
-import React, { type RefObject, useCallback, useEffect, useRef } from "react";
+import { Command } from "lucide-react";
+import type React from "react";
 import logoImage from "../../assets/images/logo-universal.png";
-import { useDensity } from "../stores/density.store";
-import { useSidebarStateStore } from "../stores/sidebarState.store";
+import { useCommandPaletteStore } from "../../command-palette/commandPalette.store";
 import { cn } from "../utils/cn";
-import { List, ListItem } from "./List";
 import { Tooltip } from "./Tooltip";
 
 export interface SidebarSection {
@@ -22,6 +20,8 @@ export interface SidebarItemTooltip {
 export interface SidebarItem {
 	id: string;
 	label: string;
+	/** Optional icon node (rendered in the icon rail). Falls back to the first letter. */
+	icon?: React.ReactNode;
 	count?: number;
 	active?: boolean;
 	onClick?: () => void;
@@ -38,182 +38,99 @@ export interface SidebarProps {
 	className?: string;
 }
 
-const ChevronIcon: React.FC<{ collapsed: boolean }> = ({ collapsed }) => (
-	<svg
-		aria-hidden="true"
-		className={cn("w-3 h-3 transition-transform duration-200", collapsed ? "-rotate-90" : "rotate-0")}
-		fill="none"
-		viewBox="0 0 24 24"
-		stroke="currentColor"
-		strokeWidth={2.5}
-	>
-		<path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-	</svg>
-);
+const cap = (s: string): string => (s.length ? s[0].toUpperCase() + s.slice(1) : s);
 
-export const Sidebar: React.FC<SidebarProps> = ({ sections, className }) => {
-	const { collapsedSections, toggleSection, sidebarWidth, setSidebarWidth } = useSidebarStateStore();
-	const density = useDensity();
-	const isCompact = density === "compact";
+/**
+ * A single destination in the icon rail. Active state is carried by a teal-tint
+ * fill + accent icon (no side-stripe). The label and shortcut live in a tooltip,
+ * keeping the rail slim and the app keyboard-first — the command palette is the
+ * primary way to navigate; the rail is the at-a-glance anchor.
+ */
+const RailButton: React.FC<{ item: SidebarItem }> = ({ item }) => {
+	const content = item.tooltip?.description ?? cap(item.label);
+	const shortcut = item.tooltip?.shortcut;
 
-	const asideRef = useRef<HTMLElement>(null);
-	const isDragging = useRef(false);
-	const startX = useRef(0);
-	const startWidth = useRef(sidebarWidth);
-
-	const onResizeStart = useCallback(
-		(e: React.MouseEvent) => {
-			e.preventDefault();
-			isDragging.current = true;
-			startX.current = e.clientX;
-			startWidth.current = sidebarWidth;
-			document.body.style.cursor = "col-resize";
-			document.body.style.userSelect = "none";
-		},
-		[sidebarWidth],
+	return (
+		<Tooltip tooltipId={`rail-${item.id}`} content={content} shortcut={shortcut} placement="right">
+			<button
+				type="button"
+				onClick={item.onClick}
+				aria-current={item.active ? "page" : undefined}
+				aria-label={content}
+				className={cn(
+					"flex h-10 w-10 items-center justify-center rounded-lg transition-[color,background-color,transform] duration-[var(--duration-fast)] ease-[var(--ease-out-quint)] active:scale-[0.92] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+					item.active
+						? "bg-accent/12 text-accent"
+						: "text-text-dim hover:bg-accent/8 hover:text-text",
+				)}
+			>
+				{item.icon ?? <span className="text-sm font-semibold uppercase">{cap(item.label[0] ?? "?")}</span>}
+			</button>
+		</Tooltip>
 	);
+};
 
-	useEffect(() => {
-		const onMouseMove = (e: MouseEvent) => {
-			if (!isDragging.current) return;
-			const delta = e.clientX - startX.current;
-			setSidebarWidth(startWidth.current + delta);
-		};
-		const onMouseUp = () => {
-			if (!isDragging.current) return;
-			isDragging.current = false;
-			document.body.style.cursor = "";
-			document.body.style.userSelect = "";
-		};
-		window.addEventListener("mousemove", onMouseMove);
-		window.addEventListener("mouseup", onMouseUp);
-		return () => {
-			window.removeEventListener("mousemove", onMouseMove);
-			window.removeEventListener("mouseup", onMouseUp);
-		};
-	}, [setSidebarWidth]);
+/**
+ * Icon rail — the app's primary navigation anchor. Renders the destinations from
+ * the "navigation" section as a slim, keyboard-first strip with the command
+ * palette ('⌘K') as the hero affordance. Contextual lists (projects, recents)
+ * are reached through the palette and their dedicated pages.
+ */
+export const Sidebar: React.FC<SidebarProps> = ({ sections, className }) => {
+	const openPalette = useCommandPaletteStore((s) => s.open);
 
-	const sidebarPad = isCompact ? "p-2" : "p-4";
+	const nav = sections.find((s) => s.id === "navigation");
+	const items = nav?.items ?? [];
+	const topItems = items.filter((i) => i.id !== "settings");
+	const bottomItems = items.filter((i) => i.id === "settings");
+	const home = items.find((i) => i.id === "dashboard");
 
 	return (
 		<aside
-			ref={asideRef as RefObject<HTMLElement>}
 			role="navigation"
 			aria-label="Main navigation"
-			className={cn(
-				"h-full flex flex-col relative overflow-y-auto transition-all duration-200",
-				className,
-			)}
-			style={{ width: `${sidebarWidth}px`, minWidth: `${sidebarWidth}px` }}
+			className={cn("flex h-full w-14 flex-col items-center py-3", className)}
 		>
-			<div className={cn("flex-1 overflow-y-auto", sidebarPad)}>
-				<div className={cn("flex items-center px-2", isCompact ? "mb-4" : "mb-8")}>
-					<img src={logoImage} alt="YANTA" className={cn("w-auto object-contain opacity-90", isCompact ? "h-8" : "h-10")} />
+			<button
+				type="button"
+				onClick={home?.onClick}
+				aria-label="Yanta — documents"
+				className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+			>
+				<img src={logoImage} alt="" aria-hidden="true" className="h-7 w-7 object-contain" />
+			</button>
+
+			<Tooltip
+				tooltipId="rail-command"
+				content="Command palette"
+				shortcut="Ctrl+K"
+				placement="right"
+			>
+				<button
+					type="button"
+					onClick={openPalette}
+					aria-label="Open command palette"
+					className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-bg-dark text-text-dim transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out-quint)] hover:border-accent hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+				>
+					<Command className="h-4 w-4" aria-hidden="true" />
+				</button>
+			</Tooltip>
+
+			<div className="h-px w-7 bg-border" aria-hidden="true" />
+
+			<nav aria-label="Destinations" className="mt-3 flex flex-1 flex-col items-center gap-1">
+				{topItems.map((item) => (
+					<RailButton key={item.id} item={item} />
+				))}
+			</nav>
+
+			{bottomItems.length > 0 && (
+				<div className="mt-auto flex flex-col items-center gap-1 pt-3">
+					{bottomItems.map((item) => (
+						<RailButton key={item.id} item={item} />
+					))}
 				</div>
-
-				<div className="space-y-4">
-					{sections.map((section) => {
-						const isCollapsed = collapsedSections.includes(section.id);
-						return (
-							<div key={section.id}>
-								<button
-									type="button"
-									className={cn(
-										"w-full px-2 flex items-center justify-between gap-1 text-xs font-semibold uppercase tracking-wider text-text-dim mb-2 opacity-80 hover:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded",
-										isCompact && "text-[10px]",
-									)}
-									onClick={() => toggleSection(section.id)}
-									aria-expanded={!isCollapsed}
-									aria-controls={`sidebar-section-${section.id}`}
-								>
-									<span>{section.title}</span>
-									<ChevronIcon collapsed={isCollapsed} />
-								</button>
-
-								<div
-									id={`sidebar-section-${section.id}`}
-									className={cn(
-										"overflow-hidden transition-all duration-200",
-										isCollapsed ? "max-h-0 opacity-0" : "max-h-[2000px] opacity-100",
-									)}
-								>
-									<List variant="sidebar" className="space-y-0.5">
-										{section.items.map((item) => {
-											const listItemContent = (
-												<ListItem
-													key={item.id}
-													variant="sidebar"
-													active={item.active}
-													onClick={item.onClick}
-													aria-current={item.active ? "page" : undefined}
-													className={cn(
-														"sidebar-item group relative",
-														item.active && "active",
-														isCompact && "!py-1 !text-xs",
-													)}
-												>
-													<span className="font-medium flex-1 truncate">{item.label}</span>
-													{item.count !== undefined && (
-														<span className={cn(
-															"text-xs bg-bg-dark/30 px-1.5 py-0.5 rounded text-text-dim flex-shrink-0",
-															isCompact && "text-[10px]",
-														)}>
-															{item.count}
-														</span>
-													)}
-													{item.action && (
-														<button
-															type="button"
-															title={item.action.label}
-															aria-label={item.action.label}
-															className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 ml-1 text-text-dim hover:text-text-bright transition-opacity flex-shrink-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded"
-															onClick={item.action.onClick}
-														>
-															<X className="w-3 h-3" aria-hidden="true" />
-														</button>
-													)}
-												</ListItem>
-											);
-
-											if (item.tooltip) {
-												return (
-													<Tooltip
-														key={item.id}
-														tooltipId={item.tooltip.tooltipId}
-														content={item.tooltip.description}
-														shortcut={item.tooltip.shortcut}
-														placement="right"
-													>
-														{listItemContent}
-													</Tooltip>
-												);
-											}
-
-											return listItemContent;
-										})}
-									</List>
-								</div>
-							</div>
-						);
-					})}
-				</div>
-			</div>
-
-			<div
-				role="slider"
-				aria-label="Sidebar width"
-				aria-orientation="vertical"
-				aria-valuenow={sidebarWidth}
-				aria-valuemin={160}
-				aria-valuemax={360}
-				className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-accent/40 active:bg-accent/60 transition-colors focus-visible:outline-none focus-visible:bg-accent/60"
-				onMouseDown={onResizeStart}
-				onKeyDown={(e) => {
-					if (e.key === "ArrowLeft") setSidebarWidth(sidebarWidth - 16);
-					if (e.key === "ArrowRight") setSidebarWidth(sidebarWidth + 16);
-				}}
-				tabIndex={0}
-			/>
+			)}
 		</aside>
 	);
 };

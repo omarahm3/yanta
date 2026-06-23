@@ -96,7 +96,7 @@ export const Layout: React.FC<LayoutProps> = ({
 	children,
 	onRegisterToggleSidebar,
 }) => {
-	const { sidebarVisible, toggleSidebar, isLoading: sidebarLoading } = useSidebarSetting();
+	const { toggleSidebar, isLoading: sidebarLoading } = useSidebarSetting();
 	const { showFooterHints, isLoading: footerHintsLoading } = useFooterHintsSetting();
 	const { currentProject } = useProjectContext();
 	const { heightInRem } = useTitleBarContext();
@@ -146,7 +146,9 @@ export const Layout: React.FC<LayoutProps> = ({
 
 	const layoutStyle = useMemo(() => ({ height: `calc(100vh - ${heightInRem}rem)` }), [heightInRem]);
 
-	const effectiveSidebarVisible = sidebarVisible && !isBelowLg;
+	// The icon rail is permanent navigation chrome on desktop; it only collapses
+	// on narrow viewports. (Toggle hotkey is reserved for a future expanded panel.)
+	const effectiveSidebarVisible = !isBelowLg;
 
 	return (
 		<div
@@ -167,14 +169,14 @@ export const Layout: React.FC<LayoutProps> = ({
 				) : (
 					<UISidebar
 						sections={sidebarSections || []}
-						className="bg-glass-bg/50 backdrop-blur-xl border-r border-glass-border"
+						className="bg-surface border-r border-border"
 					/>
 				)}
 			</div>
 
 			<div
 				role="main"
-				className="flex flex-col flex-1 overflow-hidden main-content-transition relative z-10 bg-glass-bg/10 backdrop-blur-sm"
+				className="flex flex-col flex-1 overflow-hidden main-content-transition relative z-10 bg-bg"
 			>
 				<a
 					href="#main-content"
@@ -183,7 +185,7 @@ export const Layout: React.FC<LayoutProps> = ({
 					Skip to main content
 				</a>
 				{currentPage !== "settings" && (
-					<div className="bg-glass-bg/40 backdrop-blur-md border-b border-glass-border sticky top-0 z-30">
+					<div className="sticky top-0 z-40">
 						<HeaderBar
 							breadcrumbs={breadcrumbs}
 							breadcrumb={breadcrumb || currentProject?.name || "No Project"}
