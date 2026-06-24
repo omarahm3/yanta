@@ -100,7 +100,15 @@ export default defineConfig({
 	},
 
 	optimizeDeps: {
-		entries: ["index.html", "src/**/*.{ts,tsx}"],
+		// Crawl app source at startup so deps are pre-bundled in one pass, but
+		// exclude test files — pulling vitest/@testing-library into the dev dep
+		// cache bloats it and invites mid-session re-optimization/reload churn.
+		entries: [
+			"index.html",
+			"src/**/*.{ts,tsx}",
+			"!src/**/*.{test,spec}.{ts,tsx}",
+			"!src/**/__tests__/**",
+		],
 		include: [
 			"react",
 			"react-dom",
