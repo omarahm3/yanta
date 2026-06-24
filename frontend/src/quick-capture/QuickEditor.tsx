@@ -202,10 +202,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 	return (
 		<div
 			ref={containerRef}
-			className={cn(
-				"relative h-full border border-glass-border/50 bg-glass-bg/30 backdrop-blur-sm rounded-lg shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)]",
-				className,
-			)}
+			className={cn("relative h-full", className)}
 			style={{ "--wails-draggable": "no-drag" } as React.CSSProperties}
 		>
 			<div
@@ -232,7 +229,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 				onKeyDown={handleKeyDown}
 				maxLength={maxLength}
 				placeholder={placeholder}
-				className="relative w-full h-full min-h-[80px] p-3 bg-transparent border-0 font-mono text-sm leading-relaxed resize-none focus:outline-none focus:ring-0 focus:shadow-[inset_0_0_0_2px_var(--color-accent)] text-transparent caret-text-bright placeholder:text-text-dim"
+				className="relative w-full h-full min-h-[80px] p-3 bg-transparent border-0 font-mono text-sm leading-relaxed resize-none focus:outline-none text-transparent caret-text-bright placeholder:text-text-dim"
 				style={{ caretColor: "var(--color-text-bright)" }}
 			/>
 
@@ -240,7 +237,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 				<div
 					ref={projectListRef}
 					data-testid="project-list"
-					className="project-list-scroll bg-glass-bg/90 backdrop-blur-xl text-text border border-glass-border rounded-lg z-50 overflow-y-auto w-max max-w-[18rem] max-h-[5.75rem] py-0.5 text-xs shadow-lg"
+					className="project-list-scroll bg-surface text-text border border-border rounded-lg z-50 overflow-y-auto w-max max-w-[18rem] max-h-[5.75rem] py-0.5 text-xs shadow-[var(--elevation-3)]"
 					style={
 						dropdownPosition
 							? { position: "fixed", top: dropdownPosition.top, left: dropdownPosition.left }
@@ -256,13 +253,13 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 							aria-selected={index === highlightedIndex}
 							onClick={() => insertProject(project.alias)}
 							className={cn(
-								"w-full pr-2.5 py-1.5 text-left whitespace-nowrap transition-colors outline-none border-l-2",
+								"w-full rounded-md px-2.5 py-1.5 text-left whitespace-nowrap transition-colors outline-none",
 								index === highlightedIndex
-									? "pl-[10px] border-accent bg-accent/10"
-									: "pl-2.5 border-transparent hover:bg-glass-bg/30",
+									? "bg-accent/12 text-accent"
+									: "text-text hover:bg-accent/8",
 							)}
 						>
-							<span className={index === highlightedIndex ? "text-accent font-medium" : ""}>
+							<span className={index === highlightedIndex ? "font-medium" : ""}>
 								@{project.alias}
 							</span>
 							{project.name !== project.alias && (
@@ -290,9 +287,9 @@ function getHighlightedContent(text: string): string {
 
 	let html = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-	html = html.replace(/(^|\s)(@[\w-]+)/g, '$1<span class="text-accent font-medium">$2</span>');
+	html = html.replace(/(^|\s)(@[\w-]+)/g, '$1<span class="qc-token qc-token-project">$2</span>');
 
-	html = html.replace(/(^|\s)(#[\w_]+)/g, '$1<span class="text-green font-medium">$2</span>');
+	html = html.replace(/(^|\s)(#[\w_]+)/g, '$1<span class="qc-token qc-token-tag">$2</span>');
 
 	return html;
 }

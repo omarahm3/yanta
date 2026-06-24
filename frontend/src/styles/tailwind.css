@@ -379,6 +379,64 @@
 	outline-offset: 2px;
 }
 
+/* Text inputs & textareas carry their own focus affordance (accent border/ring
+   plus the text caret), so the global accent outline is redundant and reads
+   heavy on them. Drop it for text fields; buttons, the rail, list rows and
+   selects keep the full a11y focus ring, where it's the only focus cue. */
+input:focus-visible,
+textarea:focus-visible,
+[data-mode] input:focus-visible,
+[data-mode] textarea:focus-visible {
+	outline: none;
+}
+
+/* The command-palette search input is auto-focused the whole time the palette
+   is open. The dialog already owns focus — signal input focus with a calm
+   accent underline on the input wrapper instead of any ring. */
+[data-slot="command-input-wrapper"]:focus-within {
+	border-color: var(--color-accent);
+}
+
+/* ── Quick Capture (command composer) ─────────────────────────────────── */
+/* Entrance: a quick lift + settle so the frameless window feels deliberate. */
+@keyframes qc-enter {
+	from {
+		opacity: 0;
+		transform: translateY(10px) scale(0.985);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+.qc-enter {
+	animation: qc-enter var(--duration-base, 180ms) var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1))
+		both;
+}
+@media (prefers-reduced-motion: reduce) {
+	.qc-enter {
+		animation: none;
+	}
+}
+
+/* Inline @project / #tag tokens rendered in the composer's highlight layer.
+   Background + ring only (no padding) so the mirror stays glyph-aligned with
+   the transparent textarea and the caret never drifts. */
+.qc-token {
+	border-radius: 4px;
+	font-weight: 500;
+}
+.qc-token-project {
+	color: var(--color-accent);
+	background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 32%, transparent);
+}
+.qc-token-tag {
+	color: var(--color-green);
+	background: color-mix(in srgb, var(--color-green) 16%, transparent);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-green) 32%, transparent);
+}
+
 /* ============================================================================
    FLAT BY DEFAULT — Paper & Ink has no decorative glass. Neutralize every
    legacy backdrop-blur / translucent-glass class to opaque surfaces so the

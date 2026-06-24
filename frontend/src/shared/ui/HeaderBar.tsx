@@ -1,6 +1,7 @@
 import type React from "react";
 import type { ReactNode } from "react";
 import { cn } from "../utils/cn";
+import { Kbd } from "./Kbd";
 
 export interface BreadcrumbItem {
 	label: string;
@@ -95,9 +96,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 			<div className="flex items-center gap-4 text-xs text-text-dim">
 				{shortcuts.map((shortcut) => (
 					<span key={shortcut.key} className="flex items-center gap-1">
-						<kbd className="bg-bg-dark px-1.5 py-0.5 rounded text-[11px] font-mono border border-border text-text-dim">
-							{shortcut.key}
-						</kbd>
+						<Kbd>{shortcut.key}</Kbd>
 						{shortcut.label}
 					</span>
 				))}

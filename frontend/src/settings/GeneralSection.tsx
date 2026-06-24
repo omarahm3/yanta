@@ -34,7 +34,7 @@ export const GeneralSection = React.forwardRef<HTMLDivElement, GeneralSectionPro
 
 		return (
 			<div ref={ref}>
-				<SettingsSection title="General" subtitle="Application behavior settings">
+				<SettingsSection id="general" title="General" subtitle="Application behavior settings">
 					<div className="space-y-4">
 						{isWindows && (
 							<>
@@ -73,7 +73,7 @@ export const GeneralSection = React.forwardRef<HTMLDivElement, GeneralSectionPro
 									<div className="text-xs text-text-dim">
 										Remove window borders and title bar for a cleaner look. You can drag the window using the
 										custom title bar and resize from edges.
-										<span className="text-yellow-400"> Requires restart to take effect.</span>
+										<span className="text-yellow"> Requires restart to take effect.</span>
 									</div>
 								</div>
 								<Toggle checked={linuxWindowMode === "frameless"} onChange={onLinuxWindowModeToggle} />

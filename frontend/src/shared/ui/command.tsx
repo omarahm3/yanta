@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRef } from "react";
 import { cn } from "../utils/cn";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./dialog";
+import { Kbd } from "./Kbd";
 
 const Command = React.forwardRef<
 	React.ComponentRef<typeof CommandPrimitive>,
@@ -65,16 +66,12 @@ function CommandInput({
 			<CommandPrimitive.Input
 				data-slot="command-input"
 				className={cn(
-					"placeholder:text-text-dim/60 flex h-10 w-full rounded-md bg-transparent py-3 text-lg outline-none disabled:cursor-not-allowed disabled:opacity-50",
+					"placeholder:text-text-dim flex h-10 w-full rounded-md bg-transparent py-3 text-lg outline-none disabled:cursor-not-allowed disabled:opacity-50",
 					className,
 				)}
 				{...props}
 			/>
-			{showEscBadge && (
-				<kbd className="shrink-0 rounded border border-border bg-bg-dark px-2 py-1 text-xs font-mono font-medium text-text-dim">
-					ESC
-				</kbd>
-			)}
+			{showEscBadge && <Kbd className="px-2 py-1 text-xs">ESC</Kbd>}
 		</div>
 	);
 }

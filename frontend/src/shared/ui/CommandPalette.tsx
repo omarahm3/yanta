@@ -9,6 +9,7 @@ import {
 	CommandItem,
 	CommandList,
 } from "./command";
+import { Kbd } from "./Kbd";
 
 export interface CommandOption {
 	id: string;
@@ -95,11 +96,11 @@ const CommandPaletteItem: React.FC<CommandPaletteItemProps> = React.memo(
 					/>
 				)}
 				{command.shortcut ? (
-					<kbd className="ml-2 shrink-0 rounded border border-glass-border bg-bg-dark/40 px-1.5 py-0.5 text-[11px] font-mono text-text-dim/70 shadow-sm font-semibold tracking-wider">
-						{command.shortcut}
-					</kbd>
+					<Kbd className="ml-2 tracking-wider">{command.shortcut}</Kbd>
 				) : command.hint ? (
-					<span data-slot="command-shortcut" className="ml-2 shrink-0 text-[11px] text-text-dim/50">{command.hint}</span>
+					<span data-slot="command-shortcut" className="ml-2 shrink-0 text-[11px] text-text-dim">
+						{command.hint}
+					</span>
 				) : null}
 			</CommandItem>
 		);
@@ -121,9 +122,7 @@ const SubPaletteItemRow: React.FC<SubPaletteItemRowProps> = React.memo(({ item, 
 		<CommandItem value={item.text} onSelect={handleSelect}>
 			{item.icon ? <span className="w-4 shrink-0 text-text-dim">{item.icon}</span> : <span className="w-4 shrink-0" />}
 			<span className="flex-1 truncate">{item.text}</span>
-			{item.hint && (
-				<span className="ml-2 shrink-0 text-[11px] text-text-dim/60">{item.hint}</span>
-			)}
+			{item.hint && <span className="ml-2 shrink-0 text-[11px] text-text-dim">{item.hint}</span>}
 		</CommandItem>
 	);
 });
@@ -143,7 +142,6 @@ export interface CommandPaletteProps {
 const FOOTER_HINTS = [
 	{ key: "↑↓", label: "Navigate" },
 	{ key: "↵", label: "Select" },
-	{ key: "Esc", label: "Close" },
 ];
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
@@ -230,12 +228,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
 	const footerHints = useMemo(
 		() => (
-			<div className="flex items-center gap-4 border-t border-glass-border px-4 py-2">
+			<div className="flex items-center gap-4 border-t border-border px-4 py-2">
 				{FOOTER_HINTS.map((hint) => (
-					<span key={hint.key} className="flex items-center gap-1.5 text-[11px] text-text-dim/50">
-						<kbd className="rounded border border-glass-border bg-bg-dark/30 px-1.5 py-0.5 text-[10px] font-mono text-text-dim/60">
-							{hint.key}
-						</kbd>
+					<span key={hint.key} className="flex items-center gap-1.5 text-[11px] text-text-dim">
+						<Kbd className="text-[10px]">{hint.key}</Kbd>
 						<span>{hint.label}</span>
 					</span>
 				))}
@@ -248,7 +244,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 		<CommandDialog open={isOpen} onOpenChange={handleOpenChange}>
 			<div onKeyDown={handleKeyDown}>
 				{isSubPaletteMode && (
-					<div className="flex items-center gap-2 px-3 py-2 border-b border-glass-border">
+					<div className="flex items-center gap-2 px-3 py-2 border-b border-border">
 						<button
 							type="button"
 							onClick={onSubPaletteBack}
@@ -278,7 +274,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 							<CommandEmpty>
 								<div className="flex flex-col items-center gap-1">
 									<span>No commands found</span>
-									<span className="text-xs text-text-dim/50">Try a different search term</span>
+									<span className="text-xs text-text-dim">Try a different search term</span>
 								</div>
 							</CommandEmpty>
 							{Array.from(groupedCommands.entries()).map(([groupName, groupCmds]) => (

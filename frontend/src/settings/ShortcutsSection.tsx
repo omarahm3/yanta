@@ -74,6 +74,7 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 		return (
 			<div ref={ref}>
 				<SettingsSection
+					id="shortcuts"
 					title="Keyboard Shortcuts"
 					subtitle="Configure global hotkeys and view application shortcuts"
 				>
@@ -91,7 +92,7 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 									</Text>
 
 									{/* Quick Capture Hotkey */}
-									<div className="p-4 rounded border border-border bg-bg-secondary">
+									<div className="rounded-lg bg-bg-dark p-4">
 										<div className="mb-3">
 											<div className="text-sm font-medium text-text">Quick Capture</div>
 											<div className="text-xs text-text-dim">
@@ -108,7 +109,7 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 									</div>
 
 									{/* Restore Window Info */}
-									<div className="p-3 rounded border border-border bg-bg-tertiary">
+									<div className="rounded-lg bg-bg-dark p-3">
 										<div className="text-sm text-text">Restore Window</div>
 										<div className="text-xs text-text-dim">
 											Press <span className="font-mono text-text-bright">Ctrl+Shift+Y</span> to show and focus
@@ -119,15 +120,15 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 							)}
 
 							{(isLinux || isMac) && (
-								<div className="p-4 rounded border border-border bg-bg-secondary">
+								<div className="rounded-lg bg-bg-dark p-4">
 									<div className="space-y-3">
 										<Text size="sm" variant="dim">
 											Global hotkeys require platform-specific configuration on {isMac ? "macOS" : "Linux"}.
 										</Text>
 
-										<div className="p-3 rounded bg-bg-tertiary">
+										<div className="rounded-md bg-bg p-3">
 											<div className="text-sm font-medium text-text mb-2">Quick Capture Command</div>
-											<div className="font-mono text-sm text-accent-primary bg-bg p-2 rounded">
+											<div className="font-mono text-sm text-accent bg-bg-dark p-2 rounded">
 												yanta --quick
 											</div>
 										</div>
@@ -196,7 +197,7 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 										return (
 											<div
 												key={id}
-												className="flex items-center justify-between gap-4 p-3 rounded border border-border bg-bg-secondary"
+												className="flex items-center justify-between gap-4 rounded-lg border border-border p-3"
 											>
 												<span className="text-sm text-text">{label}</span>
 												<HotkeyInput

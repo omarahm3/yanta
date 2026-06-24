@@ -134,7 +134,7 @@ describe("AboutSection", () => {
 			expect(screen.getByText("Reset Onboarding?")).toBeInTheDocument();
 			expect(
 				screen.getByText(
-					"This will reset your onboarding status. The welcome overlay will appear the next time you launch the app.",
+					"This will reset your onboarding status. The welcome screen will appear the next time you launch the app.",
 				),
 			).toBeInTheDocument();
 		});

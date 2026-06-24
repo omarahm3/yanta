@@ -13,9 +13,9 @@ export const DatabaseSection = React.forwardRef<HTMLDivElement, DatabaseSectionP
 	({ systemInfo, isReindexing, reindexProgress, onReindex }, ref) => {
 		return (
 			<div ref={ref}>
-				<SettingsSection title="Database" subtitle="Manage your local database and search index">
+				<SettingsSection id="database" title="Database" subtitle="Manage your local database and search index">
 					<div className="space-y-4">
-						<div className="grid grid-cols-3 gap-4 p-4 border rounded border-border bg-bg-secondary">
+						<div className="grid grid-cols-3 gap-4 rounded-lg bg-bg-dark p-4">
 							<div>
 								<div className="text-xs text-text-dim uppercase">Documents</div>
 								<div className="text-lg font-medium text-text">
@@ -36,7 +36,7 @@ export const DatabaseSection = React.forwardRef<HTMLDivElement, DatabaseSectionP
 							</div>
 						</div>
 
-						<div className="p-4 border rounded border-border">
+						<div className="rounded-lg bg-bg-dark p-4">
 							<div className="mb-3">
 								<div className="mb-1 font-medium text-text">Rebuild Search Index</div>
 								<Text size="xs" variant="dim">

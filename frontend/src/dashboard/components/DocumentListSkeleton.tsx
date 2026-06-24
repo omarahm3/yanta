@@ -22,18 +22,18 @@ export const DocumentListSkeleton: React.FC<DocumentListSkeletonProps> = ({ rows
 				<div
 					// biome-ignore lint/suspicious/noArrayIndexKey: static placeholder rows have no stable id
 					key={index}
-					className="border-b border-glass-border/50 border-l-4 border-l-transparent px-4 py-4"
+					className="border-b border-border/70 px-3 py-2.5"
 				>
-					<div className="flex items-start gap-3">
+					<div className="flex items-start gap-2.5">
 						<Skeleton className="mt-1 h-5 w-5 shrink-0" />
 						<Skeleton className="mt-1 h-4 w-4 shrink-0" />
 						<div className="flex-1">
-							<Skeleton className={`h-6 ${TITLE_WIDTHS[index % TITLE_WIDTHS.length]}`} />
-							<div className="mt-2 flex gap-4">
-								<Skeleton className="h-4 w-16" />
-								<Skeleton className="h-4 w-24" />
+							<Skeleton className={`h-5 ${TITLE_WIDTHS[index % TITLE_WIDTHS.length]}`} />
+							<div className="mt-1.5 flex gap-3">
+								<Skeleton className="h-3.5 w-16" />
+								<Skeleton className="h-3.5 w-24" />
 							</div>
-							<div className="mt-2 flex gap-2">
+							<div className="mt-1.5 flex gap-1.5">
 								<Skeleton className="h-6 w-14 rounded" />
 								<Skeleton className="h-6 w-12 rounded" />
 							</div>

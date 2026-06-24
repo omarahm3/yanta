@@ -170,7 +170,6 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 								onRestoreDocument={onRestoreDocument}
 								onMoveDocument={onMoveDocument}
 								showArchived={showArchived}
-								style={{ "--i": Math.min(index, 20) } as React.CSSProperties}
 							/>
 						</div>
 					);
@@ -198,7 +197,6 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 						onRestoreDocument={onRestoreDocument}
 						onMoveDocument={onMoveDocument}
 						showArchived={showArchived}
-						style={{ "--i": Math.min(index, 20) } as React.CSSProperties}
 					/>
 				);
 			})}
@@ -218,7 +216,6 @@ interface DocumentListItemProps {
 	onRestoreDocument?: (path: string) => void;
 	onMoveDocument?: (path: string) => void;
 	showArchived?: boolean;
-	style?: React.CSSProperties;
 }
 
 const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
@@ -234,7 +231,6 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 		onRestoreDocument,
 		onMoveDocument,
 		showArchived = false,
-		style,
 	}) => {
 		const borderStyle = STYLE_EMPTY;
 		const backgroundStyle = isHighlighted || isSelected ? STYLE_BG_HIGHLIGHTED : STYLE_EMPTY;
@@ -298,12 +294,10 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 			<ContextMenu>
 				<ContextMenuTrigger asChild>
 					<div
-						className={cn(itemClasses, "animate-stagger-fade-in")}
+						className={itemClasses}
 						style={{
-							...style,
 							...borderStyle,
 							...backgroundStyle,
-							animationDelay: style ? `calc(var(--i, 0) * 30ms)` : undefined,
 						}}
 						role="listitem"
 						aria-selected={isSelected}
@@ -338,7 +332,7 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 										{doc.title}
 									</Heading>
 									{doc.deletedAt && (
-										<span className="ml-auto rounded border border-accent/60 bg-accent/10 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-accent">
+										<span className="ml-auto rounded border border-border bg-bg-dark px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-text-dim">
 											Archived
 										</span>
 									)}
