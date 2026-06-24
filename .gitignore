@@ -57,3 +57,30 @@ logs/security/
 
 Auto Run Docs/
 frontend/bindings/*
+
+# ── Coding-agent / AI tooling artifacts (local-only, never tracked) ──
+# Skills, plans, lockfiles and tool output produced by AI coding assistants.
+# (.claude, AGENTS.md, CLAUDE.md are already ignored above.)
+.agents/
+.impeccable/
+.github/skills/
+/skills-lock.json
+/findings.md
+/progress.md
+/task_plan.md
+
+# Other AI coding assistants
+.cursor/
+.cursorrules
+.windsurf/
+.windsurfrules
+.aider*
+.continue/
+.codeium/
+.cline/
+.clinerules
+.roo/
+.gemini/
+GEMINI.md
+CLAUDE.local.md
+.github/copilot-instructions.md
