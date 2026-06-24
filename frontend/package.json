@@ -74,5 +74,8 @@
     "vite": "^7.2.4",
     "vitest": "^4.0.12",
     "vitest-axe": "^0.1.0"
+  },
+  "overrides": {
+    "esbuild": "0.28.1"
   }
 }
