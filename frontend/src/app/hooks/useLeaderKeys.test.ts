@@ -3,7 +3,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { useLeaderKeys } from "./useLeaderKeys";
 
 function press(key: string, init: KeyboardEventInit = {}) {
-	window.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init }));
+	window.dispatchEvent(
+		new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init }),
+	);
 }
 
 describe("useLeaderKeys", () => {

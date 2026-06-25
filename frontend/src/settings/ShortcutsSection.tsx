@@ -128,9 +128,7 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 
 										<div className="rounded-md bg-bg p-3">
 											<div className="text-sm font-medium text-text mb-2">Quick Capture Command</div>
-											<div className="font-mono text-sm text-accent bg-bg-dark p-2 rounded">
-												yanta --quick
-											</div>
+											<div className="font-mono text-sm text-accent bg-bg-dark p-2 rounded">yanta --quick</div>
 										</div>
 
 										{isLinux && (

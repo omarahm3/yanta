@@ -13,7 +13,11 @@ export const DatabaseSection = React.forwardRef<HTMLDivElement, DatabaseSectionP
 	({ systemInfo, isReindexing, reindexProgress, onReindex }, ref) => {
 		return (
 			<div ref={ref}>
-				<SettingsSection id="database" title="Database" subtitle="Manage your local database and search index">
+				<SettingsSection
+					id="database"
+					title="Database"
+					subtitle="Manage your local database and search index"
+				>
 					<div className="space-y-4">
 						<div className="grid grid-cols-3 gap-4 rounded-lg bg-bg-dark p-4">
 							<div>

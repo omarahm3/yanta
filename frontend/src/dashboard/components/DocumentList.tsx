@@ -232,7 +232,6 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 		onMoveDocument,
 		showArchived = false,
 	}) => {
-		const borderStyle = STYLE_EMPTY;
 		const backgroundStyle = isHighlighted || isSelected ? STYLE_BG_HIGHLIGHTED : STYLE_EMPTY;
 		const itemClasses = cn(
 			"group border-b border-border/70 px-3 py-2.5 transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset",
@@ -295,10 +294,7 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 				<ContextMenuTrigger asChild>
 					<div
 						className={itemClasses}
-						style={{
-							...borderStyle,
-							...backgroundStyle,
-						}}
+						style={backgroundStyle}
 						role="listitem"
 						aria-selected={isSelected}
 						tabIndex={isHighlighted ? 0 : -1}

@@ -56,7 +56,9 @@ describe("CommandPalette", () => {
 			/>,
 		);
 
-		expect(screen.queryByPlaceholderText("Type a command or search documents...")).not.toBeInTheDocument();
+		expect(
+			screen.queryByPlaceholderText("Type a command or search documents..."),
+		).not.toBeInTheDocument();
 	});
 
 	it("renders command palette when open", () => {

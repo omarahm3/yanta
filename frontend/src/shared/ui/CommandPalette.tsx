@@ -1,4 +1,4 @@
-import { ArrowLeft, CornerDownLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import React, { useCallback, useMemo } from "react";
 import { getCommandIdForKeyboardEvent } from "../utils/shortcuts";
 import {
@@ -35,7 +35,15 @@ export interface SubPaletteItem {
 }
 
 // Define the canonical group order — Documents first for quick-switcher
-const GROUP_ORDER = ["Documents", "Navigation", "Create", "Document", "Git", "Projects", "Application"] as const;
+const GROUP_ORDER = [
+	"Documents",
+	"Navigation",
+	"Create",
+	"Document",
+	"Git",
+	"Projects",
+	"Application",
+] as const;
 
 // Helper to sort commands by group
 function groupCommands(commands: CommandOption[]): Map<string, CommandOption[]> {
@@ -120,7 +128,11 @@ const SubPaletteItemRow: React.FC<SubPaletteItemRowProps> = React.memo(({ item, 
 
 	return (
 		<CommandItem value={item.text} onSelect={handleSelect}>
-			{item.icon ? <span className="w-4 shrink-0 text-text-dim">{item.icon}</span> : <span className="w-4 shrink-0" />}
+			{item.icon ? (
+				<span className="w-4 shrink-0 text-text-dim">{item.icon}</span>
+			) : (
+				<span className="w-4 shrink-0" />
+			)}
 			<span className="flex-1 truncate">{item.text}</span>
 			{item.hint && <span className="ml-2 shrink-0 text-[11px] text-text-dim">{item.hint}</span>}
 		</CommandItem>

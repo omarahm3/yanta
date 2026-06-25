@@ -84,9 +84,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		() =>
 			query === ""
 				? sections
-				: sections.filter(
-						(s) => s.label.toLowerCase().includes(query) || s.keywords.includes(query),
-					),
+				: sections.filter((s) => s.label.toLowerCase().includes(query) || s.keywords.includes(query)),
 		[sections, query],
 	);
 	const visibleIds = useMemo(
@@ -94,6 +92,13 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		[visibleSections],
 	);
 	const isVisible = useCallback((id: string) => visibleIds.has(id), [visibleIds]);
+	// Filtering hides sections (display:none), so the IntersectionObserver can leave
+	// activeSection pointing at a hidden one. Fall back to the first visible section
+	// so the TOC always highlights something actually on screen.
+	const activeVisibleSection = useMemo(
+		() => (visibleIds.has(activeSection) ? activeSection : (visibleSections[0]?.id ?? activeSection)),
+		[activeSection, visibleSections, visibleIds],
+	);
 
 	const handleShortcutOverride = useCallback(
 		async (id: string, displayKey: string) => {
@@ -153,7 +158,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 					<SettingsNav
 						className="sticky top-6 hidden self-start lg:block"
 						sections={visibleSections}
-						activeId={activeSection}
+						activeId={activeVisibleSection}
 						onSelect={scrollToSection}
 						filter={filter}
 						onFilterChange={setFilter}

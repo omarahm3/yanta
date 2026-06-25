@@ -254,14 +254,10 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 							onClick={() => insertProject(project.alias)}
 							className={cn(
 								"w-full rounded-md px-2.5 py-1.5 text-left whitespace-nowrap transition-colors outline-none",
-								index === highlightedIndex
-									? "bg-accent/12 text-accent"
-									: "text-text hover:bg-accent/8",
+								index === highlightedIndex ? "bg-accent/12 text-accent" : "text-text hover:bg-accent/8",
 							)}
 						>
-							<span className={index === highlightedIndex ? "font-medium" : ""}>
-								@{project.alias}
-							</span>
+							<span className={index === highlightedIndex ? "font-medium" : ""}>@{project.alias}</span>
 							{project.name !== project.alias && (
 								<span className="ml-2 text-text-dim">{project.name}</span>
 							)}

@@ -3,13 +3,13 @@ import { type ReactNode, useEffect, useMemo, useRef } from "react";
 import { SIDEBAR_SHORTCUTS } from "@/config/public";
 import { useHotkeys } from "../hotkeys";
 import { useProjectContext } from "../project";
-import { useResponsive } from "../shared/hooks/useResponsive";
 import {
 	getGlobalFooterHints,
 	useFooterHints,
 	useFooterHintsSetting,
 	useSidebarSetting,
 } from "../shared/hooks";
+import { useResponsive } from "../shared/hooks/useResponsive";
 import type { PageName } from "../shared/types";
 import {
 	type BreadcrumbItem,
@@ -167,10 +167,7 @@ export const Layout: React.FC<LayoutProps> = ({
 				{sidebarContent ? (
 					sidebarContent
 				) : (
-					<UISidebar
-						sections={sidebarSections || []}
-						className="bg-surface border-r border-border"
-					/>
+					<UISidebar sections={sidebarSections || []} className="bg-surface border-r border-border" />
 				)}
 			</div>
 

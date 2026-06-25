@@ -43,7 +43,9 @@ vi.mock("../Tooltip", () => ({
 	},
 }));
 
-const navSection = (overrides: Partial<SidebarSection["items"][number]>[] = []): SidebarSection[] => [
+const navSection = (
+	overrides: Partial<SidebarSection["items"][number]>[] = [],
+): SidebarSection[] => [
 	{
 		id: "navigation",
 		title: "NAVIGATION",

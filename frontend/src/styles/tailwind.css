@@ -410,8 +410,8 @@ textarea:focus-visible,
 	}
 }
 .qc-enter {
-	animation: qc-enter var(--duration-base, 180ms) var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1))
-		both;
+	animation: qc-enter var(--duration-base, 180ms)
+		var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1)) both;
 }
 @media (prefers-reduced-motion: reduce) {
 	.qc-enter {

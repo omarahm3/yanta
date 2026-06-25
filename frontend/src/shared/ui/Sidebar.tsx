@@ -59,12 +59,12 @@ const RailButton: React.FC<{ item: SidebarItem }> = ({ item }) => {
 				aria-label={content}
 				className={cn(
 					"flex h-10 w-10 items-center justify-center rounded-lg transition-[color,background-color,transform] duration-[var(--duration-fast)] ease-[var(--ease-out-quint)] active:scale-[0.92] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
-					item.active
-						? "bg-accent/16 text-accent"
-						: "text-text-dim hover:bg-accent/8 hover:text-text",
+					item.active ? "bg-accent/16 text-accent" : "text-text-dim hover:bg-accent/8 hover:text-text",
 				)}
 			>
-				{item.icon ?? <span className="text-sm font-semibold uppercase">{cap(item.label[0] ?? "?")}</span>}
+				{item.icon ?? (
+					<span className="text-sm font-semibold uppercase">{cap(item.label[0] ?? "?")}</span>
+				)}
 			</button>
 		</Tooltip>
 	);
@@ -100,12 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ sections, className }) => {
 				<img src={logoImage} alt="" aria-hidden="true" className="h-7 w-7 object-contain" />
 			</button>
 
-			<Tooltip
-				tooltipId="rail-command"
-				content="Command palette"
-				shortcut="Ctrl+K"
-				placement="right"
-			>
+			<Tooltip tooltipId="rail-command" content="Command palette" shortcut="Ctrl+K" placement="right">
 				<button
 					type="button"
 					onClick={openPalette}

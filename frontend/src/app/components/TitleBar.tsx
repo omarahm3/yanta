@@ -2,8 +2,8 @@ import { System, Window } from "@wailsio/runtime";
 import { Minus, Square, X } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
-import { IsFrameless } from "../../../bindings/yanta/internal/window/service";
 import { BackgroundQuit } from "../../../bindings/yanta/internal/system/service";
+import { IsFrameless } from "../../../bindings/yanta/internal/window/service";
 import logoImage from "../../assets/images/logo-universal.png";
 import { cn } from "../../shared/utils/cn";
 import { useTitleBarContext } from "../stores/titlebar.store";
@@ -75,18 +75,22 @@ export const TitleBar: React.FC = () => {
 
 	return (
 		<div
-			className={cn(
-				"chrome-titlebar",
-				isMac ? "chrome-titlebar-mac" : "chrome-titlebar-win",
-			)}
+			className={cn("chrome-titlebar", isMac ? "chrome-titlebar-mac" : "chrome-titlebar-win")}
 			role="banner"
 			aria-label="Application chrome"
 		>
 			<div className="flex items-center gap-2 flex-1 min-w-0">
 				{!isMac && (
 					<>
-						<img src={logoImage} alt="" className="h-5 w-auto object-contain opacity-80" aria-hidden="true" />
-						<span className="text-xs font-semibold text-text-dim/70 tracking-wide select-none">YANTA</span>
+						<img
+							src={logoImage}
+							alt=""
+							className="h-5 w-auto object-contain opacity-80"
+							aria-hidden="true"
+						/>
+						<span className="text-xs font-semibold text-text-dim/70 tracking-wide select-none">
+							YANTA
+						</span>
 					</>
 				)}
 			</div>

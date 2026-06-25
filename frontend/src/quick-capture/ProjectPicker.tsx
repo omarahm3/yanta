@@ -155,9 +155,7 @@ export const ProjectPicker: React.FC<ProjectPickerProps> = ({
 									onClick={() => handleSelect(project.alias)}
 									className={cn(
 										"w-full px-3 py-2 text-left text-sm transition-colors",
-										index === highlightedIndex
-											? "bg-accent/12 text-accent"
-											: "text-text hover:bg-accent/8",
+										index === highlightedIndex ? "bg-accent/12 text-accent" : "text-text hover:bg-accent/8",
 									)}
 								>
 									<span className="text-accent">@{project.alias}</span>
