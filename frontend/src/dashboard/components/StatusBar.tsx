@@ -1,4 +1,6 @@
+import { ChevronsUpDown } from "lucide-react";
 import type React from "react";
+import { useProjectSwitcherStore } from "../../project-switcher";
 import { Button } from "../../shared/ui/Button";
 import { StatusBarItem } from "../../shared/ui/StatusBarItem";
 
@@ -21,6 +23,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 	onExportSelectedMarkdown,
 	onExportSelectedPDF,
 }) => {
+	const openProjectSwitcher = useProjectSwitcherStore((s) => s.open);
 	const hasSelection = selectedCount > 0;
 	const selectionLabel =
 		selectedCount === 1 ? "1 document selected" : `${selectedCount} documents selected`;
@@ -76,12 +79,16 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 					)}
 				</div>
 			)}
-			<StatusBarItem
-				label="Project"
-				value={currentContext}
-				title={`Project: ${currentContext}`}
-				className="ml-auto"
-			/>
+			<button
+				type="button"
+				onClick={openProjectSwitcher}
+				aria-label="Switch project"
+				title="Switch project (Ctrl+Shift+K)"
+				className="ml-auto inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-colors hover:bg-accent/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+			>
+				<StatusBarItem label="Project" value={currentContext} title={`Project: ${currentContext}`} />
+				<ChevronsUpDown className="size-3 text-text-dim/70" aria-hidden="true" />
+			</button>
 		</div>
 	);
 };

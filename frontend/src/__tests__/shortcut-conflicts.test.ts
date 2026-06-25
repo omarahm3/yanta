@@ -104,6 +104,14 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 		allowInInput: true,
 	});
 
+	shortcuts.push({
+		key: "mod+shift+K",
+		description: "Switch project",
+		context: "global",
+		source: "App.tsx - GlobalCommandHotkey",
+		allowInInput: false,
+	});
+
 	// ============================================
 	// LAYOUT SHORTCUTS (Layout.tsx)
 	// ============================================

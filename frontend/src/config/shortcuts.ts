@@ -14,6 +14,7 @@ export const GLOBAL_SHORTCUTS = {
 	commandPalette: { key: "mod+K", description: "Open command palette" },
 	today: { key: "mod+T", description: "Jump to today's journal" },
 	switchProject: { key: "ctrl+Tab", description: "Switch to last project" },
+	projectSwitcher: { key: "mod+shift+K", description: "Switch project" },
 } as const satisfies Record<string, ShortcutDef>;
 
 /** Sidebar (Layout.tsx) */

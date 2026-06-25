@@ -4,6 +4,7 @@ import { GlobalCommandPalette, useCommandPaletteStore } from "../command-palette
 import { useHelp } from "../help";
 import { useHotkey } from "../hotkeys";
 import { useProjectContext } from "../project";
+import { ProjectSwitcher, useProjectSwitcherStore } from "../project-switcher";
 import { useAppGlobalEffects } from "./hooks";
 import { useLeaderKeys } from "./hooks/useLeaderKeys";
 import { Router } from "./Router";
@@ -43,6 +44,7 @@ const GlobalCommandHotkey = () => {
 	});
 
 	const { switchToLastProject, previousProject } = useProjectContext();
+	const openProjectSwitcher = useProjectSwitcherStore((s) => s.open);
 
 	useHotkey({
 		...GLOBAL_SHORTCUTS.switchProject,
@@ -55,8 +57,18 @@ const GlobalCommandHotkey = () => {
 		allowInInput: true,
 	});
 
+	useHotkey({
+		...GLOBAL_SHORTCUTS.projectSwitcher,
+		handler: (e) => {
+			e.preventDefault();
+			openProjectSwitcher();
+		},
+		allowInInput: false,
+	});
+
 	return (
 		<>
+			<ProjectSwitcher />
 			<GlobalCommandPalette
 				onClose={handleCloseCommandPalette}
 				onNavigate={nav.onNavigate}
