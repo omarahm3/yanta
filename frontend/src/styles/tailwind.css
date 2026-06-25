@@ -7,63 +7,67 @@
 @source "../../node_modules/@blocknote/shadcn";
 @custom-variant dark (&:is(.dark *));
 
-/* ShadCN CSS variables mapped to GitHub-dark colors (default) */
+/* ============================================================================
+   PAPER & INK — light-first, true-neutral surfaces, one teal signal.
+   Light is the DEFAULT (:root). Dark is the override below. No glassmorphism:
+   the glass tokens resolve to opaque surface/border so legacy classes stay flat.
+   ============================================================================ */
 :root,
-:root[data-theme="dark"] {
+:root[data-theme="light"] {
 	--radius: 0.625rem;
-	--background: #0d1117;
-	--foreground: #c9d1d9;
-	--card: #161b22;
-	--card-foreground: #c9d1d9;
-	--popover: #161b22;
-	--popover-foreground: #c9d1d9;
-	--primary: #58a6ff;
-	--primary-foreground: #0d1117;
-	--secondary: #161b22;
-	--secondary-foreground: #c9d1d9;
-	--muted: #161b22;
-	--muted-foreground: #8b949e;
-	--accent: #161b22;
-	--accent-foreground: #c9d1d9;
-	--destructive: #f85149;
-	--destructive-foreground: #f0f6fc;
-	--border: #30363d;
-	--input: rgba(48, 54, 61, 0.5);
-	--ring: #8b949e;
-	--chart-1: #58a6ff;
-	--chart-2: #3fb950;
-	--chart-3: #d29922;
-	--chart-4: #a371f7;
-	--chart-5: #fb8500;
-	--sidebar: #161b22;
-	--sidebar-foreground: #c9d1d9;
-	--sidebar-primary: #58a6ff;
-	--sidebar-primary-foreground: #0d1117;
-	--sidebar-accent: #161b22;
-	--sidebar-accent-foreground: #c9d1d9;
-	--sidebar-border: #30363d;
-	--sidebar-ring: #8b949e;
+	--background: #ffffff;
+	--foreground: #1a1c1f;
+	--card: #f4f6f8;
+	--card-foreground: #1a1c1f;
+	--popover: #ffffff;
+	--popover-foreground: #1a1c1f;
+	--primary: #0e7c70;
+	--primary-foreground: #ffffff;
+	--secondary: #f4f6f8;
+	--secondary-foreground: #1a1c1f;
+	--muted: #f4f6f8;
+	--muted-foreground: #5b616b;
+	--accent: #eef0f3;
+	--accent-foreground: #1a1c1f;
+	--destructive: #c23934;
+	--destructive-foreground: #ffffff;
+	--border: #e2e5ea;
+	--input: #e2e5ea;
+	--ring: #0e7c70;
+	--chart-1: #0e7c70;
+	--chart-2: #197a44;
+	--chart-3: #8a6400;
+	--chart-4: #6a4fd0;
+	--chart-5: #b5500f;
+	--sidebar: #f4f6f8;
+	--sidebar-foreground: #1a1c1f;
+	--sidebar-primary: #0e7c70;
+	--sidebar-primary-foreground: #ffffff;
+	--sidebar-accent: #eef0f3;
+	--sidebar-accent-foreground: #1a1c1f;
+	--sidebar-border: #e2e5ea;
+	--sidebar-ring: #0e7c70;
 
-	/* GitHub-dark palette (referenced by @theme below + reduced-effects) */
-	--yanta-bg: #0d1117;
-	--yanta-bg-dark: #0a0e13;
-	--yanta-surface: #161b22;
-	--yanta-border: #30363d;
-	--yanta-text: #c9d1d9;
-	--yanta-text-dim: #8b949e;
-	--yanta-text-bright: #f0f6fc;
-	--yanta-accent: #58a6ff;
-	--yanta-green: #3fb950;
-	--yanta-yellow: #d29922;
-	--yanta-purple: #a371f7;
-	--yanta-orange: #fb8500;
-	--yanta-red: #f85149;
-	--yanta-code-text: #ff7b72; /* inline-code text (GitHub-dark red) */
-	--yanta-on-accent: #ffffff; /* readable foreground on accent fill (both themes) */
-	--yanta-glass-bg: rgba(22, 27, 34, 0.7);
-	--yanta-glass-border: rgba(48, 54, 61, 0.5);
-	--yanta-glass-bg-solid: rgba(22, 27, 34, 0.97);
-	--yanta-glass-border-solid: rgba(48, 54, 61, 0.8);
+	/* Paper & Ink palette (light) — referenced by @theme + components */
+	--yanta-bg: #ffffff; /* paper / content canvas — the hero */
+	--yanta-bg-dark: #eef0f3; /* deepest backdrop, scrollbar track */
+	--yanta-surface: #f4f6f8; /* chrome: sidebar, header, cards, inputs */
+	--yanta-border: #e2e5ea; /* hairline */
+	--yanta-text: #1a1c1f; /* ink — 16:1 on paper */
+	--yanta-text-dim: #5b616b; /* secondary — 5.4:1 on paper */
+	--yanta-text-bright: #0c0e10;
+	--yanta-accent: #0e7c70; /* deep teal signal — 4.8:1 on paper, white text OK */
+	--yanta-green: #197a44;
+	--yanta-yellow: #8a6400;
+	--yanta-purple: #6a4fd0;
+	--yanta-orange: #b5500f;
+	--yanta-red: #c23934;
+	--yanta-code-text: #9a5a2c; /* inline-code text (warm, distinct from teal) */
+	--yanta-on-accent: #ffffff; /* readable foreground on the teal fill */
+	--yanta-glass-bg: #f4f6f8; /* glass → opaque surface (flat) */
+	--yanta-glass-border: #e2e5ea;
+	--yanta-glass-bg-solid: #f4f6f8;
+	--yanta-glass-border-solid: #e2e5ea;
 }
 
 /* Motion tokens: purposeful easing and duration */
@@ -71,10 +75,11 @@
 	--ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 	--ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
 	--ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-	--duration-instant: 100ms;
-	--duration-fast: 200ms;
-	--duration-normal: 300ms;
-	--duration-entrance: 400ms;
+	/* Snappy, perceived-instant interactions. */
+	--duration-instant: 90ms;
+	--duration-fast: 150ms;
+	--duration-normal: 220ms;
+	--duration-entrance: 320ms;
 }
 
 @keyframes stagger-fade-in {
@@ -88,61 +93,61 @@
 	}
 }
 
-/* GitHub-light palette */
-:root[data-theme="light"] {
+/* Paper & Ink — dark companion. Neutral graphite "page", bright mint signal. */
+:root[data-theme="dark"] {
 	--radius: 0.625rem;
-	--background: #ffffff;
-	--foreground: #1f2328;
-	--card: #f6f8fa;
-	--card-foreground: #1f2328;
-	--popover: #ffffff;
-	--popover-foreground: #1f2328;
-	--primary: #0969da;
-	--primary-foreground: #ffffff;
-	--secondary: #f6f8fa;
-	--secondary-foreground: #1f2328;
-	--muted: #f6f8fa;
-	--muted-foreground: #656d76;
-	--accent: #f6f8fa;
-	--accent-foreground: #1f2328;
-	--destructive: #cf222e;
-	--destructive-foreground: #ffffff;
-	--border: #d0d7de;
-	--input: rgba(208, 215, 222, 0.5);
-	--ring: #656d76;
-	--chart-1: #0969da;
-	--chart-2: #1a7f37;
-	--chart-3: #9a6700;
-	--chart-4: #8250df;
-	--chart-5: #bc4c00;
-	--sidebar: #f6f8fa;
-	--sidebar-foreground: #1f2328;
-	--sidebar-primary: #0969da;
-	--sidebar-primary-foreground: #ffffff;
-	--sidebar-accent: #f6f8fa;
-	--sidebar-accent-foreground: #1f2328;
-	--sidebar-border: #d0d7de;
-	--sidebar-ring: #656d76;
+	--background: #1a1c1f;
+	--foreground: #e6e8eb;
+	--card: #232629;
+	--card-foreground: #e6e8eb;
+	--popover: #232629;
+	--popover-foreground: #e6e8eb;
+	--primary: #2dd4bf;
+	--primary-foreground: #08221e;
+	--secondary: #232629;
+	--secondary-foreground: #e6e8eb;
+	--muted: #232629;
+	--muted-foreground: #9ca3ad;
+	--accent: #2a2e32;
+	--accent-foreground: #e6e8eb;
+	--destructive: #f87171;
+	--destructive-foreground: #1a1c1f;
+	--border: #33373c;
+	--input: #33373c;
+	--ring: #2dd4bf;
+	--chart-1: #2dd4bf;
+	--chart-2: #4ade80;
+	--chart-3: #e3b341;
+	--chart-4: #a78bfa;
+	--chart-5: #fb923c;
+	--sidebar: #1f2225;
+	--sidebar-foreground: #e6e8eb;
+	--sidebar-primary: #2dd4bf;
+	--sidebar-primary-foreground: #08221e;
+	--sidebar-accent: #2a2e32;
+	--sidebar-accent-foreground: #e6e8eb;
+	--sidebar-border: #33373c;
+	--sidebar-ring: #2dd4bf;
 
-	--yanta-bg: #ffffff;
-	--yanta-bg-dark: #f6f8fa;
-	--yanta-surface: #f6f8fa;
-	--yanta-border: #d0d7de;
-	--yanta-text: #1f2328;
-	--yanta-text-dim: #656d76;
-	--yanta-text-bright: #0a0c0d;
-	--yanta-accent: #0969da;
-	--yanta-green: #1a7f37;
-	--yanta-yellow: #9a6700;
-	--yanta-purple: #8250df;
-	--yanta-orange: #bc4c00;
-	--yanta-red: #cf222e;
-	--yanta-code-text: #cf222e; /* inline-code text (GitHub-light red) */
-	--yanta-on-accent: #ffffff; /* readable foreground on accent fill (both themes) */
-	--yanta-glass-bg: rgba(246, 248, 250, 0.7);
-	--yanta-glass-border: rgba(208, 215, 222, 0.5);
-	--yanta-glass-bg-solid: rgba(246, 248, 250, 0.97);
-	--yanta-glass-border-solid: rgba(208, 215, 222, 0.8);
+	--yanta-bg: #1a1c1f; /* dark page / content canvas */
+	--yanta-bg-dark: #141619; /* deepest backdrop */
+	--yanta-surface: #232629; /* chrome surfaces, lifted off the page */
+	--yanta-border: #33373c;
+	--yanta-text: #e6e8eb; /* 13:1 on the page */
+	--yanta-text-dim: #9ca3ad; /* 6:1 on the page */
+	--yanta-text-bright: #f5f7f9;
+	--yanta-accent: #2dd4bf; /* bright mint — pops on graphite, dark text on fill */
+	--yanta-green: #4ade80;
+	--yanta-yellow: #e3b341;
+	--yanta-purple: #a78bfa;
+	--yanta-orange: #fb923c;
+	--yanta-red: #f87171;
+	--yanta-code-text: #e0a458; /* inline-code text (warm, distinct from mint) */
+	--yanta-on-accent: #08221e; /* dark ink on the mint fill */
+	--yanta-glass-bg: #232629; /* glass → opaque surface (flat) */
+	--yanta-glass-border: #33373c;
+	--yanta-glass-bg-solid: #232629;
+	--yanta-glass-border-solid: #33373c;
 }
 
 /* Extending Tailwind theme with ShadCN utility classes */
@@ -281,7 +286,10 @@
 		height: 100%;
 		margin: 0;
 		padding: 0;
-		font-family: "Outfit", sans-serif;
+		font-family: "Geist Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+		font-feature-settings: "cv11", "ss01";
+		text-rendering: optimizeLegibility;
+		-webkit-font-smoothing: antialiased;
 		@apply bg-bg-dark text-text;
 	}
 
@@ -330,20 +338,21 @@
 	}
 }
 
-/* Mode-specific accent colors for visual differentiation */
+/* Mode markers: teal is the one brand accent. Journal carries a quiet purple
+   marker only — not a full theme swap. Muted tints are theme-aware via color-mix. */
 [data-mode="documents"] {
 	--mode-accent: var(--color-accent);
-	--mode-accent-muted: rgba(88, 166, 255, 0.15);
+	--mode-accent-muted: color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
 
 [data-mode="journal"] {
 	--mode-accent: var(--color-purple);
-	--mode-accent-muted: rgba(163, 113, 247, 0.15);
+	--mode-accent-muted: color-mix(in srgb, var(--color-purple) 12%, transparent);
 }
 
 [data-mode="neutral"] {
 	--mode-accent: var(--color-accent);
-	--mode-accent-muted: rgba(88, 166, 255, 0.15);
+	--mode-accent-muted: color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
 
 /* Accessibility baseline: a visible focus ring on every keyboard-focused
@@ -368,6 +377,100 @@
 [data-mode="neutral"] :focus-visible {
 	outline: 2px solid var(--color-accent);
 	outline-offset: 2px;
+}
+
+/* Text inputs & textareas carry their own focus affordance (accent border/ring
+   plus the text caret), so the global accent outline is redundant and reads
+   heavy on them. Drop it for text fields; buttons, the rail, list rows and
+   selects keep the full a11y focus ring, where it's the only focus cue. */
+input:focus-visible,
+textarea:focus-visible,
+[data-mode] input:focus-visible,
+[data-mode] textarea:focus-visible {
+	outline: none;
+}
+
+/* The command-palette search input is auto-focused the whole time the palette
+   is open. The dialog already owns focus — signal input focus with a calm
+   accent underline on the input wrapper instead of any ring. */
+[data-slot="command-input-wrapper"]:focus-within {
+	border-color: var(--color-accent);
+}
+
+/* ── Quick Capture (command composer) ─────────────────────────────────── */
+/* Entrance: a quick lift + settle so the frameless window feels deliberate. */
+@keyframes qc-enter {
+	from {
+		opacity: 0;
+		transform: translateY(10px) scale(0.985);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+.qc-enter {
+	animation: qc-enter var(--duration-base, 180ms)
+		var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+@media (prefers-reduced-motion: reduce) {
+	.qc-enter {
+		animation: none;
+	}
+}
+
+/* Inline @project / #tag tokens rendered in the composer's highlight layer.
+   Background + ring only (no padding) so the mirror stays glyph-aligned with
+   the transparent textarea and the caret never drifts. */
+.qc-token {
+	border-radius: 4px;
+	font-weight: 500;
+}
+.qc-token-project {
+	color: var(--color-accent);
+	background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 32%, transparent);
+}
+.qc-token-tag {
+	color: var(--color-green);
+	background: color-mix(in srgb, var(--color-green) 16%, transparent);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-green) 32%, transparent);
+}
+
+/* ============================================================================
+   FLAT BY DEFAULT — Paper & Ink has no decorative glass. Neutralize every
+   legacy backdrop-blur / translucent-glass class to opaque surfaces so the
+   whole app reads flat and renders fast, without touching each component.
+   Real elevation comes from the --elevation-* tokens (menus/modals only).
+   ============================================================================ */
+[class*="backdrop-blur"] {
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+}
+[class*="bg-glass-bg"] {
+	background-color: var(--color-surface) !important;
+}
+[class*="border-glass-border"] {
+	border-color: var(--color-border) !important;
+}
+
+/* Semantic z-index scale (ordered, never arbitrary 999/9999) + elevation. */
+:root {
+	--z-dropdown: 30;
+	--z-sticky: 40;
+	--z-modal-backdrop: 50;
+	--z-modal: 60;
+	--z-toast: 70;
+	--z-tooltip: 80;
+
+	--elevation-1: 0 1px 2px rgba(16, 24, 32, 0.06), 0 1px 1px rgba(16, 24, 32, 0.04);
+	--elevation-2: 0 6px 16px rgba(16, 24, 32, 0.1), 0 2px 6px rgba(16, 24, 32, 0.06);
+	--elevation-3: 0 16px 40px rgba(16, 24, 32, 0.16), 0 4px 12px rgba(16, 24, 32, 0.08);
+}
+:root[data-theme="dark"] {
+	--elevation-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+	--elevation-2: 0 6px 18px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+	--elevation-3: 0 18px 44px rgba(0, 0, 0, 0.55), 0 6px 14px rgba(0, 0, 0, 0.4);
 }
 
 /* Reduced effects: disable blur + opaque glass for low-end hardware / Linux compositing */
@@ -406,35 +509,40 @@
 	}
 
 	.btn-primary {
-		@apply bg-accent text-bg shadow-lg hover:bg-accent/90 hover:shadow-accent/20;
+		@apply bg-accent text-bg font-medium hover:bg-accent/90 active:bg-accent/80;
 	}
 
 	.btn-secondary {
-		@apply border bg-glass-bg backdrop-blur-sm text-text border-glass-border hover:bg-surface hover:text-text-bright;
+		@apply border border-border bg-surface text-text hover:bg-bg-dark hover:text-text-bright active:bg-bg-dark;
 	}
 
-	/* Inputs: Clean, minimal, glass-like */
+	/* Inputs: flat, opaque, teal focus ring */
 	.input {
-		@apply font-mono text-sm bg-surface/50 border border-border rounded-md px-3 py-2 text-text-bright transition-all duration-[var(--duration-fast)] ease-[var(--ease-out-quart)] focus:bg-surface focus:border-accent focus:ring-1 focus:ring-accent/20 placeholder:text-text-dim/50;
+		@apply text-sm bg-surface border border-border rounded-md px-3 py-2 text-text-bright transition-[background-color,border-color,box-shadow] duration-[var(--duration-fast)] ease-[var(--ease-out-quart)] focus:bg-bg focus:border-accent focus:ring-2 focus:ring-accent/30 placeholder:text-text-dim;
 	}
 
-	/* Cards: Glass effect, subtle border */
+	/* Cards: flat surface, hairline border — no glass, no ghost shadow */
 	.card {
-		@apply border rounded-xl bg-glass-bg backdrop-blur-md border-glass-border shadow-sm;
+		@apply border border-border rounded-xl bg-surface;
 	}
 
-	/* Sidebar Items: Refined interactions */
+	/* Sidebar items: teal-wash interaction language. No side-stripe. */
 	.sidebar-item {
-		@apply px-3 py-2 rounded-md cursor-pointer transition-all duration-[var(--duration-fast)] ease-[var(--ease-out-quart)] flex items-center justify-between text-text-dim hover:text-text hover:bg-surface my-0.5;
+		@apply px-3 py-2 rounded-md cursor-pointer flex items-center justify-between text-text-dim my-0.5;
+		transition:
+			background-color var(--duration-fast) var(--ease-out-quart),
+			color var(--duration-fast) var(--ease-out-quart);
+	}
+
+	.sidebar-item:hover {
+		color: var(--color-text);
+		background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
 	}
 
 	.sidebar-item.active {
-		@apply bg-surface text-accent font-medium shadow-sm relative overflow-hidden;
-	}
-
-	.sidebar-item.active::before {
-		content: "";
-		@apply absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-accent;
+		color: var(--color-accent);
+		background-color: color-mix(in srgb, var(--color-accent) 14%, transparent);
+		font-weight: 500;
 	}
 
 	/* Entry Styles */

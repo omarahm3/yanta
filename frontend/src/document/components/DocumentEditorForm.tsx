@@ -1,6 +1,7 @@
 import type { Block, BlockNoteEditor } from "@blocknote/core";
-import React, { lazy, Suspense, useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { GranularErrorBoundary } from "@/app";
+import { RichEditor } from "../../editor/RichEditor";
 import {
 	disableExternalPluginsForEditorRecovery,
 	getActiveExternalPluginIds,
@@ -9,12 +10,6 @@ import {
 import { useNotification } from "../../shared/hooks";
 import type { BlockNoteBlock } from "../../shared/types/Document";
 import { Button } from "../../shared/ui";
-
-const RichEditor = lazy(() =>
-	import("../../editor/RichEditor").then((m) => ({ default: m.RichEditor })),
-);
-
-const EditorLoader = () => <div className="h-full w-full" />;
 
 interface DocumentEditorFormProps {
 	blocks: BlockNoteBlock[];
@@ -118,20 +113,18 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 					onRetry={() => setEditorKey((k) => k + 1)}
 					onError={handleEditorBoundaryError}
 				>
-					<Suspense fallback={<EditorLoader />}>
-						<RichEditor
-							initialContent={blocksJson}
-							docKey={isEditMode ? `edit:${blocksJson ? "loaded" : "pending"}` : "new"}
-							onChange={handleBlocksChange}
-							onTitleChange={handleTitleChange}
-							onReady={onEditorReady}
-							editable={!isLoading && !isReadOnly}
-							isLoading={isLoading && isEditMode}
-							autoFocus={autoFocus}
-							disablePluginContributions={editorRecoveryMode}
-							className="h-full"
-						/>
-					</Suspense>
+					<RichEditor
+						initialContent={blocksJson}
+						docKey={isEditMode ? `edit:${blocksJson ? "loaded" : "pending"}` : "new"}
+						onChange={handleBlocksChange}
+						onTitleChange={handleTitleChange}
+						onReady={onEditorReady}
+						editable={!isLoading && !isReadOnly}
+						isLoading={isLoading && isEditMode}
+						autoFocus={autoFocus}
+						disablePluginContributions={editorRecoveryMode}
+						className="h-full"
+					/>
 				</GranularErrorBoundary>
 			</div>
 			{tags.length > 0 && (

@@ -80,7 +80,11 @@ export const BackupSection = React.forwardRef<HTMLDivElement, BackupSectionProps
 
 		return (
 			<div ref={ref}>
-				<SettingsSection title="Backup" subtitle="Automatic backups before Git sync operations">
+				<SettingsSection
+					id="backup"
+					title="Backup"
+					subtitle="Automatic backups before Git sync operations"
+				>
 					<div className="space-y-4">
 						<div className="flex items-center justify-between pt-4">
 							<div>

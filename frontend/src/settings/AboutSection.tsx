@@ -29,7 +29,7 @@ export const AboutSection = React.forwardRef<HTMLDivElement, AboutSectionProps>(
 
 		return (
 			<div ref={ref}>
-				<SettingsSection title="About Yanta" subtitle="Version and system information">
+				<SettingsSection id="about" title="About Yanta" subtitle="Version and system information">
 					{systemInfo ? (
 						<div className="grid grid-cols-2 gap-4">
 							<div>
@@ -38,7 +38,7 @@ export const AboutSection = React.forwardRef<HTMLDivElement, AboutSectionProps>(
 							</div>
 							<div>
 								<div className="mb-1 text-xs tracking-wider uppercase text-text-dim">Build Commit</div>
-								<div className="font-mono text-sm text-cyan">{systemInfo.app.buildCommit || "N/A"}</div>
+								<div className="font-mono text-sm text-accent">{systemInfo.app.buildCommit || "N/A"}</div>
 							</div>
 							<div>
 								<div className="mb-1 text-xs tracking-wider uppercase text-text-dim">Build Date</div>
@@ -82,7 +82,7 @@ export const AboutSection = React.forwardRef<HTMLDivElement, AboutSectionProps>(
 						<div className="flex items-center justify-between">
 							<div>
 								<div className="text-sm text-text">Reset Onboarding</div>
-								<div className="text-xs text-text-dim">Show the welcome overlay again on next launch</div>
+								<div className="text-xs text-text-dim">Show the welcome screen again on next launch</div>
 							</div>
 							<Button variant="secondary" size="sm" onClick={() => setShowResetOnboardingConfirm(true)}>
 								Reset Onboarding
@@ -111,7 +111,7 @@ export const AboutSection = React.forwardRef<HTMLDivElement, AboutSectionProps>(
 					onCancel={() => setShowResetOnboardingConfirm(false)}
 					onConfirm={handleResetOnboarding}
 					title="Reset Onboarding?"
-					message="This will reset your onboarding status. The welcome overlay will appear the next time you launch the app."
+					message="This will reset your onboarding status. The welcome screen will appear the next time you launch the app."
 					confirmText="Reset"
 					cancelText="Cancel"
 				/>

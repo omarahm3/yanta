@@ -5,6 +5,7 @@ import { useHelp } from "../help";
 import { useHotkey } from "../hotkeys";
 import { useProjectContext } from "../project";
 import { useAppGlobalEffects } from "./hooks";
+import { useLeaderKeys } from "./hooks/useLeaderKeys";
 import { Router } from "./Router";
 import { useAppNavigation } from "./useAppNavigation";
 
@@ -21,6 +22,9 @@ const GlobalCommandHotkey = () => {
 	const handleCloseCommandPalette = useCallback(() => {
 		closeCommandPalette();
 	}, [closeCommandPalette]);
+
+	// Vim-style leader navigation: g d/j/s/p/, → documents/journal/search/projects/settings.
+	useLeaderKeys({ onNavigate: nav.onNavigate });
 
 	useHotkey({
 		...GLOBAL_SHORTCUTS.commandPalette,

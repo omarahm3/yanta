@@ -118,7 +118,7 @@ export const ProjectPicker: React.FC<ProjectPickerProps> = ({
 			<button
 				type="button"
 				onClick={() => setIsOpen(!isOpen)}
-				className="w-full flex items-center justify-between px-3 py-2 bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded-lg text-text text-sm hover:border-accent transition-colors"
+				className="w-full flex items-center justify-between px-3 py-2 bg-bg-dark border border-border rounded-lg text-text text-sm hover:border-accent transition-colors"
 			>
 				<span className="text-accent">@{displayAlias}</span>
 				<span className="text-text-dim">▾</span>
@@ -126,9 +126,9 @@ export const ProjectPicker: React.FC<ProjectPickerProps> = ({
 
 			{/* Dropdown */}
 			{isOpen && (
-				<div className="absolute top-full left-0 right-0 mt-1 bg-glass-bg/90 backdrop-blur-xl border border-glass-border rounded-lg shadow-lg z-50 overflow-hidden">
+				<div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-lg shadow-[var(--elevation-3)] z-50 overflow-hidden">
 					{/* Search input */}
-					<div className="p-2 border-b border-glass-border">
+					<div className="p-2 border-b border-border">
 						<input
 							ref={inputRef}
 							type="text"
@@ -136,7 +136,7 @@ export const ProjectPicker: React.FC<ProjectPickerProps> = ({
 							onChange={(e) => setSearchValue(e.target.value)}
 							onKeyDown={handleKeyDown}
 							placeholder="Search projects..."
-							className="w-full px-2 py-1 bg-glass-bg/20 backdrop-blur-sm border border-glass-border rounded text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent"
+							className="w-full px-2 py-1 bg-bg-dark border border-border rounded text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent"
 						/>
 					</div>
 
@@ -155,9 +155,7 @@ export const ProjectPicker: React.FC<ProjectPickerProps> = ({
 									onClick={() => handleSelect(project.alias)}
 									className={cn(
 										"w-full px-3 py-2 text-left text-sm transition-colors",
-										index === highlightedIndex
-											? "bg-accent/10 text-accent"
-											: "text-text hover:bg-glass-bg/30",
+										index === highlightedIndex ? "bg-accent/12 text-accent" : "text-text hover:bg-accent/8",
 									)}
 								>
 									<span className="text-accent">@{project.alias}</span>

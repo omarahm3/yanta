@@ -1,6 +1,7 @@
 import type React from "react";
 import type { ReactNode } from "react";
 import { cn } from "../utils/cn";
+import { Kbd } from "./Kbd";
 
 export interface BreadcrumbItem {
 	label: string;
@@ -43,7 +44,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 			role="region"
 			aria-label="Page header"
 			className={cn(
-				"bg-glass-bg/40 backdrop-blur-md border-b border-glass-border px-5 py-3 flex items-center justify-between",
+				"bg-surface border-b border-border px-5 py-3 flex items-center justify-between",
 				className,
 			)}
 			style={{ "--wails-draggable": "drag" } as React.CSSProperties}
@@ -95,9 +96,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 			<div className="flex items-center gap-4 text-xs text-text-dim">
 				{shortcuts.map((shortcut) => (
 					<span key={shortcut.key} className="flex items-center gap-1">
-						<kbd className="bg-glass-bg/30 backdrop-blur-sm px-1.5 py-0.5 rounded text-xs border border-glass-border">
-							{shortcut.key}
-						</kbd>
+						<Kbd>{shortcut.key}</Kbd>
 						{shortcut.label}
 					</span>
 				))}

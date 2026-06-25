@@ -181,9 +181,7 @@ export const MoveDocumentDialog: React.FC<MoveDocumentDialogProps> = ({
 									disabled={isMoving}
 									className={cn(
 										"px-3 py-2 text-left rounded transition-colors",
-										index === highlightedIndex
-											? "bg-accent/10 text-text"
-											: "text-text-dim hover:bg-glass-bg/20",
+										index === highlightedIndex ? "bg-accent/10 text-text" : "text-text-dim hover:bg-surface",
 									)}
 								>
 									<div className="font-medium text-sm">{project.name}</div>

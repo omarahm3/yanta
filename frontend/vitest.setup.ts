@@ -64,6 +64,22 @@ if (!("ResizeObserver" in window)) {
   window.ResizeObserver = MockResizeObserver;
 }
 
+class MockIntersectionObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords() {
+    return [];
+  }
+}
+
+if (!("IntersectionObserver" in window)) {
+  // @ts-ignore
+  window.IntersectionObserver = MockIntersectionObserver;
+  // @ts-ignore
+  globalThis.IntersectionObserver = MockIntersectionObserver;
+}
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({

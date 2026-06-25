@@ -53,7 +53,7 @@ export const FooterHintBar: React.FC<FooterHintBarProps> = ({ hints, className }
 			role="region"
 			aria-label="Keyboard shortcut hints"
 			className={cn(
-				"min-h-8 py-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 px-3 text-xs bg-glass-bg/60 backdrop-blur-md border-t border-glass-border text-text-dim z-40",
+				"min-h-8 py-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 px-3 text-xs bg-surface border-t border-border text-text-dim z-40",
 				className,
 			)}
 		>
@@ -66,7 +66,7 @@ export const FooterHintBar: React.FC<FooterHintBarProps> = ({ hints, className }
 						className={cn("items-center gap-1", priorityClasses(priority))}
 						data-priority={priority}
 					>
-						<kbd className="font-mono text-[10px] bg-glass-bg/30 backdrop-blur-sm px-1 py-0.5 rounded mr-1 text-text-dim border border-glass-border">
+						<kbd className="font-mono text-[10px] bg-bg-dark px-1 py-0.5 rounded mr-1 text-text-dim border border-border">
 							{hint.key}
 						</kbd>
 						<span>{hint.label}</span>

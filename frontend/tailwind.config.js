@@ -4,8 +4,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Outfit"', "sans-serif"],
-        mono: ['"JetBrains Mono"', "monospace"],
+        sans: ['"Geist Variable"', "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+        mono: ['"JetBrains Mono"', "ui-monospace", "monospace"],
       },
       animation: {
         "fade-in": "fade-in 0.3s ease-out",

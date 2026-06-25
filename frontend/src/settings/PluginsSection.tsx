@@ -54,6 +54,7 @@ export const PluginsSection = React.forwardRef<HTMLDivElement, PluginsSectionPro
 		return (
 			<div ref={ref}>
 				<SettingsSection
+					id="plugins"
 					title="Plugins"
 					subtitle="Manage installed plugins and runtime state"
 					actions={
@@ -74,7 +75,7 @@ export const PluginsSection = React.forwardRef<HTMLDivElement, PluginsSectionPro
 							</div>
 						)}
 
-						<div className="p-3 border rounded border-border bg-bg-secondary space-y-3">
+						<div className="space-y-3 rounded-lg bg-bg-dark p-3">
 							<div className="flex items-center justify-between gap-3">
 								<div>
 									<div className="text-sm font-medium text-text">Community Plugins</div>
@@ -98,7 +99,7 @@ export const PluginsSection = React.forwardRef<HTMLDivElement, PluginsSectionPro
 						)}
 
 						{!isLoading && !errorMessage && pluginList.length === 0 && (
-							<div className="p-3 border rounded border-border bg-bg-secondary text-sm text-text-dim">
+							<div className="rounded-lg bg-bg-dark p-3 text-sm text-text-dim">
 								No plugins installed yet.
 							</div>
 						)}
@@ -116,7 +117,7 @@ export const PluginsSection = React.forwardRef<HTMLDivElement, PluginsSectionPro
 							return (
 								<div
 									key={`${plugin.path}:${pluginId}`}
-									className="p-4 border rounded border-border bg-bg-secondary space-y-3"
+									className="space-y-3 rounded-lg border border-border p-4"
 								>
 									<div className="flex items-start justify-between gap-4">
 										<div>

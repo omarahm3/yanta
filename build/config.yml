@@ -20,7 +20,7 @@ dev_mode:
   root_path: .
   log_level: debug
   debounce: 1000
-  frontend_dev_server_url: "http://localhost:34115"
+  frontend_dev_server_url: "http://127.0.0.1:34115"
   ignore:
     dir:
       - .git
@@ -44,7 +44,7 @@ dev_mode:
   git_ignore: true
   # Execute types: once, blocking, background, primary
   executes:
-    - cmd: task build
+    - cmd: powershell -NoProfile -ExecutionPolicy Bypass -File build/scripts/dev-build.ps1
       type: blocking
     - cmd: powershell -NoProfile -ExecutionPolicy Bypass -File build/scripts/wails-task-wrapper.ps1 -TaskName build:dev:frontend
       type: background

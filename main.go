@@ -142,13 +142,13 @@ func run() {
 	quickcapture.SetApp(wailsApp)
 
 	initTheme := config.GetTheme()
-	bgColour := application.NewRGBA(27, 38, 54, 255)
+	bgColour := application.NewRGBA(35, 38, 41, 255)
 	macAppearance := application.NSAppearanceNameDarkAqua
 	customTheme := getWindowsCustomTheme()
 	winTheme := application.Dark
 
 	if initTheme == config.ThemeLight {
-		bgColour = application.NewRGBA(245, 245, 245, 255)
+		bgColour = application.NewRGBA(244, 246, 248, 255)
 		macAppearance = application.NSAppearanceNameAqua
 		customTheme = getLightWindowsTheme()
 		winTheme = application.Light
@@ -253,25 +253,27 @@ func writeStartupError(message string) {
 
 func getWindowsCustomTheme() application.ThemeSettings {
 	return application.ThemeSettings{
+		// Paper & Ink — dark companion: graphite surface #232629, ink #E6E8EB.
 		DarkModeActive: &application.WindowTheme{
-			TitleBarColour:  application.NewRGBPtr(27, 38, 54),
-			TitleTextColour: application.NewRGBPtr(220, 220, 220),
-			BorderColour:    application.NewRGBPtr(40, 50, 65),
+			TitleBarColour:  application.NewRGBPtr(35, 38, 41),
+			TitleTextColour: application.NewRGBPtr(230, 232, 235),
+			BorderColour:    application.NewRGBPtr(51, 55, 60),
 		},
 		DarkModeInactive: &application.WindowTheme{
-			TitleBarColour:  application.NewRGBPtr(20, 29, 42),
-			TitleTextColour: application.NewRGBPtr(140, 140, 140),
-			BorderColour:    application.NewRGBPtr(30, 40, 50),
+			TitleBarColour:  application.NewRGBPtr(31, 34, 37),
+			TitleTextColour: application.NewRGBPtr(156, 163, 173),
+			BorderColour:    application.NewRGBPtr(42, 46, 50),
 		},
+		// Paper & Ink — light lead: chrome #F4F6F8, ink #1A1C1F, hairline #E2E5EA.
 		LightModeActive: &application.WindowTheme{
-			TitleBarColour:  application.NewRGBPtr(245, 245, 245),
-			TitleTextColour: application.NewRGBPtr(30, 30, 30),
-			BorderColour:    application.NewRGBPtr(210, 210, 210),
+			TitleBarColour:  application.NewRGBPtr(244, 246, 248),
+			TitleTextColour: application.NewRGBPtr(26, 28, 31),
+			BorderColour:    application.NewRGBPtr(226, 229, 234),
 		},
 		LightModeInactive: &application.WindowTheme{
-			TitleBarColour:  application.NewRGBPtr(235, 235, 235),
-			TitleTextColour: application.NewRGBPtr(120, 120, 120),
-			BorderColour:    application.NewRGBPtr(230, 230, 230),
+			TitleBarColour:  application.NewRGBPtr(238, 240, 243),
+			TitleTextColour: application.NewRGBPtr(122, 128, 138),
+			BorderColour:    application.NewRGBPtr(226, 229, 234),
 		},
 	}
 }
@@ -279,14 +281,14 @@ func getWindowsCustomTheme() application.ThemeSettings {
 func getLightWindowsTheme() application.ThemeSettings {
 	return application.ThemeSettings{
 		LightModeActive: &application.WindowTheme{
-			TitleBarColour:  application.NewRGBPtr(245, 245, 245),
-			TitleTextColour: application.NewRGBPtr(30, 30, 30),
-			BorderColour:    application.NewRGBPtr(210, 210, 210),
+			TitleBarColour:  application.NewRGBPtr(244, 246, 248),
+			TitleTextColour: application.NewRGBPtr(26, 28, 31),
+			BorderColour:    application.NewRGBPtr(226, 229, 234),
 		},
 		LightModeInactive: &application.WindowTheme{
-			TitleBarColour:  application.NewRGBPtr(235, 235, 235),
-			TitleTextColour: application.NewRGBPtr(120, 120, 120),
-			BorderColour:    application.NewRGBPtr(230, 230, 230),
+			TitleBarColour:  application.NewRGBPtr(238, 240, 243),
+			TitleTextColour: application.NewRGBPtr(122, 128, 138),
+			BorderColour:    application.NewRGBPtr(226, 229, 234),
 		},
 	}
 }

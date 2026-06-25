@@ -56,9 +56,9 @@ func (s *WailsService) applyTheme(theme string) {
 	var bgColour application.RGBA
 	switch theme {
 	case ThemeLight:
-		bgColour = application.NewRGBA(245, 245, 245, 255)
+		bgColour = application.NewRGBA(244, 246, 248, 255)
 	default:
-		bgColour = application.NewRGBA(27, 38, 54, 255)
+		bgColour = application.NewRGBA(35, 38, 41, 255)
 	}
 	s.window.SetBackgroundColour(bgColour)
 	syncNativeWindowTheme(s.window, theme)

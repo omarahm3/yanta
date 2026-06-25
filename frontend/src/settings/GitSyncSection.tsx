@@ -11,6 +11,7 @@ import React from "react";
 import type { GitStatus } from "../shared/hooks";
 import {
 	Button,
+	Callout,
 	Input,
 	Label,
 	Select,
@@ -199,20 +200,16 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 		};
 		return (
 			<div ref={ref}>
-				<SettingsSection title="Git Sync" subtitle="Sync your data with a Git repository">
+				<SettingsSection id="sync" title="Git Sync" subtitle="Sync your data with a Git repository">
 					<div className="space-y-4">
 						{!gitInstalled && (
-							<div className="p-4 border border-yellow/40 rounded bg-yellow/10">
-								<div className="flex items-start gap-2">
-									<AlertTriangle className="w-5 h-5 text-yellow shrink-0 mt-0.5" />
-									<div>
-										<div className="mb-1 font-medium text-yellow">Git Not Installed</div>
-										<div className="text-sm text-text-dim">
-											Git is not found in your system PATH. Please install Git to enable sync functionality.
-										</div>
-									</div>
-								</div>
-							</div>
+							<Callout
+								variant="warning"
+								icon={<AlertTriangle className="h-5 w-5" />}
+								title="Git Not Installed"
+							>
+								Git is not found in your system PATH. Please install Git to enable sync functionality.
+							</Callout>
 						)}
 
 						<div className="space-y-2">
@@ -227,23 +224,19 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 							</div>
 
 							{dataDirOverridden && (
-								<div className="p-4 border border-accent/40 rounded bg-accent/10">
-									<div className="flex items-start gap-2">
-										<AlertTriangle className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-										<div>
-											<div className="mb-1 font-medium text-accent">Environment Override Active</div>
-											<div className="text-sm text-text-dim">
-												The <code className="px-1 py-0.5 bg-accent/20 rounded text-accent">YANTA_HOME</code>{" "}
-												environment variable is set to:
-											</div>
-											<div className="mt-1 text-xs font-mono text-text break-all">{dataDirEnvVar}</div>
-											<div className="mt-2 text-sm text-text-dim">
-												Migration is disabled while this variable is set. Unset the environment variable and
-												restart YANTA to change the data directory.
-											</div>
-										</div>
+								<Callout
+									variant="info"
+									icon={<AlertTriangle className="h-5 w-5" />}
+									title="Environment Override Active"
+								>
+									The <code className="px-1 py-0.5 bg-accent/20 rounded text-accent">YANTA_HOME</code>{" "}
+									environment variable is set to:
+									<div className="mt-1 text-xs font-mono text-text break-all">{dataDirEnvVar}</div>
+									<div className="mt-2">
+										Migration is disabled while this variable is set. Unset the environment variable and
+										restart YANTA to change the data directory.
 									</div>
-								</div>
+								</Callout>
 							)}
 
 							<div className="space-y-2">

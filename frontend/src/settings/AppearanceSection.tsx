@@ -91,7 +91,11 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 
 		return (
 			<div ref={ref}>
-				<SettingsSection title="Appearance" subtitle="Customize the look and feel of the application">
+				<SettingsSection
+					id="appearance"
+					title="Appearance"
+					subtitle="Customize the look and feel of the application"
+				>
 					<div className="space-y-4">
 						<div className="space-y-2">
 							<Label variant="uppercase">Theme</Label>

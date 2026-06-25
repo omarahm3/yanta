@@ -2,51 +2,44 @@ import { System, Window } from "@wailsio/runtime";
 import { Minus, Square, X } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
-import { IsFrameless } from "../../../bindings/yanta/internal/window/service";
 import { BackgroundQuit } from "../../../bindings/yanta/internal/system/service";
+import { IsFrameless } from "../../../bindings/yanta/internal/window/service";
 import logoImage from "../../assets/images/logo-universal.png";
 import { cn } from "../../shared/utils/cn";
 import { useTitleBarContext } from "../stores/titlebar.store";
 
 type Platform = "darwin" | "windows" | "linux";
 
-function detectPlatform(): Platform {
-	try {
-		if (System.IsWindows()) return "windows";
-		if (System.IsLinux()) return "linux";
-	} catch {
-		/* Wails runtime not available in test */
-	}
+const TITLE_BAR_HEIGHT = 38;
+
+function osToPlatform(os: string): Platform {
+	if (os === "windows") return "windows";
+	if (os === "linux") return "linux";
 	return "darwin";
 }
 
-const TITLE_BAR_HEIGHT = 38;
-
 export const TitleBar: React.FC = () => {
-	const [platform, setPlatform] = useState<Platform>("darwin");
+	const [platform, setPlatform] = useState<Platform | null>(null);
 	const [isFrameless, setIsFrameless] = useState(false);
 	const { setChrome } = useTitleBarContext();
 
 	useEffect(() => {
-		const plat = detectPlatform();
-		setPlatform(plat);
-		const checkFrameless = async () => {
-			let frameless = false;
-			if (plat === "linux") {
-				try {
-					frameless = await IsFrameless();
-				} catch {
-					frameless = false;
-				}
-			}
+		let cancelled = false;
+		// Resolve the OS from the backend, not the sync IsWindows/IsMac cache which
+		// reads false until the runtime injects window._wails.
+		(async () => {
+			const { OS } = await System.Environment();
+			const plat = osToPlatform(OS);
+			const frameless = plat === "linux" ? await IsFrameless() : false;
+			if (cancelled) return;
+			setPlatform(plat);
 			setIsFrameless(frameless);
 			const shouldShow = plat === "darwin" || frameless;
-			setChrome(
-				shouldShow ? "frameless" : "hidden",
-				shouldShow ? TITLE_BAR_HEIGHT / 16 : 0,
-			);
+			setChrome(shouldShow ? "frameless" : "hidden", shouldShow ? TITLE_BAR_HEIGHT / 16 : 0);
+		})();
+		return () => {
+			cancelled = true;
 		};
-		checkFrameless();
 	}, [setChrome]);
 
 	const handleMinimize = useCallback(() => {
@@ -69,8 +62,11 @@ export const TitleBar: React.FC = () => {
 		BackgroundQuit();
 	}, []);
 
-	const showChrome = platform === "darwin" || isFrameless;
+	if (platform === null) {
+		return null;
+	}
 
+	const showChrome = platform === "darwin" || isFrameless;
 	if (!showChrome) {
 		return null;
 	}
@@ -79,18 +75,22 @@ export const TitleBar: React.FC = () => {
 
 	return (
 		<div
-			className={cn(
-				"chrome-titlebar",
-				isMac ? "chrome-titlebar-mac" : "chrome-titlebar-win",
-			)}
+			className={cn("chrome-titlebar", isMac ? "chrome-titlebar-mac" : "chrome-titlebar-win")}
 			role="banner"
 			aria-label="Application chrome"
 		>
 			<div className="flex items-center gap-2 flex-1 min-w-0">
 				{!isMac && (
 					<>
-						<img src={logoImage} alt="" className="h-5 w-auto object-contain opacity-80" aria-hidden="true" />
-						<span className="text-xs font-semibold text-text-dim/70 tracking-wide select-none">YANTA</span>
+						<img
+							src={logoImage}
+							alt=""
+							className="h-5 w-auto object-contain opacity-80"
+							aria-hidden="true"
+						/>
+						<span className="text-xs font-semibold text-text-dim/70 tracking-wide select-none">
+							YANTA
+						</span>
 					</>
 				)}
 			</div>
@@ -104,7 +104,7 @@ export const TitleBar: React.FC = () => {
 			<div className="flex items-center gap-1">
 				<button
 					type="button"
-					className="flex items-center justify-center w-10 h-7 rounded-sm text-text-dim/60 hover:text-text hover:bg-surface transition-colors"
+					className="flex items-center justify-center w-10 h-7 rounded-sm text-text-dim/60 hover:text-text hover:bg-bg-dark transition-colors"
 					onClick={handleMinimize}
 					title="Minimize"
 					aria-label="Minimize window"
@@ -113,7 +113,7 @@ export const TitleBar: React.FC = () => {
 				</button>
 				<button
 					type="button"
-					className="flex items-center justify-center w-10 h-7 rounded-sm text-text-dim/60 hover:text-text hover:bg-surface transition-colors"
+					className="flex items-center justify-center w-10 h-7 rounded-sm text-text-dim/60 hover:text-text hover:bg-bg-dark transition-colors"
 					onClick={handleMaximize}
 					title="Maximize"
 					aria-label="Maximize window"

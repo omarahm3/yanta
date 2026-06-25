@@ -25,6 +25,7 @@
     "@blocknote/core": "^0.51.4",
     "@blocknote/react": "^0.51.4",
     "@blocknote/shadcn": "^0.51.4",
+    "@fontsource-variable/geist": "^5.2.9",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@fontsource/outfit": "^5.2.8",
     "@radix-ui/react-checkbox": "^1.1.4",
@@ -37,7 +38,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tailwindcss/forms": "^0.5.10",
     "@tanstack/react-virtual": "^3.13.18",
-    "@wailsio/runtime": "^3.0.0-alpha.79",
+    "@wailsio/runtime": "^3.0.0-alpha.94",
     "autoprefixer": "^10.4.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -73,5 +74,8 @@
     "vite": "^7.2.4",
     "vitest": "^4.0.12",
     "vitest-axe": "^0.1.0"
+  },
+  "overrides": {
+    "esbuild": "0.28.1"
   }
 }

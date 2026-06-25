@@ -6,6 +6,7 @@ import { TitleBar } from "../TitleBar";
 const mockIsLinux = vi.fn();
 const mockIsMac = vi.fn();
 const mockIsFrameless = vi.fn();
+const mockEnvironment = vi.fn();
 
 vi.mock("@wailsio/runtime", () => {
 	const createIdentity = (x: unknown) => x;
@@ -18,6 +19,7 @@ vi.mock("@wailsio/runtime", () => {
 			IsLinux: () => mockIsLinux(),
 			IsMac: () => mockIsMac(),
 			IsWindows: () => false,
+			Environment: () => mockEnvironment(),
 		},
 		Window: {
 			Minimise: vi.fn(),
@@ -77,14 +79,13 @@ const renderWithProvider = () =>
 describe("TitleBar", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		mockIsLinux.mockReturnValue(false);
-		mockIsMac.mockReturnValue(false);
 		mockIsFrameless.mockResolvedValue(true);
+		mockEnvironment.mockResolvedValue({ OS: "linux" });
 	});
 
-	it("renders the custom controls on Linux", async () => {
-		mockIsLinux.mockReturnValue(true);
-		mockIsMac.mockReturnValue(false);
+	it("renders the custom controls on a frameless Linux window", async () => {
+		mockEnvironment.mockResolvedValue({ OS: "linux" });
+		mockIsFrameless.mockResolvedValue(true);
 
 		renderWithProvider();
 
@@ -93,14 +94,22 @@ describe("TitleBar", () => {
 		expect(screen.getByTitle("Close")).toBeInTheDocument();
 	});
 
-	it("returns null on macOS (native title bar handles dragging)", async () => {
-		mockIsLinux.mockReturnValue(false);
-		mockIsMac.mockReturnValue(true);
+	it("renders a draggable chrome strip on macOS", async () => {
+		mockEnvironment.mockResolvedValue({ OS: "darwin" });
 
 		const { container } = renderWithProvider();
 
-		await waitFor(() => {
-			expect(container.firstChild).toBeNull();
-		});
+		await waitFor(() => expect(container.firstChild).not.toBeNull());
+		expect(screen.getByRole("banner", { name: "Application chrome" })).toBeInTheDocument();
+	});
+
+	it("renders nothing on natively-framed Windows (no second title bar)", async () => {
+		mockEnvironment.mockResolvedValue({ OS: "windows" });
+
+		const { container } = renderWithProvider();
+
+		await waitFor(() => expect(mockEnvironment).toHaveBeenCalled());
+		expect(container.firstChild).toBeNull();
+		expect(screen.queryByRole("banner")).not.toBeInTheDocument();
 	});
 });

@@ -27,7 +27,7 @@ describe("QuickEditor", () => {
 		const highlightLayer = document.querySelector("[data-testid='highlight-layer']");
 		expect(highlightLayer).toBeInTheDocument();
 		expect(highlightLayer?.innerHTML).toContain("#urgent");
-		expect(highlightLayer?.innerHTML).toContain("text-green");
+		expect(highlightLayer?.innerHTML).toContain("qc-token-tag");
 	});
 
 	it("highlights @project in blue", () => {
@@ -36,7 +36,7 @@ describe("QuickEditor", () => {
 		const highlightLayer = document.querySelector("[data-testid='highlight-layer']");
 		expect(highlightLayer).toBeInTheDocument();
 		expect(highlightLayer?.innerHTML).toContain("@work");
-		expect(highlightLayer?.innerHTML).toContain("text-accent");
+		expect(highlightLayer?.innerHTML).toContain("qc-token-project");
 	});
 
 	it("respects maxLength", () => {

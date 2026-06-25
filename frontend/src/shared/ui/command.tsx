@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRef } from "react";
 import { cn } from "../utils/cn";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./dialog";
+import { Kbd } from "./Kbd";
 
 const Command = React.forwardRef<
 	React.ComponentRef<typeof CommandPrimitive>,
@@ -36,7 +37,7 @@ function CommandDialog({
 	return (
 		<Dialog open={open} {...props}>
 			<DialogContent
-				className="overflow-hidden p-0 bg-glass-bg/90 backdrop-blur-xl border border-glass-border shadow-2xl sm:max-w-2xl"
+				className="overflow-hidden p-0 bg-surface border border-border shadow-[var(--elevation-3)] data-[state=open]:slide-in-from-top-2 data-[state=closed]:slide-out-to-top-2 sm:max-w-2xl"
 				showCloseButton={false}
 			>
 				<DialogTitle className="sr-only">{title}</DialogTitle>
@@ -59,22 +60,18 @@ function CommandInput({
 	return (
 		<div
 			data-slot="command-input-wrapper"
-			className="flex h-14 items-center gap-3 border-b border-glass-border px-4"
+			className="flex h-14 items-center gap-3 border-b border-border px-4"
 		>
 			<SearchIcon className="size-5 shrink-0 text-text-dim" />
 			<CommandPrimitive.Input
 				data-slot="command-input"
 				className={cn(
-					"placeholder:text-text-dim/60 flex h-10 w-full rounded-md bg-transparent py-3 text-lg outline-none disabled:cursor-not-allowed disabled:opacity-50",
+					"placeholder:text-text-dim flex h-10 w-full rounded-md bg-transparent py-3 text-lg outline-none disabled:cursor-not-allowed disabled:opacity-50",
 					className,
 				)}
 				{...props}
 			/>
-			{showEscBadge && (
-				<kbd className="shrink-0 rounded border border-glass-border bg-bg-dark/30 px-2 py-1 text-xs font-semibold text-text-dim shadow-sm">
-					ESC
-				</kbd>
-			)}
+			{showEscBadge && <Kbd className="px-2 py-1 text-xs">ESC</Kbd>}
 		</div>
 	);
 }
@@ -122,7 +119,7 @@ function CommandSeparator({
 	return (
 		<CommandPrimitive.Separator
 			data-slot="command-separator"
-			className={cn("bg-glass-border -mx-1 h-px", className)}
+			className={cn("bg-border -mx-1 h-px", className)}
 			{...props}
 		/>
 	);
@@ -133,7 +130,7 @@ function CommandItem({ className, ...props }: React.ComponentProps<typeof Comman
 		<CommandPrimitive.Item
 			data-slot="command-item"
 			className={cn(
-				"data-[selected=true]:bg-accent/10 data-[selected=true]:text-accent-foreground data-[selected=true]:border-l-2 data-[selected=true]:border-accent [&_svg:not([class*='text-'])]:text-text-dim relative flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm outline-none select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 transition-all duration-200",
+				"data-[selected=true]:bg-accent/12 data-[selected=true]:text-accent [&_svg:not([class*='text-'])]:text-text-dim relative flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm outline-none select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 transition-colors duration-150",
 				className,
 			)}
 			{...props}
@@ -145,10 +142,7 @@ function CommandShortcut({ className, ...props }: React.ComponentProps<"span">) 
 	return (
 		<span
 			data-slot="command-shortcut"
-			className={cn(
-				"ml-auto text-xs tracking-widest text-text-dim/60",
-				className,
-			)}
+			className={cn("ml-auto text-xs tracking-widest text-text-dim/60", className)}
 			{...props}
 		/>
 	);

@@ -1,16 +1,18 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import type React from "react";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useSidebarStateStore } from "../../stores/sidebarState.store";
 import { Sidebar, type SidebarSection } from "../Sidebar";
 
-// Mock the useTooltipUsage hook
-const mockShouldShowTooltip = vi.fn();
-const mockRecordTooltipView = vi.fn();
+// The rail opens the command palette via the store; mock its `open` action.
+const mockOpen = vi.fn();
+vi.mock("../../../command-palette/commandPalette.store", () => ({
+	useCommandPaletteStore: (selector: (s: { open: () => void }) => unknown) =>
+		selector({ open: mockOpen }),
+}));
 
-// Mock the Tooltip component to avoid Radix Tooltip jsdom issues.
-// Sidebar integration with Tooltip is what we're testing, not Radix internals.
+// Mock Tooltip — we test the rail's integration with it (label + shortcut),
+// not Radix internals. Renders children always; reveals content on hover.
 vi.mock("../Tooltip", () => ({
 	Tooltip: ({
 		tooltipId,
@@ -25,17 +27,8 @@ vi.mock("../Tooltip", () => ({
 		children: React.ReactNode;
 	}) => {
 		const [visible, setVisible] = useState(false);
-		const shouldShow = mockShouldShowTooltip(tooltipId);
 		return (
-			<div
-				onMouseEnter={() => {
-					if (shouldShow) {
-						setVisible(true);
-						mockRecordTooltipView(tooltipId);
-					}
-				}}
-				onMouseLeave={() => setVisible(false)}
-			>
+			<div onMouseEnter={() => setVisible(true)} onMouseLeave={() => setVisible(false)}>
 				{children}
 				{visible && (
 					<div role="tooltip" data-tooltip-id={tooltipId}>
@@ -50,495 +43,89 @@ vi.mock("../Tooltip", () => ({
 	},
 }));
 
-describe("Sidebar", () => {
-	const _HOVER_DELAY = 500;
+const navSection = (
+	overrides: Partial<SidebarSection["items"][number]>[] = [],
+): SidebarSection[] => [
+	{
+		id: "navigation",
+		title: "NAVIGATION",
+		items: [
+			{ id: "dashboard", label: "documents", active: true, ...overrides[0] },
+			{
+				id: "journal",
+				label: "journal",
+				tooltip: { tooltipId: "sidebar-journal", description: "Journal", shortcut: "Ctrl+J" },
+				...overrides[1],
+			},
+			{ id: "search", label: "search", ...overrides[2] },
+			{ id: "settings", label: "settings", ...overrides[3] },
+		],
+	},
+];
 
-	const basicSections: SidebarSection[] = [
-		{
-			id: "navigation",
-			title: "NAVIGATION",
-			items: [
-				{ id: "dashboard", label: "documents" },
-				{ id: "journal", label: "journal" },
-			],
-		},
-	];
-
-	const sectionsWithTooltips: SidebarSection[] = [
-		{
-			id: "navigation",
-			title: "NAVIGATION",
-			items: [
-				{ id: "dashboard", label: "documents" },
-				{
-					id: "search",
-					label: "search",
-					tooltip: {
-						tooltipId: "sidebar-search",
-						description: "Search",
-						shortcut: "Ctrl+Shift+F",
-					},
-				},
-				{
-					id: "journal",
-					label: "journal",
-					tooltip: {
-						tooltipId: "sidebar-journal",
-						description: "Journal",
-						shortcut: "Ctrl+J",
-					},
-				},
-			],
-		},
-	];
-
+describe("Sidebar (icon rail)", () => {
 	beforeEach(() => {
-		vi.useFakeTimers();
-		mockShouldShowTooltip.mockReturnValue(true);
-		mockRecordTooltipView.mockClear();
-		// Reset persisted sidebar state before each test
-		localStorage.clear();
-		useSidebarStateStore.setState({
-			collapsedSections: [],
-			sidebarWidth: 192,
-			pinnedDocuments: [],
-		});
-		// Mock matchMedia for reduced motion
-		Object.defineProperty(window, "matchMedia", {
-			writable: true,
-			value: vi.fn().mockImplementation((query: string) => ({
-				matches: false,
-				media: query,
-				onchange: null,
-				addListener: vi.fn(),
-				removeListener: vi.fn(),
-				addEventListener: vi.fn(),
-				removeEventListener: vi.fn(),
-				dispatchEvent: vi.fn(),
-			})),
-		});
-		// Mock requestAnimationFrame to execute callback synchronously
-		vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
-			return window.setTimeout(() => cb(Date.now()), 0);
-		});
-		vi.stubGlobal("cancelAnimationFrame", (id: number) => {
-			window.clearTimeout(id);
-		});
+		mockOpen.mockClear();
 	});
-
 	afterEach(() => {
-		vi.clearAllTimers();
-		vi.useRealTimers();
-		vi.unstubAllGlobals();
-		localStorage.clear();
+		vi.clearAllMocks();
 	});
 
-	describe("basic rendering", () => {
-		it("renders sections and items correctly", () => {
-			render(<Sidebar sections={basicSections} />);
-
-			expect(screen.getByText("NAVIGATION")).toBeInTheDocument();
-			expect(screen.getByText("documents")).toBeInTheDocument();
-			expect(screen.getByText("journal")).toBeInTheDocument();
-		});
-
-		it("renders logo image", () => {
-			render(<Sidebar sections={basicSections} />);
-
-			const logo = screen.getByAltText("YANTA");
-			expect(logo).toBeInTheDocument();
-		});
-
-		it("applies custom className", () => {
-			const { container } = render(<Sidebar sections={basicSections} className="custom-class" />);
-
-			const aside = container.querySelector("aside");
-			expect(aside).toHaveClass("custom-class");
-		});
-
-		it("exposes the sidebar as a navigation landmark", () => {
-			render(<Sidebar sections={basicSections} />);
-
-			const nav = screen.getByRole("navigation", { name: "Main navigation" });
-			expect(nav.tagName.toLowerCase()).toBe("aside");
-		});
-
-		it("renders item counts when provided", () => {
-			const sectionsWithCounts: SidebarSection[] = [
-				{
-					id: "projects",
-					title: "PROJECTS",
-					items: [
-						{ id: "project-1", label: "project-1", count: 5 },
-						{ id: "project-2", label: "project-2", count: 10 },
-					],
-				},
-			];
-
-			render(<Sidebar sections={sectionsWithCounts} />);
-
-			expect(screen.getByText("5")).toBeInTheDocument();
-			expect(screen.getByText("10")).toBeInTheDocument();
-		});
-
-		it("handles item clicks", () => {
-			const handleClick = vi.fn();
-			const sectionsWithClick: SidebarSection[] = [
-				{
-					id: "navigation",
-					title: "NAVIGATION",
-					items: [{ id: "dashboard", label: "documents", onClick: handleClick }],
-				},
-			];
-
-			render(<Sidebar sections={sectionsWithClick} />);
-
-			fireEvent.click(screen.getByText("documents"));
-			expect(handleClick).toHaveBeenCalledTimes(1);
-		});
-
-		it("marks active items", () => {
-			const sectionsWithActive: SidebarSection[] = [
-				{
-					id: "navigation",
-					title: "NAVIGATION",
-					items: [
-						{ id: "dashboard", label: "documents", active: true },
-						{ id: "journal", label: "journal", active: false },
-					],
-				},
-			];
-
-			render(<Sidebar sections={sectionsWithActive} />);
-
-			const dashboardItem = screen.getByText("documents").closest("li");
-			const journalItem = screen.getByText("journal").closest("li");
-
-			expect(dashboardItem).toHaveClass("active");
-			expect(journalItem).not.toHaveClass("active");
-		});
+	it("exposes the rail as a navigation landmark", () => {
+		render(<Sidebar sections={navSection()} />);
+		const nav = screen.getByRole("navigation", { name: "Main navigation" });
+		expect(nav.tagName.toLowerCase()).toBe("aside");
 	});
 
-	describe("collapsible sections", () => {
-		it("sections are expanded by default", () => {
-			render(<Sidebar sections={basicSections} />);
-
-			const toggleBtn = screen.getByRole("button", { name: /NAVIGATION/i });
-			expect(toggleBtn).toHaveAttribute("aria-expanded", "true");
-		});
-
-		it("collapses a section on header click", () => {
-			render(<Sidebar sections={basicSections} />);
-
-			const toggleBtn = screen.getByRole("button", { name: /NAVIGATION/i });
-			fireEvent.click(toggleBtn);
-
-			expect(toggleBtn).toHaveAttribute("aria-expanded", "false");
-		});
-
-		it("expands a collapsed section on second click", () => {
-			render(<Sidebar sections={basicSections} />);
-
-			const toggleBtn = screen.getByRole("button", { name: /NAVIGATION/i });
-			fireEvent.click(toggleBtn);
-			expect(toggleBtn).toHaveAttribute("aria-expanded", "false");
-
-			fireEvent.click(toggleBtn);
-			expect(toggleBtn).toHaveAttribute("aria-expanded", "true");
-		});
-
-		it("section toggle button has aria-controls pointing to content", () => {
-			render(<Sidebar sections={basicSections} />);
-
-			const toggleBtn = screen.getByRole("button", { name: /NAVIGATION/i });
-			const controlledId = toggleBtn.getAttribute("aria-controls");
-			expect(controlledId).toBe("sidebar-section-navigation");
-
-			const contentEl = document.getElementById("sidebar-section-navigation");
-			expect(contentEl).toBeInTheDocument();
-		});
-
-		it("persists collapsed state to store", () => {
-			render(<Sidebar sections={basicSections} />);
-
-			const toggleBtn = screen.getByRole("button", { name: /NAVIGATION/i });
-			fireEvent.click(toggleBtn);
-
-			expect(useSidebarStateStore.getState().collapsedSections).toContain("navigation");
-		});
+	it("applies a custom className to the rail", () => {
+		const { container } = render(<Sidebar sections={navSection()} className="custom-class" />);
+		expect(container.querySelector("aside")).toHaveClass("custom-class");
 	});
 
-	describe("resize handle", () => {
-		it("renders a resize slider", () => {
-			render(<Sidebar sections={basicSections} />);
-
-			const handle = screen.getByRole("slider", { name: "Sidebar width" });
-			expect(handle).toBeInTheDocument();
-		});
-
-		it("resize handle is keyboard focusable", () => {
-			render(<Sidebar sections={basicSections} />);
-
-			const handle = screen.getByRole("slider", { name: "Sidebar width" });
-			expect(handle).toHaveAttribute("tabIndex", "0");
-		});
-
-		it("resize handle exposes aria-valuenow", () => {
-			useSidebarStateStore.setState({ sidebarWidth: 200 });
-			render(<Sidebar sections={basicSections} />);
-
-			const handle = screen.getByRole("slider", { name: "Sidebar width" });
-			expect(handle).toHaveAttribute("aria-valuenow", "200");
-		});
-
-		it("ArrowRight key increases sidebar width", () => {
-			render(<Sidebar sections={basicSections} />);
-
-			const handle = screen.getByRole("slider", { name: "Sidebar width" });
-			const initialWidth = useSidebarStateStore.getState().sidebarWidth;
-			fireEvent.keyDown(handle, { key: "ArrowRight" });
-
-			expect(useSidebarStateStore.getState().sidebarWidth).toBeGreaterThan(initialWidth);
-		});
-
-		it("ArrowLeft key decreases sidebar width", () => {
-			render(<Sidebar sections={basicSections} />);
-
-			const handle = screen.getByRole("slider", { name: "Sidebar width" });
-			const initialWidth = useSidebarStateStore.getState().sidebarWidth;
-			fireEvent.keyDown(handle, { key: "ArrowLeft" });
-
-			expect(useSidebarStateStore.getState().sidebarWidth).toBeLessThan(initialWidth);
-		});
-
-		it("applies sidebar width from store as inline style", () => {
-			useSidebarStateStore.setState({ sidebarWidth: 240 });
-			const { container } = render(<Sidebar sections={basicSections} />);
-
-			const aside = container.querySelector("aside");
-			expect(aside).toHaveStyle({ width: "240px" });
-		});
+	it("renders the command-palette button and opens the palette on click", () => {
+		render(<Sidebar sections={navSection()} />);
+		const cmd = screen.getByRole("button", { name: "Open command palette" });
+		fireEvent.click(cmd);
+		expect(mockOpen).toHaveBeenCalledTimes(1);
 	});
 
-	describe("action buttons", () => {
-		it("renders action button for items with action prop", () => {
-			const handleAction = vi.fn();
-			const sectionsWithAction: SidebarSection[] = [
-				{
-					id: "pinned",
-					title: "PINNED",
-					items: [
-						{
-							id: "pinned-doc",
-							label: "My Note",
-							action: {
-								label: "Unpin",
-								icon: "×",
-								onClick: handleAction,
-							},
-						},
-					],
-				},
-			];
-
-			render(<Sidebar sections={sectionsWithAction} />);
-
-			const actionBtn = screen.getByRole("button", { name: "Unpin" });
-			expect(actionBtn).toBeInTheDocument();
-		});
-
-		it("action button click calls the provided handler", () => {
-			const handleAction = vi.fn();
-			const sectionsWithAction: SidebarSection[] = [
-				{
-					id: "pinned",
-					title: "PINNED",
-					items: [
-						{
-							id: "pinned-doc",
-							label: "My Note",
-							action: {
-								label: "Unpin",
-								icon: "×",
-								onClick: handleAction,
-							},
-						},
-					],
-				},
-			];
-
-			render(<Sidebar sections={sectionsWithAction} />);
-
-			const actionBtn = screen.getByRole("button", { name: "Unpin" });
-			fireEvent.click(actionBtn);
-			expect(handleAction).toHaveBeenCalledTimes(1);
-		});
+	it("renders a button per destination, labeled by tooltip description or the capitalized label", () => {
+		render(<Sidebar sections={navSection()} />);
+		expect(screen.getByRole("button", { name: "Documents" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Journal" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Search" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Settings" })).toBeInTheDocument();
 	});
 
-	describe("tooltip functionality", () => {
-		it("shows tooltip on hover for items with tooltip config", () => {
-			render(<Sidebar sections={sectionsWithTooltips} />);
-
-			const searchItem = screen.getByText("search").closest("li");
-			expect(searchItem).toBeInTheDocument();
-			if (!searchItem) throw new Error("search item not found");
-
-			// Hover over the wrapper around the list item (Tooltip mock wraps in div)
-			const tooltipWrapper =
-				searchItem.closest('[role="tooltip"]')?.parentElement ?? searchItem.parentElement;
-			if (!tooltipWrapper) throw new Error("tooltip wrapper not found");
-			fireEvent.mouseEnter(tooltipWrapper);
-
-			// Tooltip should be visible
-			expect(screen.getByRole("tooltip")).toBeInTheDocument();
-			expect(screen.getByText("Search")).toBeInTheDocument();
-		});
-
-		it("displays keyboard shortcut in tooltip", () => {
-			render(<Sidebar sections={sectionsWithTooltips} />);
-
-			const journalItem = screen.getByText("journal").closest("li");
-			if (!journalItem) throw new Error("journal item not found");
-
-			const tooltipWrapper = journalItem.parentElement;
-			if (!tooltipWrapper) throw new Error("tooltip wrapper not found");
-			fireEvent.mouseEnter(tooltipWrapper);
-
-			// Should show the keyboard shortcut
-			expect(screen.getByText("Ctrl")).toBeInTheDocument();
-			expect(screen.getByText("J")).toBeInTheDocument();
-		});
-
-		it("hides tooltip on mouse leave", () => {
-			render(<Sidebar sections={sectionsWithTooltips} />);
-
-			const searchItem = screen.getByText("search").closest("li");
-			if (!searchItem) throw new Error("search item not found");
-
-			const tooltipWrapper = searchItem.parentElement;
-			if (!tooltipWrapper) throw new Error("tooltip wrapper not found");
-			fireEvent.mouseEnter(tooltipWrapper);
-
-			expect(screen.getByRole("tooltip")).toBeInTheDocument();
-
-			// Leave the item
-			fireEvent.mouseLeave(tooltipWrapper);
-
-			// Tooltip should be hidden
-			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
-		});
-
-		it("does not show tooltip for items without tooltip config", () => {
-			render(<Sidebar sections={sectionsWithTooltips} />);
-
-			// Items without tooltip config are not wrapped in a Tooltip mock div
-			// The "documents" item has no tooltip, so hovering should not show one
-			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
-		});
-
-		it("respects shouldShowTooltip returning false", () => {
-			mockShouldShowTooltip.mockReturnValue(false);
-
-			render(<Sidebar sections={sectionsWithTooltips} />);
-
-			const searchItem = screen.getByText("search").closest("li");
-			if (!searchItem) throw new Error("search item not found");
-
-			const tooltipWrapper = searchItem.parentElement;
-			if (!tooltipWrapper) throw new Error("tooltip wrapper not found");
-			fireEvent.mouseEnter(tooltipWrapper);
-
-			// Tooltip should not be shown
-			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
-		});
-
-		it("records tooltip view when tooltip becomes visible", () => {
-			render(<Sidebar sections={sectionsWithTooltips} />);
-
-			const journalItem = screen.getByText("journal").closest("li");
-			if (!journalItem) throw new Error("journal item not found");
-
-			const tooltipWrapper = journalItem.parentElement;
-			if (!tooltipWrapper) throw new Error("tooltip wrapper not found");
-			fireEvent.mouseEnter(tooltipWrapper);
-
-			expect(mockRecordTooltipView).toHaveBeenCalledWith("sidebar-journal");
-		});
-
-		it("preserves item click functionality with tooltip", () => {
-			const handleClick = vi.fn();
-			const sectionsWithClickAndTooltip: SidebarSection[] = [
-				{
-					id: "navigation",
-					title: "NAVIGATION",
-					items: [
-						{
-							id: "search",
-							label: "search",
-							onClick: handleClick,
-							tooltip: {
-								tooltipId: "sidebar-search",
-								description: "Search",
-								shortcut: "Ctrl+Shift+F",
-							},
-						},
-					],
-				},
-			];
-
-			render(<Sidebar sections={sectionsWithClickAndTooltip} />);
-
-			fireEvent.click(screen.getByText("search"));
-			expect(handleClick).toHaveBeenCalledTimes(1);
-		});
+	it("marks the active destination with aria-current", () => {
+		render(<Sidebar sections={navSection()} />);
+		expect(screen.getByRole("button", { name: "Documents" })).toHaveAttribute("aria-current", "page");
+		expect(screen.getByRole("button", { name: "Journal" })).not.toHaveAttribute("aria-current");
 	});
 
-	describe("multiple sections", () => {
-		it("renders multiple sections correctly", () => {
-			const multipleSections: SidebarSection[] = [
-				{
-					id: "navigation",
-					title: "NAVIGATION",
-					items: [{ id: "dashboard", label: "documents" }],
-				},
-				{
-					id: "projects",
-					title: "PROJECTS",
-					items: [{ id: "project-1", label: "project-1" }],
-				},
-			];
+	it("calls a destination's onClick when activated", () => {
+		const onClick = vi.fn();
+		render(<Sidebar sections={navSection([{}, {}, { onClick }])} />);
+		fireEvent.click(screen.getByRole("button", { name: "Search" }));
+		expect(onClick).toHaveBeenCalledTimes(1);
+	});
 
-			render(<Sidebar sections={multipleSections} />);
+	it("falls back to the first letter when an item has no icon", () => {
+		render(<Sidebar sections={navSection()} />);
+		// none of the test items pass an icon, so each shows its capitalized initial
+		expect(screen.getByRole("button", { name: "Documents" })).toHaveTextContent("D");
+	});
 
-			expect(screen.getByText("NAVIGATION")).toBeInTheDocument();
-			expect(screen.getByText("PROJECTS")).toBeInTheDocument();
-			expect(screen.getByText("documents")).toBeInTheDocument();
-			expect(screen.getByText("project-1")).toBeInTheDocument();
-		});
-
-		it("collapsing one section does not affect others", () => {
-			const multipleSections: SidebarSection[] = [
-				{
-					id: "navigation",
-					title: "NAVIGATION",
-					items: [{ id: "dashboard", label: "documents" }],
-				},
-				{
-					id: "projects",
-					title: "PROJECTS",
-					items: [{ id: "project-1", label: "project-1" }],
-				},
-			];
-
-			render(<Sidebar sections={multipleSections} />);
-
-			const navBtn = screen.getByRole("button", { name: /NAVIGATION/i });
-			fireEvent.click(navBtn);
-
-			// navigation collapsed, projects still expanded
-			expect(navBtn).toHaveAttribute("aria-expanded", "false");
-			const projectsBtn = screen.getByRole("button", { name: /PROJECTS/i });
-			expect(projectsBtn).toHaveAttribute("aria-expanded", "true");
-		});
+	it("shows the label and shortcut in a tooltip on hover", () => {
+		render(<Sidebar sections={navSection()} />);
+		const journal = screen.getByRole("button", { name: "Journal" });
+		const wrapper = journal.parentElement;
+		if (!wrapper) throw new Error("tooltip wrapper not found");
+		fireEvent.mouseEnter(wrapper);
+		const tip = screen.getByRole("tooltip");
+		// "J" also appears as the Journal button's fallback initial, so scope to the tooltip.
+		expect(within(tip).getByText("Journal")).toBeInTheDocument();
+		expect(within(tip).getByText("Ctrl")).toBeInTheDocument();
+		expect(within(tip).getByText("J")).toBeInTheDocument();
 	});
 });

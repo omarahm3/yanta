@@ -1,4 +1,5 @@
 export { Button } from "./Button";
+export { Callout, type CalloutProps, type CalloutVariant } from "./Callout";
 export { type CommandOption, CommandPalette, type SubPaletteItem } from "./CommandPalette";
 export { ConfirmDialog, type ConfirmDialogProps } from "./ConfirmDialog";
 export {
@@ -18,6 +19,7 @@ export { Heading } from "./Heading";
 export { HotkeyEditor, type HotkeyEditorProps } from "./HotkeyEditor";
 export { HotkeyInput, type HotkeyInputProps } from "./HotkeyInput";
 export { Input } from "./Input";
+export { Kbd, type KbdProps } from "./Kbd";
 export { KeyDisplay } from "./KeyDisplay";
 export { Label } from "./Label";
 export { List, ListItem } from "./List";

@@ -5,7 +5,7 @@ import { usePreferencesStore } from "./preferences.store";
 export type ThemeMode = "dark" | "light" | "system";
 export type ResolvedTheme = "dark" | "light";
 
-const DEFAULT_THEME: ThemeMode = "system";
+const DEFAULT_THEME: ThemeMode = "dark";
 
 function getSystemTheme(): ResolvedTheme {
 	if (typeof window === "undefined" || !window.matchMedia) return "dark";

@@ -1,4 +1,5 @@
-import React, { useCallback, useMemo } from "react";
+import { AlertTriangle } from "lucide-react";
+import React, { useCallback, useMemo, useState } from "react";
 import { GranularErrorBoundary, Layout } from "@/app";
 import { ENABLE_PLUGINS } from "@/config/featureFlags";
 import {
@@ -9,7 +10,8 @@ import {
 import { useMergedConfig, usePreferencesOverrides } from "@/config/usePreferencesOverrides";
 import { type ThemeMode, useTheme } from "../shared/stores/theme.store";
 import type { PageName } from "../shared/types";
-import { ConfirmDialog, MigrationConflictDialog, type Shortcut } from "../shared/ui";
+import { Callout, ConfirmDialog, MigrationConflictDialog, type Shortcut } from "../shared/ui";
+import { cn } from "../shared/utils/cn";
 import { AboutSection } from "./AboutSection";
 import { AppearanceSection } from "./AppearanceSection";
 import { BackupSection } from "./BackupSection";
@@ -19,6 +21,7 @@ import { GitSyncSection } from "./GitSyncSection";
 import { useSettingsPage } from "./hooks/useSettingsPage";
 import { LoggingSection } from "./LoggingSection";
 import { PluginsSection } from "./PluginsSection";
+import { SettingsNav } from "./SettingsNav";
 import { ShortcutsSection } from "./ShortcutsSection";
 import { usePluginSettings } from "./usePluginSettings";
 
@@ -70,7 +73,32 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		settingsKey,
 		setSettingsKey,
 		sidebarSections,
+		sections,
+		activeSection,
+		scrollToSection,
 	} = useSettingsPage({ onNavigate, enablePluginsSection: ENABLE_PLUGINS });
+
+	const [filter, setFilter] = useState("");
+	const query = filter.trim().toLowerCase();
+	const visibleSections = useMemo(
+		() =>
+			query === ""
+				? sections
+				: sections.filter((s) => s.label.toLowerCase().includes(query) || s.keywords.includes(query)),
+		[sections, query],
+	);
+	const visibleIds = useMemo(
+		() => new Set<string>(visibleSections.map((s) => s.id)),
+		[visibleSections],
+	);
+	const isVisible = useCallback((id: string) => visibleIds.has(id), [visibleIds]);
+	// Filtering hides sections (display:none), so the IntersectionObserver can leave
+	// activeSection pointing at a hidden one. Fall back to the first visible section
+	// so the TOC always highlights something actually on screen.
+	const activeVisibleSection = useMemo(
+		() => (visibleIds.has(activeSection) ? activeSection : (visibleSections[0]?.id ?? activeSection)),
+		[activeSection, visibleSections, visibleIds],
+	);
 
 	const handleShortcutOverride = useCallback(
 		async (id: string, displayKey: string) => {
@@ -125,139 +153,174 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 			headerShortcuts={[{ key: "?", label: "help" }]}
 			onRegisterToggleSidebar={onRegisterToggleSidebar}
 		>
-			<div className="h-full p-5 overflow-y-auto">
-				<GranularErrorBoundary
-					key={settingsKey}
-					message="Something went wrong in Settings."
-					onRetry={() => setSettingsKey((k) => k + 1)}
-				>
-					<div className="max-w-4xl mx-auto">
-						{controller.needsRestart && (
-							<div className="p-4 mb-6 border border-yellow-700 rounded bg-yellow-900/30">
-								<div className="mb-1 font-medium text-yellow-400">Restart Required</div>
-								<div className="text-sm text-yellow-300">
+			<div className="h-full overflow-y-auto">
+				<div className="mx-auto flex max-w-5xl gap-8 px-5 py-6">
+					<SettingsNav
+						className="sticky top-6 hidden self-start lg:block"
+						sections={visibleSections}
+						activeId={activeVisibleSection}
+						onSelect={scrollToSection}
+						filter={filter}
+						onFilterChange={setFilter}
+					/>
+					<div className="min-w-0 flex-1">
+						<h1 className="mb-6 text-2xl font-semibold text-text-bright">Settings</h1>
+						<GranularErrorBoundary
+							key={settingsKey}
+							message="Something went wrong in Settings."
+							onRetry={() => setSettingsKey((k) => k + 1)}
+						>
+							{controller.needsRestart && (
+								<Callout
+									variant="warning"
+									icon={<AlertTriangle className="h-5 w-5" />}
+									title="Restart Required"
+									className="mb-6"
+								>
 									Please restart the application for the log level changes to take effect.
-								</div>
+								</Callout>
+							)}
+
+							{visibleSections.length === 0 && (
+								<p className="text-sm text-text-dim">No settings match “{filter}”.</p>
+							)}
+
+							<div className={cn(!isVisible("general") && "hidden")}>
+								<GeneralSection
+									ref={generalRef}
+									systemInfo={controller.systemInfo}
+									keepInBackground={controller.keepInBackground}
+									startHidden={controller.startHidden}
+									linuxWindowMode={controller.linuxWindowMode}
+									onKeepInBackgroundToggle={controller.handlers.handleKeepInBackgroundToggle}
+									onStartHiddenToggle={controller.handlers.handleStartHiddenToggle}
+									onLinuxWindowModeToggle={controller.handlers.handleLinuxWindowModeToggle}
+								/>
 							</div>
-						)}
 
-						<GeneralSection
-							ref={generalRef}
-							systemInfo={controller.systemInfo}
-							keepInBackground={controller.keepInBackground}
-							startHidden={controller.startHidden}
-							linuxWindowMode={controller.linuxWindowMode}
-							onKeepInBackgroundToggle={controller.handlers.handleKeepInBackgroundToggle}
-							onStartHiddenToggle={controller.handlers.handleStartHiddenToggle}
-							onLinuxWindowModeToggle={controller.handlers.handleLinuxWindowModeToggle}
-						/>
+							<div className={cn(!isVisible("appearance") && "hidden")}>
+								<AppearanceSection
+									ref={appearanceRef}
+									platform={controller.platform}
+									appScale={controller.appScale}
+									onAppScaleChange={controller.handlers.handleAppScaleChange}
+									theme={theme}
+									onThemeChange={handleThemeChange}
+									linuxGraphicsMode={mergedGraphics.linuxMode}
+									onLinuxGraphicsModeChange={handleLinuxGraphicsModeChange}
+									sidebarVisible={sidebarVisible}
+									onSidebarVisibleChange={setSidebarVisible}
+									sidebarLoading={sidebarLoading}
+									showFooterHints={showFooterHints}
+									onShowFooterHintsChange={setShowFooterHints}
+									footerHintsLoading={footerHintsLoading}
+									showShortcutTooltips={showShortcutTooltips}
+									onShowShortcutTooltipsChange={setShowShortcutTooltips}
+									shortcutTooltipsLoading={shortcutTooltipsLoading}
+									tooltipHintsFeatureEnabled={tooltipHintsFeatureEnabled}
+								/>
+							</div>
 
-						<AppearanceSection
-							ref={appearanceRef}
-							platform={controller.platform}
-							appScale={controller.appScale}
-							onAppScaleChange={controller.handlers.handleAppScaleChange}
-							theme={theme}
-							onThemeChange={handleThemeChange}
-							linuxGraphicsMode={mergedGraphics.linuxMode}
-							onLinuxGraphicsModeChange={handleLinuxGraphicsModeChange}
-							sidebarVisible={sidebarVisible}
-							onSidebarVisibleChange={setSidebarVisible}
-							sidebarLoading={sidebarLoading}
-							showFooterHints={showFooterHints}
-							onShowFooterHintsChange={setShowFooterHints}
-							footerHintsLoading={footerHintsLoading}
-							showShortcutTooltips={showShortcutTooltips}
-							onShowShortcutTooltipsChange={setShowShortcutTooltips}
-							shortcutTooltipsLoading={shortcutTooltipsLoading}
-							tooltipHintsFeatureEnabled={tooltipHintsFeatureEnabled}
-						/>
+							{ENABLE_PLUGINS && (
+								<div className={cn(!isVisible("plugins") && "hidden")}>
+									<PluginsSection
+										ref={pluginsRef}
+										plugins={pluginSettings.plugins}
+										isLoading={pluginSettings.isLoading}
+										errorMessage={pluginSettings.errorMessage}
+										pluginDirectory={pluginSettings.pluginDirectory}
+										communityPluginsEnabled={pluginSettings.communityPluginsEnabled}
+										onReload={pluginSettings.reload}
+										onInstall={pluginSettings.installPlugin}
+										onToggleEnabled={pluginSettings.setPluginEnabled}
+										onUninstall={pluginSettings.uninstallPlugin}
+										onCommunityPluginsEnabledChange={pluginSettings.setCommunityPluginsEnabled}
+									/>
+								</div>
+							)}
 
-						{ENABLE_PLUGINS && (
-							<PluginsSection
-								ref={pluginsRef}
-								plugins={pluginSettings.plugins}
-								isLoading={pluginSettings.isLoading}
-								errorMessage={pluginSettings.errorMessage}
-								pluginDirectory={pluginSettings.pluginDirectory}
-								communityPluginsEnabled={pluginSettings.communityPluginsEnabled}
-								onReload={pluginSettings.reload}
-								onInstall={pluginSettings.installPlugin}
-								onToggleEnabled={pluginSettings.setPluginEnabled}
-								onUninstall={pluginSettings.uninstallPlugin}
-								onCommunityPluginsEnabledChange={pluginSettings.setCommunityPluginsEnabled}
-							/>
-						)}
+							<div className={cn(!isVisible("database") && "hidden")}>
+								<DatabaseSection
+									ref={databaseRef}
+									systemInfo={controller.systemInfo}
+									isReindexing={controller.isReindexing}
+									reindexProgress={controller.reindexProgress}
+									onReindex={controller.handlers.handleRequestReindex}
+								/>
+							</div>
 
-						<DatabaseSection
-							ref={databaseRef}
-							systemInfo={controller.systemInfo}
-							isReindexing={controller.isReindexing}
-							reindexProgress={controller.reindexProgress}
-							onReindex={controller.handlers.handleRequestReindex}
-						/>
+							<div className={cn(!isVisible("shortcuts") && "hidden")}>
+								<ShortcutsSection
+									ref={shortcutsRef}
+									platform={controller.platform}
+									hotkeyConfig={controller.hotkeyConfig}
+									onHotkeyConfigChange={controller.handlers.handleHotkeyConfigChange}
+									hotkeyError={controller.hotkeyError}
+									shortcuts={shortcutsForSettings}
+									onShortcutOverride={handleShortcutOverride}
+								/>
+							</div>
 
-						<ShortcutsSection
-							ref={shortcutsRef}
-							platform={controller.platform}
-							hotkeyConfig={controller.hotkeyConfig}
-							onHotkeyConfigChange={controller.handlers.handleHotkeyConfigChange}
-							hotkeyError={controller.hotkeyError}
-							shortcuts={shortcutsForSettings}
-							onShortcutOverride={handleShortcutOverride}
-						/>
+							<div className={cn(!isVisible("logging") && "hidden")}>
+								<LoggingSection
+									ref={loggingRef}
+									systemInfo={controller.systemInfo}
+									logLevelOptions={controller.logLevelOptions}
+									onLogLevelChange={controller.handlers.handleLogLevelChange}
+								/>
+							</div>
 
-						<LoggingSection
-							ref={loggingRef}
-							systemInfo={controller.systemInfo}
-							logLevelOptions={controller.logLevelOptions}
-							onLogLevelChange={controller.handlers.handleLogLevelChange}
-						/>
+							<div className={cn(!isVisible("backup") && "hidden")}>
+								<BackupSection
+									ref={backupRef}
+									backupEnabled={controller.backupConfig.Enabled}
+									maxBackups={controller.backupConfig.MaxBackups}
+									backups={controller.backups}
+									onBackupToggle={controller.handlers.handleBackupToggle}
+									onMaxBackupsChange={controller.handlers.handleMaxBackupsChange}
+									onRestore={controller.handlers.handleRestoreBackup}
+									onDelete={controller.handlers.handleDeleteBackup}
+								/>
+							</div>
 
-						<BackupSection
-							ref={backupRef}
-							backupEnabled={controller.backupConfig.Enabled}
-							maxBackups={controller.backupConfig.MaxBackups}
-							backups={controller.backups}
-							onBackupToggle={controller.handlers.handleBackupToggle}
-							onMaxBackupsChange={controller.handlers.handleMaxBackupsChange}
-							onRestore={controller.handlers.handleRestoreBackup}
-							onDelete={controller.handlers.handleDeleteBackup}
-						/>
+							<div className={cn(!isVisible("sync") && "hidden")}>
+								<GitSyncSection
+									ref={syncRef}
+									gitInstalled={controller.gitInstalled}
+									currentDataDir={controller.currentDataDir}
+									migrationTarget={controller.migrationTarget}
+									setMigrationTarget={controller.setMigrationTarget}
+									isMigrating={controller.isMigrating}
+									migrationProgress={controller.migrationProgress}
+									dataDirOverridden={controller.dataDirOverridden}
+									dataDirEnvVar={controller.dataDirEnvVar}
+									gitSyncEnabled={controller.gitSync.enabled}
+									commitInterval={controller.gitSync.commitInterval}
+									autoPush={controller.gitSync.autoPush}
+									branch={controller.gitSync.branch}
+									branches={controller.gitBranches}
+									currentBranch={controller.currentGitBranch}
+									commitIntervalOptions={controller.commitIntervalOptions}
+									gitStatus={gitStatus}
+									gitStatusLoading={gitStatusLoading}
+									onGitSyncToggle={controller.handlers.handleGitSyncToggle}
+									onCommitIntervalChange={controller.handlers.handleCommitIntervalChange}
+									onAutoPushToggle={controller.handlers.handleAutoPushToggle}
+									onBranchChange={controller.handlers.handleBranchChange}
+									onPickDirectory={controller.handlers.handlePickDirectory}
+									onMigration={controller.handlers.handleMigration}
+									onSyncNow={controller.handlers.handleSyncNow}
+									syncNowInFlight={controller.syncNowInFlight}
+									onRefreshStatus={refreshGitStatus}
+								/>
+							</div>
 
-						<GitSyncSection
-							ref={syncRef}
-							gitInstalled={controller.gitInstalled}
-							currentDataDir={controller.currentDataDir}
-							migrationTarget={controller.migrationTarget}
-							setMigrationTarget={controller.setMigrationTarget}
-							isMigrating={controller.isMigrating}
-							migrationProgress={controller.migrationProgress}
-							dataDirOverridden={controller.dataDirOverridden}
-							dataDirEnvVar={controller.dataDirEnvVar}
-							gitSyncEnabled={controller.gitSync.enabled}
-							commitInterval={controller.gitSync.commitInterval}
-							autoPush={controller.gitSync.autoPush}
-							branch={controller.gitSync.branch}
-							branches={controller.gitBranches}
-							currentBranch={controller.currentGitBranch}
-							commitIntervalOptions={controller.commitIntervalOptions}
-							gitStatus={gitStatus}
-							gitStatusLoading={gitStatusLoading}
-							onGitSyncToggle={controller.handlers.handleGitSyncToggle}
-							onCommitIntervalChange={controller.handlers.handleCommitIntervalChange}
-							onAutoPushToggle={controller.handlers.handleAutoPushToggle}
-							onBranchChange={controller.handlers.handleBranchChange}
-							onPickDirectory={controller.handlers.handlePickDirectory}
-							onMigration={controller.handlers.handleMigration}
-							onSyncNow={controller.handlers.handleSyncNow}
-							syncNowInFlight={controller.syncNowInFlight}
-							onRefreshStatus={refreshGitStatus}
-						/>
-
-						<AboutSection ref={aboutRef} systemInfo={controller.systemInfo} />
+							<div className={cn(!isVisible("about") && "hidden")}>
+								<AboutSection ref={aboutRef} systemInfo={controller.systemInfo} />
+							</div>
+						</GranularErrorBoundary>
 					</div>
-				</GranularErrorBoundary>
+				</div>
 			</div>
 
 			<ConfirmDialog
