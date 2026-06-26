@@ -30,7 +30,11 @@ jobs:
     - name: Prepare release files
       run: |
         mkdir -p release
-        find artifacts -type f -exec cp {} release/ \;
+        # Exclude the unsigned MSIX: it is for Microsoft Store (Partner Center)
+        # submission only, where the Store re-signs it. An unsigned .msix can't be
+        # installed via direct download, so it must not be a GitHub Release asset.
+        # It remains available as the `windows-msix` workflow artifact.
+        find artifacts -type f ! -name '*.msix' -exec cp {} release/ \;
         echo "=== Release files ==="
         ls -lh release/
 

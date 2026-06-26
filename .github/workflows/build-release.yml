@@ -103,6 +103,20 @@ jobs:
         task release:windows
         task release:list
 
+    - name: Build Windows MSIX
+      if: matrix.name == 'windows'
+      shell: powershell
+      env:
+        # Partner Center identity. When unset (forks/PRs, or before reservation)
+        # a placeholder identity is used and the .msix is local-test-only.
+        # See docs/RELEASE-WINDOWS-MSIX.md.
+        MSIX_IDENTITY_NAME: ${{ secrets.MSIX_IDENTITY_NAME }}
+        MSIX_PUBLISHER: ${{ secrets.MSIX_PUBLISHER }}
+        MSIX_PUBLISHER_DISPLAY: ${{ secrets.MSIX_PUBLISHER_DISPLAY }}
+      run: |
+        task release:windows:msix
+        task release:list
+
     - name: Build macOS artifacts
       if: matrix.name == 'macos'
       env:
@@ -158,6 +172,18 @@ jobs:
         name: windows-installer${{ inputs.artifact_suffix }}
         path: build/dist/yanta-windows-installer.exe
         if-no-files-found: error
+
+    - name: Upload Windows MSIX
+      if: matrix.name == 'windows'
+      uses: actions/upload-artifact@v6
+      with:
+        name: windows-msix${{ inputs.artifact_suffix }}
+        path: build/dist/yanta-windows-*.msix
+        # warn (not error): skipped for non-release/prerelease tags or when the
+        # Windows SDK is unavailable. The unsigned .msix is for Microsoft Store
+        # (Partner Center) submission only and is NOT attached to the GitHub
+        # Release (see release.yml) since unsigned packages can't be sideloaded.
+        if-no-files-found: warn
 
     - name: Upload macOS app
       if: matrix.name == 'macos'

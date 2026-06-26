@@ -240,6 +240,11 @@ tasks:
     cmds:
       - task: release:all
 
+  package:msix:
+    summary: Package the built Windows binary as a Microsoft Store MSIX (Windows-only)
+    cmds:
+      - task: release:windows:msix
+
   # ============================================================================
   # Testing
   # Note: Test tasks are available via the `test` namespace
@@ -282,6 +287,7 @@ tasks:
       - '{{if eq OS "windows"}}powershell -NoProfile -Command "if (Test-Path ''{{.BIN_DIR}}'') { Remove-Item -Recurse -Force ''{{.BIN_DIR}}'' }"{{else}}rm -rf "{{.BIN_DIR}}"{{end}}'
       - '{{if eq OS "windows"}}powershell -NoProfile -Command "if (Test-Path ''{{.DIST_DIR}}'') { Remove-Item -Recurse -Force ''{{.DIST_DIR}}'' }"{{else}}rm -rf "{{.DIST_DIR}}"{{end}}'
       - '{{if eq OS "windows"}}powershell -NoProfile -Command "if (Test-Path ''.gocache'') { Remove-Item -Recurse -Force ''.gocache'' }"{{else}}rm -rf ".gocache"{{end}}'
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "if (Test-Path ''build/windows/msix/staged'') { Remove-Item -Recurse -Force ''build/windows/msix/staged'' }"{{else}}rm -rf "build/windows/msix/staged"{{end}}'
       - task: test:clean
       - task: common:log:success
         vars:
