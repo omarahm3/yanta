@@ -184,6 +184,14 @@ function Find-SdkTool {
 
 $makeappx = Find-SdkTool "makeappx.exe"
 if (-not $makeappx) {
+    # We only get here for a clean X.Y.Z release version (dev/prerelease tags
+    # already returned above). On a release build the Windows SDK MUST be
+    # present, so MSIX_REQUIRE_FOR_RELEASE=1 turns a missing SDK into a hard
+    # failure rather than silently publishing a release with no MSIX.
+    if ($env:MSIX_REQUIRE_FOR_RELEASE -eq '1') {
+        Write-Error "MSIX: makeappx.exe (Windows SDK) not found, but this is a release build (MSIX_REQUIRE_FOR_RELEASE=1). Failing so the release is not published without an MSIX. Ensure the Windows SDK is installed on the runner."
+        exit 1
+    }
     Write-Warning "MSIX: makeappx.exe (Windows SDK) not found - skipping MSIX packaging."
     Write-Warning "      Install the Windows SDK to enable it: winget install Microsoft.WindowsSDK"
     exit 0

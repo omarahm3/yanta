@@ -103,20 +103,6 @@ jobs:
         task release:windows
         task release:list
 
-    - name: Build Windows MSIX
-      if: matrix.name == 'windows'
-      shell: powershell
-      env:
-        # Partner Center identity. When unset (forks/PRs, or before reservation)
-        # a placeholder identity is used and the .msix is local-test-only.
-        # See docs/RELEASE-WINDOWS-MSIX.md.
-        MSIX_IDENTITY_NAME: ${{ secrets.MSIX_IDENTITY_NAME }}
-        MSIX_PUBLISHER: ${{ secrets.MSIX_PUBLISHER }}
-        MSIX_PUBLISHER_DISPLAY: ${{ secrets.MSIX_PUBLISHER_DISPLAY }}
-      run: |
-        task release:windows:msix
-        task release:list
-
     - name: Build macOS artifacts
       if: matrix.name == 'macos'
       env:
@@ -173,16 +159,38 @@ jobs:
         path: build/dist/yanta-windows-installer.exe
         if-no-files-found: error
 
+    # Built AFTER the portable/installer uploads so a problem here can never
+    # strip the core Windows artifacts from the run. Reuses build/bin/yanta.exe
+    # produced by `task release:windows` above (no rebuild, no second NSIS run).
+    - name: Build Windows MSIX
+      if: matrix.name == 'windows'
+      shell: powershell
+      env:
+        # Partner Center identity. When unset (forks/PRs, or before reservation)
+        # a placeholder identity is used and the .msix is local-test-only.
+        # See docs/RELEASE-WINDOWS-MSIX.md.
+        MSIX_IDENTITY_NAME: ${{ secrets.MSIX_IDENTITY_NAME }}
+        MSIX_PUBLISHER: ${{ secrets.MSIX_PUBLISHER }}
+        MSIX_PUBLISHER_DISPLAY: ${{ secrets.MSIX_PUBLISHER_DISPLAY }}
+        # On a clean X.Y.Z release tag, a missing Windows SDK is a HARD failure
+        # so we never publish a release without the MSIX. dev/prerelease/test
+        # versions are skipped by the script before this gate is reached.
+        MSIX_REQUIRE_FOR_RELEASE: '1'
+      run: |
+        task release:windows:msix
+        task release:list
+
     - name: Upload Windows MSIX
       if: matrix.name == 'windows'
       uses: actions/upload-artifact@v6
       with:
         name: windows-msix${{ inputs.artifact_suffix }}
         path: build/dist/yanta-windows-*.msix
-        # warn (not error): skipped for non-release/prerelease tags or when the
-        # Windows SDK is unavailable. The unsigned .msix is for Microsoft Store
-        # (Partner Center) submission only and is NOT attached to the GitHub
-        # Release (see release.yml) since unsigned packages can't be sideloaded.
+        # warn (not error): only prerelease/test versions intentionally produce
+        # no MSIX. On a clean release tag the Build step above already guarantees
+        # the file exists (or fails the job). The unsigned .msix is for Microsoft
+        # Store (Partner Center) submission only and is NOT attached to the
+        # GitHub Release (see release.yml) since unsigned packages can't sideload.
         if-no-files-found: warn
 
     - name: Upload macOS app
