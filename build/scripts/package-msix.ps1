@@ -52,9 +52,13 @@ Write-Section "Packaging Windows MSIX"
 # leading 'v' (CI sets YANTA_VERSION to the raw tag "v2.3.0") and rejects any
 # version that is not a clean 3-part release.
 function Resolve-MsixVersion {
+    # Track the value we actually resolved (env var, or the git-describe
+    # fallback) so the skip warning below reports what really failed validation.
+    $script:rawVersionSource = $env:YANTA_VERSION
     $raw = $env:YANTA_VERSION
     if ([string]::IsNullOrWhiteSpace($raw)) {
         try { $raw = (git describe --tags --abbrev=0 2>$null) } catch { $raw = $null }
+        $script:rawVersionSource = $raw
     }
     if ([string]::IsNullOrWhiteSpace($raw)) { return $null }
     $v = $raw.Trim()
@@ -68,7 +72,7 @@ function Resolve-MsixVersion {
 
 $version = Resolve-MsixVersion
 if (-not $version) {
-    Write-Warning "MSIX: '$($env:YANTA_VERSION)' is not a clean X.Y.Z release tag - skipping MSIX packaging."
+    Write-Warning "MSIX: '$script:rawVersionSource' is not a clean X.Y.Z release tag - skipping MSIX packaging."
     exit 0
 }
 Write-Host "MSIX: package version = $version"
