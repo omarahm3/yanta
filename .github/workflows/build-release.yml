@@ -166,12 +166,8 @@ jobs:
       if: matrix.name == 'windows'
       shell: powershell
       env:
-        # Partner Center identity. When unset (forks/PRs, or before reservation)
-        # a placeholder identity is used and the .msix is local-test-only.
-        # See docs/RELEASE-WINDOWS-MSIX.md.
-        MSIX_IDENTITY_NAME: ${{ secrets.MSIX_IDENTITY_NAME }}
-        MSIX_PUBLISHER: ${{ secrets.MSIX_PUBLISHER }}
-        MSIX_PUBLISHER_DISPLAY: ${{ secrets.MSIX_PUBLISHER_DISPLAY }}
+        # Package identity is committed in build/scripts/package-msix.ps1 (public
+        # Partner Center values), so no secrets are required here.
         # On a clean X.Y.Z release tag, a missing Windows SDK is a HARD failure
         # so we never publish a release without the MSIX. dev/prerelease/test
         # versions are skipped by the script before this gate is reached.

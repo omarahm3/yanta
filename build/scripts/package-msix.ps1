@@ -73,17 +73,15 @@ if (-not $version) {
 }
 Write-Host "MSIX: package version = $version"
 
-# --- 2. Identity (from Partner Center via env, else placeholder) ------------
-$identityName     = if ($env:MSIX_IDENTITY_NAME)    { $env:MSIX_IDENTITY_NAME }    else { "OmarAhmed.YANTA" }
-$publisher        = if ($env:MSIX_PUBLISHER)        { $env:MSIX_PUBLISHER }        else { "CN=Omar Ahmed" }
-$publisherDisplay = if ($env:MSIX_PUBLISHER_DISPLAY){ $env:MSIX_PUBLISHER_DISPLAY }else { "Omar Ahmed" }
-$usingPlaceholder = [string]::IsNullOrWhiteSpace($env:MSIX_PUBLISHER)
-if ($usingPlaceholder) {
-    Write-Warning "MSIX: using PLACEHOLDER identity (Publisher=$publisher)."
-    Write-Warning "      This package is for LOCAL TESTING ONLY and will be REJECTED by the Store."
-    Write-Warning "      Set MSIX_IDENTITY_NAME / MSIX_PUBLISHER / MSIX_PUBLISHER_DISPLAY from your"
-    Write-Warning "      Partner Center reservation to produce a submittable package."
-}
+# --- 2. Identity (from Partner Center) --------------------------------------
+# These values are PUBLIC - they are embedded in every MSIX shipped via the
+# Store - so they are committed here as defaults. CI always produces a
+# submittable package and no GitHub secrets are needed. Override via env vars
+# only if the reservation changes. Store listing: https://apps.microsoft.com/detail/9NR6P54BQ2MX
+$identityName     = if ($env:MSIX_IDENTITY_NAME)    { $env:MSIX_IDENTITY_NAME }    else { "mrg.sh.YANTA" }
+$publisher        = if ($env:MSIX_PUBLISHER)        { $env:MSIX_PUBLISHER }        else { "CN=F134865B-E079-4FB3-8739-256A63629523" }
+$publisherDisplay = if ($env:MSIX_PUBLISHER_DISPLAY){ $env:MSIX_PUBLISHER_DISPLAY }else { "mrg.sh" }
+Write-Host "MSIX: identity Name=$identityName Publisher=$publisher"
 
 # --- 3. Verify the built binary --------------------------------------------
 $exe = Join-Path $BinDir "$AppName.exe"

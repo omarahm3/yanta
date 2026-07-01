@@ -74,6 +74,11 @@ frontend/bindings/*
 /progress.md
 /task_plan.md
 
+# Local knowledge-graph / memory / smallcode agent databases (never tracked)
+.code-graph/
+.memory/
+.smallcode/
+
 # Other AI coding assistants
 .cursor/
 .cursorrules
