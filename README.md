@@ -5,7 +5,7 @@
 
 **Yet Another Note Taking App**
 
-A fast, keyboard-driven note-taking app built for developers.
+A fast, keyboard-driven note-taking app for people who'd rather type than click.
 
 [![Release](https://img.shields.io/github/v/release/omarahm3/yanta?style=flat-square)](https://github.com/omarahm3/yanta/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue?style=flat-square)](https://github.com/omarahm3/yanta/releases)
@@ -120,5 +120,5 @@ MIT License - See [LICENSE](LICENSE)
 ---
 
 <div align="center">
-  Built for developers who think better when they write things down.
+  Built for anyone who thinks better with their hands on the keyboard.
 </div>
