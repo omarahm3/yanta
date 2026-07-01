@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MSIX package manifest TEMPLATE for the Microsoft Store build of YANTA.
+
+  This is NOT used directly. build/scripts/package-msix.ps1 substitutes the
+  @PLACEHOLDER@ tokens at package time and writes the result into the staged
+  layout as AppxManifest.xml.
+
+  Placeholders (the first three come from YOUR Partner Center reservation —
+  Partner Center > Product > Product identity):
+    @IDENTITY_NAME@    -> Identity/@Name           (e.g. 1234OmarAhmed.YANTA)
+    @PUBLISHER@        -> Identity/@Publisher       (e.g. CN=ABCD1234-...-EF, exact string)
+    @PUBLISHER_DISPLAY@-> Properties/PublisherDisplayName (e.g. Omar Ahmed)
+    @VERSION@          -> Identity/@Version         (4-part X.Y.Z.0, generated from the git tag)
+
+  Model: packaged full-trust Win32 desktop app (Desktop Bridge).
+    - EntryPoint="Windows.FullTrustApplication" runs the unmodified yanta.exe.
+    - rescap:runFullTrust is REQUIRED for global hotkeys (Win32 RegisterHotKey),
+      arbitrary filesystem access (~/.yanta, git sync) and WebView2.
+      NOTE: runFullTrust is a *restricted* capability — you must justify it in
+      the Partner Center submission and Microsoft must approve it.
+    - WebView2 is NOT bundled. We rely on the Evergreen WebView2 Runtime
+      (in-box on Windows 11; serviced via Edge on Windows 10).
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap rescap">
+
+  <Identity
+    Name="@IDENTITY_NAME@"
+    Publisher="@PUBLISHER@"
+    Version="@VERSION@"
+    ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>YANTA</DisplayName>
+    <PublisherDisplayName>@PUBLISHER_DISPLAY@</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <!-- 10.0.17763.0 = Windows 10 1809, a safe WebView2-capable floor. -->
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.22621.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="YANTA" Executable="yanta.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="YANTA"
+        Description="Yet Another Note Taking App - A lightning-fast note-taking app for developers, inspired by Neovim"
+        BackgroundColor="#1E1E2E"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile
+          ShortName="YANTA"
+          Square71x71Logo="Assets\Square71x71Logo.png"
+          Square310x310Logo="Assets\Square310x310Logo.png"
+          Wide310x150Logo="Assets\Wide310x150Logo.png">
+          <uap:ShowNameOnTiles>
+            <uap:ShowOn Tile="square150x150Logo" />
+            <uap:ShowOn Tile="wide310x150Logo" />
+          </uap:ShowNameOnTiles>
+        </uap:DefaultTile>
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <Capability Name="internetClient" />
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+
+</Package>
