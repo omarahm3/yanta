@@ -1,5 +1,5 @@
 import { AlertTriangle } from "lucide-react";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GranularErrorBoundary, Layout } from "@/app";
 import { ENABLE_PLUGINS } from "@/config/featureFlags";
 import {
@@ -77,7 +77,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		sidebarSections,
 		sections,
 		activeSection,
-		scrollToSection,
+		selectSection,
 	} = useSettingsPage({ onNavigate, enablePluginsSection: ENABLE_PLUGINS });
 
 	const [filter, setFilter] = useState("");
@@ -93,14 +93,21 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		() => new Set<string>(visibleSections.map((s) => s.id)),
 		[visibleSections],
 	);
-	const isVisible = useCallback((id: string) => visibleIds.has(id), [visibleIds]);
-	// Filtering hides sections (display:none), so the IntersectionObserver can leave
-	// activeSection pointing at a hidden one. Fall back to the first visible section
-	// so the TOC always highlights something actually on screen.
+	// If the filter hides the active section, fall back to the first match so the
+	// pane always shows something that's still in the (filtered) nav.
 	const activeVisibleSection = useMemo(
 		() => (visibleIds.has(activeSection) ? activeSection : (visibleSections[0]?.id ?? activeSection)),
 		[activeSection, visibleSections, visibleIds],
 	);
+	// Master-detail: only the active section renders (null when nothing matches).
+	const shownSection = visibleSections.length > 0 ? activeVisibleSection : null;
+	const isVisible = useCallback((id: string) => shownSection === id, [shownSection]);
+
+	// Reset the pane to the top whenever the section changes.
+	const scrollRef = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		if (scrollRef.current) scrollRef.current.scrollTop = 0;
+	}, [shownSection]);
 
 	const handleShortcutOverride = useCallback(
 		async (id: string, displayKey: string) => {
@@ -155,18 +162,41 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 			headerShortcuts={[{ key: "?", label: "help" }]}
 			onRegisterToggleSidebar={onRegisterToggleSidebar}
 		>
-			<div className="h-full overflow-y-auto">
+			<div ref={scrollRef} className="h-full overflow-y-auto">
 				<div className="mx-auto flex max-w-5xl gap-8 px-5 py-6">
 					<SettingsNav
 						className="sticky top-6 hidden self-start lg:block"
 						sections={visibleSections}
 						activeId={activeVisibleSection}
-						onSelect={scrollToSection}
+						onSelect={selectSection}
 						filter={filter}
 						onFilterChange={setFilter}
 					/>
 					<div className="min-w-0 flex-1">
 						<h1 className="mb-6 text-2xl font-semibold text-text-bright">Settings</h1>
+
+						{/* Narrow-width section switcher (the sidebar nav is desktop-only) */}
+						<nav
+							className="mb-6 flex gap-1 overflow-x-auto pb-1 lg:hidden"
+							aria-label="Settings sections"
+						>
+							{visibleSections.map((s) => (
+								<button
+									key={s.id}
+									type="button"
+									onClick={() => selectSection(s.id)}
+									aria-current={s.id === activeVisibleSection ? "true" : undefined}
+									className={cn(
+										"shrink-0 rounded-md px-3 py-1.5 text-sm transition-colors",
+										s.id === activeVisibleSection
+											? "bg-accent/12 font-medium text-accent"
+											: "text-text-dim hover:bg-accent/8 hover:text-text",
+									)}
+								>
+									{s.label}
+								</button>
+							))}
+						</nav>
 						<GranularErrorBoundary
 							key={settingsKey}
 							message="Something went wrong in Settings."
