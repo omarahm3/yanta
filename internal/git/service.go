@@ -136,7 +136,9 @@ func (s *Service) IsRepository(path string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("checking .git directory: %w", err)
 	}
-	return info.IsDir(), nil
+	// A normal repo has a .git directory; a linked worktree or submodule has a
+	// .git file that points at the real git dir. Accept both.
+	return info.IsDir() || info.Mode().IsRegular(), nil
 }
 
 func (s *Service) Init(ctx context.Context, path string) error {
@@ -213,6 +215,9 @@ func (s *Service) AddAll(ctx context.Context, path string) error {
 }
 
 func (s *Service) Commit(ctx context.Context, path, message string) error {
+	if err := s.validateRepoPath(path); err != nil {
+		return fmt.Errorf("git commit: %w", err)
+	}
 	s.ensureLFConfig(ctx, path)
 
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -246,6 +251,9 @@ func (s *Service) Commit(ctx context.Context, path, message string) error {
 }
 
 func (s *Service) SetRemote(ctx context.Context, path, name, url string) error {
+	if err := s.validateRepoPath(path); err != nil {
+		return fmt.Errorf("git remote: %w", err)
+	}
 	s.ensureLFConfig(ctx, path)
 
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -281,6 +289,9 @@ func (s *Service) SetRemote(ctx context.Context, path, name, url string) error {
 var ErrNonFastForward = fmt.Errorf("non-fast-forward: remote branch is ahead")
 
 func (s *Service) Push(ctx context.Context, path, remote, branch string) error {
+	if err := s.validateRepoPath(path); err != nil {
+		return fmt.Errorf("git push: %w", err)
+	}
 	s.ensureLFConfig(ctx, path)
 
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -496,6 +507,9 @@ func (s *Service) GetLastCommitHash(ctx context.Context, path string) (string, e
 }
 
 func (s *Service) Pull(ctx context.Context, path, remote, branch string) error {
+	if err := s.validateRepoPath(path); err != nil {
+		return fmt.Errorf("git pull: %w", err)
+	}
 	s.ensureLFConfig(ctx, path)
 
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -590,7 +604,9 @@ func (s *Service) Stash(ctx context.Context, path string) error {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	cmd := s.newGitCmd(ctx, path, "stash", "push", "-m", "auto-stash before pull")
+	// -u includes untracked files, so brand-new notes are protected during a
+	// pull too (without it, untracked files are left in the working tree).
+	cmd := s.newGitCmd(ctx, path, "stash", "push", "-u", "-m", "auto-stash before pull")
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -915,6 +931,33 @@ func (s *Service) ensureLFConfig(ctx context.Context, path string) {
 			logger.WithError(err).Warnf("failed to set git config %s", cfg[0])
 		}
 	}
+
+	s.ensureIdentity(ctx, cleanPath)
+}
+
+// ensureIdentity sets a repo-local commit identity ONLY if the user has none
+// configured anywhere. Without this, auto-commit fails outright on a machine
+// with no global git identity — a silent stall for a background syncer. We
+// never override an existing (e.g. global) identity, and we scope ours to the
+// repo so it can't leak into the user's other projects.
+func (s *Service) ensureIdentity(ctx context.Context, path string) {
+	if s.hasIdentity(ctx, path) {
+		return
+	}
+	if err := s.setGitConfig(ctx, path, "user.name", "YANTA"); err != nil {
+		logger.WithError(err).Warn("failed to set fallback git user.name")
+	}
+	if err := s.setGitConfig(ctx, path, "user.email", "yanta@localhost"); err != nil {
+		logger.WithError(err).Warn("failed to set fallback git user.email")
+	}
+}
+
+// hasIdentity reports whether a commit identity is resolvable (from any scope).
+func (s *Service) hasIdentity(ctx context.Context, path string) bool {
+	cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	out, err := s.newGitCmd(cctx, path, "config", "user.email").Output()
+	return err == nil && strings.TrimSpace(string(out)) != ""
 }
 
 func (s *Service) setGitConfig(ctx context.Context, path, key, value string) error {
