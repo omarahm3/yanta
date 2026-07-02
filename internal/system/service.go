@@ -518,33 +518,9 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 		Message: "No changes to sync",
 	}
 
-	if hasRemote {
-		logger.Info("fetching from remote")
-		if err := gitService.Fetch(ctx, dataDir, "origin"); err != nil {
-			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-				return nil, normalizeGitTimeoutError(ctx, err, "sync")
-			}
-			logger.WithError(err).Warn("fetch failed, continuing with local sync")
-		}
-
-		logger.Info("pulling from remote")
-		if err := gitService.Pull(ctx, dataDir, "origin", branch); err != nil {
-			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-				return nil, normalizeGitTimeoutError(ctx, err, "sync")
-			}
-			errStr := err.Error()
-			if strings.Contains(errStr, "MERGE_CONFLICT") {
-				return &git.SyncResult{
-					Status:  git.SyncStatusConflict,
-					Message: "Merge conflict detected. Please resolve conflicts manually.",
-				}, fmt.Errorf("%w", err)
-			}
-			logger.WithError(err).Warn("pull failed, continuing with local changes")
-		} else {
-			result.Pulled = true
-		}
-	}
-
+	// 1) Commit local changes FIRST. This keeps the same safe ordering as the
+	//    automatic path: we never rebase/merge into a dirty working tree, and
+	//    the reconcile below is always a clean rebase.
 	logger.Info("staging changes")
 	if err := gitService.AddAll(ctx, dataDir); err != nil {
 		return nil, normalizeGitTimeoutError(ctx, fmt.Errorf("STAGING_FAILED:\nFailed to stage changes: %v\n\nDirectory: %s", err, dataDir), "sync")
@@ -555,70 +531,89 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 		return nil, normalizeGitTimeoutError(ctx, fmt.Errorf("STATUS_FAILED:\nFailed to read git status: %v\n\nDirectory: %s", err, dataDir), "sync")
 	}
 
-	if status.Clean {
-		logger.Info("no local changes to commit")
-		if result.Pulled {
-			result.Status = git.SyncStatusUpToDate
-			result.Message = "Already in sync with remote"
+	committed := false
+	filesChanged := 0
+	if !status.Clean {
+		filesChanged = len(status.Staged) + len(status.Modified) + len(status.Untracked)
+		result.FilesChanged = filesChanged
+		commitMsg := fmt.Sprintf("sync: %d file(s) at %s", filesChanged, time.Now().Format("2006-01-02 15:04:05"))
+		if err := gitService.Commit(ctx, dataDir, commitMsg); err != nil {
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				return nil, normalizeGitTimeoutError(ctx, err, "sync")
+			}
+			if !strings.Contains(err.Error(), "nothing to commit") {
+				return nil, fmt.Errorf("COMMIT_FAILED:\nFailed to commit changes: %v\n\nDirectory: %s", err, dataDir)
+			}
+		} else {
+			committed = true
+			commitHash, _ := gitService.GetLastCommitHash(ctx, dataDir)
+			result.CommitHash = commitHash
+			result.Status = git.SyncStatusCommitted
+			result.Message = fmt.Sprintf("Committed %d file(s)", filesChanged)
+		}
+	}
+
+	if !hasRemote {
+		if committed {
+			logger.Info("no remote configured, commit saved locally")
+			result.Message = fmt.Sprintf("Committed %d file(s) locally (no remote configured)", filesChanged)
 		}
 		return result, nil
 	}
 
-	filesChanged := len(status.Staged) + len(status.Modified) + len(status.Untracked)
-	result.FilesChanged = filesChanged
-
-	logger.WithFields(map[string]any{
-		"staged":    len(status.Staged),
-		"modified":  len(status.Modified),
-		"untracked": len(status.Untracked),
-		"total":     filesChanged,
-	}).Debug("changes to commit")
-
-	logger.Info("committing changes")
-	commitMsg := fmt.Sprintf("sync: %d file(s) at %s", filesChanged, time.Now().Format("2006-01-02 15:04:05"))
-	if err := gitService.Commit(ctx, dataDir, commitMsg); err != nil {
+	// 2) Integrate remote changes with a REBASE (never a merge — a merge could
+	//    leave conflict markers on disk). PullRebase aborts cleanly on conflict.
+	logger.Info("integrating remote changes (rebase)")
+	if err := gitService.PullRebase(ctx, dataDir, "origin", branch); err != nil {
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-			return nil, normalizeGitTimeoutError(ctx, err, "sync")
+			return result, normalizeGitTimeoutError(ctx, err, "sync")
 		}
-		if strings.Contains(err.Error(), "nothing to commit") {
-			logger.Info("nothing to commit after staging")
-			result.Status = git.SyncStatusNoChanges
-			result.Message = "No changes to sync"
-			return result, nil
+		errStr := err.Error()
+		if strings.HasPrefix(errStr, "REBASE_CONFLICT:") {
+			return &git.SyncResult{
+				Status:  git.SyncStatusConflict,
+				Message: "A merge conflict needs manual resolution. Your local changes are committed and safe.",
+			}, fmt.Errorf("%w", err)
 		}
-		return nil, fmt.Errorf("COMMIT_FAILED:\nFailed to commit changes: %v\n\nDirectory: %s", err, dataDir)
-	}
-
-	commitHash, _ := gitService.GetLastCommitHash(ctx, dataDir)
-	result.CommitHash = commitHash
-	result.Status = git.SyncStatusCommitted
-	result.Message = fmt.Sprintf("Committed %d file(s)", filesChanged)
-
-	if hasRemote {
-		logger.Info("pushing to remote")
-		if err := gitService.Push(ctx, dataDir, "origin", branch); err != nil {
-			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-				return result, normalizeGitTimeoutError(ctx, err, "sync")
-			}
-			errStr := err.Error()
+		// A missing upstream branch (the very first push) is expected — fall
+		// through to the push below, which will create it.
+		if !strings.Contains(errStr, "couldn't find remote ref") &&
+			!strings.Contains(errStr, "no such ref") &&
+			!strings.Contains(errStr, "unknown revision") {
 			result.Status = git.SyncStatusPushFailed
 			result.PushError = errStr
-			result.Message = fmt.Sprintf("Committed %d file(s) locally, but push failed", filesChanged)
-			logger.WithError(err).Error("push failed after successful commit")
-			return result, fmt.Errorf("PUSH_FAILED:\nCommit successful but push failed: %v\n\nYour changes are saved locally.\nTry 'Git Push' again when network is available.", err)
+			result.Message = "Could not fetch remote changes"
+			return result, fmt.Errorf("SYNC_FAILED:\nCould not integrate remote changes: %v\n\nYour local changes are committed and safe.", err)
 		}
-
-		result.Status = git.SyncStatusSynced
-		result.Message = fmt.Sprintf("Synced %d file(s) to remote", filesChanged)
-		logger.WithFields(map[string]any{
-			"files":  filesChanged,
-			"commit": commitHash,
-		}).Info("sync completed successfully")
 	} else {
-		logger.Info("no remote configured, commit saved locally")
-		result.Message = fmt.Sprintf("Committed %d file(s) locally (no remote configured)", filesChanged)
+		result.Pulled = true
 	}
 
+	// 3) Publish local commits.
+	logger.Info("pushing to remote")
+	if err := gitService.Push(ctx, dataDir, "origin", branch); err != nil {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return result, normalizeGitTimeoutError(ctx, err, "sync")
+		}
+		result.Status = git.SyncStatusPushFailed
+		result.PushError = err.Error()
+		if committed {
+			result.Message = fmt.Sprintf("Committed %d file(s) locally, but push failed", filesChanged)
+		} else {
+			result.Message = "Pulled remote changes, but push failed"
+		}
+		logger.WithError(err).Error("push failed")
+		return result, fmt.Errorf("PUSH_FAILED:\nPush failed: %v\n\nYour changes are saved locally.\nTry syncing again when the network/credentials are available.", err)
+	}
+
+	if committed {
+		result.Status = git.SyncStatusSynced
+		result.Message = fmt.Sprintf("Synced %d file(s) to remote", filesChanged)
+	} else if result.Pulled {
+		result.Status = git.SyncStatusUpToDate
+		result.Message = "Already in sync with remote"
+	}
+	logger.WithField("files", filesChanged).Info("sync completed successfully")
 	return result, nil
 }
 
