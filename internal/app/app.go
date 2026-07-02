@@ -118,6 +118,8 @@ func New(cfg Config) (*App, error) {
 	syncManager.SetOperationLock(gitLock)
 	a.syncManager = syncManager
 	syncManager.Start()
+	// Catch up any changes made while the app was closed / after a crash.
+	go syncManager.ReconcileOnStartup()
 
 	projectStore := project.NewStore(a.DB)
 	documentStore := document.NewStore(a.DB)

@@ -85,15 +85,15 @@ func (sm *SyncManager) SetEmitter(e toastEmitter) {
 func (sm *SyncManager) Start() {
 	sm.ticker = time.NewTicker(tickerInterval)
 	go sm.runLoop()
-	go sm.reconcileOnStartup()
 	logger.Debug("sync manager started with timer-based auto-commit")
 }
 
-// reconcileOnStartup schedules a sync if the working tree has uncommitted
+// ReconcileOnStartup schedules a sync if the working tree has uncommitted
 // changes at launch — e.g. edits made while the app was closed, or a crash
 // mid-session. Without this, such changes sit unsynced until the next in-app
-// edit happens to trigger a NotifyChange.
-func (sm *SyncManager) reconcileOnStartup() {
+// edit happens to trigger a NotifyChange. Invoked from app startup (not Start)
+// so it doesn't run in unit tests that drive the manager directly.
+func (sm *SyncManager) ReconcileOnStartup() {
 	gitCfg := config.GetGitSyncConfig()
 	if !gitCfg.Enabled || !gitCfg.AutoCommit {
 		return
@@ -121,6 +121,22 @@ func (sm *SyncManager) reconcileOnStartup() {
 	if !status.Clean {
 		sm.NotifyChange("startup: uncommitted changes on disk")
 		logger.Info("auto-sync: uncommitted changes found on startup; scheduled a sync")
+		return
+	}
+
+	// Clean tree, but a previous session may have committed changes whose push
+	// failed. Seed a sync so those commits get published on the next cycle.
+	if gitCfg.AutoPush {
+		branch := gitCfg.Branch
+		if branch == "" {
+			if b, err := sm.gitService.GetCurrentBranch(ctx, dataDir); err == nil {
+				branch = b
+			}
+		}
+		if branch != "" && sm.hasUnpushedCommits(ctx, dataDir, branch) {
+			sm.NotifyChange("startup: unpushed commits")
+			logger.Info("auto-sync: unpushed commits found on startup; scheduled a push")
+		}
 	}
 }
 
@@ -538,39 +554,7 @@ func (sm *SyncManager) Shutdown() {
 		sm.ticker.Stop()
 	}
 
-	// Best-effort flush so a short editing session followed by a quit isn't
-	// left only on local disk. Bounded so app shutdown can't hang on the network.
-	sm.flushPending()
-
 	close(sm.done)
-}
-
-// flushPending commits and pushes any outstanding changes synchronously, under
-// the shared lock and a short deadline. Called on shutdown; safe to no-op.
-func (sm *SyncManager) flushPending() {
-	gitCfg := config.GetGitSyncConfig()
-	if !gitCfg.Enabled || !gitCfg.AutoCommit {
-		return
-	}
-
-	release, _, ok := sm.lock().TryAcquire("shutdown-flush")
-	if !ok {
-		// A sync is already running; let it finish.
-		return
-	}
-	defer release()
-
-	sm.mu.Lock()
-	reasons := append([]string(nil), sm.reasons...)
-	sm.mu.Unlock()
-	if len(reasons) == 0 {
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-	logger.WithField("pendingChanges", len(reasons)).Info("auto-sync: flushing pending changes on shutdown")
-	sm.performSync(ctx, reasons) // no toast: the UI is going away
 }
 
 func (sm *SyncManager) GetPendingChangesCount() int {
