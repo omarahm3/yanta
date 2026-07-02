@@ -495,6 +495,18 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 		)
 	}
 
+	// Refuse to sync while a merge/rebase/etc. is unfinished — staging and
+	// committing now would embed conflict markers into notes.
+	if op := gitService.InProgressOperation(dataDir); op != "" {
+		return &git.SyncResult{
+				Status:  git.SyncStatusConflict,
+				Message: fmt.Sprintf("An unresolved %s is in progress. Resolve it before syncing.", op),
+			}, fmt.Errorf(
+				"IN_PROGRESS:\nAn unresolved %s is in progress in your notes repository.\n\nResolve it in your git tool (or finish/abort it), then sync again.",
+				op,
+			)
+	}
+
 	branch, err := gitService.GetCurrentBranch(ctx, dataDir)
 	if err != nil {
 		logger.WithError(err).Warn("could not determine current branch, defaulting to master")

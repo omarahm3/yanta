@@ -514,7 +514,12 @@ func (s *Service) Pull(ctx context.Context, path, remote, branch string) error {
 		output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
 
 		if strings.Contains(output, "CONFLICT") {
-			return fmt.Errorf("MERGE_CONFLICT:\nMerge conflicts detected. Please resolve conflicts manually:\n\n%s\n\nSteps to resolve:\n1. Check conflicted files with 'git status'\n2. Edit files to resolve conflicts (look for <<<<<<<, =======, >>>>>>>)\n3. Stage resolved files with 'git add <file>'\n4. Commit with 'git commit'", boundOutput(output))
+			// Abort the merge so the working tree is restored to a clean state.
+			// Otherwise MERGE_HEAD and conflict markers are left on disk, and a
+			// later auto-sync `git add -A` + commit would bake the markers into
+			// the user's notes and push them. Mirrors PullRebase's abort.
+			s.abortMerge(path)
+			return fmt.Errorf("MERGE_CONFLICT:\nMerge conflicts detected. The merge was aborted and your files were left untouched.\n\n%s\n\nResolve by pulling manually and reconciling the two versions.", boundOutput(output))
 		}
 
 		if strings.Contains(output, "divergent branches") || strings.Contains(output, "have diverged") {
@@ -535,6 +540,38 @@ func (s *Service) Pull(ctx context.Context, path, remote, branch string) error {
 	}
 
 	return nil
+}
+
+// abortMerge runs `git merge --abort`, restoring the working tree after a
+// conflicted merge. Best-effort: uses its own background context because the
+// caller's context is typically already at/near its deadline.
+func (s *Service) abortMerge(path string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := s.newGitCmd(ctx, path, "merge", "--abort").Run(); err != nil {
+		logger.WithError(err).Warn("git: merge --abort failed")
+	}
+}
+
+// InProgressOperation returns a short description ("merge", "rebase",
+// "cherry-pick", "revert") if the repository is in the middle of one of those
+// operations, or "" if the tree is in a normal state. Auto-sync must NOT stage
+// or commit while one is in progress: `git add -A` on a conflicted file marks
+// it resolved and the subsequent commit would embed conflict markers in notes.
+func (s *Service) InProgressOperation(path string) string {
+	gitDir := filepath.Join(path, ".git")
+	for _, c := range []struct{ name, marker string }{
+		{"merge", "MERGE_HEAD"},
+		{"rebase", "rebase-merge"},
+		{"rebase", "rebase-apply"},
+		{"cherry-pick", "CHERRY_PICK_HEAD"},
+		{"revert", "REVERT_HEAD"},
+	} {
+		if _, err := os.Stat(filepath.Join(gitDir, c.marker)); err == nil {
+			return c.name
+		}
+	}
+	return ""
 }
 
 func boundOutput(output string) string {

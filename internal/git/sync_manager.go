@@ -178,6 +178,17 @@ func (sm *SyncManager) performSync(reasons []string) *SyncResult {
 		}
 	}
 
+	// Never stage/commit while a merge/rebase/etc. is unfinished: `git add -A`
+	// would mark conflicted files resolved and the commit would bake conflict
+	// markers into notes (and push them). Surface it and wait for resolution.
+	if op := sm.gitService.InProgressOperation(dataDir); op != "" {
+		logger.WithField("operation", op).Warn("auto-sync: unfinished git operation; skipping commit to avoid embedding conflict markers")
+		return &SyncResult{
+			Status:  SyncStatusConflict,
+			Message: "Auto-sync paused: an unresolved " + op + " is in progress in your notes repository. Resolve it (run Sync Now, or use your git tool), then editing will sync again.",
+		}
+	}
+
 	gitCfg := config.GetGitSyncConfig()
 	branch := gitCfg.Branch
 	if branch == "" {
