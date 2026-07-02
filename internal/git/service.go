@@ -50,23 +50,63 @@ func (s *Service) newGitCmd(ctx context.Context, repoPath string, args ...string
 	hideConsoleWindow(cmd)
 
 	env := append([]string{}, os.Environ()...)
-	filteredEnv := make([]string, 0, len(env))
+	filteredEnv := make([]string, 0, len(env)+8)
 	for _, e := range env {
-		if !strings.HasPrefix(e, "GIT_CONFIG_") {
-			filteredEnv = append(filteredEnv, e)
+		// Drop inherited git-config and locale overrides so ours win below.
+		if strings.HasPrefix(e, "GIT_CONFIG_") ||
+			strings.HasPrefix(e, "LC_ALL=") ||
+			strings.HasPrefix(e, "LANG=") ||
+			strings.HasPrefix(e, "LANGUAGE=") {
+			continue
 		}
+		filteredEnv = append(filteredEnv, e)
 	}
 
+	// Force a stable C locale. Almost all control flow below keys on matching
+	// English git output ("CONFLICT", "non-fast-forward", "nothing to commit",
+	// …); on a non-English OS locale git localizes those strings and the
+	// matching silently fails — which for PullRebase means a conflict goes
+	// undetected and the rebase is never aborted (data loss). Non-negotiable.
+	filteredEnv = append(filteredEnv, "LC_ALL=C", "LANG=C")
+
+	// This is a hidden-console GUI: never let git block on an interactive
+	// credential or passphrase prompt. Fail fast instead of hanging until the
+	// context deadline SIGKILLs git (which would leave a stale index.lock).
+	filteredEnv = append(filteredEnv, "GIT_TERMINAL_PROMPT=0")
+	if !hasEnvKey(env, "GIT_SSH_COMMAND") {
+		filteredEnv = append(filteredEnv, "GIT_SSH_COMMAND=ssh -o BatchMode=yes")
+	}
+
+	// core.quotePath=false so non-ASCII/emoji note filenames come back
+	// unescaped in status/porcelain output.
 	filteredEnv = append(filteredEnv,
-		"GIT_CONFIG_COUNT=2",
+		"GIT_CONFIG_COUNT=3",
 		"GIT_CONFIG_KEY_0=core.autocrlf",
 		"GIT_CONFIG_VALUE_0=false",
 		"GIT_CONFIG_KEY_1=core.safecrlf",
 		"GIT_CONFIG_VALUE_1=false",
+		"GIT_CONFIG_KEY_2=core.quotePath",
+		"GIT_CONFIG_VALUE_2=false",
 	)
 	cmd.Env = filteredEnv
 
+	// Cancel the process gracefully on context expiry so git can remove its
+	// own lockfiles before dying (default is an immediate SIGKILL, which
+	// strands .git/index.lock and wedges every future operation).
+	setGracefulCancel(cmd)
+
 	return cmd
+}
+
+// hasEnvKey reports whether env already defines KEY (as "KEY=...").
+func hasEnvKey(env []string, key string) bool {
+	prefix := key + "="
+	for _, e := range env {
+		if strings.HasPrefix(e, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 type Status struct {
@@ -175,7 +215,7 @@ func (s *Service) AddAll(ctx context.Context, path string) error {
 func (s *Service) Commit(ctx context.Context, path, message string) error {
 	s.ensureLFConfig(ctx, path)
 
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	cmd := s.newGitCmd(ctx, path, "commit", "-m", message)
@@ -186,7 +226,7 @@ func (s *Service) Commit(ctx context.Context, path, message string) error {
 
 	if err := cmd.Run(); err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
-			return fmt.Errorf("git commit timed out after 10s")
+			return fmt.Errorf("git commit timed out after 30s")
 		}
 		output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
 		if output != "" {
