@@ -3,6 +3,7 @@ import {
 	ArrowDown,
 	ArrowUp,
 	Check,
+	ChevronRight,
 	CloudUpload,
 	Copy,
 	FolderOpen,
@@ -157,46 +158,69 @@ function deriveHealth(
 }
 
 const ConflictRecovery: React.FC<{ files: string[]; dataDir: string }> = ({ files, dataDir }) => {
-	const [copied, setCopied] = React.useState(false);
-	const copyPath = async () => {
+	const [copied, setCopied] = React.useState<null | "cmds" | "path">(null);
+	const copy = async (what: "cmds" | "path", text: string) => {
 		try {
-			await navigator.clipboard.writeText(dataDir);
-			setCopied(true);
-			setTimeout(() => setCopied(false), 2000);
+			await navigator.clipboard.writeText(text);
+			setCopied(what);
+			setTimeout(() => setCopied(null), 2000);
 		} catch {
-			// clipboard unavailable — the path is shown below regardless
+			// clipboard unavailable — the commands/path are shown below regardless
 		}
 	};
+
+	// After the backend hardening a failed sync leaves a CLEAN tree (the
+	// rebase/merge is aborted), so usually there are no marker files and the fix
+	// is to reconcile with the remote. Only an externally-created conflict
+	// leaves markers on disk.
+	const hasMarkers = files.length > 0;
+	const commands = hasMarkers
+		? `cd "${dataDir}"\ngit status                 # list the conflicts\n# remove the <<<<<<< markers in the files above, then:\ngit add -A && git commit`
+		: `cd "${dataDir}"\ngit pull --rebase          # reconcile with the remote\n# fix any conflicts it reports, then:\ngit rebase --continue`;
+
 	return (
 		<Callout
 			variant="danger"
 			icon={<AlertTriangle className="h-5 w-5" />}
-			title={`Conflict in ${files.length} file${files.length > 1 ? "s" : ""}`}
+			title={
+				hasMarkers
+					? `Conflict in ${files.length} file${files.length > 1 ? "s" : ""}`
+					: "Remote has conflicting changes"
+			}
 		>
 			<div className="space-y-3">
-				<ul className="space-y-0.5 font-mono text-xs text-text">
-					{files.map((f) => (
-						<li key={f} className="truncate">
-							{f}
-						</li>
-					))}
-				</ul>
 				<div className="text-xs text-text-dim">
-					To resolve: open your data directory, fix the conflict markers (
-					<code className="rounded bg-accent/20 px-1 text-accent">{"<<<<<<<"}</code>) in the files above,
-					then <span className="text-text">Sync now</span>.
+					Your local notes are safe and committed.{" "}
+					{hasMarkers
+						? "Resolve the conflicts, then Sync now."
+						: "Reconcile with the remote, then Sync now."}
 				</div>
-				<Button variant="secondary" size="sm" onClick={copyPath}>
-					{copied ? (
+				{hasMarkers && (
+					<ul className="space-y-0.5 font-mono text-xs text-text">
+						{files.map((f) => (
+							<li key={f} className="truncate">
+								{f}
+							</li>
+						))}
+					</ul>
+				)}
+				<pre className="overflow-x-auto rounded bg-accent/10 p-2 font-mono text-[11px] leading-5 text-text">
+					{commands}
+				</pre>
+				<div className="flex flex-wrap gap-2">
+					<Button variant="secondary" size="sm" onClick={() => copy("cmds", commands)}>
 						<span className="flex items-center gap-1.5">
-							<Check className="h-3.5 w-3.5" /> Copied path
+							{copied === "cmds" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+							{copied === "cmds" ? "Copied" : "Copy commands"}
 						</span>
-					) : (
+					</Button>
+					<Button variant="ghost" size="sm" onClick={() => copy("path", dataDir)}>
 						<span className="flex items-center gap-1.5">
-							<Copy className="h-3.5 w-3.5" /> Copy data directory path
+							{copied === "path" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+							{copied === "path" ? "Copied" : "Copy path"}
 						</span>
-					)}
-				</Button>
+					</Button>
+				</div>
 			</div>
 		</Callout>
 	);
@@ -221,9 +245,17 @@ const SyncHealth: React.FC<{
 	onSyncNow,
 	onRefresh,
 }) => {
+	// Re-render on an interval so "synced N min ago" stays current between polls.
+	const [, tick] = React.useState(0);
+	React.useEffect(() => {
+		const id = setInterval(() => tick((n) => n + 1), 30_000);
+		return () => clearInterval(id);
+	}, []);
+
 	const health = deriveHealth(status, lastSync, autoPush);
 	const tone = toneStyles[health.tone];
 	const hasConflicts = (status?.conflicted.length ?? 0) > 0;
+	const showConflict = hasConflicts || lastSync?.status === "conflict";
 	const behind = status?.behind ?? 0;
 	const showSyncedAgo = lastSync && health.tone === "green";
 
@@ -267,9 +299,7 @@ const SyncHealth: React.FC<{
 				</div>
 			</div>
 
-			{hasConflicts && status && (
-				<ConflictRecovery files={status.conflicted} dataDir={currentDataDir} />
-			)}
+			{showConflict && <ConflictRecovery files={status?.conflicted ?? []} dataDir={currentDataDir} />}
 
 			<Button variant="primary" size="sm" onClick={onSyncNow} disabled={syncNowInFlight}>
 				{syncNowInFlight ? "Syncing…" : "Sync now"}
@@ -393,16 +423,22 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 										<Toggle checked={autoPush} onChange={onAutoPushToggle} disabled={!gitInstalled} />
 									</div>
 
-									{branches.length > 0 && (
-										<div className="space-y-2">
-											<Label variant="uppercase">Sync branch</Label>
+									<div className="space-y-2">
+										<Label variant="uppercase">Sync branch</Label>
+										{branches.length > 0 ? (
 											<Select
 												value={selectedBranchValue}
 												onChange={handleBranchSelect}
 												options={branchOptions}
 											/>
-										</div>
-									)}
+										) : (
+											<div className="text-xs text-text-dim">
+												Syncing the current branch
+												{currentBranch ? ` (${currentBranch})` : ""}. Other branches appear here once the
+												repository has them.
+											</div>
+										)}
+									</div>
 								</div>
 							</>
 						)}
@@ -411,7 +447,7 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 						<details className="group border-t border-border pt-4">
 							<summary className="flex cursor-pointer list-none items-center justify-between text-sm text-text-dim transition-colors hover:text-text">
 								<span>Data directory &amp; migration</span>
-								<span className="text-xs transition-transform group-open:rotate-90">▸</span>
+								<ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
 							</summary>
 
 							<div className="mt-4 space-y-4">

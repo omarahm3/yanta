@@ -16,6 +16,8 @@ import { recordCommandInFlightDelta } from "../shared/monitoring/appMonitor";
 import type { SelectOption } from "../shared/ui";
 import { BackendLogger } from "../shared/utils/backendLogger";
 
+const LAST_SYNC_KEY = "yanta.gitSync.lastSync";
+
 export interface GitSyncSettings {
 	enabled: boolean;
 	commitInterval: number;
@@ -47,8 +49,23 @@ export function useGitSyncSettings() {
 	const [currentGitBranch, setCurrentGitBranch] = useState<string>("");
 	const [syncNowInFlight, setSyncNowInFlight] = useState(false);
 	const [lastSync, setLastSync] = useState<{ at: number; status: SyncStatus | "error" } | null>(
-		null,
+		() => {
+			// Persisted so "last synced …" survives an app restart.
+			try {
+				const raw = localStorage.getItem(LAST_SYNC_KEY);
+				return raw ? JSON.parse(raw) : null;
+			} catch {
+				return null;
+			}
+		},
 	);
+	useEffect(() => {
+		try {
+			if (lastSync) localStorage.setItem(LAST_SYNC_KEY, JSON.stringify(lastSync));
+		} catch {
+			// non-fatal: last-sync display just won't persist
+		}
+	}, [lastSync]);
 	const { success, error, info, warning } = useNotification();
 
 	useEffect(() => {
