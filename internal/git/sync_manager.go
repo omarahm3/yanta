@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -18,6 +19,15 @@ const (
 	tickerInterval    = 1 * time.Minute
 )
 
+// toastEmitter surfaces auto-sync outcomes to the UI as toasts. It is kept as
+// a narrow interface (rather than depending on the events/Wails packages
+// directly) so the git package stays free of GUI dependencies, tests can
+// capture emissions without a live runtime, and a nil emitter (the default in
+// tests) is a safe no-op. The app layer supplies an adapter over the event bus.
+type toastEmitter interface {
+	EmitToast(kind, message string, durationMs int)
+}
+
 type SyncManager struct {
 	gitService     *Service
 	db             *sql.DB
@@ -29,6 +39,9 @@ type SyncManager struct {
 	done           chan struct{}
 	closed         atomic.Bool
 	syncing        atomic.Bool // prevents concurrent sync operations
+
+	emitter        toastEmitter
+	lastFailureKey string // "" = healthy; guarded by mu. Drives notify() dedup.
 }
 
 func NewSyncManager(db *sql.DB) *SyncManager {
@@ -42,6 +55,15 @@ func NewSyncManager(db *sql.DB) *SyncManager {
 	sm.loadLastCommitTime()
 
 	return sm
+}
+
+// SetEmitter wires an event emitter so auto-sync can surface failures to the
+// user. Called once during app startup; when unset (e.g. in tests) auto-sync
+// runs silently.
+func (sm *SyncManager) SetEmitter(e toastEmitter) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	sm.emitter = e
 }
 
 func (sm *SyncManager) Start() {
@@ -104,7 +126,7 @@ func (sm *SyncManager) checkAndSync() {
 		"pendingChanges":      len(reasons),
 	}).Info("auto-sync: interval passed, performing sync")
 
-	sm.performSync(reasons)
+	sm.notify(sm.performSync(reasons))
 }
 
 // NotifyChange records that a change has occurred that should be synced.
@@ -131,9 +153,12 @@ func (sm *SyncManager) NotifyChange(reason string) {
 	}).Debug("auto-sync: change recorded")
 }
 
-func (sm *SyncManager) performSync(reasons []string) {
+// performSync runs one auto-sync cycle and returns the outcome so the caller
+// can decide whether to notify the user. It never emits toasts itself; that is
+// notify()'s job. A nil-safe *SyncResult is always returned.
+func (sm *SyncManager) performSync(reasons []string) *SyncResult {
 	if len(reasons) == 0 {
-		return
+		return &SyncResult{Status: SyncStatusNoChanges}
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -146,8 +171,11 @@ func (sm *SyncManager) performSync(reasons []string) {
 		logger.WithFields(map[string]any{
 			"dataDir": dataDir,
 			"error":   err,
-		}).Debug("auto-sync: skipping - not a git repository")
-		return
+		}).Warn("auto-sync: data directory is not a git repository")
+		return &SyncResult{
+			Status:  SyncStatusError,
+			Message: "Auto-sync is enabled, but your notes directory isn't a Git repository. Set it up in Settings → Git Sync.",
+		}
 	}
 
 	gitCfg := config.GetGitSyncConfig()
@@ -189,19 +217,19 @@ func (sm *SyncManager) performSync(reasons []string) {
 
 	if err := sm.gitService.AddAll(ctx, dataDir); err != nil {
 		logger.WithField("error", err).Warn("auto-sync: git add failed")
-		return
+		return &SyncResult{Status: SyncStatusError, Message: commitFailureMessage}
 	}
 
 	status, err := sm.gitService.GetStatus(ctx, dataDir)
 	if err != nil {
 		logger.WithField("error", err).Warn("auto-sync: failed to read git status after staging")
-		return
+		return &SyncResult{Status: SyncStatusError, Message: commitFailureMessage}
 	}
 
 	if status.Clean {
 		logger.Debug("auto-sync: git status clean after staging; skipping commit")
 		sm.clearPendingState(false)
-		return
+		return &SyncResult{Status: SyncStatusNoChanges}
 	}
 
 	filesChanged := len(status.Staged) + len(status.Modified) + len(status.Untracked)
@@ -217,10 +245,10 @@ func (sm *SyncManager) performSync(reasons []string) {
 		if err.Error() == "nothing to commit" {
 			logger.Debug("auto-sync: nothing to commit")
 			sm.clearPendingState(false)
-			return
+			return &SyncResult{Status: SyncStatusNoChanges}
 		}
 		logger.WithField("error", err).Warn("auto-sync: git commit failed")
-		return
+		return &SyncResult{Status: SyncStatusError, Message: commitFailureMessage}
 	}
 
 	sm.clearPendingState(true)
@@ -233,15 +261,31 @@ func (sm *SyncManager) performSync(reasons []string) {
 		"message":    commitMsg,
 	}).Info("auto-sync: committed successfully")
 
-	if gitCfg.AutoPush && hasRemote {
-		sm.pushWithRebaseRetry(ctx, dataDir, branch)
+	result := &SyncResult{
+		Status:       SyncStatusCommitted,
+		FilesChanged: filesChanged,
+		CommitHash:   commitHash,
 	}
+
+	if gitCfg.AutoPush && hasRemote {
+		result.Status = sm.pushWithRebaseRetry(ctx, dataDir, branch)
+	}
+
+	return result
 }
 
+// commitFailureMessage is shown when auto-sync can't record changes to Git at
+// all (staging, status, or commit failed). It reassures the user their notes
+// are still on disk.
+const commitFailureMessage = "Auto-sync couldn't save your changes to Git (see logs). Your notes are safe on disk."
+
 // pushWithRebaseRetry pushes and, if the remote is ahead (non-fast-forward),
-// runs `git pull --rebase` and retries the push exactly once. Conflicts during
-// rebase are surfaced and the rebase is aborted so the user can resolve manually.
-func (sm *SyncManager) pushWithRebaseRetry(ctx context.Context, dataDir, branch string) {
+// runs `git pull --rebase` and retries the push exactly once. It returns the
+// resulting status: SyncStatusSynced on success, SyncStatusConflict when a
+// rebase conflict needs manual resolution (the rebase is aborted, leaving the
+// working tree clean), or SyncStatusPushFailed for any other push failure. In
+// every failure case the local commit is intact.
+func (sm *SyncManager) pushWithRebaseRetry(ctx context.Context, dataDir, branch string) SyncStatus {
 	logger.Debug("auto-sync: pushing to remote")
 	err := sm.gitService.Push(ctx, dataDir, "origin", branch)
 	if err == nil {
@@ -249,29 +293,94 @@ func (sm *SyncManager) pushWithRebaseRetry(ctx context.Context, dataDir, branch 
 			"time":   time.Now().Format("15:04:05"),
 			"branch": branch,
 		}).Info("auto-sync: pushed to remote successfully")
-		return
+		return SyncStatusSynced
 	}
 
 	if !errors.Is(err, ErrNonFastForward) {
 		logger.WithField("error", err).Warn("auto-sync: push failed (commit was successful locally)")
-		return
+		return SyncStatusPushFailed
 	}
 
 	logger.WithField("branch", branch).Info("auto-sync: push rejected (remote ahead); attempting pull --rebase")
 	if rebaseErr := sm.gitService.PullRebase(ctx, dataDir, "origin", branch); rebaseErr != nil {
+		if strings.HasPrefix(rebaseErr.Error(), "REBASE_CONFLICT:") {
+			logger.WithField("error", rebaseErr).Warn("auto-sync: rebase conflict; manual resolution required (local commit intact)")
+			return SyncStatusConflict
+		}
 		logger.WithField("error", rebaseErr).Warn("auto-sync: pull --rebase failed; push not retried (local commit intact)")
-		return
+		return SyncStatusPushFailed
 	}
 
 	logger.Debug("auto-sync: rebase succeeded; retrying push")
 	if err := sm.gitService.Push(ctx, dataDir, "origin", branch); err != nil {
 		logger.WithField("error", err).Warn("auto-sync: push failed after rebase (commit was successful locally)")
-		return
+		return SyncStatusPushFailed
 	}
 	logger.WithFields(map[string]any{
 		"time":   time.Now().Format("15:04:05"),
 		"branch": branch,
 	}).Info("auto-sync: pushed to remote successfully (after rebase)")
+	return SyncStatusSynced
+}
+
+// notify surfaces an auto-sync outcome to the user via a toast, but only when
+// the failure state changes — so a healthy repo never spams a toast on every
+// interval, and a persistent failure is reported once (not every tick).
+// Recovering from a prior failure emits a single success toast.
+func (sm *SyncManager) notify(result *SyncResult) {
+	if result == nil {
+		return
+	}
+
+	key := failureKey(result.Status)
+
+	sm.mu.Lock()
+	prev := sm.lastFailureKey
+	sm.lastFailureKey = key
+	emitter := sm.emitter
+	sm.mu.Unlock()
+
+	if emitter == nil || key == prev {
+		return // nothing wired up, or no change in state → stay quiet
+	}
+
+	if key == "" {
+		// We were failing before and now we're healthy again.
+		emitter.EmitToast("success", "Auto-sync recovered — your notes are syncing again.", 6000)
+		return
+	}
+
+	switch result.Status {
+	case SyncStatusConflict:
+		emitter.EmitToast("error",
+			"Auto-sync paused: a merge conflict needs manual resolution. Open Settings → Git Sync (or run Sync Now) to resolve it.",
+			12000)
+	case SyncStatusPushFailed:
+		emitter.EmitToast("warning",
+			"Auto-sync: your changes were committed locally but couldn't be pushed to the remote (check your connection or credentials). Your notes are safe locally.",
+			10000)
+	default: // SyncStatusError
+		msg := result.Message
+		if msg == "" {
+			msg = "Auto-sync failed. See logs for details."
+		}
+		emitter.EmitToast("error", msg, 10000)
+	}
+}
+
+// failureKey maps a sync status to a stable failure identifier used to
+// deduplicate notifications. Healthy outcomes map to "".
+func failureKey(s SyncStatus) string {
+	switch s {
+	case SyncStatusConflict:
+		return "conflict"
+	case SyncStatusPushFailed:
+		return "push_failed"
+	case SyncStatusError:
+		return "error"
+	default:
+		return ""
+	}
 }
 
 func (sm *SyncManager) buildCommitMessage(reasons []string) string {
@@ -381,6 +490,6 @@ func (sm *SyncManager) ForceSync() {
 	sm.mu.Unlock()
 
 	if len(reasons) > 0 {
-		sm.performSync(reasons)
+		sm.notify(sm.performSync(reasons))
 	}
 }

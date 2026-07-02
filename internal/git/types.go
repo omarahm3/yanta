@@ -9,6 +9,7 @@ const (
 	SyncStatusPushFailed SyncStatus = "push_failed"
 	SyncStatusConflict   SyncStatus = "conflict"
 	SyncStatusUpToDate   SyncStatus = "up_to_date"
+	SyncStatusError      SyncStatus = "error"
 )
 
 type SyncResult struct {
@@ -32,7 +33,7 @@ func (r *SyncResult) IsSuccess() bool {
 
 func (r *SyncResult) NeedsAttention() bool {
 	switch r.Status {
-	case SyncStatusPushFailed, SyncStatusConflict:
+	case SyncStatusPushFailed, SyncStatusConflict, SyncStatusError:
 		return true
 	default:
 		return false

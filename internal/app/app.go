@@ -58,6 +58,20 @@ type Config struct {
 	DBPath string
 }
 
+// toastEmitter adapts the event bus to git.SyncManager's toast interface,
+// keeping the git package free of any dependency on the events/Wails layer.
+type toastEmitter struct {
+	bus *events.EventBus
+}
+
+func (t toastEmitter) EmitToast(kind, message string, durationMs int) {
+	t.bus.Emit(events.ToastEvent, map[string]any{
+		"type":     kind,
+		"message":  message,
+		"duration": durationMs,
+	})
+}
+
 func New(cfg Config) (*App, error) {
 	a := &App{
 		DBPath: cfg.DBPath,
@@ -97,6 +111,7 @@ func New(cfg Config) (*App, error) {
 	a.eventBus = eventBus
 
 	syncManager := git.NewSyncManager(a.DB)
+	syncManager.SetEmitter(toastEmitter{eventBus})
 	a.syncManager = syncManager
 	syncManager.Start()
 
