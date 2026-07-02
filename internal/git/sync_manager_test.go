@@ -221,7 +221,7 @@ func TestSyncManager_PersistsLastCommitTime(t *testing.T) {
 	sm1.mu.Lock()
 	reasons := sm1.reasons
 	sm1.mu.Unlock()
-	sm1.performSync(reasons)
+	sm1.performSync(context.Background(), reasons)
 
 	sm1.Shutdown()
 
@@ -274,7 +274,7 @@ func TestSyncManager_NotGitRepo_SkipsSync(t *testing.T) {
 	sm.mu.Lock()
 	reasons := sm.reasons
 	sm.mu.Unlock()
-	sm.performSync(reasons)
+	sm.performSync(context.Background(), reasons)
 
 	// Pending changes should still be there (sync didn't complete)
 	// Actually, performSync won't clear them if it's not a git repo

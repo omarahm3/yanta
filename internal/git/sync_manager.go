@@ -85,7 +85,43 @@ func (sm *SyncManager) SetEmitter(e toastEmitter) {
 func (sm *SyncManager) Start() {
 	sm.ticker = time.NewTicker(tickerInterval)
 	go sm.runLoop()
+	go sm.reconcileOnStartup()
 	logger.Debug("sync manager started with timer-based auto-commit")
+}
+
+// reconcileOnStartup schedules a sync if the working tree has uncommitted
+// changes at launch — e.g. edits made while the app was closed, or a crash
+// mid-session. Without this, such changes sit unsynced until the next in-app
+// edit happens to trigger a NotifyChange.
+func (sm *SyncManager) reconcileOnStartup() {
+	gitCfg := config.GetGitSyncConfig()
+	if !gitCfg.Enabled || !gitCfg.AutoCommit {
+		return
+	}
+
+	release, _, ok := sm.lock().TryAcquire("startup-reconcile")
+	if !ok {
+		return
+	}
+	defer release()
+
+	dataDir := config.GetDataDirectory()
+	if isRepo, err := sm.gitService.IsRepository(dataDir); err != nil || !isRepo {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	status, err := sm.gitService.GetStatus(ctx, dataDir)
+	if err != nil {
+		logger.WithError(err).Debug("auto-sync: startup reconcile status check failed")
+		return
+	}
+	if !status.Clean {
+		sm.NotifyChange("startup: uncommitted changes on disk")
+		logger.Info("auto-sync: uncommitted changes found on startup; scheduled a sync")
+	}
 }
 
 func (sm *SyncManager) runLoop() {
@@ -143,7 +179,9 @@ func (sm *SyncManager) checkAndSync() {
 		"pendingChanges":      len(reasons),
 	}).Info("auto-sync: interval passed, performing sync")
 
-	sm.notify(sm.performSync(reasons))
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	sm.notify(sm.performSync(ctx, reasons))
 }
 
 // NotifyChange records that a change has occurred that should be synced.
@@ -173,13 +211,10 @@ func (sm *SyncManager) NotifyChange(reason string) {
 // performSync runs one auto-sync cycle and returns the outcome so the caller
 // can decide whether to notify the user. It never emits toasts itself; that is
 // notify()'s job. A nil-safe *SyncResult is always returned.
-func (sm *SyncManager) performSync(reasons []string) *SyncResult {
+func (sm *SyncManager) performSync(ctx context.Context, reasons []string) *SyncResult {
 	if len(reasons) == 0 {
 		return &SyncResult{Status: SyncStatusNoChanges}
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer cancel()
 
 	dataDir := config.GetDataDirectory()
 
@@ -256,7 +291,13 @@ func (sm *SyncManager) performSync(reasons []string) *SyncResult {
 
 	if status.Clean {
 		logger.Debug("auto-sync: git status clean after staging; skipping commit")
-		sm.clearPendingState(false)
+		sm.clearPendingState(len(reasons), false)
+		// Nothing new to commit — but a previous cycle may have committed and
+		// then failed to push. Publish those now instead of waiting for the
+		// next edit (which is why a failed push used to strand commits locally).
+		if gitCfg.AutoPush && hasRemote && sm.hasUnpushedCommits(ctx, dataDir, branch) {
+			return &SyncResult{Status: sm.pushWithRebaseRetry(ctx, dataDir, branch)}
+		}
 		return &SyncResult{Status: SyncStatusNoChanges}
 	}
 
@@ -272,14 +313,14 @@ func (sm *SyncManager) performSync(reasons []string) *SyncResult {
 	if err := sm.gitService.Commit(ctx, dataDir, commitMsg); err != nil {
 		if err.Error() == "nothing to commit" {
 			logger.Debug("auto-sync: nothing to commit")
-			sm.clearPendingState(false)
+			sm.clearPendingState(len(reasons), false)
 			return &SyncResult{Status: SyncStatusNoChanges}
 		}
 		logger.WithField("error", err).Warn("auto-sync: git commit failed")
 		return &SyncResult{Status: SyncStatusError, Message: commitFailureMessage}
 	}
 
-	sm.clearPendingState(true)
+	sm.clearPendingState(len(reasons), true)
 
 	commitHash, _ := sm.gitService.GetLastCommitHash(ctx, dataDir)
 	logger.WithFields(map[string]any{
@@ -419,11 +460,18 @@ func (sm *SyncManager) buildCommitMessage(reasons []string) string {
 	return fmt.Sprintf("auto: %d changes", len(reasons))
 }
 
-func (sm *SyncManager) clearPendingState(updateCommitTime bool) {
+// clearPendingState removes the `consumed` reasons that this sync cycle
+// processed (from the front, FIFO), preserving any reasons appended while the
+// sync was running so a change that lands mid-cycle isn't silently dropped.
+func (sm *SyncManager) clearPendingState(consumed int, updateCommitTime bool) {
 	now := time.Now()
 	sm.mu.Lock()
-	sm.reasons = make([]string, 0)
-	sm.hasPending = false
+	if consumed >= len(sm.reasons) {
+		sm.reasons = make([]string, 0)
+	} else {
+		sm.reasons = append([]string(nil), sm.reasons[consumed:]...)
+	}
+	sm.hasPending = len(sm.reasons) > 0
 	if updateCommitTime {
 		sm.lastCommitTime = now
 	}
@@ -432,6 +480,16 @@ func (sm *SyncManager) clearPendingState(updateCommitTime bool) {
 	if updateCommitTime {
 		sm.saveLastCommitTime(now)
 	}
+}
+
+// hasUnpushedCommits reports whether the local branch is ahead of its remote
+// tracking branch (i.e. there are commits to publish).
+func (sm *SyncManager) hasUnpushedCommits(ctx context.Context, dataDir, branch string) bool {
+	ab, err := sm.gitService.GetAheadBehind(ctx, dataDir, branch)
+	if err != nil {
+		return false
+	}
+	return ab.Ahead > 0
 }
 
 // loadLastCommitTime loads the last auto-sync timestamp from the database
@@ -480,17 +538,39 @@ func (sm *SyncManager) Shutdown() {
 		sm.ticker.Stop()
 	}
 
+	// Best-effort flush so a short editing session followed by a quit isn't
+	// left only on local disk. Bounded so app shutdown can't hang on the network.
+	sm.flushPending()
+
 	close(sm.done)
+}
+
+// flushPending commits and pushes any outstanding changes synchronously, under
+// the shared lock and a short deadline. Called on shutdown; safe to no-op.
+func (sm *SyncManager) flushPending() {
+	gitCfg := config.GetGitSyncConfig()
+	if !gitCfg.Enabled || !gitCfg.AutoCommit {
+		return
+	}
+
+	release, _, ok := sm.lock().TryAcquire("shutdown-flush")
+	if !ok {
+		// A sync is already running; let it finish.
+		return
+	}
+	defer release()
 
 	sm.mu.Lock()
-	pendingCount := len(sm.reasons)
+	reasons := append([]string(nil), sm.reasons...)
 	sm.mu.Unlock()
-
-	if pendingCount > 0 {
-		logger.WithField("pendingChanges", pendingCount).Debug(
-			"auto-sync: shutdown with pending changes (will sync on next startup)",
-		)
+	if len(reasons) == 0 {
+		return
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	logger.WithField("pendingChanges", len(reasons)).Info("auto-sync: flushing pending changes on shutdown")
+	sm.performSync(ctx, reasons) // no toast: the UI is going away
 }
 
 func (sm *SyncManager) GetPendingChangesCount() int {
@@ -519,6 +599,8 @@ func (sm *SyncManager) ForceSync() {
 	sm.mu.Unlock()
 
 	if len(reasons) > 0 {
-		sm.notify(sm.performSync(reasons))
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
+		sm.notify(sm.performSync(ctx, reasons))
 	}
 }
