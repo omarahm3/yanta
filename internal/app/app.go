@@ -58,6 +58,20 @@ type Config struct {
 	DBPath string
 }
 
+// toastEmitter adapts the event bus to git.SyncManager's toast interface,
+// keeping the git package free of any dependency on the events/Wails layer.
+type toastEmitter struct {
+	bus *events.EventBus
+}
+
+func (t toastEmitter) EmitToast(kind, message string, durationMs int) {
+	t.bus.Emit(events.ToastEvent, map[string]any{
+		"type":     kind,
+		"message":  message,
+		"duration": durationMs,
+	})
+}
+
 func New(cfg Config) (*App, error) {
 	a := &App{
 		DBPath: cfg.DBPath,
@@ -97,8 +111,15 @@ func New(cfg Config) (*App, error) {
 	a.eventBus = eventBus
 
 	syncManager := git.NewSyncManager(a.DB)
+	syncManager.SetEmitter(toastEmitter{eventBus})
+	// One lock shared by the automatic and manual sync paths so their git
+	// subprocesses never run concurrently on the same repo.
+	gitLock := git.NewOperationLock()
+	syncManager.SetOperationLock(gitLock)
 	a.syncManager = syncManager
 	syncManager.Start()
+	// Catch up any changes made while the app was closed / after a crash.
+	go syncManager.ReconcileOnStartup()
 
 	projectStore := project.NewStore(a.DB)
 	documentStore := document.NewStore(a.DB)
@@ -125,10 +146,12 @@ func New(cfg Config) (*App, error) {
 	documentService := document.NewService(a.DB, documentStore, v, idx, projectCache, eventBus)
 	documentFileManager := document.NewFileManager(v)
 	tagService := tag.NewService(a.DB, tagStore, documentFileManager, eventBus)
+	tagService.SetSyncNotifier(syncManager)
 	searchService := search.NewService(a.DB, eventBus)
 	systemService := system.NewService(a.DB, eventBus)
 	systemService.SetDBPath(a.DBPath)
 	systemService.SetIndexer(idx)
+	systemService.SetGitLock(gitLock)
 
 	assetService := asset.NewService(asset.ServiceConfig{
 		DB:          a.DB,
@@ -139,6 +162,7 @@ func New(cfg Config) (*App, error) {
 
 	journalService := journal.NewService(v, eventBus, ftsStore)
 	journalService.SetIndexer(idx)
+	journalService.SetSyncNotifier(syncManager)
 	journalWailsService := journal.NewWailsService(journalService)
 	backupService := backup.NewService()
 	exportService := export.NewService(export.ServiceConfig{

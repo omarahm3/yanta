@@ -4,6 +4,7 @@ package migration
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -11,6 +12,11 @@ import (
 	"yanta/internal/config"
 	"yanta/internal/logger"
 )
+
+// ErrMigrationNeedsRestart wraps a migration failure that occurred AFTER the
+// shared database connection was closed. The app cannot recover its DB handle
+// in-process, so the caller must restart the app to return to a working state.
+var ErrMigrationNeedsRestart = errors.New("migration failed after database was closed; app restart required")
 
 type GitService interface {
 	CheckInstalled() (bool, error)
@@ -239,24 +245,27 @@ func (s *Service) MigrateData(targetPath string, strategy MigrationStrategy) err
 		}
 	}
 
+	// The database is now closed, so every failure past this point requires an
+	// app restart to recover a working handle — wrap it so the caller reacts.
 	if err := os.MkdirAll(absTarget, 0755); err != nil {
-		return fmt.Errorf("creating target directory: %w", err)
+		return fmt.Errorf("%w: creating target directory: %v", ErrMigrationNeedsRestart, err)
 	}
 
-	// Handle conflict scenario with strategy
-	if hasCurrentData && hasTargetVault {
-		return s.migrateWithStrategy(currentAbs, absTarget, strategy)
+	var migErr error
+	switch {
+	case hasCurrentData && hasTargetVault:
+		migErr = s.migrateWithStrategy(currentAbs, absTarget, strategy)
+	case hasCurrentData:
+		migErr = s.migrateExistingData(currentAbs, absTarget)
+	case hasTargetVault:
+		migErr = s.initializeWithExistingVault(absTarget)
+	default:
+		migErr = s.initializeFreshVault(absTarget)
 	}
-
-	if hasCurrentData {
-		return s.migrateExistingData(currentAbs, absTarget)
+	if migErr != nil {
+		return fmt.Errorf("%w: %v", ErrMigrationNeedsRestart, migErr)
 	}
-
-	if hasTargetVault {
-		return s.initializeWithExistingVault(absTarget)
-	}
-
-	return s.initializeFreshVault(absTarget)
+	return nil
 }
 
 // migrateWithStrategy handles migration when both local and target have vault data.
@@ -613,40 +622,50 @@ func (s *Service) copyFile(src, dst string) error {
 	return dstFile.Sync()
 }
 
+// verifyIntegrity confirms every source file exists in the destination with a
+// matching size (not just a matching file count, which a truncated copy could
+// pass). The destination may contain extra files (e.g. a new .git directory).
 func (s *Service) verifyIntegrity(srcDir, dstDir string) error {
-	srcCount := 0
-	err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() {
-			srcCount++
-		}
-		return nil
-	})
+	srcFiles, err := fileSizes(srcDir)
 	if err != nil {
 		return fmt.Errorf("walking source directory: %w", err)
 	}
-
-	dstCount := 0
-	err = filepath.Walk(dstDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() {
-			dstCount++
-		}
-		return nil
-	})
+	dstFiles, err := fileSizes(dstDir)
 	if err != nil {
 		return fmt.Errorf("walking destination directory: %w", err)
 	}
 
-	if srcCount != dstCount {
-		return fmt.Errorf("file count mismatch: source=%d, destination=%d", srcCount, dstCount)
+	for rel, srcSize := range srcFiles {
+		dstSize, ok := dstFiles[rel]
+		if !ok {
+			return fmt.Errorf("missing file in destination: %s", rel)
+		}
+		if dstSize != srcSize {
+			return fmt.Errorf("size mismatch for %s: source=%d, destination=%d", rel, srcSize, dstSize)
+		}
 	}
 
 	return nil
+}
+
+// fileSizes maps each file's path (relative to dir) to its size.
+func fileSizes(dir string) (map[string]int64, error) {
+	files := make(map[string]int64)
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		rel, relErr := filepath.Rel(dir, path)
+		if relErr != nil {
+			return relErr
+		}
+		files[rel] = info.Size()
+		return nil
+	})
+	return files, err
 }
 
 func (s *Service) rollback(targetPath, originalDataDir string) error {

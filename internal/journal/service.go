@@ -23,14 +23,22 @@ type Indexer interface {
 	IndexDocument(ctx context.Context, docPath string) error
 }
 
+// SyncNotifier schedules a git auto-sync after a vault mutation. Journal entry
+// writes bypass the document indexer, so without this they would never trigger
+// a sync and a journaling-only user's notes would not be backed up.
+type SyncNotifier interface {
+	NotifyChange(reason string)
+}
+
 // Service provides journal operations.
 type Service struct {
-	vault    *vault.Vault
-	store    *Store
-	eventBus *events.EventBus
-	indexer  Indexer
-	ftsStore *search.Store
-	mu       sync.Mutex // Serializes writes to prevent race conditions
+	vault        *vault.Vault
+	store        *Store
+	eventBus     *events.EventBus
+	indexer      Indexer
+	ftsStore     *search.Store
+	syncNotifier SyncNotifier
+	mu           sync.Mutex // Serializes writes to prevent race conditions
 }
 
 // NewService creates a new journal service.
@@ -46,6 +54,18 @@ func NewService(v *vault.Vault, eventBus *events.EventBus, ftsStore *search.Stor
 // SetIndexer sets the document indexer for promoted documents.
 func (s *Service) SetIndexer(indexer Indexer) {
 	s.indexer = indexer
+}
+
+// SetSyncNotifier wires the git auto-sync notifier so journal writes schedule
+// a sync.
+func (s *Service) SetSyncNotifier(n SyncNotifier) {
+	s.syncNotifier = n
+}
+
+func (s *Service) notifySync(reason string) {
+	if s.syncNotifier != nil {
+		s.syncNotifier.NotifyChange(reason)
+	}
 }
 
 func (s *Service) emitEvent(eventName string, payload any) {
@@ -145,6 +165,7 @@ func (s *Service) AppendEntryToDate(ctx context.Context, req AppendEntryRequestW
 	if err := s.store.WriteFile(projectAlias, date, file); err != nil {
 		return nil, fmt.Errorf("writing journal file: %w", err)
 	}
+	s.notifySync("journal entry added")
 
 	logger.WithFields(map[string]any{
 		"project": projectAlias,
@@ -300,6 +321,7 @@ func (s *Service) DeleteEntry(ctx context.Context, projectAlias, date, entryID s
 	if err := s.store.WriteFile(projectAlias, date, file); err != nil {
 		return fmt.Errorf("writing journal: %w", err)
 	}
+	s.notifySync("journal entry deleted")
 
 	logger.WithFields(map[string]any{
 		"project": projectAlias,
@@ -364,6 +386,7 @@ func (s *Service) UpdateEntry(ctx context.Context, req UpdateEntryRequest) (*Jou
 	if err := s.store.WriteFile(req.ProjectAlias, req.Date, file); err != nil {
 		return nil, fmt.Errorf("writing journal: %w", err)
 	}
+	s.notifySync("journal entry updated")
 
 	logger.WithFields(map[string]any{
 		"project": req.ProjectAlias,
@@ -535,6 +558,7 @@ func (s *Service) PromoteToDocument(ctx context.Context, req PromoteRequest) (st
 			return "", fmt.Errorf("updating journal after promote: %w", err)
 		}
 	}
+	s.notifySync("journal entry promoted")
 
 	logger.WithFields(map[string]any{
 		"source":  req.SourceProject,
@@ -676,6 +700,7 @@ func (s *Service) RestoreEntry(ctx context.Context, projectAlias, date, entryID 
 	if err := s.store.WriteFile(projectAlias, date, file); err != nil {
 		return fmt.Errorf("writing journal: %w", err)
 	}
+	s.notifySync("journal entry restored")
 
 	logger.WithFields(map[string]any{
 		"project": projectAlias,

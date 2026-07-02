@@ -12,11 +12,30 @@ import (
 	"yanta/internal/logger"
 )
 
+// SyncNotifier schedules a git auto-sync after a vault mutation. Tag writes via
+// the command line mutate document files directly (bypassing document.Save's
+// indexer path), so without this they would not trigger a sync.
+type SyncNotifier interface {
+	NotifyChange(reason string)
+}
+
 type Service struct {
-	db       *sql.DB
-	store    *Store
-	fm       *document.FileManager
-	eventBus *events.EventBus
+	db           *sql.DB
+	store        *Store
+	fm           *document.FileManager
+	eventBus     *events.EventBus
+	syncNotifier SyncNotifier
+}
+
+// SetSyncNotifier wires the git auto-sync notifier so tag writes schedule a sync.
+func (s *Service) SetSyncNotifier(n SyncNotifier) {
+	s.syncNotifier = n
+}
+
+func (s *Service) notifySync(reason string) {
+	if s.syncNotifier != nil {
+		s.syncNotifier.NotifyChange(reason)
+	}
 }
 
 func NewService(
@@ -168,6 +187,7 @@ func (s *Service) AddTagsToDocument(ctx context.Context, docPath string, tagName
 		"tags":    tagNames,
 	}).Info("tags added to document")
 
+	s.notifySync("tags added to " + docPath)
 	return nil
 }
 
@@ -225,6 +245,7 @@ func (s *Service) RemoveTagsFromDocument(
 		"tags":    tagNames,
 	}).Info("tags removed from document")
 
+	s.notifySync("tags removed from " + docPath)
 	return nil
 }
 
@@ -254,6 +275,7 @@ func (s *Service) RemoveAllDocumentTags(ctx context.Context, docPath string) err
 
 	logger.WithField("docPath", docPath).Info("all tags removed from document")
 
+	s.notifySync("all tags removed from " + docPath)
 	return nil
 }
 

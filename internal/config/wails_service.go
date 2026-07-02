@@ -66,6 +66,6 @@ func (s *WailsService) applyTheme(theme string) {
 
 func (s *WailsService) emitTheme(theme string) {
 	if s.eventBus != nil {
-		s.eventBus.Emit(events.ThemeChanged, map[string]any{"theme": theme})
+		s.eventBus.Emit(events.ThemeChanged, events.ThemeChangedData{Theme: theme})
 	}
 }

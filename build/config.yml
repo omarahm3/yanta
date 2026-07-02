@@ -43,10 +43,12 @@ dev_mode:
     - "*.ts"
   git_ignore: true
   # Execute types: once, blocking, background, primary
+  # Cross-platform: these call go-task, which branches on OS internally
+  # (see dev:build / build:dev:frontend / dev:run in the Taskfiles).
   executes:
-    - cmd: powershell -NoProfile -ExecutionPolicy Bypass -File build/scripts/dev-build.ps1
+    - cmd: task dev:build
       type: blocking
-    - cmd: powershell -NoProfile -ExecutionPolicy Bypass -File build/scripts/wails-task-wrapper.ps1 -TaskName build:dev:frontend
+    - cmd: task build:dev:frontend
       type: background
-    - cmd: powershell -NoProfile -ExecutionPolicy Bypass -File build/scripts/wails-task-wrapper.ps1 -TaskName run
+    - cmd: task dev:run
       type: primary

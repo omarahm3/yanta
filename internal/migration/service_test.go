@@ -159,7 +159,7 @@ func TestVerifyIntegrity(t *testing.T) {
 
 		err = service.verifyIntegrity(srcDir, dstDir)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "file count mismatch")
+		assert.Contains(t, err.Error(), "missing file in destination")
 	})
 }
 

@@ -1,4 +1,3 @@
-import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SETTINGS_SHORTCUTS } from "@/config/shortcuts";
 import { useHelp } from "../../help";
@@ -74,8 +73,16 @@ export function useSettingsPage({
 	const {
 		status: gitStatus,
 		isLoading: gitStatusLoading,
+		error: gitStatusError,
 		refresh: refreshGitStatus,
 	} = useGitStatus(controller.gitSync.enabled ? 30000 : 0);
+
+	// Sync, then immediately refresh the displayed status so the panel reflects
+	// the result without waiting for the 30s poll.
+	const syncNow = useCallback(async () => {
+		await controller.handlers.handleSyncNow();
+		await refreshGitStatus();
+	}, [controller.handlers.handleSyncNow, refreshGitStatus]);
 
 	const generalRef = useRef<HTMLDivElement>(null);
 	const appearanceRef = useRef<HTMLDivElement>(null);
@@ -87,22 +94,7 @@ export function useSettingsPage({
 	const syncRef = useRef<HTMLDivElement>(null);
 	const aboutRef = useRef<HTMLDivElement>(null);
 
-	const currentSectionIndexRef = useRef(0);
 	const [settingsKey, setSettingsKey] = useState(0);
-	const refMap = useMemo<Record<string, React.RefObject<HTMLDivElement | null>>>(
-		() => ({
-			general: generalRef,
-			appearance: appearanceRef,
-			plugins: pluginsRef,
-			database: databaseRef,
-			shortcuts: shortcutsRef,
-			logging: loggingRef,
-			backup: backupRef,
-			sync: syncRef,
-			about: aboutRef,
-		}),
-		[],
-	);
 	const sectionIds = useMemo<SettingsSectionId[]>(
 		() =>
 			enablePluginsSection
@@ -125,44 +117,17 @@ export function useSettingsPage({
 		setPageContext([], "Settings");
 	}, [setPageContext]);
 
-	const scrollToSection = useCallback(
+	// Master-detail: the active section is chosen from the nav (not scroll
+	// position), and only that section renders.
+	const [activeSection, setActiveSection] = useState<SettingsSectionId>(sectionIds[0]);
+	const selectSection = useCallback(
 		(sectionId: string) => {
-			const ref = refMap[sectionId];
-			if (ref?.current) {
-				ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
-			}
-
-			const index = sectionIds.indexOf(sectionId as SettingsSectionId);
-			if (index !== -1) {
-				currentSectionIndexRef.current = index;
+			if (sectionIds.includes(sectionId as SettingsSectionId)) {
+				setActiveSection(sectionId as SettingsSectionId);
 			}
 		},
-		[refMap, sectionIds],
+		[sectionIds],
 	);
-
-	// Track which section is near the top of the scroll area so the TOC can
-	// highlight it as the user scrolls.
-	const [activeSection, setActiveSection] = useState<SettingsSectionId>(sectionIds[0]);
-	useEffect(() => {
-		const observer = new IntersectionObserver(
-			(entries) => {
-				const topmost = entries
-					.filter((e) => e.isIntersecting)
-					.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-				const id = topmost?.target.getAttribute("data-section-id");
-				if (id) setActiveSection(id as SettingsSectionId);
-			},
-			{ rootMargin: "0px 0px -65% 0px", threshold: 0 },
-		);
-		for (const id of sectionIds) {
-			const el = refMap[id]?.current;
-			if (el) {
-				el.setAttribute("data-section-id", id);
-				observer.observe(el);
-			}
-		}
-		return () => observer.disconnect();
-	}, [refMap, sectionIds]);
 
 	const sections = useMemo<SettingsSectionEntry[]>(
 		() =>
@@ -175,16 +140,14 @@ export function useSettingsPage({
 	);
 
 	const handleNextSection = useCallback(() => {
-		const nextIndex = Math.min(currentSectionIndexRef.current + 1, sectionIds.length - 1);
-		currentSectionIndexRef.current = nextIndex;
-		scrollToSection(sectionIds[nextIndex]);
-	}, [scrollToSection, sectionIds]);
+		const idx = sectionIds.indexOf(activeSection);
+		setActiveSection(sectionIds[Math.min(idx + 1, sectionIds.length - 1)]);
+	}, [activeSection, sectionIds]);
 
 	const handlePreviousSection = useCallback(() => {
-		const prevIndex = Math.max(currentSectionIndexRef.current - 1, 0);
-		currentSectionIndexRef.current = prevIndex;
-		scrollToSection(sectionIds[prevIndex]);
-	}, [scrollToSection, sectionIds]);
+		const idx = sectionIds.indexOf(activeSection);
+		setActiveSection(sectionIds[Math.max(idx - 1, 0)]);
+	}, [activeSection, sectionIds]);
 
 	const hotkeys = useMemo(
 		() => [
@@ -219,7 +182,9 @@ export function useSettingsPage({
 		// Git status
 		gitStatus,
 		gitStatusLoading,
+		gitStatusError,
 		refreshGitStatus,
+		syncNow,
 		// Section refs and navigation
 		generalRef,
 		appearanceRef,
@@ -237,6 +202,6 @@ export function useSettingsPage({
 		// In-page section navigation (TOC)
 		sections,
 		activeSection,
-		scrollToSection,
+		selectSection,
 	};
 }
