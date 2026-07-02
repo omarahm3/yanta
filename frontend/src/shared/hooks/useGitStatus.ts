@@ -4,6 +4,7 @@ import { recordCommandInFlightDelta } from "../monitoring/appMonitor";
 
 export interface GitStatus {
 	enabled: boolean;
+	isRepo: boolean;
 	clean: boolean;
 	modified: string[];
 	untracked: string[];
@@ -24,6 +25,7 @@ export interface UseGitStatusReturn {
 
 const DEFAULT_STATUS: GitStatus = {
 	enabled: false,
+	isRepo: true,
 	clean: true,
 	modified: [],
 	untracked: [],
@@ -38,6 +40,8 @@ const DEFAULT_STATUS: GitStatus = {
 function parseGitStatus(data: Record<string, unknown>): GitStatus {
 	return {
 		enabled: Boolean(data.enabled),
+		// Absent (older payloads) is treated as "is a repo" so we don't false-alarm.
+		isRepo: data.isRepo !== false,
 		clean: Boolean(data.clean),
 		modified: Array.isArray(data.modified) ? data.modified : [],
 		untracked: Array.isArray(data.untracked) ? data.untracked : [],

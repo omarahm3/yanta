@@ -647,6 +647,17 @@ func (s *Service) GetGitStatus(ctx context.Context) (map[string]any, error) {
 	dataDir := config.GetDataDirectory()
 	gitService := git.NewService()
 
+	// "Enabled, but the directory isn't a Git repository yet" is a normal,
+	// recoverable state — report it as structured data so the UI can guide the
+	// user, instead of a raw error that the frontend swallows into a perpetual
+	// "Checking status…".
+	if isRepo, _ := gitService.IsRepository(dataDir); !isRepo {
+		return map[string]any{
+			"enabled": true,
+			"isRepo":  false,
+		}, nil
+	}
+
 	status, err := gitService.GetStatus(ctx, dataDir)
 	if err != nil {
 		return nil, fmt.Errorf("getting git status: %w", err)
@@ -654,6 +665,7 @@ func (s *Service) GetGitStatus(ctx context.Context) (map[string]any, error) {
 
 	result := map[string]any{
 		"enabled":    true,
+		"isRepo":     true,
 		"clean":      status.Clean,
 		"modified":   status.Modified,
 		"untracked":  status.Untracked,

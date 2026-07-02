@@ -74,6 +74,7 @@ export function useSettingsPage({
 	const {
 		status: gitStatus,
 		isLoading: gitStatusLoading,
+		error: gitStatusError,
 		refresh: refreshGitStatus,
 	} = useGitStatus(controller.gitSync.enabled ? 30000 : 0);
 
@@ -226,6 +227,7 @@ export function useSettingsPage({
 		// Git status
 		gitStatus,
 		gitStatusLoading,
+		gitStatusError,
 		refreshGitStatus,
 		syncNow,
 		// Section refs and navigation

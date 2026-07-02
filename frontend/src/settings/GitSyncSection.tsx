@@ -47,6 +47,7 @@ interface GitSyncSectionProps {
 	commitIntervalOptions: SelectOption[];
 	gitStatus?: GitStatus | null;
 	gitStatusLoading?: boolean;
+	gitStatusError?: string | null;
 	lastSync?: LastSync | null;
 	onGitSyncToggle: (enabled: boolean) => void;
 	onCommitIntervalChange: (interval: number) => void;
@@ -226,9 +227,52 @@ const ConflictRecovery: React.FC<{ files: string[]; dataDir: string }> = ({ file
 	);
 };
 
+// RepoSetup handles the "Git Sync is on, but the data directory isn't a Git
+// repository" state — previously this only showed up in the logs as a raw
+// error while the panel sat on "Checking status…" forever.
+const RepoSetup: React.FC<{ dataDir: string }> = ({ dataDir }) => {
+	const [copied, setCopied] = React.useState(false);
+	const commands = `cd "${dataDir}"\ngit init\ngit add -A && git commit -m "Initial commit"\n# optional — back up off-device:\ngit remote add origin <your-repo-url>`;
+	const copy = async () => {
+		try {
+			await navigator.clipboard.writeText(commands);
+			setCopied(true);
+			setTimeout(() => setCopied(false), 2000);
+		} catch {
+			// clipboard unavailable — the commands are shown below regardless
+		}
+	};
+	return (
+		<Callout
+			variant="warning"
+			icon={<AlertTriangle className="h-5 w-5" />}
+			title="Not a Git repository yet"
+		>
+			<div className="space-y-3">
+				<div className="text-xs text-text-dim">
+					Git Sync is on, but your notes folder isn't a Git repository — so nothing can be committed or
+					backed up. Initialize it, or use{" "}
+					<span className="text-text">Data directory &amp; migration</span> below to move your notes into
+					an existing repo.
+				</div>
+				<pre className="overflow-x-auto rounded bg-accent/10 p-2 font-mono text-[11px] leading-5 text-text">
+					{commands}
+				</pre>
+				<Button variant="secondary" size="sm" onClick={copy}>
+					<span className="flex items-center gap-1.5">
+						{copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+						{copied ? "Copied" : "Copy setup commands"}
+					</span>
+				</Button>
+			</div>
+		</Callout>
+	);
+};
+
 const SyncHealth: React.FC<{
 	status?: GitStatus | null;
 	isLoading: boolean;
+	error?: string | null;
 	lastSync?: LastSync | null;
 	autoPush: boolean;
 	currentDataDir: string;
@@ -238,6 +282,7 @@ const SyncHealth: React.FC<{
 }> = ({
 	status,
 	isLoading,
+	error,
 	lastSync,
 	autoPush,
 	currentDataDir,
@@ -254,56 +299,76 @@ const SyncHealth: React.FC<{
 
 	const health = deriveHealth(status, lastSync, autoPush);
 	const tone = toneStyles[health.tone];
+	const notARepo = status?.isRepo === false;
+	const fetchError = !status && !isLoading && !!error;
 	const hasConflicts = (status?.conflicted.length ?? 0) > 0;
-	const showConflict = hasConflicts || lastSync?.status === "conflict";
+	const showConflict = !notARepo && (hasConflicts || lastSync?.status === "conflict");
 	const behind = status?.behind ?? 0;
 	const showSyncedAgo = lastSync && health.tone === "green";
 
+	const healthBox = (
+		<div className={`rounded-lg border p-4 ${tone.box}`}>
+			<div className="flex items-start justify-between gap-3">
+				<div className="flex min-w-0 items-start gap-3">
+					<health.Icon
+						className={`mt-0.5 h-5 w-5 shrink-0 ${tone.icon} ${isLoading && health.tone === "neutral" ? "animate-spin" : ""}`}
+					/>
+					<div className="min-w-0">
+						<div className="text-sm font-medium text-text">{health.title}</div>
+						{health.detail && <div className="mt-0.5 text-xs text-text-dim">{health.detail}</div>}
+						{(showSyncedAgo || behind > 0) && (
+							<div className="mt-1 flex items-center gap-3 text-xs text-text-dim">
+								{showSyncedAgo && lastSync && <span>Synced {relativeTime(lastSync.at)}</span>}
+								{behind > 0 && (
+									<span className="flex items-center gap-1">
+										<ArrowDown className="h-3 w-3" />
+										{behind} incoming
+									</span>
+								)}
+							</div>
+						)}
+					</div>
+				</div>
+				{onRefresh && (
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={onRefresh}
+						disabled={isLoading}
+						className="p-1.5"
+						aria-label="Refresh sync status"
+						title="Refresh sync status"
+					>
+						<RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+					</Button>
+				)}
+			</div>
+		</div>
+	);
+
 	return (
 		<div className="space-y-3">
-			<div className={`rounded-lg border p-4 ${tone.box}`}>
-				<div className="flex items-start justify-between gap-3">
-					<div className="flex min-w-0 items-start gap-3">
-						<health.Icon
-							className={`mt-0.5 h-5 w-5 shrink-0 ${tone.icon} ${isLoading && health.tone === "neutral" ? "animate-spin" : ""}`}
-						/>
-						<div className="min-w-0">
-							<div className="text-sm font-medium text-text">{health.title}</div>
-							{health.detail && <div className="mt-0.5 text-xs text-text-dim">{health.detail}</div>}
-							{(showSyncedAgo || behind > 0) && (
-								<div className="mt-1 flex items-center gap-3 text-xs text-text-dim">
-									{showSyncedAgo && lastSync && <span>Synced {relativeTime(lastSync.at)}</span>}
-									{behind > 0 && (
-										<span className="flex items-center gap-1">
-											<ArrowDown className="h-3 w-3" />
-											{behind} incoming
-										</span>
-									)}
-								</div>
-							)}
-						</div>
-					</div>
-					{onRefresh && (
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={onRefresh}
-							disabled={isLoading}
-							className="p-1.5"
-							aria-label="Refresh sync status"
-							title="Refresh sync status"
-						>
-							<RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
-						</Button>
-					)}
-				</div>
-			</div>
+			{notARepo ? (
+				<RepoSetup dataDir={currentDataDir} />
+			) : fetchError ? (
+				<Callout
+					variant="danger"
+					icon={<AlertTriangle className="h-5 w-5" />}
+					title="Couldn't read sync status"
+				>
+					<div className="break-words text-xs text-text-dim">{error}</div>
+				</Callout>
+			) : (
+				healthBox
+			)}
 
 			{showConflict && <ConflictRecovery files={status?.conflicted ?? []} dataDir={currentDataDir} />}
 
-			<Button variant="primary" size="sm" onClick={onSyncNow} disabled={syncNowInFlight}>
-				{syncNowInFlight ? "Syncing…" : "Sync now"}
-			</Button>
+			{!notARepo && (
+				<Button variant="primary" size="sm" onClick={onSyncNow} disabled={syncNowInFlight}>
+					{syncNowInFlight ? "Syncing…" : "Sync now"}
+				</Button>
+			)}
 		</div>
 	);
 };
@@ -328,6 +393,7 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 			commitIntervalOptions,
 			gitStatus,
 			gitStatusLoading = false,
+			gitStatusError,
 			lastSync,
 			onGitSyncToggle,
 			onCommitIntervalChange,
@@ -392,6 +458,7 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 								<SyncHealth
 									status={gitStatus}
 									isLoading={gitStatusLoading}
+									error={gitStatusError}
 									lastSync={lastSync}
 									autoPush={autoPush}
 									currentDataDir={currentDataDir}

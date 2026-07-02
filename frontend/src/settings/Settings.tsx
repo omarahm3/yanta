@@ -60,6 +60,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		tooltipHintsFeatureEnabled,
 		gitStatus,
 		gitStatusLoading,
+		gitStatusError,
 		refreshGitStatus,
 		syncNow,
 		generalRef,
@@ -304,6 +305,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 									commitIntervalOptions={controller.commitIntervalOptions}
 									gitStatus={gitStatus}
 									gitStatusLoading={gitStatusLoading}
+									gitStatusError={gitStatusError}
 									lastSync={controller.lastSync}
 									onGitSyncToggle={controller.handlers.handleGitSyncToggle}
 									onCommitIntervalChange={controller.handlers.handleCommitIntervalChange}
