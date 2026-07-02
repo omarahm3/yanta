@@ -702,7 +702,9 @@ func (s *Service) GetAheadBehind(ctx context.Context, path, branch string) (*Ahe
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	refSpec := fmt.Sprintf("%s...origin/%s", branch, branch)
+	// Compare against the branch's actual configured upstream rather than a
+	// hardcoded origin/<branch>, so non-"origin" remotes report correctly.
+	refSpec := fmt.Sprintf("%s...%s@{upstream}", branch, branch)
 	cmd := s.newGitCmd(ctx, path, "rev-list", "--left-right", "--count", refSpec)
 
 	var stdout, stderr bytes.Buffer
@@ -711,7 +713,11 @@ func (s *Service) GetAheadBehind(ctx context.Context, path, branch string) (*Ahe
 
 	if err := cmd.Run(); err != nil {
 		stderrStr := stderr.String()
-		if strings.Contains(stderrStr, "unknown revision") {
+		// No upstream configured / tracking ref not fetched yet → ahead/behind
+		// is genuinely undefined (not an error, and not "diverged").
+		if strings.Contains(stderrStr, "unknown revision") ||
+			strings.Contains(stderrStr, "no upstream") ||
+			strings.Contains(stderrStr, "No upstream") {
 			return &AheadBehind{Ahead: 0, Behind: 0}, nil
 		}
 		return nil, fmt.Errorf("git rev-list failed: %w: %s", err, stderrStr)
