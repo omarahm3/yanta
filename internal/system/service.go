@@ -9,7 +9,6 @@ import (
 	"os"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -35,8 +34,7 @@ type Service struct {
 	shutdownHandler          func()
 	hotkeyReconfigureHandler func(config.HotkeyConfig) error
 	indexer                  *indexer.Indexer
-	gitOpMu                  sync.Mutex
-	gitOpInFlight            string
+	gitLock                  *git.OperationLock
 }
 
 const (
@@ -51,7 +49,15 @@ func NewService(db *sql.DB, eventBus *events.EventBus) *Service {
 		db:       db,
 		dbPath:   "",
 		eventBus: eventBus,
+		gitLock:  git.NewOperationLock(),
 	}
+}
+
+// SetGitLock replaces this service's git operation lock with a shared one so
+// manual git operations mutually exclude the automatic sync manager. Called
+// once at app startup.
+func (s *Service) SetGitLock(l *git.OperationLock) {
+	s.gitLock = l
 }
 
 func (s *Service) SetDBPath(path string) {
@@ -258,24 +264,11 @@ func sanitizeFrontendLogValue(value any, depth int) any {
 }
 
 func (s *Service) beginGitOperation(operation string) (func(), error) {
-	s.gitOpMu.Lock()
-	defer s.gitOpMu.Unlock()
-
-	if s.gitOpInFlight != "" {
-		return nil, fmt.Errorf("GIT_OPERATION_IN_PROGRESS:\nAnother git operation is already running (%s).", s.gitOpInFlight)
+	release, holder, ok := s.gitLock.TryAcquire(operation)
+	if !ok {
+		return nil, fmt.Errorf("GIT_OPERATION_IN_PROGRESS:\nAnother git operation is already running (%s).", holder)
 	}
-
-	s.gitOpInFlight = operation
-	released := false
-	return func() {
-		s.gitOpMu.Lock()
-		defer s.gitOpMu.Unlock()
-		if released {
-			return
-		}
-		released = true
-		s.gitOpInFlight = ""
-	}, nil
+	return release, nil
 }
 
 func normalizeGitTimeoutError(ctx context.Context, err error, operation string) error {

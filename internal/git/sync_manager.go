@@ -38,7 +38,7 @@ type SyncManager struct {
 	ticker         *time.Ticker
 	done           chan struct{}
 	closed         atomic.Bool
-	syncing        atomic.Bool // prevents concurrent sync operations
+	oplock         *OperationLock // shared with the manual sync path; serializes all git ops
 
 	emitter        toastEmitter
 	lastFailureKey string // "" = healthy; guarded by mu. Drives notify() dedup.
@@ -48,6 +48,7 @@ func NewSyncManager(db *sql.DB) *SyncManager {
 	sm := &SyncManager{
 		gitService: NewService(),
 		db:         db,
+		oplock:     NewOperationLock(),
 		reasons:    make([]string, 0),
 		done:       make(chan struct{}),
 	}
@@ -55,6 +56,21 @@ func NewSyncManager(db *sql.DB) *SyncManager {
 	sm.loadLastCommitTime()
 
 	return sm
+}
+
+// SetOperationLock replaces the manager's git operation lock with a shared one
+// so the automatic and manual sync paths mutually exclude each other. Called
+// once at app startup.
+func (sm *SyncManager) SetOperationLock(l *OperationLock) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	sm.oplock = l
+}
+
+func (sm *SyncManager) lock() *OperationLock {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	return sm.oplock
 }
 
 // SetEmitter wires an event emitter so auto-sync can surface failures to the
@@ -85,11 +101,12 @@ func (sm *SyncManager) runLoop() {
 }
 
 func (sm *SyncManager) checkAndSync() {
-	if !sm.syncing.CompareAndSwap(false, true) {
-		logger.Debug("auto-sync: sync already in progress, skipping")
+	release, holder, ok := sm.lock().TryAcquire("auto-sync")
+	if !ok {
+		logger.WithField("holder", holder).Debug("auto-sync: another git operation in progress, skipping")
 		return
 	}
-	defer sm.syncing.Store(false)
+	defer release()
 
 	gitCfg := config.GetGitSyncConfig()
 	if !gitCfg.Enabled || !gitCfg.AutoCommit {
@@ -489,11 +506,12 @@ func (sm *SyncManager) HasPendingChanges() bool {
 }
 
 func (sm *SyncManager) ForceSync() {
-	if !sm.syncing.CompareAndSwap(false, true) {
-		logger.Debug("force-sync: sync already in progress, skipping")
+	release, holder, ok := sm.lock().TryAcquire("force-sync")
+	if !ok {
+		logger.WithField("holder", holder).Debug("force-sync: another git operation in progress, skipping")
 		return
 	}
-	defer sm.syncing.Store(false)
+	defer release()
 
 	sm.mu.Lock()
 	reasons := make([]string, len(sm.reasons))

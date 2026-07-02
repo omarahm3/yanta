@@ -112,6 +112,10 @@ func New(cfg Config) (*App, error) {
 
 	syncManager := git.NewSyncManager(a.DB)
 	syncManager.SetEmitter(toastEmitter{eventBus})
+	// One lock shared by the automatic and manual sync paths so their git
+	// subprocesses never run concurrently on the same repo.
+	gitLock := git.NewOperationLock()
+	syncManager.SetOperationLock(gitLock)
 	a.syncManager = syncManager
 	syncManager.Start()
 
@@ -144,6 +148,7 @@ func New(cfg Config) (*App, error) {
 	systemService := system.NewService(a.DB, eventBus)
 	systemService.SetDBPath(a.DBPath)
 	systemService.SetIndexer(idx)
+	systemService.SetGitLock(gitLock)
 
 	assetService := asset.NewService(asset.ServiceConfig{
 		DB:          a.DB,
