@@ -553,7 +553,8 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 	committed := false
 	filesChanged := 0
 	if !status.Clean {
-		filesChanged = len(status.Staged) + len(status.Modified) + len(status.Untracked)
+		filesChanged = len(status.Staged) + len(status.Modified) + len(status.Untracked) +
+			len(status.Deleted) + len(status.Renamed)
 		result.FilesChanged = filesChanged
 		commitMsg := fmt.Sprintf("sync: %d file(s) at %s", filesChanged, time.Now().Format("2006-01-02 15:04:05"))
 		if err := gitService.Commit(ctx, dataDir, commitMsg); err != nil {

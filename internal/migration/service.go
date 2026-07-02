@@ -245,12 +245,12 @@ func (s *Service) MigrateData(targetPath string, strategy MigrationStrategy) err
 		}
 	}
 
+	// The database is now closed, so every failure past this point requires an
+	// app restart to recover a working handle — wrap it so the caller reacts.
 	if err := os.MkdirAll(absTarget, 0755); err != nil {
-		return fmt.Errorf("creating target directory: %w", err)
+		return fmt.Errorf("%w: creating target directory: %v", ErrMigrationNeedsRestart, err)
 	}
 
-	// Past this point the database is closed, so any failure requires an app
-	// restart to recover a working handle — wrap it so the caller can react.
 	var migErr error
 	switch {
 	case hasCurrentData && hasTargetVault:

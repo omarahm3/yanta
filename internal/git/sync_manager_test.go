@@ -750,6 +750,21 @@ func TestSyncManager_Notify_HardErrorSurfacesMessage(t *testing.T) {
 	assert.Equal(t, "not a git repository", rec.toasts[0]["message"])
 }
 
+// A change in the hard-error message must re-notify (not be suppressed as the
+// same "error" state) — e.g. "not a repo" then "commit failed".
+func TestSyncManager_Notify_ErrorDedupByMessage(t *testing.T) {
+	rec := &recordingEmitter{}
+	sm := &SyncManager{}
+	sm.SetEmitter(rec)
+
+	sm.notify(&SyncResult{Status: SyncStatusError, Message: "not a git repository"})
+	sm.notify(&SyncResult{Status: SyncStatusError, Message: "not a git repository"})
+	require.Len(t, rec.toasts, 1, "same error must not re-toast")
+
+	sm.notify(&SyncResult{Status: SyncStatusError, Message: "commit failed"})
+	require.Len(t, rec.toasts, 2, "a changed error message must re-toast")
+}
+
 // With no emitter wired (the default, e.g. in tests) notify is a safe no-op.
 func TestSyncManager_Notify_NilEmitterIsNoop(t *testing.T) {
 	sm := &SyncManager{}

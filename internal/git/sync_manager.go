@@ -42,6 +42,7 @@ type SyncManager struct {
 
 	emitter        toastEmitter
 	lastFailureKey string // "" = healthy; guarded by mu. Drives notify() dedup.
+	needsPush      bool   // guarded by mu; a local commit failed to push and should be retried
 }
 
 func NewSyncManager(db *sql.DB) *SyncManager {
@@ -171,13 +172,14 @@ func (sm *SyncManager) checkAndSync() {
 
 	sm.mu.Lock()
 	hasPending := sm.hasPending
+	needsPush := sm.needsPush
 	timeSinceLastCommit := time.Since(sm.lastCommitTime)
 	commitInterval := time.Duration(gitCfg.CommitInterval) * time.Minute
 	reasons := make([]string, len(sm.reasons))
 	copy(reasons, sm.reasons)
 	sm.mu.Unlock()
 
-	if !hasPending {
+	if !hasPending && !needsPush {
 		return
 	}
 
@@ -190,14 +192,22 @@ func (sm *SyncManager) checkAndSync() {
 		return
 	}
 
-	logger.WithFields(map[string]any{
-		"timeSinceLastCommit": timeSinceLastCommit.Round(time.Second),
-		"pendingChanges":      len(reasons),
-	}).Info("auto-sync: interval passed, performing sync")
-
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
-	sm.notify(sm.performSync(ctx, reasons))
+
+	if hasPending {
+		logger.WithFields(map[string]any{
+			"timeSinceLastCommit": timeSinceLastCommit.Round(time.Second),
+			"pendingChanges":      len(reasons),
+		}).Info("auto-sync: interval passed, performing sync")
+		sm.notify(sm.performSync(ctx, reasons))
+		return
+	}
+
+	// No new changes, but a prior commit's push failed — retry just the push
+	// (no staging/commit/backup) so the commit doesn't stay stranded locally.
+	logger.Debug("auto-sync: retrying a previously-failed push")
+	sm.notify(sm.retryPush(ctx))
 }
 
 // NotifyChange records that a change has occurred that should be synced.
@@ -312,8 +322,11 @@ func (sm *SyncManager) performSync(ctx context.Context, reasons []string) *SyncR
 		// then failed to push. Publish those now instead of waiting for the
 		// next edit (which is why a failed push used to strand commits locally).
 		if gitCfg.AutoPush && hasRemote && sm.hasUnpushedCommits(ctx, dataDir, branch) {
-			return &SyncResult{Status: sm.pushWithRebaseRetry(ctx, dataDir, branch)}
+			st := sm.pushWithRebaseRetry(ctx, dataDir, branch)
+			sm.setNeedsPush(st == SyncStatusPushFailed)
+			return &SyncResult{Status: st}
 		}
+		sm.setNeedsPush(false)
 		return &SyncResult{Status: SyncStatusNoChanges}
 	}
 
@@ -354,6 +367,7 @@ func (sm *SyncManager) performSync(ctx context.Context, reasons []string) *SyncR
 
 	if gitCfg.AutoPush && hasRemote {
 		result.Status = sm.pushWithRebaseRetry(ctx, dataDir, branch)
+		sm.setNeedsPush(result.Status == SyncStatusPushFailed)
 	}
 
 	return result
@@ -417,7 +431,7 @@ func (sm *SyncManager) notify(result *SyncResult) {
 		return
 	}
 
-	key := failureKey(result.Status)
+	key := failureKey(result)
 
 	sm.mu.Lock()
 	prev := sm.lastFailureKey
@@ -453,16 +467,18 @@ func (sm *SyncManager) notify(result *SyncResult) {
 	}
 }
 
-// failureKey maps a sync status to a stable failure identifier used to
-// deduplicate notifications. Healthy outcomes map to "".
-func failureKey(s SyncStatus) string {
-	switch s {
+// failureKey maps a sync outcome to a stable failure identifier used to
+// deduplicate notifications. Healthy outcomes map to "". Hard errors include
+// the message so a change in the actual failure (e.g. "not a repo" →
+// "commit failed") still re-notifies rather than being suppressed as the same.
+func failureKey(r *SyncResult) string {
+	switch r.Status {
 	case SyncStatusConflict:
 		return "conflict"
 	case SyncStatusPushFailed:
 		return "push_failed"
 	case SyncStatusError:
-		return "error"
+		return "error:" + r.Message
 	default:
 		return ""
 	}
@@ -506,6 +522,53 @@ func (sm *SyncManager) hasUnpushedCommits(ctx context.Context, dataDir, branch s
 		return false
 	}
 	return ab.Ahead > 0
+}
+
+func (sm *SyncManager) setNeedsPush(v bool) {
+	sm.mu.Lock()
+	sm.needsPush = v
+	sm.mu.Unlock()
+}
+
+// retryPush re-attempts publishing a commit whose push failed earlier, without
+// re-running staging/commit/backup. It's the recovery path for a failed push
+// when no new edits have arrived (so performSync wouldn't otherwise run).
+func (sm *SyncManager) retryPush(ctx context.Context) *SyncResult {
+	dataDir := config.GetDataDirectory()
+	if isRepo, err := sm.gitService.IsRepository(dataDir); err != nil || !isRepo {
+		sm.setNeedsPush(false)
+		return &SyncResult{Status: SyncStatusNoChanges}
+	}
+	if op := sm.gitService.InProgressOperation(dataDir); op != "" {
+		return &SyncResult{
+			Status:  SyncStatusConflict,
+			Message: "Auto-sync paused: an unresolved " + op + " is in progress. Resolve it, then editing will sync again.",
+		}
+	}
+
+	gitCfg := config.GetGitSyncConfig()
+	branch := gitCfg.Branch
+	if branch == "" {
+		if b, err := sm.gitService.GetCurrentBranch(ctx, dataDir); err == nil {
+			branch = b
+		} else {
+			branch = "master"
+		}
+	}
+
+	hasRemote, err := sm.gitService.HasRemote(ctx, dataDir, "origin")
+	if err != nil {
+		hasRemote = false
+	}
+	if !gitCfg.AutoPush || !hasRemote || !sm.hasUnpushedCommits(ctx, dataDir, branch) {
+		// Nothing left to push (pushed elsewhere, auto-push off, or no remote).
+		sm.setNeedsPush(false)
+		return &SyncResult{Status: SyncStatusNoChanges}
+	}
+
+	st := sm.pushWithRebaseRetry(ctx, dataDir, branch)
+	sm.setNeedsPush(st == SyncStatusPushFailed)
+	return &SyncResult{Status: st}
 }
 
 // loadLastCommitTime loads the last auto-sync timestamp from the database
