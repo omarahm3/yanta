@@ -424,16 +424,37 @@ func (s *Service) CheckMigrationConflicts(ctx context.Context, targetPath string
 func (s *Service) MigrateToGitDirectory(ctx context.Context, targetPath string, strategy migration.MigrationStrategy) error {
 	logger.Infof("starting migration to %s with strategy %s", targetPath, strategy)
 
+	// Hold the shared git lock for the whole migration so the auto-sync ticker
+	// can't run git on the data directory while it is being copied/moved.
+	release, holder, ok := s.gitLock.TryAcquire("migration")
+	if !ok {
+		return fmt.Errorf("GIT_OPERATION_IN_PROGRESS:\nA git operation is already running (%s). Try again in a moment.", holder)
+	}
+	defer release()
+
 	gitService := git.NewService()
 	migrationService := migration.NewService(s.db, gitService)
 
 	if err := migrationService.MigrateData(targetPath, strategy); err != nil {
 		logger.Errorf("migration failed: %v", err)
+		if errors.Is(err, migration.ErrMigrationNeedsRestart) {
+			// The DB was closed mid-migration and cannot be recovered in
+			// process; restart so the app comes back up healthy (at the
+			// original data directory, which rollback restored).
+			logger.Error("migration failed after database close; restarting app to recover a working state")
+			s.scheduleRestartAfterMigration()
+		}
 		return err
 	}
 
 	logger.Info("migration completed successfully - app will exit")
+	s.scheduleRestartAfterMigration()
+	return nil
+}
 
+// scheduleRestartAfterMigration shuts the app down shortly after a migration so
+// it restarts with a fresh database handle at the (possibly new) data directory.
+func (s *Service) scheduleRestartAfterMigration() {
 	go func() {
 		time.Sleep(2 * time.Second)
 
@@ -445,8 +466,6 @@ func (s *Service) MigrateToGitDirectory(ctx context.Context, targetPath string, 
 		logger.Info("forcing app exit after migration (ignoring background mode)")
 		os.Exit(0)
 	}()
-
-	return nil
 }
 
 func (s *Service) GetGitSyncConfig(ctx context.Context) config.GitSyncConfig {
