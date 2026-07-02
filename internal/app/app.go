@@ -144,6 +144,7 @@ func New(cfg Config) (*App, error) {
 	documentService := document.NewService(a.DB, documentStore, v, idx, projectCache, eventBus)
 	documentFileManager := document.NewFileManager(v)
 	tagService := tag.NewService(a.DB, tagStore, documentFileManager, eventBus)
+	tagService.SetSyncNotifier(syncManager)
 	searchService := search.NewService(a.DB, eventBus)
 	systemService := system.NewService(a.DB, eventBus)
 	systemService.SetDBPath(a.DBPath)
@@ -159,6 +160,7 @@ func New(cfg Config) (*App, error) {
 
 	journalService := journal.NewService(v, eventBus, ftsStore)
 	journalService.SetIndexer(idx)
+	journalService.SetSyncNotifier(syncManager)
 	journalWailsService := journal.NewWailsService(journalService)
 	backupService := backup.NewService()
 	exportService := export.NewService(export.ServiceConfig{
