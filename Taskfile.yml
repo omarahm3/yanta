@@ -68,6 +68,28 @@ tasks:
           MSG: 'Using isolated app root: {{if eq OS "windows"}}%YANTA_HOME%{{else}}$YANTA_HOME{{end}}'
       - wails3 dev -config ./build/config.yml -port {{.DEV_PORT}}
 
+  # ----------------------------------------------------------------------------
+  # Dev-mode executes (invoked by wails3 dev via build/config.yml)
+  # config.yml has no OS templating, so platform branching lives here.
+  # ----------------------------------------------------------------------------
+
+  dev:build:
+    summary: Compile the app binary for `wails3 dev` (skips installer packaging)
+    silent: true
+    cmds:
+      # BUILD_SKIP_INSTALLER must be exported into the process so nested tasks
+      # (go:build) inherit it; go-task env: does not propagate across task refs.
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "$env:BUILD_SKIP_INSTALLER=''1''; task build; exit $LASTEXITCODE"{{else}}BUILD_SKIP_INSTALLER=1 task build{{end}}'
+
+  dev:run:
+    summary: Run the built binary for `wails3 dev` with graceful interrupt handling
+    silent: true
+    vars:
+      EXE_EXT: '{{if eq OS "windows"}}.exe{{else}}{{end}}'
+    cmds:
+      # Windows: treat Ctrl+C / termination codes as graceful shutdown in dev mode.
+      - '{{if eq OS "windows"}}powershell -NoProfile -Command "& ''./{{.BIN_DIR}}/{{.APP_NAME}}{{.EXE_EXT}}''; $c=$LASTEXITCODE; if ($c -eq 0 -or $c -eq 201 -or $c -eq -1073741510 -or $c -eq 3221225786) { exit 0 }; exit $c"{{else}}./{{.BIN_DIR}}/{{.APP_NAME}}{{.EXE_EXT}}{{end}}'
+
   # ============================================================================
   # Frontend Tasks
   # ============================================================================
