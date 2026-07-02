@@ -46,6 +46,9 @@ export function useGitSyncSettings() {
 	const [gitBranches, setGitBranches] = useState<string[]>([]);
 	const [currentGitBranch, setCurrentGitBranch] = useState<string>("");
 	const [syncNowInFlight, setSyncNowInFlight] = useState(false);
+	const [lastSync, setLastSync] = useState<{ at: number; status: SyncStatus | "error" } | null>(
+		null,
+	);
 	const { success, error, info, warning } = useNotification();
 
 	useEffect(() => {
@@ -181,9 +184,11 @@ export function useGitSyncSettings() {
 		try {
 			const result = await SyncNow();
 			if (!result) {
+				setLastSync({ at: Date.now(), status: SyncStatus.SyncStatusSynced });
 				info("Sync completed");
 				return;
 			}
+			setLastSync({ at: Date.now(), status: result.status });
 			switch (result.status) {
 				case SyncStatus.SyncStatusNoChanges:
 					info(result.message || "No changes to sync");
@@ -207,6 +212,7 @@ export function useGitSyncSettings() {
 					success(result.message || "Sync completed");
 			}
 		} catch (err) {
+			setLastSync({ at: Date.now(), status: "error" });
 			const errorMessage = String(err);
 			const cleanedMessage = errorMessage.replace(/^[A-Z_]+:\s*/, "");
 			error(`Sync failed:\n\n${cleanedMessage}`);
@@ -231,5 +237,6 @@ export function useGitSyncSettings() {
 		handleBranchChange,
 		handleSyncNow,
 		syncNowInFlight,
+		lastSync,
 	};
 }

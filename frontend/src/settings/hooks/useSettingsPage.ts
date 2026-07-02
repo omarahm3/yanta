@@ -77,6 +77,13 @@ export function useSettingsPage({
 		refresh: refreshGitStatus,
 	} = useGitStatus(controller.gitSync.enabled ? 30000 : 0);
 
+	// Sync, then immediately refresh the displayed status so the panel reflects
+	// the result without waiting for the 30s poll.
+	const syncNow = useCallback(async () => {
+		await controller.handlers.handleSyncNow();
+		await refreshGitStatus();
+	}, [controller.handlers.handleSyncNow, refreshGitStatus]);
+
 	const generalRef = useRef<HTMLDivElement>(null);
 	const appearanceRef = useRef<HTMLDivElement>(null);
 	const pluginsRef = useRef<HTMLDivElement>(null);
@@ -220,6 +227,7 @@ export function useSettingsPage({
 		gitStatus,
 		gitStatusLoading,
 		refreshGitStatus,
+		syncNow,
 		// Section refs and navigation
 		generalRef,
 		appearanceRef,

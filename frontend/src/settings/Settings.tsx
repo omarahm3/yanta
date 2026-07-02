@@ -61,6 +61,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		gitStatus,
 		gitStatusLoading,
 		refreshGitStatus,
+		syncNow,
 		generalRef,
 		appearanceRef,
 		pluginsRef,
@@ -303,13 +304,14 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 									commitIntervalOptions={controller.commitIntervalOptions}
 									gitStatus={gitStatus}
 									gitStatusLoading={gitStatusLoading}
+									lastSync={controller.lastSync}
 									onGitSyncToggle={controller.handlers.handleGitSyncToggle}
 									onCommitIntervalChange={controller.handlers.handleCommitIntervalChange}
 									onAutoPushToggle={controller.handlers.handleAutoPushToggle}
 									onBranchChange={controller.handlers.handleBranchChange}
 									onPickDirectory={controller.handlers.handlePickDirectory}
 									onMigration={controller.handlers.handleMigration}
-									onSyncNow={controller.handlers.handleSyncNow}
+									onSyncNow={syncNow}
 									syncNowInFlight={controller.syncNowInFlight}
 									onRefreshStatus={refreshGitStatus}
 								/>
