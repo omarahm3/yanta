@@ -7,11 +7,15 @@ import (
 	"unsafe"
 )
 
-// appModelErrorNoPackage is the Win32 error APPMODEL_ERROR_NO_PACKAGE (15700),
-// returned by GetCurrentPackageFullName when the process has no MSIX package
-// identity — i.e. it is a plain Win32 build (NSIS installer or portable exe)
-// rather than an installed Microsoft Store package.
-const appModelErrorNoPackage = 15700
+// errorInsufficientBuffer is the Win32 error ERROR_INSUFFICIENT_BUFFER (122).
+// Called with a null buffer, GetCurrentPackageFullName returns this ONLY for a
+// process that has MSIX package identity (the required name did not fit). An
+// unpackaged desktop process instead returns APPMODEL_ERROR_NO_PACKAGE (15700).
+// Treating ERROR_INSUFFICIENT_BUFFER as the sole "packaged" signal — and every
+// other return (including unexpected errors) as "not packaged" — is the
+// documented detection pattern and ensures an API failure can never wrongly
+// silence updates for a normal NSIS/portable install.
+const errorInsufficientBuffer = 122
 
 var (
 	modkernel32                   = syscall.NewLazyDLL("kernel32.dll")
@@ -29,10 +33,9 @@ func isStorePackaged() bool {
 	if err := procGetCurrentPackageFullName.Find(); err != nil {
 		return false
 	}
-	// With a nil buffer and length 0 the call returns ERROR_INSUFFICIENT_BUFFER
-	// when packaged (and fills in the required length) or APPMODEL_ERROR_NO_PACKAGE
-	// when not. We only need to distinguish those two outcomes.
 	var length uint32
+	// Call returns a Win32 LONG; mask to uint32 before comparing since the upper
+	// bits of the amd64 return register are not guaranteed to be cleared.
 	ret, _, _ := procGetCurrentPackageFullName.Call(uintptr(unsafe.Pointer(&length)), 0)
-	return ret != appModelErrorNoPackage
+	return uint32(ret) == errorInsufficientBuffer
 }
