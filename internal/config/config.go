@@ -108,6 +108,14 @@ type Config struct {
 	ShowShortcutTooltips bool                 `toml:"show_shortcut_tooltips"`
 	FeatureFlags         FeatureFlags         `toml:"feature_flags"`
 	Preferences          PreferencesOverrides `toml:"preferences"`
+	MCP                  MCPConfig            `toml:"mcp"`
+}
+
+// MCPConfig configures the Model Context Protocol server that exposes the vault
+// to external agents (Claude Code, Codex, opencode, ...). Disabled by default.
+type MCPConfig struct {
+	Enabled bool `toml:"enabled"`
+	Port    int  `toml:"port"`
 }
 
 const (
@@ -351,6 +359,14 @@ func GetAppRootDirectory() string {
 	return root
 }
 
+// MCPDiscoveryPath returns the path to the MCP discovery file (mcp.json). The
+// running app writes it (internal/mcpctl) and the `yanta mcp` bridge reads it
+// (internal/mcpbridge); centralizing the path here keeps writer and reader from
+// ever drifting apart.
+func MCPDiscoveryPath() string {
+	return filepath.Join(GetAppRootDirectory(), "mcp.json")
+}
+
 func getAppRootDirectory() (string, error) {
 	if envDir := os.Getenv("YANTA_HOME"); envDir != "" {
 		return envDir, nil
@@ -377,6 +393,28 @@ func SetDataDirectory(dir string) error {
 func GetGitSyncConfig() GitSyncConfig {
 	cfg := Get()
 	return cfg.GitSync
+}
+
+func GetMCPConfig() MCPConfig {
+	m := Get().MCP
+	// An explicit YANTA_ENABLE_MCP overrides config in both directions (0/false
+	// disables even when config enables), matching how other flags resolve.
+	if v, ok := parseEnvBool("YANTA_ENABLE_MCP"); ok {
+		m.Enabled = v
+	}
+	return m
+}
+
+func SetMCPConfig(mcpCfg MCPConfig) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if instance == nil {
+		instance = &Config{}
+	}
+
+	instance.MCP = mcpCfg
+	return save(instance)
 }
 
 func SetGitSyncConfig(gitCfg GitSyncConfig) error {

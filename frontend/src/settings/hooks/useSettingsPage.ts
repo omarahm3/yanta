@@ -21,6 +21,7 @@ const BASE_SECTION_IDS = [
 	"logging",
 	"backup",
 	"sync",
+	"mcp",
 	"about",
 ] as const;
 type SettingsSectionId = (typeof BASE_SECTION_IDS)[number] | "plugins";
@@ -38,6 +39,10 @@ const SECTION_META: Record<SettingsSectionId, { label: string; keywords: string 
 	logging: { label: "Logging", keywords: "log level debug verbose" },
 	backup: { label: "Backup", keywords: "snapshot restore" },
 	sync: { label: "Git Sync", keywords: "git commit push branch migrate data directory" },
+	mcp: {
+		label: "MCP Server",
+		keywords: "mcp model context protocol agent claude codex opencode integration api",
+	},
 	about: { label: "About", keywords: "version system info" },
 };
 
@@ -92,6 +97,7 @@ export function useSettingsPage({
 	const loggingRef = useRef<HTMLDivElement>(null);
 	const backupRef = useRef<HTMLDivElement>(null);
 	const syncRef = useRef<HTMLDivElement>(null);
+	const mcpRef = useRef<HTMLDivElement>(null);
 	const aboutRef = useRef<HTMLDivElement>(null);
 
 	const [settingsKey, setSettingsKey] = useState(0);
@@ -107,6 +113,7 @@ export function useSettingsPage({
 						"logging",
 						"backup",
 						"sync",
+						"mcp",
 						"about",
 					]
 				: [...BASE_SECTION_IDS],
@@ -194,6 +201,7 @@ export function useSettingsPage({
 		loggingRef,
 		backupRef,
 		syncRef,
+		mcpRef,
 		aboutRef,
 		// Error boundary retry
 		settingsKey,

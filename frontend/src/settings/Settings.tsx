@@ -20,9 +20,11 @@ import { GeneralSection } from "./GeneralSection";
 import { GitSyncSection } from "./GitSyncSection";
 import { useSettingsPage } from "./hooks/useSettingsPage";
 import { LoggingSection } from "./LoggingSection";
+import { McpSection } from "./McpSection";
 import { PluginsSection } from "./PluginsSection";
 import { SettingsNav } from "./SettingsNav";
 import { ShortcutsSection } from "./ShortcutsSection";
+import { useMcpSettings } from "./useMcpSettings";
 import { usePluginSettings } from "./usePluginSettings";
 
 interface SettingsProps {
@@ -34,6 +36,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 	const { shortcuts: mergedShortcuts, graphics: mergedGraphics } = useMergedConfig();
 	const { setOverrides } = usePreferencesOverrides();
 	const pluginSettings = usePluginSettings(ENABLE_PLUGINS);
+	const mcpSettings = useMcpSettings();
 	const shortcutsForSettings: Shortcut[] = useMemo(
 		() =>
 			getShortcutsForSettingsFromMerged(mergedShortcuts).map(({ id, action, key }) => ({
@@ -71,6 +74,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		loggingRef,
 		backupRef,
 		syncRef,
+		mcpRef,
 		aboutRef,
 		settingsKey,
 		setSettingsKey,
@@ -346,6 +350,17 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 									onSyncNow={syncNow}
 									syncNowInFlight={controller.syncNowInFlight}
 									onRefreshStatus={refreshGitStatus}
+								/>
+							</div>
+
+							<div className={cn(!isVisible("mcp") && "hidden")}>
+								<McpSection
+									ref={mcpRef}
+									status={mcpSettings.status}
+									busy={mcpSettings.busy}
+									onSetEnabled={mcpSettings.setEnabled}
+									onSetPort={mcpSettings.setPort}
+									onRegenerateToken={mcpSettings.regenerateToken}
 								/>
 							</div>
 

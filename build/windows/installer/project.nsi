@@ -34,6 +34,10 @@ Unicode true
 ####
 !include "wails_tools.nsh"
 
+## PATH helpers — put the install dir on the system PATH so external agents can
+## spawn `yanta` (and `yanta mcp`) by name. See path_env.nsh.
+!include "path_env.nsh"
+
 # The version information for this two must consist of 4 parts
 VIProductVersion "${INFO_PRODUCTVERSION}.0"
 VIFileVersion    "${INFO_PRODUCTVERSION}.0"
@@ -91,6 +95,10 @@ Section
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}" "" "$INSTDIR\${PRODUCT_EXECUTABLE}" 0
     CreateShortCut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}" "" "$INSTDIR\${PRODUCT_EXECUTABLE}" 0
 
+    # Put the install dir on the system PATH so `yanta` / `yanta mcp` resolve by name.
+    Push "$INSTDIR"
+    Call PathAddToPath
+
     !insertmacro wails.associateFiles
     !insertmacro wails.associateCustomProtocols
 
@@ -99,6 +107,10 @@ SectionEnd
 
 Section "uninstall"
     !insertmacro wails.setShellContext
+
+    # Remove the install dir from the system PATH (added during install).
+    Push "$INSTDIR"
+    Call un.PathRemoveFromPath
 
     RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # Remove the WebView2 DataPath
 

@@ -22,6 +22,7 @@ import (
 	"yanta/internal/config"
 	"yanta/internal/db"
 	"yanta/internal/logger"
+	"yanta/internal/mcpbridge"
 	"yanta/internal/quickcapture"
 	"yanta/internal/vault"
 	windowcfg "yanta/internal/window"
@@ -34,6 +35,16 @@ var assets embed.FS
 var appIcon []byte
 
 func main() {
+	// `yanta mcp` runs the stdio<->HTTP bridge for external AI agents and exits.
+	// Dispatch before any GUI/Wails init so it stays headless and never trips the
+	// single-instance guard or spawns a window.
+	if len(os.Args) > 1 && os.Args[1] == "mcp" {
+		if err := mcpbridge.Run(context.Background()); err != nil {
+			fmt.Fprintln(os.Stderr, "yanta mcp: "+err.Error())
+			os.Exit(1)
+		}
+		return
+	}
 	run()
 }
 
@@ -59,6 +70,10 @@ func run() {
 	}
 
 	logger.Debug("application container created")
+
+	if err := a.StartMCPIfEnabled(); err != nil {
+		logger.Errorf("failed to start MCP server: %v", err)
+	}
 
 	startHidden := config.GetStartHidden()
 	logger.Infof("start_hidden config: %v", startHidden)
@@ -123,6 +138,7 @@ func run() {
 			application.NewService(a.Bindings.ProjectCommands),
 			application.NewService(a.Bindings.GlobalCommands),
 			application.NewService(a.Bindings.DocumentCommands),
+			application.NewService(a.Bindings.MCP),
 			application.NewService(windowcfg.NewService()),
 		},
 		Assets: application.AssetOptions{
@@ -203,6 +219,11 @@ func run() {
 
 	wailsApp.OnShutdown(func() {
 		logger.Debug("OnShutdown called")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		if err := a.StopMCP(shutdownCtx); err != nil {
+			logger.Warnf("MCP server shutdown: %v", err)
+		}
+		cancel()
 		a.Shutdown()
 	})
 
