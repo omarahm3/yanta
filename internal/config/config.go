@@ -397,8 +397,10 @@ func GetGitSyncConfig() GitSyncConfig {
 
 func GetMCPConfig() MCPConfig {
 	m := Get().MCP
-	if v := os.Getenv("YANTA_ENABLE_MCP"); v == "1" || strings.EqualFold(v, "true") {
-		m.Enabled = true
+	// An explicit YANTA_ENABLE_MCP overrides config in both directions (0/false
+	// disables even when config enables), matching how other flags resolve.
+	if v, ok := parseEnvBool("YANTA_ENABLE_MCP"); ok {
+		m.Enabled = v
 	}
 	return m
 }

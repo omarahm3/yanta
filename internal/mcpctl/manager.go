@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -182,8 +183,12 @@ func tokenPath() string     { return filepath.Join(config.GetAppRootDirectory(),
 
 func loadOrCreateToken() (string, error) {
 	p := tokenPath()
-	if b, err := os.ReadFile(p); err == nil && len(b) >= 32 {
-		return string(b), nil
+	if b, err := os.ReadFile(p); err == nil {
+		// Tolerate a trailing newline/whitespace if the file was hand-edited;
+		// the token is compared verbatim against the client's bearer header.
+		if tok := strings.TrimSpace(string(b)); len(tok) >= 32 {
+			return tok, nil
+		}
 	}
 	buf := make([]byte, 32)
 	if _, err := rand.Read(buf); err != nil {

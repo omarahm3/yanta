@@ -152,7 +152,11 @@ func (s *Server) handleSearch(ctx context.Context, _ *mcp.CallToolRequest, a sea
 	if limit <= 0 {
 		limit = defaultSearchLimit
 	}
-	hits, err := s.vault.SearchNotes(ctx, a.Query, limit, a.Offset)
+	offset := a.Offset
+	if offset < 0 {
+		offset = 0
+	}
+	hits, err := s.vault.SearchNotes(ctx, a.Query, limit, offset)
 	if err != nil {
 		return nil, searchResult{}, err
 	}
@@ -192,7 +196,11 @@ func (s *Server) handleListDocuments(ctx context.Context, _ *mcp.CallToolRequest
 	if limit <= 0 {
 		limit = defaultListLimit
 	}
-	docs, err := s.vault.ListDocuments(ctx, a.ProjectAlias, a.IncludeArchived, limit, a.Offset)
+	offset := a.Offset
+	if offset < 0 {
+		offset = 0
+	}
+	docs, err := s.vault.ListDocuments(ctx, a.ProjectAlias, a.IncludeArchived, limit, offset)
 	if err != nil {
 		return nil, listDocumentsResult{}, err
 	}

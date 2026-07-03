@@ -112,5 +112,8 @@ func readDiscovery() (*discovery, error) {
 	if d.URL == "" {
 		return nil, fmt.Errorf("no url in %s", path)
 	}
+	if d.Token == "" {
+		return nil, fmt.Errorf("no token in %s", path)
+	}
 	return &d, nil
 }
