@@ -9,6 +9,7 @@ import (
 	"yanta/internal/events"
 	"yanta/internal/export"
 	"yanta/internal/journal"
+	"yanta/internal/mcpctl"
 	"yanta/internal/plugins"
 	"yanta/internal/project"
 	"yanta/internal/search"
@@ -31,6 +32,7 @@ type Bindings struct {
 	ProjectCommands  *commandline.ProjectCommands
 	GlobalCommands   *commandline.GlobalCommands
 	DocumentCommands *commandline.DocumentCommands
+	MCP              *mcpctl.Service
 	EventBus         *events.EventBus
 
 	shutdownHandler          func()
@@ -62,6 +64,7 @@ func (b *Bindings) Bind() []any {
 		b.ProjectCommands,
 		b.GlobalCommands,
 		b.DocumentCommands,
+		b.MCP,
 	}
 }
 

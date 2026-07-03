@@ -12,7 +12,11 @@ never a second process writing to the vault behind the app's back.
 
 ## Enabling
 
-The server is **off by default**. Enable it either in `~/.yanta/config.toml`:
+The server is **off by default**. The easiest way to turn it on is in the app:
+**Settings → MCP Server** — a toggle to start/stop it live, a port field, a status
+indicator, and one-click copy of the connection details and agent setup command.
+
+You can also configure it directly in `~/.yanta/config.toml`:
 
 ```toml
 [mcp]

@@ -28,6 +28,7 @@ import (
 	"yanta/internal/link"
 	"yanta/internal/logger"
 	"yanta/internal/mcp"
+	"yanta/internal/mcpctl"
 	"yanta/internal/plugins"
 	"yanta/internal/project"
 	"yanta/internal/quickcapture"
@@ -54,7 +55,8 @@ type App struct {
 	wailsApp   *application.App
 	mainWindow *application.WebviewWindow
 
-	mcpVault mcp.Vault
+	mcpVault   mcp.Vault
+	mcpManager *mcpctl.Manager
 }
 
 type Config struct {
@@ -216,6 +218,8 @@ func New(cfg Config) (*App, error) {
 		journal:      journalService,
 		tags:         tagService,
 	}
+	a.mcpManager = mcpctl.NewManager(a.mcpVault)
+	mcpService := mcpctl.NewService(a.mcpManager)
 
 	a.Bindings = &Bindings{
 		Projects:                 projectService,
@@ -232,6 +236,7 @@ func New(cfg Config) (*App, error) {
 		ProjectCommands:          projectCommands,
 		GlobalCommands:           globalCommands,
 		DocumentCommands:         documentCommands,
+		MCP:                      mcpService,
 		EventBus:                 eventBus,
 		shutdownHandler:          a.OnShutdown,
 		hotkeyReconfigureHandler: a.ReconfigureHotkeys,

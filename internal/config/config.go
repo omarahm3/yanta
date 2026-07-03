@@ -395,6 +395,18 @@ func GetMCPConfig() MCPConfig {
 	return m
 }
 
+func SetMCPConfig(mcpCfg MCPConfig) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if instance == nil {
+		instance = &Config{}
+	}
+
+	instance.MCP = mcpCfg
+	return save(instance)
+}
+
 func SetGitSyncConfig(gitCfg GitSyncConfig) error {
 	mu.Lock()
 	defer mu.Unlock()

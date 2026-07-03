@@ -60,8 +60,7 @@ func run() {
 
 	logger.Debug("application container created")
 
-	stopMCP, err := a.StartMCPServer()
-	if err != nil {
+	if err := a.StartMCPIfEnabled(); err != nil {
 		logger.Errorf("failed to start MCP server: %v", err)
 	}
 
@@ -128,6 +127,7 @@ func run() {
 			application.NewService(a.Bindings.ProjectCommands),
 			application.NewService(a.Bindings.GlobalCommands),
 			application.NewService(a.Bindings.DocumentCommands),
+			application.NewService(a.Bindings.MCP),
 			application.NewService(windowcfg.NewService()),
 		},
 		Assets: application.AssetOptions{
@@ -209,7 +209,7 @@ func run() {
 	wailsApp.OnShutdown(func() {
 		logger.Debug("OnShutdown called")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		if err := stopMCP(shutdownCtx); err != nil {
+		if err := a.StopMCP(shutdownCtx); err != nil {
 			logger.Warnf("MCP server shutdown: %v", err)
 		}
 		cancel()
