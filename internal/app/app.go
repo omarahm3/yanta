@@ -27,6 +27,7 @@ import (
 	"yanta/internal/journal"
 	"yanta/internal/link"
 	"yanta/internal/logger"
+	"yanta/internal/mcp"
 	"yanta/internal/plugins"
 	"yanta/internal/project"
 	"yanta/internal/quickcapture"
@@ -52,6 +53,8 @@ type App struct {
 
 	wailsApp   *application.App
 	mainWindow *application.WebviewWindow
+
+	mcpVault mcp.Vault
 }
 
 type Config struct {
@@ -204,6 +207,15 @@ func New(cfg Config) (*App, error) {
 	pluginWailsService := plugins.NewWailsService(pluginService)
 
 	logger.Debugf("command handlers created")
+
+	a.mcpVault = &mcpVault{
+		documents:    documentService,
+		search:       searchService,
+		projects:     projectService,
+		projectCache: projectCache,
+		journal:      journalService,
+		tags:         tagService,
+	}
 
 	a.Bindings = &Bindings{
 		Projects:                 projectService,

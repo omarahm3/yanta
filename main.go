@@ -60,6 +60,11 @@ func run() {
 
 	logger.Debug("application container created")
 
+	stopMCP, err := a.StartMCPServer()
+	if err != nil {
+		logger.Errorf("failed to start MCP server: %v", err)
+	}
+
 	startHidden := config.GetStartHidden()
 	logger.Infof("start_hidden config: %v", startHidden)
 
@@ -203,6 +208,11 @@ func run() {
 
 	wailsApp.OnShutdown(func() {
 		logger.Debug("OnShutdown called")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		if err := stopMCP(shutdownCtx); err != nil {
+			logger.Warnf("MCP server shutdown: %v", err)
+		}
+		cancel()
 		a.Shutdown()
 	})
 

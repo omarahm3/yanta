@@ -108,6 +108,14 @@ type Config struct {
 	ShowShortcutTooltips bool                 `toml:"show_shortcut_tooltips"`
 	FeatureFlags         FeatureFlags         `toml:"feature_flags"`
 	Preferences          PreferencesOverrides `toml:"preferences"`
+	MCP                  MCPConfig            `toml:"mcp"`
+}
+
+// MCPConfig configures the Model Context Protocol server that exposes the vault
+// to external agents (Claude Code, Codex, opencode, ...). Disabled by default.
+type MCPConfig struct {
+	Enabled bool `toml:"enabled"`
+	Port    int  `toml:"port"`
 }
 
 const (
@@ -377,6 +385,14 @@ func SetDataDirectory(dir string) error {
 func GetGitSyncConfig() GitSyncConfig {
 	cfg := Get()
 	return cfg.GitSync
+}
+
+func GetMCPConfig() MCPConfig {
+	m := Get().MCP
+	if v := os.Getenv("YANTA_ENABLE_MCP"); v == "1" || strings.EqualFold(v, "true") {
+		m.Enabled = true
+	}
+	return m
 }
 
 func SetGitSyncConfig(gitCfg GitSyncConfig) error {
