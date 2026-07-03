@@ -38,41 +38,62 @@ On startup Yanta binds `127.0.0.1:<port>` and writes two files into the app root
 
 ## Connecting an agent
 
-### 1. Build the bridge binary
+Most agents launch an MCP server as a stdio subprocess. Yanta ships that bridge
+**built into the main binary**: `yanta mcp` reads `mcp.json` and relays stdio ↔
+the running app's loopback HTTP endpoint. There is no separate binary to build or
+install — you only need the `yanta` binary on your PATH. If Yanta is not running
+(or its MCP server is disabled), `yanta mcp` exits with a clear message.
 
-Most agents launch MCP servers as a stdio subprocess. `yanta-mcp` is a tiny
-bridge that reads `mcp.json` and relays stdio ↔ the app's loopback HTTP endpoint:
+The bridge deliberately talks to the *running app* rather than opening the vault
+itself, so there is always a single in-process writer (shared SQLite connection,
+event bus, project cache, and git-sync lock) and external edits stay consistent
+with the UI.
 
-```bash
-go build -o ~/.local/bin/yanta-mcp ./cmd/yanta-mcp   # ensure it's on your PATH
+### Is `yanta` on your PATH?
+
+| Install method | On PATH automatically? |
+|---|---|
+| **Windows** — NSIS installer | Yes — the installer adds the install dir to the system PATH. |
+| **Windows** — Microsoft Store (MSIX) | Yes — via an app execution alias in `%LOCALAPPDATA%\Microsoft\WindowsApps`. |
+| **Linux** — `.deb` / `.rpm` / Arch package | Yes — installed to `/usr/bin` or `/usr/local/bin`. |
+| **Windows/Linux** — portable `.exe` / `.tar.gz` | No (portable). Add its folder to PATH, or use a full path below. |
+| **macOS** — `.dmg` (drag to Applications) | **Not yet.** Use the full in-bundle path (below) until a CLI installer ships. |
+
+On macOS, until an "Install command-line tool" step lands, point your agent at
+the binary inside the app bundle:
+
+```toml
+# ~/.codex/config.toml
+[mcp_servers.yanta]
+command = "/Applications/YANTA.app/Contents/MacOS/yanta"
+args = ["mcp"]
 ```
 
-If Yanta is not running (or its MCP server is disabled), `yanta-mcp` exits with
-a clear message.
+Or skip PATH entirely with **Direct HTTP** (below), which talks to the server
+directly and needs nothing on PATH.
 
-### 2. Register it
-
-**Claude Code** (stdio via the bridge):
+**Claude Code** (stdio via the built-in bridge):
 
 ```bash
-claude mcp add yanta -- yanta-mcp
+claude mcp add yanta -- yanta mcp
 ```
 
 **Codex** — in `~/.codex/config.toml`:
 
 ```toml
 [mcp_servers.yanta]
-command = "yanta-mcp"
+command = "yanta"
+args = ["mcp"]
 ```
 
 **opencode** — in `opencode.json`:
 
 ```json
-{ "mcp": { "yanta": { "type": "local", "command": ["yanta-mcp"] } } }
+{ "mcp": { "yanta": { "type": "local", "command": ["yanta", "mcp"] } } }
 ```
 
-**Direct HTTP** (clients that speak the Streamable-HTTP transport can skip the
-bridge). Copy the `url` and `token` from `~/.yanta/mcp.json`:
+**Direct HTTP** (clients that speak the Streamable-HTTP transport talk to the
+server directly). Copy the `url` and `token` from `~/.yanta/mcp.json`:
 
 ```bash
 claude mcp add --transport http yanta http://127.0.0.1:47600/ \
@@ -109,7 +130,7 @@ Settings and git operations are intentionally **not** exposed in this version.
 - An **Origin/Host check** rejects requests carrying a non-loopback `Origin`
   header, defending against DNS-rebinding from a browser.
 - The token and discovery files are written `0600`.
-- The `yanta-mcp` bridge runs as your user with no listening port of its own.
+- The `yanta mcp` bridge runs as your user with no listening port of its own.
 
 ## Consistency & concurrency
 
