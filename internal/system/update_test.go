@@ -134,3 +134,37 @@ func TestCheckForUpdate_EmptyTag(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, info)
 }
+
+// failRoundTripper fails the test if any HTTP request is attempted. It proves a
+// Store-packaged build performs no network update check.
+type failRoundTripper struct{ t *testing.T }
+
+func (f failRoundTripper) RoundTrip(*http.Request) (*http.Response, error) {
+	f.t.Fatal("a Store-packaged build must not make a network update request")
+	return nil, nil
+}
+
+func TestCheckForUpdate_SkippedForStorePackage(t *testing.T) {
+	origDetect, origVersion, origClient := detectStorePackaged, BuildVersion, updateClient
+	t.Cleanup(func() {
+		detectStorePackaged, BuildVersion, updateClient = origDetect, origVersion, origClient
+	})
+
+	detectStorePackaged = func() bool { return true }
+	BuildVersion = "1.2.3" // a real version, so this is not the dev-build skip path
+	updateClient = &http.Client{Transport: failRoundTripper{t}}
+
+	info, err := (&Service{}).CheckForUpdate(context.Background())
+	require.NoError(t, err)
+	require.NotNil(t, info)
+	assert.False(t, info.Available, "a Store build never advertises an update")
+	assert.False(t, info.Checked, "a Store build reports the check did not run")
+	assert.Equal(t, "1.2.3", info.CurrentVersion)
+}
+
+func TestIsStorePackaged_UnpackagedHost(t *testing.T) {
+	// The test binary is a plain executable with no MSIX identity, so detection
+	// must report false — otherwise normal NSIS/portable builds would silently
+	// lose their update check.
+	assert.False(t, isStorePackaged())
+}
