@@ -35,11 +35,26 @@ func (s *Server) StreamableHandler() http.Handler {
 	return mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return s.srv }, nil)
 }
 
-// Handler returns the MCP HTTP handler wrapped with bearer-token auth and an
-// anti-DNS-rebinding origin check. An empty token disables token auth (not
-// recommended outside tests).
+// Handler returns the MCP HTTP handler wrapped with bearer-token auth, an
+// anti-DNS-rebinding origin check, and an inbound body-size cap. An empty token
+// disables token auth (not recommended outside tests).
 func (s *Server) Handler(token string) http.Handler {
-	return withAuth(s.StreamableHandler(), token)
+	return withAuth(withBodyLimit(s.StreamableHandler()), token)
+}
+
+// maxRequestBytes caps the size of an inbound MCP request body. Client->server
+// messages are small JSON-RPC frames; this ceiling is generous enough for a
+// large document body while stopping an unbounded body from exhausting memory.
+// Server->client SSE responses are writes, so they are unaffected.
+const maxRequestBytes = 16 << 20 // 16 MiB
+
+func withBodyLimit(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Body != nil {
+			r.Body = http.MaxBytesReader(w, r.Body, maxRequestBytes)
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func text(msg string) *mcp.CallToolResult {

@@ -14,13 +14,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime/debug"
 	"sync"
 	"time"
 
 	"yanta/internal/config"
 	"yanta/internal/logger"
 	"yanta/internal/mcp"
+	"yanta/internal/system"
 )
 
 // defaultPort is used when [mcp].port is unset. A fixed default keeps the client
@@ -53,12 +53,15 @@ type Manager struct {
 }
 
 func NewManager(vault mcp.Vault) *Manager {
-	return &Manager{vault: vault, version: appVersion()}
+	return &Manager{vault: vault, version: system.BuildVersion}
 }
 
 // StartIfEnabled starts the server when config has it enabled. Used at boot.
 func (m *Manager) StartIfEnabled() error {
 	if !config.GetMCPConfig().Enabled {
+		// Clear any discovery file a previous run left behind (e.g. after a
+		// crash) so `yanta mcp` doesn't try to reach a server that isn't there.
+		_ = os.Remove(discoveryPath())
 		logger.Debug("MCP server disabled (enable in Settings or set YANTA_ENABLE_MCP=1)")
 		return nil
 	}
@@ -174,7 +177,7 @@ func (m *Manager) isRunning() bool {
 
 // --- discovery + token helpers ---
 
-func discoveryPath() string { return filepath.Join(config.GetAppRootDirectory(), "mcp.json") }
+func discoveryPath() string { return config.MCPDiscoveryPath() }
 func tokenPath() string     { return filepath.Join(config.GetAppRootDirectory(), "mcp-token") }
 
 func loadOrCreateToken() (string, error) {
@@ -203,11 +206,4 @@ func writeDiscovery(url, token string) error {
 		return err
 	}
 	return os.WriteFile(discoveryPath(), data, 0o600)
-}
-
-func appVersion() string {
-	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
-		return info.Main.Version
-	}
-	return "dev"
 }

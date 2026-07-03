@@ -13,7 +13,7 @@ import (
 // The origin guard rejects requests carrying a non-loopback Origin header,
 // which defends against DNS-rebinding attacks where a malicious web page tries
 // to reach the local server through the user's browser. Non-browser clients
-// (the yanta-mcp shim, direct HTTP clients) send no Origin header and pass.
+// (the `yanta mcp` bridge, direct HTTP clients) send no Origin header and pass.
 //
 // If token is non-empty, requests must present "Authorization: Bearer <token>".
 func withAuth(next http.Handler, token string) http.Handler {

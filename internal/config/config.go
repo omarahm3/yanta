@@ -359,6 +359,14 @@ func GetAppRootDirectory() string {
 	return root
 }
 
+// MCPDiscoveryPath returns the path to the MCP discovery file (mcp.json). The
+// running app writes it (internal/mcpctl) and the `yanta mcp` bridge reads it
+// (internal/mcpbridge); centralizing the path here keeps writer and reader from
+// ever drifting apart.
+func MCPDiscoveryPath() string {
+	return filepath.Join(GetAppRootDirectory(), "mcp.json")
+}
+
 func getAppRootDirectory() (string, error) {
 	if envDir := os.Getenv("YANTA_HOME"); envDir != "" {
 		return envDir, nil
