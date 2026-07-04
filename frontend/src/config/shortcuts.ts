@@ -12,6 +12,7 @@ export const GLOBAL_SHORTCUTS = {
 	quit: { key: "ctrl+q", description: "Quit (background if enabled)" },
 	forceQuit: { key: "ctrl+shift+q", description: "Force quit application" },
 	commandPalette: { key: "mod+K", description: "Open command palette" },
+	globalSearch: { key: "mod+F", description: "Search all documents" },
 	today: { key: "mod+T", description: "Jump to today's journal" },
 	switchProject: { key: "ctrl+Tab", description: "Switch to last project" },
 	projectSwitcher: { key: "mod+shift+K", description: "Switch project" },

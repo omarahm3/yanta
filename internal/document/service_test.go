@@ -261,6 +261,93 @@ func TestService_Get(t *testing.T) {
 	assert.Equal(t, "heading", doc.File.Blocks[0].Type)
 }
 
+func TestService_Preview(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	req := SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "Preview Test",
+		Blocks: []BlockNoteBlock{
+			{
+				ID:      "h1",
+				Type:    "heading",
+				Props:   map[string]any{"level": 1},
+				Content: mustMarshalContent([]BlockNoteContent{{Type: "text", Text: "Architecture"}}),
+			},
+			{
+				ID:      "p1",
+				Type:    "paragraph",
+				Content: mustMarshalContent([]BlockNoteContent{{Type: "text", Text: "The auth middleware validates tokens."}}),
+			},
+		},
+		Tags: []string{"security"},
+	}
+	path, err := service.Save(context.Background(), req)
+	require.NoError(t, err, "Save() failed")
+
+	md, err := service.Preview(context.Background(), path)
+	require.NoError(t, err, "Preview() failed")
+
+	// Body is rendered as Markdown (heading + paragraph text present).
+	assert.Contains(t, md, "Architecture")
+	assert.Contains(t, md, "The auth middleware validates tokens.")
+
+	// Leading YAML frontmatter is stripped (callers show metadata themselves).
+	assert.NotContains(t, md, "title: Preview Test")
+	assert.NotContains(t, md, "project: @test")
+}
+
+func TestService_Preview_EmptyPath(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	_, err := service.Preview(context.Background(), "   ")
+	assert.Error(t, err, "Expected error for empty path")
+}
+
+func TestService_Preview_NotFound(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	_, err := service.Preview(context.Background(), "projects/@test/doc-does-not-exist.json")
+	assert.Error(t, err, "Expected error for missing document")
+}
+
+func TestStripFrontmatter(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{
+			name: "strips leading frontmatter block",
+			in:   "---\ntitle: X\nproject: @p\n---\n# Body\n\nText",
+			want: "# Body\n\nText",
+		},
+		{
+			name: "preserves thematic break inside body",
+			in:   "---\ntitle: X\n---\nAbove\n\n---\n\nBelow",
+			want: "Above\n\n---\n\nBelow",
+		},
+		{
+			name: "frontmatter-only document yields empty body",
+			in:   "---\ntitle: X\nproject: @p\n---",
+			want: "",
+		},
+		{
+			name: "no frontmatter is returned unchanged",
+			in:   "# Just a heading",
+			want: "# Just a heading",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, stripFrontmatter(tt.in))
+		})
+	}
+}
+
 func TestService_Get_IncludesArchived(t *testing.T) {
 	service, _, cleanup := setupServiceTest(t)
 	defer cleanup()
