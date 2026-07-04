@@ -13,6 +13,7 @@ import type { EditorSlashMenuItemContribution } from "./extensions/registry/edit
 import "./extensions/rtl/rtl.css";
 import { useRichEditorInner } from "./hooks/useRichEditorInner";
 import { portalledShadCNComponents } from "./portalledShadCN";
+import { needsLeadingH1 } from "./utils/blockNormalize";
 
 export interface RichEditorProps {
 	initialContent?: string;
@@ -174,7 +175,7 @@ export const RichEditor = React.forwardRef<HTMLDivElement, RichEditorProps>(
 			try {
 				const parsed = JSON.parse(initialContent);
 				const blocks: PartialBlock[] = Array.isArray(parsed) ? (parsed as PartialBlock[]) : [];
-				if (blocks.length === 0 || blocks[0].type !== "heading" || blocks[0].props?.level !== 1) {
+				if (needsLeadingH1(blocks)) {
 					return {
 						ready: true as const,
 						blocks: [createDefaultInitialBlock(), ...blocks],
