@@ -1,4 +1,3 @@
-import type { Block } from "@blocknote/core";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useAutoSave } from "../../shared/hooks";
 import type { NavigationState, PageName } from "../../shared/types";
@@ -48,10 +47,10 @@ export const useDocumentPersistence = ({
 
 	// Compute blocks hash in layout effect to avoid formData.blocks in useMemo deps
 	// (reference equality causes re-computation on every render; hash is content-based)
-	const [blocksHash, setBlocksHash] = useState(() => computeContentHash(formData.blocks as Block[]));
+	const [blocksHash, setBlocksHash] = useState(() => computeContentHash(formData.blocks));
 
 	useLayoutEffect(() => {
-		setBlocksHash(computeContentHash(formData.blocks as Block[]));
+		setBlocksHash(computeContentHash(formData.blocks));
 	}, [formData]);
 
 	useEffect(() => {

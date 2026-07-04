@@ -1,11 +1,11 @@
-import type { BlockNoteEditor } from "@blocknote/core";
 import { useCallback, useRef } from "react";
+import type { EditorHandle } from "../../editor/types";
 import { isEditorAlive } from "../../shared/utils/blocknoteInternals";
 
 export const useDocumentEditor = () => {
-	const editorRef = useRef<BlockNoteEditor | null>(null);
+	const editorRef = useRef<EditorHandle | null>(null);
 
-	const handleEditorReady = useCallback((editor: BlockNoteEditor) => {
+	const handleEditorReady = useCallback((editor: EditorHandle) => {
 		// If a previous editor's RAF chain is still running, the editor ref
 		// swap here makes `editorRef.current !== editor` for the stale chain,
 		// which causes it to bail on its next tick.

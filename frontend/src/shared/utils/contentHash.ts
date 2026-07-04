@@ -1,4 +1,4 @@
-import type { Block } from "@blocknote/core";
+import type { BlockNoteBlock } from "../types/Document";
 
 interface NormalizedBlock {
 	type: string;
@@ -37,13 +37,14 @@ function normalizeProps(
 	return Object.keys(out).length > 0 ? out : undefined;
 }
 
-export function computeContentHash(blocks: Block[]): string {
-	const normalizeBlock = (block: Block): NormalizedBlock => ({
+export function computeContentHash(blocks: BlockNoteBlock[]): string {
+	const normalizeBlock = (block: BlockNoteBlock): NormalizedBlock => ({
 		type: block.type,
 		props: normalizeProps(block.props),
 		content: block.content,
 		// Treat "no children" and "empty children" as equivalent.
-		children: block.children && block.children.length > 0 ? block.children.map(normalizeBlock) : undefined,
+		children:
+			block.children && block.children.length > 0 ? block.children.map(normalizeBlock) : undefined,
 	});
 
 	return JSON.stringify(blocks.map(normalizeBlock));

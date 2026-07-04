@@ -1,6 +1,6 @@
 import React from "react";
 import "@blocknote/core/fonts/inter.css";
-import type { Block, BlockNoteEditor, PartialBlock } from "@blocknote/core";
+import type { PartialBlock } from "@blocknote/core";
 import { filterSuggestionItems } from "@blocknote/core/extensions";
 import { getDefaultReactSlashMenuItems, SuggestionMenuController } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/shadcn";
@@ -13,13 +13,14 @@ import type { EditorSlashMenuItemContribution } from "./extensions/registry/edit
 import "./extensions/rtl/rtl.css";
 import { useRichEditorInner } from "./hooks/useRichEditorInner";
 import { portalledShadCNComponents } from "./portalledShadCN";
+import type { EditorBlock, EditorHandle } from "./types";
 import { needsLeadingH1 } from "./utils/blockNormalize";
 
 export interface RichEditorProps {
 	initialContent?: string;
-	onChange?: (blocks: Block[]) => void;
+	onChange?: (blocks: EditorBlock[]) => void;
 	onTitleChange?: (title: string) => void;
-	onReady?: (editor: BlockNoteEditor) => void;
+	onReady?: (editor: EditorHandle) => void;
 	className?: string;
 	editable?: boolean;
 	isLoading?: boolean;
@@ -42,9 +43,9 @@ const createDefaultInitialBlock = (): PartialBlock => ({
 
 type EditorInnerProps = {
 	blocks: PartialBlock[];
-	onChange?: (blocks: Block[]) => void;
+	onChange?: (blocks: EditorBlock[]) => void;
 	onTitleChange?: (title: string) => void;
-	onReady?: (editor: BlockNoteEditor) => void;
+	onReady?: (editor: EditorHandle) => void;
 	className?: string;
 	editable: boolean;
 	autoFocus: boolean;
@@ -52,7 +53,7 @@ type EditorInnerProps = {
 };
 
 interface PluginSlashMenuProps {
-	editor: BlockNoteEditor;
+	editor: EditorHandle;
 	editable: boolean;
 	items: EditorSlashMenuItemContribution[];
 }

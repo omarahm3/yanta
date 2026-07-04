@@ -9,6 +9,7 @@ import {
 } from "../../../bindings/yanta/internal/document/service";
 import { recordDocumentGetInFlightDelta, recordDocumentGetTiming } from "../monitoring/appMonitor";
 import {
+	blocksToModel,
 	type Document,
 	type DocumentWithTags,
 	documentsFromModels,
@@ -21,7 +22,7 @@ export async function saveDocument(request: SaveDocumentRequest): Promise<string
 		Path: request.path || "",
 		ProjectAlias: request.projectAlias,
 		Title: request.title,
-		Blocks: request.blocks as unknown as documentModels.BlockNoteBlock[],
+		Blocks: blocksToModel(request.blocks),
 		Tags: request.tags,
 	});
 

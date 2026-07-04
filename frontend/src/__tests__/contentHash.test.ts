@@ -1,5 +1,5 @@
-import type { Block } from "@blocknote/core";
 import { describe, expect, it } from "vitest";
+import type { BlockNoteBlock } from "../shared/types/Document";
 import { computeContentHash } from "../shared/utils/contentHash";
 
 describe("computeContentHash", () => {
@@ -12,7 +12,7 @@ describe("computeContentHash", () => {
 				content: [{ type: "text", text: "Hello", styles: {} }],
 				children: [],
 			},
-		] as unknown as Block[];
+		] as unknown as BlockNoteBlock[];
 
 		const blocks2 = [
 			{
@@ -22,7 +22,7 @@ describe("computeContentHash", () => {
 				content: [{ type: "text", text: "Hello", styles: {} }],
 				children: [],
 			},
-		] as unknown as Block[];
+		] as unknown as BlockNoteBlock[];
 
 		expect(computeContentHash(blocks1)).toBe(computeContentHash(blocks2));
 	});
@@ -30,7 +30,7 @@ describe("computeContentHash", () => {
 	it("hashes sparse (on-disk) and hydrated blocks identically (P1.6)", () => {
 		const sparse = [
 			{ id: "a", type: "paragraph", content: [{ type: "text", text: "Hi", styles: {} }] },
-		] as unknown as Block[];
+		] as unknown as BlockNoteBlock[];
 		const hydrated = [
 			{
 				id: "a",
@@ -39,7 +39,7 @@ describe("computeContentHash", () => {
 				content: [{ type: "text", text: "Hi", styles: {} }],
 				children: [],
 			},
-		] as unknown as Block[];
+		] as unknown as BlockNoteBlock[];
 
 		expect(computeContentHash(sparse)).toBe(computeContentHash(hydrated));
 	});
@@ -47,10 +47,10 @@ describe("computeContentHash", () => {
 	it("still distinguishes non-default prop values", () => {
 		const red = [
 			{ id: "a", type: "paragraph", props: { textColor: "red" }, content: [] },
-		] as unknown as Block[];
+		] as unknown as BlockNoteBlock[];
 		const plain = [
 			{ id: "a", type: "paragraph", props: { textColor: "default" }, content: [] },
-		] as unknown as Block[];
+		] as unknown as BlockNoteBlock[];
 
 		expect(computeContentHash(red)).not.toBe(computeContentHash(plain));
 	});
@@ -64,7 +64,7 @@ describe("computeContentHash", () => {
 				content: [{ type: "text", text: "Hello", styles: {} }],
 				children: [],
 			},
-		] as unknown as Block[];
+		] as unknown as BlockNoteBlock[];
 
 		const blocks2 = [
 			{
@@ -74,7 +74,7 @@ describe("computeContentHash", () => {
 				content: [{ type: "text", text: "World", styles: {} }],
 				children: [],
 			},
-		] as unknown as Block[];
+		] as unknown as BlockNoteBlock[];
 
 		expect(computeContentHash(blocks1)).not.toBe(computeContentHash(blocks2));
 	});
@@ -101,7 +101,7 @@ describe("computeContentHash", () => {
 					},
 				],
 			},
-		] as unknown as Block[];
+		] as unknown as BlockNoteBlock[];
 
 		const hash = computeContentHash(blocks);
 		expect(hash).toContain("Parent");
@@ -126,7 +126,7 @@ describe("computeContentHash", () => {
 					},
 				],
 			},
-		] as unknown as Block[];
+		] as unknown as BlockNoteBlock[];
 
 		const blocks2 = [
 			{
@@ -144,7 +144,7 @@ describe("computeContentHash", () => {
 					},
 				],
 			},
-		] as unknown as Block[];
+		] as unknown as BlockNoteBlock[];
 
 		expect(computeContentHash(blocks1)).toBe(computeContentHash(blocks2));
 	});
