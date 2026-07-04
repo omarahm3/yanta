@@ -22,7 +22,7 @@ vi.mock("../../shared/hooks/useRecentDocuments", () => ({
 			{
 				path: "projects/@api/doc-recent.json",
 				title: "Recent Doc",
-				projectAlias: "api",
+				projectAlias: "@api",
 				lastOpened: 1,
 			},
 		],
@@ -40,13 +40,27 @@ vi.mock("../../../bindings/yanta/internal/search/service", () => ({
 			snippet: "the <mark>auth</mark> middleware",
 			updated: "2026-07-01",
 			type: "document",
-			projectAlias: "api",
+			projectAlias: "@api",
 		},
 	]),
 }));
 
 vi.mock("../../../bindings/yanta/internal/document/service", () => ({
-	Preview: vi.fn(async () => "# Auth Flow\n\nThe auth middleware validates tokens."),
+	Preview: vi.fn(async () =>
+		JSON.stringify([
+			{
+				id: "h1",
+				type: "heading",
+				props: { level: 1 },
+				content: [{ type: "text", text: "Auth Flow", styles: {} }],
+			},
+		]),
+	),
+}));
+
+// BlockNote can't render in jsdom; stub the read-only preview editor.
+vi.mock("../../editor", () => ({
+	RichEditor: () => null,
 }));
 
 import { Query } from "../../../bindings/yanta/internal/search/service";
@@ -71,6 +85,10 @@ describe("GlobalSearch finder", () => {
 		// "Recent Doc" renders in both the result row and the preview header.
 		expect((await screen.findAllByText("Recent Doc")).length).toBeGreaterThan(0);
 		expect(Query).not.toHaveBeenCalled();
+
+		// Alias shows exactly one "@" — no "@@api" double prefix.
+		expect((await screen.findAllByText("@api")).length).toBeGreaterThan(0);
+		expect(screen.queryByText("@@api")).toBeNull();
 	});
 
 	it("runs a full-text search and opens the selected document on Enter", async () => {

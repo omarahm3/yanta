@@ -1,32 +1,32 @@
 import { FileText, NotebookPen } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Preview } from "../../bindings/yanta/internal/document/service";
 import { BackendLogger } from "../shared/utils/backendLogger";
-import { highlightTerms } from "./highlight";
 import type { FinderItem } from "./types";
 
-/** Small debounce so fast arrowing through results doesn't fire a fetch per row. */
+// Lazy so BlockNote stays out of the eager startup bundle — it loads the first
+// time a document preview is shown, not on app boot.
+const RichEditor = lazy(() => import("../editor").then((m) => ({ default: m.RichEditor })));
+
+/** Small debounce so fast arrowing through results doesn't fetch a preview per row. */
 const PREVIEW_DEBOUNCE_MS = 110;
 
 type PreviewStatus = "idle" | "loading" | "error";
 
 interface GlobalSearchPreviewProps {
 	item: FinderItem | undefined;
-	/** Query terms to highlight in the document body. */
-	terms: string[];
 }
 
 /**
- * The right-hand preview pane. For documents it shows the file rendered to
- * Markdown (the raw source, honouring "the UI never obscures the underlying
- * files"), with matches highlighted and the first one scrolled into view. Notes
- * are short, so they reuse the highlighted snippets already returned by search.
+ * The right-hand preview pane. Documents are rendered read-only with the same
+ * BlockNote editor the app uses, so the preview looks exactly like the real
+ * document. Notes are short, so they reuse the highlighted snippets already
+ * returned by search.
  */
-export function GlobalSearchPreview({ item, terms }: GlobalSearchPreviewProps) {
+export function GlobalSearchPreview({ item }: GlobalSearchPreviewProps) {
 	const [content, setContent] = useState<string | null>(null);
 	const [status, setStatus] = useState<PreviewStatus>("idle");
 	const cacheRef = useRef<Map<string, string>>(new Map());
-	const bodyRef = useRef<HTMLDivElement>(null);
 
 	const isNote = item?.type === "note";
 	const path = item?.path;
@@ -46,13 +46,14 @@ export function GlobalSearchPreview({ item, terms }: GlobalSearchPreviewProps) {
 		}
 
 		let cancelled = false;
+		setContent(null);
 		setStatus("loading");
 		const timer = setTimeout(async () => {
 			try {
-				const markdown = await Preview(path);
+				const blocks = await Preview(path);
 				if (cancelled) return;
-				cacheRef.current.set(path, markdown);
-				setContent(markdown);
+				cacheRef.current.set(path, blocks);
+				setContent(blocks);
 				setStatus("idle");
 			} catch (err) {
 				if (cancelled) return;
@@ -68,12 +69,6 @@ export function GlobalSearchPreview({ item, terms }: GlobalSearchPreviewProps) {
 		};
 	}, [path, isNote]);
 
-	// Bring the first highlighted match into view once content settles.
-	useEffect(() => {
-		const mark = bodyRef.current?.querySelector("mark");
-		mark?.scrollIntoView({ block: "center" });
-	}, [content]);
-
 	if (!item) {
 		return (
 			<div className="flex h-full items-center justify-center px-6 text-center text-sm text-text-dim">
@@ -81,6 +76,8 @@ export function GlobalSearchPreview({ item, terms }: GlobalSearchPreviewProps) {
 			</div>
 		);
 	}
+
+	const alias = item.projectAlias.replace(/^@+/, "");
 
 	return (
 		<div className="flex h-full flex-col">
@@ -100,9 +97,7 @@ export function GlobalSearchPreview({ item, terms }: GlobalSearchPreviewProps) {
 						)}
 						{isNote ? "Note" : "Document"}
 					</span>
-					{item.projectAlias && (
-						<span className="font-mono font-medium text-purple">@{item.projectAlias}</span>
-					)}
+					{alias && <span className="font-mono font-medium text-purple">@{alias}</span>}
 					{item.updated && <span className="text-text-dim">{item.updated}</span>}
 					{item.matchCount > 1 && (
 						<span className="ml-auto rounded-full bg-accent/10 px-2 py-0.5 font-semibold text-accent">
@@ -113,13 +108,10 @@ export function GlobalSearchPreview({ item, terms }: GlobalSearchPreviewProps) {
 				<div className="truncate font-medium text-text-bright" title={item.title}>
 					{item.title || "Untitled"}
 				</div>
-				<div className="truncate font-mono text-xs text-text-dim" title={item.path}>
-					{item.path}
-				</div>
 			</div>
 
-			<div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-				<PreviewBody item={item} content={content} status={status} terms={terms} />
+			<div className="min-h-0 flex-1 overflow-hidden">
+				<PreviewBody item={item} content={content} status={status} />
 			</div>
 		</div>
 	);
@@ -129,19 +121,17 @@ function PreviewBody({
 	item,
 	content,
 	status,
-	terms,
 }: {
 	item: FinderItem;
 	content: string | null;
 	status: PreviewStatus;
-	terms: string[];
 }) {
 	if (item.type === "note") {
 		if (item.snippets.length === 0) {
-			return <p className="text-sm text-text-dim">No preview available for this note.</p>;
+			return <p className="px-4 py-3 text-sm text-text-dim">No preview available for this note.</p>;
 		}
 		return (
-			<div className="space-y-2 text-sm leading-relaxed [&_mark]:rounded [&_mark]:bg-yellow/20 [&_mark]:px-0.5 [&_mark]:font-semibold [&_mark]:text-yellow">
+			<div className="h-full space-y-2 overflow-y-auto px-4 py-3 text-sm leading-relaxed [&_mark]:rounded [&_mark]:bg-yellow/20 [&_mark]:px-0.5 [&_mark]:font-semibold [&_mark]:text-yellow">
 				{item.snippets.map((snippet, index) => (
 					<div
 						// biome-ignore lint/suspicious/noArrayIndexKey: snippets are unique within a note
@@ -154,21 +144,23 @@ function PreviewBody({
 		);
 	}
 
-	if (status === "loading" && content === null) {
-		return <p className="text-sm text-text-dim">Loading preview…</p>;
-	}
-
 	if (status === "error") {
-		return <p className="text-sm text-red">Couldn’t load this document’s preview.</p>;
+		return <p className="px-4 py-3 text-sm text-red">Couldn’t load this document’s preview.</p>;
 	}
 
-	if (!content || content.trim() === "") {
-		return <p className="text-sm text-text-dim">This document is empty.</p>;
+	if (!content) {
+		return <p className="px-4 py-3 text-sm text-text-dim">Loading preview…</p>;
 	}
 
 	return (
-		<pre className="whitespace-pre-wrap break-words font-mono text-[13px] leading-relaxed text-text">
-			{highlightTerms(content, terms)}
-		</pre>
+		<Suspense fallback={<p className="px-4 py-3 text-sm text-text-dim">Loading preview…</p>}>
+			<RichEditor
+				initialContent={content}
+				editable={false}
+				autoFocus={false}
+				docKey={item.path}
+				disablePluginContributions
+			/>
+		</Suspense>
 	);
 }

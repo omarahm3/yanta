@@ -286,16 +286,13 @@ func TestService_Preview(t *testing.T) {
 	path, err := service.Save(context.Background(), req)
 	require.NoError(t, err, "Save() failed")
 
-	md, err := service.Preview(context.Background(), path)
+	blocksJSON, err := service.Preview(context.Background(), path)
 	require.NoError(t, err, "Preview() failed")
 
-	// Body is rendered as Markdown (heading + paragraph text present).
-	assert.Contains(t, md, "Architecture")
-	assert.Contains(t, md, "The auth middleware validates tokens.")
-
-	// Leading YAML frontmatter is stripped (callers show metadata themselves).
-	assert.NotContains(t, md, "title: Preview Test")
-	assert.NotContains(t, md, "project: @test")
+	// Returns the document's blocks as JSON (the finder renders them read-only).
+	assert.Contains(t, blocksJSON, `"type":"heading"`)
+	assert.Contains(t, blocksJSON, "Architecture")
+	assert.Contains(t, blocksJSON, "The auth middleware validates tokens.")
 }
 
 func TestService_Preview_EmptyPath(t *testing.T) {
@@ -312,40 +309,6 @@ func TestService_Preview_NotFound(t *testing.T) {
 
 	_, err := service.Preview(context.Background(), "projects/@test/doc-does-not-exist.json")
 	assert.Error(t, err, "Expected error for missing document")
-}
-
-func TestStripFrontmatter(t *testing.T) {
-	tests := []struct {
-		name string
-		in   string
-		want string
-	}{
-		{
-			name: "strips leading frontmatter block",
-			in:   "---\ntitle: X\nproject: @p\n---\n# Body\n\nText",
-			want: "# Body\n\nText",
-		},
-		{
-			name: "preserves thematic break inside body",
-			in:   "---\ntitle: X\n---\nAbove\n\n---\n\nBelow",
-			want: "Above\n\n---\n\nBelow",
-		},
-		{
-			name: "frontmatter-only document yields empty body",
-			in:   "---\ntitle: X\nproject: @p\n---",
-			want: "",
-		},
-		{
-			name: "no frontmatter is returned unchanged",
-			in:   "# Just a heading",
-			want: "# Just a heading",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, stripFrontmatter(tt.in))
-		})
-	}
 }
 
 func TestService_Get_IncludesArchived(t *testing.T) {

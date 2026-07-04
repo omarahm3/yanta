@@ -3,6 +3,7 @@ package document
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"path"
@@ -250,16 +251,16 @@ func (s *Service) Get(ctx context.Context, path string) (*DocumentWithTags, erro
 	}, nil
 }
 
-// previewMaxRunes caps the size of a document preview so the global-search finder
-// stays fast on very large notes. Documents are rarely this long; the cap is a
-// safety valve, not a common path.
-const previewMaxRunes = 20000
+// previewMaxBlocks caps how many blocks the finder preview renders, so a very
+// large note doesn't make the read-only preview editor sluggish. Notes are
+// rarely this long; the cap is a safety valve, not a common path.
+const previewMaxBlocks = 400
 
-// Preview renders a document to Markdown for read-only display (the global-search
-// finder's preview pane). It reads the file directly instead of going through Get,
-// so previewing a result never emits an "entry accessed" event or pollutes the
-// recent-documents list. The leading YAML frontmatter is stripped — callers show
-// title/project/tags/date from the search result themselves.
+// Preview returns a document's BlockNote blocks as a JSON string, for the
+// global-search finder's read-only preview (rendered with the same editor the
+// app uses). It reads the file directly instead of going through Get, so
+// previewing a result never emits an "entry accessed" event or pollutes the
+// recent-documents list.
 func (s *Service) Preview(ctx context.Context, path string) (string, error) {
 	if strings.TrimSpace(path) == "" {
 		return "", errors.New("path is required")
@@ -270,43 +271,17 @@ func (s *Service) Preview(ctx context.Context, path string) (string, error) {
 		return "", fmt.Errorf("reading document file: %w", err)
 	}
 
-	md, err := NewMarkdownConverter().ToMarkdown(file)
+	blocks := file.Blocks
+	if len(blocks) > previewMaxBlocks {
+		blocks = blocks[:previewMaxBlocks]
+	}
+
+	data, err := json.Marshal(blocks)
 	if err != nil {
-		return "", fmt.Errorf("rendering markdown: %w", err)
+		return "", fmt.Errorf("marshaling document blocks: %w", err)
 	}
 
-	return capRunes(stripFrontmatter(md), previewMaxRunes), nil
-}
-
-// stripFrontmatter removes the leading "--- ... ---" YAML block that ToMarkdown
-// always prepends, leaving just the body. Only a block at the very start is
-// removed, so a "---" thematic break inside the body is preserved.
-func stripFrontmatter(md string) string {
-	if !strings.HasPrefix(md, "---\n") {
-		return md
-	}
-	rest := md[len("---\n"):]
-	if idx := strings.Index(rest, "\n---\n"); idx != -1 {
-		return strings.TrimLeft(rest[idx+len("\n---\n"):], "\n")
-	}
-	// Frontmatter-only document (no body blocks): closing fence ends the string.
-	if strings.HasSuffix(rest, "\n---") {
-		return ""
-	}
-	return md
-}
-
-// capRunes truncates s to at most maxRunes runes without splitting a multi-byte
-// rune, appending an ellipsis marker when truncation occurs.
-func capRunes(s string, maxRunes int) string {
-	if maxRunes <= 0 {
-		return s
-	}
-	runes := []rune(s)
-	if len(runes) <= maxRunes {
-		return s
-	}
-	return string(runes[:maxRunes]) + "\n\n…"
+	return string(data), nil
 }
 
 func (s *Service) ListByProject(ctx context.Context, projectAlias string, includeArchived bool, limit, offset int) ([]*Document, error) {

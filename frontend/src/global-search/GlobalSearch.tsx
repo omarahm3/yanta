@@ -1,6 +1,6 @@
 import { FileText, NotebookPen, Search } from "lucide-react";
 import type React from "react";
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useProjectContext } from "../project";
 import type { NavigationState, PageName } from "../shared/types";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../shared/ui/dialog";
@@ -8,7 +8,6 @@ import { Kbd } from "../shared/ui/Kbd";
 import { cn } from "../shared/utils/cn";
 import { GlobalSearchPreview } from "./GlobalSearchPreview";
 import { useGlobalSearchStore } from "./globalSearch.store";
-import { extractSearchTerms } from "./highlight";
 import type { FinderItem } from "./types";
 import { useDocumentSearch } from "./useDocumentSearch";
 
@@ -55,8 +54,6 @@ function GlobalSearchInner({
 	const listId = useId();
 	const optionId = (index: number) => `${listId}-opt-${index}`;
 
-	const terms = useMemo(() => extractSearchTerms(query), [query]);
-
 	// Focus the search box as soon as the finder opens.
 	useEffect(() => {
 		inputRef.current?.focus();
@@ -73,8 +70,10 @@ function GlobalSearchInner({
 	const openItem = useCallback(
 		(item: FinderItem | undefined) => {
 			if (!item) return;
-			const alias = item.projectAlias || item.path.split("/")[1];
-			const target = projects.find((p) => p.alias === alias);
+			// Aliases may or may not carry a leading "@" depending on the source;
+			// compare without it so the active project still switches correctly.
+			const alias = (item.projectAlias || item.path.split("/")[1] || "").replace(/^@+/, "");
+			const target = projects.find((p) => p.alias.replace(/^@+/, "") === alias);
 			if (target) setCurrentProject(target);
 
 			if (item.type === "note") {
@@ -184,7 +183,7 @@ function GlobalSearchInner({
 					</div>
 
 					<div className="hidden min-h-0 flex-1 md:flex md:flex-col">
-						<GlobalSearchPreview item={selected} terms={terms} />
+						<GlobalSearchPreview item={selected} />
 					</div>
 				</div>
 
@@ -240,7 +239,9 @@ function ResultRow({ id, item, index, selected, onSelect, onOpen }: ResultRowPro
 			/>
 			<span className="flex-1 truncate">{item.title || "Untitled"}</span>
 			{item.projectAlias && (
-				<span className="shrink-0 font-mono text-[11px] text-text-dim">@{item.projectAlias}</span>
+				<span className="shrink-0 font-mono text-[11px] text-text-dim">
+					@{item.projectAlias.replace(/^@+/, "")}
+				</span>
 			)}
 			{item.matchCount > 1 && (
 				<span className="shrink-0 text-[11px] text-text-dim">{item.matchCount}</span>
