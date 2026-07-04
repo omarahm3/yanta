@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { GranularErrorBoundary } from "@/app";
 import { RichEditor } from "../../editor/RichEditor";
-import { type EditorBlock, type EditorHandle, fromEditorBlocks } from "../../editor/types";
+import type { EditorHandle } from "../../editor/types";
 import {
 	disableExternalPluginsForEditorRecovery,
 	getActiveExternalPluginIds,
@@ -50,11 +50,11 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 	);
 
 	const handleBlocksChange = useCallback(
-		(newBlocks: EditorBlock[]) => {
+		(newBlocks: BlockNoteBlock[]) => {
 			if (isReadOnly) {
 				return;
 			}
-			onBlocksChange(fromEditorBlocks(newBlocks));
+			onBlocksChange(newBlocks);
 		},
 		[onBlocksChange, isReadOnly],
 	);

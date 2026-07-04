@@ -1,7 +1,6 @@
 import { codeBlockOptions } from "@blocknote/code-block";
-import type { BlockNoteEditor, ExtensionFactoryInstance } from "@blocknote/core";
+import type { ExtensionFactoryInstance } from "@blocknote/core";
 import {
-	type Block,
 	BlockNoteSchema,
 	createCodeBlockSpec,
 	createExtension,
@@ -36,6 +35,7 @@ import {
 } from "../extensions/registry/editorExtensionRegistry";
 import { RTLExtension } from "../extensions/rtl";
 import { UNKNOWN_BLOCK_TYPE, unknownBlockSpec } from "../extensions/unknownBlock";
+import { type EditorHandle, fromEditorBlocks, toEditorHandle } from "../types";
 import { isImageFileUrl, needsLeadingH1 } from "../utils/blockNormalize";
 import { restoreUnknownBlocks, sanitizeUnknownBlocks } from "../utils/blockSanitize";
 import { useBlockNoteMenuPosition } from "./useBlockNoteMenuPosition";
@@ -43,9 +43,9 @@ import { usePlainTextClipboard } from "./usePlainTextClipboard";
 
 export interface UseRichEditorInnerProps {
 	blocks: PartialBlock[];
-	onChange?: (blocks: Block[]) => void;
+	onChange?: (blocks: BlockNoteBlock[]) => void;
 	onTitleChange?: (title: string) => void;
-	onReady?: (editor: BlockNoteEditor) => void;
+	onReady?: (editor: EditorHandle) => void;
 	editable: boolean;
 	autoFocus: boolean;
 	disablePluginContributions?: boolean;
@@ -189,7 +189,9 @@ export function useRichEditorInner({
 				if (acceptList.length === 0 || acceptList.every((entry) => entry === "*/*")) {
 					const applied = setImageBlockAccept(editor, ["image/*"]);
 					if (!applied && import.meta.env.DEV) {
-						console.warn("[RichEditor] Image block internal shape not found; skipped Linux accept workaround");
+						console.warn(
+							"[RichEditor] Image block internal shape not found; skipped Linux accept workaround",
+						);
 					}
 				}
 			} catch (err) {
@@ -223,7 +225,7 @@ export function useRichEditorInner({
 
 			const dom = editor.domElement;
 			if (dom?.isConnected) {
-				onReady?.(editor);
+				onReady?.(toEditorHandle(editor));
 				return;
 			}
 
@@ -233,7 +235,7 @@ export function useRichEditorInner({
 				return;
 			}
 
-			onReady?.(editor);
+			onReady?.(toEditorHandle(editor));
 		};
 
 		rafId = requestAnimationFrame(notifyReady);
@@ -247,7 +249,7 @@ export function useRichEditorInner({
 	useEffect(() => {
 		if (editor && isReady && !hasEstablishedBaseline.current) {
 			const raf = requestAnimationFrame(() => {
-				baselineHashRef.current = computeContentHash(editor.document);
+				baselineHashRef.current = computeContentHash(fromEditorBlocks(editor.document));
 				hasEstablishedBaseline.current = true;
 			});
 			return () => cancelAnimationFrame(raf);
@@ -258,7 +260,7 @@ export function useRichEditorInner({
 		if (!editor || !isReady) return;
 
 		const context = {
-			editor,
+			editor: toEditorHandle(editor),
 			editable,
 		};
 		const cleanupFns: Array<() => void> = [];
@@ -327,7 +329,7 @@ export function useRichEditorInner({
 
 			let didModify = false;
 
-			currentBlocks.forEach((block: Block) => {
+			fromEditorBlocks(currentBlocks).forEach((block) => {
 				if (block.type === "file" && block.props?.url && !convertedBlocksRef.current.has(block.id)) {
 					const url = block.props.url as string;
 					if (isImageFileUrl(url)) {
@@ -362,7 +364,7 @@ export function useRichEditorInner({
 				return;
 			}
 
-			const finalBlocks = editor.document;
+			const finalBlocks = fromEditorBlocks(editor.document);
 			const currentHash = computeContentHash(finalBlocks);
 
 			if (currentHash === baselineHashRef.current) {
@@ -374,7 +376,7 @@ export function useRichEditorInner({
 			baselineHashRef.current = currentHash;
 
 			if (onTitleChange) {
-				const title = extractTitleFromBlocks(restoredBlocks as BlockNoteBlock[]);
+				const title = extractTitleFromBlocks(restoredBlocks);
 				onTitleChange(title);
 			}
 		});
@@ -391,7 +393,7 @@ export function useRichEditorInner({
 			return;
 		}
 
-		const unregister = registerClipboardImagePlugin(editor, {
+		const unregister = registerClipboardImagePlugin(toEditorHandle(editor), {
 			shouldHandlePaste: () => editable,
 			uploadFile: uploadFileFn,
 		});

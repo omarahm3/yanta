@@ -3,8 +3,20 @@
 // version bump that renames or reshapes an internal fails in ONE place (guarded
 // by blocknoteInternals.test.ts) instead of silently across the app.
 // See bnote-stable.md P2.
-import type { BlockNoteEditor } from "@blocknote/core";
+import type {
+	BlockNoteEditor,
+	BlockSchema,
+	InlineContentSchema,
+	StyleSchema,
+} from "@blocknote/core";
 import type { Plugin, PluginKey } from "prosemirror-state";
+
+// Helpers accept an editor of ANY schema. BlockNote's editor generics are
+// invariant, so a param typed with the base-constraint schemas would reject a
+// custom-schema editor; the type parameters infer the real schema at each call
+// site instead (no `any`). Access to schema-typed internals casts to the
+// default-schema editor via `unknown` — safe here since these reach for private
+// members / default blocks that exist regardless of schema.
 
 export interface TiptapInternalEditor {
 	isDestroyed?: boolean;
@@ -16,8 +28,12 @@ export interface TiptapInternalEditor {
 type WithTiptap = BlockNoteEditor & { _tiptapEditor?: TiptapInternalEditor };
 
 /** The private Tiptap editor backing a BlockNote editor, or null if unavailable. */
-export function getTiptapEditor(editor: BlockNoteEditor): TiptapInternalEditor | null {
-	return (editor as WithTiptap)._tiptapEditor ?? null;
+export function getTiptapEditor<
+	B extends BlockSchema,
+	I extends InlineContentSchema,
+	S extends StyleSchema,
+>(editor: BlockNoteEditor<B, I, S>): TiptapInternalEditor | null {
+	return (editor as unknown as WithTiptap)._tiptapEditor ?? null;
 }
 
 /**
@@ -26,7 +42,11 @@ export function getTiptapEditor(editor: BlockNoteEditor): TiptapInternalEditor |
  * cursor op) against a torn-down view, which throws Tiptap's
  * `view['posAtDOM']... not mounted yet`.
  */
-export function isEditorAlive(editor: BlockNoteEditor): boolean {
+export function isEditorAlive<
+	B extends BlockSchema,
+	I extends InlineContentSchema,
+	S extends StyleSchema,
+>(editor: BlockNoteEditor<B, I, S>): boolean {
 	if (!editor.domElement?.isConnected) {
 		return false;
 	}
@@ -49,9 +69,7 @@ interface ImageBlockMeta {
 	[key: string]: unknown;
 }
 
-function getImageBlockImplementation(
-	editor: BlockNoteEditor,
-): { meta?: ImageBlockMeta } | null {
+function getImageBlockImplementation(editor: BlockNoteEditor): { meta?: ImageBlockMeta } | null {
 	const imageSpec = editor.schema.blockSpecs?.image;
 	if (!imageSpec || !imageSpec.implementation) {
 		return null;
@@ -60,13 +78,19 @@ function getImageBlockImplementation(
 }
 
 /** The MIME patterns the image block currently accepts (non-empty strings only). */
-export function getImageBlockAcceptList(editor: BlockNoteEditor): string[] {
-	const impl = getImageBlockImplementation(editor);
+export function getImageBlockAcceptList<
+	B extends BlockSchema,
+	I extends InlineContentSchema,
+	S extends StyleSchema,
+>(editor: BlockNoteEditor<B, I, S>): string[] {
+	const impl = getImageBlockImplementation(editor as unknown as BlockNoteEditor);
 	const accept = impl?.meta?.fileBlockAccept;
 	if (!Array.isArray(accept)) {
 		return [];
 	}
-	return accept.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0);
+	return accept.filter(
+		(entry): entry is string => typeof entry === "string" && entry.trim().length > 0,
+	);
 }
 
 /**
@@ -74,8 +98,12 @@ export function getImageBlockAcceptList(editor: BlockNoteEditor): string[] {
  * where WebKitGTK's file dialog ignores a broad accept list. Returns false when
  * the internal meta shape can't be found so callers can warn in DEV.
  */
-export function setImageBlockAccept(editor: BlockNoteEditor, accept: string[]): boolean {
-	const impl = getImageBlockImplementation(editor);
+export function setImageBlockAccept<
+	B extends BlockSchema,
+	I extends InlineContentSchema,
+	S extends StyleSchema,
+>(editor: BlockNoteEditor<B, I, S>, accept: string[]): boolean {
+	const impl = getImageBlockImplementation(editor as unknown as BlockNoteEditor);
 	if (!impl) {
 		return false;
 	}

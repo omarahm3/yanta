@@ -6,20 +6,25 @@ import {
 	type PartialBlock,
 } from "@blocknote/core";
 import { UNKNOWN_BLOCK_TYPE, unknownBlockSpec } from "./extensions/unknownBlock";
-import type { EditorBlockSpecMap, EditorStyleSpecMap } from "./types";
+import {
+	type EditorBlockSpecMap,
+	type EditorHandle,
+	type EditorStyleSpecMap,
+	toEditorHandle,
+} from "./types";
 import { sanitizeUnknownBlocks } from "./utils/blockSanitize";
 
 // A single headless converter is reused across previews. Building a fresh
 // BlockNote/ProseMirror editor for every previewed document is wasteful (the
 // finder swaps documents rapidly); the converter is rebuilt only when the
 // active block/style spec set changes (e.g. a plugin loads).
-let cachedEditor: BlockNoteEditor | null = null;
+let cachedEditor: EditorHandle | null = null;
 let cachedKey: string | null = null;
 
 function getConverter(
 	blockSpecs: EditorBlockSpecMap,
 	styleSpecs: EditorStyleSpecMap,
-): BlockNoteEditor {
+): EditorHandle {
 	const key = `${Object.keys(blockSpecs).sort().join(",")}|${Object.keys(styleSpecs).sort().join(",")}`;
 	if (cachedEditor && cachedKey === key) {
 		return cachedEditor;
@@ -32,7 +37,7 @@ function getConverter(
 		},
 		styleSpecs,
 	});
-	cachedEditor = BlockNoteEditor.create({ schema });
+	cachedEditor = toEditorHandle(BlockNoteEditor.create({ schema }));
 	cachedKey = key;
 	return cachedEditor;
 }

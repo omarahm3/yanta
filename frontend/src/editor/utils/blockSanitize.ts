@@ -1,4 +1,5 @@
-import type { Block, PartialBlock } from "@blocknote/core";
+import type { PartialBlock } from "@blocknote/core";
+import type { BlockNoteBlock } from "../../shared/types/Document";
 import { UNKNOWN_BLOCK_TYPE, type UnknownBlockProps } from "../extensions/unknownBlock/constants";
 
 /**
@@ -17,7 +18,9 @@ export function sanitizeUnknownBlocks(
 
 function sanitizeBlock(block: PartialBlock, knownTypes: ReadonlySet<string>): PartialBlock {
 	if (block.type && !knownTypes.has(block.type)) {
-		console.warn(`[editor] Quarantined unsupported block type "${block.type}" (id: ${block.id ?? "?"})`);
+		console.warn(
+			`[editor] Quarantined unsupported block type "${block.type}" (id: ${block.id ?? "?"})`,
+		);
 		const props: UnknownBlockProps = {
 			originalType: block.type,
 			originalJson: JSON.stringify(block),
@@ -41,17 +44,18 @@ function sanitizeBlock(block: PartialBlock, knownTypes: ReadonlySet<string>): Pa
  * documents round-trip losslessly and self-heal once the missing block type
  * (plugin / version) becomes available again. Runs at the save boundary.
  */
-export function restoreUnknownBlocks(blocks: Block[]): Block[] {
+export function restoreUnknownBlocks(blocks: BlockNoteBlock[]): BlockNoteBlock[] {
 	return blocks.map((block) => restoreBlock(block));
 }
 
-function restoreBlock(block: Block): Block {
+function restoreBlock(block: BlockNoteBlock): BlockNoteBlock {
 	if (block.type === UNKNOWN_BLOCK_TYPE) {
-		const originalJson = (block.props as Partial<UnknownBlockProps>).originalJson;
+		const originalJson = (block.props as unknown as Partial<UnknownBlockProps> | undefined)
+			?.originalJson;
 		if (!originalJson) {
 			throw new Error(`Quarantined block ${block.id} is missing originalJson`);
 		}
-		return JSON.parse(originalJson) as Block;
+		return JSON.parse(originalJson) as BlockNoteBlock;
 	}
 
 	if (Array.isArray(block.children) && block.children.length > 0) {

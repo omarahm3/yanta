@@ -6,6 +6,7 @@ import { getDefaultReactSlashMenuItems, SuggestionMenuController } from "@blockn
 import { BlockNoteView } from "@blocknote/shadcn";
 import "@blocknote/shadcn/style.css";
 import { useResolvedTheme } from "../shared/stores/theme.store";
+import type { BlockNoteBlock } from "../shared/types/Document";
 import { cn } from "../shared/utils/cn";
 import "../styles/blocknote-dark.css";
 import "../styles/blocknote-scale.css";
@@ -13,12 +14,12 @@ import type { EditorSlashMenuItemContribution } from "./extensions/registry/edit
 import "./extensions/rtl/rtl.css";
 import { useRichEditorInner } from "./hooks/useRichEditorInner";
 import { portalledShadCNComponents } from "./portalledShadCN";
-import type { EditorBlock, EditorHandle } from "./types";
+import { type EditorHandle, toEditorHandle } from "./types";
 import { needsLeadingH1 } from "./utils/blockNormalize";
 
 export interface RichEditorProps {
 	initialContent?: string;
-	onChange?: (blocks: EditorBlock[]) => void;
+	onChange?: (blocks: BlockNoteBlock[]) => void;
 	onTitleChange?: (title: string) => void;
 	onReady?: (editor: EditorHandle) => void;
 	className?: string;
@@ -43,7 +44,7 @@ const createDefaultInitialBlock = (): PartialBlock => ({
 
 type EditorInnerProps = {
 	blocks: PartialBlock[];
-	onChange?: (blocks: EditorBlock[]) => void;
+	onChange?: (blocks: BlockNoteBlock[]) => void;
 	onTitleChange?: (title: string) => void;
 	onReady?: (editor: EditorHandle) => void;
 	className?: string;
@@ -143,7 +144,11 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 					slashMenu={false}
 					shadCNComponents={portalledShadCNComponents}
 				>
-					<PluginSlashMenu editor={editor} editable={editable} items={pluginSlashMenuItems} />
+					<PluginSlashMenu
+						editor={toEditorHandle(editor)}
+						editable={editable}
+						items={pluginSlashMenuItems}
+					/>
 				</BlockNoteView>
 			</div>
 		);
