@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "postinstall": "patch-package",
     "dev": "vite",
     "vite:clear-cache": "bash scripts/clear-vite-cache.sh",
     "build:dev": "vite build --minify false --mode development",
@@ -68,6 +69,7 @@
     "baseline-browser-mapping": "^2.9.19",
     "cross-env": "^7.0.3",
     "jsdom": "^24.1.0",
+    "patch-package": "^8.0.1",
     "rollup-plugin-visualizer": "^6.0.5",
     "terser": "^5.44.0",
     "typescript": "^5.9.3",
