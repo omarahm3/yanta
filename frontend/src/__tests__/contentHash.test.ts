@@ -27,6 +27,34 @@ describe("computeContentHash", () => {
 		expect(computeContentHash(blocks1)).toBe(computeContentHash(blocks2));
 	});
 
+	it("hashes sparse (on-disk) and hydrated blocks identically (P1.6)", () => {
+		const sparse = [
+			{ id: "a", type: "paragraph", content: [{ type: "text", text: "Hi", styles: {} }] },
+		] as unknown as Block[];
+		const hydrated = [
+			{
+				id: "a",
+				type: "paragraph",
+				props: { textColor: "default", backgroundColor: "default", textAlignment: "left" },
+				content: [{ type: "text", text: "Hi", styles: {} }],
+				children: [],
+			},
+		] as unknown as Block[];
+
+		expect(computeContentHash(sparse)).toBe(computeContentHash(hydrated));
+	});
+
+	it("still distinguishes non-default prop values", () => {
+		const red = [
+			{ id: "a", type: "paragraph", props: { textColor: "red" }, content: [] },
+		] as unknown as Block[];
+		const plain = [
+			{ id: "a", type: "paragraph", props: { textColor: "default" }, content: [] },
+		] as unknown as Block[];
+
+		expect(computeContentHash(red)).not.toBe(computeContentHash(plain));
+	});
+
 	it("should produce different hash for different content", () => {
 		const blocks1 = [
 			{
