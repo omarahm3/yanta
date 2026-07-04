@@ -7,6 +7,9 @@ export function isImageFileUrl(url: string): boolean {
 
 /** True if the document is missing its required leading H1 title block. */
 export function needsLeadingH1(blocks: Array<{ type?: string; props?: unknown }>): boolean {
+	if (!Array.isArray(blocks) || blocks.length === 0) {
+		return true;
+	}
 	const first = blocks[0];
 	if (!first) {
 		return true;

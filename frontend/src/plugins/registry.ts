@@ -80,7 +80,7 @@ async function writePersistedState(state: PersistedPluginState): Promise<void> {
 
 function createPluginAPI(pluginId: string, capabilities: readonly PluginCapability[]): PluginAPI {
 	const source = toSource(pluginId);
-	const granted = new Set<PluginCapability>(capabilities);
+	const granted = new Set<PluginCapability>(capabilities ?? []);
 	const requireCapability = (capability: PluginCapability, method: string): void => {
 		if (!granted.has(capability)) {
 			throw new Error(

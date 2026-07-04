@@ -33,6 +33,9 @@ export function getTiptapEditor<
 	I extends InlineContentSchema,
 	S extends StyleSchema,
 >(editor: BlockNoteEditor<B, I, S>): TiptapInternalEditor | null {
+	if (!editor) {
+		return null;
+	}
 	return (editor as unknown as WithTiptap)._tiptapEditor ?? null;
 }
 
@@ -47,7 +50,7 @@ export function isEditorAlive<
 	I extends InlineContentSchema,
 	S extends StyleSchema,
 >(editor: BlockNoteEditor<B, I, S>): boolean {
-	if (!editor.domElement?.isConnected) {
+	if (!editor || !editor.domElement?.isConnected) {
 		return false;
 	}
 	const tiptap = getTiptapEditor(editor);
@@ -70,7 +73,10 @@ interface ImageBlockMeta {
 }
 
 function getImageBlockImplementation(editor: BlockNoteEditor): { meta?: ImageBlockMeta } | null {
-	const imageSpec = editor.schema.blockSpecs?.image;
+	if (!editor?.schema?.blockSpecs) {
+		return null;
+	}
+	const imageSpec = editor.schema.blockSpecs.image;
 	if (!imageSpec || !imageSpec.implementation) {
 		return null;
 	}

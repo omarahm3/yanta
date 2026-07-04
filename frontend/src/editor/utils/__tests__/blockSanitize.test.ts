@@ -1,6 +1,9 @@
 import type { Block, PartialBlock } from "@blocknote/core";
 import { describe, expect, it, vi } from "vitest";
-import { UNKNOWN_BLOCK_TYPE, type UnknownBlockProps } from "../../extensions/unknownBlock/constants";
+import {
+	UNKNOWN_BLOCK_TYPE,
+	type UnknownBlockProps,
+} from "../../extensions/unknownBlock/constants";
 import { restoreUnknownBlocks, sanitizeUnknownBlocks } from "../blockSanitize";
 
 const KNOWN = new Set(["heading", "paragraph", "bulletListItem", UNKNOWN_BLOCK_TYPE]);
@@ -50,7 +53,13 @@ describe("sanitizeUnknownBlocks", () => {
 describe("restoreUnknownBlocks", () => {
 	it("round-trips an unknown block losslessly", () => {
 		vi.spyOn(console, "warn").mockImplementation(() => {});
-		const original = { id: "9", type: "customPluginBlock", props: { foo: "bar" }, content: [], children: [] };
+		const original = {
+			id: "9",
+			type: "customPluginBlock",
+			props: { foo: "bar" },
+			content: [],
+			children: [],
+		};
 
 		const sanitized = sanitizeUnknownBlocks([original] as unknown as PartialBlock[], KNOWN);
 		const restored = restoreUnknownBlocks(sanitized as unknown as Block[]);
@@ -76,11 +85,39 @@ describe("restoreUnknownBlocks", () => {
 		vi.restoreAllMocks();
 	});
 
-	it("throws when a quarantine block is missing its originalJson", () => {
+	it("leaves a quarantine block as-is when its originalJson is missing (never throws)", () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 		const broken = [
-			{ id: "9", type: UNKNOWN_BLOCK_TYPE, props: { originalType: "x", originalJson: "" }, content: [] },
+			{
+				id: "9",
+				type: UNKNOWN_BLOCK_TYPE,
+				props: { originalType: "x", originalJson: "" },
+				content: [],
+			},
 		] as unknown as Block[];
 
-		expect(() => restoreUnknownBlocks(broken)).toThrow(/originalJson/);
+		const restored = restoreUnknownBlocks(broken);
+
+		expect(restored).toEqual(broken);
+		expect(warn).toHaveBeenCalled();
+		vi.restoreAllMocks();
+	});
+
+	it("leaves a quarantine block as-is when its originalJson is corrupt (never throws)", () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		const broken = [
+			{
+				id: "10",
+				type: UNKNOWN_BLOCK_TYPE,
+				props: { originalType: "x", originalJson: "{ not valid json" },
+				content: [],
+			},
+		] as unknown as Block[];
+
+		const restored = restoreUnknownBlocks(broken);
+
+		expect(restored).toEqual(broken);
+		expect(warn).toHaveBeenCalled();
+		vi.restoreAllMocks();
 	});
 });

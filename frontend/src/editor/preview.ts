@@ -64,7 +64,13 @@ export function blocksJsonToPreviewHTML(
 	}
 	if (blocks.length === 0) return "";
 
-	const editor = getConverter(blockSpecs, styleSpecs);
+	let editor: EditorHandle;
+	try {
+		editor = getConverter(blockSpecs, styleSpecs);
+	} catch (error) {
+		console.warn("[preview] failed to build the preview converter", error);
+		return "";
+	}
 	const knownTypes = new Set(Object.keys(editor.schema.blockSpecs));
 	try {
 		return editor.blocksToHTMLLossy(sanitizeUnknownBlocks(blocks, knownTypes));

@@ -53,9 +53,18 @@ function restoreBlock(block: BlockNoteBlock): BlockNoteBlock {
 		const originalJson = (block.props as unknown as Partial<UnknownBlockProps> | undefined)
 			?.originalJson;
 		if (!originalJson) {
-			throw new Error(`Quarantined block ${block.id} is missing originalJson`);
+			console.warn(`[editor] Quarantined block ${block.id} is missing originalJson; leaving as-is`);
+			return block;
 		}
-		return JSON.parse(originalJson) as BlockNoteBlock;
+		// Reading a stored (possibly corrupt) payload back off disk is input
+		// validation: never crash the save path or destroy the quarantine
+		// wrapper — leave the block as-is so it round-trips and can self-heal.
+		try {
+			return JSON.parse(originalJson) as BlockNoteBlock;
+		} catch (err) {
+			console.warn(`[editor] Failed to parse quarantined block ${block.id}; leaving as-is`, err);
+			return block;
+		}
 	}
 
 	if (Array.isArray(block.children) && block.children.length > 0) {
