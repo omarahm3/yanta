@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { GLOBAL_SHORTCUTS } from "@/config/public";
 import { GlobalCommandPalette, useCommandPaletteStore } from "../command-palette";
+import { GlobalSearch, useGlobalSearchStore } from "../global-search";
 import { useHelp } from "../help";
 import { useHotkey } from "../hotkeys";
 import { useProjectContext } from "../project";
@@ -45,6 +46,7 @@ const GlobalCommandHotkey = () => {
 
 	const { switchToLastProject, previousProject } = useProjectContext();
 	const openProjectSwitcher = useProjectSwitcherStore((s) => s.open);
+	const openGlobalSearch = useGlobalSearchStore((s) => s.open);
 
 	useHotkey({
 		...GLOBAL_SHORTCUTS.switchProject,
@@ -66,9 +68,22 @@ const GlobalCommandHotkey = () => {
 		allowInInput: false,
 	});
 
+	useHotkey({
+		...GLOBAL_SHORTCUTS.globalSearch,
+		handler: (e) => {
+			e.preventDefault();
+			openGlobalSearch();
+		},
+		// Find works from anywhere — including while editing a document — and
+		// takes the capture phase so it beats the webview's native find-in-page.
+		allowInInput: true,
+		capture: true,
+	});
+
 	return (
 		<>
 			<ProjectSwitcher />
+			<GlobalSearch onNavigate={nav.onNavigate} />
 			<GlobalCommandPalette
 				onClose={handleCloseCommandPalette}
 				onNavigate={nav.onNavigate}

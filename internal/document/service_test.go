@@ -261,6 +261,56 @@ func TestService_Get(t *testing.T) {
 	assert.Equal(t, "heading", doc.File.Blocks[0].Type)
 }
 
+func TestService_Preview(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	req := SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "Preview Test",
+		Blocks: []BlockNoteBlock{
+			{
+				ID:      "h1",
+				Type:    "heading",
+				Props:   map[string]any{"level": 1},
+				Content: mustMarshalContent([]BlockNoteContent{{Type: "text", Text: "Architecture"}}),
+			},
+			{
+				ID:      "p1",
+				Type:    "paragraph",
+				Content: mustMarshalContent([]BlockNoteContent{{Type: "text", Text: "The auth middleware validates tokens."}}),
+			},
+		},
+		Tags: []string{"security"},
+	}
+	path, err := service.Save(context.Background(), req)
+	require.NoError(t, err, "Save() failed")
+
+	blocksJSON, err := service.Preview(context.Background(), path)
+	require.NoError(t, err, "Preview() failed")
+
+	// Returns the document's blocks as JSON (the finder renders them read-only).
+	assert.Contains(t, blocksJSON, `"type":"heading"`)
+	assert.Contains(t, blocksJSON, "Architecture")
+	assert.Contains(t, blocksJSON, "The auth middleware validates tokens.")
+}
+
+func TestService_Preview_EmptyPath(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	_, err := service.Preview(context.Background(), "   ")
+	assert.Error(t, err, "Expected error for empty path")
+}
+
+func TestService_Preview_NotFound(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	_, err := service.Preview(context.Background(), "projects/@test/doc-does-not-exist.json")
+	assert.Error(t, err, "Expected error for missing document")
+}
+
 func TestService_Get_IncludesArchived(t *testing.T) {
 	service, _, cleanup := setupServiceTest(t)
 	defer cleanup()
