@@ -3,6 +3,7 @@
 // to the async Clipboard API when available.
 import type { BlockNoteEditor } from "@blocknote/core";
 import { Plugin, PluginKey } from "prosemirror-state";
+import { getTiptapEditor, isEditorViewUnavailableError } from "./blocknoteInternals";
 
 const MIME_EXTENSION_FALLBACK: Record<string, string> = {
 	"image/png": "png",
@@ -119,6 +120,32 @@ export const extractImagesFromClipboardEvent = async (
 	return { files: [], source: "none" };
 };
 
+/**
+ * Whether the fallback plugin should try to extract images from a paste event.
+ * Skips when the target isn't editable, when the browser already surfaced files
+ * (BlockNote's own handler covers those), or when the payload is present but
+ * non-image. Returns true for an empty item list so the Wayland async-clipboard
+ * fallback still runs.
+ */
+export const shouldAttemptImagePaste = (event: ClipboardEvent, isEditable: boolean): boolean => {
+	if (!isEditable) {
+		return false;
+	}
+	const data = event.clipboardData;
+	if (!data) {
+		return false;
+	}
+	if (data.files?.length) {
+		return false;
+	}
+	const items = Array.from(data.items || []);
+	const hasImagePayload = items.some((item) => (item.type || "").toLowerCase().startsWith("image/"));
+	if (items.length > 0 && !hasImagePayload) {
+		return false;
+	}
+	return true;
+};
+
 export interface ClipboardPluginOptions {
 	shouldHandlePaste: () => boolean;
 	uploadFile: (file: File) => Promise<string>;
@@ -129,23 +156,6 @@ export interface ClipboardPluginOptions {
 		editor: BlockNoteEditor;
 	}) => void;
 }
-
-type TiptapClipboardEditor = {
-	isDestroyed?: boolean;
-	isInitialized?: boolean;
-	registerPlugin: (plugin: Plugin) => unknown;
-	unregisterPlugin: (
-		nameOrPluginKeyToRemove: string | PluginKey | (string | PluginKey)[],
-	) => unknown;
-};
-
-const isEditorViewUnavailableError = (error: unknown): boolean => {
-	if (!(error instanceof Error)) {
-		return false;
-	}
-
-	return error.message.includes("The editor view is not available");
-};
 
 export const registerClipboardImagePlugin = (
 	editor: BlockNoteEditor,
@@ -158,24 +168,7 @@ export const registerClipboardImagePlugin = (
 		key: pluginKey,
 		view(view) {
 			const handlePaste = (event: ClipboardEvent) => {
-				if (!options.shouldHandlePaste() || !editor.isEditable) {
-					return;
-				}
-
-				if (!event.clipboardData) {
-					return;
-				}
-
-				if (event.clipboardData.files?.length) {
-					return;
-				}
-
-				const clipboardItems = Array.from(event.clipboardData.items || []);
-				const hasImagePayload = clipboardItems.some((item) =>
-					(item.type || "").toLowerCase().startsWith("image/"),
-				);
-
-				if (clipboardItems.length > 0 && !hasImagePayload) {
+				if (!options.shouldHandlePaste() || !shouldAttemptImagePaste(event, editor.isEditable)) {
 					return;
 				}
 
@@ -258,11 +251,7 @@ export const registerClipboardImagePlugin = (
 		},
 	});
 
-	const tiptapEditor = (
-		editor as BlockNoteEditor & {
-			_tiptapEditor?: TiptapClipboardEditor;
-		}
-	)._tiptapEditor;
+	const tiptapEditor = getTiptapEditor(editor);
 
 	if (!tiptapEditor) {
 		console.warn("[clipboard] tiptap editor not available; skipping image paste plugin registration");

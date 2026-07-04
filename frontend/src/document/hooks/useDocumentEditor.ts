@@ -1,16 +1,6 @@
 import type { BlockNoteEditor } from "@blocknote/core";
 import { useCallback, useRef } from "react";
-
-type TiptapInternal = { isDestroyed?: boolean };
-
-/** Returns true only if the editor is mounted in the DOM and not destroyed. */
-function isEditorReadyForCursorOp(editor: BlockNoteEditor): boolean {
-	const dom = editor.domElement;
-	if (!dom || !dom.isConnected) return false;
-	const tiptap = (editor as BlockNoteEditor & { _tiptapEditor?: TiptapInternal })._tiptapEditor;
-	if (tiptap?.isDestroyed) return false;
-	return true;
-}
+import { isEditorAlive } from "../../shared/utils/blocknoteInternals";
 
 export const useDocumentEditor = () => {
 	const editorRef = useRef<BlockNoteEditor | null>(null);
@@ -27,7 +17,7 @@ export const useDocumentEditor = () => {
 			if (editorRef.current !== editor) return;
 			// Bail if the editor was destroyed. Calling focus/setTextCursorPosition
 			// on a destroyed editor triggers tiptap's `view['posAtDOM']` guard.
-			if (!isEditorReadyForCursorOp(editor)) {
+			if (!isEditorAlive(editor)) {
 				if (attempt < 10 && editorRef.current === editor) {
 					requestAnimationFrame(() => tryFocus(attempt + 1));
 				}
@@ -43,7 +33,7 @@ export const useDocumentEditor = () => {
 			} catch {
 				// If the throw was a transient mount race, retry once — but
 				// only while this editor is still active and not destroyed.
-				if (attempt < 10 && editorRef.current === editor && isEditorReadyForCursorOp(editor)) {
+				if (attempt < 10 && editorRef.current === editor && isEditorAlive(editor)) {
 					requestAnimationFrame(() => tryFocus(attempt + 1));
 				}
 			}
