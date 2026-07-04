@@ -55,28 +55,81 @@ var (
 	numRe     = regexp.MustCompile(`^(\d+)\.\s+(.*)$`)
 )
 
+// mdNode is a scratch tree node used while parsing so nested list items can be
+// attached to their parent before the whole tree is flattened to []Block.
+type mdNode struct {
+	block    Block
+	children []*mdNode
+}
+
+func flattenNodes(nodes []*mdNode) []Block {
+	out := make([]Block, 0, len(nodes))
+	for _, n := range nodes {
+		b := n.block
+		if len(n.children) > 0 {
+			b.Children = flattenNodes(n.children)
+		}
+		out = append(out, b)
+	}
+	return out
+}
+
+func leadingIndent(line string) int {
+	return len(line) - len(strings.TrimLeft(line, " \t"))
+}
+
 // MarkdownToBlocks parses Markdown into BlockNote blocks. It always returns a
 // non-nil slice (empty for empty input) so it satisfies BlockNote's "blocks
-// cannot be nil" invariant when marshaled into a document.
+// cannot be nil" invariant when marshaled into a document. Indented list items
+// are nested under their parent list item; a blank-line-separated paragraph (or
+// any non-list block) resets the current list nesting.
 func MarkdownToBlocks(md string) []Block {
 	lines := strings.Split(strings.ReplaceAll(md, "\r\n", "\n"), "\n")
-	blocks := []Block{}
+	roots := []*mdNode{}
+
+	type frame struct {
+		indent int
+		node   *mdNode
+	}
+	var stack []frame
 
 	var para []string
 	flushPara := func() {
 		if len(para) == 0 {
 			return
 		}
-		blocks = append(blocks, inlineBlock(blocktype.Paragraph, nil, strings.Join(para, " ")))
+		roots = append(roots, &mdNode{block: inlineBlock(blocktype.Paragraph, nil, strings.Join(para, " "))})
 		para = nil
+		stack = stack[:0] // a paragraph separates lists
+	}
+
+	addRoot := func(b Block) {
+		flushPara()
+		stack = stack[:0]
+		roots = append(roots, &mdNode{block: b})
+	}
+
+	addListItem := func(indent int, b Block) {
+		flushPara()
+		n := &mdNode{block: b}
+		for len(stack) > 0 && stack[len(stack)-1].indent >= indent {
+			stack = stack[:len(stack)-1]
+		}
+		if len(stack) > 0 {
+			parent := stack[len(stack)-1].node
+			parent.children = append(parent.children, n)
+		} else {
+			roots = append(roots, n)
+		}
+		stack = append(stack, frame{indent: indent, node: n})
 	}
 
 	for i := 0; i < len(lines); {
+		indent := leadingIndent(lines[i])
 		line := strings.TrimSpace(lines[i])
 
 		switch {
 		case strings.HasPrefix(line, "```"):
-			flushPara()
 			lang := strings.TrimSpace(line[3:])
 			i++
 			var code []string
@@ -87,24 +140,24 @@ func MarkdownToBlocks(md string) []Block {
 			if i < len(lines) { // consume closing fence
 				i++
 			}
-			blocks = append(blocks, codeBlock(lang, strings.Join(code, "\n")))
+			addRoot(codeBlock(lang, strings.Join(code, "\n")))
 
 		case line == "":
 			flushPara()
 			i++
 
 		case headingRe.MatchString(line):
-			flushPara()
 			m := headingRe.FindStringSubmatch(line)
 			level := len(m[1])
 			if level > 3 { // BlockNote headings support levels 1-3
 				level = 3
 			}
-			blocks = append(blocks, inlineBlock(blocktype.Heading, map[string]any{"level": level}, m[2]))
+			addRoot(inlineBlock(blocktype.Heading, map[string]any{"level": level}, m[2]))
 			i++
 
 		case strings.HasPrefix(line, ">"):
 			flushPara()
+			stack = stack[:0]
 			var q []string
 			for i < len(lines) {
 				t := strings.TrimSpace(lines[i])
@@ -114,25 +167,22 @@ func MarkdownToBlocks(md string) []Block {
 				q = append(q, strings.TrimSpace(strings.TrimPrefix(t, ">")))
 				i++
 			}
-			blocks = append(blocks, inlineBlock(blocktype.Quote, nil, strings.Join(q, " ")))
+			roots = append(roots, &mdNode{block: inlineBlock(blocktype.Quote, nil, strings.Join(q, " "))})
 
 		case checkRe.MatchString(line): // must precede bulletRe
-			flushPara()
 			m := checkRe.FindStringSubmatch(line)
 			checked := m[1] == "x" || m[1] == "X"
-			blocks = append(blocks, inlineBlock(blocktype.CheckListItem, map[string]any{"checked": checked}, m[2]))
+			addListItem(indent, inlineBlock(blocktype.CheckListItem, map[string]any{"checked": checked}, m[2]))
 			i++
 
 		case bulletRe.MatchString(line):
-			flushPara()
 			m := bulletRe.FindStringSubmatch(line)
-			blocks = append(blocks, inlineBlock(blocktype.BulletListItem, nil, m[1]))
+			addListItem(indent, inlineBlock(blocktype.BulletListItem, nil, m[1]))
 			i++
 
 		case numRe.MatchString(line):
-			flushPara()
 			m := numRe.FindStringSubmatch(line)
-			blocks = append(blocks, inlineBlock(blocktype.NumberedListItem, nil, m[2]))
+			addListItem(indent, inlineBlock(blocktype.NumberedListItem, nil, m[2]))
 			i++
 
 		default:
@@ -141,7 +191,7 @@ func MarkdownToBlocks(md string) []Block {
 		}
 	}
 	flushPara()
-	return blocks
+	return flattenNodes(roots)
 }
 
 // BlocksToMarkdown renders BlockNote blocks back to Markdown.
