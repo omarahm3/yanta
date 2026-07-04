@@ -154,13 +154,7 @@ function PreviewBody({
 
 	return (
 		<Suspense fallback={<p className="px-4 py-3 text-sm text-text-dim">Loading preview…</p>}>
-			<RichEditor
-				initialContent={content}
-				editable={false}
-				autoFocus={false}
-				docKey={item.path}
-				disablePluginContributions
-			/>
+			<RichEditor initialContent={content} editable={false} autoFocus={false} docKey={item.path} />
 		</Suspense>
 	);
 }
