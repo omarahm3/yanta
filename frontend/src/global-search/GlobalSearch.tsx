@@ -224,7 +224,7 @@ function ResultRow({ id, item, index, selected, onSelect, onOpen }: ResultRowPro
 			tabIndex={-1}
 			data-index={index}
 			aria-selected={selected}
-			onMouseMove={() => {
+			onMouseEnter={() => {
 				if (!selected) onSelect(index);
 			}}
 			onClick={() => onOpen(item)}
