@@ -37,7 +37,6 @@ func TestNewRenderer(t *testing.T) {
 	assert.Equal(t, pdf, renderer.pdf)
 	assert.Equal(t, vault, renderer.vault)
 	assert.Equal(t, "@test", renderer.projectAlias)
-	assert.Equal(t, 0, renderer.listItemIndex)
 }
 
 func TestRenderer_RenderBlock_Heading(t *testing.T) {
@@ -109,29 +108,51 @@ func TestRenderer_RenderBlock_BulletListItem(t *testing.T) {
 func TestRenderer_RenderBlock_NumberedListItem(t *testing.T) {
 	renderer, _, _ := setupRendererTest(t)
 
-	block1 := document.BlockNoteBlock{
-		ID:   "num1",
-		Type: "numberedListItem",
-		Content: mustMarshalContent([]document.BlockNoteContent{
-			{Type: "text", Text: "First item"},
-		}),
+	numbered := func(id, text string) document.BlockNoteBlock {
+		return document.BlockNoteBlock{
+			ID:      id,
+			Type:    "numberedListItem",
+			Content: mustMarshalContent([]document.BlockNoteContent{{Type: "text", Text: text}}),
+		}
 	}
 
-	err := renderer.RenderBlock(block1)
+	err := renderer.RenderBlocks([]document.BlockNoteBlock{
+		numbered("num1", "First item"),
+		numbered("num2", "Second item"),
+	})
 	require.NoError(t, err)
-	assert.Equal(t, 1, renderer.listItemIndex)
+}
 
-	block2 := document.BlockNoteBlock{
-		ID:   "num2",
-		Type: "numberedListItem",
-		Content: mustMarshalContent([]document.BlockNoteContent{
-			{Type: "text", Text: "Second item"},
-		}),
+func TestRenderer_NumberedListNumbering(t *testing.T) {
+	renderer, _, _ := setupRendererTest(t)
+
+	numbered := func(id, text string) document.BlockNoteBlock {
+		return document.BlockNoteBlock{
+			ID:      id,
+			Type:    "numberedListItem",
+			Content: mustMarshalContent([]document.BlockNoteContent{{Type: "text", Text: text}}),
+		}
+	}
+	para := document.BlockNoteBlock{
+		ID:      "p",
+		Type:    "paragraph",
+		Content: mustMarshalContent([]document.BlockNoteContent{{Type: "text", Text: "break"}}),
 	}
 
-	err = renderer.RenderBlock(block2)
-	require.NoError(t, err)
-	assert.Equal(t, 2, renderer.listItemIndex)
+	// numbering restarts at 1 after a non-numbered block breaks the run,
+	// and nested numbered children number independently of their parent run.
+	blocks := []document.BlockNoteBlock{
+		numbered("a1", "one"),
+		numbered("a2", "two"),
+		para,
+		func() document.BlockNoteBlock {
+			b := numbered("b1", "one again")
+			b.Children = []document.BlockNoteBlock{numbered("c1", "nested one")}
+			return b
+		}(),
+	}
+
+	require.NoError(t, renderer.RenderBlocks(blocks))
 }
 
 func TestRenderer_RenderBlock_CheckListItem(t *testing.T) {
@@ -502,6 +523,13 @@ func TestRenderer_ExtractTextFromContent(t *testing.T) {
 				{Type: "text", Text: "code", Styles: map[string]any{"code": true}},
 			},
 			expected: "`code`",
+		},
+		{
+			name: "strikethrough text",
+			content: []document.BlockNoteContent{
+				{Type: "text", Text: "gone", Styles: map[string]any{"strike": true}},
+			},
+			expected: "~~gone~~",
 		},
 		{
 			name: "link with content",

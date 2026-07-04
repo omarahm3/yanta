@@ -91,12 +91,11 @@ func (s *Service) ExportToPDF(ctx context.Context, req ExportRequest) error {
 	// Create renderer
 	renderer := NewRenderer(pdf, s.vault, docWithTags.File.Meta.Project)
 
-	// Render all blocks
-	for _, block := range docWithTags.File.Blocks {
-		if err := renderer.RenderBlock(block); err != nil {
-			logger.WithError(err).WithField("blockType", block.Type).Error("failed to render block")
-			return fmt.Errorf("rendering block: %w", err)
-		}
+	// Render all blocks as one sibling sequence so numbered-list numbering and
+	// nested children render correctly.
+	if err := renderer.RenderBlocks(docWithTags.File.Blocks); err != nil {
+		logger.WithError(err).Error("failed to render blocks")
+		return fmt.Errorf("rendering blocks: %w", err)
 	}
 
 	// Ensure output directory exists

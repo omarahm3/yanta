@@ -7,48 +7,92 @@ import (
 	"path/filepath"
 	"strings"
 
+	"yanta/internal/blocktype"
 	"yanta/internal/document"
 	"yanta/internal/logger"
 )
 
 type Renderer struct {
-	pdf           *PDF
-	vault         VaultProvider
-	projectAlias  string
-	listItemIndex int
+	pdf          *PDF
+	vault        VaultProvider
+	projectAlias string
 }
 
 func NewRenderer(pdf *PDF, vault VaultProvider, projectAlias string) *Renderer {
 	return &Renderer{
-		pdf:           pdf,
-		vault:         vault,
-		projectAlias:  projectAlias,
-		listItemIndex: 0,
+		pdf:          pdf,
+		vault:        vault,
+		projectAlias: projectAlias,
 	}
 }
 
+// RenderBlocks renders a sibling sequence. Numbered-list numbering is scoped to
+// the sequence and restarts whenever a non-numbered block breaks the run, so
+// two separate numbered lists both start at 1 and nested lists get their own
+// numbering (children are rendered as their own sequence).
+func (r *Renderer) RenderBlocks(blocks []document.BlockNoteBlock) error {
+	listNumber := 0
+	for _, block := range blocks {
+		if block.Type == blocktype.NumberedListItem {
+			listNumber++
+		} else {
+			listNumber = 0
+		}
+		if err := r.renderBlock(block, listNumber); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// RenderBlock renders a single block (and its children) as a standalone
+// sequence.
 func (r *Renderer) RenderBlock(block document.BlockNoteBlock) error {
+	return r.RenderBlocks([]document.BlockNoteBlock{block})
+}
+
+func (r *Renderer) renderBlock(block document.BlockNoteBlock, listNumber int) error {
 	switch block.Type {
-	case "heading":
-		return r.renderHeading(block)
-	case "paragraph":
-		return r.renderParagraph(block)
-	case "codeBlock":
-		return r.renderCodeBlock(block)
-	case "bulletListItem":
-		return r.renderBulletListItem(block)
-	case "numberedListItem":
-		return r.renderNumberedListItem(block)
-	case "checkListItem":
-		return r.renderCheckListItem(block)
-	case "image":
-		return r.renderImage(block)
-	case "file":
-		return r.renderFile(block)
-	case "quote":
-		return r.renderQuote(block)
-	case "table":
-		return r.renderTable(block)
+	case blocktype.Heading:
+		if err := r.renderHeading(block); err != nil {
+			return err
+		}
+	case blocktype.Paragraph:
+		if err := r.renderParagraph(block); err != nil {
+			return err
+		}
+	case blocktype.CodeBlock:
+		if err := r.renderCodeBlock(block); err != nil {
+			return err
+		}
+	case blocktype.BulletListItem:
+		if err := r.renderBulletListItem(block); err != nil {
+			return err
+		}
+	case blocktype.NumberedListItem:
+		if err := r.renderNumberedListItem(block, listNumber); err != nil {
+			return err
+		}
+	case blocktype.CheckListItem:
+		if err := r.renderCheckListItem(block); err != nil {
+			return err
+		}
+	case blocktype.Image:
+		if err := r.renderImage(block); err != nil {
+			return err
+		}
+	case blocktype.File:
+		if err := r.renderFile(block); err != nil {
+			return err
+		}
+	case blocktype.Quote:
+		if err := r.renderQuote(block); err != nil {
+			return err
+		}
+	case blocktype.Table:
+		if err := r.renderTable(block); err != nil {
+			return err
+		}
 	default:
 		// For unknown block types, try to extract text
 		text := r.extractTextFromBlock(block)
@@ -57,14 +101,7 @@ func (r *Renderer) RenderBlock(block document.BlockNoteBlock) error {
 		}
 	}
 
-	// Recursively render children
-	for _, child := range block.Children {
-		if err := r.RenderBlock(child); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return r.RenderBlocks(block.Children)
 }
 
 func (r *Renderer) renderHeading(block document.BlockNoteBlock) error {
@@ -73,12 +110,7 @@ func (r *Renderer) renderHeading(block document.BlockNoteBlock) error {
 		return nil
 	}
 
-	level := 1
-	if block.Props != nil {
-		if lvl, ok := block.Props["level"].(float64); ok {
-			level = int(lvl)
-		}
-	}
+	level := document.PropInt(block.Props, "level", 1)
 
 	r.pdf.AddHeading(level, text)
 	return nil
@@ -121,14 +153,13 @@ func (r *Renderer) renderBulletListItem(block document.BlockNoteBlock) error {
 	return nil
 }
 
-func (r *Renderer) renderNumberedListItem(block document.BlockNoteBlock) error {
+func (r *Renderer) renderNumberedListItem(block document.BlockNoteBlock, number int) error {
 	text := r.extractTextFromContent(block.Content)
 	if text == "" {
 		return nil
 	}
 
-	r.listItemIndex++
-	r.pdf.AddListItem(text, true, r.listItemIndex)
+	r.pdf.AddListItem(text, true, number)
 	return nil
 }
 
@@ -231,7 +262,7 @@ func (r *Renderer) renderTable(block document.BlockNoteBlock) error {
 		return nil
 	}
 
-	var table tableContent
+	var table document.TableContent
 	if err := json.Unmarshal(block.Content, &table); err != nil {
 		return fmt.Errorf("unmarshaling table content: %w", err)
 	}
@@ -278,24 +309,27 @@ func (r *Renderer) extractTextFromContentSlice(inlineContent []document.BlockNot
 	var parts []string
 	for _, item := range inlineContent {
 		switch item.Type {
-		case "text":
+		case blocktype.InlineText:
 			text := item.Text
 			// Apply styles
 			if item.Styles != nil {
-				if bold, ok := item.Styles["bold"].(bool); ok && bold {
+				if bold, ok := item.Styles[blocktype.StyleBold].(bool); ok && bold {
 					text = fmt.Sprintf("**%s**", text)
 				}
-				if italic, ok := item.Styles["italic"].(bool); ok && italic {
+				if italic, ok := item.Styles[blocktype.StyleItalic].(bool); ok && italic {
 					text = fmt.Sprintf("_%s_", text)
 				}
-				if code, ok := item.Styles["code"].(bool); ok && code {
+				if code, ok := item.Styles[blocktype.StyleCode].(bool); ok && code {
 					text = fmt.Sprintf("`%s`", text)
+				}
+				if strike, ok := item.Styles[blocktype.StyleStrike].(bool); ok && strike {
+					text = fmt.Sprintf("~~%s~~", text)
 				}
 			}
 			if text != "" {
 				parts = append(parts, text)
 			}
-		case "link":
+		case blocktype.InlineLink:
 			linkText := ""
 			if len(item.Content) > 0 {
 				linkText = r.extractTextFromContentSlice(item.Content)
@@ -329,15 +363,3 @@ func (r *Renderer) resolveImagePath(url string) (string, error) {
 	return imagePath, nil
 }
 
-// tableContent mirrors the structure from document/blocks.go
-type tableContent struct {
-	Type         string `json:"type"`
-	ColumnWidths []any  `json:"columnWidths"`
-	Rows         []struct {
-		Cells []struct {
-			Type    string                    `json:"type"`
-			Content []document.BlockNoteContent `json:"content"`
-			Props   map[string]any            `json:"props"`
-		} `json:"cells"`
-	} `json:"rows"`
-}
