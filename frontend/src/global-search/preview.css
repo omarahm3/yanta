@@ -42,6 +42,10 @@
 .gs-preview li {
 	margin: 0.15rem 0;
 }
+/* BlockNote wraps list-item text in a <p>; keep list items tight. */
+.gs-preview li > p {
+	margin: 0;
+}
 .gs-preview li::marker {
 	color: var(--color-text-dim);
 }
