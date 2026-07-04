@@ -110,24 +110,12 @@ func (p *Parser) parseQuote(block BlockNoteBlock, content *ExtractedContent) {
 	content.Links = append(content.Links, links...)
 }
 
-type tableContent struct {
-	Type         string `json:"type"`
-	ColumnWidths []any  `json:"columnWidths"`
-	Rows         []struct {
-		Cells []struct {
-			Type    string             `json:"type"`
-			Content []BlockNoteContent `json:"content"`
-			Props   map[string]any     `json:"props"`
-		} `json:"cells"`
-	} `json:"rows"`
-}
-
 func (p *Parser) parseTable(block BlockNoteBlock, content *ExtractedContent) {
 	if len(block.Content) == 0 {
 		return
 	}
 
-	var table tableContent
+	var table TableContent
 	if err := json.Unmarshal(block.Content, &table); err != nil {
 		return
 	}
