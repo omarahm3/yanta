@@ -6,7 +6,9 @@ import type { FinderItem } from "./types";
 
 // Lazy so BlockNote stays out of the eager startup bundle — it loads the first
 // time a document preview is shown, not on app boot.
-const RichEditor = lazy(() => import("../editor").then((m) => ({ default: m.RichEditor })));
+const DocumentPreview = lazy(() =>
+	import("./DocumentPreview").then((m) => ({ default: m.DocumentPreview })),
+);
 
 /** Small debounce so fast arrowing through results doesn't fetch a preview per row. */
 const PREVIEW_DEBOUNCE_MS = 110;
@@ -154,7 +156,7 @@ function PreviewBody({
 
 	return (
 		<Suspense fallback={<p className="px-4 py-3 text-sm text-text-dim">Loading preview…</p>}>
-			<RichEditor initialContent={content} editable={false} autoFocus={false} docKey={item.path} />
+			<DocumentPreview blocksJson={content} />
 		</Suspense>
 	);
 }

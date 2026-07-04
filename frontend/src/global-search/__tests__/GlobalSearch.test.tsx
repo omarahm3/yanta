@@ -58,9 +58,9 @@ vi.mock("../../../bindings/yanta/internal/document/service", () => ({
 	),
 }));
 
-// BlockNote can't render in jsdom; stub the read-only preview editor.
-vi.mock("../../editor", () => ({
-	RichEditor: () => null,
+// BlockNote can't render in jsdom; stub the read-only preview.
+vi.mock("../DocumentPreview", () => ({
+	DocumentPreview: () => null,
 }));
 
 import { Query } from "../../../bindings/yanta/internal/search/service";
