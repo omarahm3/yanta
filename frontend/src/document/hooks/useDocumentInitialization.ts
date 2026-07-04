@@ -38,10 +38,13 @@ export const useDocumentInitialization = ({
 				initializedForPathRef.current = documentPath;
 			}
 		} else {
-			if (initialTitle && initializedForPathRef.current !== initialTitle) {
+			// Namespace the new-document key so it can never collide with an
+			// edit-mode documentPath that happens to equal the title string.
+			const newDocKey = `new:${initialTitle}`;
+			if (initialTitle && initializedForPathRef.current !== newDocKey) {
 				const formData = createEmptyDocument(initialTitle);
 				initializeForm(formData);
-				initializedForPathRef.current = initialTitle;
+				initializedForPathRef.current = newDocKey;
 				setShouldAutoSave(true);
 			}
 		}

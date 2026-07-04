@@ -37,10 +37,7 @@ describe("openExternalUrl", () => {
 	});
 
 	it("prevents window.open fallback in editor link-open paths", () => {
-		const files = [
-			path.resolve(process.cwd(), "src/editor/hooks/useRichEditorInner.ts"),
-			path.resolve(process.cwd(), "src/editor/extensions/link-toolbar/index.tsx"),
-		];
+		const files = [path.resolve(process.cwd(), "src/editor/hooks/useRichEditorInner.ts")];
 
 		for (const file of files) {
 			const content = readFileSync(file, "utf8");

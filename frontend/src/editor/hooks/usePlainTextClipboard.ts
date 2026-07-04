@@ -79,10 +79,12 @@ export function usePlainTextClipboard(
 			return;
 		}
 
-		document.addEventListener("copy", handleCopy);
+		// Scope the listener to the editor container, not `document`, so multiple
+		// mounted editors don't each intercept every app-wide copy.
+		container.addEventListener("copy", handleCopy);
 
 		return () => {
-			document.removeEventListener("copy", handleCopy);
+			container.removeEventListener("copy", handleCopy);
 		};
 	}, [container, enabled, handleCopy]);
 }

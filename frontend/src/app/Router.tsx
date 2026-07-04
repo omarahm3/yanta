@@ -84,7 +84,7 @@ export const Router: React.FC<RouterProps> = ({
 			{page === "projects" && <Projects {...commonPageProps} />}
 			{page === "settings" && <Settings {...commonPageProps} />}
 			{page === "search" && <Search {...commonPageProps} />}
-			{page === "test" && <Test {...commonPageProps} />}
+			{page === "test" && import.meta.env.DEV && <Test {...commonPageProps} />}
 			{page === "quick-capture" && <QuickCapture />}
 			{page === "journal" && <Journal {...journalProps} />}
 			{!knownPages.has(page) && <Dashboard {...dashboardPropsWithNav} />}

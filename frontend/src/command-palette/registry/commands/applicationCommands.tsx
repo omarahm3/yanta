@@ -10,17 +10,6 @@ export function registerApplicationCommands(
 	const { onNavigate, handleClose, onToggleSidebar, onShowHelp, resetLayout } = ctx;
 	const commands: CommandOption[] = [
 		{
-			id: "nav-test",
-			icon: <Bug className="text-lg" />,
-			text: "Open Development Test",
-			hint: "Debug tools",
-			group: "Application",
-			action: () => {
-				onNavigate("test");
-				handleClose();
-			},
-		},
-		{
 			id: "reset-panes",
 			icon: <RotateCcw className="text-lg" />,
 			text: "Reset Panes",
@@ -33,6 +22,22 @@ export function registerApplicationCommands(
 			},
 		},
 	];
+
+	// The BlockNote/Wayland debug page is a dev-only tool; keep it out of
+	// production builds and the command palette. See bnote-stable.md P4.6.
+	if (import.meta.env.DEV) {
+		commands.unshift({
+			id: "nav-test",
+			icon: <Bug className="text-lg" />,
+			text: "Open Development Test",
+			hint: "Debug tools",
+			group: "Application",
+			action: () => {
+				onNavigate("test");
+				handleClose();
+			},
+		});
+	}
 
 	if (onToggleSidebar) {
 		commands.push({
