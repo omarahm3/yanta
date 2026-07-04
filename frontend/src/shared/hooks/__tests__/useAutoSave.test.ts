@@ -29,7 +29,8 @@ describe("useAutoSave lost-update race (P1.1)", () => {
 			.mockResolvedValue(undefined);
 
 		const { result, rerender } = renderHook(
-			({ value }) => useAutoSave({ value, onSave, delay: 100, isInitialized: true, compareKey: value }),
+			({ value }) =>
+				useAutoSave({ value, onSave, delay: 100, isInitialized: true, compareKey: value }),
 			{ initialProps: { value: "v0" } },
 		);
 

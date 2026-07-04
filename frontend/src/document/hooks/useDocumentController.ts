@@ -146,7 +146,6 @@ export function useDocumentController({
 		shouldAutoSave: !isArchived && shouldAutoSave,
 		resetChanges,
 		onAutoSaveComplete: resetAutoSave,
-		onNavigate,
 		isEditorReady,
 		onNewDocumentSaved: incrementDocumentsCreated,
 	});

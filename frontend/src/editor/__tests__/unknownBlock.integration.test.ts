@@ -1,5 +1,10 @@
 import { codeBlockOptions } from "@blocknote/code-block";
-import { BlockNoteEditor, BlockNoteSchema, createCodeBlockSpec, type PartialBlock } from "@blocknote/core";
+import {
+	BlockNoteEditor,
+	BlockNoteSchema,
+	createCodeBlockSpec,
+	type PartialBlock,
+} from "@blocknote/core";
 import { describe, expect, it, vi } from "vitest";
 import { UNKNOWN_BLOCK_TYPE, unknownBlockSpec } from "../extensions/unknownBlock";
 import { restoreUnknownBlocks, sanitizeUnknownBlocks } from "../utils/blockSanitize";
@@ -15,7 +20,11 @@ function buildSchema() {
 
 const bogusDoc = [
 	{ type: "heading", props: { level: 1 }, content: [{ type: "text", text: "Title", styles: {} }] },
-	{ type: "customPluginBlock", props: { foo: "bar" }, content: [{ type: "text", text: "hi", styles: {} }] },
+	{
+		type: "customPluginBlock",
+		props: { foo: "bar" },
+		content: [{ type: "text", text: "hi", styles: {} }],
+	},
 ] as unknown as PartialBlock[];
 
 describe("unknown block crash prevention (integration)", () => {

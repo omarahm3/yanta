@@ -1,8 +1,8 @@
 import { useCallback, useState } from "react";
 import { CleanupOrphans, LinkToDocument } from "../../../bindings/yanta/internal/asset/service";
+import { isImageFileUrl } from "../../editor/utils/blockNormalize";
 import { DocumentServiceWrapper } from "../../shared/services/DocumentService";
 import type { BlockNoteBlock } from "../../shared/types/Document";
-import { isImageFileUrl } from "../../editor/utils/blockNormalize";
 import { extractAssetHashes } from "../utils/assetExtractor";
 
 interface SaveDocumentParams {

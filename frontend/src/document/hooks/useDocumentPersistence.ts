@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useAutoSave } from "../../shared/hooks";
-import type { NavigationState, PageName } from "../../shared/types";
 import type { BlockNoteBlock } from "../../shared/types/Document";
 import type { Project } from "../../shared/types/Project";
 import { BackendLogger } from "../../shared/utils/backendLogger";
@@ -23,7 +22,6 @@ interface UseDocumentPersistenceProps {
 	shouldAutoSave: boolean;
 	resetChanges: () => void;
 	onAutoSaveComplete: () => void;
-	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	isEditorReady?: boolean;
 	onNewDocumentSaved?: () => void;
 }
@@ -37,7 +35,6 @@ export const useDocumentPersistence = ({
 	shouldAutoSave,
 	resetChanges,
 	onAutoSaveComplete,
-	onNavigate,
 	isEditorReady = false,
 	onNewDocumentSaved,
 }: UseDocumentPersistenceProps) => {

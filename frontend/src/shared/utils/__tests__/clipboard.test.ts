@@ -9,10 +9,7 @@ import {
 
 type ClipboardItemLike = { type: string; getAsFile: () => File | null };
 
-function makeClipboardEvent(
-	items: ClipboardItemLike[],
-	files: File[] = [],
-): ClipboardEvent {
+function makeClipboardEvent(items: ClipboardItemLike[], files: File[] = []): ClipboardEvent {
 	return {
 		clipboardData: { items, files },
 	} as unknown as ClipboardEvent;
