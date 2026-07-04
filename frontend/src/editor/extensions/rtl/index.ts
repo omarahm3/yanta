@@ -4,4 +4,5 @@ export {
 	detectTextDirection,
 	getNodeTextContent,
 	hasSignificantRTL,
+	resolveBlockDir,
 } from "./textDirection";

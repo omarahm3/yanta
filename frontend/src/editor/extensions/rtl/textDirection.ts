@@ -38,6 +38,27 @@ export function detectTextDirection(text: string): "ltr" | "rtl" | null {
 	return null;
 }
 
+/**
+ * Decides what a block's `dir` attribute should become given its text and its
+ * current value. Returns `undefined` when nothing should change, `null` to clear
+ * the attribute (empty block), or the detected direction. Pure so the RTL scan's
+ * decision is unit-testable without ProseMirror, and shared by the initial scan
+ * and the per-edit scan so they can't drift.
+ */
+export function resolveBlockDir(
+	textContent: string,
+	currentDir: string | null,
+): "ltr" | "rtl" | null | undefined {
+	if (!textContent || textContent.trim().length === 0) {
+		return currentDir ? null : undefined;
+	}
+	const detected = detectTextDirection(textContent);
+	if (detected && detected !== currentDir) {
+		return detected;
+	}
+	return undefined;
+}
+
 export function getNodeTextContent(node: unknown): string {
 	if (!node) return "";
 
