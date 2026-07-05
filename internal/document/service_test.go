@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"yanta/internal/events"
 	"yanta/internal/logger"
@@ -358,6 +359,84 @@ func TestService_ListByProject(t *testing.T) {
 	docs, err := service.ListByProject(context.Background(), "@test", false, 10, 0)
 	require.NoError(t, err, "ListByProject() failed")
 	assert.Len(t, docs, 3, "Expected 3 documents")
+}
+
+func TestService_ListRecent_AcrossProjects(t *testing.T) {
+	service, _, cleanup := setupServiceTestWithTwoProjects(t)
+	defer cleanup()
+
+	for _, alias := range []string{"@test", "@other"} {
+		_, err := service.Save(context.Background(), SaveRequest{
+			ProjectAlias: alias,
+			Title:        "Doc in " + alias,
+			Blocks:       []BlockNoteBlock{},
+			Tags:         []string{},
+		})
+		require.NoError(t, err)
+	}
+
+	docs, err := service.ListRecent(context.Background(), 10)
+	require.NoError(t, err, "ListRecent() failed")
+	assert.Len(t, docs, 2, "ListRecent should return documents across all projects")
+
+	aliases := map[string]bool{}
+	for _, d := range docs {
+		aliases[d.ProjectAlias] = true
+	}
+	assert.True(t, aliases["@test"] && aliases["@other"], "ListRecent should span multiple projects")
+}
+
+func TestService_ListRecent_Limit(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	for i := 1; i <= 5; i++ {
+		_, err := service.Save(context.Background(), SaveRequest{
+			ProjectAlias: "@test",
+			Title:        "Document " + string(rune('0'+i)),
+			Blocks:       []BlockNoteBlock{},
+		})
+		require.NoError(t, err)
+	}
+
+	docs, err := service.ListRecent(context.Background(), 3)
+	require.NoError(t, err)
+	assert.Len(t, docs, 3, "ListRecent should honor the limit")
+}
+
+func TestService_ListRecent_OrdersByUpdatedDesc(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	firstPath, err := service.Save(context.Background(), SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "First",
+		Blocks:       []BlockNoteBlock{},
+	})
+	require.NoError(t, err)
+
+	time.Sleep(10 * time.Millisecond)
+	_, err = service.Save(context.Background(), SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "Second",
+		Blocks:       []BlockNoteBlock{},
+	})
+	require.NoError(t, err)
+
+	// Modify the first document so it becomes the most recently updated.
+	time.Sleep(10 * time.Millisecond)
+	_, err = service.Save(context.Background(), SaveRequest{
+		Path:         firstPath,
+		ProjectAlias: "@test",
+		Title:        "First (edited)",
+		Blocks:       []BlockNoteBlock{},
+	})
+	require.NoError(t, err)
+
+	docs, err := service.ListRecent(context.Background(), 10)
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, len(docs), 2)
+	assert.Equal(t, firstPath, docs[0].Path, "most recently modified document should come first")
 }
 
 func TestService_ListByProject_Pagination(t *testing.T) {

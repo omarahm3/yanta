@@ -365,6 +365,42 @@ func (s *Service) ListByProject(ctx context.Context, projectAlias string, includ
 	return result, nil
 }
 
+// ListRecent returns the most recently modified documents across all projects,
+// newest first. It backs the global finder's empty-query state so the finder
+// surfaces the vault immediately instead of only documents opened this session.
+// Missing files are skipped read-only (no pruning) since this runs on every
+// finder open.
+func (s *Service) ListRecent(ctx context.Context, limit int) ([]*Document, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+
+	docs, err := s.store.Get(ctx, &GetFilters{
+		IncludeDeleted: false,
+		OrderByUpdated: true,
+		Limit:          limit,
+	})
+	if err != nil {
+		logger.WithError(err).Error("failed to list recent documents")
+		return nil, fmt.Errorf("listing recent documents: %w", err)
+	}
+
+	result := make([]*Document, 0, len(docs))
+	for _, doc := range docs {
+		exists, existsErr := s.fm.FileExists(doc.Path)
+		if existsErr != nil {
+			logger.WithError(existsErr).WithField("path", doc.Path).Warn("failed to verify document file existence")
+			result = append(result, doc)
+			continue
+		}
+		if exists {
+			result = append(result, doc)
+		}
+	}
+
+	return result, nil
+}
+
 func (s *Service) SoftDelete(ctx context.Context, path string) error {
 	if strings.TrimSpace(path) == "" {
 		return errors.New("path is required")

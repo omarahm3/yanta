@@ -2,6 +2,7 @@ import * as documentModels from "../../../bindings/yanta/internal/document/model
 import {
 	Get,
 	ListByProject,
+	ListRecent,
 	MoveToProject,
 	Restore,
 	Save,
@@ -56,6 +57,11 @@ export async function listDocumentsByProject(
 	return documentsFromModels(models);
 }
 
+export async function listRecentDocuments(limit: number = 50): Promise<Document[]> {
+	const models = await ListRecent(limit);
+	return documentsFromModels(models);
+}
+
 export async function softDeleteDocument(path: string): Promise<void> {
 	await SoftDelete(path);
 }
@@ -76,6 +82,7 @@ export const DocumentServiceWrapper = {
 	save: saveDocument,
 	get: getDocument,
 	listByProject: listDocumentsByProject,
+	listRecent: listRecentDocuments,
 	softDelete: softDeleteDocument,
 	restore: restoreDocument,
 	moveToProject: moveDocumentToProject,

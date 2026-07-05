@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import type * as searchModels from "../../bindings/yanta/internal/search/models";
 import { Query } from "../../bindings/yanta/internal/search/service";
-import { useRecentDocuments } from "../shared/hooks/useRecentDocuments";
+import { listRecentDocuments } from "../shared/services/DocumentService";
 import type { FinderItem } from "./types";
 
 /** Merge the flat `Result[]` (one row per match) into one FinderItem per document. */
@@ -38,7 +38,7 @@ function groupResults(results: (searchModels.Result | null)[]): FinderItem[] {
 export interface UseDocumentSearchReturn {
 	query: string;
 	setQuery: (query: string) => void;
-	/** Search results while querying; recent documents when the query is empty. */
+	/** Search results while querying; recent vault documents when the query is empty. */
 	items: FinderItem[];
 	isLoading: boolean;
 	error: string | null;
@@ -48,21 +48,52 @@ export interface UseDocumentSearchReturn {
 /**
  * Data layer for the global finder: debounced full-text search over the vault
  * with stale-response dropping (a generation counter discards results from a
- * query the user has already moved past). An empty query surfaces recent
- * documents so the finder is useful the instant it opens.
+ * query the user has already moved past). An empty query surfaces the most
+ * recently modified documents from the vault (via the backend) so the finder is
+ * useful the instant it opens — including documents that haven't been opened
+ * this session.
  */
 export function useDocumentSearch(): UseDocumentSearchReturn {
 	const [query, setQuery] = useState("");
 	const [results, setResults] = useState<FinderItem[]>([]);
+	const [recentItems, setRecentItems] = useState<FinderItem[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	const { timeouts } = useMergedConfig();
-	const { recentDocuments } = useRecentDocuments();
 	const generationRef = useRef(0);
 
 	const trimmed = query.trim();
 	const hasQuery = trimmed.length > 0;
+
+	useEffect(() => {
+		let cancelled = false;
+		void (async () => {
+			try {
+				const docs = await listRecentDocuments(50);
+				if (cancelled) return;
+				setRecentItems(
+					docs.map((doc) => ({
+						key: doc.path,
+						type: "document" as const,
+						title: doc.title,
+						projectAlias: doc.projectAlias,
+						path: doc.path,
+						updated: doc.updated.toISOString(),
+						snippets: [],
+						matchCount: 0,
+						isRecent: true,
+					})),
+				);
+			} catch {
+				// Leave the recent list empty if it can't be loaded; typed search
+				// still works independently.
+			}
+		})();
+		return () => {
+			cancelled = true;
+		};
+	}, []);
 
 	useEffect(() => {
 		generationRef.current += 1;
@@ -93,22 +124,6 @@ export function useDocumentSearch(): UseDocumentSearchReturn {
 
 		return () => clearTimeout(timer);
 	}, [trimmed, timeouts.searchDebounceMs]);
-
-	const recentItems = useMemo<FinderItem[]>(
-		() =>
-			recentDocuments.map((doc) => ({
-				key: doc.path,
-				type: "document" as const,
-				title: doc.title,
-				projectAlias: doc.projectAlias,
-				path: doc.path,
-				updated: "",
-				snippets: [],
-				matchCount: 0,
-				isRecent: true,
-			})),
-		[recentDocuments],
-	);
 
 	const items = hasQuery ? results : recentItems;
 

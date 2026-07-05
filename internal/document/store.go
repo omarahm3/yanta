@@ -33,6 +33,11 @@ type GetFilters struct {
 	HasImages      *bool
 	HasLinks       *bool
 	IncludeDeleted bool
+	// OrderByUpdated orders by updated_at DESC (most recently modified first)
+	// instead of the default created_at DESC.
+	OrderByUpdated bool
+	// Limit caps the number of rows returned; 0 means no limit.
+	Limit int
 }
 
 func NewStore(db *sql.DB) *Store {
@@ -341,7 +346,16 @@ func (s *Store) get(ctx context.Context, q queryer, filters *GetFilters) ([]*Doc
 		query += " WHERE " + strings.Join(conditions, " AND ")
 	}
 
-	query += " ORDER BY created_at DESC"
+	if filters.OrderByUpdated {
+		query += " ORDER BY updated_at DESC"
+	} else {
+		query += " ORDER BY created_at DESC"
+	}
+
+	if filters.Limit > 0 {
+		query += " LIMIT ?"
+		args = append(args, filters.Limit)
+	}
 
 	rows, err := q.QueryContext(ctx, query, args...)
 	if err != nil {
