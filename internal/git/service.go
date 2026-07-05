@@ -52,12 +52,17 @@ func (s *Service) newGitCmd(ctx context.Context, repoPath string, args ...string
 	env := append([]string{}, os.Environ()...)
 	filteredEnv := make([]string, 0, len(env))
 	for _, e := range env {
-		if !strings.HasPrefix(e, "GIT_CONFIG_") {
-			filteredEnv = append(filteredEnv, e)
+		// Drop GIT_CONFIG_* (re-set below) and any inherited LC_ALL so we can
+		// force a stable English locale: the sync code matches on git's output
+		// strings (conflicts, "did not match any files", …), which are localized.
+		if strings.HasPrefix(e, "GIT_CONFIG_") || strings.HasPrefix(e, "LC_ALL=") {
+			continue
 		}
+		filteredEnv = append(filteredEnv, e)
 	}
 
 	filteredEnv = append(filteredEnv,
+		"LC_ALL=C",
 		"GIT_CONFIG_COUNT=2",
 		"GIT_CONFIG_KEY_0=core.autocrlf",
 		"GIT_CONFIG_VALUE_0=false",
@@ -162,6 +167,12 @@ func (s *Service) Add(ctx context.Context, path string, pathspecs ...string) err
 	// optional path never blocks syncing the rest.
 	var firstErr error
 	for _, spec := range pathspecs {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			if firstErr != nil {
+				return firstErr
+			}
+			return ctxErr
+		}
 		e := s.runAdd(ctx, path, "-A", "--", spec)
 		if e == nil || isPathspecNoMatch(e) {
 			continue

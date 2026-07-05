@@ -1,6 +1,6 @@
 import { AlertCircle, AlertTriangle, Check, Copy, Info, X } from "lucide-react";
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useErrorDialogStore } from "../stores/errorDialog.store";
 import { cn } from "../utils/cn";
 import { Button } from "./Button";
@@ -20,11 +20,22 @@ import {
  * toast that can grow off-screen.
  */
 export const GlobalErrorDialog: React.FC = () => {
-	const error = useErrorDialogStore((state) => state.queue[0] ?? null);
+	const current = useErrorDialogStore((state) => state.queue[0] ?? null);
 	const dismiss = useErrorDialogStore((state) => state.dismiss);
 	const [copied, setCopied] = useState(false);
+	// Retain the last error while the dialog animates closed so Radix can play
+	// its exit transition instead of snapping out of the DOM on dismiss.
+	const [shown, setShown] = useState(current);
+	useEffect(() => {
+		if (current) {
+			setShown(current);
+		}
+	}, [current]);
 
-	if (!error) return null;
+	if (!shown) return null;
+
+	const isOpen = current !== null;
+	const error = shown;
 
 	const getIcon = () => {
 		switch (error.type) {
@@ -44,6 +55,9 @@ export const GlobalErrorDialog: React.FC = () => {
 	};
 
 	const handleCopy = async () => {
+		if (!navigator?.clipboard?.writeText) {
+			return;
+		}
 		try {
 			await navigator.clipboard.writeText(error.technicalDetails);
 			setCopied(true);
@@ -57,7 +71,7 @@ export const GlobalErrorDialog: React.FC = () => {
 	const hasDetails = error.technicalDetails.trim().length > 0;
 
 	return (
-		<Dialog open onOpenChange={handleOpenChange}>
+		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
 			<DialogContent
 				className={cn(
 					"sm:max-w-2xl p-0 bg-glass-bg/90 backdrop-blur-xl border-glass-border overflow-hidden",

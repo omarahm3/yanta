@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"yanta/internal/config"
+	"yanta/internal/git"
 	"yanta/internal/logger"
 )
 
@@ -534,9 +535,9 @@ func (s *Service) setupGitRepository(targetPath, originalDataDir string) error {
 	}
 
 	logger.Info("staging files for initial commit")
-	// Stage only synced content (keep in sync with git.SyncPaths) so the initial
-	// commit never captures the database, backups, or runtime junk.
-	if err := s.gitService.Add(ctx, targetPath, "vault", ".gitignore"); err != nil {
+	// Stage only synced content so the initial commit never captures the
+	// database, backups, or runtime junk.
+	if err := s.gitService.Add(ctx, targetPath, git.SyncPaths...); err != nil {
 		if originalDataDir != "" {
 			_ = s.rollback(targetPath, originalDataDir)
 		}
