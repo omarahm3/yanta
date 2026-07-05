@@ -197,9 +197,9 @@ export function useGitSyncSettings() {
 					success(result.message || "Sync completed");
 			}
 		} catch (err) {
-			const errorMessage = String(err);
-			const cleanedMessage = errorMessage.replace(/^[A-Z_]+:\s*/, "");
-			error(`Sync failed:\n\n${cleanedMessage}`);
+			// Pass the raw error so the dialog can recognize typed git failures
+			// (REBASE_CONFLICT, non-fast-forward, …) and show tailored guidance.
+			error(String(err));
 		} finally {
 			recordCommandInFlightDelta("syncNow", -1);
 			setSyncNowInFlight(false);

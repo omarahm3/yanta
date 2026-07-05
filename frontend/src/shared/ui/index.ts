@@ -12,8 +12,8 @@ export {
 } from "./context-menu";
 export { EmptyState, type EmptyStateProps } from "./EmptyState";
 export { type FooterHint, FooterHintBar, type FooterHintBarProps } from "./FooterHintBar";
-export { GitErrorDialog } from "./GitErrorDialog";
 export { GitStatusIndicator } from "./GitStatusIndicator";
+export { GlobalErrorDialog } from "./GlobalErrorDialog";
 export { type BreadcrumbItem, HeaderBar } from "./HeaderBar";
 export { Heading } from "./Heading";
 export { HotkeyEditor, type HotkeyEditorProps } from "./HotkeyEditor";

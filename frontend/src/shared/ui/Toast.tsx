@@ -1,6 +1,8 @@
 import { AlertCircle, AlertTriangle, Check, Info } from "lucide-react";
 import type React from "react";
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { useErrorDialogStore } from "../stores/errorDialog.store";
+import { GlobalErrorDialog } from "./GlobalErrorDialog";
 import {
 	ToastProvider as RadixToastProvider,
 	ToastClose,
@@ -95,9 +97,9 @@ const ToastItem: React.FC<{
 			}}
 		>
 			<div className="p-3">
-				<div className="flex items-center">
-					<div className="flex-shrink-0">{getIcon(toast.type)}</div>
-					<div className="ml-2 flex-1">
+				<div className="flex items-start">
+					<div className="flex-shrink-0 mt-0.5">{getIcon(toast.type)}</div>
+					<div className="ml-2 flex-1 min-w-0 max-h-[40vh] overflow-y-auto">
 						<ToastDescription>{toast.message}</ToastDescription>
 					</div>
 					<div className="flex flex-shrink-0 ml-2">
@@ -168,13 +170,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 		[show],
 	);
 
-	const error = useCallback(
-		(message: string, options?: ToastOptions) => {
-			const defaultDuration = message.length > 200 ? 10000 : 6000;
-			return show(message, "error", { duration: defaultDuration, ...options });
-		},
-		[show],
-	);
+	// Errors route to the global error dialog (not a toast): a toast can grow
+	// off-screen for long messages (e.g. a git conflict dump) and auto-dismiss
+	// before the user reads it. The dialog is scrollable and must be dismissed.
+	const error = useCallback((message: string, _options?: ToastOptions) => {
+		useErrorDialogStore.getState().showError(message);
+		return "";
+	}, []);
 
 	const info = useCallback(
 		(message: string, options?: ToastOptions) => show(message, "info", options),
@@ -216,6 +218,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 		<ToastContext.Provider value={contextValue}>
 			<RadixToastProvider swipeDirection="right">
 				{children}
+				<GlobalErrorDialog />
 				{Object.entries(toastsByPosition).map(([position, positionToasts]) => (
 					<ToastViewport key={position} className={getViewportPositionClasses(position)}>
 						{positionToasts.map((toast) => (
