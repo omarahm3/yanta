@@ -56,6 +56,21 @@ vi.mock("../../../bindings/yanta/internal/document/service", () => ({
 			},
 		]),
 	),
+	// The finder's empty-query state lists recent documents from the vault.
+	ListRecent: vi.fn(async () => [
+		{
+			path: "projects/@api/doc-recent.json",
+			project_alias: "@api",
+			title: "Recent Doc",
+			created_at: "2026-07-01",
+			updated_at: "2026-07-01",
+			deleted_at: "",
+			tags: [],
+			has_code: false,
+			has_images: false,
+			has_links: false,
+		},
+	]),
 }));
 
 // BlockNote can't render in jsdom; stub the read-only preview.
