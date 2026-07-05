@@ -1,0 +1,119 @@
+/* Styling for the finder's read-only document preview. The HTML comes from
+   BlockNote's lossy exporter (clean semantic tags), styled with app tokens. */
+.gs-preview {
+	font-size: 14px;
+	line-height: 1.6;
+	color: var(--color-text);
+	word-break: break-word;
+}
+.gs-preview > :first-child {
+	margin-top: 0;
+}
+.gs-preview h1 {
+	font-size: 1.15rem;
+	font-weight: 600;
+	color: var(--color-text-bright);
+	margin: 0.85rem 0 0.4rem;
+}
+.gs-preview h2 {
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--color-text-bright);
+	margin: 0.8rem 0 0.35rem;
+}
+.gs-preview h3 {
+	font-size: 0.92rem;
+	font-weight: 600;
+	margin: 0.7rem 0 0.25rem;
+}
+.gs-preview p {
+	margin: 0.5rem 0;
+}
+.gs-preview ul {
+	list-style: disc;
+	margin: 0.5rem 0;
+	padding-left: 1.4rem;
+}
+.gs-preview ol {
+	list-style: decimal;
+	margin: 0.5rem 0;
+	padding-left: 1.4rem;
+}
+.gs-preview li {
+	margin: 0.15rem 0;
+}
+/* BlockNote wraps list-item text in a <p>; keep list items tight. */
+.gs-preview li > p {
+	margin: 0;
+}
+.gs-preview li::marker {
+	color: var(--color-text-dim);
+}
+.gs-preview a {
+	color: var(--color-accent);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	/* Preview is read-only; open the doc to follow links. */
+	pointer-events: none;
+}
+.gs-preview strong {
+	font-weight: 600;
+	color: var(--color-text-bright);
+}
+.gs-preview em {
+	font-style: italic;
+}
+.gs-preview code {
+	font-family: var(--font-mono, "JetBrains Mono", monospace);
+	font-size: 0.85em;
+	background: var(--color-bg-dark);
+	padding: 0.05rem 0.3rem;
+	border-radius: 4px;
+	color: var(--color-code-text);
+}
+.gs-preview pre {
+	background: var(--color-bg-dark);
+	padding: 0.75rem;
+	border-radius: 6px;
+	overflow-x: auto;
+	margin: 0.5rem 0;
+}
+.gs-preview pre code {
+	background: none;
+	padding: 0;
+	color: var(--color-text);
+	font-size: 0.82rem;
+}
+.gs-preview blockquote {
+	border-left: 2px solid var(--color-border);
+	padding-left: 0.75rem;
+	margin: 0.5rem 0;
+	color: var(--color-text-dim);
+	font-style: italic;
+}
+.gs-preview hr {
+	border: none;
+	border-top: 1px solid var(--color-border);
+	margin: 0.85rem 0;
+}
+.gs-preview img {
+	max-width: 100%;
+	border-radius: 6px;
+	margin: 0.35rem 0;
+}
+.gs-preview table {
+	border-collapse: collapse;
+	width: 100%;
+	margin: 0.5rem 0;
+	font-size: 0.9em;
+}
+.gs-preview th,
+.gs-preview td {
+	border: 1px solid var(--color-border);
+	padding: 0.25rem 0.5rem;
+	text-align: left;
+}
+.gs-preview th {
+	color: var(--color-text-dim);
+	font-weight: 600;
+}

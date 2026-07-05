@@ -16,6 +16,8 @@ import { recordCommandInFlightDelta } from "../shared/monitoring/appMonitor";
 import type { SelectOption } from "../shared/ui";
 import { BackendLogger } from "../shared/utils/backendLogger";
 
+const LAST_SYNC_KEY = "yanta.gitSync.lastSync";
+
 export interface GitSyncSettings {
 	enabled: boolean;
 	commitInterval: number;
@@ -46,6 +48,24 @@ export function useGitSyncSettings() {
 	const [gitBranches, setGitBranches] = useState<string[]>([]);
 	const [currentGitBranch, setCurrentGitBranch] = useState<string>("");
 	const [syncNowInFlight, setSyncNowInFlight] = useState(false);
+	const [lastSync, setLastSync] = useState<{ at: number; status: SyncStatus | "error" } | null>(
+		() => {
+			// Persisted so "last synced …" survives an app restart.
+			try {
+				const raw = localStorage.getItem(LAST_SYNC_KEY);
+				return raw ? JSON.parse(raw) : null;
+			} catch {
+				return null;
+			}
+		},
+	);
+	useEffect(() => {
+		try {
+			if (lastSync) localStorage.setItem(LAST_SYNC_KEY, JSON.stringify(lastSync));
+		} catch {
+			// non-fatal: last-sync display just won't persist
+		}
+	}, [lastSync]);
 	const { success, error, info, warning } = useNotification();
 
 	useEffect(() => {
@@ -69,8 +89,11 @@ export function useGitSyncSettings() {
 			.then((config) => {
 				setGitSync({
 					enabled: config.Enabled,
-					commitInterval: config.CommitInterval || 10,
-					autoPush: config.AutoPush !== undefined ? config.AutoPush : true,
+					// Use the persisted value as-is (0 = "Manual only"); don't
+					// coerce 0 -> 10, which used to mask a saved "Manual only"
+					// and could silently re-enable auto-commit on an unrelated edit.
+					commitInterval: config.CommitInterval,
+					autoPush: config.AutoPush,
 					branch: config.Branch || "",
 				});
 			})
@@ -88,15 +111,22 @@ export function useGitSyncSettings() {
 	const handleGitSyncToggle = useCallback(
 		async (enabled: boolean) => {
 			try {
+				// Enabling Git Sync should actually sync. If the user hasn't
+				// picked an interval yet, default to auto-commit every 10 min and
+				// auto-push, so enabling isn't a silent no-op (commit locally,
+				// never push). They can switch to "Manual only" or turn off
+				// auto-push afterwards.
+				const commitInterval = enabled && gitSync.commitInterval <= 0 ? 10 : gitSync.commitInterval;
+				const autoPush = enabled ? true : gitSync.autoPush;
 				const config = {
 					Enabled: enabled,
-					AutoCommit: gitSync.commitInterval > 0,
-					AutoPush: gitSync.autoPush,
-					CommitInterval: gitSync.commitInterval,
+					AutoCommit: commitInterval > 0,
+					AutoPush: autoPush,
+					CommitInterval: commitInterval,
 					Branch: gitSync.branch,
 				};
 				await SetGitSyncConfig(config);
-				setGitSync((prev) => ({ ...prev, enabled }));
+				setGitSync((prev) => ({ ...prev, enabled, commitInterval, autoPush }));
 			} catch (err) {
 				error(`Failed to update git sync: ${err}`);
 			}
@@ -171,9 +201,11 @@ export function useGitSyncSettings() {
 		try {
 			const result = await SyncNow();
 			if (!result) {
+				setLastSync({ at: Date.now(), status: SyncStatus.SyncStatusSynced });
 				info("Sync completed");
 				return;
 			}
+			setLastSync({ at: Date.now(), status: result.status });
 			switch (result.status) {
 				case SyncStatus.SyncStatusNoChanges:
 					info(result.message || "No changes to sync");
@@ -197,6 +229,7 @@ export function useGitSyncSettings() {
 					success(result.message || "Sync completed");
 			}
 		} catch (err) {
+			setLastSync({ at: Date.now(), status: "error" });
 			// Pass the raw error so the dialog can recognize typed git failures
 			// (REBASE_CONFLICT, non-fast-forward, …) and show tailored guidance.
 			error(String(err));
@@ -221,5 +254,6 @@ export function useGitSyncSettings() {
 		handleBranchChange,
 		handleSyncNow,
 		syncNowInFlight,
+		lastSync,
 	};
 }

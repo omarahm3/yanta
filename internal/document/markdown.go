@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"yanta/internal/blocktype"
 )
 
 type MarkdownConverter struct{}
@@ -56,25 +58,25 @@ func (m *MarkdownConverter) generateFrontmatter(meta *DocumentMeta) string {
 
 func (m *MarkdownConverter) convertBlock(block BlockNoteBlock, lines *[]string, depth int) {
 	switch block.Type {
-	case "heading":
+	case blocktype.Heading:
 		m.convertHeading(block, lines)
-	case "paragraph":
+	case blocktype.Paragraph:
 		m.convertParagraph(block, lines)
-	case "codeBlock":
+	case blocktype.CodeBlock:
 		m.convertCodeBlock(block, lines)
-	case "bulletListItem":
+	case blocktype.BulletListItem:
 		m.convertBulletListItem(block, lines, depth)
-	case "numberedListItem":
+	case blocktype.NumberedListItem:
 		m.convertNumberedListItem(block, lines, depth)
-	case "checkListItem":
+	case blocktype.CheckListItem:
 		m.convertCheckListItem(block, lines, depth)
-	case "image":
+	case blocktype.Image:
 		m.convertImage(block, lines)
-	case "file":
+	case blocktype.File:
 		m.convertFile(block, lines)
-	case "quote":
+	case blocktype.Quote:
 		m.convertQuote(block, lines)
-	case "table":
+	case blocktype.Table:
 		m.convertTable(block, lines)
 	default:
 		text := m.extractFormattedText(block.Content)
@@ -105,11 +107,11 @@ func (m *MarkdownConverter) formatInlineContent(inlineContent []BlockNoteContent
 	var parts []string
 	for _, item := range inlineContent {
 		switch item.Type {
-		case "text":
+		case blocktype.InlineText:
 			if item.Text != "" {
 				parts = append(parts, m.formatTextWithStyles(item.Text, item.Styles))
 			}
-		case "link":
+		case blocktype.InlineLink:
 			if len(item.Content) > 0 {
 				linkText := m.formatInlineContent(item.Content)
 				if linkText != "" {
@@ -128,19 +130,19 @@ func (m *MarkdownConverter) formatTextWithStyles(text string, styles map[string]
 
 	result := text
 
-	if bold, ok := styles["bold"].(bool); ok && bold {
+	if bold, ok := styles[blocktype.StyleBold].(bool); ok && bold {
 		result = "**" + result + "**"
 	}
 
-	if italic, ok := styles["italic"].(bool); ok && italic {
+	if italic, ok := styles[blocktype.StyleItalic].(bool); ok && italic {
 		result = "*" + result + "*"
 	}
 
-	if code, ok := styles["code"].(bool); ok && code {
+	if code, ok := styles[blocktype.StyleCode].(bool); ok && code {
 		result = "`" + result + "`"
 	}
 
-	if strike, ok := styles["strike"].(bool); ok && strike {
+	if strike, ok := styles[blocktype.StyleStrike].(bool); ok && strike {
 		result = "~~" + result + "~~"
 	}
 
@@ -153,12 +155,7 @@ func (m *MarkdownConverter) convertHeading(block BlockNoteBlock, lines *[]string
 		return
 	}
 
-	level := 1
-	if block.Props != nil {
-		if lvl, ok := block.Props["level"].(float64); ok {
-			level = int(lvl)
-		}
-	}
+	level := PropInt(block.Props, "level", 1)
 
 	prefix := strings.Repeat("#", level)
 	*lines = append(*lines, "", fmt.Sprintf("%s %s", prefix, text))
@@ -285,7 +282,7 @@ func (m *MarkdownConverter) convertTable(block BlockNoteBlock, lines *[]string) 
 		return
 	}
 
-	var table tableContent
+	var table TableContent
 	if err := json.Unmarshal(block.Content, &table); err != nil {
 		return
 	}

@@ -50,28 +50,63 @@ func (s *Service) newGitCmd(ctx context.Context, repoPath string, args ...string
 	hideConsoleWindow(cmd)
 
 	env := append([]string{}, os.Environ()...)
-	filteredEnv := make([]string, 0, len(env))
+	filteredEnv := make([]string, 0, len(env)+8)
 	for _, e := range env {
-		// Drop GIT_CONFIG_* (re-set below) and any inherited LC_ALL so we can
-		// force a stable English locale: the sync code matches on git's output
-		// strings (conflicts, "did not match any files", …), which are localized.
-		if strings.HasPrefix(e, "GIT_CONFIG_") || strings.HasPrefix(e, "LC_ALL=") {
+		// Drop inherited git-config and locale overrides so ours win below.
+		if strings.HasPrefix(e, "GIT_CONFIG_") ||
+			strings.HasPrefix(e, "LC_ALL=") ||
+			strings.HasPrefix(e, "LANG=") ||
+			strings.HasPrefix(e, "LANGUAGE=") {
 			continue
 		}
 		filteredEnv = append(filteredEnv, e)
 	}
 
+	// Force a stable C locale. Almost all control flow below keys on matching
+	// English git output ("CONFLICT", "non-fast-forward", "nothing to commit",
+	// …); on a non-English OS locale git localizes those strings and the
+	// matching silently fails — which for PullRebase means a conflict goes
+	// undetected and the rebase is never aborted (data loss). Non-negotiable.
+	filteredEnv = append(filteredEnv, "LC_ALL=C", "LANG=C")
+
+	// This is a hidden-console GUI: never let git block on an interactive
+	// credential or passphrase prompt. Fail fast instead of hanging until the
+	// context deadline SIGKILLs git (which would leave a stale index.lock).
+	filteredEnv = append(filteredEnv, "GIT_TERMINAL_PROMPT=0")
+	if !hasEnvKey(env, "GIT_SSH_COMMAND") {
+		filteredEnv = append(filteredEnv, "GIT_SSH_COMMAND=ssh -o BatchMode=yes")
+	}
+
+	// core.quotePath=false so non-ASCII/emoji note filenames come back
+	// unescaped in status/porcelain output.
 	filteredEnv = append(filteredEnv,
-		"LC_ALL=C",
-		"GIT_CONFIG_COUNT=2",
+		"GIT_CONFIG_COUNT=3",
 		"GIT_CONFIG_KEY_0=core.autocrlf",
 		"GIT_CONFIG_VALUE_0=false",
 		"GIT_CONFIG_KEY_1=core.safecrlf",
 		"GIT_CONFIG_VALUE_1=false",
+		"GIT_CONFIG_KEY_2=core.quotePath",
+		"GIT_CONFIG_VALUE_2=false",
 	)
 	cmd.Env = filteredEnv
 
+	// Cancel the process gracefully on context expiry so git can remove its
+	// own lockfiles before dying (default is an immediate SIGKILL, which
+	// strands .git/index.lock and wedges every future operation).
+	setGracefulCancel(cmd)
+
 	return cmd
+}
+
+// hasEnvKey reports whether env already defines KEY (as "KEY=...").
+func hasEnvKey(env []string, key string) bool {
+	prefix := key + "="
+	for _, e := range env {
+		if strings.HasPrefix(e, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 type Status struct {
@@ -101,7 +136,9 @@ func (s *Service) IsRepository(path string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("checking .git directory: %w", err)
 	}
-	return info.IsDir(), nil
+	// A normal repo has a .git directory; a linked worktree or submodule has a
+	// .git file that points at the real git dir. Accept both.
+	return info.IsDir() || info.Mode().IsRegular(), nil
 }
 
 func (s *Service) Init(ctx context.Context, path string) error {
@@ -234,9 +271,12 @@ func (s *Service) runAdd(ctx context.Context, path string, args ...string) error
 }
 
 func (s *Service) Commit(ctx context.Context, path, message string) error {
+	if err := s.validateRepoPath(path); err != nil {
+		return fmt.Errorf("git commit: %w", err)
+	}
 	s.ensureLFConfig(ctx, path)
 
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	cmd := s.newGitCmd(ctx, path, "commit", "-m", message)
@@ -247,7 +287,7 @@ func (s *Service) Commit(ctx context.Context, path, message string) error {
 
 	if err := cmd.Run(); err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
-			return fmt.Errorf("git commit timed out after 10s")
+			return fmt.Errorf("git commit timed out after 30s")
 		}
 		output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
 		if output != "" {
@@ -267,6 +307,9 @@ func (s *Service) Commit(ctx context.Context, path, message string) error {
 }
 
 func (s *Service) SetRemote(ctx context.Context, path, name, url string) error {
+	if err := s.validateRepoPath(path); err != nil {
+		return fmt.Errorf("git remote: %w", err)
+	}
 	s.ensureLFConfig(ctx, path)
 
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -302,6 +345,9 @@ func (s *Service) SetRemote(ctx context.Context, path, name, url string) error {
 var ErrNonFastForward = fmt.Errorf("non-fast-forward: remote branch is ahead")
 
 func (s *Service) Push(ctx context.Context, path, remote, branch string) error {
+	if err := s.validateRepoPath(path); err != nil {
+		return fmt.Errorf("git push: %w", err)
+	}
 	s.ensureLFConfig(ctx, path)
 
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -517,6 +563,9 @@ func (s *Service) GetLastCommitHash(ctx context.Context, path string) (string, e
 }
 
 func (s *Service) Pull(ctx context.Context, path, remote, branch string) error {
+	if err := s.validateRepoPath(path); err != nil {
+		return fmt.Errorf("git pull: %w", err)
+	}
 	s.ensureLFConfig(ctx, path)
 
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -535,7 +584,12 @@ func (s *Service) Pull(ctx context.Context, path, remote, branch string) error {
 		output := strings.TrimSpace(stdout.String() + "\n" + stderr.String())
 
 		if strings.Contains(output, "CONFLICT") {
-			return fmt.Errorf("MERGE_CONFLICT:\nMerge conflicts detected. Please resolve conflicts manually:\n\n%s\n\nSteps to resolve:\n1. Check conflicted files with 'git status'\n2. Edit files to resolve conflicts (look for <<<<<<<, =======, >>>>>>>)\n3. Stage resolved files with 'git add <file>'\n4. Commit with 'git commit'", boundOutput(output))
+			// Abort the merge so the working tree is restored to a clean state.
+			// Otherwise MERGE_HEAD and conflict markers are left on disk, and a
+			// later auto-sync `git add -A` + commit would bake the markers into
+			// the user's notes and push them. Mirrors PullRebase's abort.
+			s.abortMerge(path)
+			return fmt.Errorf("MERGE_CONFLICT:\nMerge conflicts detected. The merge was aborted and your files were left untouched.\n\n%s\n\nResolve by pulling manually and reconciling the two versions.", boundOutput(output))
 		}
 
 		if strings.Contains(output, "divergent branches") || strings.Contains(output, "have diverged") {
@@ -558,6 +612,38 @@ func (s *Service) Pull(ctx context.Context, path, remote, branch string) error {
 	return nil
 }
 
+// abortMerge runs `git merge --abort`, restoring the working tree after a
+// conflicted merge. Best-effort: uses its own background context because the
+// caller's context is typically already at/near its deadline.
+func (s *Service) abortMerge(path string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := s.newGitCmd(ctx, path, "merge", "--abort").Run(); err != nil {
+		logger.WithError(err).Warn("git: merge --abort failed")
+	}
+}
+
+// InProgressOperation returns a short description ("merge", "rebase",
+// "cherry-pick", "revert") if the repository is in the middle of one of those
+// operations, or "" if the tree is in a normal state. Auto-sync must NOT stage
+// or commit while one is in progress: `git add -A` on a conflicted file marks
+// it resolved and the subsequent commit would embed conflict markers in notes.
+func (s *Service) InProgressOperation(path string) string {
+	gitDir := filepath.Join(path, ".git")
+	for _, c := range []struct{ name, marker string }{
+		{"merge", "MERGE_HEAD"},
+		{"rebase", "rebase-merge"},
+		{"rebase", "rebase-apply"},
+		{"cherry-pick", "CHERRY_PICK_HEAD"},
+		{"revert", "REVERT_HEAD"},
+	} {
+		if _, err := os.Stat(filepath.Join(gitDir, c.marker)); err == nil {
+			return c.name
+		}
+	}
+	return ""
+}
+
 func boundOutput(output string) string {
 	if len(output) <= maxGitOutputChars {
 		return output
@@ -574,7 +660,9 @@ func (s *Service) Stash(ctx context.Context, path string) error {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	cmd := s.newGitCmd(ctx, path, "stash", "push", "-m", "auto-stash before pull")
+	// -u includes untracked files, so brand-new notes are protected during a
+	// pull too (without it, untracked files are left in the working tree).
+	cmd := s.newGitCmd(ctx, path, "stash", "push", "-u", "-m", "auto-stash before pull")
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -670,7 +758,9 @@ func (s *Service) GetAheadBehind(ctx context.Context, path, branch string) (*Ahe
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	refSpec := fmt.Sprintf("%s...origin/%s", branch, branch)
+	// Compare against the branch's actual configured upstream rather than a
+	// hardcoded origin/<branch>, so non-"origin" remotes report correctly.
+	refSpec := fmt.Sprintf("%s...%s@{upstream}", branch, branch)
 	cmd := s.newGitCmd(ctx, path, "rev-list", "--left-right", "--count", refSpec)
 
 	var stdout, stderr bytes.Buffer
@@ -679,7 +769,11 @@ func (s *Service) GetAheadBehind(ctx context.Context, path, branch string) (*Ahe
 
 	if err := cmd.Run(); err != nil {
 		stderrStr := stderr.String()
-		if strings.Contains(stderrStr, "unknown revision") {
+		// No upstream configured / tracking ref not fetched yet → ahead/behind
+		// is genuinely undefined (not an error, and not "diverged").
+		if strings.Contains(stderrStr, "unknown revision") ||
+			strings.Contains(stderrStr, "no upstream") ||
+			strings.Contains(stderrStr, "No upstream") {
 			return &AheadBehind{Ahead: 0, Behind: 0}, nil
 		}
 		return nil, fmt.Errorf("git rev-list failed: %w: %s", err, stderrStr)
@@ -899,6 +993,33 @@ func (s *Service) ensureLFConfig(ctx context.Context, path string) {
 			logger.WithError(err).Warnf("failed to set git config %s", cfg[0])
 		}
 	}
+
+	s.ensureIdentity(ctx, cleanPath)
+}
+
+// ensureIdentity sets a repo-local commit identity ONLY if the user has none
+// configured anywhere. Without this, auto-commit fails outright on a machine
+// with no global git identity — a silent stall for a background syncer. We
+// never override an existing (e.g. global) identity, and we scope ours to the
+// repo so it can't leak into the user's other projects.
+func (s *Service) ensureIdentity(ctx context.Context, path string) {
+	if s.hasIdentity(ctx, path) {
+		return
+	}
+	if err := s.setGitConfig(ctx, path, "user.name", "YANTA"); err != nil {
+		logger.WithError(err).Warn("failed to set fallback git user.name")
+	}
+	if err := s.setGitConfig(ctx, path, "user.email", "yanta@localhost"); err != nil {
+		logger.WithError(err).Warn("failed to set fallback git user.email")
+	}
+}
+
+// hasIdentity reports whether a commit identity is resolvable (from any scope).
+func (s *Service) hasIdentity(ctx context.Context, path string) bool {
+	cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	out, err := s.newGitCmd(cctx, path, "config", "user.email").Output()
+	return err == nil && strings.TrimSpace(string(out)) != ""
 }
 
 func (s *Service) setGitConfig(ctx context.Context, path, key, value string) error {

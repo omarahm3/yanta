@@ -1,6 +1,23 @@
 import type { BlockNoteEditor } from "@blocknote/core";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { registerClipboardImagePlugin } from "../clipboard";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	ensureFileHasName,
+	extractImagesFromClipboardEvent,
+	registerClipboardImagePlugin,
+	shouldAttemptImagePaste,
+} from "../clipboard";
+
+type ClipboardItemLike = { type: string; getAsFile: () => File | null };
+
+function makeClipboardEvent(items: ClipboardItemLike[], files: File[] = []): ClipboardEvent {
+	return {
+		clipboardData: { items, files },
+	} as unknown as ClipboardEvent;
+}
+
+function imageItem(type = "image/png"): ClipboardItemLike {
+	return { type, getAsFile: () => new File([new Uint8Array([1, 2, 3])], "p.png", { type }) };
+}
 
 type MockTiptapEditor = {
 	isInitialized: boolean;
@@ -135,5 +152,103 @@ describe("registerClipboardImagePlugin", () => {
 
 		expect(typeof dispose).toBe("function");
 		expect(rafSpy).not.toHaveBeenCalled();
+	});
+});
+
+describe("ensureFileHasName (P3.1)", () => {
+	it("keeps an existing name", () => {
+		const file = new File([new Uint8Array([1])], "keep.png", { type: "image/png" });
+		expect(ensureFileHasName(file).name).toBe("keep.png");
+	});
+
+	it("synthesizes a name from the MIME type when missing", () => {
+		const file = new File([new Uint8Array([1])], "", { type: "image/jpeg" });
+		const named = ensureFileHasName(file, 2);
+		expect(named.name).toMatch(/^pasted-image-\d+-2\.jpg$/);
+		expect(named.type).toBe("image/jpeg");
+	});
+
+	it("falls back to .bin for unknown MIME types", () => {
+		const file = new File([new Uint8Array([1])], "", { type: "application/x-weird" });
+		expect(ensureFileHasName(file).name).toMatch(/\.bin$/);
+	});
+});
+
+describe("extractImagesFromClipboardEvent (P3.1)", () => {
+	afterEach(() => {
+		Reflect.deleteProperty(navigator, "clipboard");
+	});
+
+	it("returns none when there is no clipboardData", async () => {
+		const result = await extractImagesFromClipboardEvent({} as ClipboardEvent);
+		expect(result).toEqual({ files: [], source: "none" });
+	});
+
+	it("extracts image files from the DataTransfer items", async () => {
+		const event = makeClipboardEvent([imageItem("image/png")]);
+		const result = await extractImagesFromClipboardEvent(event);
+		expect(result.source).toBe("data-transfer");
+		expect(result.files).toHaveLength(1);
+	});
+
+	it("ignores non-image items", async () => {
+		const textItem: ClipboardItemLike = { type: "text/plain", getAsFile: () => null };
+		const event = makeClipboardEvent([textItem]);
+		const result = await extractImagesFromClipboardEvent(event, { allowAsyncFallback: false });
+		expect(result).toEqual({ files: [], source: "none" });
+	});
+
+	it("falls back to the async clipboard API when DataTransfer has no files (Wayland)", async () => {
+		Object.defineProperty(navigator, "clipboard", {
+			configurable: true,
+			value: {
+				read: vi.fn(async () => [
+					{
+						types: ["image/png"],
+						getType: async (t: string) => new Blob([new Uint8Array([1, 2])], { type: t }),
+					},
+				]),
+			},
+		});
+
+		const event = makeClipboardEvent([]);
+		const result = await extractImagesFromClipboardEvent(event, { allowAsyncFallback: true });
+		expect(result.source).toBe("async-clipboard");
+		expect(result.files).toHaveLength(1);
+		expect(result.files[0].name).toMatch(/^pasted-image-/);
+	});
+
+	it("does not use the async fallback when disabled", async () => {
+		const event = makeClipboardEvent([]);
+		const result = await extractImagesFromClipboardEvent(event, { allowAsyncFallback: false });
+		expect(result).toEqual({ files: [], source: "none" });
+	});
+});
+
+describe("shouldAttemptImagePaste (P3.2)", () => {
+	it("skips when the editor is not editable", () => {
+		expect(shouldAttemptImagePaste(makeClipboardEvent([imageItem()]), false)).toBe(false);
+	});
+
+	it("skips when there is no clipboardData", () => {
+		expect(shouldAttemptImagePaste({} as ClipboardEvent, true)).toBe(false);
+	});
+
+	it("skips when the browser already surfaced files (BlockNote handles those)", () => {
+		const file = new File([new Uint8Array([1])], "a.png", { type: "image/png" });
+		expect(shouldAttemptImagePaste(makeClipboardEvent([imageItem()], [file]), true)).toBe(false);
+	});
+
+	it("skips a non-empty, non-image payload", () => {
+		const textItem: ClipboardItemLike = { type: "text/plain", getAsFile: () => null };
+		expect(shouldAttemptImagePaste(makeClipboardEvent([textItem]), true)).toBe(false);
+	});
+
+	it("attempts when an image item is present", () => {
+		expect(shouldAttemptImagePaste(makeClipboardEvent([imageItem()]), true)).toBe(true);
+	});
+
+	it("attempts on an empty item list (Wayland async fallback)", () => {
+		expect(shouldAttemptImagePaste(makeClipboardEvent([]), true)).toBe(true);
 	});
 });

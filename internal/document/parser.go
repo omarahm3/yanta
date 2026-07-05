@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/url"
 	"strings"
+
+	"yanta/internal/blocktype"
 )
 
 type Parser struct{}
@@ -39,24 +41,27 @@ func (p *Parser) Parse(doc *DocumentFile) (*ExtractedContent, error) {
 
 func (p *Parser) parseBlock(block BlockNoteBlock, content *ExtractedContent) {
 	switch block.Type {
-	case "heading":
+	case blocktype.Heading:
 		p.parseHeading(block, content)
-	case "paragraph":
+	case blocktype.Paragraph:
 		p.parseParagraph(block, content)
-	case "codeBlock":
+	case blocktype.CodeBlock:
 		p.parseCodeBlock(block, content)
-	case "bulletListItem", "numberedListItem", "checkListItem":
+	case blocktype.BulletListItem, blocktype.NumberedListItem, blocktype.CheckListItem:
 		p.parseListItem(block, content)
-	case "image":
+	case blocktype.Image:
 		p.parseImage(block, content)
-	case "file":
+	case blocktype.File:
 		p.parseFile(block, content)
-	case "quote":
+	case blocktype.Quote:
 		p.parseQuote(block, content)
-	case "table":
+	case blocktype.Table:
 		p.parseTable(block, content)
 	default:
 		text := p.extractTextFromContent(block.Content)
+		if text == "" {
+			text = extractPropText(block.Props)
+		}
 		if text != "" {
 			content.Body = append(content.Body, text)
 		}
@@ -65,6 +70,25 @@ func (p *Parser) parseBlock(block BlockNoteBlock, content *ExtractedContent) {
 	for _, child := range block.Children {
 		p.parseBlock(child, content)
 	}
+}
+
+// extractPropText pulls searchable text from a block's props for block types
+// that carry their payload in props rather than an inline content array (future
+// video/audio/embed or plugin blocks). Without it such blocks contribute nothing
+// to FTS and are silently unsearchable.
+func extractPropText(props map[string]any) string {
+	if props == nil {
+		return ""
+	}
+	var parts []string
+	for _, key := range []string{"text", "caption", "name", "title", "alt", "url"} {
+		if v, ok := props[key].(string); ok {
+			if trimmed := strings.TrimSpace(v); trimmed != "" {
+				parts = append(parts, trimmed)
+			}
+		}
+	}
+	return strings.Join(parts, " ")
 }
 
 func (p *Parser) extractTextFromContent(rawContent json.RawMessage) string {
@@ -80,11 +104,11 @@ func (p *Parser) extractTextFromContent(rawContent json.RawMessage) string {
 	var parts []string
 	for _, item := range inlineContent {
 		switch item.Type {
-		case "text":
+		case blocktype.InlineText:
 			if item.Text != "" {
 				parts = append(parts, item.Text)
 			}
-		case "link":
+		case blocktype.InlineLink:
 			if len(item.Content) > 0 {
 				nestedText := p.extractTextFromContentSlice(item.Content)
 				if nestedText != "" {
@@ -101,11 +125,11 @@ func (p *Parser) extractTextFromContentSlice(inlineContent []BlockNoteContent) s
 	var parts []string
 	for _, item := range inlineContent {
 		switch item.Type {
-		case "text":
+		case blocktype.InlineText:
 			if item.Text != "" {
 				parts = append(parts, item.Text)
 			}
-		case "link":
+		case blocktype.InlineLink:
 			if len(item.Content) > 0 {
 				nestedText := p.extractTextFromContentSlice(item.Content)
 				if nestedText != "" {
@@ -129,7 +153,7 @@ func (p *Parser) extractLinksFromContent(rawContent json.RawMessage) []Link {
 
 	var links []Link
 	for _, item := range inlineContent {
-		if item.Type == "link" && item.Href != "" {
+		if item.Type == blocktype.InlineLink && item.Href != "" {
 			link := Link{
 				URL:  item.Href,
 				Host: p.extractHost(item.Href),

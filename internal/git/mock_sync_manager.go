@@ -6,6 +6,7 @@ func NewMockSyncManager() *SyncManager {
 	sm := &SyncManager{
 		gitService: nil,
 		db:         nil,
+		oplock:     NewOperationLock(),
 		reasons:    make([]string, 0),
 		done:       make(chan struct{}),
 	}

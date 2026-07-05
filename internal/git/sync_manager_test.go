@@ -221,7 +221,7 @@ func TestSyncManager_PersistsLastCommitTime(t *testing.T) {
 	sm1.mu.Lock()
 	reasons := sm1.reasons
 	sm1.mu.Unlock()
-	sm1.performSync(reasons)
+	sm1.performSync(context.Background(), reasons)
 
 	sm1.Shutdown()
 
@@ -274,7 +274,7 @@ func TestSyncManager_NotGitRepo_SkipsSync(t *testing.T) {
 	sm.mu.Lock()
 	reasons := sm.reasons
 	sm.mu.Unlock()
-	sm.performSync(reasons)
+	sm.performSync(context.Background(), reasons)
 
 	// Pending changes should still be there (sync didn't complete)
 	// Actually, performSync won't clear them if it's not a git repo
@@ -672,4 +672,109 @@ func TestSyncManager_BackupBeforeSync(t *testing.T) {
 	log, err := getGitLog(tempDir)
 	require.NoError(t, err)
 	assert.Contains(t, log, "auto: backup test")
+}
+
+// recordingEmitter is a toastEmitter test double that captures emissions.
+// Notify is driven synchronously in these tests, so no locking is needed.
+type recordingEmitter struct {
+	toasts []map[string]any
+}
+
+func (r *recordingEmitter) EmitToast(kind, message string, durationMs int) {
+	r.toasts = append(r.toasts, map[string]any{
+		"type":     kind,
+		"message":  message,
+		"duration": durationMs,
+	})
+}
+
+// A healthy repo commits/syncs on every interval; it must never spam a toast.
+func TestSyncManager_Notify_HealthyNeverToasts(t *testing.T) {
+	rec := &recordingEmitter{}
+	sm := &SyncManager{}
+	sm.SetEmitter(rec)
+
+	sm.notify(&SyncResult{Status: SyncStatusSynced})
+	sm.notify(&SyncResult{Status: SyncStatusCommitted})
+	sm.notify(&SyncResult{Status: SyncStatusNoChanges})
+	sm.notify(&SyncResult{Status: SyncStatusUpToDate})
+
+	assert.Empty(t, rec.toasts, "healthy outcomes must not produce toasts")
+}
+
+// A failure is reported once; while it persists across ticks it stays quiet
+// (no 60s spam). A change in failure kind produces a fresh toast.
+func TestSyncManager_Notify_FailureToastsOnceUntilStateChanges(t *testing.T) {
+	rec := &recordingEmitter{}
+	sm := &SyncManager{}
+	sm.SetEmitter(rec)
+
+	sm.notify(&SyncResult{Status: SyncStatusPushFailed})
+	require.Len(t, rec.toasts, 1)
+	assert.Equal(t, "warning", rec.toasts[0]["type"])
+
+	// Same failure on subsequent intervals -> no additional toasts.
+	sm.notify(&SyncResult{Status: SyncStatusPushFailed})
+	sm.notify(&SyncResult{Status: SyncStatusPushFailed})
+	assert.Len(t, rec.toasts, 1, "a persistent failure must not re-toast every interval")
+
+	// Failure kind changes (push failure -> merge conflict) -> new toast.
+	sm.notify(&SyncResult{Status: SyncStatusConflict})
+	require.Len(t, rec.toasts, 2)
+	assert.Equal(t, "error", rec.toasts[1]["type"])
+}
+
+// Recovering from a failure emits exactly one success toast, then stays quiet.
+func TestSyncManager_Notify_RecoveryToastsOnce(t *testing.T) {
+	rec := &recordingEmitter{}
+	sm := &SyncManager{}
+	sm.SetEmitter(rec)
+
+	sm.notify(&SyncResult{Status: SyncStatusPushFailed})
+	require.Len(t, rec.toasts, 1)
+
+	sm.notify(&SyncResult{Status: SyncStatusSynced})
+	require.Len(t, rec.toasts, 2)
+	assert.Equal(t, "success", rec.toasts[1]["type"])
+
+	sm.notify(&SyncResult{Status: SyncStatusSynced})
+	sm.notify(&SyncResult{Status: SyncStatusNoChanges})
+	assert.Len(t, rec.toasts, 2, "recovery must fire once, then stay quiet")
+}
+
+// A hard error (e.g. not a repo, commit failed) surfaces its own message.
+func TestSyncManager_Notify_HardErrorSurfacesMessage(t *testing.T) {
+	rec := &recordingEmitter{}
+	sm := &SyncManager{}
+	sm.SetEmitter(rec)
+
+	sm.notify(&SyncResult{Status: SyncStatusError, Message: "not a git repository"})
+	require.Len(t, rec.toasts, 1)
+	assert.Equal(t, "error", rec.toasts[0]["type"])
+	assert.Equal(t, "not a git repository", rec.toasts[0]["message"])
+}
+
+// A change in the hard-error message must re-notify (not be suppressed as the
+// same "error" state) — e.g. "not a repo" then "commit failed".
+func TestSyncManager_Notify_ErrorDedupByMessage(t *testing.T) {
+	rec := &recordingEmitter{}
+	sm := &SyncManager{}
+	sm.SetEmitter(rec)
+
+	sm.notify(&SyncResult{Status: SyncStatusError, Message: "not a git repository"})
+	sm.notify(&SyncResult{Status: SyncStatusError, Message: "not a git repository"})
+	require.Len(t, rec.toasts, 1, "same error must not re-toast")
+
+	sm.notify(&SyncResult{Status: SyncStatusError, Message: "commit failed"})
+	require.Len(t, rec.toasts, 2, "a changed error message must re-toast")
+}
+
+// With no emitter wired (the default, e.g. in tests) notify is a safe no-op.
+func TestSyncManager_Notify_NilEmitterIsNoop(t *testing.T) {
+	sm := &SyncManager{}
+	assert.NotPanics(t, func() {
+		sm.notify(&SyncResult{Status: SyncStatusPushFailed})
+		sm.notify(&SyncResult{Status: SyncStatusSynced})
+		sm.notify(nil)
+	})
 }

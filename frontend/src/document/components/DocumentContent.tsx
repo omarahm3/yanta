@@ -1,7 +1,7 @@
-import type { BlockNoteEditor } from "@blocknote/core";
 import { FileText, Pin, PinOff } from "lucide-react";
 import React, { useCallback } from "react";
 import { Layout } from "@/app";
+import type { EditorHandle } from "../../editor/types";
 import type { SaveState } from "../../shared/hooks";
 import { useSidebarStateStore } from "../../shared/stores/sidebarState.store";
 import type { NavigationState, PageName } from "../../shared/types";
@@ -35,7 +35,7 @@ export interface DocumentContentProps {
 	onTitleChange: (title: string) => void;
 	onBlocksChange: (blocks: BlockNoteBlock[]) => void;
 	onTagRemove: (tag: string) => void;
-	onEditorReady: (editor: BlockNoteEditor) => void;
+	onEditorReady: (editor: EditorHandle) => void;
 	onRestore?: () => void;
 	isRestoring?: boolean;
 	onRegisterToggleSidebar?: (handler: () => void) => void;

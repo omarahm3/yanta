@@ -1,7 +1,6 @@
 import { codeBlockOptions } from "@blocknote/code-block";
-import type { BlockNoteEditor, ExtensionFactoryInstance } from "@blocknote/core";
+import type { ExtensionFactoryInstance } from "@blocknote/core";
 import {
-	type Block,
 	BlockNoteSchema,
 	createCodeBlockSpec,
 	createExtension,
@@ -17,6 +16,11 @@ import { useAppearanceStore } from "../../shared/stores/appearance.store";
 import { useScale } from "../../shared/stores/scale.store";
 import type { BlockNoteBlock } from "../../shared/types/Document";
 import { uploadFile } from "../../shared/utils/assetUpload";
+import {
+	getImageBlockAcceptList,
+	isEditorAlive,
+	setImageBlockAccept,
+} from "../../shared/utils/blocknoteInternals";
 import { registerClipboardImagePlugin } from "../../shared/utils/clipboard";
 import { computeContentHash } from "../../shared/utils/contentHash";
 import { openExternalUrl } from "../../shared/utils/openExternalUrl";
@@ -30,14 +34,18 @@ import {
 	useEditorTipTapExtensions,
 } from "../extensions/registry/editorExtensionRegistry";
 import { RTLExtension } from "../extensions/rtl";
+import { UNKNOWN_BLOCK_TYPE, unknownBlockSpec } from "../extensions/unknownBlock";
+import { type EditorHandle, fromEditorBlocks, toEditorHandle } from "../types";
+import { isImageFileUrl, needsLeadingH1 } from "../utils/blockNormalize";
+import { restoreUnknownBlocks, sanitizeUnknownBlocks } from "../utils/blockSanitize";
 import { useBlockNoteMenuPosition } from "./useBlockNoteMenuPosition";
 import { usePlainTextClipboard } from "./usePlainTextClipboard";
 
 export interface UseRichEditorInnerProps {
 	blocks: PartialBlock[];
-	onChange?: (blocks: Block[]) => void;
+	onChange?: (blocks: BlockNoteBlock[]) => void;
 	onTitleChange?: (title: string) => void;
-	onReady?: (editor: BlockNoteEditor) => void;
+	onReady?: (editor: EditorHandle) => void;
 	editable: boolean;
 	autoFocus: boolean;
 	disablePluginContributions?: boolean;
@@ -97,10 +105,18 @@ export function useRichEditorInner({
 				blockSpecs: {
 					...effectivePluginBlockSpecs,
 					codeBlock: createCodeBlockSpec(codeBlockOptions),
+					[UNKNOWN_BLOCK_TYPE]: unknownBlockSpec,
 				},
 				styleSpecs: effectivePluginStyleSpecs,
 			}),
 		[effectivePluginBlockSpecs, effectivePluginStyleSpecs],
+	);
+
+	const knownBlockTypes = useMemo(() => new Set(Object.keys(schema.blockSpecs)), [schema]);
+
+	const sanitizedBlocks = useMemo(
+		() => sanitizeUnknownBlocks(blocks, knownBlockTypes),
+		[blocks, knownBlockTypes],
 	);
 
 	const pluginTipTapAggregateExtension = useMemo(() => {
@@ -115,7 +131,7 @@ export function useRichEditorInner({
 
 	const editor = useCreateBlockNote({
 		schema,
-		initialContent: blocks,
+		initialContent: sanitizedBlocks,
 		uploadFile: uploadFileFn,
 		domAttributes: {
 			editor: {
@@ -169,21 +185,14 @@ export function useRichEditorInner({
 					return;
 				}
 
-				const imageSpec = editor.schema.blockSpecs?.image;
-				if (!imageSpec || !imageSpec.implementation) {
-					return;
-				}
-
-				const meta = imageSpec.implementation.meta ?? {};
-				const acceptList = Array.isArray(meta.fileBlockAccept)
-					? meta.fileBlockAccept.filter((entry) => typeof entry === "string" && entry.trim().length > 0)
-					: [];
-
+				const acceptList = getImageBlockAcceptList(editor);
 				if (acceptList.length === 0 || acceptList.every((entry) => entry === "*/*")) {
-					imageSpec.implementation.meta = {
-						...meta,
-						fileBlockAccept: ["image/*"],
-					};
+					const applied = setImageBlockAccept(editor, ["image/*"]);
+					if (!applied && import.meta.env.DEV) {
+						console.warn(
+							"[RichEditor] Image block internal shape not found; skipped Linux accept workaround",
+						);
+					}
 				}
 			} catch (err) {
 				if (import.meta.env.DEV) {
@@ -216,7 +225,7 @@ export function useRichEditorInner({
 
 			const dom = editor.domElement;
 			if (dom?.isConnected) {
-				onReady?.(editor);
+				onReady?.(toEditorHandle(editor));
 				return;
 			}
 
@@ -226,7 +235,7 @@ export function useRichEditorInner({
 				return;
 			}
 
-			onReady?.(editor);
+			onReady?.(toEditorHandle(editor));
 		};
 
 		rafId = requestAnimationFrame(notifyReady);
@@ -240,7 +249,7 @@ export function useRichEditorInner({
 	useEffect(() => {
 		if (editor && isReady && !hasEstablishedBaseline.current) {
 			const raf = requestAnimationFrame(() => {
-				baselineHashRef.current = computeContentHash(editor.document);
+				baselineHashRef.current = computeContentHash(fromEditorBlocks(editor.document));
 				hasEstablishedBaseline.current = true;
 			});
 			return () => cancelAnimationFrame(raf);
@@ -251,7 +260,7 @@ export function useRichEditorInner({
 		if (!editor || !isReady) return;
 
 		const context = {
-			editor,
+			editor: toEditorHandle(editor),
 			editable,
 		};
 		const cleanupFns: Array<() => void> = [];
@@ -312,29 +321,20 @@ export function useRichEditorInner({
 		// destroy phase (when <EditorInner key=...> remounts on doc switch).
 		// If we mutate the editor there, we queue a transaction against a
 		// torn-down view and Tiptap throws "view['posAtDOM']... not mounted yet".
-		// Guard against that: if the DOM is detached or the underlying editor
-		// is flagged destroyed, skip this onChange entirely.
-		const isEditorAlive = (): boolean => {
-			if (!editor.domElement?.isConnected) return false;
-			const tiptap = (editor as BlockNoteEditor & { _tiptapEditor?: { isDestroyed?: boolean } })
-				._tiptapEditor;
-			if (tiptap?.isDestroyed) return false;
-			return true;
-		};
-
+		// isEditorAlive guards against that (see blocknoteInternals).
 		const unsubscribe = editor.onChange(() => {
-			if (!isEditorAlive()) return;
+			if (!isEditorAlive(editor)) return;
 
 			const currentBlocks = editor.document;
 
 			let didModify = false;
 
-			currentBlocks.forEach((block: Block) => {
+			fromEditorBlocks(currentBlocks).forEach((block) => {
 				if (block.type === "file" && block.props?.url && !convertedBlocksRef.current.has(block.id)) {
 					const url = block.props.url as string;
-					if (url.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
+					if (isImageFileUrl(url)) {
 						convertedBlocksRef.current.add(block.id);
-						if (!isEditorAlive()) return;
+						if (!isEditorAlive(editor)) return;
 						editor.updateBlock(block.id, {
 							type: "image",
 							props: { url },
@@ -344,14 +344,10 @@ export function useRichEditorInner({
 				}
 			});
 
-			const firstBlock = currentBlocks[0];
-			const needsH1 =
-				!firstBlock ||
-				firstBlock.type !== "heading" ||
-				(firstBlock.props as { level?: number })?.level !== 1;
+			const needsH1 = needsLeadingH1(currentBlocks);
 
 			if (needsH1) {
-				if (!isEditorAlive()) return;
+				if (!isEditorAlive(editor)) return;
 				editor.insertBlocks(
 					[{ type: "heading", props: { level: 1 }, content: [] }],
 					currentBlocks[0],
@@ -368,17 +364,19 @@ export function useRichEditorInner({
 				return;
 			}
 
-			const finalBlocks = editor.document;
+			const finalBlocks = fromEditorBlocks(editor.document);
 			const currentHash = computeContentHash(finalBlocks);
 
 			if (currentHash === baselineHashRef.current) {
 				return;
 			}
-			onChange(finalBlocks);
+
+			const restoredBlocks = restoreUnknownBlocks(finalBlocks);
+			onChange(restoredBlocks);
 			baselineHashRef.current = currentHash;
 
 			if (onTitleChange) {
-				const title = extractTitleFromBlocks(finalBlocks as BlockNoteBlock[]);
+				const title = extractTitleFromBlocks(restoredBlocks);
 				onTitleChange(title);
 			}
 		});
@@ -395,7 +393,7 @@ export function useRichEditorInner({
 			return;
 		}
 
-		const unregister = registerClipboardImagePlugin(editor, {
+		const unregister = registerClipboardImagePlugin(toEditorHandle(editor), {
 			shouldHandlePaste: () => editable,
 			uploadFile: uploadFileFn,
 		});

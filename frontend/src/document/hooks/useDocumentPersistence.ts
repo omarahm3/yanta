@@ -1,7 +1,5 @@
-import type { Block } from "@blocknote/core";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useAutoSave } from "../../shared/hooks";
-import type { NavigationState, PageName } from "../../shared/types";
 import type { BlockNoteBlock } from "../../shared/types/Document";
 import type { Project } from "../../shared/types/Project";
 import { BackendLogger } from "../../shared/utils/backendLogger";
@@ -24,7 +22,6 @@ interface UseDocumentPersistenceProps {
 	shouldAutoSave: boolean;
 	resetChanges: () => void;
 	onAutoSaveComplete: () => void;
-	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	isEditorReady?: boolean;
 	onNewDocumentSaved?: () => void;
 }
@@ -38,20 +35,19 @@ export const useDocumentPersistence = ({
 	shouldAutoSave,
 	resetChanges,
 	onAutoSaveComplete,
-	onNavigate,
 	isEditorReady = false,
 	onNewDocumentSaved,
 }: UseDocumentPersistenceProps) => {
 	const latestFormRef = useRef(formData);
 	const currentDocumentPathRef = useRef(documentPath);
-	const isSavingRef = useRef(false);
+	const savingChainRef = useRef<Promise<void>>(Promise.resolve());
 
 	// Compute blocks hash in layout effect to avoid formData.blocks in useMemo deps
 	// (reference equality causes re-computation on every render; hash is content-based)
-	const [blocksHash, setBlocksHash] = useState(() => computeContentHash(formData.blocks as Block[]));
+	const [blocksHash, setBlocksHash] = useState(() => computeContentHash(formData.blocks));
 
 	useLayoutEffect(() => {
-		setBlocksHash(computeContentHash(formData.blocks as Block[]));
+		setBlocksHash(computeContentHash(formData.blocks));
 	}, [formData]);
 
 	useEffect(() => {
@@ -64,12 +60,10 @@ export const useDocumentPersistence = ({
 
 	const { save } = useAutoDocumentSaver();
 
-	const handleSave = useCallback(async () => {
-		if (isSavingRef.current || !currentProject) {
+	const doSave = useCallback(async () => {
+		if (!currentProject) {
 			return;
 		}
-
-		isSavingRef.current = true;
 
 		try {
 			const currentFormData = latestFormRef.current;
@@ -95,10 +89,18 @@ export const useDocumentPersistence = ({
 		} catch (err) {
 			BackendLogger.error("Save failed:", err);
 			throw err;
-		} finally {
-			isSavingRef.current = false;
 		}
-	}, [currentProject, save, onNavigate, resetChanges, onNewDocumentSaved]);
+	}, [currentProject, save, resetChanges, onNewDocumentSaved]);
+
+	// Serialize saves: overlapping callers (autosave debounce + the new-document
+	// direct-save effect) chain instead of racing. Each run reads the latest form
+	// state, so nothing is lost and a queued call can never resolve as a silent
+	// no-op that would falsely clear the dirty flag.
+	const handleSave = useCallback(async () => {
+		const run = savingChainRef.current.catch(() => {}).then(() => doSave());
+		savingChainRef.current = run;
+		return run;
+	}, [doSave]);
 
 	useEffect(() => {
 		if (shouldAutoSave && currentProject && !isLoading) {

@@ -264,4 +264,85 @@ export function setup(api) {
 		expect(runtime?.isolationMode).toBe("external_local");
 		expect(runtime?.isActive).toBe(true);
 	});
+
+	it("blocks a register call for a capability the manifest did not declare", async () => {
+		registerPlugin({
+			manifest: {
+				id: "least.privilege",
+				name: "Least Privilege",
+				version: "1.0.0",
+				apiVersion: "1",
+				entry: "builtin:least-privilege",
+				capabilities: ["commands"],
+			},
+			setup: (api) => {
+				api.registerEditorBlockSpecs({ sneaky: {} } as unknown as ReturnType<
+					typeof getAllEditorBlockSpecs
+				>);
+			},
+		});
+
+		await loadEnabledPlugins();
+
+		const runtime = listPlugins().find((item) => item.manifest.id === "least.privilege");
+		expect(runtime?.isActive).toBe(false);
+		expect(runtime?.lastError).toContain("editorBlockSpecs");
+		expect(Object.keys(getAllEditorBlockSpecs())).not.toContain("sneaky");
+	});
+
+	it("allows a register call for a declared capability", async () => {
+		registerPlugin({
+			manifest: {
+				id: "declared.caps",
+				name: "Declared Caps",
+				version: "1.0.0",
+				apiVersion: "1",
+				entry: "builtin:declared-caps",
+				capabilities: ["commands"],
+			},
+			setup: (api) => {
+				api.registerCommands([
+					{ id: "declared-command", text: "Declared", group: "Plugins", action: () => {} },
+				]);
+			},
+		});
+
+		await loadEnabledPlugins();
+
+		const runtime = listPlugins().find((item) => item.manifest.id === "declared.caps");
+		expect(runtime?.isActive).toBe(true);
+		expect(useCommandRegistryStore.getState().sources["plugin:declared.caps"]).toHaveLength(1);
+	});
+
+	it("rejects an installed plugin whose manifest fails validation", async () => {
+		listInstalledMock.mockResolvedValueOnce([
+			{
+				manifest: {
+					ID: "bad id!",
+					Name: "Bad Manifest",
+					Version: "1.0.0",
+					APIVersion: "1",
+					Entry: "main.js",
+					Capabilities: ["commands"],
+					Description: "",
+					Author: "",
+					Homepage: "",
+				},
+				path: "/plugins/bad",
+				source: "package",
+				enabled: true,
+				status: "ok",
+				canExecute: true,
+			},
+		]);
+
+		await registerInstalledPlugins();
+		await loadEnabledPlugins();
+
+		const runtime = listPlugins().find((item) => item.manifest.id === "bad id!");
+		expect(runtime).toBeDefined();
+		expect(runtime?.isActive).toBe(false);
+		expect(runtime?.lastError).toContain("validation");
+		expect(readPluginEntrypointMock).not.toHaveBeenCalled();
+	});
 });

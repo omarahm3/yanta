@@ -10,7 +10,7 @@ import type { SidebarSection } from "../ui";
 import { useNotification } from "./useNotification";
 
 const MAX_RECENTS_IN_SIDEBAR = 5;
-const NAV_ICON_CLASS = "h-[18px] w-[18px]";
+const NAV_ICON_CLASS = "h-[1.125rem] w-[1.125rem]";
 
 interface UseSidebarSectionsProps {
 	currentPage: string;

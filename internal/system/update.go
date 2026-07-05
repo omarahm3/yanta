@@ -25,6 +25,11 @@ const (
 
 var updateClient = &http.Client{Timeout: updateCheckTimeout}
 
+// detectStorePackaged reports whether the running build is an MSIX/Microsoft
+// Store package. It is indirected through a var so tests can simulate a Store
+// build; the real implementation is platform-specific (see update_packaged_*.go).
+var detectStorePackaged = isStorePackaged
+
 // UpdateInfo describes the result of an auto-update check against GitHub
 // Releases. It is intentionally non-error-bearing for the common "no network"
 // case: callers get Available=false and can stay silent rather than nag the
@@ -60,14 +65,28 @@ type githubRelease struct {
 	Prerelease  bool   `json:"prerelease"`
 }
 
-// CheckForUpdate queries GitHub Releases for the latest version and compares it
-// against the running build. The call is best-effort and non-blocking from the
-// UI's perspective: it never self-installs and surfaces a newer release only so
-// the frontend can offer a dismissible, non-intrusive prompt.
+// CheckForUpdate reports whether a newer YANTA release is available, honoring
+// the build's distribution channel:
 //
-// Development builds (version "dev" or empty) are skipped — they have no
-// meaningful version to compare and should not nag local/dev users.
+//   - MSIX / Microsoft Store installs are updated by the Store itself; Store
+//     policy 10.2.5 forbids any in-app update path, so the check is skipped and
+//     no network request is made.
+//   - Direct-download builds (NSIS installer, portable exe, macOS dmg, Linux
+//     tarball) have no external update authority, so this queries GitHub
+//     Releases and surfaces a newer version only so the frontend can offer a
+//     dismissible, non-intrusive prompt. It never self-installs.
+//
+// Development builds (version "dev" or empty) are skipped either way — they have
+// no meaningful version to compare and should not nag local/dev users.
 func (s *Service) CheckForUpdate(ctx context.Context) (*UpdateInfo, error) {
+	if detectStorePackaged() {
+		logger.Debug("update check skipped: the Microsoft Store owns updates for packaged builds")
+		return &UpdateInfo{
+			Available:      false,
+			CurrentVersion: normalizeVersion(BuildVersion),
+			Checked:        false,
+		}, nil
+	}
 	return checkForUpdate(ctx, updateClient, githubLatestReleaseURL, BuildVersion)
 }
 

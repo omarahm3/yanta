@@ -9,7 +9,6 @@ import (
 	"os"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -35,8 +34,7 @@ type Service struct {
 	shutdownHandler          func()
 	hotkeyReconfigureHandler func(config.HotkeyConfig) error
 	indexer                  *indexer.Indexer
-	gitOpMu                  sync.Mutex
-	gitOpInFlight            string
+	gitLock                  *git.OperationLock
 }
 
 const (
@@ -51,7 +49,15 @@ func NewService(db *sql.DB, eventBus *events.EventBus) *Service {
 		db:       db,
 		dbPath:   "",
 		eventBus: eventBus,
+		gitLock:  git.NewOperationLock(),
 	}
+}
+
+// SetGitLock replaces this service's git operation lock with a shared one so
+// manual git operations mutually exclude the automatic sync manager. Called
+// once at app startup.
+func (s *Service) SetGitLock(l *git.OperationLock) {
+	s.gitLock = l
 }
 
 func (s *Service) SetDBPath(path string) {
@@ -258,24 +264,11 @@ func sanitizeFrontendLogValue(value any, depth int) any {
 }
 
 func (s *Service) beginGitOperation(operation string) (func(), error) {
-	s.gitOpMu.Lock()
-	defer s.gitOpMu.Unlock()
-
-	if s.gitOpInFlight != "" {
-		return nil, fmt.Errorf("GIT_OPERATION_IN_PROGRESS:\nAnother git operation is already running (%s).", s.gitOpInFlight)
+	release, holder, ok := s.gitLock.TryAcquire(operation)
+	if !ok {
+		return nil, fmt.Errorf("GIT_OPERATION_IN_PROGRESS:\nAnother git operation is already running (%s).", holder)
 	}
-
-	s.gitOpInFlight = operation
-	released := false
-	return func() {
-		s.gitOpMu.Lock()
-		defer s.gitOpMu.Unlock()
-		if released {
-			return
-		}
-		released = true
-		s.gitOpInFlight = ""
-	}, nil
+	return release, nil
 }
 
 func normalizeGitTimeoutError(ctx context.Context, err error, operation string) error {
@@ -431,16 +424,37 @@ func (s *Service) CheckMigrationConflicts(ctx context.Context, targetPath string
 func (s *Service) MigrateToGitDirectory(ctx context.Context, targetPath string, strategy migration.MigrationStrategy) error {
 	logger.Infof("starting migration to %s with strategy %s", targetPath, strategy)
 
+	// Hold the shared git lock for the whole migration so the auto-sync ticker
+	// can't run git on the data directory while it is being copied/moved.
+	release, holder, ok := s.gitLock.TryAcquire("migration")
+	if !ok {
+		return fmt.Errorf("GIT_OPERATION_IN_PROGRESS:\nA git operation is already running (%s). Try again in a moment.", holder)
+	}
+	defer release()
+
 	gitService := git.NewService()
 	migrationService := migration.NewService(s.db, gitService)
 
 	if err := migrationService.MigrateData(targetPath, strategy); err != nil {
 		logger.Errorf("migration failed: %v", err)
+		if errors.Is(err, migration.ErrMigrationNeedsRestart) {
+			// The DB was closed mid-migration and cannot be recovered in
+			// process; restart so the app comes back up healthy (at the
+			// original data directory, which rollback restored).
+			logger.Error("migration failed after database close; restarting app to recover a working state")
+			s.scheduleRestartAfterMigration()
+		}
 		return err
 	}
 
 	logger.Info("migration completed successfully - app will exit")
+	s.scheduleRestartAfterMigration()
+	return nil
+}
 
+// scheduleRestartAfterMigration shuts the app down shortly after a migration so
+// it restarts with a fresh database handle at the (possibly new) data directory.
+func (s *Service) scheduleRestartAfterMigration() {
 	go func() {
 		time.Sleep(2 * time.Second)
 
@@ -452,8 +466,6 @@ func (s *Service) MigrateToGitDirectory(ctx context.Context, targetPath string, 
 		logger.Info("forcing app exit after migration (ignoring background mode)")
 		os.Exit(0)
 	}()
-
-	return nil
 }
 
 func (s *Service) GetGitSyncConfig(ctx context.Context) config.GitSyncConfig {
@@ -495,6 +507,18 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 		)
 	}
 
+	// Refuse to sync while a merge/rebase/etc. is unfinished — staging and
+	// committing now would embed conflict markers into notes.
+	if op := gitService.InProgressOperation(dataDir); op != "" {
+		return &git.SyncResult{
+				Status:  git.SyncStatusConflict,
+				Message: fmt.Sprintf("An unresolved %s is in progress. Resolve it before syncing.", op),
+			}, fmt.Errorf(
+				"IN_PROGRESS:\nAn unresolved %s is in progress in your notes repository.\n\nResolve it in your git tool (or finish/abort it), then sync again.",
+				op,
+			)
+	}
+
 	branch, err := gitService.GetCurrentBranch(ctx, dataDir)
 	if err != nil {
 		logger.WithError(err).Warn("could not determine current branch, defaulting to master")
@@ -513,33 +537,9 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 		Message: "No changes to sync",
 	}
 
-	if hasRemote {
-		logger.Info("fetching from remote")
-		if err := gitService.Fetch(ctx, dataDir, "origin"); err != nil {
-			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-				return nil, normalizeGitTimeoutError(ctx, err, "sync")
-			}
-			logger.WithError(err).Warn("fetch failed, continuing with local sync")
-		}
-
-		logger.Info("pulling from remote")
-		if err := gitService.Pull(ctx, dataDir, "origin", branch); err != nil {
-			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-				return nil, normalizeGitTimeoutError(ctx, err, "sync")
-			}
-			errStr := err.Error()
-			if strings.Contains(errStr, "MERGE_CONFLICT") {
-				return &git.SyncResult{
-					Status:  git.SyncStatusConflict,
-					Message: "Merge conflict detected. Please resolve conflicts manually.",
-				}, fmt.Errorf("%w", err)
-			}
-			logger.WithError(err).Warn("pull failed, continuing with local changes")
-		} else {
-			result.Pulled = true
-		}
-	}
-
+	// 1) Commit local changes FIRST. This keeps the same safe ordering as the
+	//    automatic path: we never rebase/merge into a dirty working tree, and
+	//    the reconcile below is always a clean rebase.
 	logger.Info("staging changes")
 	if err := gitService.Add(ctx, dataDir, git.SyncPaths...); err != nil {
 		return nil, normalizeGitTimeoutError(ctx, fmt.Errorf("STAGING_FAILED:\nFailed to stage changes: %v\n\nDirectory: %s", err, dataDir), "sync")
@@ -550,70 +550,90 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 		return nil, normalizeGitTimeoutError(ctx, fmt.Errorf("STATUS_FAILED:\nFailed to read git status: %v\n\nDirectory: %s", err, dataDir), "sync")
 	}
 
-	if status.Clean {
-		logger.Info("no local changes to commit")
-		if result.Pulled {
-			result.Status = git.SyncStatusUpToDate
-			result.Message = "Already in sync with remote"
+	committed := false
+	filesChanged := 0
+	if !status.Clean {
+		filesChanged = len(status.Staged) + len(status.Modified) + len(status.Untracked) +
+			len(status.Deleted) + len(status.Renamed)
+		result.FilesChanged = filesChanged
+		commitMsg := fmt.Sprintf("sync: %d file(s) at %s", filesChanged, time.Now().Format("2006-01-02 15:04:05"))
+		if err := gitService.Commit(ctx, dataDir, commitMsg); err != nil {
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				return nil, normalizeGitTimeoutError(ctx, err, "sync")
+			}
+			if !strings.Contains(err.Error(), "nothing to commit") {
+				return nil, fmt.Errorf("COMMIT_FAILED:\nFailed to commit changes: %v\n\nDirectory: %s", err, dataDir)
+			}
+		} else {
+			committed = true
+			commitHash, _ := gitService.GetLastCommitHash(ctx, dataDir)
+			result.CommitHash = commitHash
+			result.Status = git.SyncStatusCommitted
+			result.Message = fmt.Sprintf("Committed %d file(s)", filesChanged)
+		}
+	}
+
+	if !hasRemote {
+		if committed {
+			logger.Info("no remote configured, commit saved locally")
+			result.Message = fmt.Sprintf("Committed %d file(s) locally (no remote configured)", filesChanged)
 		}
 		return result, nil
 	}
 
-	filesChanged := len(status.Staged) + len(status.Modified) + len(status.Untracked)
-	result.FilesChanged = filesChanged
-
-	logger.WithFields(map[string]any{
-		"staged":    len(status.Staged),
-		"modified":  len(status.Modified),
-		"untracked": len(status.Untracked),
-		"total":     filesChanged,
-	}).Debug("changes to commit")
-
-	logger.Info("committing changes")
-	commitMsg := fmt.Sprintf("sync: %d file(s) at %s", filesChanged, time.Now().Format("2006-01-02 15:04:05"))
-	if err := gitService.Commit(ctx, dataDir, commitMsg); err != nil {
+	// 2) Integrate remote changes with a REBASE (never a merge — a merge could
+	//    leave conflict markers on disk). PullRebase aborts cleanly on conflict.
+	logger.Info("integrating remote changes (rebase)")
+	if err := gitService.PullRebase(ctx, dataDir, "origin", branch); err != nil {
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-			return nil, normalizeGitTimeoutError(ctx, err, "sync")
+			return result, normalizeGitTimeoutError(ctx, err, "sync")
 		}
-		if strings.Contains(err.Error(), "nothing to commit") {
-			logger.Info("nothing to commit after staging")
-			result.Status = git.SyncStatusNoChanges
-			result.Message = "No changes to sync"
-			return result, nil
+		errStr := err.Error()
+		if strings.HasPrefix(errStr, "REBASE_CONFLICT:") {
+			return &git.SyncResult{
+				Status:  git.SyncStatusConflict,
+				Message: "A merge conflict needs manual resolution. Your local changes are committed and safe.",
+			}, fmt.Errorf("%w", err)
 		}
-		return nil, fmt.Errorf("COMMIT_FAILED:\nFailed to commit changes: %v\n\nDirectory: %s", err, dataDir)
-	}
-
-	commitHash, _ := gitService.GetLastCommitHash(ctx, dataDir)
-	result.CommitHash = commitHash
-	result.Status = git.SyncStatusCommitted
-	result.Message = fmt.Sprintf("Committed %d file(s)", filesChanged)
-
-	if hasRemote {
-		logger.Info("pushing to remote")
-		if err := gitService.Push(ctx, dataDir, "origin", branch); err != nil {
-			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-				return result, normalizeGitTimeoutError(ctx, err, "sync")
-			}
-			errStr := err.Error()
+		// A missing upstream branch (the very first push) is expected — fall
+		// through to the push below, which will create it.
+		if !strings.Contains(errStr, "couldn't find remote ref") &&
+			!strings.Contains(errStr, "no such ref") &&
+			!strings.Contains(errStr, "unknown revision") {
 			result.Status = git.SyncStatusPushFailed
 			result.PushError = errStr
-			result.Message = fmt.Sprintf("Committed %d file(s) locally, but push failed", filesChanged)
-			logger.WithError(err).Error("push failed after successful commit")
-			return result, fmt.Errorf("PUSH_FAILED:\nCommit successful but push failed: %v\n\nYour changes are saved locally.\nTry 'Git Push' again when network is available.", err)
+			result.Message = "Could not fetch remote changes"
+			return result, fmt.Errorf("SYNC_FAILED:\nCould not integrate remote changes: %v\n\nYour local changes are committed and safe.", err)
 		}
-
-		result.Status = git.SyncStatusSynced
-		result.Message = fmt.Sprintf("Synced %d file(s) to remote", filesChanged)
-		logger.WithFields(map[string]any{
-			"files":  filesChanged,
-			"commit": commitHash,
-		}).Info("sync completed successfully")
 	} else {
-		logger.Info("no remote configured, commit saved locally")
-		result.Message = fmt.Sprintf("Committed %d file(s) locally (no remote configured)", filesChanged)
+		result.Pulled = true
 	}
 
+	// 3) Publish local commits.
+	logger.Info("pushing to remote")
+	if err := gitService.Push(ctx, dataDir, "origin", branch); err != nil {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return result, normalizeGitTimeoutError(ctx, err, "sync")
+		}
+		result.Status = git.SyncStatusPushFailed
+		result.PushError = err.Error()
+		if committed {
+			result.Message = fmt.Sprintf("Committed %d file(s) locally, but push failed", filesChanged)
+		} else {
+			result.Message = "Pulled remote changes, but push failed"
+		}
+		logger.WithError(err).Error("push failed")
+		return result, fmt.Errorf("PUSH_FAILED:\nPush failed: %v\n\nYour changes are saved locally.\nTry syncing again when the network/credentials are available.", err)
+	}
+
+	if committed {
+		result.Status = git.SyncStatusSynced
+		result.Message = fmt.Sprintf("Synced %d file(s) to remote", filesChanged)
+	} else if result.Pulled {
+		result.Status = git.SyncStatusUpToDate
+		result.Message = "Already in sync with remote"
+	}
+	logger.WithField("files", filesChanged).Info("sync completed successfully")
 	return result, nil
 }
 
@@ -628,6 +648,17 @@ func (s *Service) GetGitStatus(ctx context.Context) (map[string]any, error) {
 	dataDir := config.GetDataDirectory()
 	gitService := git.NewService()
 
+	// "Enabled, but the directory isn't a Git repository yet" is a normal,
+	// recoverable state — report it as structured data so the UI can guide the
+	// user, instead of a raw error that the frontend swallows into a perpetual
+	// "Checking status…".
+	if isRepo, _ := gitService.IsRepository(dataDir); !isRepo {
+		return map[string]any{
+			"enabled": true,
+			"isRepo":  false,
+		}, nil
+	}
+
 	status, err := gitService.GetStatus(ctx, dataDir)
 	if err != nil {
 		return nil, fmt.Errorf("getting git status: %w", err)
@@ -635,6 +666,7 @@ func (s *Service) GetGitStatus(ctx context.Context) (map[string]any, error) {
 
 	result := map[string]any{
 		"enabled":    true,
+		"isRepo":     true,
 		"clean":      status.Clean,
 		"modified":   status.Modified,
 		"untracked":  status.Untracked,

@@ -112,6 +112,15 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 		allowInInput: false,
 	});
 
+	shortcuts.push({
+		key: "mod+F",
+		description: "Search all documents",
+		context: "global",
+		source: "App.tsx - GlobalCommandHotkey",
+		allowInInput: true,
+		capture: true,
+	});
+
 	// ============================================
 	// LAYOUT SHORTCUTS (Layout.tsx)
 	// ============================================

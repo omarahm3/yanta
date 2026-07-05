@@ -1,0 +1,12 @@
+diff --git a/node_modules/prosemirror-highlight/dist/index.js b/node_modules/prosemirror-highlight/dist/index.js
+index dda09f1..3cb7b0d 100644
+--- a/node_modules/prosemirror-highlight/dist/index.js
++++ b/node_modules/prosemirror-highlight/dist/index.js
+@@ -112,6 +112,7 @@ function createHighlightPlugin({ parser, nodeTypes = ["code_block", "codeBlock"]
+ 			const promises = /* @__PURE__ */ new Set();
+ 			const refresh = () => {
+ 				if (promises.size > 0) return;
++				if (view.isDestroyed) return;
+ 				const tr = view.state.tr.setMeta("prosemirror-highlight-refresh", true);
+ 				view.dispatch(tr);
+ 			};

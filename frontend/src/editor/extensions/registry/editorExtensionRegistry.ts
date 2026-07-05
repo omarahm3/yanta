@@ -1,26 +1,26 @@
-import type {
-	BlockNoteEditor,
-	BlockSpecs,
-	ExtensionFactoryInstance,
-	StyleSpecs,
-} from "@blocknote/core";
-import type { DefaultReactSuggestionItem } from "@blocknote/react";
-import type { AnyExtension } from "@tiptap/core";
 import { useSyncExternalStore } from "react";
+import type {
+	EditorBlockSpecMap,
+	EditorExtensionInstance,
+	EditorHandle,
+	EditorReactSuggestionItem,
+	EditorStyleSpecMap,
+	EditorTipTapExtension,
+} from "../../types";
 
 // Legacy "editorExtensions" contributions. Keep broad for compatibility.
-export type EditorExtensionContribution = ExtensionFactoryInstance;
-export type EditorTipTapExtensionContribution = AnyExtension;
-export type EditorBlockSpecContribution = BlockSpecs;
-export type EditorStyleSpecContribution = StyleSpecs;
+export type EditorExtensionContribution = EditorExtensionInstance;
+export type EditorTipTapExtensionContribution = EditorTipTapExtension;
+export type EditorBlockSpecContribution = EditorBlockSpecMap;
+export type EditorStyleSpecContribution = EditorStyleSpecMap;
 
 export interface EditorPluginExecutionContext {
-	editor: BlockNoteEditor;
+	editor: EditorHandle;
 	editable: boolean;
 }
 
 export interface EditorSlashMenuItemContribution
-	extends Omit<DefaultReactSuggestionItem, "onItemClick"> {
+	extends Omit<EditorReactSuggestionItem, "onItemClick"> {
 	order?: number;
 	onItemClick: (ctx: EditorPluginExecutionContext) => void | Promise<void>;
 }

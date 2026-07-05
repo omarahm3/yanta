@@ -30,6 +30,10 @@ jobs:
     - name: Prepare release files
       run: |
         mkdir -p release
+        # Include all artifacts, including the MSIX. Note: the MSIX is UNSIGNED
+        # (the Microsoft Store re-signs it on submission). Direct-download users
+        # must sideload it with a trusted certificate; the .exe installer remains
+        # the normal double-click Windows download.
         find artifacts -type f -exec cp {} release/ \;
         echo "=== Release files ==="
         ls -lh release/

@@ -11,6 +11,11 @@ build/windows/installer/tmp/*
 !build/windows/installer/tmp/MicrosoftEdgeWebview2Setup.exe
 
 yanta-windows-*.exe
+yanta-windows-*.msix
+
+# MSIX packaging: generated staged layout + throwaway local-test signing cert
+build/windows/msix/staged/
+build/windows/msix/*.pfx
 yanta-macos.tar.gz
 yanta-linux.tar.gz
 yanta-*.pkg.tar.gz
@@ -68,6 +73,11 @@ frontend/bindings/*
 /findings.md
 /progress.md
 /task_plan.md
+
+# Local knowledge-graph / memory / smallcode agent databases (never tracked)
+.code-graph/
+.memory/
+.smallcode/
 
 # Other AI coding assistants
 .cursor/

@@ -3,6 +3,7 @@ package document
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"path"
@@ -248,6 +249,39 @@ func (s *Service) Get(ctx context.Context, path string) (*DocumentWithTags, erro
 		File:     file,
 		Tags:     file.Meta.Tags,
 	}, nil
+}
+
+// previewMaxBlocks caps how many blocks the finder preview renders, so a very
+// large note doesn't make the read-only preview editor sluggish. Notes are
+// rarely this long; the cap is a safety valve, not a common path.
+const previewMaxBlocks = 400
+
+// Preview returns a document's BlockNote blocks as a JSON string, for the
+// global-search finder's read-only preview (rendered with the same editor the
+// app uses). It reads the file directly instead of going through Get, so
+// previewing a result never emits an "entry accessed" event or pollutes the
+// recent-documents list.
+func (s *Service) Preview(ctx context.Context, path string) (string, error) {
+	if strings.TrimSpace(path) == "" {
+		return "", errors.New("path is required")
+	}
+
+	file, err := s.fm.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("reading document file: %w", err)
+	}
+
+	blocks := file.Blocks
+	if len(blocks) > previewMaxBlocks {
+		blocks = blocks[:previewMaxBlocks]
+	}
+
+	data, err := json.Marshal(blocks)
+	if err != nil {
+		return "", fmt.Errorf("marshaling document blocks: %w", err)
+	}
+
+	return string(data), nil
 }
 
 func (s *Service) ListByProject(ctx context.Context, projectAlias string, includeArchived bool, limit, offset int) ([]*Document, error) {

@@ -286,6 +286,37 @@ tasks:
     - '{{if eq OS "windows"}}powershell -NoProfile -ExecutionPolicy Bypass -File "{{.ROOT_DIR}}/build/scripts/windows-verify-installer.ps1" -DistDir "{{.DIST_DIR}}"{{else}}INSTALLER="{{.DIST_DIR}}/yanta-windows-installer.exe"; if [ -f "$INSTALLER" ]; then echo "Windows installer verified"; else echo "Windows installer not available (cross-compiled from Linux)"; fi{{end}}'
 
   # ============================================================================
+  # Windows MSIX (Microsoft Store) - supplements the NSIS installer
+  # Windows-only. Wraps the already-built build/bin/yanta.exe (does NOT rebuild,
+  # so it never re-runs the NSIS step). Non-fatal if the Windows SDK is missing
+  # or the version is not a clean X.Y.Z release tag.
+  # ============================================================================
+
+  windows:msix:
+    summary: Package the built Windows binary as an MSIX for the Microsoft Store
+    desc: |
+      Windows-only. Reuses build/bin/yanta.exe (run `task build:win` or
+      `task release:windows` first) and produces build/dist/yanta-windows-<ver>.msix.
+
+      Unsigned by default — the Microsoft Store re-signs on submission, so no paid
+      certificate is required. Supply the Partner Center identity via env vars:
+      MSIX_IDENTITY_NAME / MSIX_PUBLISHER / MSIX_PUBLISHER_DISPLAY (a placeholder
+      identity is used otherwise, suitable only for local testing).
+
+      Degrades gracefully: a missing Windows SDK (makeappx) or a non-release
+      version is a warning, not a failure — the NSIS release path is unaffected.
+    platforms: [ windows ]
+    cmds:
+    - task: common:log:section
+      vars:
+        MSG: "Packaging Windows MSIX (Microsoft Store)"
+    - task: common:file:verify
+      vars:
+        FILE: '{{.BIN_DIR}}/{{.APP_NAME}}.exe'
+        MSG: "Windows binary not found - run 'task build:win' or 'task release:windows' first"
+    - powershell -NoProfile -ExecutionPolicy Bypass -File "{{.ROOT_DIR}}/build/scripts/package-msix.ps1" -BinDir "{{.BIN_DIR}}" -DistDir "{{.DIST_DIR}}" -AppName "{{.APP_NAME}}"
+
+  # ============================================================================
   # macOS Release (macOS-only - bash commands are appropriate)
   # ============================================================================
 
