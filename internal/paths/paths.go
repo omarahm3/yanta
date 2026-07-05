@@ -22,6 +22,9 @@ func GetConfigPath() string {
 	return filepath.Join(config.GetAppRootDirectory(), "config.toml")
 }
 
+// GetBackupsPath returns the local backups directory. The leading dot marks it
+// as a disposable, machine-local dir (mirrors the .gitignore entry) so it is
+// never committed or synced to the remote.
 func GetBackupsPath() string {
-	return filepath.Join(config.GetDataDirectory(), "backups")
+	return filepath.Join(config.GetDataDirectory(), ".backups")
 }

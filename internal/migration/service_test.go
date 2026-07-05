@@ -373,13 +373,13 @@ func TestCheckMigrationConflicts(t *testing.T) {
 
 func TestMigrationStrategies(t *testing.T) {
 	tests := []struct {
-		name           string
-		strategy       MigrationStrategy
-		setupLocal     func(t *testing.T, localVaultDir string)
-		setupTarget    func(t *testing.T, targetVaultDir string)
-		verifyResult   func(t *testing.T, targetDir string)
-		expectError    bool
-		errorContains  string
+		name          string
+		strategy      MigrationStrategy
+		setupLocal    func(t *testing.T, localVaultDir string)
+		setupTarget   func(t *testing.T, targetVaultDir string)
+		verifyResult  func(t *testing.T, targetDir string)
+		expectError   bool
+		errorContains string
 	}{
 		{
 			name:     "UseRemote discards local",
@@ -757,7 +757,7 @@ func (m *mockGitService) CreateGitIgnore(path string, patterns []string) error {
 	return nil
 }
 
-func (m *mockGitService) AddAll(_ context.Context, path string) error {
+func (m *mockGitService) Add(_ context.Context, path string, _ ...string) error {
 	return nil
 }
 

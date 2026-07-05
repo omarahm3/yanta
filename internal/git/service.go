@@ -134,7 +134,57 @@ func (s *Service) CreateGitIgnore(path string, patterns []string) error {
 	return nil
 }
 
+// SyncPaths is the allowlist of repository-relative paths YANTA syncs to the
+// remote: the notes vault and the repo's own .gitignore. Everything else in the
+// data directory — the database, local backups (.backups/), and WebView/OS
+// runtime files — is machine-local and must never be committed. Sync stages
+// these paths explicitly (via Add) instead of `git add -A`, so a stray,
+// non-ignored file can never leak into a commit.
+var SyncPaths = []string{"vault", ".gitignore"}
+
+// Add stages all changes (creations, modifications, and deletions) within the
+// given repository-relative pathspecs — i.e. `git add -A -- <pathspecs>`.
+// Prefer this over AddAll for anything that syncs to a remote so stray files
+// elsewhere in the data directory are never staged.
+func (s *Service) Add(ctx context.Context, path string, pathspecs ...string) error {
+	if len(pathspecs) == 0 {
+		return fmt.Errorf("git add: no paths specified")
+	}
+
+	err := s.runAdd(ctx, path, append([]string{"-A", "--"}, pathspecs...)...)
+	if err == nil || !isPathspecNoMatch(err) {
+		return err
+	}
+
+	// At least one pathspec matched nothing (e.g. a repo without a .gitignore
+	// yet). git add is atomic, so nothing was staged — retry each pathspec on
+	// its own and tolerate the ones that match nothing, so a single missing
+	// optional path never blocks syncing the rest.
+	var firstErr error
+	for _, spec := range pathspecs {
+		e := s.runAdd(ctx, path, "-A", "--", spec)
+		if e == nil || isPathspecNoMatch(e) {
+			continue
+		}
+		if firstErr == nil {
+			firstErr = e
+		}
+	}
+	return firstErr
+}
+
+func isPathspecNoMatch(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "did not match any files")
+}
+
+// AddAll stages every change in the working tree (`git add -A`). Prefer Add with
+// an explicit allowlist for sync; AddAll remains for tooling and tests that
+// intentionally want the whole tree.
 func (s *Service) AddAll(ctx context.Context, path string) error {
+	return s.runAdd(ctx, path, "-A")
+}
+
+func (s *Service) runAdd(ctx context.Context, path string, args ...string) error {
 	if err := s.validateRepoPath(path); err != nil {
 		return fmt.Errorf("git add: %w", err)
 	}
@@ -144,9 +194,9 @@ func (s *Service) AddAll(ctx context.Context, path string) error {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	logger.WithField("path", path).Debug("git add: staging all changes")
+	logger.WithFields(map[string]any{"path": path, "args": args}).Debug("git add: staging")
 
-	cmd := s.newGitCmd(ctx, path, "add", "-A")
+	cmd := s.newGitCmd(ctx, path, append([]string{"add"}, args...)...)
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
