@@ -1,5 +1,5 @@
 import type React from "react";
-import { CommandPalette, GitErrorDialog } from "../../shared/ui";
+import { CommandPalette } from "../../shared/ui";
 import {
 	type UseGlobalCommandPaletteProps,
 	useGlobalCommandPalette,
@@ -8,26 +8,16 @@ import {
 export type GlobalCommandPaletteProps = UseGlobalCommandPaletteProps;
 
 export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = (props) => {
-	const {
-		isOpen,
-		handleClose,
-		handleCommandSelect,
-		sortedCommands,
-		isErrorDialogOpen,
-		closeErrorDialog,
-		gitError,
-	} = useGlobalCommandPalette(props);
+	const { isOpen, handleClose, handleCommandSelect, sortedCommands } =
+		useGlobalCommandPalette(props);
 
 	return (
-		<>
-			<CommandPalette
-				isOpen={isOpen}
-				onClose={handleClose}
-				onCommandSelect={handleCommandSelect}
-				commands={sortedCommands}
-				placeholder="Type a command or search documents..."
-			/>
-			<GitErrorDialog isOpen={isErrorDialogOpen} onClose={closeErrorDialog} error={gitError} />
-		</>
+		<CommandPalette
+			isOpen={isOpen}
+			onClose={handleClose}
+			onCommandSelect={handleCommandSelect}
+			commands={sortedCommands}
+			placeholder="Type a command or search documents..."
+		/>
 	);
 };

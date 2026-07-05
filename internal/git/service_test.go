@@ -203,6 +203,59 @@ func TestAddAll(t *testing.T) {
 	})
 }
 
+func TestAddAllowlist(t *testing.T) {
+	skipIfNoGit(t)
+
+	service := NewService()
+	ctx := context.Background()
+
+	t.Run("stages allowlisted paths but never stray files", func(t *testing.T) {
+		tempDir := t.TempDir()
+		require.NoError(t, service.Init(ctx, tempDir))
+		configureGitUser(t, tempDir)
+
+		require.NoError(t, os.MkdirAll(filepath.Join(tempDir, "vault", "projects", "p"), 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(tempDir, "vault", "projects", "p", "note.json"), []byte("{}"), 0o644))
+		require.NoError(t, os.WriteFile(filepath.Join(tempDir, ".gitignore"), []byte("yanta.db*\n"), 0o644))
+		// Disposable runtime junk that must never be committed (the class of bug
+		// that leaked backups/ and graphics-startup.marker into sync).
+		require.NoError(t, os.WriteFile(filepath.Join(tempDir, "graphics-startup.marker"), []byte("pending"), 0o644))
+
+		require.NoError(t, service.Add(ctx, tempDir, SyncPaths...))
+
+		staged, err := getStagedFiles(tempDir)
+		require.NoError(t, err)
+		assert.Contains(t, staged, "vault/projects/p/note.json")
+		assert.Contains(t, staged, ".gitignore")
+		assert.NotContains(t, staged, "graphics-startup.marker")
+	})
+
+	t.Run("stages deletions within allowlisted paths", func(t *testing.T) {
+		tempDir := t.TempDir()
+		require.NoError(t, service.Init(ctx, tempDir))
+		configureGitUser(t, tempDir)
+
+		notePath := filepath.Join(tempDir, "vault", "note.json")
+		require.NoError(t, os.MkdirAll(filepath.Join(tempDir, "vault"), 0o755))
+		require.NoError(t, os.WriteFile(notePath, []byte("{}"), 0o644))
+		require.NoError(t, service.Add(ctx, tempDir, SyncPaths...))
+		require.NoError(t, service.Commit(ctx, tempDir, "add note"))
+
+		require.NoError(t, os.Remove(notePath))
+		require.NoError(t, service.Add(ctx, tempDir, SyncPaths...))
+
+		staged, err := getStagedFiles(tempDir)
+		require.NoError(t, err)
+		assert.Contains(t, staged, "vault/note.json")
+	})
+
+	t.Run("errors when no paths are given", func(t *testing.T) {
+		tempDir := t.TempDir()
+		require.NoError(t, service.Init(ctx, tempDir))
+		assert.Error(t, service.Add(ctx, tempDir))
+	})
+}
+
 func TestCommit(t *testing.T) {
 	skipIfNoGit(t)
 
@@ -342,6 +395,14 @@ func getGitStatus(repoPath string) (string, error) {
 func getGitLog(repoPath string) (string, error) {
 	cmd := exec.Command("git", "log", "--oneline")
 	cmd.Dir = repoPath
+	output, err := cmd.CombinedOutput()
+	return string(output), err
+}
+
+func getStagedFiles(repoPath string) (string, error) {
+	cmd := exec.Command("git", "diff", "--cached", "--name-only")
+	cmd.Dir = repoPath
+	hideConsoleWindow(cmd)
 	output, err := cmd.CombinedOutput()
 	return string(output), err
 }

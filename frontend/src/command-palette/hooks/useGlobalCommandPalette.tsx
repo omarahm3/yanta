@@ -1,14 +1,13 @@
 import { FileText } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useMergedConfig } from "@/config/usePreferencesOverrides";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDocumentContext } from "../../document";
 import { usePaneLayout } from "../../pane";
 import { useProjectContext } from "../../project";
 import { useNotification, useRecentDocuments } from "../../shared/hooks";
+import { useErrorDialogStore } from "../../shared/stores/errorDialog.store";
 import type { NavigationState, PageName } from "../../shared/types";
 import type { CommandOption } from "../../shared/ui";
 import { formatRelativeTimeFromTimestamp } from "../../shared/utils/date";
-import { type ParsedGitError, parseGitError } from "../../shared/utils/gitErrorParser";
 import { useCommandPaletteStore } from "../commandPalette.store";
 import {
 	type CommandRegistryContext,
@@ -47,9 +46,6 @@ export interface UseGlobalCommandPaletteReturn {
 	handleClose: () => void;
 	handleCommandSelect: (command: CommandOption) => void;
 	sortedCommands: CommandOption[];
-	isErrorDialogOpen: boolean;
-	closeErrorDialog: () => void;
-	gitError: ParsedGitError | null;
 }
 
 export function useGlobalCommandPalette(
@@ -73,10 +69,6 @@ export function useGlobalCommandPalette(
 	const notification = useNotification();
 	const { recentDocuments } = useRecentDocuments();
 	const { recordCommandUsage, getAllCommandUsage } = useCommandUsage();
-	const [gitError, setGitError] = useState<ParsedGitError | null>(null);
-	const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
-	const clearGitErrorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const { timeouts } = useMergedConfig();
 	const onCloseRef = useRef(onClose);
 	onCloseRef.current = onClose;
 	const onNavigateRef = useRef(onNavigate);
@@ -98,31 +90,8 @@ export function useGlobalCommandPalette(
 	const hasShowHelp = Boolean(onShowHelp);
 
 	const showGitError = useCallback((error: unknown) => {
-		const parsed = parseGitError(error);
-		setGitError(parsed);
-		setIsErrorDialogOpen(true);
+		useErrorDialogStore.getState().showError(error);
 	}, []);
-
-	const closeErrorDialog = useCallback(() => {
-		setIsErrorDialogOpen(false);
-		if (clearGitErrorTimeoutRef.current !== null) {
-			clearTimeout(clearGitErrorTimeoutRef.current);
-		}
-		clearGitErrorTimeoutRef.current = setTimeout(() => {
-			setGitError(null);
-			clearGitErrorTimeoutRef.current = null;
-		}, timeouts.gitErrorDismissMs);
-	}, [timeouts.gitErrorDismissMs]);
-
-	useEffect(
-		() => () => {
-			if (clearGitErrorTimeoutRef.current !== null) {
-				clearTimeout(clearGitErrorTimeoutRef.current);
-				clearGitErrorTimeoutRef.current = null;
-			}
-		},
-		[],
-	);
 
 	const handleClose = useCallback(() => {
 		onCloseRef.current();
@@ -282,8 +251,5 @@ export function useGlobalCommandPalette(
 		handleClose,
 		handleCommandSelect,
 		sortedCommands,
-		isErrorDialogOpen,
-		closeErrorDialog,
-		gitError,
 	};
 }

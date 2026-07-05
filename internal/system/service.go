@@ -541,7 +541,7 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 	//    automatic path: we never rebase/merge into a dirty working tree, and
 	//    the reconcile below is always a clean rebase.
 	logger.Info("staging changes")
-	if err := gitService.AddAll(ctx, dataDir); err != nil {
+	if err := gitService.Add(ctx, dataDir, git.SyncPaths...); err != nil {
 		return nil, normalizeGitTimeoutError(ctx, fmt.Errorf("STAGING_FAILED:\nFailed to stage changes: %v\n\nDirectory: %s", err, dataDir), "sync")
 	}
 

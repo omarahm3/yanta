@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"yanta/internal/config"
+	"yanta/internal/git"
 	"yanta/internal/logger"
 )
 
@@ -23,7 +24,7 @@ type GitService interface {
 	IsRepository(path string) (bool, error)
 	Init(ctx context.Context, path string) error
 	CreateGitIgnore(path string, patterns []string) error
-	AddAll(ctx context.Context, path string) error
+	Add(ctx context.Context, path string, pathspecs ...string) error
 	Commit(ctx context.Context, path, message string) error
 }
 
@@ -522,6 +523,16 @@ func (s *Service) setupGitRepository(targetPath, originalDataDir string) error {
 		"# YANTA - Disposable files",
 		"yanta.db*",
 		"",
+		"# Local pre-sync backups (machine-local, never synced)",
+		".backups/",
+		"",
+		"# WebView / OS runtime junk (machine-local, never synced)",
+		"*.marker",
+		".DS_Store",
+		"Thumbs.db",
+		"desktop.ini",
+		"EBWebView/",
+		"",
 		"# Logs",
 		"*.log",
 	}
@@ -533,7 +544,9 @@ func (s *Service) setupGitRepository(targetPath, originalDataDir string) error {
 	}
 
 	logger.Info("staging files for initial commit")
-	if err := s.gitService.AddAll(ctx, targetPath); err != nil {
+	// Stage only synced content so the initial commit never captures the
+	// database, backups, or runtime junk.
+	if err := s.gitService.Add(ctx, targetPath, git.SyncPaths...); err != nil {
 		if originalDataDir != "" {
 			_ = s.rollback(targetPath, originalDataDir)
 		}

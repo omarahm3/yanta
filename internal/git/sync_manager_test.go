@@ -132,7 +132,7 @@ func TestSyncManager_Shutdown_DoesNotFlush(t *testing.T) {
 	database := setupTestDB(t, tempDir)
 
 	// Create a file to change
-	testFile := filepath.Join(tempDir, "test.txt")
+	testFile := filepath.Join(tempDir, "vault", "test.txt")
 	require.NoError(t, os.WriteFile(testFile, []byte("content"), 0644))
 
 	sm := NewSyncManager(database)
@@ -208,7 +208,7 @@ func TestSyncManager_PersistsLastCommitTime(t *testing.T) {
 	database := setupTestDB(t, tempDir)
 
 	// Create a file to change
-	testFile := filepath.Join(tempDir, "test.txt")
+	testFile := filepath.Join(tempDir, "vault", "test.txt")
 	require.NoError(t, os.WriteFile(testFile, []byte("content"), 0644))
 
 	// First sync manager
@@ -296,7 +296,7 @@ func TestSyncManager_ForceSync(t *testing.T) {
 	database := setupTestDB(t, tempDir)
 
 	// Create a file to change
-	testFile := filepath.Join(tempDir, "test.txt")
+	testFile := filepath.Join(tempDir, "vault", "test.txt")
 	require.NoError(t, os.WriteFile(testFile, []byte("content"), 0644))
 
 	sm := NewSyncManager(database)
@@ -336,7 +336,7 @@ func TestSyncManager_CheckAndSync_RespectsInterval(t *testing.T) {
 	database := setupTestDB(t, tempDir)
 
 	// Create a file to change
-	testFile := filepath.Join(tempDir, "test.txt")
+	testFile := filepath.Join(tempDir, "vault", "test.txt")
 	require.NoError(t, os.WriteFile(testFile, []byte("content"), 0644))
 
 	sm := NewSyncManager(database)
@@ -375,7 +375,7 @@ func TestSyncManager_CheckAndSync_CommitsAfterInterval(t *testing.T) {
 	database := setupTestDB(t, tempDir)
 
 	// Create a file to change
-	testFile := filepath.Join(tempDir, "test.txt")
+	testFile := filepath.Join(tempDir, "vault", "test.txt")
 	require.NoError(t, os.WriteFile(testFile, []byte("content"), 0644))
 
 	sm := NewSyncManager(database)
@@ -490,7 +490,7 @@ func TestSyncManager_MultipleChanges_BatchedCommit(t *testing.T) {
 
 	// Create multiple files
 	for i := 0; i < 5; i++ {
-		testFile := filepath.Join(tempDir, "test"+string(rune('0'+i))+".txt")
+		testFile := filepath.Join(tempDir, "vault", "test"+string(rune('0'+i))+".txt")
 		require.NoError(t, os.WriteFile(testFile, []byte("content"), 0644))
 	}
 
@@ -566,6 +566,10 @@ func setupGitRepo(t *testing.T, repoPath string) {
 	cmd.Dir = repoPath
 	require.NoError(t, cmd.Run())
 
+	// Synced changes in these tests live under vault/ (the sync allowlist), so
+	// ensure the directory exists.
+	require.NoError(t, os.MkdirAll(filepath.Join(repoPath, "vault"), 0755))
+
 	initialFile := filepath.Join(repoPath, "README.md")
 	require.NoError(t, os.WriteFile(initialFile, []byte("# Test Repo"), 0644))
 
@@ -613,7 +617,7 @@ func TestSyncManager_BackupBeforeSync(t *testing.T) {
 	})
 
 	// Create a file to change in the repo
-	testFile := filepath.Join(tempDir, "test.txt")
+	testFile := filepath.Join(tempDir, "vault", "test.txt")
 	require.NoError(t, os.WriteFile(testFile, []byte("content"), 0644))
 
 	sm := NewSyncManager(database)
@@ -624,7 +628,7 @@ func TestSyncManager_BackupBeforeSync(t *testing.T) {
 	assert.True(t, sm.HasPendingChanges())
 
 	// Get backups directory path
-	backupsDir := filepath.Join(tempDir, "backups")
+	backupsDir := filepath.Join(tempDir, ".backups")
 
 	// Force sync - should create backup first
 	sm.ForceSync()

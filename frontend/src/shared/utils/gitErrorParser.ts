@@ -33,6 +33,21 @@ export function parseGitError(error: unknown): ParsedGitError {
 		};
 	}
 
+	if (errorStr.includes("REBASE_CONFLICT")) {
+		return {
+			type: "CONFLICT",
+			title: "Sync paused — conflicting edits",
+			message:
+				"The same notes were changed on another device. Your local notes are safe and were left untouched — the sync was rolled back automatically.",
+			technicalDetails: errorStr,
+			suggestions: [
+				"Try 'Sync Now' again — transient conflicts often clear on the next sync",
+				"If it keeps happening, the same note was edited on two devices and needs a manual merge",
+				"Open the data directory and run 'git pull --rebase', resolve the marked files, then 'git rebase --continue'",
+			],
+		};
+	}
+
 	if (errorStr.includes("MERGE_CONFLICT")) {
 		return {
 			type: "CONFLICT",
@@ -144,6 +159,35 @@ export function parseGitError(error: unknown): ParsedGitError {
 			"Try running the operation again",
 			"Check git configuration and repository status",
 		],
+	};
+}
+
+/**
+ * Like {@link parseGitError}, but returns a neutral, non-git-flavored error for
+ * anything that isn't a recognized git failure. Use this for the global error
+ * dialog so generic app errors (save failed, config update failed, …) read
+ * clearly instead of being mislabeled as a "Git Operation Failed".
+ */
+export function parseAppError(error: unknown): ParsedGitError {
+	const parsed = parseGitError(error);
+	if (parsed.type !== "UNKNOWN") {
+		return parsed;
+	}
+
+	const raw = String(error).trim();
+	const firstLine =
+		raw
+			.split("\n")
+			.map((line) => line.trim())
+			.find((line) => line.length > 0)
+			?.replace(/^[A-Z_]+:\s*/, "") ?? "";
+
+	return {
+		type: "ERROR",
+		title: "Something went wrong",
+		message: firstLine.slice(0, 240) || "An unexpected error occurred.",
+		technicalDetails: raw,
+		suggestions: [],
 	};
 }
 

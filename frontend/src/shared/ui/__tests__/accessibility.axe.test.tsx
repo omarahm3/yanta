@@ -1,15 +1,16 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import type { AxeResults } from "axe-core";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 import { DialogProvider } from "../../../app/context";
 import { MoveDocumentDialog } from "../../../dashboard/components/MoveDocumentDialog";
 import { HelpModal } from "../../../help/components/HelpModal";
+import { useErrorDialogStore } from "../../stores/errorDialog.store";
 import type { ParsedGitError } from "../../utils/gitErrorParser";
 import { Button } from "../Button";
 import { type CommandOption, CommandPalette } from "../CommandPalette";
 import { ConfirmDialog } from "../ConfirmDialog";
-import { GitErrorDialog } from "../GitErrorDialog";
+import { GlobalErrorDialog } from "../GlobalErrorDialog";
 import { Input } from "../Input";
 import { MigrationConflictDialog } from "../MigrationConflictDialog";
 import { Modal } from "../Modal";
@@ -111,6 +112,10 @@ function criticalOrSerious(results: AxeResults) {
 }
 
 describe("accessibility baseline (axe)", () => {
+	afterEach(() => {
+		useErrorDialogStore.getState().reset();
+	});
+
 	it("command palette has no critical/serious violations", async () => {
 		const commands: CommandOption[] = [
 			{ id: "new-doc", icon: null, text: "New Document", group: "Create", action: () => {} },
@@ -165,7 +170,8 @@ describe("accessibility baseline (axe)", () => {
 			suggestions: ["Resolve the conflict", "Retry the sync"],
 		};
 
-		render(<GitErrorDialog isOpen onClose={() => {}} error={error} />);
+		useErrorDialogStore.setState({ queue: [error] });
+		render(<GlobalErrorDialog />);
 
 		const dialog = await screen.findByRole("dialog");
 		expect(criticalOrSerious(await axe(dialog, AXE_OPTIONS))).toEqual([]);

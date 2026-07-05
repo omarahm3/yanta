@@ -1,13 +1,18 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { DialogProvider } from "../../../app/context";
+import { useErrorDialogStore } from "../../stores/errorDialog.store";
 import type { ParsedGitError } from "../../utils/gitErrorParser";
 import { ConfirmDialog } from "../ConfirmDialog";
-import { GitErrorDialog } from "../GitErrorDialog";
+import { GlobalErrorDialog } from "../GlobalErrorDialog";
 import { MigrationConflictDialog } from "../MigrationConflictDialog";
 
 describe("dialog keyboard traversal", () => {
+	afterEach(() => {
+		useErrorDialogStore.getState().reset();
+	});
+
 	it("lets keyboard users reach every confirm dialog control", async () => {
 		const user = userEvent.setup();
 
@@ -50,10 +55,14 @@ describe("dialog keyboard traversal", () => {
 			suggestions: ["Check your network"],
 		};
 
-		render(<GitErrorDialog isOpen onClose={() => {}} error={error} />);
+		useErrorDialogStore.setState({ queue: [error] });
+		render(<GlobalErrorDialog />);
 
 		const closeButtons = screen.getAllByRole("button", { name: "Close" });
 		expect(closeButtons[0]).toHaveFocus();
+
+		await user.tab();
+		expect(screen.getByRole("button", { name: /Copy/ })).toHaveFocus();
 
 		await user.tab();
 		expect(closeButtons[1]).toHaveFocus();

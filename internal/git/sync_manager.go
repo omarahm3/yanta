@@ -304,7 +304,7 @@ func (sm *SyncManager) performSync(ctx context.Context, reasons []string) *SyncR
 		}
 	}
 
-	if err := sm.gitService.AddAll(ctx, dataDir); err != nil {
+	if err := sm.gitService.Add(ctx, dataDir, SyncPaths...); err != nil {
 		logger.WithField("error", err).Warn("auto-sync: git add failed")
 		return &SyncResult{Status: SyncStatusError, Message: commitFailureMessage}
 	}
