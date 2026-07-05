@@ -112,3 +112,10 @@ export function documentToSaveRequest(
 		tags: doc.tags,
 	};
 }
+
+// Frontend domain blocks serialize to the exact JSON the backend BlockNoteBlock
+// model expects (Wails marshals them via SaveRequest.createFrom); this is the
+// single audited cast at the save boundary so call sites never reach for it.
+export function blocksToModel(blocks: BlockNoteBlock[]): documentModels.BlockNoteBlock[] {
+	return blocks as unknown as documentModels.BlockNoteBlock[];
+}

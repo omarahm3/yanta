@@ -19,6 +19,7 @@ export type {
 	SaveDocumentRequest,
 } from "./Document";
 export {
+	blocksToModel,
 	documentFromModel,
 	documentsFromModels,
 	documentToSaveRequest,

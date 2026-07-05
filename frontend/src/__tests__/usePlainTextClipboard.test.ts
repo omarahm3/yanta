@@ -23,14 +23,16 @@ function createMockClipboardEvent(
 
 describe("usePlainTextClipboard", () => {
 	let container: HTMLDivElement;
-	let documentAddSpy: ReturnType<typeof vi.spyOn>;
-	let documentRemoveSpy: ReturnType<typeof vi.spyOn>;
+	// The hook attaches its copy listener to the container element (not document),
+	// so spy on the element prototype to observe add/remove across any container.
+	let addSpy: ReturnType<typeof vi.spyOn>;
+	let removeSpy: ReturnType<typeof vi.spyOn>;
 
 	beforeEach(() => {
 		container = document.createElement("div");
 		document.body.appendChild(container);
-		documentAddSpy = vi.spyOn(document, "addEventListener");
-		documentRemoveSpy = vi.spyOn(document, "removeEventListener");
+		addSpy = vi.spyOn(HTMLElement.prototype, "addEventListener");
+		removeSpy = vi.spyOn(HTMLElement.prototype, "removeEventListener");
 	});
 
 	afterEach(() => {
@@ -39,22 +41,22 @@ describe("usePlainTextClipboard", () => {
 	});
 
 	describe("event listener management", () => {
-		it("attaches copy event listener to document when container is provided", () => {
+		it("attaches copy event listener to the container when provided", () => {
 			renderHook(() => usePlainTextClipboard(container));
 
-			expect(documentAddSpy).toHaveBeenCalledWith("copy", expect.any(Function));
+			expect(addSpy).toHaveBeenCalledWith("copy", expect.any(Function));
 		});
 
 		it("does not attach listener when container is null", () => {
 			renderHook(() => usePlainTextClipboard(null));
 
-			expect(documentAddSpy).not.toHaveBeenCalledWith("copy", expect.any(Function));
+			expect(addSpy).not.toHaveBeenCalledWith("copy", expect.any(Function));
 		});
 
 		it("does not attach listener when enabled is false", () => {
 			renderHook(() => usePlainTextClipboard(container, { enabled: false }));
 
-			expect(documentAddSpy).not.toHaveBeenCalledWith("copy", expect.any(Function));
+			expect(addSpy).not.toHaveBeenCalledWith("copy", expect.any(Function));
 		});
 
 		it("removes event listener on unmount", () => {
@@ -62,7 +64,7 @@ describe("usePlainTextClipboard", () => {
 
 			unmount();
 
-			expect(documentRemoveSpy).toHaveBeenCalledWith("copy", expect.any(Function));
+			expect(removeSpy).toHaveBeenCalledWith("copy", expect.any(Function));
 		});
 
 		it("removes and re-attaches listener when container changes", () => {
@@ -73,13 +75,13 @@ describe("usePlainTextClipboard", () => {
 				initialProps: { cont: container },
 			});
 
-			documentAddSpy.mockClear();
-			documentRemoveSpy.mockClear();
+			addSpy.mockClear();
+			removeSpy.mockClear();
 
 			rerender({ cont: newContainer });
 
-			expect(documentRemoveSpy).toHaveBeenCalledWith("copy", expect.any(Function));
-			expect(documentAddSpy).toHaveBeenCalledWith("copy", expect.any(Function));
+			expect(removeSpy).toHaveBeenCalledWith("copy", expect.any(Function));
+			expect(addSpy).toHaveBeenCalledWith("copy", expect.any(Function));
 
 			document.body.removeChild(newContainer);
 		});
@@ -89,11 +91,11 @@ describe("usePlainTextClipboard", () => {
 				initialProps: { enabled: true },
 			});
 
-			documentRemoveSpy.mockClear();
+			removeSpy.mockClear();
 
 			rerender({ enabled: false });
 
-			expect(documentRemoveSpy).toHaveBeenCalledWith("copy", expect.any(Function));
+			expect(removeSpy).toHaveBeenCalledWith("copy", expect.any(Function));
 		});
 	});
 
@@ -113,7 +115,7 @@ describe("usePlainTextClipboard", () => {
 			const clipboardData = { setData: vi.fn() };
 			const copyEvent = createMockClipboardEvent(targetElement, clipboardData);
 
-			document.dispatchEvent(copyEvent);
+			targetElement.dispatchEvent(copyEvent);
 
 			expect(clipboardData.setData).toHaveBeenCalledWith("text/plain", "Hello World");
 		});
@@ -133,7 +135,7 @@ describe("usePlainTextClipboard", () => {
 			const clipboardData = { setData: vi.fn() };
 			const copyEvent = createMockClipboardEvent(outsideElement, clipboardData);
 
-			document.dispatchEvent(copyEvent);
+			outsideElement.dispatchEvent(copyEvent);
 
 			expect(clipboardData.setData).not.toHaveBeenCalled();
 
@@ -155,7 +157,7 @@ describe("usePlainTextClipboard", () => {
 			const clipboardData = { setData: vi.fn() };
 			const copyEvent = createMockClipboardEvent(targetElement, clipboardData);
 
-			document.dispatchEvent(copyEvent);
+			targetElement.dispatchEvent(copyEvent);
 
 			expect(clipboardData.setData).not.toHaveBeenCalled();
 		});
@@ -171,7 +173,7 @@ describe("usePlainTextClipboard", () => {
 			const clipboardData = { setData: vi.fn() };
 			const copyEvent = createMockClipboardEvent(targetElement, clipboardData);
 
-			document.dispatchEvent(copyEvent);
+			targetElement.dispatchEvent(copyEvent);
 
 			expect(clipboardData.setData).not.toHaveBeenCalled();
 		});
@@ -191,7 +193,7 @@ describe("usePlainTextClipboard", () => {
 			const clipboardData = { setData: vi.fn() };
 			const copyEvent = createMockClipboardEvent(targetElement, clipboardData);
 
-			document.dispatchEvent(copyEvent);
+			targetElement.dispatchEvent(copyEvent);
 
 			expect(clipboardData.setData).not.toHaveBeenCalled();
 		});
@@ -210,7 +212,7 @@ describe("usePlainTextClipboard", () => {
 
 			const copyEvent = createMockClipboardEvent(targetElement, null);
 
-			expect(() => document.dispatchEvent(copyEvent)).not.toThrow();
+			expect(() => targetElement.dispatchEvent(copyEvent)).not.toThrow();
 		});
 
 		it("handles multiline text selection", () => {
@@ -229,7 +231,7 @@ describe("usePlainTextClipboard", () => {
 			const clipboardData = { setData: vi.fn() };
 			const copyEvent = createMockClipboardEvent(targetElement, clipboardData);
 
-			document.dispatchEvent(copyEvent);
+			targetElement.dispatchEvent(copyEvent);
 
 			expect(clipboardData.setData).toHaveBeenCalledWith("text/plain", multilineText);
 		});
@@ -250,7 +252,7 @@ describe("usePlainTextClipboard", () => {
 			const clipboardData = { setData: vi.fn() };
 			const copyEvent = createMockClipboardEvent(targetElement, clipboardData);
 
-			document.dispatchEvent(copyEvent);
+			targetElement.dispatchEvent(copyEvent);
 
 			expect(clipboardData.setData).toHaveBeenCalledWith("text/plain", specialText);
 		});
@@ -271,7 +273,7 @@ describe("usePlainTextClipboard", () => {
 			const clipboardData = { setData: vi.fn() };
 			const copyEvent = createMockClipboardEvent(targetElement, clipboardData);
 
-			document.dispatchEvent(copyEvent);
+			targetElement.dispatchEvent(copyEvent);
 
 			expect(clipboardData.setData).toHaveBeenCalledWith("text/plain", unicodeText);
 		});
@@ -292,7 +294,7 @@ describe("usePlainTextClipboard", () => {
 			const clipboardData = { setData: vi.fn() };
 			const copyEvent = createMockClipboardEvent(targetElement, clipboardData);
 
-			document.dispatchEvent(copyEvent);
+			targetElement.dispatchEvent(copyEvent);
 
 			expect(clipboardData.setData).toHaveBeenCalledWith("text/plain", linkVisualText);
 		});
@@ -313,7 +315,7 @@ describe("usePlainTextClipboard", () => {
 			const clipboardData = { setData: vi.fn() };
 			const copyEvent = createMockClipboardEvent(targetElement, clipboardData);
 
-			document.dispatchEvent(copyEvent);
+			targetElement.dispatchEvent(copyEvent);
 
 			expect(clipboardData.setData).toHaveBeenCalledWith("text/plain", urlText);
 		});
@@ -323,25 +325,25 @@ describe("usePlainTextClipboard", () => {
 		it("defaults to enabled when option is not provided", () => {
 			renderHook(() => usePlainTextClipboard(container));
 
-			expect(documentAddSpy).toHaveBeenCalledWith("copy", expect.any(Function));
+			expect(addSpy).toHaveBeenCalledWith("copy", expect.any(Function));
 		});
 
 		it("defaults to enabled when options object is empty", () => {
 			renderHook(() => usePlainTextClipboard(container, {}));
 
-			expect(documentAddSpy).toHaveBeenCalledWith("copy", expect.any(Function));
+			expect(addSpy).toHaveBeenCalledWith("copy", expect.any(Function));
 		});
 
 		it("is enabled when explicitly set to true", () => {
 			renderHook(() => usePlainTextClipboard(container, { enabled: true }));
 
-			expect(documentAddSpy).toHaveBeenCalledWith("copy", expect.any(Function));
+			expect(addSpy).toHaveBeenCalledWith("copy", expect.any(Function));
 		});
 
 		it("is disabled when explicitly set to false", () => {
 			renderHook(() => usePlainTextClipboard(container, { enabled: false }));
 
-			expect(documentAddSpy).not.toHaveBeenCalledWith("copy", expect.any(Function));
+			expect(addSpy).not.toHaveBeenCalledWith("copy", expect.any(Function));
 		});
 
 		it("can be toggled at runtime", () => {
@@ -349,13 +351,13 @@ describe("usePlainTextClipboard", () => {
 				initialProps: { enabled: false },
 			});
 
-			expect(documentAddSpy).not.toHaveBeenCalledWith("copy", expect.any(Function));
+			expect(addSpy).not.toHaveBeenCalledWith("copy", expect.any(Function));
 
-			documentAddSpy.mockClear();
+			addSpy.mockClear();
 
 			rerender({ enabled: true });
 
-			expect(documentAddSpy).toHaveBeenCalledWith("copy", expect.any(Function));
+			expect(addSpy).toHaveBeenCalledWith("copy", expect.any(Function));
 		});
 	});
 });

@@ -1,7 +1,7 @@
-import type { Block, BlockNoteEditor } from "@blocknote/core";
 import React, { useCallback, useMemo, useState } from "react";
 import { GranularErrorBoundary } from "@/app";
 import { RichEditor } from "../../editor/RichEditor";
+import type { EditorHandle } from "../../editor/types";
 import {
 	disableExternalPluginsForEditorRecovery,
 	getActiveExternalPluginIds,
@@ -21,7 +21,7 @@ interface DocumentEditorFormProps {
 	onTitleChange: (title: string) => void;
 	onBlocksChange: (blocks: BlockNoteBlock[]) => void;
 	onTagRemove: (tag: string) => void;
-	onEditorReady?: (editor: BlockNoteEditor) => void;
+	onEditorReady?: (editor: EditorHandle) => void;
 }
 
 export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
@@ -50,11 +50,11 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 	);
 
 	const handleBlocksChange = useCallback(
-		(newBlocks: Block[]) => {
+		(newBlocks: BlockNoteBlock[]) => {
 			if (isReadOnly) {
 				return;
 			}
-			onBlocksChange(newBlocks as BlockNoteBlock[]);
+			onBlocksChange(newBlocks);
 		},
 		[onBlocksChange, isReadOnly],
 	);

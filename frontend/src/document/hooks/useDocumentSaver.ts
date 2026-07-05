@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { CleanupOrphans, LinkToDocument } from "../../../bindings/yanta/internal/asset/service";
+import { isImageFileUrl } from "../../editor/utils/blockNormalize";
 import { DocumentServiceWrapper } from "../../shared/services/DocumentService";
 import type { BlockNoteBlock } from "../../shared/types/Document";
 import { extractAssetHashes } from "../utils/assetExtractor";
@@ -12,6 +13,14 @@ interface SaveDocumentParams {
 	projectAlias: string;
 }
 
+// Orphan cleanup is a full-project scan; running it on every debounced autosave
+// (i.e. every few keystrokes) is wasteful and needlessly widens the window in
+// which a not-yet-linked asset from another open document could be reaped.
+// Throttle it — the backend keeps a grace period so freshly uploaded assets are
+// never eligible for deletion within this interval anyway.
+const ORPHAN_CLEANUP_MIN_INTERVAL_MS = 2 * 60 * 1000;
+let lastOrphanCleanupAt = 0;
+
 export const useAutoDocumentSaver = () => {
 	const [isSaving, setIsSaving] = useState(false);
 
@@ -21,13 +30,12 @@ export const useAutoDocumentSaver = () => {
 			const normalizedBlocks = params.blocks.map((block) => {
 				if (block.type === "file" && block.props?.url) {
 					const url = block.props.url as string;
-					if (url.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
+					if (isImageFileUrl(url)) {
+						const caption = block.props.caption;
 						return {
 							...block,
 							type: "image",
-							props: {
-								url: url,
-							},
+							props: caption ? { url, caption } : { url },
 						};
 					}
 				}
@@ -51,10 +59,14 @@ export const useAutoDocumentSaver = () => {
 				}
 			}
 
-			try {
-				await CleanupOrphans(params.projectAlias);
-			} catch (err) {
-				console.warn("Failed to cleanup orphaned assets:", err);
+			const now = Date.now();
+			if (now - lastOrphanCleanupAt > ORPHAN_CLEANUP_MIN_INTERVAL_MS) {
+				lastOrphanCleanupAt = now;
+				try {
+					await CleanupOrphans(params.projectAlias);
+				} catch (err) {
+					console.warn("Failed to cleanup orphaned assets:", err);
+				}
 			}
 
 			return savedPath;

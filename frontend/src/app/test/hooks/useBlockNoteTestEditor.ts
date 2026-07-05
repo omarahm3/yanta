@@ -1,5 +1,9 @@
 import { useCreateBlockNote } from "@blocknote/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+	getImageBlockAcceptList,
+	setImageBlockAccept,
+} from "../../../shared/utils/blocknoteInternals";
 import { registerClipboardImagePlugin } from "../../../shared/utils/clipboard";
 
 export interface BlockNoteTestDiagnostics {
@@ -62,25 +66,14 @@ export function useBlockNoteTestEditor(): {
 
 	useEffect(() => {
 		if (!editor) return;
-		const blockSpec = editor.schema.blockSpecs.image;
-		if (blockSpec) {
-			const meta = blockSpec.implementation.meta ?? {};
-			if (
-				!meta.fileBlockAccept ||
-				(Array.isArray(meta.fileBlockAccept) &&
-					meta.fileBlockAccept.filter((entry) => entry && entry.trim().length > 0).length === 0)
-			) {
-				console.warn(
-					"[Test] BlockNote image block missing fileBlockAccept; forcing image/* for diagnostics",
-				);
-				blockSpec.implementation.meta = {
-					...meta,
-					fileBlockAccept: ["image/*"],
-				};
-			}
+		if (getImageBlockAcceptList(editor).length === 0) {
+			console.warn(
+				"[Test] BlockNote image block missing fileBlockAccept; forcing image/* for diagnostics",
+			);
+			setImageBlockAccept(editor, ["image/*"]);
 		}
 
-		const acceptList = blockSpec?.implementation?.meta?.fileBlockAccept?.join(", ") ?? "";
+		const acceptList = getImageBlockAcceptList(editor).join(", ");
 		setAccept(acceptList || "(none)");
 		console.info("[Test] BlockNote image block accept", {
 			accept: acceptList,

@@ -2,7 +2,6 @@
 
 export type { RTLExtensionOptions } from "../editor/extensions";
 export {
-	CustomLinkToolbarController,
 	detectTextDirection,
 	getNodeTextContent,
 	hasSignificantRTL,

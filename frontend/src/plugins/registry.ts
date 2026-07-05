@@ -29,9 +29,11 @@ import {
 	setEditorTools,
 } from "../editor/extensions/registry/editorExtensionRegistry";
 import { useSidebarRegistryStore } from "../sidebar/registry/sidebarRegistry.store";
+import { safeParsePluginManifest } from "./manifestSchema";
 import type {
 	PersistedPluginState,
 	PluginAPI,
+	PluginCapability,
 	PluginDefinition,
 	PluginRuntimeRecord,
 } from "./types";
@@ -76,41 +78,60 @@ async function writePersistedState(state: PersistedPluginState): Promise<void> {
 	});
 }
 
-function createPluginAPI(pluginId: string): PluginAPI {
+function createPluginAPI(pluginId: string, capabilities: readonly PluginCapability[]): PluginAPI {
 	const source = toSource(pluginId);
+	const granted = new Set<PluginCapability>(capabilities ?? []);
+	const requireCapability = (capability: PluginCapability, method: string): void => {
+		if (!granted.has(capability)) {
+			throw new Error(
+				`Plugin "${pluginId}" called ${method}() without declaring the "${capability}" capability.`,
+			);
+		}
+	};
 	const registerConfigForPlugin = <T>(def: PluginConfigSchema<T>): void => {
+		requireCapability("settings", "registerConfig");
 		registerPluginConfig(pluginId, def);
 	};
 
 	return {
 		registerCommands: (commands) => {
+			requireCapability("commands", "registerCommands");
 			useCommandRegistryStore.getState().setCommands(source, commands);
 		},
 		registerSidebarSections: (sections) => {
+			requireCapability("sidebar", "registerSidebarSections");
 			useSidebarRegistryStore.getState().setSections(source, sections);
 		},
 		registerEditorExtensions: (extensions) => {
+			requireCapability("editorExtensions", "registerEditorExtensions");
 			setEditorExtensions(source, extensions);
 		},
 		registerEditorTipTapExtensions: (extensions) => {
+			requireCapability("editorTipTapExtensions", "registerEditorTipTapExtensions");
 			setEditorTipTapExtensions(source, extensions);
 		},
 		registerEditorBlockSpecs: (blockSpecs) => {
+			requireCapability("editorBlockSpecs", "registerEditorBlockSpecs");
 			setEditorBlockSpecs(source, blockSpecs);
 		},
 		registerEditorStyleSpecs: (styleSpecs) => {
+			requireCapability("editorStyleSpecs", "registerEditorStyleSpecs");
 			setEditorStyleSpecs(source, styleSpecs);
 		},
 		registerEditorSlashMenuItems: (items) => {
+			requireCapability("editorSlashMenu", "registerEditorSlashMenuItems");
 			setEditorSlashMenuItems(source, items);
 		},
 		registerEditorTools: (tools) => {
+			requireCapability("editorTools", "registerEditorTools");
 			setEditorTools(source, tools);
 		},
 		registerEditorBlockActions: (actions) => {
+			requireCapability("editorBlockActions", "registerEditorBlockActions");
 			setEditorBlockActions(source, actions);
 		},
 		registerEditorLifecycleHooks: (hooks) => {
+			requireCapability("editorLifecycle", "registerEditorLifecycleHooks");
 			setEditorLifecycleHooks(source, hooks);
 		},
 		registerConfig: registerConfigForPlugin,
@@ -258,29 +279,41 @@ export async function registerInstalledPlugins(): Promise<void> {
 			continue;
 		}
 
+		const parsed = safeParsePluginManifest(manifest);
+		if (!parsed.success) {
+			registerPlugin({
+				manifest,
+				setup: () => {
+					throw new Error(`Plugin "${manifest.id}" manifest failed validation: ${parsed.error}`);
+				},
+			});
+			continue;
+		}
+		const validManifest = parsed.manifest;
+
 		try {
-			const entrySource = await ReadPluginEntrypoint(manifest.id);
-			const moduleValue = await importPluginModule(entrySource, manifest.id);
+			const entrySource = await ReadPluginEntrypoint(validManifest.id);
+			const moduleValue = await importPluginModule(entrySource, validManifest.id);
 			const setup = resolvePluginSetupExport(moduleValue);
 			if (!setup) {
 				registerPlugin({
-					manifest,
+					manifest: validManifest,
 					setup: () => {
 						throw new Error(
-							`Plugin "${manifest.id}" entrypoint must export a setup function (named "setup" or default.setup).`,
+							`Plugin "${validManifest.id}" entrypoint must export a setup function (named "setup" or default.setup).`,
 						);
 					},
 				});
 				continue;
 			}
 			registerPlugin({
-				manifest,
+				manifest: validManifest,
 				setup,
 			});
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
 			registerPlugin({
-				manifest,
+				manifest: validManifest,
 				setup: () => {
 					throw new Error(`Unable to load plugin entrypoint: ${message}`);
 				},
@@ -323,7 +356,7 @@ export async function loadPlugin(pluginId: string): Promise<void> {
 		return;
 	}
 
-	const api = createPluginAPI(pluginId);
+	const api = createPluginAPI(pluginId, def.manifest.capabilities);
 	try {
 		const maybeCleanup = await def.setup(api);
 		const cleanup =

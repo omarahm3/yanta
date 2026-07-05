@@ -55,6 +55,10 @@ export const useAutoSave = <T>({
 	const retryTimeoutRef = useRef<number | null>(null);
 	const onSaveRef = useRef(onSave);
 	const prevIsInitializedRef = useRef(isInitialized);
+	const delayRef = useRef(delay);
+	delayRef.current = delay;
+	const enabledRef = useRef(enabled);
+	enabledRef.current = enabled;
 
 	useEffect(() => {
 		onSaveRef.current = onSave;
@@ -78,17 +82,22 @@ export const useAutoSave = <T>({
 			return;
 		}
 
+		// Snapshot the content key being persisted. Edits that arrive while the
+		// save is in flight advance currentKeyRef; marking the *newer* key as
+		// saved would silently drop those edits (they'd never be flushed).
+		const savedKey = currentKeyRef.current;
+		const savedValue = lastValueRef.current;
+
 		isSavingRef.current = true;
 		setSaveState("saving");
 		setSaveError(null);
 
 		try {
 			await onSaveRef.current();
-			lastSavedValueRef.current = lastValueRef.current;
-			lastSavedKeyRef.current = currentKeyRef.current;
+			lastSavedValueRef.current = savedValue;
+			lastSavedKeyRef.current = savedKey;
 			setLastSaved(new Date());
 			setSaveState("saved");
-			setHasUnsavedChanges(false);
 			retryCountRef.current = 0;
 
 			if (savedStateTimeoutRef.current) {
@@ -98,6 +107,26 @@ export const useAutoSave = <T>({
 				setSaveState("idle");
 				savedStateTimeoutRef.current = null;
 			}, timeoutsRef.current.savedStateDisplayMs);
+
+			isSavingRef.current = false;
+
+			// If edits landed during the save, currentKey is now ahead of the key
+			// we persisted — flag dirty and schedule a follow-up save so they land.
+			if (enabledRef.current && currentKeyRef.current !== savedKey) {
+				setHasUnsavedChanges(true);
+				if (timeoutRef.current) {
+					clearTimeout(timeoutRef.current);
+				}
+				timeoutRef.current = window.setTimeout(() => {
+					timeoutRef.current = null;
+					if (!isSavingRef.current) {
+						performSave();
+					}
+				}, delayRef.current);
+			} else {
+				setHasUnsavedChanges(false);
+			}
+			return;
 		} catch (err) {
 			const error = err instanceof Error ? err : new Error("Save failed");
 

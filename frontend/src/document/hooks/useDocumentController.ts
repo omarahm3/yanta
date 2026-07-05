@@ -1,7 +1,7 @@
-import type { BlockNoteEditor } from "@blocknote/core";
 import { Events } from "@wailsio/runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GetDocumentTags } from "../../../bindings/yanta/internal/tag/service";
+import type { EditorHandle } from "../../editor/types";
 import { useHelp } from "../../help";
 import { useUserProgressContext } from "../../onboarding";
 import { usePaneLayout } from "../../pane";
@@ -93,7 +93,7 @@ export function useDocumentController({
 		documentTitle: formData.title,
 	});
 
-	const editorRef = useRef<BlockNoteEditor | null>(null);
+	const editorRef = useRef<EditorHandle | null>(null);
 	const lastAddedPathRef = useRef<string | null>(null);
 	const [hasRestored, setHasRestored] = useState(false);
 	const [isRestoring, setIsRestoring] = useState(false);
@@ -114,7 +114,7 @@ export function useDocumentController({
 	}, [data?.deletedAt]);
 
 	const handleEditorReadyWithRef = useCallback(
-		(editor: BlockNoteEditor) => {
+		(editor: EditorHandle) => {
 			editorRef.current = editor;
 			if (isActivePaneRef.current) {
 				handleEditorReady(editor);
@@ -146,7 +146,6 @@ export function useDocumentController({
 		shouldAutoSave: !isArchived && shouldAutoSave,
 		resetChanges,
 		onAutoSaveComplete: resetAutoSave,
-		onNavigate,
 		isEditorReady,
 		onNewDocumentSaved: incrementDocumentsCreated,
 	});

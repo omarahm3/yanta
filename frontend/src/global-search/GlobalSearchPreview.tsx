@@ -20,10 +20,10 @@ interface GlobalSearchPreviewProps {
 }
 
 /**
- * The right-hand preview pane. Documents are rendered read-only with the same
- * BlockNote editor the app uses, so the preview looks exactly like the real
- * document. Notes are short, so they reuse the highlighted snippets already
- * returned by search.
+ * The right-hand preview pane. Documents are rendered as static HTML produced by
+ * BlockNote's headless `blocksToHTMLLossy` exporter (no live editor is mounted —
+ * see DocumentPreview), so previews are cheap and can't crash the finder. Notes
+ * are short, so they reuse the highlighted snippets already returned by search.
  */
 export function GlobalSearchPreview({ item }: GlobalSearchPreviewProps) {
 	const [content, setContent] = useState<string | null>(null);

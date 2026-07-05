@@ -258,3 +258,40 @@ func TestBridgeShape(t *testing.T) {
 		}
 	}
 }
+
+// P1.10: indented list items nest under their parent and round-trip.
+func TestMarkdownToBlocksNestsIndentedLists(t *testing.T) {
+	blocks := MarkdownToBlocks("- parent\n  - child\n    - grandchild\n- sibling")
+
+	if len(blocks) != 2 {
+		t.Fatalf("expected 2 top-level blocks, got %d", len(blocks))
+	}
+	if blocks[0].Type != "bulletListItem" || len(blocks[0].Children) != 1 {
+		t.Fatalf("parent should have 1 child, got type=%s children=%d", blocks[0].Type, len(blocks[0].Children))
+	}
+	child := blocks[0].Children[0]
+	if child.Type != "bulletListItem" || len(child.Children) != 1 {
+		t.Fatalf("child should have 1 grandchild, got children=%d", len(child.Children))
+	}
+	if blocks[1].Type != "bulletListItem" || len(blocks[1].Children) != 0 {
+		t.Fatalf("sibling should be a flat top-level item")
+	}
+
+	md := BlocksToMarkdown(blocks)
+	if !strings.Contains(md, "  - child") || !strings.Contains(md, "    - grandchild") {
+		t.Errorf("round-trip lost nesting indentation:\n%s", md)
+	}
+}
+
+// A blank-line paragraph between two lists resets nesting.
+func TestMarkdownToBlocksParagraphResetsList(t *testing.T) {
+	blocks := MarkdownToBlocks("- a\n\nbreak\n\n- b")
+	if len(blocks) != 3 {
+		t.Fatalf("expected 3 top-level blocks, got %d", len(blocks))
+	}
+	for _, i := range []int{0, 2} {
+		if len(blocks[i].Children) != 0 {
+			t.Errorf("block %d should have no children", i)
+		}
+	}
+}

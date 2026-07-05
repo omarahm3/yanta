@@ -1,9 +1,9 @@
-import type { BlockNoteEditor } from "@blocknote/core";
 import { type MutableRefObject, useCallback } from "react";
+import type { EditorHandle } from "../../editor/types";
 import { BackendLogger } from "../../shared/utils/backendLogger";
 
 interface UseDocumentEscapeHandlingProps {
-	editorRef: MutableRefObject<BlockNoteEditor | null>;
+	editorRef: MutableRefObject<EditorHandle | null>;
 	onNavigateBack: () => void;
 	/** When false (e.g. another pane is active), only blur; do not navigate back. Default true. */
 	isActivePane?: boolean;
@@ -14,7 +14,7 @@ interface UseDocumentEscapeHandlingReturn {
 	handleUnfocus: (e: KeyboardEvent) => void;
 }
 
-function blurEditor(editor: BlockNoteEditor): boolean {
+function blurEditor(editor: EditorHandle): boolean {
 	try {
 		if (!editor.isFocused()) return false;
 		const domEditor = editor.domElement;
