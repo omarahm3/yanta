@@ -24,6 +24,9 @@ interface SearchIndexState {
 const SEARCH_LIMIT = 50;
 const REBUILD_DEBOUNCE_MS = 800;
 let rebuildTimer: ReturnType<typeof setTimeout> | null = null;
+// Set when a rebuild is requested while a build is already running, so the
+// request is coalesced into one trailing rebuild instead of being dropped.
+let rebuildPending = false;
 
 const stripAt = (s: string) => s.replace(/^@+/, "");
 const stripHash = (s: string) => s.replace(/^#+/, "");
@@ -78,8 +81,14 @@ export const useSearchIndexStore = create<SearchIndexState>((set, get) => ({
 	docsById: new Map(),
 
 	build: async () => {
-		if (get().status === "building") return;
+		if (get().status === "building") {
+			// A rebuild fired mid-build — coalesce it so the latest vault state is
+			// picked up once the current build finishes, rather than being dropped.
+			rebuildPending = true;
+			return;
+		}
 		set({ status: "building" });
+		rebuildPending = false;
 		try {
 			const records = (await ExportIndex()) ?? [];
 			const index = createMiniSearch();
@@ -90,6 +99,10 @@ export const useSearchIndexStore = create<SearchIndexState>((set, get) => ({
 		} catch (err) {
 			BackendLogger.error("[searchIndex] build failed:", err);
 			set({ status: "error" });
+		} finally {
+			if (rebuildPending) {
+				void get().build();
+			}
 		}
 	},
 

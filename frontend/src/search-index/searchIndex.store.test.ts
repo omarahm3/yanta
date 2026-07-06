@@ -126,4 +126,28 @@ describe("searchIndex store", () => {
 	it("empty query returns nothing", () => {
 		expect(search("   ")).toEqual([]);
 	});
+
+	it("does not drop a rebuild requested while a build is in progress", async () => {
+		// Make ExportIndex hang so a second build() can be requested mid-build.
+		let release!: () => void;
+		const gate = new Promise<void>((res) => {
+			release = res;
+		});
+		vi.mocked(ExportIndex).mockImplementation(async () => {
+			await gate;
+			return FIXTURES;
+		});
+		vi.mocked(ExportIndex).mockClear(); // ignore the beforeEach build's call
+
+		useSearchIndexStore.setState({ status: "idle", index: null, docsById: new Map() });
+		const first = useSearchIndexStore.getState().build(); // enters "building", awaits gate
+		useSearchIndexStore.getState().build(); // requested during build — must not be dropped
+		expect(ExportIndex).toHaveBeenCalledTimes(1);
+
+		release();
+		await first;
+
+		// The coalesced rebuild must fire a second export once the first completes.
+		await vi.waitFor(() => expect(ExportIndex).toHaveBeenCalledTimes(2));
+	});
 });
