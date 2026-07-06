@@ -11,6 +11,24 @@ export interface FindOptions {
 	caseSensitive?: boolean;
 }
 
+/** A contiguous text node within a block: its start index in the block's
+ * concatenated text and the ProseMirror position of its first character. */
+interface TextSegment {
+	startIdx: number;
+	basePos: number;
+}
+
+/** Map an index in a block's concatenated text back to a ProseMirror position. */
+function mapIndexToPos(idx: number, segments: TextSegment[]): number {
+	for (let i = segments.length - 1; i >= 0; i--) {
+		const seg = segments[i];
+		if (idx >= seg.startIdx) {
+			return seg.basePos + (idx - seg.startIdx);
+		}
+	}
+	return 0;
+}
+
 /**
  * Find every occurrence of `query` in `doc`, returned as ProseMirror `{from,to}`
  * ranges in document order.
@@ -31,31 +49,33 @@ export function findMatches(doc: PMNode, query: string, options: FindOptions = {
 		// Recurse through containers (lists, tables, quotes) to reach textblocks.
 		if (!node.isTextblock) return true;
 
-		// Accumulate a contiguous run of inline text with a parallel char→position
-		// map, flushing (and searching) whenever an inline atom breaks the run.
+		// Accumulate a contiguous run of inline text by whole text node (find runs
+		// live on every keystroke, so avoid per-character work), tracking each node
+		// as a segment so match indices map back to positions. An inline atom
+		// breaks the run.
 		let text = "";
-		let charPos: number[] = [];
+		const segments: TextSegment[] = [];
 
 		const flush = () => {
 			if (text.length >= needle.length) {
 				const hay = caseSensitive ? text : text.toLowerCase();
 				let idx = hay.indexOf(needle);
 				while (idx !== -1) {
-					matches.push({ from: charPos[idx], to: charPos[idx + needle.length - 1] + 1 });
+					matches.push({
+						from: mapIndexToPos(idx, segments),
+						to: mapIndexToPos(idx + needle.length, segments),
+					});
 					idx = hay.indexOf(needle, idx + needle.length);
 				}
 			}
 			text = "";
-			charPos = [];
+			segments.length = 0;
 		};
 
 		node.forEach((child, offset) => {
 			if (child.isText && child.text) {
-				const base = pos + 1 + offset;
-				for (let i = 0; i < child.text.length; i++) {
-					text += child.text[i];
-					charPos.push(base + i);
-				}
+				segments.push({ startIdx: text.length, basePos: pos + 1 + offset });
+				text += child.text;
 			} else {
 				// Inline atom — cannot be part of a text match.
 				flush();
