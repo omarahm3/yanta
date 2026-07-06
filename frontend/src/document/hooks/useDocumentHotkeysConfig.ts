@@ -13,6 +13,7 @@ export interface UseDocumentHotkeysConfigOptions {
 	handleEscape: (event: KeyboardEvent) => void;
 	handleUnfocus: (event: KeyboardEvent) => void;
 	focusEditor: () => void;
+	openFind: () => void;
 }
 
 export function useDocumentHotkeysConfig({
@@ -25,6 +26,7 @@ export function useDocumentHotkeysConfig({
 	handleEscape,
 	handleUnfocus,
 	focusEditor,
+	openFind,
 }: UseDocumentHotkeysConfigOptions): HotkeyConfig[] {
 	return useMemo(
 		() => [
@@ -39,6 +41,17 @@ export function useDocumentHotkeysConfig({
 						return;
 					}
 					void saveNow();
+				},
+				allowInInput: true,
+				capture: true,
+			},
+			{
+				...DOCUMENT_SHORTCUTS.documentSearch,
+				handler: (event: KeyboardEvent) => {
+					if (!isActivePaneRef.current) return false;
+					event.preventDefault();
+					event.stopPropagation();
+					openFind();
 				},
 				allowInInput: true,
 				capture: true,
@@ -110,6 +123,7 @@ export function useDocumentHotkeysConfig({
 			handleExportToMarkdown,
 			handleExportToPDF,
 			isActivePaneRef,
+			openFind,
 		],
 	);
 }

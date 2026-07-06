@@ -12,6 +12,7 @@ import "../styles/blocknote-dark.css";
 import "../styles/blocknote-scale.css";
 import type { EditorSlashMenuItemContribution } from "./extensions/registry/editorExtensionRegistry";
 import "./extensions/rtl/rtl.css";
+import { type DocumentFindControls, FindBar } from "./find";
 import { useRichEditorInner } from "./hooks/useRichEditorInner";
 import { portalledShadCNComponents } from "./portalledShadCN";
 import { type EditorHandle, toEditorHandle } from "./types";
@@ -28,6 +29,7 @@ export interface RichEditorProps {
 	docKey?: string;
 	autoFocus?: boolean;
 	disablePluginContributions?: boolean;
+	find?: DocumentFindControls;
 }
 
 const createDefaultInitialBlock = (): PartialBlock => ({
@@ -51,6 +53,7 @@ type EditorInnerProps = {
 	editable: boolean;
 	autoFocus: boolean;
 	disablePluginContributions: boolean;
+	find?: DocumentFindControls;
 };
 
 interface PluginSlashMenuProps {
@@ -100,6 +103,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 			editable,
 			autoFocus,
 			disablePluginContributions,
+			find,
 		},
 		ref,
 	) => {
@@ -132,24 +136,28 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 		}
 
 		return (
-			<div
-				ref={mergedRef}
-				className={cn("rich-editor flex-1 overflow-y-auto h-full", className)}
-				style={{ "--editor-scale": scale } as React.CSSProperties}
-				data-focus-mode={focusMode ? "true" : undefined}
-			>
-				<BlockNoteView
-					editor={editor}
-					theme={resolvedTheme}
-					slashMenu={false}
-					shadCNComponents={portalledShadCNComponents}
+			// Non-scrolling wrapper so the find bar stays pinned while the editor scrolls.
+			<div className={cn("relative h-full", className)}>
+				<div
+					ref={mergedRef}
+					className="rich-editor flex-1 overflow-y-auto h-full"
+					style={{ "--editor-scale": scale } as React.CSSProperties}
+					data-focus-mode={focusMode ? "true" : undefined}
 				>
-					<PluginSlashMenu
-						editor={toEditorHandle(editor)}
-						editable={editable}
-						items={pluginSlashMenuItems}
-					/>
-				</BlockNoteView>
+					<BlockNoteView
+						editor={editor}
+						theme={resolvedTheme}
+						slashMenu={false}
+						shadCNComponents={portalledShadCNComponents}
+					>
+						<PluginSlashMenu
+							editor={toEditorHandle(editor)}
+							editable={editable}
+							items={pluginSlashMenuItems}
+						/>
+					</BlockNoteView>
+				</div>
+				{find?.isOpen && <FindBar editor={toEditorHandle(editor)} onClose={find.onClose} />}
 			</div>
 		);
 	},
@@ -170,6 +178,7 @@ export const RichEditor = React.forwardRef<HTMLDivElement, RichEditorProps>(
 			docKey,
 			autoFocus = true,
 			disablePluginContributions = false,
+			find,
 		},
 		ref,
 	) => {
@@ -217,6 +226,7 @@ export const RichEditor = React.forwardRef<HTMLDivElement, RichEditorProps>(
 				editable={editable}
 				autoFocus={autoFocus}
 				disablePluginContributions={disablePluginContributions}
+				find={find}
 			/>
 		);
 	},

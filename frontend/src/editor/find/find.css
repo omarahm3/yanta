@@ -1,0 +1,11 @@
+/* Highlights for in-document find. Applied by the ProseMirror find plugin as
+   inline decorations on matched text within the live editor. */
+.pm-find-match {
+	border-radius: 2px;
+	background-color: color-mix(in srgb, var(--color-yellow) 30%, transparent);
+}
+
+.pm-find-match-active {
+	background-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 65%, transparent);
+}

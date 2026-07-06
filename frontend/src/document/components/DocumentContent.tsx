@@ -1,6 +1,7 @@
 import { FileText, Pin, PinOff } from "lucide-react";
 import React, { useCallback } from "react";
 import { Layout } from "@/app";
+import type { DocumentFindControls } from "../../editor/find";
 import type { EditorHandle } from "../../editor/types";
 import type { SaveState } from "../../shared/hooks";
 import { useSidebarStateStore } from "../../shared/stores/sidebarState.store";
@@ -41,6 +42,8 @@ export interface DocumentContentProps {
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 	/** Navigate to another page — used by breadcrumbs to return to the dashboard */
 	onNavigate?: (page: PageName, state?: NavigationState) => void;
+	/** In-document find bar controls (Ctrl+F). */
+	find?: DocumentFindControls;
 }
 
 const PinButton: React.FC<{
@@ -94,6 +97,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 		isRestoring = false,
 		onRegisterToggleSidebar,
 		onNavigate,
+		find,
 	}) => {
 		const breadcrumbs = currentProject
 			? [
@@ -159,6 +163,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 						onBlocksChange={onBlocksChange}
 						onTagRemove={onTagRemove}
 						onEditorReady={onEditorReady}
+						find={find}
 					/>
 
 					<DocumentEditorActions

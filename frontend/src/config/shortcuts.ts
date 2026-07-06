@@ -12,7 +12,7 @@ export const GLOBAL_SHORTCUTS = {
 	quit: { key: "ctrl+q", description: "Quit (background if enabled)" },
 	forceQuit: { key: "ctrl+shift+q", description: "Force quit application" },
 	commandPalette: { key: "mod+K", description: "Open command palette" },
-	globalSearch: { key: "mod+F", description: "Search all documents" },
+	globalSearch: { key: "mod+shift+F", description: "Search all documents" },
 	today: { key: "mod+T", description: "Jump to today's journal" },
 	switchProject: { key: "ctrl+Tab", description: "Switch to last project" },
 	projectSwitcher: { key: "mod+shift+K", description: "Switch project" },
@@ -39,6 +39,7 @@ export const PANE_SHORTCUTS = {
 /** Document view (useDocumentController) */
 export const DOCUMENT_SHORTCUTS = {
 	save: { key: "mod+s", description: "Save document" },
+	documentSearch: { key: "mod+F", description: "Find in document" },
 	exportMd: { key: "mod+e", description: "Export to Markdown" },
 	exportPdf: { key: "mod+shift+e", description: "Export to PDF" },
 	back: { key: "Escape", description: "Unfocus editor, or go back to dashboard" },

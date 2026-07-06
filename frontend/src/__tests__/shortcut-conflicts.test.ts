@@ -113,10 +113,19 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 	});
 
 	shortcuts.push({
-		key: "mod+F",
+		key: "mod+shift+F",
 		description: "Search all documents",
 		context: "global",
 		source: "App.tsx - GlobalCommandHotkey",
+		allowInInput: true,
+		capture: true,
+	});
+
+	shortcuts.push({
+		key: "mod+F",
+		description: "Find in document",
+		context: "document",
+		source: "useDocumentHotkeysConfig",
 		allowInInput: true,
 		capture: true,
 	});
