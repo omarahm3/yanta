@@ -49,10 +49,12 @@ type Inline struct {
 }
 
 var (
-	headingRe = regexp.MustCompile(`^(#{1,6})\s+(.*)$`)
-	checkRe   = regexp.MustCompile(`^[-*]\s+\[([ xX])\]\s+(.*)$`)
-	bulletRe  = regexp.MustCompile(`^[-*]\s+(.*)$`)
-	numRe     = regexp.MustCompile(`^(\d+)\.\s+(.*)$`)
+	headingRe  = regexp.MustCompile(`^(#{1,6})\s+(.*)$`)
+	checkRe    = regexp.MustCompile(`^[-*]\s+\[([ xX])\]\s+(.*)$`)
+	bulletRe   = regexp.MustCompile(`^[-*]\s+(.*)$`)
+	numRe      = regexp.MustCompile(`^(\d+)\.\s+(.*)$`)
+	thematicRe = regexp.MustCompile(`^(-{3,}|\*{3,}|_{3,})$`)
+	tableSepRe = regexp.MustCompile(`^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?$`)
 )
 
 // mdNode is a scratch tree node used while parsing so nested list items can be
@@ -155,6 +157,23 @@ func MarkdownToBlocks(md string) []Block {
 			addRoot(inlineBlock(blocktype.Heading, map[string]any{"level": level}, m[2]))
 			i++
 
+		case thematicRe.MatchString(line):
+			addRoot(dividerBlock())
+			i++
+
+		case isTableStart(lines, i):
+			rows := [][]string{splitTableRow(line)}
+			i += 2 // consume header row and delimiter row
+			for i < len(lines) {
+				t := strings.TrimSpace(lines[i])
+				if t == "" || !strings.Contains(t, "|") {
+					break
+				}
+				rows = append(rows, splitTableRow(t))
+				i++
+			}
+			addRoot(tableBlock(rows))
+
 		case strings.HasPrefix(line, ">"):
 			flushPara()
 			stack = stack[:0]
@@ -243,6 +262,8 @@ func renderBlocks(b *strings.Builder, blocks []Block, depth int) {
 			fmt.Fprintf(b, "%s[%s](%s)\n\n", indent, propString(blk.Props, "name", url), url)
 		case blocktype.Table:
 			renderTable(b, indent, blk.Content)
+		case blocktype.Divider:
+			fmt.Fprintf(b, "%s---\n\n", indent)
 		default:
 			if t := renderInline(blk.Content); t != "" {
 				fmt.Fprintf(b, "%s%s\n\n", indent, t)
@@ -271,6 +292,83 @@ func codeBlock(lang, code string) Block {
 		Type:    blocktype.CodeBlock,
 		Props:   map[string]any{"language": lang},
 		Content: marshalInline([]Inline{{Type: "text", Text: code, Styles: map[string]any{}}}),
+	}
+}
+
+// dividerBlock builds a BlockNote divider block. It carries no props and no
+// content ("content: none" in BlockNote's default schema) and renders as an
+// <hr> in the editor.
+func dividerBlock() Block {
+	return Block{
+		ID:   uuid.NewString(),
+		Type: blocktype.Divider,
+	}
+}
+
+// isTableStart reports whether the line at index i begins a GFM pipe table: a
+// row containing a pipe, immediately followed by a delimiter row (| --- | --- |).
+func isTableStart(lines []string, i int) bool {
+	if !strings.Contains(strings.TrimSpace(lines[i]), "|") {
+		return false
+	}
+	if i+1 >= len(lines) {
+		return false
+	}
+	return tableSepRe.MatchString(strings.TrimSpace(lines[i+1]))
+}
+
+// splitTableRow splits a GFM table row into trimmed cell texts, dropping the
+// optional leading and trailing pipes.
+func splitTableRow(line string) []string {
+	s := strings.TrimSpace(line)
+	s = strings.TrimPrefix(s, "|")
+	s = strings.TrimSuffix(s, "|")
+	parts := strings.Split(s, "|")
+	cells := make([]string, len(parts))
+	for i, p := range parts {
+		cells[i] = strings.TrimSpace(p)
+	}
+	return cells
+}
+
+// tableBlock builds a BlockNote table block from parsed rows of cell text. The
+// first row is treated as the header. Cell text is parsed for inline styles.
+func tableBlock(rows [][]string) Block {
+	cols := 0
+	for _, r := range rows {
+		if len(r) > cols {
+			cols = len(r)
+		}
+	}
+	widths := make([]any, cols)
+	jsonRows := make([]map[string]any, 0, len(rows))
+	for _, r := range rows {
+		cells := make([]map[string]any, 0, cols)
+		for c := 0; c < cols; c++ {
+			text := ""
+			if c < len(r) {
+				text = r[c]
+			}
+			cells = append(cells, map[string]any{
+				"type":    "tableCell",
+				"content": parseInline(text),
+				"props":   map[string]any{},
+			})
+		}
+		jsonRows = append(jsonRows, map[string]any{"cells": cells})
+	}
+	content, err := json.Marshal(map[string]any{
+		"type":         "tableContent",
+		"columnWidths": widths,
+		"rows":         jsonRows,
+	})
+	if err != nil {
+		return inlineBlock(blocktype.Paragraph, nil, "")
+	}
+	return Block{
+		ID:      uuid.NewString(),
+		Type:    blocktype.Table,
+		Content: content,
 	}
 }
 

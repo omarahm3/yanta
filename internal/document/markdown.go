@@ -78,6 +78,8 @@ func (m *MarkdownConverter) convertBlock(block BlockNoteBlock, lines *[]string, 
 		m.convertQuote(block, lines)
 	case blocktype.Table:
 		m.convertTable(block, lines)
+	case blocktype.Divider:
+		*lines = append(*lines, "", "---")
 	default:
 		text := m.extractFormattedText(block.Content)
 		if text != "" {

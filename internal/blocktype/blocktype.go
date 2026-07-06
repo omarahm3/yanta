@@ -21,6 +21,7 @@ const (
 	File             = "file"
 	Quote            = "quote"
 	Table            = "table"
+	Divider          = "divider"
 )
 
 // Inline content types.
@@ -41,7 +42,7 @@ const (
 func Known(t string) bool {
 	switch t {
 	case Heading, Paragraph, CodeBlock, BulletListItem, NumberedListItem,
-		CheckListItem, Image, File, Quote, Table:
+		CheckListItem, Image, File, Quote, Table, Divider:
 		return true
 	default:
 		return false
