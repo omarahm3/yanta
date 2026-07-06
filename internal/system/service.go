@@ -537,6 +537,12 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 		Message: "No changes to sync",
 	}
 
+	// Untrack anything committed outside the sync allowlist; best-effort.
+	// Left tracked it surfaces as COMMIT_FAILED and blocks the rebase below.
+	if err := gitService.SelfHeal(ctx, dataDir); err != nil {
+		logger.WithError(err).Warn("self-heal failed, continuing")
+	}
+
 	// 1) Commit local changes FIRST. This keeps the same safe ordering as the
 	//    automatic path: we never rebase/merge into a dirty working tree, and
 	//    the reconcile below is always a clean rebase.

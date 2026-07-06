@@ -738,3 +738,119 @@ func TestGetBranches(t *testing.T) {
 		assert.Contains(t, branches, currentBranch)
 	})
 }
+
+// gitTracked returns the repo-relative paths git currently has in its index.
+func gitTracked(t *testing.T, repoPath string) []string {
+	t.Helper()
+	cmd := exec.Command("git", "ls-files")
+	cmd.Dir = repoPath
+	out, err := cmd.Output()
+	require.NoError(t, err)
+	trimmed := strings.TrimSpace(string(out))
+	if trimmed == "" {
+		return nil
+	}
+	return strings.Split(trimmed, "\n")
+}
+
+// Unstaged-only deletions make `git commit` print "no changes added to commit";
+// that must normalize to the benign "nothing to commit", not a hard error.
+func TestCommitNoChangesAddedIsBenign(t *testing.T) {
+	skipIfNoGit(t)
+	ctx := context.Background()
+	service := NewService()
+	dir := t.TempDir()
+
+	require.NoError(t, service.Init(ctx, dir))
+	configureGitUser(t, dir)
+
+	f := filepath.Join(dir, "tracked.txt")
+	require.NoError(t, os.WriteFile(f, []byte("hi"), 0o644))
+	require.NoError(t, service.AddAll(ctx, dir))
+	require.NoError(t, service.Commit(ctx, dir, "initial"))
+
+	// Delete the tracked file without staging the deletion.
+	require.NoError(t, os.Remove(f))
+
+	err := service.Commit(ctx, dir, "should be a no-op")
+	require.Error(t, err)
+	assert.Equal(t, "nothing to commit", err.Error(),
+		"unstaged-only changes must normalize to the benign 'nothing to commit' error")
+}
+
+func writeRepoFile(t *testing.T, root, rel, content string) {
+	t.Helper()
+	full := filepath.Join(root, filepath.FromSlash(rel))
+	require.NoError(t, os.MkdirAll(filepath.Dir(full), 0o755))
+	require.NoError(t, os.WriteFile(full, []byte(content), 0o644))
+}
+
+// The heal is driven by the allowlist, not .gitignore: a stray tracked file
+// outside SyncPaths is untracked even though nothing ignores it, while vault
+// content and .gitignore stay.
+func TestUntrackNonAllowlisted(t *testing.T) {
+	skipIfNoGit(t)
+	ctx := context.Background()
+	service := NewService()
+	dir := t.TempDir()
+
+	require.NoError(t, service.Init(ctx, dir))
+	configureGitUser(t, dir)
+
+	writeRepoFile(t, dir, "vault/note.json", "{}")
+	writeRepoFile(t, dir, "vault/sub/deep.json", "{}")
+	writeRepoFile(t, dir, ".gitignore", "yanta.db*\n")
+	writeRepoFile(t, dir, "backups/snap/d.json", "{}")
+	writeRepoFile(t, dir, "graphics-startup.marker", "x")
+	writeRepoFile(t, dir, "stray.txt", "hand-added, not ignored")
+	require.NoError(t, service.AddAll(ctx, dir))
+	require.NoError(t, service.Commit(ctx, dir, "mixed tracked set"))
+
+	n, err := service.UntrackNonAllowlisted(ctx, dir)
+	require.NoError(t, err)
+	assert.Equal(t, 3, n)
+
+	assert.ElementsMatch(t, []string{
+		".gitignore",
+		"vault/note.json",
+		"vault/sub/deep.json",
+	}, gitTracked(t, dir))
+}
+
+// Mirrors the failing device: backups/ committed before it was ignored, then
+// deleted from disk. The ghost deletions block a sync-style stage+commit until
+// SelfHeal untracks them.
+func TestSelfHealUnblocksSyncWithDeletedLegacyBackups(t *testing.T) {
+	skipIfNoGit(t)
+	ctx := context.Background()
+	service := NewService()
+	dir := t.TempDir()
+
+	require.NoError(t, service.Init(ctx, dir))
+	configureGitUser(t, dir)
+
+	// Legacy commit: backups/ + a real vault note, no .gitignore yet.
+	writeRepoFile(t, dir, "backups/snap/d.json", "{}")
+	writeRepoFile(t, dir, "vault/note.json", "{}")
+	require.NoError(t, service.AddAll(ctx, dir))
+	require.NoError(t, service.Commit(ctx, dir, "legacy commit with junk"))
+
+	// The backups vanish from disk — now unstaged deletions of tracked files.
+	require.NoError(t, os.RemoveAll(filepath.Join(dir, "backups")))
+
+	// Before heal: staging the allowlist stages nothing, so the commit fails.
+	require.NoError(t, service.Add(ctx, dir, SyncPaths...))
+	require.Error(t, service.Commit(ctx, dir, "pre-heal"),
+		"sanity: without SelfHeal the ghost deletions block the commit")
+
+	// Heal, then run the same sync-style stage+commit — it must succeed now.
+	require.NoError(t, service.SelfHeal(ctx, dir))
+	require.NoError(t, service.Add(ctx, dir, SyncPaths...))
+	require.NoError(t, service.Commit(ctx, dir, "post-heal"))
+
+	for _, p := range gitTracked(t, dir) {
+		assert.NotContains(t, p, "backups/", "backups must no longer be tracked")
+	}
+	assert.Contains(t, gitTracked(t, dir), filepath.ToSlash("vault/note.json"),
+		"vault content must remain tracked")
+}

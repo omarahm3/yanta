@@ -176,6 +176,73 @@ func (s *Service) CreateGitIgnore(path string, patterns []string) error {
 	return nil
 }
 
+// UntrackNonAllowlisted removes from the index every tracked file outside the
+// sync allowlist (SyncPaths), staging the removals, and reports how many. The
+// allowlist is the single source of truth for what belongs in the repo, so this
+// is the mirror of staging: only vault content and .gitignore stay tracked. It
+// heals repos that committed machine-local junk (legacy backups/, *.marker, the
+// db) before YANTA moved to allowlist staging. No-op on an already-clean repo.
+func (s *Service) UntrackNonAllowlisted(ctx context.Context, path string) (int, error) {
+	if err := s.validateRepoPath(path); err != nil {
+		return 0, fmt.Errorf("git untrack: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	// Every tracked file except the allowlist, NUL-delimited so odd paths
+	// survive verbatim.
+	lsArgs := []string{"ls-files", "-z", "--", "."}
+	for _, p := range SyncPaths {
+		lsArgs = append(lsArgs, ":(exclude)"+p)
+	}
+	ls := s.newGitCmd(ctx, path, lsArgs...)
+	var lsOut, lsErr bytes.Buffer
+	ls.Stdout = &lsOut
+	ls.Stderr = &lsErr
+	if err := ls.Run(); err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return 0, fmt.Errorf("git ls-files timed out after 30s")
+		}
+		return 0, fmt.Errorf("git ls-files failed: %w: %s", err, strings.TrimSpace(lsErr.String()))
+	}
+
+	payload := lsOut.Bytes()
+	if len(bytes.Trim(payload, "\x00")) == 0 {
+		return 0, nil
+	}
+	count := bytes.Count(payload, []byte{0})
+
+	// Index-only removal (on-disk copies stay); paths via stdin to dodge
+	// arg-length limits and re-quoting.
+	rm := s.newGitCmd(ctx, path, "rm", "--cached", "-r", "-q", "--ignore-unmatch",
+		"--pathspec-from-file=-", "--pathspec-file-nul")
+	rm.Stdin = bytes.NewReader(payload)
+	var rmErr bytes.Buffer
+	rm.Stderr = &rmErr
+	if err := rm.Run(); err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return 0, fmt.Errorf("git rm --cached timed out after 30s")
+		}
+		return 0, fmt.Errorf("git rm --cached failed: %w: %s", err, strings.TrimSpace(rmErr.String()))
+	}
+	return count, nil
+}
+
+// SelfHeal reconciles the repo's tracked set with the sync allowlist, untracking
+// anything that slipped in outside it. Safe before every sync, no-op once
+// healthy, and non-fatal — callers log and continue.
+func (s *Service) SelfHeal(ctx context.Context, path string) error {
+	n, err := s.UntrackNonAllowlisted(ctx, path)
+	if err != nil {
+		return err
+	}
+	if n > 0 {
+		logger.WithField("count", n).Info("git self-heal: untracked files outside the sync allowlist")
+	}
+	return nil
+}
+
 // SyncPaths is the allowlist of repository-relative paths YANTA syncs to the
 // remote: the notes vault and the repo's own .gitignore. Everything else in the
 // data directory — the database, local backups (.backups/), and WebView/OS
@@ -293,7 +360,9 @@ func (s *Service) Commit(ctx context.Context, path, message string) error {
 		if output != "" {
 			logger.Debugf("git commit output (error):\n%s", boundOutput(output))
 		}
-		if strings.Contains(output, "nothing to commit") || strings.Contains(output, "nothing added to commit") {
+		if strings.Contains(output, "nothing to commit") ||
+			strings.Contains(output, "nothing added to commit") ||
+			strings.Contains(output, "no changes added to commit") {
 			return fmt.Errorf("nothing to commit")
 		}
 		if strings.Contains(output, "Author identity unknown") || strings.Contains(output, "Please tell me who you are") {
