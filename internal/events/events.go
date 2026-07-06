@@ -67,7 +67,7 @@ const (
 	AppReady            = "yanta/app/ready"
 	ToastEvent          = "yanta/ui/toast"
 	WindowHidden        = "yanta/window/hidden"         // payload: {reason}
-	ThemeChanged        = "yanta/app/theme"            // payload: {theme: "dark"|"light"|"system"}
+	ThemeChanged        = "yanta/app/theme"             // payload: {theme: "dark"|"light"|"system"}
 	ProjectChanged      = "yanta/project/changed"       // payload: {id, op:'create|update|delete|restore'}
 	ProjectCreated      = "yanta/project/created"       // payload: {id, name, alias}
 	ProjectUpdated      = "yanta/project/updated"       // payload: {id, name, alias}
@@ -90,6 +90,7 @@ const (
 	TagListAccessed     = "yanta/tag/list-accessed"   // payload: {count, limit, offset}
 	DocumentTagsUpdated = "yanta/document/tags"       // payload: {path, tags}
 	SearchPerformed     = "yanta/search/performed"    // payload: {query, resultCount, duration}
-	EntryMoved          = "yanta/entry/moved"          // payload: {path, fromProjectId, toProjectId}
-	EntryCountChanged   = "yanta/project/entry-count"  // payload: {projectId, count}
+	EntryMoved          = "yanta/entry/moved"         // payload: {path, fromProjectId, toProjectId}
+	EntryCountChanged   = "yanta/project/entry-count" // payload: {projectId, count}
+	VaultReindexed      = "yanta/vault/reindexed"     // payload: {reason}; vault content changed wholesale (sync pull / manual reindex)
 )

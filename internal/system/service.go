@@ -486,6 +486,17 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 	ctx, cancel := context.WithTimeout(ctx, gitTopLevelTimeout)
 	defer cancel()
 
+	// If a pull brings in remote content, reindex the vault once the sync's git
+	// work is done so search reflects it (and the frontend rebuilds its in-memory
+	// index). Deferred with a fresh context — the sync ctx may already be spent —
+	// and best-effort: it never changes the sync's own result.
+	var pulledRemoteChanges bool
+	defer func() {
+		if pulledRemoteChanges {
+			s.reindexAfterSyncPull(context.Background())
+		}
+	}()
+
 	gitCfg := config.GetGitSyncConfig()
 	if !gitCfg.Enabled {
 		return nil, fmt.Errorf("GIT_NOT_ENABLED:\nGit sync is not enabled.\n\nGo to Settings → Git Sync and enable it first.")
@@ -589,6 +600,7 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 
 	// 2) Integrate remote changes with a REBASE (never a merge — a merge could
 	//    leave conflict markers on disk). PullRebase aborts cleanly on conflict.
+	headBefore, _ := gitService.GetLastCommitHash(ctx, dataDir)
 	logger.Info("integrating remote changes (rebase)")
 	if err := gitService.PullRebase(ctx, dataDir, "origin", branch); err != nil {
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
@@ -613,6 +625,11 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 		}
 	} else {
 		result.Pulled = true
+		// Only reindex when the pull actually moved HEAD (PullRebase reports no
+		// detail, and result.Pulled is true even for a no-op rebase).
+		if headAfter, _ := gitService.GetLastCommitHash(ctx, dataDir); headAfter != "" && headAfter != headBefore {
+			pulledRemoteChanges = true
+		}
 	}
 
 	// 3) Publish local commits.
@@ -641,6 +658,22 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 	}
 	logger.WithField("files", filesChanged).Info("sync completed successfully")
 	return result, nil
+}
+
+// reindexAfterSyncPull re-indexes the vault after a sync pull brought in remote
+// changes, then notifies the frontend to rebuild its search index. Failures are
+// logged but never surfaced — search freshness is best-effort and must not fail
+// an otherwise-successful sync.
+func (s *Service) reindexAfterSyncPull(ctx context.Context) {
+	if s.indexer == nil {
+		return
+	}
+	logger.Info("reindexing vault after sync pull")
+	if _, err := s.indexer.ScanAndIndexVault(ctx); err != nil {
+		logger.WithError(err).Warn("reindex after sync pull failed")
+		return
+	}
+	s.eventBus.Emit(events.VaultReindexed, map[string]any{"reason": "sync-pull"})
 }
 
 func (s *Service) GetGitStatus(ctx context.Context) (map[string]any, error) {
@@ -915,6 +948,9 @@ func (s *Service) ReindexDatabase(ctx context.Context) error {
 
 	logger.Info("database reindex completed successfully")
 	s.emitProgress(100, 100, "Complete")
+	if s.eventBus != nil {
+		s.eventBus.Emit(events.VaultReindexed, map[string]any{"reason": "manual-reindex"})
+	}
 	return nil
 }
 
