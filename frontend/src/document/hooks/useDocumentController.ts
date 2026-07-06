@@ -98,6 +98,13 @@ export function useDocumentController({
 	const [hasRestored, setHasRestored] = useState(false);
 	const [isRestoring, setIsRestoring] = useState(false);
 	const [isEditorReady, setIsEditorReady] = useState(false);
+	const [isFindOpen, setFindOpen] = useState(false);
+	const openFind = useCallback(() => setFindOpen(true), []);
+	const closeFind = useCallback(() => setFindOpen(false), []);
+	// Close the find bar when switching to a different document.
+	useEffect(() => {
+		setFindOpen(false);
+	}, [documentPath]);
 	const isArchived = Boolean(data?.deletedAt) && !hasRestored;
 
 	useEffect(() => {
@@ -234,6 +241,7 @@ export function useDocumentController({
 		handleEscape,
 		handleUnfocus,
 		focusEditor,
+		openFind,
 	});
 
 	const handleRestore = useCallback(async () => {
@@ -300,6 +308,7 @@ export function useDocumentController({
 		onRestore: isArchived ? handleRestore : undefined,
 		onRegisterToggleSidebar,
 		onNavigate,
+		find: { isOpen: isFindOpen, onClose: closeFind },
 	};
 
 	return {

@@ -128,7 +128,6 @@ export function useHelpModalController(): UseHelpModalControllerResult {
 				{ key: "Ctrl+T", description: "Jump to Today" },
 				{ key: "Ctrl+E", description: "Recent Documents" },
 				{ key: "Ctrl+Tab", description: "Switch to last project" },
-				{ key: "Ctrl+Shift+F", description: "Go to Search" },
 				{ key: "Ctrl+D", description: "Go to Documents" },
 			],
 			documents: fromConfig.documents,

@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { GranularErrorBoundary } from "@/app";
+import type { DocumentFindControls } from "../../editor/find";
 import { RichEditor } from "../../editor/RichEditor";
 import type { EditorHandle } from "../../editor/types";
 import {
@@ -22,6 +23,7 @@ interface DocumentEditorFormProps {
 	onBlocksChange: (blocks: BlockNoteBlock[]) => void;
 	onTagRemove: (tag: string) => void;
 	onEditorReady?: (editor: EditorHandle) => void;
+	find?: DocumentFindControls;
 }
 
 export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
@@ -35,6 +37,7 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 	onBlocksChange,
 	onTagRemove,
 	onEditorReady,
+	find,
 }) => {
 	const handleTagKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLButtonElement>, tag: string) => {
@@ -123,6 +126,7 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 						isLoading={isLoading && isEditMode}
 						autoFocus={autoFocus}
 						disablePluginContributions={editorRecoveryMode}
+						find={find}
 						className="h-full"
 					/>
 				</GranularErrorBoundary>

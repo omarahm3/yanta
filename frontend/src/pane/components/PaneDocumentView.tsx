@@ -170,6 +170,7 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 						onBlocksChange={contentProps.onBlocksChange}
 						onTagRemove={contentProps.onTagRemove}
 						onEditorReady={contentProps.onEditorReady}
+						find={contentProps.find}
 					/>
 				</div>
 				<DocumentEditorActions
