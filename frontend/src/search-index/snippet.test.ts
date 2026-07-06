@@ -35,4 +35,15 @@ describe("buildSnippet", () => {
 	it("returns empty string for empty text", () => {
 		expect(buildSnippet("", ["x"])).toBe("");
 	});
+
+	it("does not corrupt injected <mark> tags across multiple terms", () => {
+		// "mark" is a substring of the injected <mark> tags, so a naive sequential
+		// per-term replace would rewrite the tags of an earlier term. Highlighting
+		// must be a single pass.
+		const out = buildSnippet("system markup", ["system", "mark"]);
+		expect(out).toContain("<mark>system</mark>");
+		expect(out).toContain("<mark>mark</mark>up");
+		expect(out).not.toContain("<<mark");
+		expect(out).not.toContain("</<mark");
+	});
 });

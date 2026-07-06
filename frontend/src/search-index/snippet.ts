@@ -49,12 +49,16 @@ export function buildSnippet(text: string, terms: string[]): string {
 	const suffix = end < clean.length ? " …" : "";
 
 	let html = escapeHtml(excerpt);
-	const seen = new Set<string>();
-	for (const term of terms) {
-		const t = term.trim();
-		if (t.length < 2 || seen.has(t.toLowerCase())) continue;
-		seen.add(t.toLowerCase());
-		const re = new RegExp(escapeRegExp(escapeHtml(t)), "gi");
+	// Highlight all terms in a single pass. A per-term sequential replace could
+	// rewrite the <mark> tags injected for an earlier term (e.g. a term "mark"),
+	// producing malformed HTML. Longest-first so an alternation prefers whole
+	// words over their fragments.
+	const uniqueTerms = Array.from(new Set(terms.map((t) => t.trim().toLowerCase())))
+		.filter((t) => t.length >= 2)
+		.sort((a, b) => b.length - a.length);
+	if (uniqueTerms.length > 0) {
+		const pattern = uniqueTerms.map((t) => escapeRegExp(escapeHtml(t))).join("|");
+		const re = new RegExp(pattern, "gi");
 		html = html.replace(re, (m) => `<mark>${m}</mark>`);
 	}
 
