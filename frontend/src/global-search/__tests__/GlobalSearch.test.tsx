@@ -32,18 +32,28 @@ vi.mock("../../shared/hooks/useRecentDocuments", () => ({
 	}),
 }));
 
-vi.mock("../../../bindings/yanta/internal/search/service", () => ({
-	Query: vi.fn(async () => [
-		{
-			id: "projects/@api/doc-auth.json",
-			title: "Auth Flow",
-			snippet: "the <mark>auth</mark> middleware",
-			updated: "2026-07-01",
-			type: "document",
-			projectAlias: "@api",
-		},
-	]),
-}));
+// The finder now searches an in-memory MiniSearch index (searchIndex.store)
+// instead of round-tripping to the backend. Mock the store so this component
+// test stays focused on rendering, selection and open behaviour.
+vi.mock("../../search-index/searchIndex.store", () => {
+	const authItem = {
+		key: "projects/@api/doc-auth.json",
+		type: "document" as const,
+		title: "Auth Flow",
+		projectAlias: "@api",
+		path: "projects/@api/doc-auth.json",
+		updated: "2026-07-01",
+		snippets: ["the <mark>auth</mark> middleware"],
+		matchCount: 1,
+	};
+	const state = {
+		status: "ready" as const,
+		search: (q: string) => (q.toLowerCase().includes("auth") ? [authItem] : []),
+	};
+	return {
+		useSearchIndexStore: (selector: (s: typeof state) => unknown) => selector(state),
+	};
+});
 
 vi.mock("../../../bindings/yanta/internal/document/service", () => ({
 	Preview: vi.fn(async () =>
@@ -78,7 +88,6 @@ vi.mock("../DocumentPreview", () => ({
 	DocumentPreview: () => null,
 }));
 
-import { Query } from "../../../bindings/yanta/internal/search/service";
 import { GlobalSearch } from "../GlobalSearch";
 import { useGlobalSearchStore } from "../globalSearch.store";
 
@@ -99,7 +108,6 @@ describe("GlobalSearch finder", () => {
 
 		// "Recent Doc" renders in both the result row and the preview header.
 		expect((await screen.findAllByText("Recent Doc")).length).toBeGreaterThan(0);
-		expect(Query).not.toHaveBeenCalled();
 
 		// Alias shows exactly one "@" — no "@@api" double prefix.
 		expect((await screen.findAllByText("@api")).length).toBeGreaterThan(0);
@@ -113,7 +121,6 @@ describe("GlobalSearch finder", () => {
 		const input = await screen.findByRole("combobox");
 		fireEvent.change(input, { target: { value: "auth" } });
 
-		await waitFor(() => expect(Query).toHaveBeenCalledWith("auth", 50, 0));
 		expect((await screen.findAllByText("Auth Flow")).length).toBeGreaterThan(0);
 
 		fireEvent.keyDown(input, { key: "Enter" });

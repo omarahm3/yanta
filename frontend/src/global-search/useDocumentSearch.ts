@@ -1,39 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useMergedConfig } from "@/config/usePreferencesOverrides";
-import type * as searchModels from "../../bindings/yanta/internal/search/models";
-import { Query } from "../../bindings/yanta/internal/search/service";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchIndexStore } from "../search-index/searchIndex.store";
 import { listRecentDocuments } from "../shared/services/DocumentService";
 import type { FinderItem } from "./types";
-
-/** Merge the flat `Result[]` (one row per match) into one FinderItem per document. */
-function groupResults(results: (searchModels.Result | null)[]): FinderItem[] {
-	const groups = new Map<string, FinderItem>();
-
-	for (const result of results) {
-		if (!result) continue;
-		const existing = groups.get(result.id);
-		if (existing) {
-			if (result.snippet && !existing.snippets.includes(result.snippet)) {
-				existing.snippets.push(result.snippet);
-				existing.matchCount += 1;
-			}
-			continue;
-		}
-		groups.set(result.id, {
-			key: result.id,
-			type: (result.type as "document" | "note") || "document",
-			title: result.title,
-			projectAlias: result.projectAlias || "",
-			path: result.id,
-			updated: result.updated,
-			snippets: result.snippet ? [result.snippet] : [],
-			matchCount: 1,
-			noteId: result.noteId,
-		});
-	}
-
-	return Array.from(groups.values());
-}
 
 export interface UseDocumentSearchReturn {
 	query: string;
@@ -46,26 +14,24 @@ export interface UseDocumentSearchReturn {
 }
 
 /**
- * Data layer for the global finder: debounced full-text search over the vault
- * with stale-response dropping (a generation counter discards results from a
- * query the user has already moved past). An empty query surfaces the most
- * recently modified documents from the vault (via the backend) so the finder is
- * useful the instant it opens — including documents that haven't been opened
- * this session.
+ * Data layer for the global finder. Matching runs entirely against an in-memory
+ * MiniSearch index of the vault's content (see searchIndex.store) — prefix +
+ * typo-tolerant fuzzy full-text search with zero backend round-trips, so results
+ * update instantly as you type. An empty query surfaces the most recently
+ * modified documents so the finder is useful the moment it opens.
  */
 export function useDocumentSearch(): UseDocumentSearchReturn {
 	const [query, setQuery] = useState("");
-	const [results, setResults] = useState<FinderItem[]>([]);
 	const [recentItems, setRecentItems] = useState<FinderItem[]>([]);
-	const [isLoading, setIsLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
 
-	const { timeouts } = useMergedConfig();
-	const generationRef = useRef(0);
+	const status = useSearchIndexStore((s) => s.status);
+	const search = useSearchIndexStore((s) => s.search);
 
 	const trimmed = query.trim();
 	const hasQuery = trimmed.length > 0;
 
+	// Load recent documents once for the empty-query state (a separate backend
+	// call so it also lists documents not opened this session).
 	useEffect(() => {
 		let cancelled = false;
 		void (async () => {
@@ -86,8 +52,7 @@ export function useDocumentSearch(): UseDocumentSearchReturn {
 					})),
 				);
 			} catch {
-				// Leave the recent list empty if it can't be loaded; typed search
-				// still works independently.
+				// Recent list is best-effort; typed search still works independently.
 			}
 		})();
 		return () => {
@@ -95,37 +60,16 @@ export function useDocumentSearch(): UseDocumentSearchReturn {
 		};
 	}, []);
 
-	useEffect(() => {
-		generationRef.current += 1;
-		const generation = generationRef.current;
-
-		if (!trimmed) {
-			setResults([]);
-			setError(null);
-			setIsLoading(false);
-			return;
-		}
-
-		setIsLoading(true);
-		const timer = setTimeout(async () => {
-			try {
-				const raw = await Query(trimmed, 50, 0);
-				if (generation !== generationRef.current) return;
-				setResults(groupResults(Array.isArray(raw) ? raw : []));
-				setError(null);
-			} catch (err) {
-				if (generation !== generationRef.current) return;
-				setError(err instanceof Error ? err.message : "Search failed");
-				setResults([]);
-			} finally {
-				if (generation === generationRef.current) setIsLoading(false);
-			}
-		}, timeouts.searchDebounceMs);
-
-		return () => clearTimeout(timer);
-	}, [trimmed, timeouts.searchDebounceMs]);
+	// Synchronous in-memory search. `status` is a dependency so results fill in
+	// automatically once the index finishes (re)building — no keystroke needed.
+	const results = useMemo<FinderItem[]>(() => {
+		if (!hasQuery) return [];
+		return search(trimmed);
+	}, [trimmed, hasQuery, search, status]);
 
 	const items = hasQuery ? results : recentItems;
+	const isLoading = hasQuery && status !== "ready" && status !== "error";
+	const error = status === "error" ? "Search index unavailable — try reopening the app." : null;
 
 	const stableSetQuery = useCallback((next: string) => setQuery(next), []);
 

@@ -304,6 +304,11 @@ func (sm *SyncManager) performSync(ctx context.Context, reasons []string) *SyncR
 		}
 	}
 
+	// Untrack anything committed outside the sync allowlist; best-effort.
+	if err := sm.gitService.SelfHeal(ctx, dataDir); err != nil {
+		logger.WithField("error", err).Warn("auto-sync: self-heal failed, continuing")
+	}
+
 	if err := sm.gitService.Add(ctx, dataDir, SyncPaths...); err != nil {
 		logger.WithField("error", err).Warn("auto-sync: git add failed")
 		return &SyncResult{Status: SyncStatusError, Message: commitFailureMessage}

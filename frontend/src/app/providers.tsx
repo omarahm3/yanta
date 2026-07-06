@@ -17,6 +17,7 @@ import { AppGlobalEffects, GlobalCommandHotkey } from "./global-hotkeys";
 import { PreferencesStoreInit } from "./PreferencesStoreInit";
 import { ProjectStoreInit } from "./ProjectStoreInit";
 import { ScaleStoreInit } from "./ScaleStoreInit";
+import { SearchIndexStoreInit } from "./SearchIndexStoreInit";
 
 export function AppProviders() {
 	return (
@@ -28,6 +29,7 @@ export function AppProviders() {
 			<FeatureFlagsStoreInit />
 			<AppMonitorInit />
 			<DocumentCountStoreInit />
+			<SearchIndexStoreInit />
 			<PreferencesStoreInit />
 			{ENABLE_PLUGINS && <PluginBootstrap />}
 			<ProjectStoreInit />
