@@ -39,9 +39,11 @@ export const useDocumentInitialization = ({
 				});
 				initializedForPathRef.current = documentPath;
 
-				DocumentServiceWrapper.getHash(documentPath).then(setDocumentHash).catch(() => {
-					setDocumentHash(null);
-				});
+				DocumentServiceWrapper.getHash(documentPath)
+					.then(setDocumentHash)
+					.catch(() => {
+						setDocumentHash(null);
+					});
 			}
 		} else {
 			const newDocKey = `new:${initialTitle}`;

@@ -142,54 +142,52 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 		return (
 			<div className="flex flex-col h-full w-full">
 				<PaneHeader paneId={paneId} documentPath={documentPath} title={controller.documentTitle} />
-			{contentProps.isArchived && (
-				<div className="flex flex-wrap items-center gap-3 border-b border-accent/30 bg-accent/10 px-4 py-2 text-xs uppercase tracking-widest text-accent">
-					<span className="font-semibold">Archived</span>
-					<span className="text-text-dim normal-case text-xs">Restore to resume editing.</span>
-					{contentProps.onRestore && (
-						<Button
-							variant="primary"
-							size="sm"
-							onClick={contentProps.onRestore}
-							disabled={contentProps.isRestoring}
-							className="ml-auto text-xs font-semibold uppercase tracking-widest"
-						>
-							{contentProps.isRestoring ? "Restoring..." : "Restore"}
-						</Button>
-					)}
-				</div>
-			)}
-			{controller.hasConflict && (
-				<div className="flex flex-wrap items-center gap-3 border-b border-warning/30 bg-warning/10 px-4 py-2 text-xs text-warning">
-					<AlertTriangle className="w-4 h-4 shrink-0" />
-					<span className="font-semibold uppercase tracking-widest">External Change</span>
-					<span className="text-text-dim normal-case text-xs">
-						Modified outside the app.
-					</span>
-					<div className="ml-auto flex gap-2">
-						{controller.onKeepMine && (
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={controller.onKeepMine}
-								className="text-xs font-semibold uppercase tracking-widest"
-							>
-								Keep Mine
-							</Button>
-						)}
-						{controller.onReloadFromDisk && (
+				{contentProps.isArchived && (
+					<div className="flex flex-wrap items-center gap-3 border-b border-accent/30 bg-accent/10 px-4 py-2 text-xs uppercase tracking-widest text-accent">
+						<span className="font-semibold">Archived</span>
+						<span className="text-text-dim normal-case text-xs">Restore to resume editing.</span>
+						{contentProps.onRestore && (
 							<Button
 								variant="primary"
 								size="sm"
-								onClick={controller.onReloadFromDisk}
-								className="text-xs font-semibold uppercase tracking-widest"
+								onClick={contentProps.onRestore}
+								disabled={contentProps.isRestoring}
+								className="ml-auto text-xs font-semibold uppercase tracking-widest"
 							>
-								Reload
+								{contentProps.isRestoring ? "Restoring..." : "Restore"}
 							</Button>
 						)}
 					</div>
-				</div>
-			)}
+				)}
+				{controller.hasConflict && (
+					<div className="flex flex-wrap items-center gap-3 border-b border-warning/30 bg-warning/10 px-4 py-2 text-xs text-warning">
+						<AlertTriangle className="w-4 h-4 shrink-0" />
+						<span className="font-semibold uppercase tracking-widest">External Change</span>
+						<span className="text-text-dim normal-case text-xs">Modified outside the app.</span>
+						<div className="ml-auto flex gap-2">
+							{controller.onKeepMine && (
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={controller.onKeepMine}
+									className="text-xs font-semibold uppercase tracking-widest"
+								>
+									Keep Mine
+								</Button>
+							)}
+							{controller.onReloadFromDisk && (
+								<Button
+									variant="primary"
+									size="sm"
+									onClick={controller.onReloadFromDisk}
+									className="text-xs font-semibold uppercase tracking-widest"
+								>
+									Reload
+								</Button>
+							)}
+						</div>
+					</div>
+				)}
 				<div ref={scrollContainerRef} className="flex flex-col flex-1 min-h-0 overflow-auto">
 					<DocumentEditorForm
 						blocks={contentProps.formData.blocks}

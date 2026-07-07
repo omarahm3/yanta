@@ -143,54 +143,54 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 							<span className="text-sm text-text-dim">Document</span>
 						</div>
 					</div>
-				{isArchived && (
-					<div className="flex flex-wrap items-center gap-3 border-b border-accent/30 bg-accent/10 px-6 py-3 text-xs uppercase tracking-widest text-accent">
-						<span className="font-semibold">Archived Document</span>
-						<span className="text-text-dim normal-case">Restore to resume editing.</span>
-						{onRestore && (
-							<Button
-								variant="primary"
-								size="sm"
-								onClick={onRestore}
-								disabled={isRestoring}
-								className="ml-auto text-xs font-semibold uppercase tracking-widest"
-							>
-								{isRestoring ? "Restoring..." : "Restore"}
-							</Button>
-						)}
-					</div>
-				)}
-				{hasConflict && (
-					<div className="flex flex-wrap items-center gap-3 border-b border-warning/30 bg-warning/10 px-6 py-3 text-xs text-warning">
-						<AlertTriangle className="w-4 h-4 shrink-0" />
-						<span className="font-semibold uppercase tracking-widest">External Change</span>
-						<span className="text-text-dim normal-case">
-							This document was modified outside the app.
-						</span>
-						<div className="ml-auto flex gap-2">
-							{onKeepMine && (
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={onKeepMine}
-									className="text-xs font-semibold uppercase tracking-widest"
-								>
-									Keep Mine
-								</Button>
-							)}
-							{onReloadFromDisk && (
+					{isArchived && (
+						<div className="flex flex-wrap items-center gap-3 border-b border-accent/30 bg-accent/10 px-6 py-3 text-xs uppercase tracking-widest text-accent">
+							<span className="font-semibold">Archived Document</span>
+							<span className="text-text-dim normal-case">Restore to resume editing.</span>
+							{onRestore && (
 								<Button
 									variant="primary"
 									size="sm"
-									onClick={onReloadFromDisk}
-									className="text-xs font-semibold uppercase tracking-widest"
+									onClick={onRestore}
+									disabled={isRestoring}
+									className="ml-auto text-xs font-semibold uppercase tracking-widest"
 								>
-									Reload
+									{isRestoring ? "Restoring..." : "Restore"}
 								</Button>
 							)}
 						</div>
-					</div>
-				)}
+					)}
+					{hasConflict && (
+						<div className="flex flex-wrap items-center gap-3 border-b border-warning/30 bg-warning/10 px-6 py-3 text-xs text-warning">
+							<AlertTriangle className="w-4 h-4 shrink-0" />
+							<span className="font-semibold uppercase tracking-widest">External Change</span>
+							<span className="text-text-dim normal-case">
+								This document was modified outside the app.
+							</span>
+							<div className="ml-auto flex gap-2">
+								{onKeepMine && (
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={onKeepMine}
+										className="text-xs font-semibold uppercase tracking-widest"
+									>
+										Keep Mine
+									</Button>
+								)}
+								{onReloadFromDisk && (
+									<Button
+										variant="primary"
+										size="sm"
+										onClick={onReloadFromDisk}
+										className="text-xs font-semibold uppercase tracking-widest"
+									>
+										Reload
+									</Button>
+								)}
+							</div>
+						</div>
+					)}
 					<DocumentEditorForm
 						blocks={formData.blocks}
 						tags={formData.tags}

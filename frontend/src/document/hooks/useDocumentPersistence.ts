@@ -97,8 +97,7 @@ export const useDocumentPersistence = ({
 				try {
 					const newHash = await DocumentServiceWrapper.getHash(savedPath);
 					onSaveComplete?.(newHash);
-				} catch {
-				}
+				} catch {}
 			}
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
@@ -109,7 +108,15 @@ export const useDocumentPersistence = ({
 			BackendLogger.error("Save failed:", err);
 			throw err;
 		}
-	}, [currentProject, save, resetChanges, onNewDocumentSaved, documentHash, onConflict, onSaveComplete]);
+	}, [
+		currentProject,
+		save,
+		resetChanges,
+		onNewDocumentSaved,
+		documentHash,
+		onConflict,
+		onSaveComplete,
+	]);
 
 	// Serialize saves: overlapping callers (autosave debounce + the new-document
 	// direct-save effect) chain instead of racing. Each run reads the latest form
