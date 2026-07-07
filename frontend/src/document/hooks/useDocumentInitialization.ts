@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DocumentServiceWrapper } from "../../shared/services/DocumentService";
 import type { BlockNoteBlock } from "../../shared/types/Document";
 import { createEmptyDocument } from "../utils/documentBlockUtils";
@@ -59,13 +59,22 @@ export const useDocumentInitialization = ({
 		setShouldAutoSave(false);
 	};
 
-	const refreshHash = () => {
+	const refreshHash = useCallback(() => {
 		if (documentPath) {
-			DocumentServiceWrapper.getHash(documentPath).then(setDocumentHash).catch(() => {
-				setDocumentHash(null);
-			});
+			const pathAtCall = documentPath;
+			DocumentServiceWrapper.getHash(documentPath)
+				.then((hash) => {
+					if (pathAtCall === documentPath) {
+						setDocumentHash(hash);
+					}
+				})
+				.catch(() => {
+					if (pathAtCall === documentPath) {
+						setDocumentHash(null);
+					}
+				});
 		}
-	};
+	}, [documentPath]);
 
 	return {
 		data,

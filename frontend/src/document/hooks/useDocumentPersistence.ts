@@ -102,7 +102,7 @@ export const useDocumentPersistence = ({
 			}
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
-			if (message.includes("modified externally")) {
+			if (message.includes("ERR_CONFLICT")) {
 				onConflict?.();
 				return;
 			}

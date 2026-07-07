@@ -31,6 +31,11 @@ type ProjectCache interface {
 	GetByAlias(ctx context.Context, alias string) (*project.Project, error)
 }
 
+type Watcher interface {
+	SuppressWrite(relPath string)
+	UnsuppressWrite(relPath string)
+}
+
 type Service struct {
 	db           *sql.DB
 	store        *Store
@@ -40,6 +45,7 @@ type Service struct {
 	projectCache ProjectCache
 	eventBus     *events.EventBus
 	saveMu       sync.Mutex // Serializes Save operations to prevent race conditions
+	watcher      Watcher
 }
 
 func NewService(db *sql.DB, store *Store, v *vault.Vault, idx Indexer, projectCache ProjectCache, eventBus *events.EventBus) *Service {
@@ -52,6 +58,10 @@ func NewService(db *sql.DB, store *Store, v *vault.Vault, idx Indexer, projectCa
 		projectCache: projectCache,
 		eventBus:     eventBus,
 	}
+}
+
+func (s *Service) SetWatcher(w Watcher) {
+	s.watcher = w
 }
 
 func (s *Service) emitEvent(eventName string, payload any) {
@@ -98,7 +108,7 @@ type SaveRequest struct {
 	ExpectedHash string
 }
 
-var ErrConflict = errors.New("document was modified externally")
+var ErrConflict = errors.New("ERR_CONFLICT: document was modified externally")
 
 func (s *Service) Save(ctx context.Context, req SaveRequest) (string, error) {
 	// Serialize Save operations to prevent race conditions where concurrent saves
@@ -158,6 +168,11 @@ func (s *Service) Save(ctx context.Context, req SaveRequest) (string, error) {
 				return "", fmt.Errorf("%w: document was modified externally", ErrConflict)
 			}
 		}
+	}
+
+	if s.watcher != nil {
+		s.watcher.SuppressWrite(docPath)
+		defer s.watcher.UnsuppressWrite(docPath)
 	}
 
 	if err := s.fm.WriteFile(docPath, docFile); err != nil {

@@ -33,6 +33,10 @@ type Watcher struct {
 
 	eventBus *events.EventBus
 
+	// suppressMu protects suppressWrites; held briefly to check/update the set.
+	suppressMu      sync.Mutex
+	suppressWrites  map[string]struct{}
+
 	ctx    context.Context
 	cancel context.CancelFunc
 	done   chan struct{}
@@ -70,6 +74,7 @@ func NewWatcher(
 		watcher:        fsWatcher,
 		debounce:       make(map[string]*time.Timer),
 		debounceWindow: 500 * time.Millisecond,
+		suppressWrites: make(map[string]struct{}),
 		errors:         make(chan error, 10),
 		done:           make(chan struct{}),
 	}
@@ -187,7 +192,7 @@ func (w *Watcher) executeIndexing(relPath string, op fsnotify.Op) {
 		if err := w.indexer.IndexDocument(ctx, relPath); err != nil {
 			w.errors <- fmt.Errorf("indexing %s: %w", relPath, err)
 		}
-		if w.eventBus != nil {
+		if w.eventBus != nil && !w.isSuppressed(relPath) {
 			w.eventBus.Emit(events.EntryExternalChange, events.EntryExternalChangeData{
 				Path: relPath,
 			})
@@ -239,4 +244,27 @@ func (w *Watcher) handleError(err error) {
 	case w.errors <- err:
 	default:
 	}
+}
+
+// SuppressWrite marks a path as being written by the app, so the watcher won't
+// emit EntryExternalChange for it. Call UnsuppressWrite when the write completes.
+func (w *Watcher) SuppressWrite(relPath string) {
+	w.suppressMu.Lock()
+	defer w.suppressMu.Unlock()
+	w.suppressWrites[relPath] = struct{}{}
+}
+
+// UnsuppressWrite removes the suppression for a path after the app's write completes.
+func (w *Watcher) UnsuppressWrite(relPath string) {
+	w.suppressMu.Lock()
+	defer w.suppressMu.Unlock()
+	delete(w.suppressWrites, relPath)
+}
+
+// isSuppressed checks if a path is currently suppressed.
+func (w *Watcher) isSuppressed(relPath string) bool {
+	w.suppressMu.Lock()
+	defer w.suppressMu.Unlock()
+	_, ok := w.suppressWrites[relPath]
+	return ok
 }

@@ -1,3 +1,4 @@
+import { AlertTriangle } from "lucide-react";
 import React, { useCallback, useEffect, useRef } from "react";
 import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import { DocumentEditorActions, DocumentEditorForm } from "../../document/components";
@@ -6,7 +7,7 @@ import { useHotkeys } from "../../hotkeys";
 import { useEscapeHandler } from "../../shared/hooks";
 import { useLatestRef } from "../../shared/hooks/useLatestRef";
 import type { NavigationState, PageName } from "../../shared/types";
-import { AlertTriangle, Button, LoadingSpinner } from "../../shared/ui";
+import { Button, LoadingSpinner } from "../../shared/ui";
 import { findPane, usePaneLayout } from "..";
 import { PaneHeader } from "./PaneHeader";
 
