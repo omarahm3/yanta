@@ -2,7 +2,9 @@ package document
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -93,7 +95,10 @@ type SaveRequest struct {
 	Title        string
 	Blocks       []BlockNoteBlock
 	Tags         []string
+	ExpectedHash string
 }
+
+var ErrConflict = errors.New("document was modified externally")
 
 func (s *Service) Save(ctx context.Context, req SaveRequest) (string, error) {
 	// Serialize Save operations to prevent race conditions where concurrent saves
@@ -141,6 +146,18 @@ func (s *Service) Save(ctx context.Context, req SaveRequest) (string, error) {
 			return "", fmt.Errorf("reading existing document: %w", err)
 		}
 		docFile.Meta.Created = existing.Meta.Created
+
+		if req.ExpectedHash != "" {
+			currentHash := ComputeFileHash(existing)
+			if currentHash != req.ExpectedHash {
+				logger.WithFields(map[string]any{
+					"path":         docPath,
+					"expectedHash": req.ExpectedHash,
+					"currentHash":  currentHash,
+				}).Warn("document conflict detected: file was modified externally")
+				return "", fmt.Errorf("%w: document was modified externally", ErrConflict)
+			}
+		}
 	}
 
 	if err := s.fm.WriteFile(docPath, docFile); err != nil {
@@ -181,6 +198,14 @@ func (s *Service) Save(ctx context.Context, req SaveRequest) (string, error) {
 	}).Info("document saved")
 
 	return docPath, nil
+}
+
+func (s *Service) GetDocumentHash(ctx context.Context, path string) (string, error) {
+	file, err := s.fm.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("reading document file: %w", err)
+	}
+	return ComputeFileHash(file), nil
 }
 
 type DocumentWithTags struct {

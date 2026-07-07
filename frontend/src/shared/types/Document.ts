@@ -53,6 +53,7 @@ export interface SaveDocumentRequest {
 	title: string;
 	blocks: BlockNoteBlock[];
 	tags: string[];
+	expectedHash?: string;
 }
 
 export function documentFromModel(model: documentModels.Document): Document {

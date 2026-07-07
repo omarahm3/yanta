@@ -51,6 +51,7 @@ type App struct {
 	hotkeyManager *hotkeys.Manager
 	syncManager   *git.SyncManager
 	eventBus      *events.EventBus
+	watcher       *indexer.Watcher
 
 	wailsApp   *application.App
 	mainWindow *application.WebviewWindow
@@ -145,6 +146,18 @@ func New(cfg Config) (*App, error) {
 		syncManager,
 		eventBus,
 	)
+
+	watcher, err := indexer.NewWatcher(v, idx, indexer.WithEventBus(eventBus))
+	if err != nil {
+		logger.Warnf("failed to create file watcher: %v", err)
+	} else {
+		a.watcher = watcher
+		if err := watcher.Start(context.Background()); err != nil {
+			logger.Warnf("failed to start file watcher: %v", err)
+		} else {
+			logger.Info("file watcher started for external change detection")
+		}
+	}
 
 	projectCache := project.NewCache(projectStore)
 	projectService := project.NewService(a.DB, projectStore, projectCache, v, syncManager, eventBus)
@@ -363,6 +376,15 @@ func (a *App) Shutdown() {
 			logger.Debug("shutting down sync manager...")
 			a.syncManager.Shutdown()
 			logger.Debug("sync manager shut down")
+		}
+
+		if a.watcher != nil {
+			logger.Debug("stopping file watcher...")
+			if err := a.watcher.Stop(); err != nil {
+				logger.WithError(err).Warn("failed to stop file watcher")
+			} else {
+				logger.Debug("file watcher stopped")
+			}
 		}
 
 		if a.DB != nil {

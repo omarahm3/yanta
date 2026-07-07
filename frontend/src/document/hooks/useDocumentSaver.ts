@@ -11,6 +11,7 @@ interface SaveDocumentParams {
 	tags: string[];
 	documentPath?: string;
 	projectAlias: string;
+	expectedHash?: string;
 }
 
 // Orphan cleanup is a full-project scan; running it on every debounced autosave
@@ -48,6 +49,7 @@ export const useAutoDocumentSaver = () => {
 				title: params.title || "Untitled",
 				blocks: normalizedBlocks,
 				tags: params.tags,
+				expectedHash: params.expectedHash,
 			});
 
 			const assetHashes = extractAssetHashes(normalizedBlocks);

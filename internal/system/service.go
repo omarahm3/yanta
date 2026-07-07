@@ -876,9 +876,15 @@ func (s *Service) GitPull(ctx context.Context) error {
 		branch = "master"
 	}
 
+	headBefore, _ := gitService.GetLastCommitHash(ctx, dataDir)
+
 	logger.Info("pulling from remote")
 	if err := gitService.Pull(ctx, dataDir, "origin", branch); err != nil {
 		return normalizeGitTimeoutError(ctx, err, "pull")
+	}
+
+	if headAfter, _ := gitService.GetLastCommitHash(ctx, dataDir); headAfter != "" && headAfter != headBefore {
+		s.reindexAfterSyncPull(ctx)
 	}
 
 	logger.Info("pull completed successfully")

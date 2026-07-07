@@ -101,11 +101,16 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 			void refreshDocuments();
 		});
 
+		const unsubscribeExternalChange = Events.On("yanta/entry/external-change", () => {
+			void refreshDocuments();
+		});
+
 		return () => {
 			unsubscribeCreated();
 			unsubscribeUpdated();
 			unsubscribeDeleted();
 			unsubscribeRestored();
+			unsubscribeExternalChange();
 		};
 	}, [refreshDocuments]);
 

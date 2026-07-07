@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useAutoSave } from "../../shared/hooks";
+import { DocumentServiceWrapper } from "../../shared/services/DocumentService";
 import type { BlockNoteBlock } from "../../shared/types/Document";
 import type { Project } from "../../shared/types/Project";
 import { BackendLogger } from "../../shared/utils/backendLogger";
@@ -24,6 +25,9 @@ interface UseDocumentPersistenceProps {
 	onAutoSaveComplete: () => void;
 	isEditorReady?: boolean;
 	onNewDocumentSaved?: () => void;
+	documentHash?: string | null;
+	onConflict?: () => void;
+	onSaveComplete?: (newHash: string) => void;
 }
 
 export const useDocumentPersistence = ({
@@ -37,6 +41,9 @@ export const useDocumentPersistence = ({
 	onAutoSaveComplete,
 	isEditorReady = false,
 	onNewDocumentSaved,
+	documentHash,
+	onConflict,
+	onSaveComplete,
 }: UseDocumentPersistenceProps) => {
 	const latestFormRef = useRef(formData);
 	const currentDocumentPathRef = useRef(documentPath);
@@ -76,21 +83,33 @@ export const useDocumentPersistence = ({
 				tags: currentFormData.tags,
 				documentPath: currentPath,
 				projectAlias: currentProject.alias,
+				expectedHash: documentHash || undefined,
 			});
 
 			if (savedPath) {
 				resetChanges();
-			}
 
-			if (isNewDocument && savedPath) {
-				currentDocumentPathRef.current = savedPath;
-				onNewDocumentSaved?.();
+				if (isNewDocument) {
+					currentDocumentPathRef.current = savedPath;
+					onNewDocumentSaved?.();
+				}
+
+				try {
+					const newHash = await DocumentServiceWrapper.getHash(savedPath);
+					onSaveComplete?.(newHash);
+				} catch {
+				}
 			}
 		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			if (message.includes("modified externally")) {
+				onConflict?.();
+				return;
+			}
 			BackendLogger.error("Save failed:", err);
 			throw err;
 		}
-	}, [currentProject, save, resetChanges, onNewDocumentSaved]);
+	}, [currentProject, save, resetChanges, onNewDocumentSaved, documentHash, onConflict, onSaveComplete]);
 
 	// Serialize saves: overlapping callers (autosave debounce + the new-document
 	// direct-save effect) chain instead of racing. Each run reads the latest form

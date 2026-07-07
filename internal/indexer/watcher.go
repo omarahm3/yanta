@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"yanta/internal/events"
 	"yanta/internal/vault"
 
 	"github.com/fsnotify/fsnotify"
@@ -30,6 +31,8 @@ type Watcher struct {
 	debounceMu     sync.Mutex
 	debounceWindow time.Duration
 
+	eventBus *events.EventBus
+
 	ctx    context.Context
 	cancel context.CancelFunc
 	done   chan struct{}
@@ -42,6 +45,12 @@ type WatcherOption func(*Watcher)
 func WithDebounceWindow(d time.Duration) WatcherOption {
 	return func(w *Watcher) {
 		w.debounceWindow = d
+	}
+}
+
+func WithEventBus(bus *events.EventBus) WatcherOption {
+	return func(w *Watcher) {
+		w.eventBus = bus
 	}
 }
 
@@ -177,6 +186,11 @@ func (w *Watcher) executeIndexing(relPath string, op fsnotify.Op) {
 		op&fsnotify.Write == fsnotify.Write:
 		if err := w.indexer.IndexDocument(ctx, relPath); err != nil {
 			w.errors <- fmt.Errorf("indexing %s: %w", relPath, err)
+		}
+		if w.eventBus != nil {
+			w.eventBus.Emit(events.EntryExternalChange, events.EntryExternalChangeData{
+				Path: relPath,
+			})
 		}
 
 	case op&fsnotify.Remove == fsnotify.Remove:
