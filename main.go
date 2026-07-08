@@ -246,12 +246,15 @@ func run() {
 
 			flushDone := make(chan struct{})
 			var flushOnce sync.Once
-			wailsApp.Event.On("yanta/app/flush-dirty:ack", func(event *application.CustomEvent) {
-				logger.Debug("Received flush-dirty ack from frontend")
-				// Guard the close: the frontend may ack more than once, and
-				// closing an already-closed channel panics.
-				flushOnce.Do(func() { close(flushDone) })
-			})
+			unsubscribeAck := wailsApp.Event.On(
+				"yanta/app/flush-dirty:ack",
+				func(event *application.CustomEvent) {
+					logger.Debug("Received flush-dirty ack from frontend")
+					// Guard the close: the frontend may ack more than once, and
+					// closing an already-closed channel panics.
+					flushOnce.Do(func() { close(flushDone) })
+				},
+			)
 
 			wailsApp.Event.Emit("yanta/app/flush-dirty", nil)
 
@@ -262,6 +265,7 @@ func run() {
 				case <-time.After(3 * time.Second):
 					logger.Warn("Frontend flush timed out (3s), quitting anyway")
 				}
+				unsubscribeAck()
 				wailsApp.Quit()
 			}()
 		}

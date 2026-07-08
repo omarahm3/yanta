@@ -4,18 +4,25 @@ import { useSaveErrorStore } from "@/shared/stores/saveError.store";
 
 export type SaveState = "idle" | "saving" | "saved" | "error";
 
-const activeSavers = new Set<() => Promise<void>>();
+interface RegisteredSaver {
+	save: () => Promise<void>;
+	isDirty: () => boolean;
+}
 
-export function registerSaver(saveNow: () => Promise<void>): () => void {
-	activeSavers.add(saveNow);
+const activeSavers = new Set<RegisteredSaver>();
+
+export function registerSaver(save: () => Promise<void>, isDirty: () => boolean): () => void {
+	const saver: RegisteredSaver = { save, isDirty };
+	activeSavers.add(saver);
 	return () => {
-		activeSavers.delete(saveNow);
+		activeSavers.delete(saver);
 	};
 }
 
+/** Flush only editors that actually have unsaved changes (used on quit). */
 export async function flushAllDirty(): Promise<void> {
-	const savers = Array.from(activeSavers);
-	await Promise.all(savers.map((s) => s().catch(() => {})));
+	const savers = Array.from(activeSavers).filter((s) => s.isDirty());
+	await Promise.all(savers.map((s) => s.save().catch(() => {})));
 }
 
 interface AutoSaveConfig<T> {
@@ -75,6 +82,13 @@ export const useAutoSave = <T>({
 	const enabledRef = useRef(enabled);
 	enabledRef.current = enabled;
 
+	// Stable per-instance token so this editor's save error is isolated from
+	// other useAutoSave instances (e.g. other panes) in the global store.
+	const errorKeyRef = useRef<object>({});
+	// Live view of hasUnsavedChanges for the flush-on-quit dirty check.
+	const hasUnsavedChangesRef = useRef(hasUnsavedChanges);
+	hasUnsavedChangesRef.current = hasUnsavedChanges;
+
 	useEffect(() => {
 		onSaveRef.current = onSave;
 	}, [onSave]);
@@ -114,7 +128,7 @@ export const useAutoSave = <T>({
 			setLastSaved(new Date());
 			setSaveState("saved");
 			retryCountRef.current = 0;
-			useSaveErrorStore.getState().clearError();
+			useSaveErrorStore.getState().clearError(errorKeyRef.current);
 
 			if (savedStateTimeoutRef.current) {
 				clearTimeout(savedStateTimeoutRef.current);
@@ -161,7 +175,7 @@ export const useAutoSave = <T>({
 				setSaveError(error);
 				setSaveState("error");
 				retryCountRef.current = 0;
-				useSaveErrorStore.getState().setError(error, saveNow);
+				useSaveErrorStore.getState().setError(errorKeyRef.current, error, saveNow);
 			}
 		} finally {
 			isSavingRef.current = false;
@@ -177,7 +191,14 @@ export const useAutoSave = <T>({
 	}, [performSave]);
 
 	useEffect(() => {
-		return registerSaver(saveNow);
+		const key = errorKeyRef.current;
+		const unregister = registerSaver(saveNow, () => hasUnsavedChangesRef.current);
+		return () => {
+			unregister();
+			// Drop this instance's error when it unmounts so a closed pane can't
+			// leave a stale error/dirty flag blocking navigation.
+			useSaveErrorStore.getState().clearError(key);
+		};
 	}, [saveNow]);
 
 	useEffect(() => {
@@ -271,7 +292,7 @@ export const useAutoSave = <T>({
 
 	useEffect(() => {
 		const isDirtyWithError = saveState === "error" && hasUnsavedChanges;
-		useSaveErrorStore.getState().setDirtyError(isDirtyWithError);
+		useSaveErrorStore.getState().setDirtyError(errorKeyRef.current, isDirtyWithError);
 	}, [saveState, hasUnsavedChanges]);
 
 	return {

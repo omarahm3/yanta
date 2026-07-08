@@ -3,17 +3,25 @@ import { useCallback } from "react";
 import { useSaveErrorStore } from "../../shared/stores/saveError.store";
 
 export function SaveErrorBanner() {
-	const error = useSaveErrorStore((s) => s.error);
-	const retryFn = useSaveErrorStore((s) => s.retryFn);
+	const errors = useSaveErrorStore((s) => s.errors);
 	const clearError = useSaveErrorStore((s) => s.clearError);
 
-	const handleRetry = useCallback(async () => {
-		if (retryFn) {
-			await retryFn();
-		}
-	}, [retryFn]);
+	// Surface one failure at a time; dismissing reveals the next, if any.
+	const [activeKey, activeEntry] = Array.from(errors.entries())[0] ?? [];
 
-	if (!error) {
+	const handleRetry = useCallback(async () => {
+		if (activeEntry?.retryFn) {
+			await activeEntry.retryFn();
+		}
+	}, [activeEntry]);
+
+	const handleDismiss = useCallback(() => {
+		if (activeKey) {
+			clearError(activeKey);
+		}
+	}, [activeKey, clearError]);
+
+	if (!activeEntry) {
 		return null;
 	}
 
@@ -22,7 +30,7 @@ export function SaveErrorBanner() {
 			<AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
 			<div className="flex-1">
 				<p className="text-sm font-medium text-destructive">Save failed</p>
-				<p className="mt-1 text-xs text-muted-foreground">{error.message}</p>
+				<p className="mt-1 text-xs text-muted-foreground">{activeEntry.error.message}</p>
 				<div className="mt-3 flex gap-2">
 					<button
 						type="button"
@@ -33,7 +41,7 @@ export function SaveErrorBanner() {
 					</button>
 					<button
 						type="button"
-						onClick={clearError}
+						onClick={handleDismiss}
 						className="rounded-md border border-muted px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50"
 					>
 						Dismiss
