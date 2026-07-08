@@ -1,3 +1,4 @@
+import { TextSelection } from "prosemirror-state";
 import { useCallback, useEffect, useState } from "react";
 import {
 	getTiptapEditor,
@@ -6,6 +7,7 @@ import {
 } from "../../shared/utils/blocknoteInternals";
 import type { EditorHandle } from "../types";
 import { createFindPlugin, type FindMeta, findPluginKey } from "./findPlugin";
+import { applyReplaceAll, applyReplaceOne } from "./replace";
 
 export interface EditorFindApi {
 	query: string;
@@ -13,10 +15,16 @@ export interface EditorFindApi {
 	matchCount: number;
 	/** 0-based index of the current match, or -1 when there are none. */
 	activeIndex: number;
+	replaceValue: string;
 	setQuery: (query: string) => void;
 	toggleCaseSensitive: () => void;
 	next: () => void;
 	prev: () => void;
+	setReplaceValue: (value: string) => void;
+	/** Replace the active match and advance to the next one. */
+	replaceCurrent: () => void;
+	/** Replace every match in one transaction. */
+	replaceAll: () => void;
 }
 
 /**
@@ -32,6 +40,7 @@ export function useEditorFind(editor: EditorHandle): EditorFindApi {
 	const [caseSensitive, setCaseSensitive] = useState(false);
 	const [matchCount, setMatchCount] = useState(0);
 	const [activeIndex, setActiveIndex] = useState(-1);
+	const [replaceValue, setReplaceValueState] = useState("");
 
 	useEffect(() => {
 		const tiptap = getTiptapEditor(editor);
@@ -92,12 +101,22 @@ export function useEditorFind(editor: EditorHandle): EditorFindApi {
 			const match = state.matches[state.activeIndex];
 			if (!match) return;
 
+			// Move the editor selection onto the active match so the caret lands there
+			// when focus returns to the editor (on close/accept), and scroll it into
+			// view. The find input keeps DOM focus, so this doesn't steal the cursor.
 			try {
-				const { node } = view.domAtPos(match.from);
-				const el = node.nodeType === 3 ? node.parentElement : (node as HTMLElement);
-				el?.scrollIntoView({ block: "center", inline: "nearest" });
+				const selection = TextSelection.create(view.state.doc, match.from, match.to);
+				view.dispatch(view.state.tr.setSelection(selection).scrollIntoView());
 			} catch {
-				// domAtPos can throw on a transient view; the highlight is still applied.
+				// Fall back to a best-effort scroll if the selection can't be built on a
+				// transient view; the highlight decoration is still applied.
+				try {
+					const { node } = view.domAtPos(match.from);
+					const el = node.nodeType === 3 ? node.parentElement : (node as HTMLElement);
+					el?.scrollIntoView({ block: "center", inline: "nearest" });
+				} catch {
+					// domAtPos can throw on a transient view; nothing else to do.
+				}
 			}
 		},
 		[editor],
@@ -133,14 +152,46 @@ export function useEditorFind(editor: EditorHandle): EditorFindApi {
 	const next = useCallback(() => step(1), [step]);
 	const prev = useCallback(() => step(-1), [step]);
 
+	const setReplaceValue = useCallback((value: string) => setReplaceValueState(value), []);
+
+	const replaceCurrent = useCallback(() => {
+		if (!isEditorAlive(editor)) return;
+		const view = editor.prosemirrorView;
+		if (!view) return;
+		const state = findPluginKey.getState(view.state);
+		if (!state || state.activeIndex < 0) return;
+		const match = state.matches[state.activeIndex];
+		if (!match) return;
+
+		const targetIndex = state.activeIndex;
+		view.dispatch(applyReplaceOne(view.state.tr, match, replaceValue));
+		// The doc-changed re-find recomputes the match set; navigate to whatever now
+		// sits at the same index (the following occurrence) and scroll/select it.
+		dispatchAndScroll({ activeIndex: targetIndex });
+	}, [editor, replaceValue, dispatchAndScroll]);
+
+	const replaceAll = useCallback(() => {
+		if (!isEditorAlive(editor)) return;
+		const view = editor.prosemirrorView;
+		if (!view) return;
+		const state = findPluginKey.getState(view.state);
+		if (!state || state.matches.length === 0) return;
+
+		view.dispatch(applyReplaceAll(view.state.tr, state.matches, replaceValue));
+	}, [editor, replaceValue]);
+
 	return {
 		query,
 		caseSensitive,
 		matchCount,
 		activeIndex,
+		replaceValue,
 		setQuery,
 		toggleCaseSensitive,
 		next,
 		prev,
+		setReplaceValue,
+		replaceCurrent,
+		replaceAll,
 	};
 }

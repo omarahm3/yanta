@@ -14,6 +14,7 @@ export interface UseDocumentHotkeysConfigOptions {
 	handleUnfocus: (event: KeyboardEvent) => void;
 	focusEditor: () => void;
 	openFind: () => void;
+	openReplace: () => void;
 }
 
 export function useDocumentHotkeysConfig({
@@ -27,6 +28,7 @@ export function useDocumentHotkeysConfig({
 	handleUnfocus,
 	focusEditor,
 	openFind,
+	openReplace,
 }: UseDocumentHotkeysConfigOptions): HotkeyConfig[] {
 	const { shortcuts } = useMergedConfig();
 	const document = shortcuts.document;
@@ -55,6 +57,17 @@ export function useDocumentHotkeysConfig({
 					event.preventDefault();
 					event.stopPropagation();
 					openFind();
+				},
+				allowInInput: true,
+				capture: true,
+			},
+			{
+				...document.documentReplace,
+				handler: (event: KeyboardEvent) => {
+					if (!isActivePaneRef.current) return false;
+					event.preventDefault();
+					event.stopPropagation();
+					openReplace();
 				},
 				allowInInput: true,
 				capture: true,
@@ -128,6 +141,7 @@ export function useDocumentHotkeysConfig({
 			handleExportToPDF,
 			isActivePaneRef,
 			openFind,
+			openReplace,
 		],
 	);
 }
