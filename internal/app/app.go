@@ -166,6 +166,7 @@ func New(cfg Config) (*App, error) {
 	systemService.SetDBPath(a.DBPath)
 	systemService.SetIndexer(idx)
 	systemService.SetGitLock(gitLock)
+	syncManager.SetReindexFunc(systemService.ReindexAfterSyncPull)
 
 	assetService := asset.NewService(asset.ServiceConfig{
 		DB:          a.DB,

@@ -778,3 +778,126 @@ func TestSyncManager_Notify_NilEmitterIsNoop(t *testing.T) {
 		sm.notify(nil)
 	})
 }
+
+// pushWithRebaseRetry triggers the reindex callback after a successful
+// rebase-pull (non-fast-forward push). The callback must fire with a fresh
+// context, not the git-operation context.
+func TestSyncManager_PushWithRebaseRetry_TriggersReindex(t *testing.T) {
+	skipIfNoGit(t)
+
+	tempDir := t.TempDir()
+	remoteDir := filepath.Join(tempDir, "remote.git")
+	localDir := filepath.Join(tempDir, "local")
+
+	ctx := context.Background()
+	gitService := NewService()
+
+	cmd := exec.Command("git", "init", "--bare", remoteDir)
+	require.NoError(t, cmd.Run())
+
+	cmd = exec.Command("git", "clone", remoteDir, localDir)
+	require.NoError(t, cmd.Run())
+
+	cmd = exec.Command("git", "config", "user.email", "test@example.com")
+	cmd.Dir = localDir
+	require.NoError(t, cmd.Run())
+	cmd = exec.Command("git", "config", "user.name", "Test User")
+	cmd.Dir = localDir
+	require.NoError(t, cmd.Run())
+
+	require.NoError(t, os.MkdirAll(filepath.Join(localDir, "vault"), 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(localDir, "vault", "initial.txt"), []byte("initial"), 0644))
+	require.NoError(t, gitService.Add(ctx, localDir, "vault/"))
+	require.NoError(t, gitService.Commit(ctx, localDir, "initial commit"))
+	require.NoError(t, gitService.Push(ctx, localDir, "origin", "master"))
+
+	remoteWorkDir := filepath.Join(tempDir, "remote-work")
+	cmd = exec.Command("git", "clone", remoteDir, remoteWorkDir)
+	require.NoError(t, cmd.Run())
+	cmd = exec.Command("git", "config", "user.email", "test@example.com")
+	cmd.Dir = remoteWorkDir
+	require.NoError(t, cmd.Run())
+	cmd = exec.Command("git", "config", "user.name", "Test User")
+	cmd.Dir = remoteWorkDir
+	require.NoError(t, cmd.Run())
+	require.NoError(t, os.WriteFile(filepath.Join(remoteWorkDir, "vault", "remote.txt"), []byte("remote change"), 0644))
+	require.NoError(t, gitService.Add(ctx, remoteWorkDir, "vault/"))
+	require.NoError(t, gitService.Commit(ctx, remoteWorkDir, "remote commit"))
+	require.NoError(t, gitService.Push(ctx, remoteWorkDir, "origin", "master"))
+
+	require.NoError(t, os.WriteFile(filepath.Join(localDir, "vault", "local.txt"), []byte("local change"), 0644))
+	require.NoError(t, gitService.Add(ctx, localDir, "vault/"))
+	require.NoError(t, gitService.Commit(ctx, localDir, "local commit"))
+
+	cleanup := setupTestConfig(t, localDir, config.GitSyncConfig{
+		Enabled:        true,
+		AutoCommit:     true,
+		AutoPush:       true,
+		CommitInterval: 10,
+	})
+	defer cleanup()
+
+	database := setupTestDB(t, tempDir)
+	sm := NewSyncManager(database)
+	defer sm.Shutdown()
+
+	var reindexCalled int
+	sm.SetReindexFunc(func(ctx context.Context) {
+		reindexCalled++
+	})
+
+	status := sm.pushWithRebaseRetry(ctx, localDir, "master")
+	assert.Equal(t, SyncStatusSynced, status)
+	assert.Equal(t, 1, reindexCalled, "reindex callback must fire exactly once after a successful rebase-pull")
+}
+
+// pushWithRebaseRetry does NOT trigger the reindex callback when the push
+// succeeds on the first try (no pull needed).
+func TestSyncManager_PushWithRebaseRetry_NoReindexOnCleanPush(t *testing.T) {
+	skipIfNoGit(t)
+
+	tempDir := t.TempDir()
+	remoteDir := filepath.Join(tempDir, "remote.git")
+	localDir := filepath.Join(tempDir, "local")
+
+	ctx := context.Background()
+	gitService := NewService()
+
+	cmd := exec.Command("git", "init", "--bare", remoteDir)
+	require.NoError(t, cmd.Run())
+
+	cmd = exec.Command("git", "clone", remoteDir, localDir)
+	require.NoError(t, cmd.Run())
+	cmd = exec.Command("git", "config", "user.email", "test@example.com")
+	cmd.Dir = localDir
+	require.NoError(t, cmd.Run())
+	cmd = exec.Command("git", "config", "user.name", "Test User")
+	cmd.Dir = localDir
+	require.NoError(t, cmd.Run())
+
+	require.NoError(t, os.MkdirAll(filepath.Join(localDir, "vault"), 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(localDir, "vault", "initial.txt"), []byte("initial"), 0644))
+	require.NoError(t, gitService.Add(ctx, localDir, "vault/"))
+	require.NoError(t, gitService.Commit(ctx, localDir, "initial commit"))
+
+	cleanup := setupTestConfig(t, localDir, config.GitSyncConfig{
+		Enabled:        true,
+		AutoCommit:     true,
+		AutoPush:       true,
+		CommitInterval: 10,
+	})
+	defer cleanup()
+
+	database := setupTestDB(t, tempDir)
+	sm := NewSyncManager(database)
+	defer sm.Shutdown()
+
+	var reindexCalled int
+	sm.SetReindexFunc(func(ctx context.Context) {
+		reindexCalled++
+	})
+
+	status := sm.pushWithRebaseRetry(ctx, localDir, "master")
+	assert.Equal(t, SyncStatusSynced, status)
+	assert.Equal(t, 0, reindexCalled, "reindex callback must NOT fire when no pull was needed")
+}
