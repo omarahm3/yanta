@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"yanta/internal/document"
-	"yanta/internal/events"
 	"yanta/internal/vault"
 
 	"github.com/stretchr/testify/assert"
@@ -323,7 +322,19 @@ func TestWatcher_MultipleDocuments(t *testing.T) {
 	assert.Contains(t, mockIdx.indexed, doc3, "doc3 should be indexed")
 }
 
-func TestWatcher_SuppressWrite(t *testing.T) {
+// documentContentHash computes the content hash of the document at relPath the
+// same way the watcher and Save do, so a test can simulate what the app records
+// via NoteAppWrite after writing a file.
+func documentContentHash(t *testing.T, v *vault.Vault, relPath string) string {
+	reader := document.NewFileReader(v)
+	df, err := reader.ReadFile(relPath)
+	require.NoError(t, err)
+	return document.ComputeFileHash(df)
+}
+
+// A write the app has reconciled (via NoteAppWrite) must not be re-indexed or
+// reported as an external change, regardless of debounce timing.
+func TestWatcher_NoteAppWrite_SkipsSelfWrite(t *testing.T) {
 	v := createTestVault(t)
 	mockIdx := &mockIndexer{}
 
@@ -340,7 +351,6 @@ func TestWatcher_SuppressWrite(t *testing.T) {
 	createProjectDir(t, v, "@test-project")
 	time.Sleep(200 * time.Millisecond)
 
-	// Create a document
 	docPath := createDocumentInVault(t, v, "@test-project", "Test Document")
 	time.Sleep(300 * time.Millisecond)
 
@@ -349,34 +359,28 @@ func TestWatcher_SuppressWrite(t *testing.T) {
 	mockIdx.indexed = nil
 	mockIdx.mu.Unlock()
 
-	// Suppress the write before modifying
-	watcher.SuppressWrite(docPath)
-
-	// Modify the document while suppressed
+	// Simulate an app save: write the file, then record the resulting content
+	// hash — exactly what Service.Save does after WriteFile.
 	modifyDocument(t, v, docPath, "Modified Content")
+	watcher.NoteAppWrite(docPath, documentContentHash(t, v, docPath))
 
-	// Unsuppress after a short delay (simulating app save completing)
-	time.Sleep(50 * time.Millisecond)
-	watcher.UnsuppressWrite(docPath)
-
-	// Wait for debounce window to pass
+	// Wait for the debounce window to elapse and the handler to run.
 	time.Sleep(300 * time.Millisecond)
 
 	mockIdx.mu.Lock()
 	defer mockIdx.mu.Unlock()
 
-	// The write should NOT be indexed because it was suppressed
-	assert.Empty(t, mockIdx.indexed, "suppressed write should not be indexed")
+	// The app's own write must not be re-indexed.
+	assert.Empty(t, mockIdx.indexed, "reconciled self-write should not be re-indexed")
 }
 
-func TestWatcher_SuppressWrite_OnlySkipsIndexing(t *testing.T) {
+// A change on disk that the app has not reconciled is a genuine external change
+// and must be indexed.
+func TestWatcher_ExternalChange_Indexed(t *testing.T) {
 	v := createTestVault(t)
 	mockIdx := &mockIndexer{}
 
-	// Use real EventBus - it will buffer events since no app is connected
-	eventBus := events.NewEventBus()
-
-	watcher, err := NewWatcher(v, mockIdx, WithDebounceWindow(100*time.Millisecond), WithEventBus(eventBus))
+	watcher, err := NewWatcher(v, mockIdx, WithDebounceWindow(100*time.Millisecond))
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -397,22 +401,55 @@ func TestWatcher_SuppressWrite_OnlySkipsIndexing(t *testing.T) {
 	mockIdx.indexed = nil
 	mockIdx.mu.Unlock()
 
-	// Suppress the write
-	watcher.SuppressWrite(docPath)
+	// Modify the document without recording it — a genuine external change.
+	modifyDocument(t, v, docPath, "External Edit")
 
-	// Modify the document while suppressed
-	modifyDocument(t, v, docPath, "Modified Content")
-
-	// Unsuppress after a short delay
-	time.Sleep(50 * time.Millisecond)
-	watcher.UnsuppressWrite(docPath)
-
-	// Wait for debounce window to pass
+	// Wait for the debounce window to pass
 	time.Sleep(300 * time.Millisecond)
 
 	mockIdx.mu.Lock()
 	defer mockIdx.mu.Unlock()
 
-	// The write should NOT be indexed
-	assert.Empty(t, mockIdx.indexed, "suppressed write should not be indexed")
+	assert.Contains(t, mockIdx.indexed, docPath, "unreconciled external change should be indexed")
+}
+
+// A self-write reconciled once must not silently swallow a later genuine
+// external change to the same path.
+func TestWatcher_ExternalChange_AfterSelfWrite(t *testing.T) {
+	v := createTestVault(t)
+	mockIdx := &mockIndexer{}
+
+	watcher, err := NewWatcher(v, mockIdx, WithDebounceWindow(100*time.Millisecond))
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	err = watcher.Start(ctx)
+	require.NoError(t, err)
+	defer watcher.Stop()
+
+	createProjectDir(t, v, "@test-project")
+	time.Sleep(200 * time.Millisecond)
+
+	docPath := createDocumentInVault(t, v, "@test-project", "Test Document")
+	time.Sleep(300 * time.Millisecond)
+
+	// App save, reconciled.
+	modifyDocument(t, v, docPath, "App Content")
+	watcher.NoteAppWrite(docPath, documentContentHash(t, v, docPath))
+	time.Sleep(300 * time.Millisecond)
+
+	mockIdx.mu.Lock()
+	mockIdx.indexed = nil
+	mockIdx.mu.Unlock()
+
+	// A later external edit with different content must still be indexed.
+	modifyDocument(t, v, docPath, "External Content")
+	time.Sleep(300 * time.Millisecond)
+
+	mockIdx.mu.Lock()
+	defer mockIdx.mu.Unlock()
+
+	assert.Contains(t, mockIdx.indexed, docPath, "external change after a self-write should be indexed")
 }

@@ -30,8 +30,7 @@ type ProjectCache interface {
 }
 
 type Watcher interface {
-	SuppressWrite(relPath string)
-	UnsuppressWrite(relPath string)
+	NoteAppWrite(relPath, contentHash string)
 }
 
 type Service struct {
@@ -168,14 +167,21 @@ func (s *Service) Save(ctx context.Context, req SaveRequest) (string, error) {
 		}
 	}
 
-	if s.watcher != nil {
-		s.watcher.SuppressWrite(docPath)
-		defer s.watcher.UnsuppressWrite(docPath)
-	}
-
 	if err := s.fm.WriteFile(docPath, docFile); err != nil {
 		logger.WithError(err).WithField("path", docPath).Error("failed to write document file")
 		return "", fmt.Errorf("writing document file: %w", err)
+	}
+
+	// Tell the watcher the content we just wrote so its debounced filesystem
+	// event for this write is recognized as a self-write and not reported as an
+	// external change. The hash is read back from disk so it is computed exactly
+	// as the watcher computes it (post-normalization), independent of any timing.
+	if s.watcher != nil {
+		if writtenHash, err := s.GetDocumentHash(ctx, docPath); err == nil {
+			s.watcher.NoteAppWrite(docPath, writtenHash)
+		} else {
+			logger.WithError(err).WithField("path", docPath).Warn("failed to hash written document for watcher reconciliation")
+		}
 	}
 
 	if err := s.indexer.IndexDocument(ctx, docPath); err != nil {
