@@ -673,7 +673,9 @@ func (s *Service) ReindexAfterSyncPull(ctx context.Context) {
 		logger.WithError(err).Warn("reindex after sync pull failed")
 		return
 	}
-	s.eventBus.Emit(events.VaultReindexed, map[string]any{"reason": "sync-pull"})
+	if s.eventBus != nil {
+		s.eventBus.Emit(events.VaultReindexed, map[string]any{"reason": "sync-pull"})
+	}
 }
 
 func (s *Service) GetGitStatus(ctx context.Context) (map[string]any, error) {
