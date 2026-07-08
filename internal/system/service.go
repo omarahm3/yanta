@@ -893,7 +893,10 @@ func (s *Service) GitPull(ctx context.Context) error {
 		logger.WithError(err).Warn("could not get HEAD hash after pull")
 	}
 	if headAfter != "" && headAfter != headBefore {
-		s.ReindexAfterSyncPull(ctx)
+		// Fresh context: reindex is best-effort and must not inherit the pull's
+		// (possibly nearly-spent) timeout, which would truncate the scan and
+		// leave the index stale. Matches SyncNow and the auto-sync path.
+		s.ReindexAfterSyncPull(context.Background())
 	}
 
 	logger.Info("pull completed successfully")
