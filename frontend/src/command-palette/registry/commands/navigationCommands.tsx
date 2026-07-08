@@ -1,5 +1,6 @@
 import { BookOpen, Calendar, Clock, Folder, LayoutDashboard, Search, Settings } from "lucide-react";
 import type { CommandOption } from "../../../shared/ui";
+import { todayLocalString } from "../../../shared/utils/date";
 import { getShortcutForCommand } from "../../../shared/utils/shortcuts";
 import type { CommandRegistry, CommandRegistryContext } from "../types";
 
@@ -93,8 +94,7 @@ export function registerNavigationCommands(
 			group: "Navigation",
 			keywords: ["today", "daily", "current"],
 			action: () => {
-				const today = new Date().toISOString().split("T")[0];
-				onNavigate("journal", { date: today });
+				onNavigate("journal", { date: todayLocalString() });
 				handleClose();
 			},
 		},

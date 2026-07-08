@@ -1,15 +1,23 @@
 import { Events } from "@wailsio/runtime";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PromoteRequest } from "../../bindings/yanta/internal/journal/models";
 import {
+	AppendEntryRequestWithDate,
+	PromoteRequest,
+	UpdateEntryRequest,
+} from "../../bindings/yanta/internal/journal/models";
+import {
+	AppendEntryToDate,
 	DeleteEntry,
 	GetActiveEntries,
 	GetAllActiveEntries,
 	PromoteToDocument,
 	RestoreEntry,
+	UpdateEntry,
 } from "../../bindings/yanta/internal/journal/wailsservice";
+import { parseContent, parseTags } from "../quick-capture/parser";
 import { useNotification } from "../shared/hooks";
 import { BackendLogger } from "../shared/utils/backendLogger";
+import { todayLocalString } from "../shared/utils/date";
 import type { JournalEntryData } from "./JournalEntry";
 
 export interface UseJournalOptions {
@@ -35,6 +43,9 @@ export interface UseJournalReturn {
 	refresh: () => Promise<void>;
 	deleteEntry: (id: string) => Promise<void>;
 	restoreEntry: (id: string) => Promise<void>;
+	restoreEntries: (ids: string[]) => Promise<void>;
+	updateEntry: (id: string, content: string, tags: string[]) => Promise<void>;
+	addEntry: (rawText: string) => Promise<void>;
 	promoteToDocument: (options: PromoteOptions) => Promise<string>;
 	toggleSelection: (id: string) => void;
 	clearSelection: () => void;
@@ -54,7 +65,7 @@ export function useJournal({
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-	const [date, setDateInternal] = useState(() => initialDate || getTodayString());
+	const [date, setDateInternal] = useState(() => initialDate || todayLocalString());
 	const refreshRequestIdRef = useRef(0);
 
 	// Update date when initialDate prop changes (e.g., from navigation)
@@ -195,6 +206,72 @@ export function useJournal({
 		[projectAlias, date, refresh],
 	);
 
+	// Restore several entries with a single refresh at the end (avoids the
+	// per-entry backend fetch + re-render flicker of looping restoreEntry).
+	const restoreEntries = useCallback(
+		async (ids: string[]) => {
+			let restoredAny = false;
+			for (const id of ids) {
+				try {
+					await RestoreEntry(projectAlias, date, id);
+					restoredAny = true;
+				} catch (err) {
+					BackendLogger.error("Failed to restore entry:", err);
+				}
+			}
+			if (restoredAny) await refresh();
+		},
+		[projectAlias, date, refresh],
+	);
+
+	// Update an entry's content (tags preserved by the caller passing the
+	// existing tags; the backend keeps tags unchanged when they are unchanged).
+	const updateEntry = useCallback(
+		async (id: string, content: string, tags: string[]) => {
+			try {
+				const request = new UpdateEntryRequest({
+					projectAlias,
+					date,
+					entryId: id,
+					content,
+					tags,
+				});
+				await UpdateEntry(request);
+				setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, content, tags } : e)));
+			} catch (err) {
+				BackendLogger.error("Failed to update entry:", err);
+				notifyError("Failed to update journal entry");
+				throw err;
+			}
+		},
+		[projectAlias, date, notifyError],
+	);
+
+	// Add an entry to the currently-viewed date (in-page capture). Parses inline
+	// #tags like Quick Capture. Disabled in the aggregated "all projects" view,
+	// which has no single target project.
+	const addEntry = useCallback(
+		async (rawText: string) => {
+			const trimmed = rawText.trim();
+			if (!trimmed || projectAlias === "all") return;
+			try {
+				const request = new AppendEntryRequestWithDate({
+					projectAlias,
+					content: parseContent(trimmed),
+					tags: parseTags(trimmed),
+					date,
+				});
+				await AppendEntryToDate(request);
+				await refresh();
+			} catch (err) {
+				BackendLogger.error("Failed to add entry:", err);
+				notifyError("Failed to add journal entry");
+				throw err;
+			}
+		},
+		[projectAlias, date, refresh, notifyError],
+	);
+
 	// Promote to document
 	const promoteToDocument = useCallback(
 		async (options: PromoteOptions): Promise<string> => {
@@ -252,20 +329,12 @@ export function useJournal({
 		refresh,
 		deleteEntry,
 		restoreEntry,
+		restoreEntries,
+		updateEntry,
+		addEntry,
 		promoteToDocument,
 		toggleSelection,
 		clearSelection,
 		selectAll,
 	};
-}
-
-/**
- * Get today's date as YYYY-MM-DD string
- */
-function getTodayString(): string {
-	const now = new Date();
-	const year = now.getFullYear();
-	const month = String(now.getMonth() + 1).padStart(2, "0");
-	const day = String(now.getDate()).padStart(2, "0");
-	return `${year}-${month}-${day}`;
 }

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { JournalEntry } from "../JournalEntry";
 
@@ -107,5 +107,63 @@ describe("JournalEntry", () => {
 		render(<JournalEntry entry={entryWithProject} index={0} onEntryClick={vi.fn()} />);
 
 		expect(screen.getByText("@work")).toBeInTheDocument();
+	});
+
+	it("shows an edit affordance only when onUpdateEntry is provided", () => {
+		const { rerender } = render(<JournalEntry entry={mockEntry} index={0} onEntryClick={vi.fn()} />);
+		expect(screen.queryByRole("button", { name: "Edit entry" })).not.toBeInTheDocument();
+
+		rerender(
+			<JournalEntry entry={mockEntry} index={0} onEntryClick={vi.fn()} onUpdateEntry={vi.fn()} />,
+		);
+		expect(screen.getByRole("button", { name: "Edit entry" })).toBeInTheDocument();
+	});
+
+	it("edits an entry and saves the new content with preserved tags", async () => {
+		const onUpdateEntry = vi.fn().mockResolvedValue(undefined);
+		render(
+			<JournalEntry
+				entry={mockEntry}
+				index={0}
+				onEntryClick={vi.fn()}
+				onUpdateEntry={onUpdateEntry}
+			/>,
+		);
+
+		fireEvent.click(screen.getByRole("button", { name: "Edit entry" }));
+
+		const textarea = screen.getByRole("textbox", { name: "Edit entry" });
+		expect(textarea).toHaveValue("Fix the auth bug");
+
+		fireEvent.change(textarea, { target: { value: "Fixed the auth bug" } });
+		fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+		await waitFor(() => {
+			expect(onUpdateEntry).toHaveBeenCalledWith("abc123", "Fixed the auth bug", [
+				"urgent",
+				"backend",
+			]);
+		});
+	});
+
+	it("cancels editing without saving", () => {
+		const onUpdateEntry = vi.fn();
+		render(
+			<JournalEntry
+				entry={mockEntry}
+				index={0}
+				onEntryClick={vi.fn()}
+				onUpdateEntry={onUpdateEntry}
+			/>,
+		);
+
+		fireEvent.click(screen.getByRole("button", { name: "Edit entry" }));
+		fireEvent.change(screen.getByRole("textbox", { name: "Edit entry" }), {
+			target: { value: "changed" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+		expect(onUpdateEntry).not.toHaveBeenCalled();
+		expect(screen.getByText("Fix the auth bug")).toBeInTheDocument();
 	});
 });

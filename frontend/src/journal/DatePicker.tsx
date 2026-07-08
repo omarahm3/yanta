@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import React, { useCallback, useMemo, useState } from "react";
 import { cn } from "../shared/utils/cn";
+import { formatLocalDateString, parseLocalDate, todayLocalString } from "../shared/utils/date";
 
 export interface DatePickerProps {
 	selectedDate: string;
@@ -20,9 +21,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 	className,
 }) => {
 	const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-	const [viewDate, setViewDate] = useState(() => new Date(selectedDate));
+	const [viewDate, setViewDate] = useState(() => parseLocalDate(selectedDate));
 
-	const selectedDateObj = useMemo(() => new Date(selectedDate), [selectedDate]);
+	const selectedDateObj = useMemo(() => parseLocalDate(selectedDate), [selectedDate]);
 
 	const formattedDate = useMemo(() => {
 		return selectedDateObj.toLocaleDateString(undefined, {
@@ -35,17 +36,17 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 	const handlePrevDay = () => {
 		const prev = new Date(selectedDateObj);
 		prev.setDate(prev.getDate() - 1);
-		onDateChange(formatDateString(prev));
+		onDateChange(formatLocalDateString(prev));
 	};
 
 	const handleNextDay = () => {
 		const next = new Date(selectedDateObj);
 		next.setDate(next.getDate() + 1);
-		onDateChange(formatDateString(next));
+		onDateChange(formatLocalDateString(next));
 	};
 
 	const handleToday = () => {
-		onDateChange(formatDateString(new Date()));
+		onDateChange(todayLocalString());
 	};
 
 	const handleDateClick = () => {
@@ -54,7 +55,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 	};
 
 	const handleCalendarSelect = (date: Date) => {
-		onDateChange(formatDateString(date));
+		onDateChange(formatLocalDateString(date));
 		setIsCalendarOpen(false);
 	};
 
@@ -70,7 +71,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 		setViewDate(next);
 	};
 
-	const isToday = formatDateString(selectedDateObj) === formatDateString(new Date());
+	const isToday = formatLocalDateString(selectedDateObj) === todayLocalString();
 
 	return (
 		<div className={cn("relative", className)}>
@@ -145,8 +146,8 @@ interface CalendarDayButtonProps {
 const CalendarDayButton: React.FC<CalendarDayButtonProps> = React.memo(
 	({ day, year, month, selectedDate, datesWithEntriesSet, onSelect }) => {
 		const date = useMemo(() => new Date(year, month, day), [year, month, day]);
-		const dateString = formatDateString(date);
-		const isSelected = formatDateString(selectedDate) === dateString;
+		const dateString = formatLocalDateString(date);
+		const isSelected = formatLocalDateString(selectedDate) === dateString;
 		const hasEntries = datesWithEntriesSet.has(dateString);
 		const handleClick = useCallback(() => onSelect(date), [date, onSelect]);
 		return (
@@ -272,13 +273,3 @@ const Calendar: React.FC<CalendarProps> = ({
 		</div>
 	);
 };
-
-/**
- * Format date to YYYY-MM-DD string
- */
-function formatDateString(date: Date): string {
-	const year = date.getFullYear();
-	const month = String(date.getMonth() + 1).padStart(2, "0");
-	const day = String(date.getDate()).padStart(2, "0");
-	return `${year}-${month}-${day}`;
-}

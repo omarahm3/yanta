@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import type { ToastActionOption } from "../ui/Toast";
 import { useToast } from "../ui/Toast";
 
 export type NotificationType = "success" | "error" | "info" | "warning";
@@ -13,6 +14,7 @@ export interface NotificationOptions {
 		| "bottom-center"
 		| "bottom-left";
 	id?: string;
+	action?: ToastActionOption;
 }
 
 export const useNotification = () => {

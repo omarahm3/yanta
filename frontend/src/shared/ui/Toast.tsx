@@ -5,6 +5,7 @@ import { useErrorDialogStore } from "../stores/errorDialog.store";
 import { GlobalErrorDialog } from "./GlobalErrorDialog";
 import {
 	ToastProvider as RadixToastProvider,
+	ToastAction,
 	ToastClose,
 	ToastDescription,
 	Toast as ToastRoot,
@@ -12,6 +13,12 @@ import {
 } from "./toast-primitives";
 
 export type ToastType = "success" | "error" | "info" | "warning";
+
+/** An optional action button rendered inside a toast (e.g. "Undo"). */
+export interface ToastActionOption {
+	label: string;
+	onClick: () => void;
+}
 
 export interface ToastOptions {
 	duration?: number;
@@ -23,6 +30,7 @@ export interface ToastOptions {
 		| "bottom-center"
 		| "bottom-left";
 	id?: string;
+	action?: ToastActionOption;
 }
 
 interface Toast {
@@ -33,6 +41,7 @@ interface Toast {
 	duration: number;
 	position: string;
 	createdAt: number;
+	action?: ToastActionOption;
 }
 
 interface ToastContextValue {
@@ -102,7 +111,18 @@ const ToastItem: React.FC<{
 					<div className="ml-2 flex-1 min-w-0 max-h-[40vh] overflow-y-auto">
 						<ToastDescription>{toast.message}</ToastDescription>
 					</div>
-					<div className="flex flex-shrink-0 ml-2">
+					<div className="flex flex-shrink-0 items-center gap-1 ml-2">
+						{toast.action && (
+							<ToastAction
+								altText={toast.action.label}
+								onClick={() => {
+									toast.action?.onClick();
+									onDismiss(toast.id);
+								}}
+							>
+								{toast.action.label}
+							</ToastAction>
+						)}
 						<ToastClose />
 					</div>
 				</div>
@@ -141,6 +161,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 				duration: options.duration ?? 4000,
 				position: options.position ?? "bottom-right",
 				createdAt: Date.now(),
+				action: options.action,
 			};
 
 			setToasts((prev) => {

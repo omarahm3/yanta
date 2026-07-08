@@ -1,26 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ListDates } from "../../bindings/yanta/internal/journal/wailsservice";
+import { formatShortcutKeyForDisplay } from "../config/shortcuts";
+import { useMergedConfig } from "../config/usePreferencesOverrides";
 import { useHelp } from "../help";
 import { useProjectContext } from "../project";
 import { useNotification, useSidebarSections } from "../shared/hooks";
 import type { NavigationState, PageName } from "../shared/types";
 import type { HotkeyConfig } from "../shared/types/hotkeys";
 import { BackendLogger } from "../shared/utils/backendLogger";
+import { addDaysLocalString } from "../shared/utils/date";
 import type { JournalEntryData } from "./JournalEntry";
 import { useJournal } from "./useJournal";
 import { type ConfirmDialogState, useJournalDialogs } from "./useJournalDialogs";
 import { useJournalHotkeysConfig } from "./useJournalHotkeysConfig";
 
 export type { ConfirmDialogState } from "./useJournalDialogs";
-
-function addDays(dateStr: string, delta: number): string {
-	const d = new Date(dateStr);
-	d.setDate(d.getDate() + delta);
-	const y = d.getFullYear();
-	const m = String(d.getMonth() + 1).padStart(2, "0");
-	const day = String(d.getDate()).padStart(2, "0");
-	return `${y}-${m}-${day}`;
-}
 
 const helpCommands = [
 	{
@@ -88,6 +82,10 @@ export interface JournalControllerResult {
 	handleEntryClick: (id: string) => void;
 	handleDeleteSelected: () => void;
 	handlePromoteSelected: () => Promise<void>;
+	updateEntry: (id: string, content: string, tags: string[]) => Promise<void>;
+	addEntry: (rawText: string) => Promise<void>;
+	/** Formatted Quick Capture hotkey, shown on the in-page add affordance. */
+	quickCaptureHint: string;
 
 	// UI
 	sidebarSections: ReturnType<typeof useSidebarSections>;
@@ -108,7 +106,9 @@ export function useJournalController({
 	const { currentProject } = useProjectContext();
 	const projectAlias = currentProject?.alias || "@personal";
 	const { setPageContext } = useHelp();
-	const { error: notifyError } = useNotification();
+	const { error: notifyError, success: notifySuccess } = useNotification();
+	const { shortcuts } = useMergedConfig();
+	const quickCaptureHint = formatShortcutKeyForDisplay(shortcuts.quickCapture.default.key);
 
 	const [datesWithEntries, setDatesWithEntries] = useState<string[]>([]);
 	const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -124,6 +124,9 @@ export function useJournalController({
 		date,
 		setDate,
 		deleteEntry,
+		restoreEntries,
+		updateEntry,
+		addEntry,
 		promoteToDocument,
 		toggleSelection: toggleSelectionById,
 		clearSelection,
@@ -221,8 +224,8 @@ export function useJournalController({
 		const count = ids.length;
 		const message =
 			count === 1
-				? "Are you sure you want to delete this journal entry?"
-				: `Are you sure you want to delete ${count} journal entries?`;
+				? "Delete this journal entry? You can undo right after, or restore it later."
+				: `Delete ${count} journal entries? You can undo right after, or restore them later.`;
 
 		setConfirmDialog({
 			isOpen: true,
@@ -235,6 +238,14 @@ export function useJournalController({
 						await deleteEntry(id);
 					}
 					clearSelection();
+					notifySuccess(count === 1 ? "Entry deleted" : `${count} entries deleted`, {
+						action: {
+							label: "Undo",
+							onClick: () => {
+								void restoreEntries(ids);
+							},
+						},
+					});
 				} catch (err) {
 					BackendLogger.error("Failed to delete entries:", err);
 				} finally {
@@ -242,7 +253,7 @@ export function useJournalController({
 				}
 			},
 		});
-	}, [deleteEntry, clearSelection]);
+	}, [deleteEntry, restoreEntries, clearSelection, notifySuccess]);
 
 	// Promote selected entries to document
 	const handlePromoteSelected = useCallback(async () => {
@@ -283,11 +294,11 @@ export function useJournalController({
 	}, [clearSelection, confirmDialog.isOpen]);
 
 	const goToPrevDay = useCallback(() => {
-		setDate(addDays(date, -1));
+		setDate(addDaysLocalString(date, -1));
 	}, [date, setDate]);
 
 	const goToNextDay = useCallback(() => {
-		setDate(addDays(date, 1));
+		setDate(addDaysLocalString(date, 1));
 	}, [date, setDate]);
 
 	const hotkeys: HotkeyConfig[] = useJournalHotkeysConfig({
@@ -326,6 +337,9 @@ export function useJournalController({
 		handleEntryClick,
 		handleDeleteSelected,
 		handlePromoteSelected,
+		updateEntry,
+		addEntry,
+		quickCaptureHint,
 
 		// UI
 		sidebarSections,

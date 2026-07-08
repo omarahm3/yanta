@@ -7,6 +7,7 @@ import { ConfirmDialog } from "../shared/ui/ConfirmDialog";
 import { StatusBarItem } from "../shared/ui/StatusBarItem";
 import { cn } from "../shared/utils/cn";
 import { DatePicker } from "./DatePicker";
+import { JournalComposer } from "./JournalComposer";
 import { JournalEntry } from "./JournalEntry";
 import { useJournalController } from "./useJournalController";
 
@@ -43,6 +44,7 @@ const JournalComponent: React.FC<JournalProps> = ({
 		isLoading,
 		error,
 		isEmpty,
+		projectAlias,
 		date,
 		datesWithEntries,
 		highlightedIndex,
@@ -53,11 +55,17 @@ const JournalComponent: React.FC<JournalProps> = ({
 		clearSelection,
 		handleDeleteSelected,
 		handlePromoteSelected,
+		updateEntry,
+		addEntry,
+		quickCaptureHint,
 		sidebarSections,
 		confirmDialog,
 		setConfirmDialog,
 		statusBar,
 	} = controller;
+
+	// In-page capture targets a single project; the aggregated "all" view has none.
+	const canCapture = projectAlias !== "all";
 
 	const entryVirtualizer = useVirtualizer({
 		count: entries.length,
@@ -90,6 +98,13 @@ const JournalComponent: React.FC<JournalProps> = ({
 						<DatePicker selectedDate={date} onDateChange={setDate} datesWithEntries={datesWithEntries} />
 					</div>
 
+					{/* In-page capture for the viewed day */}
+					{canCapture && (
+						<div className="px-4 pt-3 pb-2 border-b border-glass-border">
+							<JournalComposer onAdd={addEntry} hotkeyHint={quickCaptureHint} />
+						</div>
+					)}
+
 					{/* Entry list */}
 					<div ref={entryListScrollRef} className="flex-1 overflow-y-auto">
 						<GranularErrorBoundary
@@ -108,7 +123,11 @@ const JournalComponent: React.FC<JournalProps> = ({
 							{isEmpty && !isLoading && (
 								<div className="text-center text-text-dim py-8">
 									<p>No entries for this day.</p>
-									<p className="mt-2 text-sm">Press your quick capture hotkey to add one!</p>
+									<p className="mt-2 text-sm">
+										{canCapture
+											? "Add one above, or press your Quick Capture hotkey."
+											: "Press your Quick Capture hotkey to add one."}
+									</p>
 								</div>
 							)}
 
@@ -152,6 +171,7 @@ const JournalComponent: React.FC<JournalProps> = ({
 														index={index}
 														onEntryClick={handleEntryClick}
 														onToggleSelection={toggleSelection}
+														onUpdateEntry={updateEntry}
 														isHighlighted={isHighlighted}
 														isSelected={isSelected}
 													/>
@@ -177,6 +197,7 @@ const JournalComponent: React.FC<JournalProps> = ({
 														index={index}
 														onEntryClick={handleEntryClick}
 														onToggleSelection={toggleSelection}
+														onUpdateEntry={updateEntry}
 														isHighlighted={isHighlighted}
 														isSelected={isSelected}
 													/>
