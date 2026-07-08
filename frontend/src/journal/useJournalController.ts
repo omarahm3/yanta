@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ListDates } from "../../bindings/yanta/internal/journal/wailsservice";
+import { formatShortcutKeyForDisplay } from "../config/shortcuts";
+import { useMergedConfig } from "../config/usePreferencesOverrides";
 import { useHelp } from "../help";
 import { useProjectContext } from "../project";
 import { useNotification, useSidebarSections } from "../shared/hooks";
@@ -80,6 +82,10 @@ export interface JournalControllerResult {
 	handleEntryClick: (id: string) => void;
 	handleDeleteSelected: () => void;
 	handlePromoteSelected: () => Promise<void>;
+	updateEntry: (id: string, content: string, tags: string[]) => Promise<void>;
+	addEntry: (rawText: string) => Promise<void>;
+	/** Formatted Quick Capture hotkey, shown on the in-page add affordance. */
+	quickCaptureHint: string;
 
 	// UI
 	sidebarSections: ReturnType<typeof useSidebarSections>;
@@ -101,6 +107,8 @@ export function useJournalController({
 	const projectAlias = currentProject?.alias || "@personal";
 	const { setPageContext } = useHelp();
 	const { error: notifyError, success: notifySuccess } = useNotification();
+	const { shortcuts } = useMergedConfig();
+	const quickCaptureHint = formatShortcutKeyForDisplay(shortcuts.quickCapture.default.key);
 
 	const [datesWithEntries, setDatesWithEntries] = useState<string[]>([]);
 	const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -117,6 +125,8 @@ export function useJournalController({
 		setDate,
 		deleteEntry,
 		restoreEntry,
+		updateEntry,
+		addEntry,
 		promoteToDocument,
 		toggleSelection: toggleSelectionById,
 		clearSelection,
@@ -335,6 +345,9 @@ export function useJournalController({
 		handleEntryClick,
 		handleDeleteSelected,
 		handlePromoteSelected,
+		updateEntry,
+		addEntry,
+		quickCaptureHint,
 
 		// UI
 		sidebarSections,

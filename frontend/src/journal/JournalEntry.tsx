@@ -1,4 +1,5 @@
-import React from "react";
+import { Pencil } from "lucide-react";
+import React, { useCallback, useState } from "react";
 import { Button } from "../shared/ui";
 import { cn } from "../shared/utils/cn";
 
@@ -28,6 +29,8 @@ export interface JournalEntryProps {
 	index: number;
 	onEntryClick: (id: string) => void;
 	onToggleSelection?: (id: string) => void;
+	/** Persist an edited entry body. Enables the inline edit affordance. */
+	onUpdateEntry?: (id: string, content: string, tags: string[]) => Promise<void>;
 	isHighlighted?: boolean;
 	isSelected?: boolean;
 	className?: string;
@@ -43,11 +46,40 @@ const JournalEntryComponent: React.FC<JournalEntryProps> = ({
 	index,
 	onEntryClick,
 	onToggleSelection,
+	onUpdateEntry,
 	isHighlighted = false,
 	isSelected = false,
 	className,
 }) => {
 	const formattedTime = formatTime(entry.created);
+	const [isEditing, setIsEditing] = useState(false);
+	const [draft, setDraft] = useState(entry.content);
+	const [isSaving, setIsSaving] = useState(false);
+
+	const startEditing = useCallback(() => {
+		setDraft(entry.content);
+		setIsEditing(true);
+	}, [entry.content]);
+
+	const cancelEditing = useCallback(() => {
+		setIsEditing(false);
+		setDraft(entry.content);
+	}, [entry.content]);
+
+	const saveEditing = useCallback(async () => {
+		const next = draft.trim();
+		if (!onUpdateEntry || next === "" || next === entry.content) {
+			setIsEditing(false);
+			return;
+		}
+		setIsSaving(true);
+		try {
+			await onUpdateEntry(entry.id, next, entry.tags);
+			setIsEditing(false);
+		} finally {
+			setIsSaving(false);
+		}
+	}, [draft, entry.content, entry.id, entry.tags, onUpdateEntry]);
 
 	const borderStyle = isHighlighted || isSelected ? STYLE_BORDER_ACCENT : STYLE_EMPTY;
 	const backgroundStyle = isHighlighted ? STYLE_BG_HIGHLIGHTED : STYLE_EMPTY;
@@ -107,9 +139,64 @@ const JournalEntryComponent: React.FC<JournalEntryProps> = ({
 				</span>
 
 				{/* Content */}
-				<div className="flex-1 cursor-pointer min-w-0" onClick={() => onEntryClick(entry.id)}>
-					{/* Text content */}
-					<div className="text-sm text-text-primary hover:text-accent">{entry.content}</div>
+				<div className="flex-1 min-w-0">
+					{isEditing ? (
+						<div className="flex flex-col gap-2">
+							<textarea
+								// biome-ignore lint/a11y/noAutofocus: focus the editor the moment edit mode opens
+								autoFocus
+								value={draft}
+								onChange={(e) => setDraft(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === "Escape") {
+										e.preventDefault();
+										e.stopPropagation();
+										cancelEditing();
+									} else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+										e.preventDefault();
+										void saveEditing();
+									}
+								}}
+								rows={Math.min(8, Math.max(2, draft.split("\n").length))}
+								className="w-full resize-y rounded-md border border-border bg-bg-dark px-2 py-1.5 text-sm text-text-primary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+								aria-label="Edit entry"
+							/>
+							<div className="flex items-center gap-2 text-xs">
+								<Button size="sm" onClick={() => void saveEditing()} disabled={isSaving}>
+									{isSaving ? "Saving…" : "Save"}
+								</Button>
+								<Button variant="ghost" size="sm" onClick={cancelEditing} disabled={isSaving}>
+									Cancel
+								</Button>
+								<span className="text-text-dim">⌘/Ctrl+Enter to save · Esc to cancel</span>
+							</div>
+						</div>
+					) : (
+						<div className="group/content flex items-start gap-2">
+							{/* Text content */}
+							<button
+								type="button"
+								className="flex-1 min-w-0 cursor-pointer text-left text-sm text-text-primary hover:text-accent whitespace-pre-wrap"
+								onClick={() => onEntryClick(entry.id)}
+							>
+								{entry.content}
+							</button>
+							{onUpdateEntry && (
+								<button
+									type="button"
+									onClick={(e) => {
+										e.stopPropagation();
+										startEditing();
+									}}
+									aria-label="Edit entry"
+									title="Edit entry"
+									className="mt-0.5 shrink-0 rounded p-1 text-text-dim opacity-0 transition-opacity hover:bg-accent/10 hover:text-text focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent group-hover:opacity-100"
+								>
+									<Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+								</button>
+							)}
+						</div>
+					)}
 
 					{/* Project, Tags and time */}
 					<div className="flex items-center gap-2 mt-2 text-xs text-text-dim">
