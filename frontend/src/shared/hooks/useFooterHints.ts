@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { formatShortcutKeyForDisplay, getIsMac } from "@/config/shortcuts";
+import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import { getMergedConfig } from "@/shared/stores/preferences.store";
 import type { PageName } from "../types";
 import type { FooterHint } from "../ui/FooterHintBar";
@@ -146,9 +147,10 @@ export function useFooterHints({
 	hasSelection,
 	documentCount,
 }: UseFooterHintsOptions): UseFooterHintsReturn {
+	const { shortcuts } = useMergedConfig();
 	const hints = useMemo(() => {
 		return buildHintsForPage({ currentPage, hasSelection, documentCount });
-	}, [currentPage, hasSelection, documentCount]);
+	}, [currentPage, hasSelection, documentCount, shortcuts]);
 
 	return { hints };
 }

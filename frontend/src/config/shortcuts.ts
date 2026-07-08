@@ -149,12 +149,20 @@ const KEY_DISPLAY_MAP: Record<string, string> = {
 	ArrowRight: "→",
 };
 
-const MAC_KEY_DISPLAY_MAP: Record<string, string> = {
-	...KEY_DISPLAY_MAP,
-	ESC: "⎋",
-	ENTER: "↩",
-	TAB: "⇥",
+const MAC_SYMBOL_MAP: Record<string, string> = {
+	escape: "⎋",
+	enter: "↩",
+	tab: "⇥",
+	arrowup: "↑",
+	arrowdown: "↓",
+	arrowleft: "←",
+	arrowright: "→",
+	" ": "SPACE",
 };
+
+const KEY_DISPLAY_MAP_LOWER: Record<string, string> = Object.fromEntries(
+	Object.entries(KEY_DISPLAY_MAP).map(([k, v]) => [k.toLowerCase(), v]),
+);
 
 let _isMacCached: boolean | undefined;
 
@@ -188,7 +196,7 @@ export function formatShortcutKeyForDisplay(key: string): string {
 			} else if (normalized === "alt" || normalized === "option") {
 				mods.push("⌥");
 			} else {
-				mainKey = MAC_KEY_DISPLAY_MAP[part] || part.toUpperCase();
+				mainKey = MAC_SYMBOL_MAP[normalized] || part.toUpperCase();
 			}
 		}
 
@@ -203,7 +211,7 @@ export function formatShortcutKeyForDisplay(key: string): string {
 			if (normalized === "alt") return "Alt";
 			if (normalized === "ctrl" || normalized === "control") return "Ctrl";
 			if (normalized === "meta" || normalized === "win") return "Win";
-			return KEY_DISPLAY_MAP[part] || part.toUpperCase();
+			return KEY_DISPLAY_MAP_LOWER[normalized] || part.toUpperCase();
 		})
 		.join("+");
 }
