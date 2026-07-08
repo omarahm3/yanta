@@ -5,6 +5,66 @@
 
 export const SPECIAL_KEY_SET = new Set(["?", ":", "shift+;", "shift+/"]);
 
+export interface TargetClassification {
+	/** Editable target: <input>, <textarea>, or contenteditable. */
+	inInputField: boolean;
+	/** Non-editable interactive target: <button>, <a>, role=button/link/checkbox. */
+	isInteractiveElement: boolean;
+}
+
+/**
+ * Classifies an event target so the dispatcher can decide whether a hotkey
+ * should be allowed to fire on it. Editable fields must keep receiving typed
+ * characters; buttons/links must keep their native Enter/Space activation.
+ */
+export function classifyEventTarget(target: EventTarget | null): TargetClassification {
+	const el = target as HTMLElement | null;
+	const tag = el?.tagName;
+	const role = el?.getAttribute?.("role");
+
+	const inInputField =
+		tag === "INPUT" || tag === "TEXTAREA" || el?.getAttribute?.("contenteditable") === "true";
+
+	const isInteractiveElement =
+		tag === "BUTTON" || tag === "A" || role === "button" || role === "link" || role === "checkbox";
+
+	return {
+		inInputField: Boolean(inInputField),
+		isInteractiveElement: Boolean(isInteractiveElement),
+	};
+}
+
+/**
+ * Decides whether a hotkey may fire for the given keyboard event and target.
+ *
+ * A handler that opts in with `allowInInput` always fires. Otherwise the key is
+ * skipped when the target is an editable field (any key would otherwise be
+ * swallowed) or when the target is a button/link/role=button and the key has no
+ * Ctrl/Cmd/Alt modifier (plain keys like Enter/Space/j/k would otherwise hijack
+ * the element's native behavior). Modifier combos still reach focused buttons.
+ */
+export function isHotkeyEligibleForTarget(
+	event: KeyboardEvent,
+	target: EventTarget | null,
+	allowInInput: boolean | undefined,
+): boolean {
+	if (allowInInput) {
+		return true;
+	}
+
+	const { inInputField, isInteractiveElement } = classifyEventTarget(target);
+	if (inInputField) {
+		return false;
+	}
+
+	const hasModifier = event.ctrlKey || event.metaKey || event.altKey;
+	if (isInteractiveElement && !hasModifier) {
+		return false;
+	}
+
+	return true;
+}
+
 export const isMacPlatform = (): boolean =>
 	typeof navigator !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 

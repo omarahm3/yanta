@@ -5,7 +5,11 @@ import type {
 	HotkeyContextValue,
 	RegisteredHotkey,
 } from "../../shared/types/hotkeys";
-import { createHotkeyMatcher, SPECIAL_KEY_SET } from "../utils/hotkeyMatcher";
+import {
+	createHotkeyMatcher,
+	isHotkeyEligibleForTarget,
+	SPECIAL_KEY_SET,
+} from "../utils/hotkeyMatcher";
 
 const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
 	window.HTMLInputElement.prototype,
@@ -86,22 +90,18 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 			): Array<[string, (event: KeyboardEvent) => void]> =>
 				Array.from(map.entries()).map(([key, handlers]) => {
 					const wrappedHandler = (event: KeyboardEvent) => {
-						const target = event.target as HTMLElement | null;
-						const inInputField =
-							target?.tagName === "INPUT" ||
-							target?.tagName === "TEXTAREA" ||
-							(target?.getAttribute && target.getAttribute("contenteditable") === "true");
-
 						if (isDialogOpenRef.current) {
 							return;
 						}
 
-						event.preventDefault();
-
+						// Resolve the eligible handler first and only preventDefault once a
+						// handler actually consumes the key. Calling preventDefault up front
+						// eats characters in inputs and hijacks Enter/Space/j/k from focused
+						// buttons even when no handler ends up running.
 						const sortedHandlers = [...handlers].sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
 						for (const handler of sortedHandlers) {
-							if (inInputField && !handler.allowInInput) {
+							if (!isHotkeyEligibleForTarget(event, event.target, handler.allowInInput)) {
 								continue;
 							}
 
@@ -109,6 +109,7 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 							if (result === false) {
 								continue;
 							}
+							event.preventDefault();
 							break;
 						}
 					};
@@ -179,12 +180,6 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 		}
 
 		const handleCapture = (event: KeyboardEvent) => {
-			const target = event.target as HTMLElement | null;
-			const inInputField =
-				target?.tagName === "INPUT" ||
-				target?.tagName === "TEXTAREA" ||
-				(target?.getAttribute && target.getAttribute("contenteditable") === "true");
-
 			if (isDialogOpenRef.current) {
 				return;
 			}
@@ -194,7 +189,7 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 					continue;
 				}
 
-				if (inInputField && !hotkey.allowInInput) {
+				if (!isHotkeyEligibleForTarget(event, event.target, hotkey.allowInInput)) {
 					continue;
 				}
 
