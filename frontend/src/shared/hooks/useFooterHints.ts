@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { formatShortcutKeyForDisplay, getIsMac } from "@/config/shortcuts";
+import { formatShortcutKeyForDisplay } from "@/config/shortcuts";
 import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import { getMergedConfig } from "@/shared/stores/preferences.store";
 import type { PageName } from "../types";
@@ -65,7 +65,7 @@ function buildJournalHints(hasSelection: boolean): FooterHint[] {
 	const j = config.shortcuts.journal;
 	const hints: FooterHint[] = [
 		{ key: "←→", label: "Change date", priority: 1 },
-		{ key: fmt(j.nextDay.key) + "/" + fmt(j.prevDay.key), label: "Next/prev day", priority: 2 },
+		{ key: `${fmt(j.nextDay.key)}/${fmt(j.prevDay.key)}`, label: "Next/prev day", priority: 2 },
 		{ key: "↑↓", label: "Navigate", priority: 1 },
 		{ key: fmt(j.toggleSelection.key), label: "Select", priority: 2 },
 	];
