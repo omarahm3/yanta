@@ -59,6 +59,27 @@ describe("find replace", () => {
 		expect(state.doc.textContent).toBe("--");
 	});
 
+	it("replacing the last match leaves a valid, wrapped active index (never out of bounds)", () => {
+		// 3 matches, active = the last one.
+		let state = setFind(makeState("system system system"), { query: "system" });
+		state = setFind(state, { activeIndex: 2 });
+		expect(getFind(state).activeIndex).toBe(2);
+
+		// Replace the active (last) match — the doc-changed re-find recomputes.
+		const before = getFind(state);
+		state = state.apply(applyReplaceOne(state.tr, before.matches[before.activeIndex], "x"));
+		const afterReplace = getFind(state);
+		expect(afterReplace.matches).toHaveLength(2);
+		expect(afterReplace.activeIndex).toBeGreaterThanOrEqual(0);
+		expect(afterReplace.activeIndex).toBeLessThan(2);
+
+		// The hook's follow-up navigation to the old index (2) wraps into range via
+		// the plugin's wrapIndex — so the UI can never show "3 of 2".
+		state = setFind(state, { activeIndex: 2 });
+		const afterNav = getFind(state);
+		expect(afterNav.activeIndex).toBe(0);
+	});
+
 	it("applyReplaceOne replaces only the active match", () => {
 		let state = setFind(makeState("system system system"), { query: "system" });
 		const { matches, activeIndex } = getFind(state);

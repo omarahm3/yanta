@@ -75,4 +75,18 @@ describe("FindBar", () => {
 		expect(screen.getByRole("button", { name: "Replace" })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "All" })).toBeInTheDocument();
 	});
+
+	it("keeps focus on the find input when opened directly in replace mode (mod+H)", () => {
+		renderFindBar({ showReplace: true });
+		// The find input is focused for the search term; the replace field is not
+		// stolen on initial mount.
+		expect(screen.getByRole("textbox", { name: "Find in document" })).toHaveFocus();
+		expect(screen.getByRole("textbox", { name: "Replace with" })).not.toHaveFocus();
+	});
+
+	it("omits the status element until there is a query", () => {
+		renderFindBar();
+		// No "N of M" / "No results" gap before the user types.
+		expect(screen.queryByText(/of|No results/)).not.toBeInTheDocument();
+	});
 });

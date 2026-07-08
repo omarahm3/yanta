@@ -34,15 +34,25 @@ export function FindBar({ editor, onClose, showReplace = false, onToggleReplace 
 	const find = useEditorFind(editor);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const replaceInputRef = useRef<HTMLInputElement>(null);
+	const isFirstRender = useRef(true);
 
 	useEffect(() => {
 		inputRef.current?.focus();
 		inputRef.current?.select();
 	}, []);
 
-	// Focus the replace field when the replace row is revealed.
+	// Focus the replace field when the replace row is *revealed* — but not on the
+	// initial mount, so opening straight into replace mode (mod+H) still lands the
+	// cursor in the find input to type the search term first.
 	useEffect(() => {
-		if (showReplace) replaceInputRef.current?.focus();
+		if (isFirstRender.current) {
+			isFirstRender.current = false;
+			return;
+		}
+		if (showReplace) {
+			replaceInputRef.current?.focus();
+			replaceInputRef.current?.select();
+		}
 	}, [showReplace]);
 
 	// Return focus to the editor (caret sits on the active match) so the document
@@ -99,19 +109,21 @@ export function FindBar({ editor, onClose, showReplace = false, onToggleReplace 
 			className="absolute right-4 top-3 z-20 flex flex-col gap-1 rounded-md border border-border bg-surface px-1.5 py-1 shadow-lg"
 		>
 			<div className="flex items-center gap-1">
-				<button
-					type="button"
-					onClick={onToggleReplace}
-					aria-expanded={showReplace}
-					aria-label={showReplace ? "Hide replace" : "Show replace"}
-					title="Toggle replace"
-					className={iconButton}
-				>
-					<ChevronRight
-						className={cn("size-4 transition-transform", showReplace && "rotate-90")}
-						aria-hidden="true"
-					/>
-				</button>
+				{onToggleReplace && (
+					<button
+						type="button"
+						onClick={onToggleReplace}
+						aria-expanded={showReplace}
+						aria-label={showReplace ? "Hide replace" : "Show replace"}
+						title="Toggle replace"
+						className={iconButton}
+					>
+						<ChevronRight
+							className={cn("size-4 transition-transform", showReplace && "rotate-90")}
+							aria-hidden="true"
+						/>
+					</button>
+				)}
 				<input
 					ref={inputRef}
 					type="text"
@@ -124,9 +136,11 @@ export function FindBar({ editor, onClose, showReplace = false, onToggleReplace 
 					autoComplete="off"
 					className="h-7 w-48 bg-transparent px-1 text-sm text-text outline-none placeholder:text-text-dim"
 				/>
-				<span className="min-w-[4.5rem] shrink-0 text-right text-xs tabular-nums text-text-dim">
-					{status}
-				</span>
+				{status && (
+					<span className="min-w-[4.5rem] shrink-0 text-right text-xs tabular-nums text-text-dim">
+						{status}
+					</span>
+				)}
 				<button
 					type="button"
 					onClick={() => find.toggleCaseSensitive()}
