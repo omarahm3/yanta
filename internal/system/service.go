@@ -493,7 +493,7 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 	var pulledRemoteChanges bool
 	defer func() {
 		if pulledRemoteChanges {
-			s.reindexAfterSyncPull(context.Background())
+			s.ReindexAfterSyncPull(context.Background())
 		}
 	}()
 
@@ -660,11 +660,11 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 	return result, nil
 }
 
-// reindexAfterSyncPull re-indexes the vault after a sync pull brought in remote
+// ReindexAfterSyncPull re-indexes the vault after a sync pull brought in remote
 // changes, then notifies the frontend to rebuild its search index. Failures are
 // logged but never surfaced — search freshness is best-effort and must not fail
 // an otherwise-successful sync.
-func (s *Service) reindexAfterSyncPull(ctx context.Context) {
+func (s *Service) ReindexAfterSyncPull(ctx context.Context) {
 	if s.indexer == nil {
 		return
 	}
@@ -891,7 +891,7 @@ func (s *Service) GitPull(ctx context.Context) error {
 		logger.WithError(err).Warn("could not get HEAD hash after pull")
 	}
 	if headAfter != "" && headAfter != headBefore {
-		s.reindexAfterSyncPull(ctx)
+		s.ReindexAfterSyncPull(ctx)
 	}
 
 	logger.Info("pull completed successfully")

@@ -41,8 +41,9 @@ type SyncManager struct {
 	oplock         *OperationLock // shared with the manual sync path; serializes all git ops
 
 	emitter        toastEmitter
-	lastFailureKey string // "" = healthy; guarded by mu. Drives notify() dedup.
-	needsPush      bool   // guarded by mu; a local commit failed to push and should be retried
+	reindexFunc    func(ctx context.Context) // called after a pull brings in remote changes; nil = no-op
+	lastFailureKey string                    // "" = healthy; guarded by mu. Drives notify() dedup.
+	needsPush      bool                      // guarded by mu; a local commit failed to push and should be retried
 }
 
 func NewSyncManager(db *sql.DB) *SyncManager {
@@ -81,6 +82,15 @@ func (sm *SyncManager) SetEmitter(e toastEmitter) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	sm.emitter = e
+}
+
+// SetReindexFunc wires a callback invoked after a pull brings in remote
+// changes so the vault is reindexed. Called once at app startup; when unset
+// (e.g. in tests) no reindex is triggered.
+func (sm *SyncManager) SetReindexFunc(f func(ctx context.Context)) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	sm.reindexFunc = f
 }
 
 func (sm *SyncManager) Start() {
@@ -390,6 +400,18 @@ const commitFailureMessage = "Auto-sync couldn't save your changes to Git (see l
 // working tree clean), or SyncStatusPushFailed for any other push failure. In
 // every failure case the local commit is intact.
 func (sm *SyncManager) pushWithRebaseRetry(ctx context.Context, dataDir, branch string) SyncStatus {
+	var pulledRemoteChanges bool
+	defer func() {
+		if pulledRemoteChanges {
+			sm.mu.Lock()
+			f := sm.reindexFunc
+			sm.mu.Unlock()
+			if f != nil {
+				f(ctx)
+			}
+		}
+	}()
+
 	logger.Debug("auto-sync: pushing to remote")
 	err := sm.gitService.Push(ctx, dataDir, "origin", branch)
 	if err == nil {
@@ -414,6 +436,8 @@ func (sm *SyncManager) pushWithRebaseRetry(ctx context.Context, dataDir, branch 
 		logger.WithField("error", rebaseErr).Warn("auto-sync: pull --rebase failed; push not retried (local commit intact)")
 		return SyncStatusPushFailed
 	}
+
+	pulledRemoteChanges = true
 
 	logger.Debug("auto-sync: rebase succeeded; retrying push")
 	if err := sm.gitService.Push(ctx, dataDir, "origin", branch); err != nil {
