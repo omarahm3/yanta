@@ -191,6 +191,68 @@ describe("useJournal", () => {
 		expect(mockAppend).not.toHaveBeenCalled();
 	});
 
+	it("restoreEntries restores every id but refreshes only once", async () => {
+		const { GetActiveEntries, RestoreEntry } = await import(
+			"../../../bindings/yanta/internal/journal/wailsservice"
+		);
+		const mockGet = GetActiveEntries as ReturnType<typeof vi.fn>;
+		const mockRestore = RestoreEntry as ReturnType<typeof vi.fn>;
+		mockGet.mockResolvedValue(mockEntries);
+		mockRestore.mockResolvedValue(undefined);
+
+		const { result } = renderHook(() => useJournal({ projectAlias: "personal", date: "2026-01-30" }));
+		await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+		const getCallsBefore = mockGet.mock.calls.length;
+		await act(async () => {
+			await result.current.restoreEntries(["abc123", "def456"]);
+		});
+
+		expect(mockRestore).toHaveBeenCalledTimes(2);
+		// A single refresh (one extra GetActiveEntries) for the whole batch.
+		expect(mockGet.mock.calls.length).toBe(getCallsBefore + 1);
+	});
+
+	it("notifies the user when updating an entry fails", async () => {
+		const { GetActiveEntries, UpdateEntry } = await import(
+			"../../../bindings/yanta/internal/journal/wailsservice"
+		);
+		const mockGet = GetActiveEntries as ReturnType<typeof vi.fn>;
+		const mockUpdate = UpdateEntry as ReturnType<typeof vi.fn>;
+		mockGet.mockResolvedValue(mockEntries);
+		mockUpdate.mockRejectedValue(new Error("boom"));
+
+		const { result } = renderHook(() => useJournal({ projectAlias: "personal", date: "2026-01-30" }));
+		await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+		await act(async () => {
+			await expect(
+				result.current.updateEntry("abc123", "new", ["urgent", "backend"]),
+			).rejects.toThrow();
+		});
+
+		expect(mockNotify.error).toHaveBeenCalled();
+	});
+
+	it("notifies the user when adding an entry fails", async () => {
+		const { GetActiveEntries, AppendEntryToDate } = await import(
+			"../../../bindings/yanta/internal/journal/wailsservice"
+		);
+		const mockGet = GetActiveEntries as ReturnType<typeof vi.fn>;
+		const mockAppend = AppendEntryToDate as ReturnType<typeof vi.fn>;
+		mockGet.mockResolvedValue(mockEntries);
+		mockAppend.mockRejectedValue(new Error("boom"));
+
+		const { result } = renderHook(() => useJournal({ projectAlias: "personal", date: "2026-01-30" }));
+		await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+		await act(async () => {
+			await expect(result.current.addEntry("Buy milk")).rejects.toThrow();
+		});
+
+		expect(mockNotify.error).toHaveBeenCalled();
+	});
+
 	it("handles promote to document", async () => {
 		const { GetActiveEntries, PromoteToDocument } = await import(
 			"../../../bindings/yanta/internal/journal/wailsservice"

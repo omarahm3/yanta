@@ -43,6 +43,7 @@ export interface UseJournalReturn {
 	refresh: () => Promise<void>;
 	deleteEntry: (id: string) => Promise<void>;
 	restoreEntry: (id: string) => Promise<void>;
+	restoreEntries: (ids: string[]) => Promise<void>;
 	updateEntry: (id: string, content: string, tags: string[]) => Promise<void>;
 	addEntry: (rawText: string) => Promise<void>;
 	promoteToDocument: (options: PromoteOptions) => Promise<string>;
@@ -205,6 +206,24 @@ export function useJournal({
 		[projectAlias, date, refresh],
 	);
 
+	// Restore several entries with a single refresh at the end (avoids the
+	// per-entry backend fetch + re-render flicker of looping restoreEntry).
+	const restoreEntries = useCallback(
+		async (ids: string[]) => {
+			let restoredAny = false;
+			for (const id of ids) {
+				try {
+					await RestoreEntry(projectAlias, date, id);
+					restoredAny = true;
+				} catch (err) {
+					BackendLogger.error("Failed to restore entry:", err);
+				}
+			}
+			if (restoredAny) await refresh();
+		},
+		[projectAlias, date, refresh],
+	);
+
 	// Update an entry's content (tags preserved by the caller passing the
 	// existing tags; the backend keeps tags unchanged when they are unchanged).
 	const updateEntry = useCallback(
@@ -221,10 +240,11 @@ export function useJournal({
 				setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, content, tags } : e)));
 			} catch (err) {
 				BackendLogger.error("Failed to update entry:", err);
+				notifyError("Failed to update journal entry");
 				throw err;
 			}
 		},
-		[projectAlias, date],
+		[projectAlias, date, notifyError],
 	);
 
 	// Add an entry to the currently-viewed date (in-page capture). Parses inline
@@ -245,10 +265,11 @@ export function useJournal({
 				await refresh();
 			} catch (err) {
 				BackendLogger.error("Failed to add entry:", err);
+				notifyError("Failed to add journal entry");
 				throw err;
 			}
 		},
-		[projectAlias, date, refresh],
+		[projectAlias, date, refresh, notifyError],
 	);
 
 	// Promote to document
@@ -308,6 +329,7 @@ export function useJournal({
 		refresh,
 		deleteEntry,
 		restoreEntry,
+		restoreEntries,
 		updateEntry,
 		addEntry,
 		promoteToDocument,

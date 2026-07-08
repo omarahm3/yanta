@@ -30,6 +30,8 @@ export const JournalComposer: React.FC<JournalComposerProps> = ({
 		try {
 			await onAdd(trimmed);
 			setText("");
+		} catch {
+			// The hook logs and notifies; keep the text so the user can retry.
 		} finally {
 			setIsSaving(false);
 		}
@@ -39,8 +41,10 @@ export const JournalComposer: React.FC<JournalComposerProps> = ({
 		<div className={className}>
 			<textarea
 				value={text}
+				disabled={isSaving}
 				onChange={(e) => setText(e.target.value)}
 				onKeyDown={(e) => {
+					if (isSaving) return;
 					if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
 						e.preventDefault();
 						void submit();

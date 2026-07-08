@@ -124,7 +124,7 @@ export function useJournalController({
 		date,
 		setDate,
 		deleteEntry,
-		restoreEntry,
+		restoreEntries,
 		updateEntry,
 		addEntry,
 		promoteToDocument,
@@ -242,15 +242,7 @@ export function useJournalController({
 						action: {
 							label: "Undo",
 							onClick: () => {
-								void (async () => {
-									for (const id of ids) {
-										try {
-											await restoreEntry(id);
-										} catch (err) {
-											BackendLogger.error("Failed to restore entry:", err);
-										}
-									}
-								})();
+								void restoreEntries(ids);
 							},
 						},
 					});
@@ -261,7 +253,7 @@ export function useJournalController({
 				}
 			},
 		});
-	}, [deleteEntry, restoreEntry, clearSelection, notifySuccess]);
+	}, [deleteEntry, restoreEntries, clearSelection, notifySuccess]);
 
 	// Promote selected entries to document
 	const handlePromoteSelected = useCallback(async () => {

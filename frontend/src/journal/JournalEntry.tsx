@@ -76,6 +76,8 @@ const JournalEntryComponent: React.FC<JournalEntryProps> = ({
 		try {
 			await onUpdateEntry(entry.id, next, entry.tags);
 			setIsEditing(false);
+		} catch {
+			// The hook logs and notifies; stay in edit mode so the user can retry.
 		} finally {
 			setIsSaving(false);
 		}
@@ -146,8 +148,10 @@ const JournalEntryComponent: React.FC<JournalEntryProps> = ({
 								// biome-ignore lint/a11y/noAutofocus: focus the editor the moment edit mode opens
 								autoFocus
 								value={draft}
+								disabled={isSaving}
 								onChange={(e) => setDraft(e.target.value)}
 								onKeyDown={(e) => {
+									if (isSaving) return;
 									if (e.key === "Escape") {
 										e.preventDefault();
 										e.stopPropagation();
