@@ -8,6 +8,7 @@ export interface UseDashboardHotkeysConfigOptions {
 	handleDeleteSelectedDocuments: (hard: boolean) => void;
 	handleMoveSelectedDocuments: () => void;
 	handleToggleSelection: () => void;
+	handleSelectAll: () => void;
 	handleOpenHighlightedDocument: () => void;
 	highlightNext: () => void;
 	highlightPrevious: () => void;
@@ -23,6 +24,7 @@ export function useDashboardHotkeysConfig({
 	handleDeleteSelectedDocuments,
 	handleMoveSelectedDocuments,
 	handleToggleSelection,
+	handleSelectAll,
 	handleOpenHighlightedDocument,
 	highlightNext,
 	highlightPrevious,
@@ -34,8 +36,8 @@ export function useDashboardHotkeysConfig({
 	const { shortcuts } = useMergedConfig();
 	const dashboard = shortcuts.dashboard;
 
-	return useMemo(
-		() => [
+	return useMemo(() => {
+		const all: HotkeyConfig[] = [
 			{
 				...dashboard.newDocument,
 				handler: () => {
@@ -46,6 +48,15 @@ export function useDashboardHotkeysConfig({
 			{
 				...dashboard.toggleArchived,
 				handler: handleToggleArchived as (event: KeyboardEvent) => void,
+				allowInInput: false,
+			},
+			{
+				...dashboard.selectAll,
+				handler: (event: KeyboardEvent) => {
+					event.preventDefault();
+					event.stopPropagation();
+					handleSelectAll();
+				},
 				allowInInput: false,
 			},
 			{
@@ -165,21 +176,22 @@ export function useDashboardHotkeysConfig({
 				},
 				allowInInput: false,
 			},
-		],
-		[
-			dashboard,
-			handleNewDocument,
-			handleToggleArchived,
-			handleDeleteSelectedDocuments,
-			handleMoveSelectedDocuments,
-			handleToggleSelection,
-			handleOpenHighlightedDocument,
-			highlightNext,
-			highlightPrevious,
-			handleArchiveSelectedDocuments,
-			handleRestoreSelectedDocuments,
-			handleExportSelectedMarkdown,
-			handleExportSelectedPDF,
-		],
-	);
+		];
+		return all.filter((h) => h.key);
+	}, [
+		dashboard,
+		handleNewDocument,
+		handleToggleArchived,
+		handleDeleteSelectedDocuments,
+		handleMoveSelectedDocuments,
+		handleToggleSelection,
+		handleSelectAll,
+		handleOpenHighlightedDocument,
+		highlightNext,
+		highlightPrevious,
+		handleArchiveSelectedDocuments,
+		handleRestoreSelectedDocuments,
+		handleExportSelectedMarkdown,
+		handleExportSelectedPDF,
+	]);
 }

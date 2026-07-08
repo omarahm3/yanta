@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { JOURNAL_SHORTCUTS } from "@/config/public";
+import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import type { HotkeyConfig } from "../shared/types/hotkeys";
 
 export interface UseJournalHotkeysConfigOptions {
@@ -21,10 +21,13 @@ export function useJournalHotkeysConfig({
 	handleDeleteSelected,
 	handlePromoteSelected,
 }: UseJournalHotkeysConfigOptions): HotkeyConfig[] {
+	const { shortcuts } = useMergedConfig();
+	const journal = shortcuts.journal;
+
 	return useMemo(
 		() => [
 			{
-				...JOURNAL_SHORTCUTS.nextDay,
+				...journal.nextDay,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -33,7 +36,7 @@ export function useJournalHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...JOURNAL_SHORTCUTS.prevDay,
+				...journal.prevDay,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -42,7 +45,7 @@ export function useJournalHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...JOURNAL_SHORTCUTS.arrowNextDay,
+				...journal.arrowNextDay,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -51,7 +54,7 @@ export function useJournalHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...JOURNAL_SHORTCUTS.arrowPrevDay,
+				...journal.arrowPrevDay,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -60,7 +63,7 @@ export function useJournalHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...JOURNAL_SHORTCUTS.highlightNext,
+				...journal.highlightNext,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -69,7 +72,7 @@ export function useJournalHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...JOURNAL_SHORTCUTS.highlightPrev,
+				...journal.highlightPrev,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -78,7 +81,7 @@ export function useJournalHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...JOURNAL_SHORTCUTS.navigateDown,
+				...journal.navigateDown,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -87,7 +90,7 @@ export function useJournalHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...JOURNAL_SHORTCUTS.navigateUp,
+				...journal.navigateUp,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -96,7 +99,7 @@ export function useJournalHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...JOURNAL_SHORTCUTS.toggleSelection,
+				...journal.toggleSelection,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -105,7 +108,7 @@ export function useJournalHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...JOURNAL_SHORTCUTS.delete,
+				...journal.delete,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -114,7 +117,7 @@ export function useJournalHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...JOURNAL_SHORTCUTS.promote,
+				...journal.promote,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -124,6 +127,7 @@ export function useJournalHotkeysConfig({
 			},
 		],
 		[
+			journal,
 			goToPrevDay,
 			goToNextDay,
 			highlightNext,

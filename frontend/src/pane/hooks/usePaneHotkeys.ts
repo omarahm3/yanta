@@ -1,34 +1,29 @@
 import { useMemo } from "react";
-import { PANE_SHORTCUTS } from "@/config/public";
+import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import { useHotkeys } from "../../hotkeys";
 import type { HotkeyConfig } from "../../shared/types/hotkeys";
 import { countLeaves, getPaneInDirection, type PaneDirection } from "../utils/paneLayoutUtils";
 import { usePaneLayout } from "./usePaneLayout";
 
-const directionKeys: { key: string; direction: PaneDirection }[] = [
-	{ key: PANE_SHORTCUTS.focusLeft.key, direction: "left" },
-	{ key: PANE_SHORTCUTS.focusDown.key, direction: "down" },
-	{ key: PANE_SHORTCUTS.focusUp.key, direction: "up" },
-	{ key: PANE_SHORTCUTS.focusRight.key, direction: "right" },
-];
-
-/**
- * Registers keyboard shortcuts for pane management.
- * Only call this hook from the document page (PaneLayoutView).
- *
- * Shortcuts:
- * - Ctrl+\  : Split active pane horizontally (right)
- * - Ctrl+Shift+\  : Split active pane vertically (down)
- * - Alt+X : Close active pane (when multiple panes exist)
- * - Alt+H/J/K/L : Vim-style focus pane (left / down / up / right)
- */
 export const usePaneHotkeys = (): void => {
 	const { layout, activePaneId, splitPane, closePane, setActivePane } = usePaneLayout();
+	const { shortcuts } = useMergedConfig();
+	const pane = shortcuts.pane;
+
+	const directionKeys: { key: string; direction: PaneDirection }[] = useMemo(
+		() => [
+			{ key: pane.focusLeft.key, direction: "left" },
+			{ key: pane.focusDown.key, direction: "down" },
+			{ key: pane.focusUp.key, direction: "up" },
+			{ key: pane.focusRight.key, direction: "right" },
+		],
+		[pane],
+	);
 
 	const hotkeys: HotkeyConfig[] = useMemo(
 		() => [
 			{
-				...PANE_SHORTCUTS.splitRight,
+				...pane.splitRight,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					splitPane(activePaneId, "horizontal");
@@ -38,7 +33,7 @@ export const usePaneHotkeys = (): void => {
 				category: "Panes",
 			},
 			{
-				...PANE_SHORTCUTS.splitDown,
+				...pane.splitDown,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					splitPane(activePaneId, "vertical");
@@ -48,7 +43,7 @@ export const usePaneHotkeys = (): void => {
 				category: "Panes",
 			},
 			{
-				...PANE_SHORTCUTS.close,
+				...pane.close,
 				handler: (event: KeyboardEvent) => {
 					const leafCount = countLeaves(layout.root);
 					if (leafCount <= 1) {
@@ -74,7 +69,7 @@ export const usePaneHotkeys = (): void => {
 				category: "Panes",
 			})),
 		],
-		[layout.root, activePaneId, splitPane, closePane, setActivePane],
+		[layout.root, activePaneId, splitPane, closePane, setActivePane, pane, directionKeys],
 	);
 
 	useHotkeys(hotkeys);

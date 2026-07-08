@@ -124,16 +124,16 @@ export function useHelpModalController(): UseHelpModalControllerResult {
 		const sectionMap: Record<HelpSectionId, { key: string; description: string }[]> = {
 			global: fromConfig.global,
 			navigation: [
-				{ key: "Ctrl+J", description: "Go to Journal" },
-				{ key: "Ctrl+T", description: "Jump to Today" },
-				{ key: "Ctrl+E", description: "Recent Documents" },
-				{ key: "Ctrl+Tab", description: "Switch to last project" },
-				{ key: "Ctrl+D", description: "Go to Documents" },
+				{ key: formatShortcutKeyForDisplay("ctrl+j"), description: "Go to Journal" },
+				{ key: formatShortcutKeyForDisplay("mod+T"), description: "Jump to Today" },
+				{ key: formatShortcutKeyForDisplay("ctrl+e"), description: "Recent Documents" },
+				{ key: formatShortcutKeyForDisplay("ctrl+Tab"), description: "Switch to last project" },
+				{ key: formatShortcutKeyForDisplay("ctrl+d"), description: "Go to Documents" },
 			],
 			documents: fromConfig.documents,
 			journal: fromConfig.journal,
 			editor: fromConfig.editor,
-			git: [{ key: "Ctrl+Shift+S", description: "Git Sync" }],
+			git: [{ key: formatShortcutKeyForDisplay("ctrl+shift+s"), description: "Git Sync" }],
 		};
 
 		const existingKeys = new Set(

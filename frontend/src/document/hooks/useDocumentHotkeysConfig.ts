@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { DOCUMENT_SHORTCUTS } from "@/config/public";
+import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import type { HotkeyConfig } from "../../shared/types/hotkeys";
 
 export interface UseDocumentHotkeysConfigOptions {
@@ -28,10 +28,13 @@ export function useDocumentHotkeysConfig({
 	focusEditor,
 	openFind,
 }: UseDocumentHotkeysConfigOptions): HotkeyConfig[] {
+	const { shortcuts } = useMergedConfig();
+	const document = shortcuts.document;
+
 	return useMemo(
 		() => [
 			{
-				...DOCUMENT_SHORTCUTS.save,
+				...document.save,
 				handler: (event: KeyboardEvent) => {
 					if (!isActivePaneRef.current) return false;
 					event.preventDefault();
@@ -46,7 +49,7 @@ export function useDocumentHotkeysConfig({
 				capture: true,
 			},
 			{
-				...DOCUMENT_SHORTCUTS.documentSearch,
+				...document.documentSearch,
 				handler: (event: KeyboardEvent) => {
 					if (!isActivePaneRef.current) return false;
 					event.preventDefault();
@@ -57,7 +60,7 @@ export function useDocumentHotkeysConfig({
 				capture: true,
 			},
 			{
-				...DOCUMENT_SHORTCUTS.exportMd,
+				...document.exportMd,
 				handler: (event: KeyboardEvent) => {
 					if (!isActivePaneRef.current) return false;
 					event.preventDefault();
@@ -72,7 +75,7 @@ export function useDocumentHotkeysConfig({
 				capture: true,
 			},
 			{
-				...DOCUMENT_SHORTCUTS.exportPdf,
+				...document.exportPdf,
 				handler: (event: KeyboardEvent) => {
 					if (!isActivePaneRef.current) return false;
 					event.preventDefault();
@@ -87,7 +90,7 @@ export function useDocumentHotkeysConfig({
 				capture: true,
 			},
 			{
-				...DOCUMENT_SHORTCUTS.back,
+				...document.back,
 				handler: (event: KeyboardEvent) => {
 					if (!isActivePaneRef.current) return false;
 					if (event.defaultPrevented) return false;
@@ -97,7 +100,7 @@ export function useDocumentHotkeysConfig({
 				capture: true,
 			},
 			{
-				...DOCUMENT_SHORTCUTS.unfocus,
+				...document.unfocus,
 				handler: (event: KeyboardEvent) => {
 					if (!isActivePaneRef.current) return false;
 					handleUnfocus(event);
@@ -105,7 +108,7 @@ export function useDocumentHotkeysConfig({
 				allowInInput: true,
 			},
 			{
-				...DOCUMENT_SHORTCUTS.focusEditor,
+				...document.focusEditor,
 				handler: () => {
 					if (!isActivePaneRef.current) return false;
 					focusEditor();
@@ -114,6 +117,7 @@ export function useDocumentHotkeysConfig({
 			},
 		],
 		[
+			document,
 			saveNow,
 			error,
 			focusEditor,

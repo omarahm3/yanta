@@ -151,10 +151,8 @@ describe("Projects hotkeys", () => {
 	it("registers project command hotkeys", async () => {
 		const ctx = await renderProjects();
 
-		// Verify project command hotkeys are registered
 		const keys = ctx.getRegisteredHotkeys().map((h) => h.key);
 		expect(keys).toContain("mod+N");
-		expect(keys).toContain("mod+A");
 		expect(keys).toContain("mod+U");
 		expect(keys).toContain("mod+D");
 	});

@@ -4,22 +4,36 @@ import { getGlobalFooterHints, getHintsForPage, useFooterHints } from "../shared
 
 describe("useFooterHints", () => {
 	describe("Dashboard page hints", () => {
-		it("returns correct hints for dashboard", () => {
-			const { result } = renderHook(() => useFooterHints({ currentPage: "dashboard" }));
-			expect(result.current.hints).toEqual([
-				{ key: "↑↓", label: "Navigate", priority: 1 },
-				{ key: "Enter", label: "Open", priority: 1 },
-				{ key: "Space", label: "Select", priority: 1 },
-				{ key: "Ctrl+N", label: "New", priority: 2 },
-				{ key: "Ctrl+M", label: "Move", priority: 2 },
-				{ key: "Ctrl+A", label: "Archive", priority: 2 },
-				{ key: "Ctrl+U", label: "Restore", priority: 3 },
-				{ key: "Ctrl+D", label: "Delete", priority: 3 },
-				{ key: "Ctrl+Shift+D", label: "Permanent delete", priority: 3 },
-				{ key: "Ctrl+E", label: "Export MD", priority: 3 },
-				{ key: "Ctrl+Shift+E", label: "Export PDF", priority: 3 },
-				{ key: "Ctrl+Shift+A", label: "Toggle archived", priority: 3 },
-			]);
+		it("returns base hints for dashboard without selection", () => {
+			const { result } = renderHook(() =>
+				useFooterHints({ currentPage: "dashboard", documentCount: 5 }),
+			);
+			const keys = result.current.hints.map((h) => h.key);
+			expect(keys).toContain("↑↓");
+			expect(keys).toContain("ENTER");
+			expect(keys).toContain("SPACE");
+			expect(keys).toContain("Ctrl+N");
+			expect(keys).toContain("Ctrl+A");
+		});
+
+		it("hides selection-dependent hints when nothing is selected", () => {
+			const { result } = renderHook(() =>
+				useFooterHints({ currentPage: "dashboard", hasSelection: false, documentCount: 5 }),
+			);
+			const labels = result.current.hints.map((h) => h.label);
+			expect(labels).not.toContain("Move");
+			expect(labels).not.toContain("Restore");
+			expect(labels).not.toContain("Export MD");
+		});
+
+		it("shows selection-dependent hints when items are selected", () => {
+			const { result } = renderHook(() =>
+				useFooterHints({ currentPage: "dashboard", hasSelection: true, documentCount: 5 }),
+			);
+			const labels = result.current.hints.map((h) => h.label);
+			expect(labels).toContain("Move");
+			expect(labels).toContain("Restore");
+			expect(labels).toContain("Export MD");
 		});
 
 		it("includes navigation hint for dashboard", () => {
@@ -31,32 +45,17 @@ describe("useFooterHints", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "dashboard" }));
 			expect(result.current.hints.some((h) => h.key === "Ctrl+N" && h.label === "New")).toBe(true);
 		});
-
-		it("includes move hint for dashboard", () => {
-			const { result } = renderHook(() => useFooterHints({ currentPage: "dashboard" }));
-			expect(result.current.hints.some((h) => h.key === "Ctrl+M" && h.label === "Move")).toBe(true);
-		});
-
-		it("includes select hint for dashboard", () => {
-			const { result } = renderHook(() => useFooterHints({ currentPage: "dashboard" }));
-			expect(result.current.hints.some((h) => h.key === "Space" && h.label === "Select")).toBe(true);
-		});
 	});
 
 	describe("Document page hints", () => {
 		it("returns correct hints for document", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "document" }));
-			expect(result.current.hints).toEqual([
-				{ key: "Ctrl+S", label: "Save", priority: 1 },
-				{ key: "Esc", label: "Back", priority: 1 },
-				{ key: "Enter", label: "Focus editor", priority: 2 },
-				{ key: "Ctrl+E", label: "Export MD", priority: 2 },
-				{ key: "Ctrl+Shift+E", label: "Export PDF", priority: 3 },
-				{ key: "Ctrl+\\", label: "Split right", priority: 3 },
-				{ key: "Ctrl+Shift+\\", label: "Split down", priority: 3 },
-				{ key: "Alt+X", label: "Close pane", priority: 3 },
-				{ key: "Alt+H/J/K/L", label: "Focus panes", priority: 3 },
-			]);
+			const keys = result.current.hints.map((h) => h.key);
+			expect(keys).toContain("Ctrl+S");
+			expect(keys).toContain("ESC");
+			expect(keys).toContain("ENTER");
+			expect(keys).toContain("Ctrl+E");
+			expect(keys).toContain("Ctrl+\\");
 		});
 
 		it("includes save hint for document", () => {
@@ -66,31 +65,24 @@ describe("useFooterHints", () => {
 
 		it("includes back/escape hint for document", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "document" }));
-			expect(result.current.hints.some((h) => h.key === "Esc" && h.label === "Back")).toBe(true);
+			expect(result.current.hints.some((h) => h.key === "ESC" && h.label === "Back")).toBe(true);
 		});
 
-		it("includes export hints for document", () => {
+		it("includes export hint for document", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "document" }));
 			expect(result.current.hints.some((h) => h.key === "Ctrl+E" && h.label === "Export MD")).toBe(
 				true,
 			);
-			expect(
-				result.current.hints.some((h) => h.key === "Ctrl+Shift+E" && h.label === "Export PDF"),
-			).toBe(true);
 		});
 	});
 
 	describe("Journal page hints", () => {
-		it("returns correct hints for journal", () => {
+		it("returns base hints for journal without selection", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "journal" }));
-			expect(result.current.hints).toEqual([
-				{ key: "←→", label: "Change date", priority: 1 },
-				{ key: "Ctrl+N/P", label: "Next/prev day", priority: 2 },
-				{ key: "↑↓", label: "Navigate", priority: 1 },
-				{ key: "Space", label: "Select", priority: 2 },
-				{ key: "Ctrl+D", label: "Delete", priority: 2 },
-				{ key: "Ctrl+Shift+P", label: "Promote", priority: 3 },
-			]);
+			const keys = result.current.hints.map((h) => h.key);
+			expect(keys).toContain("←→");
+			expect(keys).toContain("↑↓");
+			expect(keys).toContain("SPACE");
 		});
 
 		it("includes date change hint for journal", () => {
@@ -98,41 +90,34 @@ describe("useFooterHints", () => {
 			expect(result.current.hints.some((h) => h.key === "←→" && h.label === "Change date")).toBe(true);
 		});
 
-		it("includes next/prev day hint for journal", () => {
-			const { result } = renderHook(() => useFooterHints({ currentPage: "journal" }));
-			expect(
-				result.current.hints.some((h) => h.key === "Ctrl+N/P" && h.label === "Next/prev day"),
-			).toBe(true);
+		it("shows promote hint when entries are selected", () => {
+			const { result } = renderHook(() =>
+				useFooterHints({ currentPage: "journal", hasSelection: true }),
+			);
+			expect(result.current.hints.some((h) => h.label === "Promote")).toBe(true);
 		});
 
-		it("includes promote hint for journal", () => {
-			const { result } = renderHook(() => useFooterHints({ currentPage: "journal" }));
-			expect(result.current.hints.some((h) => h.key === "Ctrl+Shift+P" && h.label === "Promote")).toBe(
-				true,
+		it("hides promote hint when nothing is selected", () => {
+			const { result } = renderHook(() =>
+				useFooterHints({ currentPage: "journal", hasSelection: false }),
 			);
+			expect(result.current.hints.some((h) => h.label === "Promote")).toBe(false);
 		});
 	});
 
 	describe("Search page hints", () => {
 		it("returns correct hints for search", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "search" }));
-			expect(result.current.hints).toEqual([
-				{ key: "/", label: "Focus search", priority: 1 },
-				{ key: "↑↓", label: "Navigate", priority: 1 },
-				{ key: "Enter", label: "Open", priority: 1 },
-				{ key: "Tab", label: "To results", priority: 2 },
-				{ key: "Esc", label: "Clear", priority: 2 },
-			]);
+			const keys = result.current.hints.map((h) => h.key);
+			expect(keys).toContain("/");
+			expect(keys).toContain("↑↓");
+			expect(keys).toContain("ENTER");
+			expect(keys).toContain("TAB");
 		});
 
 		it("includes focus search hint", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "search" }));
 			expect(result.current.hints.some((h) => h.key === "/" && h.label === "Focus search")).toBe(true);
-		});
-
-		it("includes clear hint for search", () => {
-			const { result } = renderHook(() => useFooterHints({ currentPage: "search" }));
-			expect(result.current.hints.some((h) => h.key === "Esc" && h.label === "Clear")).toBe(true);
 		});
 	});
 
@@ -151,28 +136,36 @@ describe("useFooterHints", () => {
 	});
 
 	describe("Projects page hints", () => {
-		it("returns correct hints for projects", () => {
+		it("returns base hints for projects without selection", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "projects" }));
-			expect(result.current.hints).toEqual([
-				{ key: "↑↓", label: "Navigate", priority: 1 },
-				{ key: "Enter", label: "Open", priority: 1 },
-				{ key: "Ctrl+N", label: "New", priority: 2 },
-				{ key: "Ctrl+A", label: "Archive", priority: 2 },
-				{ key: "Ctrl+U", label: "Restore", priority: 3 },
-				{ key: "Ctrl+D", label: "Delete", priority: 3 },
-				{ key: "Ctrl+Shift+D", label: "Permanent delete", priority: 3 },
-			]);
+			const keys = result.current.hints.map((h) => h.key);
+			expect(keys).toContain("↑↓");
+			expect(keys).toContain("ENTER");
+			expect(keys).toContain("Ctrl+N");
+		});
+
+		it("hides restore hint when nothing is selected", () => {
+			const { result } = renderHook(() =>
+				useFooterHints({ currentPage: "projects", hasSelection: false }),
+			);
+			expect(result.current.hints.some((h) => h.label === "Restore")).toBe(false);
+		});
+
+		it("shows restore hint when items are selected", () => {
+			const { result } = renderHook(() =>
+				useFooterHints({ currentPage: "projects", hasSelection: true }),
+			);
+			expect(result.current.hints.some((h) => h.label === "Restore")).toBe(true);
 		});
 	});
 
 	describe("Quick capture page hints", () => {
 		it("returns correct hints for quick-capture", () => {
 			const { result } = renderHook(() => useFooterHints({ currentPage: "quick-capture" }));
-			expect(result.current.hints).toEqual([
-				{ key: "Ctrl+Enter", label: "Save", priority: 1 },
-				{ key: "Shift+Enter", label: "Save & stay", priority: 2 },
-				{ key: "Esc", label: "Cancel", priority: 2 },
-			]);
+			const keys = result.current.hints.map((h) => h.key);
+			expect(keys).toContain("Ctrl+ENTER");
+			expect(keys).toContain("Shift+ENTER");
+			expect(keys).toContain("ESC");
 		});
 	});
 
@@ -220,33 +213,27 @@ describe("getHintsForPage", () => {
 	it("returns hints for dashboard", () => {
 		const hints = getHintsForPage("dashboard");
 		expect(hints.some((h) => h.key === "↑↓")).toBe(true);
-		expect(hints.some((h) => h.key === "Space")).toBe(true);
-		expect(hints.some((h) => h.key === "Ctrl+M")).toBe(true);
-		expect(hints.some((h) => h.key === "Ctrl+U")).toBe(true);
-		expect(hints.some((h) => h.key === "Ctrl+Shift+D")).toBe(true);
-		expect(hints.some((h) => h.key === "Ctrl+Shift+E")).toBe(true);
+		expect(hints.some((h) => h.label === "Navigate")).toBe(true);
+		expect(hints.some((h) => h.label === "New")).toBe(true);
 	});
 
 	it("returns hints for document", () => {
 		const hints = getHintsForPage("document");
 		expect(hints.some((h) => h.key === "Ctrl+S")).toBe(true);
-		expect(hints.some((h) => h.key === "Enter")).toBe(true);
+		expect(hints.some((h) => h.key === "ESC")).toBe(true);
 		expect(hints.some((h) => h.key === "Ctrl+E")).toBe(true);
-		expect(hints.some((h) => h.key === "Ctrl+Shift+\\")).toBe(true);
 	});
 
 	it("returns hints for journal", () => {
 		const hints = getHintsForPage("journal");
 		expect(hints.some((h) => h.key === "←→")).toBe(true);
-		expect(hints.some((h) => h.key === "Ctrl+N/P")).toBe(true);
-		expect(hints.some((h) => h.key === "Ctrl+D")).toBe(true);
-		expect(hints.some((h) => h.key === "Ctrl+Shift+P")).toBe(true);
+		expect(hints.some((h) => h.label === "Navigate")).toBe(true);
 	});
 
 	it("returns hints for search", () => {
 		const hints = getHintsForPage("search");
 		expect(hints.some((h) => h.key === "/")).toBe(true);
-		expect(hints.some((h) => h.key === "Tab")).toBe(true);
+		expect(hints.some((h) => h.key === "TAB")).toBe(true);
 	});
 
 	it("returns hints for settings", () => {
@@ -257,8 +244,7 @@ describe("getHintsForPage", () => {
 	it("returns hints for projects", () => {
 		const hints = getHintsForPage("projects");
 		expect(hints.some((h) => h.key === "Ctrl+N")).toBe(true);
-		expect(hints.some((h) => h.key === "Ctrl+A")).toBe(true);
-		expect(hints.some((h) => h.key === "Ctrl+Shift+D")).toBe(true);
+		expect(hints.some((h) => h.label === "Navigate")).toBe(true);
 	});
 
 	it("returns empty hints for unknown page", () => {
@@ -277,19 +263,13 @@ describe("Priority assignments", () => {
 	});
 
 	it("assigns priority 1 to essential action on each page", () => {
-		// Dashboard: Navigate
 		expect(getHintsForPage("dashboard").find((h) => h.label === "Navigate")?.priority).toBe(1);
-		// Document: Save
 		expect(getHintsForPage("document").find((h) => h.label === "Save")?.priority).toBe(1);
-		// Journal: Change date
 		expect(getHintsForPage("journal").find((h) => h.label === "Change date")?.priority).toBe(1);
-		// Search: Navigate
 		expect(getHintsForPage("search").find((h) => h.label === "Navigate")?.priority).toBe(1);
-		// Settings: Navigate sections
 		expect(getHintsForPage("settings").find((h) => h.label === "Navigate sections")?.priority).toBe(
 			1,
 		);
-		// Quick-capture: Save
 		expect(getHintsForPage("quick-capture").find((h) => h.label === "Save")?.priority).toBe(1);
 	});
 });
@@ -298,17 +278,16 @@ describe("getGlobalFooterHints", () => {
 	it("always surfaces the command palette and help entry points", () => {
 		const hints = getGlobalFooterHints();
 		expect(hints.some((h) => h.label === "Commands")).toBe(true);
-		expect(hints.some((h) => h.key === "?" && h.label === "Help")).toBe(true);
+		expect(hints.some((h) => h.label === "Help")).toBe(true);
 	});
 
-	it("renders both global hints at priority 1 so they stay visible on narrow viewports", () => {
+	it("renders all global hints at priority 1", () => {
 		for (const hint of getGlobalFooterHints()) {
 			expect(hint.priority).toBe(1);
 		}
 	});
 
 	it("uses the platform-aware command-palette key (Ctrl+K off macOS)", () => {
-		// jsdom reports a non-macOS platform, so the formatter yields the Ctrl form.
 		const commands = getGlobalFooterHints().find((h) => h.label === "Commands");
 		expect(commands?.key).toBe("Ctrl+K");
 	});

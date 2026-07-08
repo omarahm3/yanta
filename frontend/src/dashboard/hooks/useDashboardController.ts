@@ -87,6 +87,7 @@ export interface DashboardControllerResult {
 		setHighlightedIndex: (index: number) => void;
 		selectedDocuments: Set<string>;
 		handleToggleSelection: (path?: string) => void;
+		handleSelectAll: () => void;
 	};
 	showArchived: boolean;
 	handleToggleArchived: () => void;
@@ -148,12 +149,17 @@ export function useDashboardController({
 	const highlightedIndexRef = useRef(highlightedIndex);
 	const showArchivedRef = useRef(showArchived);
 
-	const { selectedDocuments, selectedDocumentsRef, handleToggleSelection, clearSelection } =
-		useDashboardSelection({
-			documentsRef,
-			highlightedIndexRef,
-			setHighlightedIndex,
-		});
+	const {
+		selectedDocuments,
+		selectedDocumentsRef,
+		handleToggleSelection,
+		handleSelectAll,
+		clearSelection,
+	} = useDashboardSelection({
+		documentsRef,
+		highlightedIndexRef,
+		setHighlightedIndex,
+	});
 
 	const { confirmDialog, setConfirmDialog, moveDialog, setMoveDialog, closeMoveDialog } =
 		useDashboardDialogs();
@@ -288,11 +294,12 @@ export function useDashboardController({
 				}
 				await reloadDocuments();
 				clearSelection();
+				success(paths.length === 1 ? "Document archived" : `${paths.length} documents archived`);
 			} catch (err) {
 				error(err instanceof Error ? err.message : "Failed to archive");
 			}
 		},
-		[clearSelection, reloadDocuments, error, removeRecentDocument],
+		[clearSelection, reloadDocuments, error, success, removeRecentDocument],
 	);
 
 	const handleArchiveSelectedDocuments = useCallback(async () => {
@@ -316,10 +323,11 @@ export function useDashboardController({
 			}
 			await reloadDocuments();
 			clearSelection();
+			success(paths.length === 1 ? "Document restored" : `${paths.length} documents restored`);
 		} catch (err) {
 			error(err instanceof Error ? err.message : "Failed to restore");
 		}
-	}, [reloadDocuments, clearSelection, error]);
+	}, [reloadDocuments, clearSelection, error, success]);
 
 	const handleArchiveDocument = useCallback(
 		async (path: string) => {
@@ -580,6 +588,7 @@ export function useDashboardController({
 		handleDeleteSelectedDocuments,
 		handleMoveSelectedDocuments,
 		handleToggleSelection,
+		handleSelectAll,
 		handleOpenHighlightedDocument,
 		highlightNext,
 		highlightPrevious,
@@ -611,6 +620,7 @@ export function useDashboardController({
 			setHighlightedIndex,
 			selectedDocuments,
 			handleToggleSelection,
+			handleSelectAll,
 		},
 		showArchived,
 		handleToggleArchived,

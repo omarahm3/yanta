@@ -1,6 +1,6 @@
 import type React from "react";
 import { type ReactNode, useEffect, useMemo, useRef } from "react";
-import { SIDEBAR_SHORTCUTS } from "@/config/public";
+import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import { useHotkeys } from "../hotkeys";
 import { useProjectContext } from "../project";
 import {
@@ -54,6 +54,8 @@ export interface LayoutProps {
 	headerActions?: ReactNode;
 	children: ReactNode;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
+	hasSelection?: boolean;
+	documentCount?: number;
 }
 
 const dedupeFooterHints = (
@@ -95,12 +97,14 @@ export const Layout: React.FC<LayoutProps> = ({
 	headerActions,
 	children,
 	onRegisterToggleSidebar,
+	hasSelection,
+	documentCount,
 }) => {
 	const { toggleSidebar, isLoading: sidebarLoading } = useSidebarSetting();
 	const { showFooterHints, isLoading: footerHintsLoading } = useFooterHintsSetting();
 	const { currentProject } = useProjectContext();
 	const { heightInRem } = useTitleBarContext();
-	const { hints: footerHints } = useFooterHints({ currentPage });
+	const { hints: footerHints } = useFooterHints({ currentPage, hasSelection, documentCount });
 	const { isBelowLg } = useResponsive();
 
 	const allFooterHints = useMemo(
@@ -116,10 +120,13 @@ export const Layout: React.FC<LayoutProps> = ({
 		}
 	}, [onRegisterToggleSidebar, toggleSidebar]);
 
+	const { shortcuts } = useMergedConfig();
+	const sidebar = shortcuts.sidebar;
+
 	const sidebarToggleHotkeys = useMemo(
 		() => [
 			{
-				...SIDEBAR_SHORTCUTS.toggle,
+				...sidebar.toggle,
 				handler: () => {
 					toggleSidebar();
 				},
@@ -127,7 +134,7 @@ export const Layout: React.FC<LayoutProps> = ({
 				category: "navigation",
 			},
 		],
-		[toggleSidebar],
+		[toggleSidebar, sidebar],
 	);
 
 	useHotkeys(sidebarToggleHotkeys);

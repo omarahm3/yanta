@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { GLOBAL_SHORTCUTS } from "@/config/public";
+import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import { GlobalCommandPalette, useCommandPaletteStore } from "../command-palette";
 import { GlobalSearch, useGlobalSearchStore } from "../global-search";
 import { useHelp } from "../help";
@@ -24,18 +24,19 @@ const GlobalCommandHotkey = () => {
 	const handleCloseCommandPalette = useCallback(() => {
 		closeCommandPalette();
 	}, [closeCommandPalette]);
+	const { shortcuts } = useMergedConfig();
+	const global = shortcuts.global;
 
-	// Vim-style leader navigation: g d/j/s/p/, → documents/journal/search/projects/settings.
 	useLeaderKeys({ onNavigate: nav.onNavigate });
 
 	useHotkey({
-		...GLOBAL_SHORTCUTS.commandPalette,
+		...global.commandPalette,
 		handler: () => openCommandPalette(),
 		allowInInput: false,
 	});
 
 	useHotkey({
-		...GLOBAL_SHORTCUTS.today,
+		...global.today,
 		handler: (e) => {
 			e.preventDefault();
 			const today = new Date().toISOString().split("T")[0];
@@ -49,7 +50,7 @@ const GlobalCommandHotkey = () => {
 	const openGlobalSearch = useGlobalSearchStore((s) => s.open);
 
 	useHotkey({
-		...GLOBAL_SHORTCUTS.switchProject,
+		...global.switchProject,
 		handler: (e) => {
 			e.preventDefault();
 			if (previousProject) {
@@ -60,7 +61,7 @@ const GlobalCommandHotkey = () => {
 	});
 
 	useHotkey({
-		...GLOBAL_SHORTCUTS.projectSwitcher,
+		...global.projectSwitcher,
 		handler: (e) => {
 			e.preventDefault();
 			openProjectSwitcher();
@@ -69,13 +70,11 @@ const GlobalCommandHotkey = () => {
 	});
 
 	useHotkey({
-		...GLOBAL_SHORTCUTS.globalSearch,
+		...global.globalSearch,
 		handler: (e) => {
 			e.preventDefault();
 			openGlobalSearch();
 		},
-		// Find works from anywhere — including while editing a document — and
-		// takes the capture phase so it beats the webview's native find-in-page.
 		allowInInput: true,
 		capture: true,
 	});
