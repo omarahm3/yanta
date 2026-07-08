@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	runtimePkg "runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -239,10 +240,34 @@ func run() {
 			logger.Debug("Window close prevented, hiding to background")
 			e.Cancel()
 		} else {
-			logger.Debug("Window close allowed, requesting application quit")
+			logger.Debug("Window close allowed, flushing dirty editors before quit")
 			e.Cancel()
 			isQuitting = true
-			wailsApp.Quit()
+
+			flushDone := make(chan struct{})
+			var flushOnce sync.Once
+			unsubscribeAck := wailsApp.Event.On(
+				"yanta/app/flush-dirty:ack",
+				func(event *application.CustomEvent) {
+					logger.Debug("Received flush-dirty ack from frontend")
+					// Guard the close: the frontend may ack more than once, and
+					// closing an already-closed channel panics.
+					flushOnce.Do(func() { close(flushDone) })
+				},
+			)
+
+			wailsApp.Event.Emit("yanta/app/flush-dirty", nil)
+
+			go func() {
+				select {
+				case <-flushDone:
+					logger.Debug("Frontend flush completed, quitting")
+				case <-time.After(3 * time.Second):
+					logger.Warn("Frontend flush timed out (3s), quitting anyway")
+				}
+				unsubscribeAck()
+				wailsApp.Quit()
+			}()
 		}
 	})
 

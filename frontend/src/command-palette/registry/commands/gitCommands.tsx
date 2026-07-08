@@ -84,7 +84,7 @@ export function registerGitCommands(registry: CommandRegistry, ctx: CommandRegis
 			id: "git-pull",
 			icon: <CloudDownload className="text-lg" />,
 			text: "Git Pull",
-			hint: "Pull from remote (merge)",
+			hint: "Pull from remote (rebase)",
 			group: "Git",
 			action: async () => {
 				handleClose();

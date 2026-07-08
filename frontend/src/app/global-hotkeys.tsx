@@ -8,6 +8,7 @@ import { useProjectContext } from "../project";
 import { ProjectSwitcher, useProjectSwitcherStore } from "../project-switcher";
 import { useAppGlobalEffects } from "./hooks";
 import { useLeaderKeys } from "./hooks/useLeaderKeys";
+import { NavGuardDialog } from "./hooks/useNavGuard";
 import { Router } from "./Router";
 import { useAppNavigation } from "./useAppNavigation";
 
@@ -98,6 +99,11 @@ const GlobalCommandHotkey = () => {
 				onNavigate={nav.onNavigate}
 				onRegisterToggleArchived={nav.onRegisterToggleArchived}
 				onRegisterToggleSidebar={nav.onRegisterToggleSidebar}
+			/>
+			<NavGuardDialog
+				isOpen={nav.showNavGuardDialog}
+				onConfirm={nav.confirmNavigation}
+				onCancel={nav.cancelNavigation}
 			/>
 		</>
 	);

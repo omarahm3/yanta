@@ -884,7 +884,7 @@ func (s *Service) GitPull(ctx context.Context) error {
 	}
 
 	logger.Info("pulling from remote")
-	if err := gitService.Pull(ctx, dataDir, "origin", branch); err != nil {
+	if err := gitService.PullRebase(ctx, dataDir, "origin", branch); err != nil {
 		return normalizeGitTimeoutError(ctx, err, "pull")
 	}
 

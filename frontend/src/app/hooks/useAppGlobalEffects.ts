@@ -1,4 +1,5 @@
 import { useBackendToast } from "./useBackendToast";
+import { useFlushDirtyOnQuit } from "./useFlushDirtyOnQuit";
 import { useHelpHotkey } from "./useHelpHotkey";
 import { useProjectSwitchTracking } from "./useProjectSwitchTracking";
 import { useQuitHotkeys } from "./useQuitHotkeys";
@@ -10,4 +11,5 @@ export function useAppGlobalEffects(): void {
 	useWindowHiddenToast();
 	useProjectSwitchTracking();
 	useBackendToast();
+	useFlushDirtyOnQuit();
 }

@@ -1,6 +1,7 @@
 import React from "react";
 import { usePaneLayout } from "../pane";
 import type { NavigationState, PageName } from "../shared/types";
+import { useNavGuard } from "./hooks/useNavGuard";
 
 export interface UseAppNavigationReturn {
 	currentPage: PageName;
@@ -11,6 +12,9 @@ export interface UseAppNavigationReturn {
 	onRegisterToggleArchived: (handler: () => void) => void;
 	onToggleSidebar: () => void;
 	onRegisterToggleSidebar: (handler: () => void) => void;
+	showNavGuardDialog: boolean;
+	confirmNavigation: () => void;
+	cancelNavigation: () => void;
 }
 
 /**
@@ -39,7 +43,7 @@ export function useAppNavigation(): UseAppNavigationReturn {
 	const toggleArchivedRef = React.useRef<(() => void) | null>(null);
 	const toggleSidebarRef = React.useRef<(() => void) | null>(null);
 
-	const onNavigate = React.useCallback(
+	const onNavigateRaw = React.useCallback(
 		(page: PageName, state?: NavigationState) => {
 			setCurrentPage(page);
 			if (state) {
@@ -57,6 +61,13 @@ export function useAppNavigation(): UseAppNavigationReturn {
 		},
 		[loadAndRestoreLayout],
 	);
+
+	const {
+		guardedNavigate: onNavigate,
+		showNavGuardDialog,
+		confirmNavigation,
+		cancelNavigation,
+	} = useNavGuard(onNavigateRaw);
 
 	const onRegisterToggleArchived = React.useCallback((handler: () => void) => {
 		toggleArchivedRef.current = handler;
@@ -122,6 +133,9 @@ export function useAppNavigation(): UseAppNavigationReturn {
 		onRegisterToggleArchived,
 		onToggleSidebar,
 		onRegisterToggleSidebar,
+		showNavGuardDialog,
+		confirmNavigation,
+		cancelNavigation,
 	};
 }
 
