@@ -407,7 +407,7 @@ func (sm *SyncManager) pushWithRebaseRetry(ctx context.Context, dataDir, branch 
 			f := sm.reindexFunc
 			sm.mu.Unlock()
 			if f != nil {
-				f(ctx)
+				f(context.Background())
 			}
 		}
 	}()
