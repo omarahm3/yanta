@@ -239,10 +239,27 @@ func run() {
 			logger.Debug("Window close prevented, hiding to background")
 			e.Cancel()
 		} else {
-			logger.Debug("Window close allowed, requesting application quit")
+			logger.Debug("Window close allowed, flushing dirty editors before quit")
 			e.Cancel()
 			isQuitting = true
-			wailsApp.Quit()
+
+			flushDone := make(chan struct{})
+			wailsApp.Event.On("yanta/app/flush-dirty:ack", func(event *application.CustomEvent) {
+				logger.Debug("Received flush-dirty ack from frontend")
+				close(flushDone)
+			})
+
+			wailsApp.Event.Emit("yanta/app/flush-dirty", nil)
+
+			go func() {
+				select {
+				case <-flushDone:
+					logger.Debug("Frontend flush completed, quitting")
+				case <-time.After(3 * time.Second):
+					logger.Warn("Frontend flush timed out (3s), quitting anyway")
+				}
+				wailsApp.Quit()
+			}()
 		}
 	})
 

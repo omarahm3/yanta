@@ -10,7 +10,7 @@ import { DensityInit } from "../shared/stores/density.store";
 import { ThemeInit } from "../shared/stores/theme.store";
 import { ToastProvider } from "../shared/ui";
 import { AppMonitorInit } from "./AppMonitorInit";
-import { ResizeHandles, TitleBar, UpdateBanner } from "./components";
+import { ResizeHandles, SaveErrorBanner, TitleBar, UpdateBanner } from "./components";
 import { DocumentCountStoreInit } from "./DocumentCountStoreInit";
 import { FeatureFlagsStoreInit } from "./FeatureFlagsStoreInit";
 import { AppGlobalEffects, GlobalCommandHotkey } from "./global-hotkeys";
@@ -40,6 +40,7 @@ export function AppProviders() {
 							<ResizeHandles />
 							<TitleBar />
 							<UpdateBanner />
+							<SaveErrorBanner />
 							<AppGlobalEffects />
 							<GlobalCommandHotkey />
 							<HelpModal />

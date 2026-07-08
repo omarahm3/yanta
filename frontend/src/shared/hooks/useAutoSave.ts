@@ -1,7 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMergedConfig } from "@/shared/stores/preferences.store";
+import { useSaveErrorStore } from "@/shared/stores/saveError.store";
 
 export type SaveState = "idle" | "saving" | "saved" | "error";
+
+const activeSavers = new Set<() => Promise<void>>();
+
+export function registerSaver(saveNow: () => Promise<void>): () => void {
+	activeSavers.add(saveNow);
+	return () => {
+		activeSavers.delete(saveNow);
+	};
+}
+
+export async function flushAllDirty(): Promise<void> {
+	const savers = Array.from(activeSavers);
+	await Promise.all(savers.map((s) => s().catch(() => {})));
+}
 
 interface AutoSaveConfig<T> {
 	value: T;
@@ -99,6 +114,7 @@ export const useAutoSave = <T>({
 			setLastSaved(new Date());
 			setSaveState("saved");
 			retryCountRef.current = 0;
+			useSaveErrorStore.getState().clearError();
 
 			if (savedStateTimeoutRef.current) {
 				clearTimeout(savedStateTimeoutRef.current);
@@ -145,6 +161,7 @@ export const useAutoSave = <T>({
 				setSaveError(error);
 				setSaveState("error");
 				retryCountRef.current = 0;
+				useSaveErrorStore.getState().setError(error, saveNow);
 			}
 		} finally {
 			isSavingRef.current = false;
@@ -158,6 +175,10 @@ export const useAutoSave = <T>({
 		}
 		await performSave();
 	}, [performSave]);
+
+	useEffect(() => {
+		return registerSaver(saveNow);
+	}, [saveNow]);
 
 	useEffect(() => {
 		lastValueRef.current = value;
@@ -247,6 +268,11 @@ export const useAutoSave = <T>({
 			}
 		};
 	}, []);
+
+	useEffect(() => {
+		const isDirtyWithError = saveState === "error" && hasUnsavedChanges;
+		useSaveErrorStore.getState().setDirtyError(isDirtyWithError);
+	}, [saveState, hasUnsavedChanges]);
 
 	return {
 		saveState,
