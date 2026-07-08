@@ -34,12 +34,17 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 	const [error, setError] = useState<string | null>(null);
 	const [currentProjectAlias, setCurrentProjectAlias] = useState<string | null>(null);
 	const [selectedIndex, setSelectedIndex] = useState(0);
+	// Remember the archived filter of the last load so event-driven refreshes
+	// (archive/restore/create/delete) don't silently drop back to active-only and
+	// render active docs under the "Archived" header.
+	const lastIncludeArchivedRef = useRef(false);
 
 	const loadDocuments = useCallback(
 		async (projectAlias: string, includeArchived: boolean = false) => {
 			setIsLoading(true);
 			setError(null);
 			setCurrentProjectAlias(projectAlias);
+			lastIncludeArchivedRef.current = includeArchived;
 
 			try {
 				const docs = await DocumentServiceWrapper.listByProject(projectAlias, includeArchived);
@@ -55,7 +60,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
 	const refreshDocuments = useCallback(async () => {
 		if (currentProjectAlias) {
-			await loadDocuments(currentProjectAlias);
+			await loadDocuments(currentProjectAlias, lastIncludeArchivedRef.current);
 		}
 	}, [currentProjectAlias, loadDocuments]);
 

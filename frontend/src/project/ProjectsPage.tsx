@@ -1,5 +1,5 @@
 import { formatRelative } from "date-fns";
-import { FolderPlus } from "lucide-react";
+import { Archive, ArchiveRestore, FolderPlus, Pencil, Plus, Trash2 } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Layout } from "@/app";
 import { useMergedConfig } from "@/config/usePreferencesOverrides";
@@ -18,7 +18,26 @@ import { ConfirmDialog } from "../shared/ui/ConfirmDialog";
 import { BackendLogger } from "../shared/utils/backendLogger";
 import { getProjectAliasColor } from "../shared/utils/color";
 import { NewProjectDialog } from "./components/NewProjectDialog";
+import { RenameProjectDialog } from "./components/RenameProjectDialog";
 import { useProjectContext } from "./context";
+import { useProjectManageStore } from "./projectManage.store";
+
+/** Alias + name is all the row actions and rename dialog need. */
+interface ProjectActionTarget {
+	alias: string;
+	name: string;
+}
+
+interface RowActions {
+	onRename: (target: ProjectActionTarget) => void;
+	onArchive: (target: ProjectActionTarget) => void;
+	onRestore: (target: ProjectActionTarget) => void;
+	onDelete: (target: ProjectActionTarget) => void;
+	onHardDelete: (target: ProjectActionTarget) => void;
+}
+
+const rowActionButton =
+	"flex h-6 w-6 items-center justify-center rounded text-text-dim transition-colors hover:bg-accent/10 hover:text-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent";
 
 interface ProjectsProps {
 	onNavigate?: (page: PageName) => void;
@@ -47,6 +66,7 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 		onConfirm: () => {},
 	});
 	const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
+	const [renameTarget, setRenameTarget] = useState<ProjectActionTarget | null>(null);
 	const { success, error: notifyError } = useNotification();
 	const projectsRef = useRef(projects);
 	const archivedProjectsRef = useRef(archivedProjects);
@@ -115,10 +135,16 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 		{ key: "entryCount", label: "ENTRIES", width: "minmax(60px, 0.5fr)", align: "right" },
 		{ key: "lastEntry", label: "LAST ENTRY", width: "minmax(120px, 1.2fr)" },
 		{ key: "status", label: "STATUS", width: "minmax(5rem, 0.8fr)" },
+		{ key: "actions", label: "", width: "minmax(6rem, auto)", align: "right" },
 	];
 
-	const formatTableRows = (projects: ExtendedProject[]): TableRow[] => {
+	const formatTableRows = (
+		projects: ExtendedProject[],
+		isArchived: boolean,
+		actions: RowActions,
+	): TableRow[] => {
 		return projects.map((project, index) => {
+			const target: ProjectActionTarget = { alias: project.alias, name: project.name };
 			const raw = String(project.lastEntry).replace(/\s+/g, " ").trim();
 			let lastEntryDisplay: string;
 			if (!raw || raw === "-") lastEntryDisplay = "-";
@@ -155,6 +181,77 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 					>
 						{project.status}
 					</span>
+				),
+				actions: (
+					<div className="flex items-center justify-end gap-0.5">
+						{isArchived ? (
+							<>
+								<button
+									type="button"
+									title="Restore project"
+									aria-label={`Restore ${project.name}`}
+									className={rowActionButton}
+									onClick={(e) => {
+										e.stopPropagation();
+										actions.onRestore(target);
+									}}
+								>
+									<ArchiveRestore className="h-3.5 w-3.5" aria-hidden="true" />
+								</button>
+								<button
+									type="button"
+									title="Delete permanently"
+									aria-label={`Delete ${project.name} permanently`}
+									className={rowActionButton}
+									onClick={(e) => {
+										e.stopPropagation();
+										actions.onHardDelete(target);
+									}}
+								>
+									<Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+								</button>
+							</>
+						) : (
+							<>
+								<button
+									type="button"
+									title="Rename project"
+									aria-label={`Rename ${project.name}`}
+									className={rowActionButton}
+									onClick={(e) => {
+										e.stopPropagation();
+										actions.onRename(target);
+									}}
+								>
+									<Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+								</button>
+								<button
+									type="button"
+									title="Archive project"
+									aria-label={`Archive ${project.name}`}
+									className={rowActionButton}
+									onClick={(e) => {
+										e.stopPropagation();
+										actions.onArchive(target);
+									}}
+								>
+									<Archive className="h-3.5 w-3.5" aria-hidden="true" />
+								</button>
+								<button
+									type="button"
+									title="Delete project"
+									aria-label={`Delete ${project.name}`}
+									className={rowActionButton}
+									onClick={(e) => {
+										e.stopPropagation();
+										actions.onDelete(target);
+									}}
+								>
+									<Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+								</button>
+							</>
+						)}
+					</div>
 				),
 			};
 		});
@@ -319,6 +416,49 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 		[projects, archivedProjects, applyResult, notifyError],
 	);
 
+	const rowActions = useMemo<RowActions>(
+		() => ({
+			onRename: (target) => setRenameTarget(target),
+			onArchive: (target) => void executeProjectCommand(`archive ${target.alias}`),
+			onRestore: (target) => void executeProjectCommand(`unarchive ${target.alias}`),
+			onDelete: (target) => void executeProjectCommand(`delete ${target.alias}`),
+			onHardDelete: (target) => void executeProjectCommand(`delete ${target.alias} --hard`),
+		}),
+		[executeProjectCommand],
+	);
+
+	const handleRenameSubmit = useCallback(
+		(newName: string) => {
+			if (renameTarget) {
+				void executeProjectCommand(`rename ${renameTarget.alias} ${newName}`);
+			}
+			setRenameTarget(null);
+		},
+		[renameTarget, executeProjectCommand],
+	);
+
+	// Let the command palette open the New / Rename dialogs after navigating here.
+	// The request is only consumed once resolved (or loading has finished and the
+	// project is confirmed absent), so it isn't lost if projects are still loading
+	// when we arrive from the palette.
+	const pendingManageRequest = useProjectManageStore((s) => s.request);
+	const consumeManageRequest = useProjectManageStore((s) => s.consume);
+	useEffect(() => {
+		if (!pendingManageRequest) return;
+		if (pendingManageRequest.type === "new") {
+			consumeManageRequest();
+			setIsNewProjectDialogOpen(true);
+			return;
+		}
+		const proj = projects.find((p) => p.id === pendingManageRequest.projectId);
+		if (proj) {
+			consumeManageRequest();
+			setRenameTarget({ alias: proj.alias, name: proj.name });
+		} else if (!isLoading) {
+			consumeManageRequest();
+		}
+	}, [pendingManageRequest, consumeManageRequest, projects, isLoading]);
+
 	const selectNext = useCallback(() => {
 		const allProjects = [...projectsRef.current, ...archivedProjectsRef.current];
 		const currentIndex = allProjects.findIndex((p) => p.id === selectedProjectIdRef.current);
@@ -445,8 +585,18 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 				onRegisterToggleSidebar={onRegisterToggleSidebar}
 			>
 				<div className="min-w-0 w-full p-5">
-					<div className="mb-4 text-xs font-semibold tracking-wider uppercase text-text-dim">
-						ACTIVE PROJECTS
+					<div className="mb-4 flex items-center justify-between gap-3">
+						<div className="text-xs font-semibold tracking-wider uppercase text-text-dim">
+							ACTIVE PROJECTS
+						</div>
+						<button
+							type="button"
+							onClick={() => setIsNewProjectDialogOpen(true)}
+							className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs font-medium text-text-dim transition-colors hover:border-accent hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+						>
+							<Plus className="h-3.5 w-3.5" aria-hidden="true" />
+							New project
+						</button>
 					</div>
 
 					{isLoading ? (
@@ -464,7 +614,7 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 					) : (
 						<Table
 							columns={tableColumns}
-							rows={formatTableRows(activeProjectDetails)}
+							rows={formatTableRows(activeProjectDetails, false, rowActions)}
 							selectedRowId={selectedProjectId}
 							onRowSelect={handleRowSelect}
 							onRowDoubleClick={handleRowDoubleClick}
@@ -480,7 +630,7 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 
 							<Table
 								columns={tableColumns}
-								rows={formatTableRows(archivedProjectDetails)}
+								rows={formatTableRows(archivedProjectDetails, true, rowActions)}
 								selectedRowId={selectedProjectId}
 								onRowSelect={handleRowSelect}
 								onRowDoubleClick={handleRowDoubleClick}
@@ -505,6 +655,12 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 				isOpen={isNewProjectDialogOpen}
 				onClose={() => setIsNewProjectDialogOpen(false)}
 				onSubmit={handleCreateProject}
+			/>
+			<RenameProjectDialog
+				isOpen={renameTarget !== null}
+				currentName={renameTarget?.name ?? ""}
+				onClose={() => setRenameTarget(null)}
+				onSubmit={handleRenameSubmit}
 			/>
 		</>
 	);

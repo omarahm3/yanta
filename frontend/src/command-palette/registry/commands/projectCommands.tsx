@@ -1,7 +1,16 @@
-import { Archive, ArchiveRestore, ArrowLeftRight, ArrowRight, FileDown } from "lucide-react";
+import {
+	Archive,
+	ArchiveRestore,
+	ArrowLeftRight,
+	ArrowRight,
+	FileDown,
+	FolderPlus,
+	Pencil,
+} from "lucide-react";
 import { ExportProjectRequest } from "../../../../bindings/yanta/internal/document/models";
 import { ExportProject } from "../../../../bindings/yanta/internal/document/service";
 import { OpenDirectoryDialog } from "../../../../bindings/yanta/internal/system/service";
+import { useProjectManageStore } from "../../../project/projectManage.store";
 import type { CommandOption } from "../../../shared/ui";
 import { getShortcutForCommand } from "../../../shared/utils/shortcuts";
 import type { CommandRegistry, CommandRegistryContext } from "../types";
@@ -18,11 +27,42 @@ export function registerProjectCommands(
 		setCurrentProject,
 		switchToLastProject,
 		currentPage,
+		onNavigate,
 		onToggleArchived,
 		showArchived,
 		notification,
 	} = ctx;
 	const commands: CommandOption[] = [];
+
+	commands.push({
+		id: "new-project",
+		icon: <FolderPlus className="text-lg" />,
+		text: "New Project",
+		hint: "Create a project",
+		group: "Projects",
+		keywords: ["create", "add", "project"],
+		action: () => {
+			useProjectManageStore.getState().requestNew();
+			onNavigate("projects");
+			handleClose();
+		},
+	});
+
+	if (currentProject) {
+		commands.push({
+			id: "rename-project",
+			icon: <Pencil className="text-lg" />,
+			text: `Rename ${currentProject.alias}`,
+			hint: currentProject.name,
+			group: "Projects",
+			keywords: ["rename", "project"],
+			action: () => {
+				useProjectManageStore.getState().requestRename(currentProject.id);
+				onNavigate("projects");
+				handleClose();
+			},
+		});
+	}
 
 	if (currentProject) {
 		commands.push({
