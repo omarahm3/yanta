@@ -229,6 +229,99 @@ func TestService_Save_EmptyTitle(t *testing.T) {
 	assert.Contains(t, err.Error(), "title is required")
 }
 
+func TestService_Save_ExpectedHash_Conflict(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	// Create a document
+	createReq := SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "Original Title",
+		Blocks: []BlockNoteBlock{
+			{ID: "block1", Type: "paragraph", Content: mustMarshalContent([]BlockNoteContent{{Type: "text", Text: "Original"}})},
+		},
+		Tags: []string{"original"},
+	}
+
+	path, err := service.Save(context.Background(), createReq)
+	require.NoError(t, err, "Create failed")
+
+	// Get the current hash
+	hash, err := service.GetDocumentHash(context.Background(), path)
+	require.NoError(t, err, "GetDocumentHash failed")
+
+	// Simulate external modification by saving with different content
+	externalReq := SaveRequest{
+		Path:         path,
+		ProjectAlias: "@test",
+		Title:        "Externally Modified",
+		Blocks: []BlockNoteBlock{
+			{ID: "block1", Type: "paragraph", Content: mustMarshalContent([]BlockNoteContent{{Type: "text", Text: "External change"}})},
+		},
+		Tags: []string{"external"},
+	}
+	_, err = service.Save(context.Background(), externalReq)
+	require.NoError(t, err, "External save failed")
+
+	// Try to save with the old hash - should fail with conflict
+	updateReq := SaveRequest{
+		Path:         path,
+		ProjectAlias: "@test",
+		Title:        "Updated Title",
+		Blocks: []BlockNoteBlock{
+			{ID: "block1", Type: "paragraph", Content: mustMarshalContent([]BlockNoteContent{{Type: "text", Text: "Updated"}})},
+		},
+		Tags:         []string{"updated"},
+		ExpectedHash: hash,
+	}
+
+	_, err = service.Save(context.Background(), updateReq)
+	assert.ErrorIs(t, err, ErrConflict, "Expected ErrConflict for hash mismatch")
+}
+
+func TestService_Save_ExpectedHash_Match(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	// Create a document
+	createReq := SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "Original Title",
+		Blocks: []BlockNoteBlock{
+			{ID: "block1", Type: "paragraph", Content: mustMarshalContent([]BlockNoteContent{{Type: "text", Text: "Original"}})},
+		},
+		Tags: []string{"original"},
+	}
+
+	path, err := service.Save(context.Background(), createReq)
+	require.NoError(t, err, "Create failed")
+
+	// Get the current hash
+	hash, err := service.GetDocumentHash(context.Background(), path)
+	require.NoError(t, err, "GetDocumentHash failed")
+
+	// Save with the correct hash - should succeed
+	updateReq := SaveRequest{
+		Path:         path,
+		ProjectAlias: "@test",
+		Title:        "Updated Title",
+		Blocks: []BlockNoteBlock{
+			{ID: "block1", Type: "paragraph", Content: mustMarshalContent([]BlockNoteContent{{Type: "text", Text: "Updated"}})},
+		},
+		Tags:         []string{"updated"},
+		ExpectedHash: hash,
+	}
+
+	updatedPath, err := service.Save(context.Background(), updateReq)
+	require.NoError(t, err, "Save with correct hash should succeed")
+	assert.Equal(t, path, updatedPath, "Path should remain the same")
+
+	// Verify the update was applied
+	doc, err := service.Get(context.Background(), path)
+	require.NoError(t, err, "Get() failed")
+	assert.Equal(t, "Updated Title", doc.Title)
+}
+
 func TestService_Get(t *testing.T) {
 	service, _, cleanup := setupServiceTest(t)
 	defer cleanup()

@@ -163,7 +163,7 @@ func (s *Service) Save(ctx context.Context, req SaveRequest) (string, error) {
 					"expectedHash": req.ExpectedHash,
 					"currentHash":  currentHash,
 				}).Warn("document conflict detected: file was modified externally")
-				return "", fmt.Errorf("%w: document was modified externally", ErrConflict)
+				return "", ErrConflict
 			}
 		}
 	}

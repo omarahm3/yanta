@@ -167,6 +167,12 @@ func isDocumentFile(path string) bool {
 }
 
 func (w *Watcher) scheduleIndexing(relPath string, op fsnotify.Op) {
+	// Check suppression at event-receipt time, not at execution time.
+	// Save() suppresses writes synchronously, so by the time the debounced
+	// executeIndexing runs (500ms later), the suppression is already gone.
+	// Capture the suppression state now and pass it to the debounced closure.
+	isSuppressed := w.isSuppressed(relPath)
+
 	w.debounceMu.Lock()
 	defer w.debounceMu.Unlock()
 
@@ -175,7 +181,7 @@ func (w *Watcher) scheduleIndexing(relPath string, op fsnotify.Op) {
 	}
 
 	w.debounce[relPath] = time.AfterFunc(w.debounceWindow, func() {
-		w.executeIndexing(relPath, op)
+		w.executeIndexing(relPath, op, isSuppressed)
 
 		w.debounceMu.Lock()
 		delete(w.debounce, relPath)
@@ -183,19 +189,23 @@ func (w *Watcher) scheduleIndexing(relPath string, op fsnotify.Op) {
 	})
 }
 
-func (w *Watcher) executeIndexing(relPath string, op fsnotify.Op) {
+func (w *Watcher) executeIndexing(relPath string, op fsnotify.Op, isSuppressed bool) {
 	ctx := context.Background()
 
 	switch {
 	case op&fsnotify.Create == fsnotify.Create,
 		op&fsnotify.Write == fsnotify.Write:
-		if err := w.indexer.IndexDocument(ctx, relPath); err != nil {
-			w.errors <- fmt.Errorf("indexing %s: %w", relPath, err)
-		}
-		if w.eventBus != nil && !w.isSuppressed(relPath) {
-			w.eventBus.Emit(events.EntryExternalChange, events.EntryExternalChangeData{
-				Path: relPath,
-			})
+		// Skip indexing for suppressed paths to avoid racing with Save's indexing
+		// and redundant re-indexing (Save already indexed the document).
+		if !isSuppressed {
+			if err := w.indexer.IndexDocument(ctx, relPath); err != nil {
+				w.errors <- fmt.Errorf("indexing %s: %w", relPath, err)
+			}
+			if w.eventBus != nil {
+				w.eventBus.Emit(events.EntryExternalChange, events.EntryExternalChangeData{
+					Path: relPath,
+				})
+			}
 		}
 
 	case op&fsnotify.Remove == fsnotify.Remove:

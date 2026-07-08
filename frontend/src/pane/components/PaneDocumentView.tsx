@@ -1,7 +1,10 @@
-import { AlertTriangle } from "lucide-react";
 import React, { useCallback, useEffect, useRef } from "react";
 import { useMergedConfig } from "@/config/usePreferencesOverrides";
-import { DocumentEditorActions, DocumentEditorForm } from "../../document/components";
+import {
+	ConflictBanner,
+	DocumentEditorActions,
+	DocumentEditorForm,
+} from "../../document/components";
 import { useDocumentController } from "../../document/hooks/useDocumentController";
 import { useHotkeys } from "../../hotkeys";
 import { useEscapeHandler } from "../../shared/hooks";
@@ -160,33 +163,11 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 					</div>
 				)}
 				{controller.hasConflict && (
-					<div className="flex flex-wrap items-center gap-3 border-b border-warning/30 bg-warning/10 px-4 py-2 text-xs text-warning">
-						<AlertTriangle className="w-4 h-4 shrink-0" />
-						<span className="font-semibold uppercase tracking-widest">External Change</span>
-						<span className="text-text-dim normal-case text-xs">Modified outside the app.</span>
-						<div className="ml-auto flex gap-2">
-							{controller.onKeepMine && (
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={controller.onKeepMine}
-									className="text-xs font-semibold uppercase tracking-widest"
-								>
-									Keep Mine
-								</Button>
-							)}
-							{controller.onReloadFromDisk && (
-								<Button
-									variant="primary"
-									size="sm"
-									onClick={controller.onReloadFromDisk}
-									className="text-xs font-semibold uppercase tracking-widest"
-								>
-									Reload
-								</Button>
-							)}
-						</div>
-					</div>
+					<ConflictBanner
+						onKeepMine={controller.onKeepMine}
+						onReloadFromDisk={controller.onReloadFromDisk}
+						compact
+					/>
 				)}
 				<div ref={scrollContainerRef} className="flex flex-col flex-1 min-h-0 overflow-auto">
 					<DocumentEditorForm

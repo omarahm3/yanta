@@ -1,4 +1,4 @@
-import { AlertTriangle, FileText, Pin, PinOff } from "lucide-react";
+import { FileText, Pin, PinOff } from "lucide-react";
 import React, { useCallback } from "react";
 import { Layout } from "@/app";
 import type { DocumentFindControls } from "../../editor/find";
@@ -9,6 +9,7 @@ import type { NavigationState, PageName } from "../../shared/types";
 import type { BlockNoteBlock } from "../../shared/types/Document";
 import type { Project } from "../../shared/types/Project";
 import { Button, type SidebarSection } from "../../shared/ui";
+import { ConflictBanner } from "./ConflictBanner";
 import { DocumentEditorActions } from "./DocumentEditorActions";
 import { DocumentEditorForm } from "./DocumentEditorForm";
 
@@ -160,37 +161,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 							)}
 						</div>
 					)}
-					{hasConflict && (
-						<div className="flex flex-wrap items-center gap-3 border-b border-warning/30 bg-warning/10 px-6 py-3 text-xs text-warning">
-							<AlertTriangle className="w-4 h-4 shrink-0" />
-							<span className="font-semibold uppercase tracking-widest">External Change</span>
-							<span className="text-text-dim normal-case">
-								This document was modified outside the app.
-							</span>
-							<div className="ml-auto flex gap-2">
-								{onKeepMine && (
-									<Button
-										variant="ghost"
-										size="sm"
-										onClick={onKeepMine}
-										className="text-xs font-semibold uppercase tracking-widest"
-									>
-										Keep Mine
-									</Button>
-								)}
-								{onReloadFromDisk && (
-									<Button
-										variant="primary"
-										size="sm"
-										onClick={onReloadFromDisk}
-										className="text-xs font-semibold uppercase tracking-widest"
-									>
-										Reload
-									</Button>
-								)}
-							</div>
-						</div>
-					)}
+					{hasConflict && <ConflictBanner onKeepMine={onKeepMine} onReloadFromDisk={onReloadFromDisk} />}
 					<DocumentEditorForm
 						blocks={formData.blocks}
 						tags={formData.tags}

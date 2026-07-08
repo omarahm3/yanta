@@ -97,7 +97,9 @@ export const useDocumentPersistence = ({
 				try {
 					const newHash = await DocumentServiceWrapper.getHash(savedPath);
 					onSaveComplete?.(newHash);
-				} catch {}
+				} catch (err) {
+					BackendLogger.error("Failed to fetch document hash after save:", err);
+				}
 			}
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);

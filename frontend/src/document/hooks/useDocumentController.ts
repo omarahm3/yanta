@@ -86,12 +86,20 @@ export function useDocumentController({
 		initializeForm,
 	} = useDocumentForm(initialFormData);
 
-	const { data, isLoading, loadError, shouldAutoSave, resetAutoSave, documentHash, refreshHash } =
-		useDocumentInitialization({
-			documentPath,
-			initialTitle,
-			initializeForm,
-		});
+	const {
+		data,
+		isLoading,
+		loadError,
+		shouldAutoSave,
+		resetAutoSave,
+		documentHash,
+		refreshHash,
+		updateDocumentHash,
+	} = useDocumentInitialization({
+		documentPath,
+		initialTitle,
+		initializeForm,
+	});
 
 	const [hasConflict, setHasConflict] = useState(false);
 
@@ -155,7 +163,7 @@ export function useDocumentController({
 
 	const { autoSave } = useDocumentPersistence({
 		formData,
-		hasChanges: isArchived || Boolean(loadError) ? false : hasChanges,
+		hasChanges: isArchived || Boolean(loadError) || hasConflict ? false : hasChanges,
 		currentProject,
 		documentPath,
 		isEditMode,
@@ -167,7 +175,10 @@ export function useDocumentController({
 		onNewDocumentSaved: incrementDocumentsCreated,
 		documentHash,
 		onConflict: () => setHasConflict(true),
-		onSaveComplete: () => setHasConflict(false),
+		onSaveComplete: (newHash) => {
+			updateDocumentHash(newHash);
+			setHasConflict(false);
+		},
 	});
 
 	const autoSaveRef = useRef(autoSave);
@@ -314,15 +325,15 @@ export function useDocumentController({
 				blocks: doc.blocks,
 				tags: doc.tags,
 			});
-			refreshHash();
+			await refreshHash();
 			setHasConflict(false);
 		} catch (err) {
 			BackendLogger.error("Failed to reload document from disk:", err);
 		}
 	}, [documentPath, initializeForm, refreshHash]);
 
-	const handleKeepMine = useCallback(() => {
-		refreshHash();
+	const handleKeepMine = useCallback(async () => {
+		await refreshHash();
 		setHasConflict(false);
 	}, [refreshHash]);
 

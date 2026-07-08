@@ -26,6 +26,11 @@ export const useDocumentInitialization = ({
 	const [shouldAutoSave, setShouldAutoSave] = useState(false);
 	const [documentHash, setDocumentHash] = useState<string | null>(null);
 	const initializedForPathRef = useRef<string | null>(null);
+	const documentPathRef = useRef<string | undefined>(documentPath);
+
+	useEffect(() => {
+		documentPathRef.current = documentPath;
+	}, [documentPath]);
 
 	useEffect(() => {
 		const isEditMode = !!documentPath;
@@ -40,9 +45,15 @@ export const useDocumentInitialization = ({
 				initializedForPathRef.current = documentPath;
 
 				DocumentServiceWrapper.getHash(documentPath)
-					.then(setDocumentHash)
+					.then((hash) => {
+						if (documentPathRef.current === documentPath) {
+							setDocumentHash(hash);
+						}
+					})
 					.catch(() => {
-						setDocumentHash(null);
+						if (documentPathRef.current === documentPath) {
+							setDocumentHash(null);
+						}
 					});
 			}
 		} else {
@@ -63,20 +74,24 @@ export const useDocumentInitialization = ({
 
 	const refreshHash = useCallback(() => {
 		if (documentPath) {
-			const pathAtCall = documentPath;
-			DocumentServiceWrapper.getHash(documentPath)
+			return DocumentServiceWrapper.getHash(documentPath)
 				.then((hash) => {
-					if (pathAtCall === documentPath) {
+					if (documentPathRef.current === documentPath) {
 						setDocumentHash(hash);
 					}
 				})
 				.catch(() => {
-					if (pathAtCall === documentPath) {
+					if (documentPathRef.current === documentPath) {
 						setDocumentHash(null);
 					}
 				});
 		}
+		return Promise.resolve();
 	}, [documentPath]);
+
+	const updateDocumentHash = useCallback((hash: string) => {
+		setDocumentHash(hash);
+	}, []);
 
 	return {
 		data,
@@ -86,5 +101,6 @@ export const useDocumentInitialization = ({
 		resetAutoSave,
 		documentHash,
 		refreshHash,
+		updateDocumentHash,
 	};
 };

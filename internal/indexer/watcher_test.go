@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"yanta/internal/document"
+	"yanta/internal/events"
 	"yanta/internal/vault"
 
 	"github.com/stretchr/testify/assert"
@@ -320,4 +321,98 @@ func TestWatcher_MultipleDocuments(t *testing.T) {
 	assert.Contains(t, mockIdx.indexed, doc1, "doc1 should be indexed")
 	assert.Contains(t, mockIdx.indexed, doc2, "doc2 should be indexed")
 	assert.Contains(t, mockIdx.indexed, doc3, "doc3 should be indexed")
+}
+
+func TestWatcher_SuppressWrite(t *testing.T) {
+	v := createTestVault(t)
+	mockIdx := &mockIndexer{}
+
+	watcher, err := NewWatcher(v, mockIdx, WithDebounceWindow(100*time.Millisecond))
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	err = watcher.Start(ctx)
+	require.NoError(t, err)
+	defer watcher.Stop()
+
+	createProjectDir(t, v, "@test-project")
+	time.Sleep(200 * time.Millisecond)
+
+	// Create a document
+	docPath := createDocumentInVault(t, v, "@test-project", "Test Document")
+	time.Sleep(300 * time.Millisecond)
+
+	// Clear the indexed list to track only the next write
+	mockIdx.mu.Lock()
+	mockIdx.indexed = nil
+	mockIdx.mu.Unlock()
+
+	// Suppress the write before modifying
+	watcher.SuppressWrite(docPath)
+
+	// Modify the document while suppressed
+	modifyDocument(t, v, docPath, "Modified Content")
+
+	// Unsuppress after a short delay (simulating app save completing)
+	time.Sleep(50 * time.Millisecond)
+	watcher.UnsuppressWrite(docPath)
+
+	// Wait for debounce window to pass
+	time.Sleep(300 * time.Millisecond)
+
+	mockIdx.mu.Lock()
+	defer mockIdx.mu.Unlock()
+
+	// The write should NOT be indexed because it was suppressed
+	assert.Empty(t, mockIdx.indexed, "suppressed write should not be indexed")
+}
+
+func TestWatcher_SuppressWrite_OnlySkipsIndexing(t *testing.T) {
+	v := createTestVault(t)
+	mockIdx := &mockIndexer{}
+
+	// Use real EventBus - it will buffer events since no app is connected
+	eventBus := events.NewEventBus()
+
+	watcher, err := NewWatcher(v, mockIdx, WithDebounceWindow(100*time.Millisecond), WithEventBus(eventBus))
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	err = watcher.Start(ctx)
+	require.NoError(t, err)
+	defer watcher.Stop()
+
+	createProjectDir(t, v, "@test-project")
+	time.Sleep(200 * time.Millisecond)
+
+	docPath := createDocumentInVault(t, v, "@test-project", "Test Document")
+	time.Sleep(300 * time.Millisecond)
+
+	// Clear state
+	mockIdx.mu.Lock()
+	mockIdx.indexed = nil
+	mockIdx.mu.Unlock()
+
+	// Suppress the write
+	watcher.SuppressWrite(docPath)
+
+	// Modify the document while suppressed
+	modifyDocument(t, v, docPath, "Modified Content")
+
+	// Unsuppress after a short delay
+	time.Sleep(50 * time.Millisecond)
+	watcher.UnsuppressWrite(docPath)
+
+	// Wait for debounce window to pass
+	time.Sleep(300 * time.Millisecond)
+
+	mockIdx.mu.Lock()
+	defer mockIdx.mu.Unlock()
+
+	// The write should NOT be indexed
+	assert.Empty(t, mockIdx.indexed, "suppressed write should not be indexed")
 }
