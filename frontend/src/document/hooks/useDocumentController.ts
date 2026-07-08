@@ -116,11 +116,24 @@ export function useDocumentController({
 	const [isRestoring, setIsRestoring] = useState(false);
 	const [isEditorReady, setIsEditorReady] = useState(false);
 	const [isFindOpen, setFindOpen] = useState(false);
+	const [isReplaceOpen, setReplaceOpen] = useState(false);
 	const openFind = useCallback(() => setFindOpen(true), []);
-	const closeFind = useCallback(() => setFindOpen(false), []);
+	const openReplace = useCallback(() => {
+		setFindOpen(true);
+		setReplaceOpen(true);
+	}, []);
+	const toggleReplace = useCallback(() => {
+		setFindOpen(true);
+		setReplaceOpen((prev) => !prev);
+	}, []);
+	const closeFind = useCallback(() => {
+		setFindOpen(false);
+		setReplaceOpen(false);
+	}, []);
 	// Close the find bar when switching to a different document.
 	useEffect(() => {
 		setFindOpen(false);
+		setReplaceOpen(false);
 	}, [documentPath]);
 	const isArchived = Boolean(data?.deletedAt) && !hasRestored;
 
@@ -266,6 +279,7 @@ export function useDocumentController({
 		handleUnfocus,
 		focusEditor,
 		openFind,
+		openReplace,
 	});
 
 	const handleRestore = useCallback(async () => {
@@ -361,7 +375,12 @@ export function useDocumentController({
 		onRestore: isArchived ? handleRestore : undefined,
 		onRegisterToggleSidebar,
 		onNavigate,
-		find: { isOpen: isFindOpen, onClose: closeFind },
+		find: {
+			isOpen: isFindOpen,
+			onClose: closeFind,
+			showReplace: isReplaceOpen,
+			onToggleReplace: toggleReplace,
+		},
 		hasConflict,
 		onReloadFromDisk: handleReloadFromDisk,
 		onKeepMine: handleKeepMine,

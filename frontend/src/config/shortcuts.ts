@@ -42,6 +42,7 @@ export const PANE_SHORTCUTS = {
 export const DOCUMENT_SHORTCUTS = {
 	save: { key: "mod+s", description: "Save document" },
 	documentSearch: { key: "mod+F", description: "Find in document" },
+	documentReplace: { key: "mod+H", description: "Replace in document" },
 	exportMd: { key: "mod+e", description: "Export to Markdown" },
 	exportPdf: { key: "mod+shift+e", description: "Export to PDF" },
 	back: { key: "Escape", description: "Unfocus editor, or go back to dashboard" },

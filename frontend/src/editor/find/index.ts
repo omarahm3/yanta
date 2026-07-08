@@ -4,4 +4,8 @@ export { FindBar } from "./FindBar";
 export interface DocumentFindControls {
 	isOpen: boolean;
 	onClose: () => void;
+	/** Whether the replace row is shown. */
+	showReplace: boolean;
+	/** Toggle the replace row (opening find if needed). */
+	onToggleReplace: () => void;
 }

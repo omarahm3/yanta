@@ -157,7 +157,14 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 						/>
 					</BlockNoteView>
 				</div>
-				{find?.isOpen && <FindBar editor={toEditorHandle(editor)} onClose={find.onClose} />}
+				{find?.isOpen && (
+					<FindBar
+						editor={toEditorHandle(editor)}
+						onClose={find.onClose}
+						showReplace={find.showReplace}
+						onToggleReplace={find.onToggleReplace}
+					/>
+				)}
 			</div>
 		);
 	},

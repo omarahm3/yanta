@@ -146,6 +146,15 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 		capture: true,
 	});
 
+	shortcuts.push({
+		key: "mod+H",
+		description: "Replace in document",
+		context: "document",
+		source: "useDocumentHotkeysConfig",
+		allowInInput: true,
+		capture: true,
+	});
+
 	// ============================================
 	// LAYOUT SHORTCUTS (Layout.tsx)
 	// ============================================
