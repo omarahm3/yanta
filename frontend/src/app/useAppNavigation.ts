@@ -1,4 +1,9 @@
 import React from "react";
+import {
+	selectCanGoBack,
+	selectCanGoForward,
+	useNavHistoryStore,
+} from "@/shared/stores/navHistory.store";
 import { usePaneLayout } from "../pane";
 import type { NavigationState, PageName } from "../shared/types";
 import { useNavGuard } from "./hooks/useNavGuard";
@@ -12,6 +17,10 @@ export interface UseAppNavigationReturn {
 	onRegisterToggleArchived: (handler: () => void) => void;
 	onToggleSidebar: () => void;
 	onRegisterToggleSidebar: (handler: () => void) => void;
+	goBack: () => void;
+	goForward: () => void;
+	canGoBack: boolean;
+	canGoForward: boolean;
 	showNavGuardDialog: boolean;
 	confirmNavigation: () => void;
 	cancelNavigation: () => void;
@@ -56,7 +65,8 @@ export function useAppNavigation(): UseAppNavigationReturn {
 				loadAndRestoreLayout(docPath);
 			}
 			if (typeof window !== "undefined") {
-				writeNavigationToUrl(page, state);
+				const idx = useNavHistoryStore.getState().recordPush();
+				writeNavigationToUrl(page, state, idx);
 			}
 		},
 		[loadAndRestoreLayout],
@@ -90,12 +100,46 @@ export function useAppNavigation(): UseAppNavigationReturn {
 		}
 	}, []);
 
+	const canGoBack = useNavHistoryStore(selectCanGoBack);
+	const canGoForward = useNavHistoryStore(selectCanGoForward);
+
+	// Guarded so we never step off the app's own history into a blank entry.
+	const goBack = React.useCallback(() => {
+		if (typeof window !== "undefined" && useNavHistoryStore.getState().index > 0) {
+			window.history.back();
+		}
+	}, []);
+
+	const goForward = React.useCallback(() => {
+		const { index, maxIndex } = useNavHistoryStore.getState();
+		if (typeof window !== "undefined" && index < maxIndex) {
+			window.history.forward();
+		}
+	}, []);
+
+	// Stamp the initial history entry with index 0 so back/forward from the first
+	// screen is consistent with entries pushed later.
+	React.useEffect(() => {
+		if (typeof window === "undefined" || typeof window.history === "undefined") {
+			return;
+		}
+		const current = window.history.state;
+		if (!current || typeof current.idx !== "number") {
+			const { page, state } = readNavigationFromUrl();
+			window.history.replaceState({ page, state, idx: 0 }, "");
+		}
+	}, []);
+
 	React.useEffect(() => {
 		if (typeof window === "undefined") {
 			return;
 		}
 
 		const handlePopState = (event: PopStateEvent) => {
+			useNavHistoryStore
+				.getState()
+				.recordPopTo(typeof event.state?.idx === "number" ? event.state.idx : 0);
+
 			// Prefer state from history when available; fall back to URL
 			if (event.state && typeof event.state.page === "string") {
 				const nextPage = event.state.page as PageName;
@@ -133,6 +177,10 @@ export function useAppNavigation(): UseAppNavigationReturn {
 		onRegisterToggleArchived,
 		onToggleSidebar,
 		onRegisterToggleSidebar,
+		goBack,
+		goForward,
+		canGoBack,
+		canGoForward,
 		showNavGuardDialog,
 		confirmNavigation,
 		cancelNavigation,
@@ -162,7 +210,7 @@ function readNavigationFromUrl(): { page: PageName; state: NavigationState } {
 	}
 }
 
-function writeNavigationToUrl(page: PageName, state?: NavigationState): void {
+function writeNavigationToUrl(page: PageName, state?: NavigationState, idx?: number): void {
 	if (typeof window === "undefined" || typeof window.history === "undefined") {
 		return;
 	}
@@ -185,7 +233,7 @@ function writeNavigationToUrl(page: PageName, state?: NavigationState): void {
 		}
 
 		const nextUrl = `${url.pathname}?${searchParams.toString()}${url.hash}`;
-		window.history.pushState({ page, state }, "", nextUrl);
+		window.history.pushState({ page, state, idx }, "", nextUrl);
 	} catch {
 		// Best-effort URL sync; ignore failures (e.g., invalid URL environment)
 	}

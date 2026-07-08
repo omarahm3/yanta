@@ -1,6 +1,11 @@
 import type React from "react";
-import { type ReactNode, useEffect, useMemo, useRef } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import { useMergedConfig } from "@/config/usePreferencesOverrides";
+import {
+	selectCanGoBack,
+	selectCanGoForward,
+	useNavHistoryStore,
+} from "@/shared/stores/navHistory.store";
 import { useHotkeys } from "../hotkeys";
 import { useProjectContext } from "../project";
 import {
@@ -100,12 +105,21 @@ export const Layout: React.FC<LayoutProps> = ({
 	hasSelection,
 	documentCount,
 }) => {
-	const { toggleSidebar, isLoading: sidebarLoading } = useSidebarSetting();
+	const { sidebarVisible, toggleSidebar, isLoading: sidebarLoading } = useSidebarSetting();
 	const { showFooterHints, isLoading: footerHintsLoading } = useFooterHintsSetting();
 	const { currentProject } = useProjectContext();
 	const { heightInRem } = useTitleBarContext();
 	const { hints: footerHints } = useFooterHints({ currentPage, hasSelection, documentCount });
 	const { isBelowLg } = useResponsive();
+	const canGoBack = useNavHistoryStore(selectCanGoBack);
+	const canGoForward = useNavHistoryStore(selectCanGoForward);
+	const goBack = useCallback(() => {
+		if (useNavHistoryStore.getState().index > 0) window.history.back();
+	}, []);
+	const goForward = useCallback(() => {
+		const { index, maxIndex } = useNavHistoryStore.getState();
+		if (index < maxIndex) window.history.forward();
+	}, []);
 
 	const allFooterHints = useMemo(
 		() => dedupeFooterHints([...getGlobalFooterHints(), ...footerHints]),
@@ -153,14 +167,17 @@ export const Layout: React.FC<LayoutProps> = ({
 
 	const layoutStyle = useMemo(() => ({ height: `calc(100vh - ${heightInRem}rem)` }), [heightInRem]);
 
-	// The icon rail is permanent navigation chrome on desktop; it only collapses
-	// on narrow viewports. (Toggle hotkey is reserved for a future expanded panel.)
-	const effectiveSidebarVisible = !isBelowLg;
+	// The sidebar (icon rail + sections panel) is shown when the persisted toggle
+	// is on and the viewport is wide enough; it is force-collapsed on narrow
+	// viewports where the content needs the full width. While the setting is still
+	// loading we keep it shown to avoid a collapse flash on first paint.
+	const effectiveSidebarVisible = sidebarVisible && !isBelowLg;
+	const sidebarShown = sidebarLoading || effectiveSidebarVisible;
 
 	return (
 		<div
 			data-testid="layout-root"
-			data-sidebar-visible={effectiveSidebarVisible ? "true" : "false"}
+			data-sidebar-visible={sidebarShown ? "true" : "false"}
 			data-mode={dataMode}
 			className="layout-root relative flex overflow-hidden font-sans text-sm leading-relaxed bg-bg-dark text-text selection:bg-accent/30 selection:text-text-bright"
 			style={layoutStyle}
@@ -168,7 +185,7 @@ export const Layout: React.FC<LayoutProps> = ({
 			<div
 				className={cn(
 					"sidebar-transition relative z-20 h-full",
-					!sidebarLoading && !effectiveSidebarVisible ? "sidebar-hidden" : "sidebar-visible",
+					sidebarShown ? "sidebar-visible" : "sidebar-hidden",
 				)}
 			>
 				{sidebarContent ? (
@@ -197,6 +214,10 @@ export const Layout: React.FC<LayoutProps> = ({
 							projectAlias={currentProject?.alias}
 							shortcuts={headerShortcuts}
 							headerActions={headerActions}
+							onBack={goBack}
+							onForward={goForward}
+							canGoBack={canGoBack}
+							canGoForward={canGoForward}
 						/>
 					</div>
 				)}

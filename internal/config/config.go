@@ -146,6 +146,7 @@ func Init() error {
 			KeepInBackground: false,
 			StartHidden:      false,
 			AppScale:         1.0,
+			SidebarVisible:   true,
 			Backup: BackupConfig{
 				Enabled:    true,
 				MaxBackups: 10,

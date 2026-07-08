@@ -122,6 +122,22 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 	});
 
 	shortcuts.push({
+		key: "alt+ArrowLeft",
+		description: "Go back",
+		context: "global",
+		source: "App.tsx - GlobalCommandHotkey",
+		allowInInput: false,
+	});
+
+	shortcuts.push({
+		key: "alt+ArrowRight",
+		description: "Go forward",
+		context: "global",
+		source: "App.tsx - GlobalCommandHotkey",
+		allowInInput: false,
+	});
+
+	shortcuts.push({
 		key: "mod+F",
 		description: "Find in document",
 		context: "document",
