@@ -1,3 +1,5 @@
+export type { ConflictBannerProps } from "./ConflictBanner";
+export { ConflictBanner } from "./ConflictBanner";
 export type { DocumentContentProps } from "./DocumentContent";
 export { DocumentContent } from "./DocumentContent";
 export { DocumentEditorActions } from "./DocumentEditorActions";

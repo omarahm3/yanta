@@ -29,6 +29,10 @@ type ProjectCache interface {
 	GetByAlias(ctx context.Context, alias string) (*project.Project, error)
 }
 
+type Watcher interface {
+	NoteAppWrite(relPath, contentHash string)
+}
+
 type Service struct {
 	db           *sql.DB
 	store        *Store
@@ -38,6 +42,7 @@ type Service struct {
 	projectCache ProjectCache
 	eventBus     *events.EventBus
 	saveMu       sync.Mutex // Serializes Save operations to prevent race conditions
+	watcher      Watcher
 }
 
 func NewService(db *sql.DB, store *Store, v *vault.Vault, idx Indexer, projectCache ProjectCache, eventBus *events.EventBus) *Service {
@@ -50,6 +55,10 @@ func NewService(db *sql.DB, store *Store, v *vault.Vault, idx Indexer, projectCa
 		projectCache: projectCache,
 		eventBus:     eventBus,
 	}
+}
+
+func (s *Service) SetWatcher(w Watcher) {
+	s.watcher = w
 }
 
 func (s *Service) emitEvent(eventName string, payload any) {
@@ -93,7 +102,10 @@ type SaveRequest struct {
 	Title        string
 	Blocks       []BlockNoteBlock
 	Tags         []string
+	ExpectedHash string
 }
+
+var ErrConflict = errors.New("ERR_CONFLICT: document was modified externally")
 
 func (s *Service) Save(ctx context.Context, req SaveRequest) (string, error) {
 	// Serialize Save operations to prevent race conditions where concurrent saves
@@ -141,11 +153,35 @@ func (s *Service) Save(ctx context.Context, req SaveRequest) (string, error) {
 			return "", fmt.Errorf("reading existing document: %w", err)
 		}
 		docFile.Meta.Created = existing.Meta.Created
+
+		if req.ExpectedHash != "" {
+			currentHash := ComputeFileHash(existing)
+			if currentHash != req.ExpectedHash {
+				logger.WithFields(map[string]any{
+					"path":         docPath,
+					"expectedHash": req.ExpectedHash,
+					"currentHash":  currentHash,
+				}).Warn("document conflict detected: file was modified externally")
+				return "", ErrConflict
+			}
+		}
 	}
 
 	if err := s.fm.WriteFile(docPath, docFile); err != nil {
 		logger.WithError(err).WithField("path", docPath).Error("failed to write document file")
 		return "", fmt.Errorf("writing document file: %w", err)
+	}
+
+	// Tell the watcher the content we just wrote so its debounced filesystem
+	// event for this write is recognized as a self-write and not reported as an
+	// external change. The hash is read back from disk so it is computed exactly
+	// as the watcher computes it (post-normalization), independent of any timing.
+	if s.watcher != nil {
+		if writtenHash, err := s.GetDocumentHash(ctx, docPath); err == nil {
+			s.watcher.NoteAppWrite(docPath, writtenHash)
+		} else {
+			logger.WithError(err).WithField("path", docPath).Warn("failed to hash written document for watcher reconciliation")
+		}
 	}
 
 	if err := s.indexer.IndexDocument(ctx, docPath); err != nil {
@@ -181,6 +217,14 @@ func (s *Service) Save(ctx context.Context, req SaveRequest) (string, error) {
 	}).Info("document saved")
 
 	return docPath, nil
+}
+
+func (s *Service) GetDocumentHash(ctx context.Context, path string) (string, error) {
+	file, err := s.fm.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("reading document file: %w", err)
+	}
+	return ComputeFileHash(file), nil
 }
 
 type DocumentWithTags struct {

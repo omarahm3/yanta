@@ -1,6 +1,8 @@
 package document
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -261,4 +263,13 @@ func NewDocumentFile(project, title string, tags []string) *DocumentFile {
 
 func (df *DocumentFile) UpdateTimestamp() {
 	df.Meta.Updated = time.Now()
+}
+
+func ComputeFileHash(df *DocumentFile) string {
+	data, err := json.Marshal(df)
+	if err != nil {
+		return ""
+	}
+	hash := sha256.Sum256(data)
+	return hex.EncodeToString(hash[:])
 }

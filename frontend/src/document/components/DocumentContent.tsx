@@ -9,6 +9,7 @@ import type { NavigationState, PageName } from "../../shared/types";
 import type { BlockNoteBlock } from "../../shared/types/Document";
 import type { Project } from "../../shared/types/Project";
 import { Button, type SidebarSection } from "../../shared/ui";
+import { ConflictBanner } from "./ConflictBanner";
 import { DocumentEditorActions } from "./DocumentEditorActions";
 import { DocumentEditorForm } from "./DocumentEditorForm";
 
@@ -44,6 +45,10 @@ export interface DocumentContentProps {
 	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	/** In-document find bar controls (Ctrl+F). */
 	find?: DocumentFindControls;
+	/** External change conflict state */
+	hasConflict?: boolean;
+	onReloadFromDisk?: () => void;
+	onKeepMine?: () => void;
 }
 
 const PinButton: React.FC<{
@@ -98,6 +103,9 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 		onRegisterToggleSidebar,
 		onNavigate,
 		find,
+		hasConflict = false,
+		onReloadFromDisk,
+		onKeepMine,
 	}) => {
 		const breadcrumbs = currentProject
 			? [
@@ -153,6 +161,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 							)}
 						</div>
 					)}
+					{hasConflict && <ConflictBanner onKeepMine={onKeepMine} onReloadFromDisk={onReloadFromDisk} />}
 					<DocumentEditorForm
 						blocks={formData.blocks}
 						tags={formData.tags}

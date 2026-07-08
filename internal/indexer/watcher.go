@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"yanta/internal/document"
+	"yanta/internal/events"
 	"yanta/internal/vault"
 
 	"github.com/fsnotify/fsnotify"
@@ -30,6 +32,17 @@ type Watcher struct {
 	debounceMu     sync.Mutex
 	debounceWindow time.Duration
 
+	eventBus *events.EventBus
+
+	fileReader *document.FileReader
+
+	// hashMu protects reconciledHashes. reconciledHashes[relPath] holds the
+	// content hash of the last version the app has already reconciled (written
+	// or indexed) for that path. A disk change whose hash matches is a self-write
+	// and is ignored; anything else is a genuine external change.
+	hashMu           sync.Mutex
+	reconciledHashes map[string]string
+
 	ctx    context.Context
 	cancel context.CancelFunc
 	done   chan struct{}
@@ -45,6 +58,12 @@ func WithDebounceWindow(d time.Duration) WatcherOption {
 	}
 }
 
+func WithEventBus(bus *events.EventBus) WatcherOption {
+	return func(w *Watcher) {
+		w.eventBus = bus
+	}
+}
+
 func NewWatcher(
 	vault *vault.Vault,
 	indexer DocumentIndexer,
@@ -56,13 +75,15 @@ func NewWatcher(
 	}
 
 	w := &Watcher{
-		vault:          vault,
-		indexer:        indexer,
-		watcher:        fsWatcher,
-		debounce:       make(map[string]*time.Timer),
-		debounceWindow: 500 * time.Millisecond,
-		errors:         make(chan error, 10),
-		done:           make(chan struct{}),
+		vault:            vault,
+		indexer:          indexer,
+		watcher:          fsWatcher,
+		fileReader:       document.NewFileReader(vault),
+		debounce:         make(map[string]*time.Timer),
+		debounceWindow:   500 * time.Millisecond,
+		reconciledHashes: make(map[string]string),
+		errors:           make(chan error, 10),
+		done:             make(chan struct{}),
 	}
 
 	for _, opt := range opts {
@@ -175,11 +196,32 @@ func (w *Watcher) executeIndexing(relPath string, op fsnotify.Op) {
 	switch {
 	case op&fsnotify.Create == fsnotify.Create,
 		op&fsnotify.Write == fsnotify.Write:
+		// Compare the on-disk content against the last version the app reconciled.
+		// If they match, this write was made by the app itself (Save already indexed
+		// it), so skip re-indexing and don't report a phantom external change. This
+		// is timing-independent: it reads the actual file state rather than relying
+		// on a suppression flag that may have expired by the time this runs.
+		diskHash, ok := w.diskContentHash(relPath)
+		if ok && w.isReconciled(relPath, diskHash) {
+			return
+		}
+
 		if err := w.indexer.IndexDocument(ctx, relPath); err != nil {
 			w.errors <- fmt.Errorf("indexing %s: %w", relPath, err)
 		}
+		// Record what we just reconciled so a duplicate event for the same content
+		// (or a later app write) is recognized and not reported again.
+		if ok {
+			w.setReconciled(relPath, diskHash)
+		}
+		if w.eventBus != nil {
+			w.eventBus.Emit(events.EntryExternalChange, events.EntryExternalChangeData{
+				Path: relPath,
+			})
+		}
 
 	case op&fsnotify.Remove == fsnotify.Remove:
+		w.forgetReconciled(relPath)
 		if err := w.indexer.RemoveDocumentCompletely(ctx, relPath); err != nil {
 			if !strings.Contains(err.Error(), "not found") {
 				w.errors <- fmt.Errorf("removing %s: %w", relPath, err)
@@ -187,6 +229,7 @@ func (w *Watcher) executeIndexing(relPath string, op fsnotify.Op) {
 		}
 
 	case op&fsnotify.Rename == fsnotify.Rename:
+		w.forgetReconciled(relPath)
 		if err := w.indexer.RemoveDocumentCompletely(ctx, relPath); err != nil {
 			if !strings.Contains(err.Error(), "not found") {
 				w.errors <- fmt.Errorf("removing renamed %s: %w", relPath, err)
@@ -225,4 +268,51 @@ func (w *Watcher) handleError(err error) {
 	case w.errors <- err:
 	default:
 	}
+}
+
+// NoteAppWrite records the content hash the app has just written for relPath.
+// The next filesystem event whose on-disk content hashes to the same value is
+// recognized as the app's own write and ignored, so the app never sees a
+// phantom external-change for its own saves. contentHash must be computed the
+// same way the watcher computes it (ComputeFileHash of the parsed document).
+func (w *Watcher) NoteAppWrite(relPath, contentHash string) {
+	if contentHash == "" {
+		return
+	}
+	w.setReconciled(relPath, contentHash)
+}
+
+// setReconciled records contentHash as the latest version the watcher has
+// reconciled for relPath.
+func (w *Watcher) setReconciled(relPath, contentHash string) {
+	w.hashMu.Lock()
+	defer w.hashMu.Unlock()
+	w.reconciledHashes[relPath] = contentHash
+}
+
+// forgetReconciled drops any reconciled hash for relPath, e.g. after the file
+// is removed or renamed away.
+func (w *Watcher) forgetReconciled(relPath string) {
+	w.hashMu.Lock()
+	defer w.hashMu.Unlock()
+	delete(w.reconciledHashes, relPath)
+}
+
+// isReconciled reports whether diskHash matches the last version the app has
+// already reconciled for relPath.
+func (w *Watcher) isReconciled(relPath, diskHash string) bool {
+	w.hashMu.Lock()
+	defer w.hashMu.Unlock()
+	return w.reconciledHashes[relPath] == diskHash
+}
+
+// diskContentHash reads the document at relPath and returns its content hash.
+// The second return is false if the file could not be read or parsed, in which
+// case the caller treats the change as external (the safe direction).
+func (w *Watcher) diskContentHash(relPath string) (string, bool) {
+	df, err := w.fileReader.ReadFile(relPath)
+	if err != nil {
+		return "", false
+	}
+	return document.ComputeFileHash(df), true
 }

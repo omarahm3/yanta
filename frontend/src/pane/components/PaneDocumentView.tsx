@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useRef } from "react";
 import { useMergedConfig } from "@/config/usePreferencesOverrides";
-import { DocumentEditorActions, DocumentEditorForm } from "../../document/components";
+import {
+	ConflictBanner,
+	DocumentEditorActions,
+	DocumentEditorForm,
+} from "../../document/components";
 import { useDocumentController } from "../../document/hooks/useDocumentController";
 import { useHotkeys } from "../../hotkeys";
 import { useEscapeHandler } from "../../shared/hooks";
@@ -157,6 +161,13 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 							</Button>
 						)}
 					</div>
+				)}
+				{controller.hasConflict && (
+					<ConflictBanner
+						onKeepMine={controller.onKeepMine}
+						onReloadFromDisk={controller.onReloadFromDisk}
+						compact
+					/>
 				)}
 				<div ref={scrollContainerRef} className="flex flex-col flex-1 min-h-0 overflow-auto">
 					<DocumentEditorForm

@@ -44,6 +44,10 @@ type EntryMovedData struct {
 	ToProjectID   string `json:"toProjectId"`
 }
 
+type EntryExternalChangeData struct {
+	Path string `json:"path"`
+}
+
 type ProjectChangedData struct {
 	ID string `json:"id"`
 	Op string `json:"op"`
@@ -59,6 +63,7 @@ func init() {
 	application.RegisterEvent[EntryDeletedData](EntryDeleted)
 	application.RegisterEvent[EntryRestoredData](EntryRestored)
 	application.RegisterEvent[EntryMovedData](EntryMoved)
+	application.RegisterEvent[EntryExternalChangeData](EntryExternalChange)
 	application.RegisterEvent[ProjectChangedData](ProjectChanged)
 	application.RegisterEvent[ThemeChangedData](ThemeChanged)
 }
@@ -91,6 +96,7 @@ const (
 	DocumentTagsUpdated = "yanta/document/tags"       // payload: {path, tags}
 	SearchPerformed     = "yanta/search/performed"    // payload: {query, resultCount, duration}
 	EntryMoved          = "yanta/entry/moved"         // payload: {path, fromProjectId, toProjectId}
-	EntryCountChanged   = "yanta/project/entry-count" // payload: {projectId, count}
-	VaultReindexed      = "yanta/vault/reindexed"     // payload: {reason}; vault content changed wholesale (sync pull / manual reindex)
+	EntryCountChanged   = "yanta/project/entry-count"            // payload: {projectId, count}
+	VaultReindexed      = "yanta/vault/reindexed"                // payload: {reason}; vault content changed wholesale (sync pull / manual reindex)
+	EntryExternalChange = "yanta/entry/external-change"          // payload: {path}; file changed on disk outside the app
 )

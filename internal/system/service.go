@@ -876,9 +876,22 @@ func (s *Service) GitPull(ctx context.Context) error {
 		branch = "master"
 	}
 
+	headBefore, err := gitService.GetLastCommitHash(ctx, dataDir)
+	if err != nil {
+		logger.WithError(err).Warn("could not get HEAD hash before pull")
+	}
+
 	logger.Info("pulling from remote")
 	if err := gitService.Pull(ctx, dataDir, "origin", branch); err != nil {
 		return normalizeGitTimeoutError(ctx, err, "pull")
+	}
+
+	headAfter, err := gitService.GetLastCommitHash(ctx, dataDir)
+	if err != nil {
+		logger.WithError(err).Warn("could not get HEAD hash after pull")
+	}
+	if headAfter != "" && headAfter != headBefore {
+		s.reindexAfterSyncPull(ctx)
 	}
 
 	logger.Info("pull completed successfully")

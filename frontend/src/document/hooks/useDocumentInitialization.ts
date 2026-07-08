@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { DocumentServiceWrapper } from "../../shared/services/DocumentService";
 import type { BlockNoteBlock } from "../../shared/types/Document";
 import { createEmptyDocument } from "../utils/documentBlockUtils";
 import { useDocumentLoader } from "./useDocumentLoader";
@@ -23,7 +24,13 @@ export const useDocumentInitialization = ({
 	const { data, isLoading, error: loadError } = useDocumentLoader(documentPath);
 
 	const [shouldAutoSave, setShouldAutoSave] = useState(false);
+	const [documentHash, setDocumentHash] = useState<string | null>(null);
 	const initializedForPathRef = useRef<string | null>(null);
+	const documentPathRef = useRef<string | undefined>(documentPath);
+
+	useEffect(() => {
+		documentPathRef.current = documentPath;
+	}, [documentPath]);
 
 	useEffect(() => {
 		const isEditMode = !!documentPath;
@@ -36,16 +43,27 @@ export const useDocumentInitialization = ({
 					tags: data.tags,
 				});
 				initializedForPathRef.current = documentPath;
+
+				DocumentServiceWrapper.getHash(documentPath)
+					.then((hash) => {
+						if (documentPathRef.current === documentPath) {
+							setDocumentHash(hash);
+						}
+					})
+					.catch(() => {
+						if (documentPathRef.current === documentPath) {
+							setDocumentHash(null);
+						}
+					});
 			}
 		} else {
-			// Namespace the new-document key so it can never collide with an
-			// edit-mode documentPath that happens to equal the title string.
 			const newDocKey = `new:${initialTitle}`;
 			if (initialTitle && initializedForPathRef.current !== newDocKey) {
 				const formData = createEmptyDocument(initialTitle);
 				initializeForm(formData);
 				initializedForPathRef.current = newDocKey;
 				setShouldAutoSave(true);
+				setDocumentHash(null);
 			}
 		}
 	}, [data, isLoading, documentPath, initialTitle, initializeForm]);
@@ -54,11 +72,35 @@ export const useDocumentInitialization = ({
 		setShouldAutoSave(false);
 	};
 
+	const refreshHash = useCallback(() => {
+		if (documentPath) {
+			return DocumentServiceWrapper.getHash(documentPath)
+				.then((hash) => {
+					if (documentPathRef.current === documentPath) {
+						setDocumentHash(hash);
+					}
+				})
+				.catch(() => {
+					if (documentPathRef.current === documentPath) {
+						setDocumentHash(null);
+					}
+				});
+		}
+		return Promise.resolve();
+	}, [documentPath]);
+
+	const updateDocumentHash = useCallback((hash: string) => {
+		setDocumentHash(hash);
+	}, []);
+
 	return {
 		data,
 		isLoading,
 		loadError,
 		shouldAutoSave,
 		resetAutoSave,
+		documentHash,
+		refreshHash,
+		updateDocumentHash,
 	};
 };

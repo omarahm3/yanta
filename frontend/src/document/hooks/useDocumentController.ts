@@ -38,8 +38,14 @@ export interface DocumentControllerResult {
 	hotkeys: HotkeyConfig[];
 	/** The document title from the form state. */
 	documentTitle: string;
-	/** Used by PaneDocumentView for direct Escape listener (double-ESC → dashboard). */
+	/** Used by PaneDocumentView for direct Escape handler (double-ESC → dashboard). */
 	escapeHandler: (e: KeyboardEvent) => void;
+	/** True when the file was modified externally and the user must choose to reload or keep. */
+	hasConflict: boolean;
+	/** Accept the external changes and reload the document. */
+	onReloadFromDisk: () => void;
+	/** Dismiss the conflict banner and keep the current editor content. */
+	onKeepMine: () => void;
 }
 
 export function useDocumentController({
@@ -80,11 +86,22 @@ export function useDocumentController({
 		initializeForm,
 	} = useDocumentForm(initialFormData);
 
-	const { data, isLoading, loadError, shouldAutoSave, resetAutoSave } = useDocumentInitialization({
+	const {
+		data,
+		isLoading,
+		loadError,
+		shouldAutoSave,
+		resetAutoSave,
+		documentHash,
+		refreshHash,
+		updateDocumentHash,
+	} = useDocumentInitialization({
 		documentPath,
 		initialTitle,
 		initializeForm,
 	});
+
+	const [hasConflict, setHasConflict] = useState(false);
 
 	const { handleEditorReady } = useDocumentEditor();
 	const { addRecentDocument } = useRecentDocuments();
@@ -111,6 +128,7 @@ export function useDocumentController({
 		setHasRestored(false);
 		setIsRestoring(false);
 		setIsEditorReady(false);
+		setHasConflict(false);
 		lastAddedPathRef.current = null;
 	}, [documentPath]);
 
@@ -145,7 +163,7 @@ export function useDocumentController({
 
 	const { autoSave } = useDocumentPersistence({
 		formData,
-		hasChanges: isArchived || Boolean(loadError) ? false : hasChanges,
+		hasChanges: isArchived || Boolean(loadError) || hasConflict ? false : hasChanges,
 		currentProject,
 		documentPath,
 		isEditMode,
@@ -155,6 +173,12 @@ export function useDocumentController({
 		onAutoSaveComplete: resetAutoSave,
 		isEditorReady,
 		onNewDocumentSaved: incrementDocumentsCreated,
+		documentHash,
+		onConflict: () => setHasConflict(true),
+		onSaveComplete: (newHash) => {
+			updateDocumentHash(newHash);
+			setHasConflict(false);
+		},
 	});
 
 	const autoSaveRef = useRef(autoSave);
@@ -272,17 +296,46 @@ export function useDocumentController({
 			}
 		};
 
-		const unsubscribe = Events.On("yanta/document/tags", (ev) => {
+		const unsubscribeTags = Events.On("yanta/document/tags", (ev) => {
 			const data = ev.data as { path?: string };
 			if (data?.path === documentPath) {
 				refreshTags();
 			}
 		});
 
+		const unsubscribeExternalChange = Events.On("yanta/entry/external-change", (ev) => {
+			const data = ev.data as { path?: string };
+			if (data?.path === documentPath) {
+				setHasConflict(true);
+			}
+		});
+
 		return () => {
-			if (unsubscribe) unsubscribe();
+			if (unsubscribeTags) unsubscribeTags();
+			if (unsubscribeExternalChange) unsubscribeExternalChange();
 		};
 	}, [documentPath, setTags]);
+
+	const handleReloadFromDisk = useCallback(async () => {
+		if (!documentPath) return;
+		try {
+			const doc = await DocumentServiceWrapper.get(documentPath);
+			initializeForm({
+				title: doc.title,
+				blocks: doc.blocks,
+				tags: doc.tags,
+			});
+			await refreshHash();
+			setHasConflict(false);
+		} catch (err) {
+			BackendLogger.error("Failed to reload document from disk:", err);
+		}
+	}, [documentPath, initializeForm, refreshHash]);
+
+	const handleKeepMine = useCallback(async () => {
+		await refreshHash();
+		setHasConflict(false);
+	}, [refreshHash]);
 
 	const sidebarSections = useSidebarSections({
 		currentPage: "document",
@@ -309,6 +362,9 @@ export function useDocumentController({
 		onRegisterToggleSidebar,
 		onNavigate,
 		find: { isOpen: isFindOpen, onClose: closeFind },
+		hasConflict,
+		onReloadFromDisk: handleReloadFromDisk,
+		onKeepMine: handleKeepMine,
 	};
 
 	return {
@@ -319,5 +375,8 @@ export function useDocumentController({
 		hotkeys,
 		documentTitle: formData.title,
 		escapeHandler: handleEscape,
+		hasConflict,
+		onReloadFromDisk: handleReloadFromDisk,
+		onKeepMine: handleKeepMine,
 	};
 }

@@ -1,6 +1,7 @@
 import * as documentModels from "../../../bindings/yanta/internal/document/models";
 import {
 	Get,
+	GetDocumentHash,
 	ListByProject,
 	ListRecent,
 	MoveToProject,
@@ -25,6 +26,7 @@ export async function saveDocument(request: SaveDocumentRequest): Promise<string
 		Title: request.title,
 		Blocks: blocksToModel(request.blocks),
 		Tags: request.tags,
+		ExpectedHash: request.expectedHash || "",
 	});
 
 	return await Save(backendRequest);
@@ -77,10 +79,15 @@ export async function moveDocumentToProject(
 	await MoveToProject(path, targetProjectAlias);
 }
 
+export async function getDocumentHash(path: string): Promise<string> {
+	return await GetDocumentHash(path);
+}
+
 // Legacy wrapper for backward compatibility
 export const DocumentServiceWrapper = {
 	save: saveDocument,
 	get: getDocument,
+	getHash: getDocumentHash,
 	listByProject: listDocumentsByProject,
 	listRecent: listRecentDocuments,
 	softDelete: softDeleteDocument,

@@ -51,6 +51,7 @@ type App struct {
 	hotkeyManager *hotkeys.Manager
 	syncManager   *git.SyncManager
 	eventBus      *events.EventBus
+	watcher       *indexer.Watcher
 
 	wailsApp   *application.App
 	mainWindow *application.WebviewWindow
@@ -146,9 +147,17 @@ func New(cfg Config) (*App, error) {
 		eventBus,
 	)
 
+	watcher, err := indexer.NewWatcher(v, idx, indexer.WithEventBus(eventBus))
+	if err != nil {
+		logger.Warnf("failed to create file watcher: %v", err)
+	}
+
 	projectCache := project.NewCache(projectStore)
 	projectService := project.NewService(a.DB, projectStore, projectCache, v, syncManager, eventBus)
 	documentService := document.NewService(a.DB, documentStore, v, idx, projectCache, eventBus)
+	if watcher != nil {
+		documentService.SetWatcher(watcher)
+	}
 	documentFileManager := document.NewFileManager(v)
 	tagService := tag.NewService(a.DB, tagStore, documentFileManager, eventBus)
 	tagService.SetSyncNotifier(syncManager)
@@ -194,6 +203,15 @@ func New(cfg Config) (*App, error) {
 			"type":    "warning",
 			"message": fmt.Sprintf("%d note file(s) could not be loaded (corrupt JSON) and were skipped. Check the logs for details.", len(corruptPaths)),
 		})
+	}
+
+	if watcher != nil {
+		if err := watcher.Start(context.Background()); err != nil {
+			logger.Warnf("failed to start file watcher: %v", err)
+		} else {
+			a.watcher = watcher
+			logger.Info("file watcher started for external change detection")
+		}
 	}
 
 	projectCommands := commandline.NewProjectCommands(
@@ -363,6 +381,15 @@ func (a *App) Shutdown() {
 			logger.Debug("shutting down sync manager...")
 			a.syncManager.Shutdown()
 			logger.Debug("sync manager shut down")
+		}
+
+		if a.watcher != nil {
+			logger.Debug("stopping file watcher...")
+			if err := a.watcher.Stop(); err != nil {
+				logger.WithError(err).Warn("failed to stop file watcher")
+			} else {
+				logger.Debug("file watcher stopped")
+			}
 		}
 
 		if a.DB != nil {

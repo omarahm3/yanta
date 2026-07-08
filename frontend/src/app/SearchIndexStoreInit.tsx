@@ -13,6 +13,7 @@ const VAULT_CHANGE_EVENTS = [
 	"yanta/entry/deleted",
 	"yanta/entry/restored",
 	"yanta/entry/moved",
+	"yanta/entry/external-change",
 	"yanta/vault/reindexed",
 ];
 
