@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	runtimePkg "runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -244,9 +245,12 @@ func run() {
 			isQuitting = true
 
 			flushDone := make(chan struct{})
+			var flushOnce sync.Once
 			wailsApp.Event.On("yanta/app/flush-dirty:ack", func(event *application.CustomEvent) {
 				logger.Debug("Received flush-dirty ack from frontend")
-				close(flushDone)
+				// Guard the close: the frontend may ack more than once, and
+				// closing an already-closed channel panics.
+				flushOnce.Do(func() { close(flushDone) })
 			})
 
 			wailsApp.Event.Emit("yanta/app/flush-dirty", nil)
