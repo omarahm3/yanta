@@ -6,21 +6,13 @@ import { useNotification, useSidebarSections } from "../shared/hooks";
 import type { NavigationState, PageName } from "../shared/types";
 import type { HotkeyConfig } from "../shared/types/hotkeys";
 import { BackendLogger } from "../shared/utils/backendLogger";
+import { addDaysLocalString } from "../shared/utils/date";
 import type { JournalEntryData } from "./JournalEntry";
 import { useJournal } from "./useJournal";
 import { type ConfirmDialogState, useJournalDialogs } from "./useJournalDialogs";
 import { useJournalHotkeysConfig } from "./useJournalHotkeysConfig";
 
 export type { ConfirmDialogState } from "./useJournalDialogs";
-
-function addDays(dateStr: string, delta: number): string {
-	const d = new Date(dateStr);
-	d.setDate(d.getDate() + delta);
-	const y = d.getFullYear();
-	const m = String(d.getMonth() + 1).padStart(2, "0");
-	const day = String(d.getDate()).padStart(2, "0");
-	return `${y}-${m}-${day}`;
-}
 
 const helpCommands = [
 	{
@@ -283,11 +275,11 @@ export function useJournalController({
 	}, [clearSelection, confirmDialog.isOpen]);
 
 	const goToPrevDay = useCallback(() => {
-		setDate(addDays(date, -1));
+		setDate(addDaysLocalString(date, -1));
 	}, [date, setDate]);
 
 	const goToNextDay = useCallback(() => {
-		setDate(addDays(date, 1));
+		setDate(addDaysLocalString(date, 1));
 	}, [date, setDate]);
 
 	const hotkeys: HotkeyConfig[] = useJournalHotkeysConfig({

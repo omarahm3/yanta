@@ -10,6 +10,7 @@ import {
 } from "../../bindings/yanta/internal/journal/wailsservice";
 import { useNotification } from "../shared/hooks";
 import { BackendLogger } from "../shared/utils/backendLogger";
+import { todayLocalString } from "../shared/utils/date";
 import type { JournalEntryData } from "./JournalEntry";
 
 export interface UseJournalOptions {
@@ -54,7 +55,7 @@ export function useJournal({
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-	const [date, setDateInternal] = useState(() => initialDate || getTodayString());
+	const [date, setDateInternal] = useState(() => initialDate || todayLocalString());
 	const refreshRequestIdRef = useRef(0);
 
 	// Update date when initialDate prop changes (e.g., from navigation)
@@ -257,15 +258,4 @@ export function useJournal({
 		clearSelection,
 		selectAll,
 	};
-}
-
-/**
- * Get today's date as YYYY-MM-DD string
- */
-function getTodayString(): string {
-	const now = new Date();
-	const year = now.getFullYear();
-	const month = String(now.getMonth() + 1).padStart(2, "0");
-	const day = String(now.getDate()).padStart(2, "0");
-	return `${year}-${month}-${day}`;
 }

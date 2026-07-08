@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from "react";
 import { useMergedConfig } from "@/config/usePreferencesOverrides";
+import { todayLocalString } from "@/shared/utils/date";
 import { GlobalCommandPalette, useCommandPaletteStore } from "../command-palette";
 import { GlobalSearch, useGlobalSearchStore } from "../global-search";
 import { useHelp } from "../help";
@@ -40,8 +41,7 @@ const GlobalCommandHotkey = () => {
 		...global.today,
 		handler: (e) => {
 			e.preventDefault();
-			const today = new Date().toISOString().split("T")[0];
-			nav.onNavigate("journal", { date: today });
+			nav.onNavigate("journal", { date: todayLocalString() });
 		},
 		allowInInput: false,
 	});
