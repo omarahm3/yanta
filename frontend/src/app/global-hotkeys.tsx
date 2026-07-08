@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import { GlobalCommandPalette, useCommandPaletteStore } from "../command-palette";
 import { GlobalSearch, useGlobalSearchStore } from "../global-search";
@@ -79,6 +79,39 @@ const GlobalCommandHotkey = () => {
 		allowInInput: true,
 		capture: true,
 	});
+
+	useHotkey({
+		...global.navBack,
+		handler: (e) => {
+			e.preventDefault();
+			nav.goBack();
+		},
+		allowInInput: false,
+	});
+
+	useHotkey({
+		...global.navForward,
+		handler: (e) => {
+			e.preventDefault();
+			nav.goForward();
+		},
+		allowInInput: false,
+	});
+
+	// Mouse buttons 3/4 (back/forward on multi-button mice).
+	useEffect(() => {
+		const handleMouseUp = (e: MouseEvent) => {
+			if (e.button === 3) {
+				e.preventDefault();
+				nav.goBack();
+			} else if (e.button === 4) {
+				e.preventDefault();
+				nav.goForward();
+			}
+		};
+		window.addEventListener("mouseup", handleMouseUp);
+		return () => window.removeEventListener("mouseup", handleMouseUp);
+	}, [nav.goBack, nav.goForward]);
 
 	return (
 		<>

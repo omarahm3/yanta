@@ -16,6 +16,8 @@ export const GLOBAL_SHORTCUTS = {
 	today: { key: "mod+T", description: "Jump to today's journal" },
 	switchProject: { key: "ctrl+Tab", description: "Switch to last project" },
 	projectSwitcher: { key: "mod+shift+K", description: "Switch project" },
+	navBack: { key: "alt+ArrowLeft", description: "Go back" },
+	navForward: { key: "alt+ArrowRight", description: "Go forward" },
 } as const satisfies Record<string, ShortcutDef>;
 
 /** Sidebar (Layout.tsx) */

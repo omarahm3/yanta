@@ -260,11 +260,11 @@ func TestConfig_SidebarVisible(t *testing.T) {
 	err := Init()
 	require.NoError(t, err)
 
-	t.Run("default sidebar visible is false", func(t *testing.T) {
+	t.Run("default sidebar visible is true", func(t *testing.T) {
 		cfg := Get()
 		assert.NotNil(t, cfg)
-		assert.False(t, cfg.SidebarVisible, "SidebarVisible should default to false")
-		assert.False(t, GetSidebarVisible(), "GetSidebarVisible should return false by default")
+		assert.True(t, cfg.SidebarVisible, "SidebarVisible should default to true")
+		assert.True(t, GetSidebarVisible(), "GetSidebarVisible should return true by default")
 	})
 
 	t.Run("set sidebar visible to true", func(t *testing.T) {
