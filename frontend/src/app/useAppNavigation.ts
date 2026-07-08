@@ -127,6 +127,9 @@ export function useAppNavigation(): UseAppNavigationReturn {
 		if (!current || typeof current.idx !== "number") {
 			const { page, state } = readNavigationFromUrl();
 			window.history.replaceState({ page, state, idx: 0 }, "");
+		} else {
+			// Reload mid-history: seed the store so back stays enabled.
+			useNavHistoryStore.getState().hydrate(current.idx);
 		}
 	}, []);
 

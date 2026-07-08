@@ -114,9 +114,12 @@ export const Layout: React.FC<LayoutProps> = ({
 	const canGoBack = useNavHistoryStore(selectCanGoBack);
 	const canGoForward = useNavHistoryStore(selectCanGoForward);
 	const goBack = useCallback(() => {
-		if (useNavHistoryStore.getState().index > 0) window.history.back();
+		if (typeof window !== "undefined" && useNavHistoryStore.getState().index > 0) {
+			window.history.back();
+		}
 	}, []);
 	const goForward = useCallback(() => {
+		if (typeof window === "undefined") return;
 		const { index, maxIndex } = useNavHistoryStore.getState();
 		if (index < maxIndex) window.history.forward();
 	}, []);

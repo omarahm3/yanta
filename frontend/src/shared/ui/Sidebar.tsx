@@ -85,7 +85,10 @@ const PanelRow: React.FC<{ item: SidebarItem }> = ({ item }) => (
 			onClick={item.onClick}
 			aria-current={item.active ? "true" : undefined}
 			className={cn(
-				"flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-[13px] transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out-quint)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+				"flex min-w-0 flex-1 items-center gap-2 rounded-md py-1 pl-2 text-left text-[13px] transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out-quint)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+				// Reserve room for the absolute-positioned action button so it never
+				// overlaps a truncated label.
+				item.action ? "pr-8" : "pr-2",
 				item.active ? "bg-accent/16 text-accent" : "text-text-dim hover:bg-accent/8 hover:text-text",
 			)}
 		>

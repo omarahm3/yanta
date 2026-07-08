@@ -53,4 +53,15 @@ describe("navHistory.store", () => {
 		expect(selectCanGoBack(s)).toBe(false);
 		expect(selectCanGoForward(s)).toBe(true);
 	});
+
+	it("hydrate seeds index/maxIndex so back is available after a reload mid-history", () => {
+		// Simulate a page reload where the browser retained history.state.idx = 3.
+		useNavHistoryStore.getState().hydrate(3);
+		const s = useNavHistoryStore.getState();
+		expect(s.index).toBe(3);
+		expect(s.maxIndex).toBe(3);
+		expect(selectCanGoBack(s)).toBe(true);
+		// The forward frontier is not recoverable after reload, so forward stays off.
+		expect(selectCanGoForward(s)).toBe(false);
+	});
 });

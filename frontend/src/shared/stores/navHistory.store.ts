@@ -17,6 +17,12 @@ interface NavHistoryStore {
 	recordPush: () => number;
 	/** Record a jump to an existing history entry (popstate). */
 	recordPopTo: (index: number) => void;
+	/**
+	 * Seed the store from an existing history entry on mount (e.g. a page reload
+	 * where the browser retained history.state.idx). The forward frontier can't be
+	 * recovered after a reload, so maxIndex is pinned to the current index.
+	 */
+	hydrate: (index: number) => void;
 }
 
 export const useNavHistoryStore = create<NavHistoryStore>((set, get) => ({
@@ -32,6 +38,10 @@ export const useNavHistoryStore = create<NavHistoryStore>((set, get) => ({
 
 	recordPopTo: (index) => {
 		set((state) => ({ index, maxIndex: Math.max(state.maxIndex, index) }));
+	},
+
+	hydrate: (index) => {
+		set({ index, maxIndex: index });
 	},
 }));
 

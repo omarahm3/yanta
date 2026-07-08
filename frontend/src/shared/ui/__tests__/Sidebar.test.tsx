@@ -181,6 +181,16 @@ describe("Sidebar (sections panel)", () => {
 		expect(onClick).toHaveBeenCalledTimes(1);
 	});
 
+	it("reserves right padding on rows with an action so the button never overlaps the label", () => {
+		render(<Sidebar sections={withSections()} />);
+		// The pinned row has an unpin action; its label button must reserve space (pr-8).
+		const pinnedBtn = screen.getByText("Pinned Note").closest("button");
+		expect(pinnedBtn).toHaveClass("pr-8");
+		// A row without an action keeps the default padding.
+		const projectBtn = screen.getByText("alpha").closest("button");
+		expect(projectBtn).not.toHaveClass("pr-8");
+	});
+
 	it("exposes a section's item action (e.g. unpin)", () => {
 		const onUnpin = vi.fn();
 		const sections = withSections();
