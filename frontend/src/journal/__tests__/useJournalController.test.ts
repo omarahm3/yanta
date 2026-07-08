@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { DeleteEntry, RestoreEntry } from "../../../bindings/yanta/internal/journal/wailsservice";
 import { useJournalController } from "../useJournalController";
 
 // Mock project context
@@ -53,6 +54,7 @@ vi.mock("../../../bindings/yanta/internal/journal/wailsservice", () => ({
 		]),
 	),
 	DeleteEntry: vi.fn(() => Promise.resolve()),
+	RestoreEntry: vi.fn(() => Promise.resolve()),
 	ListDates: vi.fn(() => Promise.resolve(["2026-01-30"])),
 	PromoteToDocument: vi.fn(() => Promise.resolve("path/to/doc")),
 }));
@@ -278,6 +280,61 @@ describe("useJournalController", () => {
 		expect(result.current.confirmDialog.isOpen).toBe(true);
 		expect(result.current.confirmDialog.title).toBe("Delete Journal Entry");
 		expect(result.current.confirmDialog.danger).toBe(true);
+	});
+
+	it("deletes on confirm and offers an Undo that restores the entries", async () => {
+		const { result } = renderHook(() => useJournalController({ onNavigate: vi.fn() }));
+
+		await waitFor(() => {
+			expect(result.current.entries).toHaveLength(3);
+		});
+
+		act(() => {
+			result.current.toggleSelection("entry1");
+			result.current.toggleSelection("entry2");
+		});
+
+		act(() => {
+			result.current.handleDeleteSelected();
+		});
+
+		// Run the confirm handler (performs the soft-delete).
+		await act(async () => {
+			await result.current.confirmDialog.onConfirm();
+		});
+
+		expect(DeleteEntry).toHaveBeenCalledTimes(2);
+		expect(mockNotify.success).toHaveBeenCalledTimes(1);
+
+		// The success toast carries an Undo action.
+		const [, options] = mockNotify.success.mock.calls[0];
+		expect(options?.action?.label).toBe("Undo");
+
+		// Invoking Undo restores every deleted entry.
+		act(() => {
+			options.action.onClick();
+		});
+
+		await waitFor(() => {
+			expect(RestoreEntry).toHaveBeenCalledTimes(2);
+		});
+	});
+
+	it("clarifies recoverability in the delete confirmation message", async () => {
+		const { result } = renderHook(() => useJournalController({ onNavigate: vi.fn() }));
+
+		await waitFor(() => {
+			expect(result.current.entries).toHaveLength(3);
+		});
+
+		act(() => {
+			result.current.toggleSelection("entry1");
+		});
+		act(() => {
+			result.current.handleDeleteSelected();
+		});
+
+		expect(result.current.confirmDialog.message.toLowerCase()).toContain("undo");
 	});
 
 	it("shows plural message when deleting multiple entries", async () => {

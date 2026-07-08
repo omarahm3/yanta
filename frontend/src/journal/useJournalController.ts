@@ -100,7 +100,7 @@ export function useJournalController({
 	const { currentProject } = useProjectContext();
 	const projectAlias = currentProject?.alias || "@personal";
 	const { setPageContext } = useHelp();
-	const { error: notifyError } = useNotification();
+	const { error: notifyError, success: notifySuccess } = useNotification();
 
 	const [datesWithEntries, setDatesWithEntries] = useState<string[]>([]);
 	const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -116,6 +116,7 @@ export function useJournalController({
 		date,
 		setDate,
 		deleteEntry,
+		restoreEntry,
 		promoteToDocument,
 		toggleSelection: toggleSelectionById,
 		clearSelection,
@@ -213,8 +214,8 @@ export function useJournalController({
 		const count = ids.length;
 		const message =
 			count === 1
-				? "Are you sure you want to delete this journal entry?"
-				: `Are you sure you want to delete ${count} journal entries?`;
+				? "Delete this journal entry? You can undo right after, or restore it later."
+				: `Delete ${count} journal entries? You can undo right after, or restore them later.`;
 
 		setConfirmDialog({
 			isOpen: true,
@@ -227,6 +228,22 @@ export function useJournalController({
 						await deleteEntry(id);
 					}
 					clearSelection();
+					notifySuccess(count === 1 ? "Entry deleted" : `${count} entries deleted`, {
+						action: {
+							label: "Undo",
+							onClick: () => {
+								void (async () => {
+									for (const id of ids) {
+										try {
+											await restoreEntry(id);
+										} catch (err) {
+											BackendLogger.error("Failed to restore entry:", err);
+										}
+									}
+								})();
+							},
+						},
+					});
 				} catch (err) {
 					BackendLogger.error("Failed to delete entries:", err);
 				} finally {
@@ -234,7 +251,7 @@ export function useJournalController({
 				}
 			},
 		});
-	}, [deleteEntry, clearSelection]);
+	}, [deleteEntry, restoreEntry, clearSelection, notifySuccess]);
 
 	// Promote selected entries to document
 	const handlePromoteSelected = useCallback(async () => {
