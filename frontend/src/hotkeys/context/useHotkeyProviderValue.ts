@@ -89,6 +89,11 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 				map: Map<string, RegisteredHotkey[]>,
 			): Array<[string, (event: KeyboardEvent) => void]> =>
 				Array.from(map.entries()).map(([key, handlers]) => {
+					// Sort once at build time — handlers are stable for this closure's
+					// lifetime (rebuilt only when `hotkeys` changes), so re-sorting on
+					// every keydown would allocate needlessly on a hot path.
+					const sortedHandlers = [...handlers].sort((a, b) => (b.priority || 0) - (a.priority || 0));
+
 					const wrappedHandler = (event: KeyboardEvent) => {
 						if (isDialogOpenRef.current) {
 							return;
@@ -98,8 +103,6 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 						// handler actually consumes the key. Calling preventDefault up front
 						// eats characters in inputs and hijacks Enter/Space/j/k from focused
 						// buttons even when no handler ends up running.
-						const sortedHandlers = [...handlers].sort((a, b) => (b.priority || 0) - (a.priority || 0));
-
 						for (const handler of sortedHandlers) {
 							if (!isHotkeyEligibleForTarget(event, event.target, handler.allowInInput)) {
 								continue;

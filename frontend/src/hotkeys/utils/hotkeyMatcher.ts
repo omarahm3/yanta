@@ -5,10 +5,12 @@
 
 export const SPECIAL_KEY_SET = new Set(["?", ":", "shift+;", "shift+/"]);
 
+const NON_TEXT_INPUT_TYPES = new Set(["checkbox", "radio", "button", "submit", "image", "reset"]);
+
 export interface TargetClassification {
-	/** Editable target: <input>, <textarea>, or contenteditable. */
+	/** Editable target: text <input>, <textarea>, or contenteditable. */
 	inInputField: boolean;
-	/** Non-editable interactive target: <button>, <a>, role=button/link/checkbox. */
+	/** Non-editable interactive target: button/link, non-text input, role=button/link/checkbox/radio. */
 	isInteractiveElement: boolean;
 }
 
@@ -16,17 +18,37 @@ export interface TargetClassification {
  * Classifies an event target so the dispatcher can decide whether a hotkey
  * should be allowed to fire on it. Editable fields must keep receiving typed
  * characters; buttons/links must keep their native Enter/Space activation.
+ *
+ * Editability is resolved through the contenteditable ancestor chain because a
+ * rich-text editor (BlockNote/ProseMirror) fires keydown on a nested node, not
+ * the contenteditable root. Non-text inputs (checkbox/radio/submit/...) are
+ * treated as interactive controls, not text fields, so modifier hotkeys still
+ * reach them.
  */
 export function classifyEventTarget(target: EventTarget | null): TargetClassification {
 	const el = target as HTMLElement | null;
 	const tag = el?.tagName;
 	const role = el?.getAttribute?.("role");
+	const inputType = el?.getAttribute?.("type")?.toLowerCase();
 
-	const inInputField =
-		tag === "INPUT" || tag === "TEXTAREA" || el?.getAttribute?.("contenteditable") === "true";
+	const isNonTextInput = tag === "INPUT" && NON_TEXT_INPUT_TYPES.has(inputType ?? "");
+
+	// isContentEditable is correct in real browsers (handles inheritance); the
+	// closest() fallback covers nested targets under jsdom, which does not
+	// implement isContentEditable.
+	const isEditable =
+		el?.isContentEditable === true || Boolean(el?.closest?.('[contenteditable="true"]'));
+
+	const inInputField = (tag === "INPUT" && !isNonTextInput) || tag === "TEXTAREA" || isEditable;
 
 	const isInteractiveElement =
-		tag === "BUTTON" || tag === "A" || role === "button" || role === "link" || role === "checkbox";
+		tag === "BUTTON" ||
+		tag === "A" ||
+		isNonTextInput ||
+		role === "button" ||
+		role === "link" ||
+		role === "checkbox" ||
+		role === "radio";
 
 	return {
 		inInputField: Boolean(inInputField),
@@ -42,6 +64,10 @@ export function classifyEventTarget(target: EventTarget | null): TargetClassific
  * swallowed) or when the target is a button/link/role=button and the key has no
  * Ctrl/Cmd/Alt modifier (plain keys like Enter/Space/j/k would otherwise hijack
  * the element's native behavior). Modifier combos still reach focused buttons.
+ *
+ * Escape is exempt from the interactive-element guard: it has no native action
+ * on a button/link, and blocking it would trap the user in an overlay they
+ * cannot dismiss with the keyboard while a control inside it is focused.
  */
 export function isHotkeyEligibleForTarget(
 	event: KeyboardEvent,
@@ -58,7 +84,7 @@ export function isHotkeyEligibleForTarget(
 	}
 
 	const hasModifier = event.ctrlKey || event.metaKey || event.altKey;
-	if (isInteractiveElement && !hasModifier) {
+	if (isInteractiveElement && !hasModifier && event.key !== "Escape") {
 		return false;
 	}
 
