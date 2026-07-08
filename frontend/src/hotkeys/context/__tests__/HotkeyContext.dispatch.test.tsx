@@ -68,6 +68,17 @@ describe("hotkey dispatcher — target eligibility & preventDefault ordering", (
 		expect(jOk).toBe(true);
 	});
 
+	it("still routes Escape to a focused button (no keyboard trap)", () => {
+		const handler = vi.fn();
+		const { getByTestId } = renderWith([{ key: "Escape", handler }]);
+		const button = getByTestId("button");
+		button.focus();
+
+		fireEvent.keyDown(button, { key: "Escape" });
+
+		expect(handler).toHaveBeenCalledTimes(1);
+	});
+
 	it("still routes modifier combos to a focused button", () => {
 		const handler = vi.fn();
 		const { getByTestId } = renderWith([{ key: "ctrl+k", handler }]);
