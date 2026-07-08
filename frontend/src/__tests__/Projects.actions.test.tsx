@@ -68,6 +68,9 @@ describe("Projects mouse actions", () => {
 		setCurrentProject.mockClear();
 		loadProjects.mockClear();
 		useProjectManageStore.setState({ request: null });
+		projectContext.projects = projects;
+		projectContext.archivedProjects = archivedProjects;
+		projectContext.isLoading = false;
 	});
 
 	it("opens the New Project dialog from the header button", () => {
@@ -105,5 +108,21 @@ describe("Projects mouse actions", () => {
 		renderProjects();
 		useProjectManageStore.getState().requestRename("2");
 		expect(await screen.findByDisplayValue("Beta")).toBeInTheDocument();
+	});
+
+	it("keeps a palette rename request pending until the project loads (no lost request)", () => {
+		// Arrive from the palette while projects are still loading.
+		projectContext.projects = [];
+		projectContext.isLoading = true;
+		useProjectManageStore.getState().requestRename("2");
+
+		renderProjects();
+
+		// The dialog isn't shown yet, and crucially the one-shot request is retained.
+		expect(screen.queryByText("Rename Project")).not.toBeInTheDocument();
+		expect(useProjectManageStore.getState().request).toEqual({
+			type: "rename",
+			projectId: "2",
+		});
 	});
 });

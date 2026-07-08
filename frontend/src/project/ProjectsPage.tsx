@@ -438,19 +438,26 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 	);
 
 	// Let the command palette open the New / Rename dialogs after navigating here.
+	// The request is only consumed once resolved (or loading has finished and the
+	// project is confirmed absent), so it isn't lost if projects are still loading
+	// when we arrive from the palette.
 	const pendingManageRequest = useProjectManageStore((s) => s.request);
 	const consumeManageRequest = useProjectManageStore((s) => s.consume);
 	useEffect(() => {
 		if (!pendingManageRequest) return;
-		const req = consumeManageRequest();
-		if (!req) return;
-		if (req.type === "new") {
+		if (pendingManageRequest.type === "new") {
+			consumeManageRequest();
 			setIsNewProjectDialogOpen(true);
-		} else if (req.type === "rename") {
-			const proj = projects.find((p) => p.id === req.projectId);
-			if (proj) setRenameTarget({ alias: proj.alias, name: proj.name });
+			return;
 		}
-	}, [pendingManageRequest, consumeManageRequest, projects]);
+		const proj = projects.find((p) => p.id === pendingManageRequest.projectId);
+		if (proj) {
+			consumeManageRequest();
+			setRenameTarget({ alias: proj.alias, name: proj.name });
+		} else if (!isLoading) {
+			consumeManageRequest();
+		}
+	}, [pendingManageRequest, consumeManageRequest, projects, isLoading]);
 
 	const selectNext = useCallback(() => {
 		const allProjects = [...projectsRef.current, ...archivedProjectsRef.current];
