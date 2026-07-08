@@ -1,11 +1,10 @@
 import { useMemo } from "react";
+import { formatShortcutKeyForDisplay } from "@/config/shortcuts";
+import { useMergedConfig } from "@/config/usePreferencesOverrides";
+import { getMergedConfig } from "@/shared/stores/preferences.store";
 import type { PageName } from "../types";
 import type { FooterHint } from "../ui/FooterHintBar";
-import { getShortcutForCommand } from "../utils/shortcuts";
 
-/**
- * Page types that have specific footer hint configurations
- */
 export type PageContext =
 	| "dashboard"
 	| "document"
@@ -16,136 +15,156 @@ export type PageContext =
 	| "quick-capture"
 	| "test";
 
-/**
- * Hint configurations for each page context.
- * Each configuration provides the most relevant keyboard shortcuts for that page.
- *
- * Priority levels:
- * - 1: Always shown (even on narrow viewports < 768px)
- * - 2: Hidden on narrow viewports (default)
- * - 3: Lowest priority, hidden on narrow viewports
- *
- * Navigation hints (↑↓, ←→) are typically priority 1 as they're essential for keyboard users.
- */
-const HINT_CONFIGS: Record<PageContext, FooterHint[]> = {
-	dashboard: [
-		{ key: "↑↓", label: "Navigate", priority: 1 },
-		{ key: "Enter", label: "Open", priority: 1 },
-		{ key: "Space", label: "Select", priority: 1 },
-		{ key: "Ctrl+N", label: "New", priority: 2 },
-		{ key: "Ctrl+M", label: "Move", priority: 2 },
-		{ key: "Ctrl+A", label: "Archive", priority: 2 },
-		{ key: "Ctrl+U", label: "Restore", priority: 3 },
-		{ key: "Ctrl+D", label: "Delete", priority: 3 },
-		{ key: "Ctrl+Shift+D", label: "Permanent delete", priority: 3 },
-		{ key: "Ctrl+E", label: "Export MD", priority: 3 },
-		{ key: "Ctrl+Shift+E", label: "Export PDF", priority: 3 },
-		{ key: "Ctrl+Shift+A", label: "Toggle archived", priority: 3 },
-	],
-	document: [
-		{ key: "Ctrl+S", label: "Save", priority: 1 },
-		{ key: "Esc", label: "Back", priority: 1 },
-		{ key: "Enter", label: "Focus editor", priority: 2 },
-		{ key: "Ctrl+E", label: "Export MD", priority: 2 },
-		{ key: "Ctrl+Shift+E", label: "Export PDF", priority: 3 },
-		{ key: "Ctrl+\\", label: "Split right", priority: 3 },
-		{ key: "Ctrl+Shift+\\", label: "Split down", priority: 3 },
-		{ key: "Alt+X", label: "Close pane", priority: 3 },
-		{ key: "Alt+H/J/K/L", label: "Focus panes", priority: 3 },
-	],
-	journal: [
-		{ key: "←→", label: "Change date", priority: 1 },
-		{ key: "Ctrl+N/P", label: "Next/prev day", priority: 2 },
-		{ key: "↑↓", label: "Navigate", priority: 1 },
-		{ key: "Space", label: "Select", priority: 2 },
-		{ key: "Ctrl+D", label: "Delete", priority: 2 },
-		{ key: "Ctrl+Shift+P", label: "Promote", priority: 3 },
-	],
-	search: [
-		{ key: "/", label: "Focus search", priority: 1 },
-		{ key: "↑↓", label: "Navigate", priority: 1 },
-		{ key: "Enter", label: "Open", priority: 1 },
-		{ key: "Tab", label: "To results", priority: 2 },
-		{ key: "Esc", label: "Clear", priority: 2 },
-	],
-	settings: [{ key: "j/k", label: "Navigate sections", priority: 1 }],
-	projects: [
-		{ key: "↑↓", label: "Navigate", priority: 1 },
-		{ key: "Enter", label: "Open", priority: 1 },
-		{ key: "Ctrl+N", label: "New", priority: 2 },
-		{ key: "Ctrl+A", label: "Archive", priority: 2 },
-		{ key: "Ctrl+U", label: "Restore", priority: 3 },
-		{ key: "Ctrl+D", label: "Delete", priority: 3 },
-		{ key: "Ctrl+Shift+D", label: "Permanent delete", priority: 3 },
-	],
-	"quick-capture": [
-		{ key: "Ctrl+Enter", label: "Save", priority: 1 },
-		{ key: "Shift+Enter", label: "Save & stay", priority: 2 },
-		{ key: "Esc", label: "Cancel", priority: 2 },
-	],
-	test: [],
-};
+export interface FooterHintContext {
+	currentPage: PageName;
+	hasSelection?: boolean;
+	documentCount?: number;
+}
 
-/**
- * Default hints shown when page context is unknown
- */
-const DEFAULT_HINTS: FooterHint[] = [];
+function fmt(configKey: string): string {
+	return formatShortcutKeyForDisplay(configKey);
+}
+
+function buildDashboardHints(hasSelection: boolean, docCount: number): FooterHint[] {
+	const config = getMergedConfig();
+	const d = config.shortcuts.dashboard;
+	const base: FooterHint[] = [
+		{ key: "↑↓", label: "Navigate", priority: 1 },
+		{ key: fmt(d.openHighlighted.key), label: "Open", priority: 1 },
+		{ key: fmt(d.toggleSelection.key), label: "Select", priority: 1 },
+		{ key: fmt(d.newDocument.key), label: "New", priority: 2 },
+	];
+	if (docCount > 0) {
+		base.push({ key: fmt(d.selectAll.key), label: "Select all", priority: 2 });
+	}
+	if (hasSelection) {
+		base.push(
+			{ key: fmt(d.move.key), label: "Move", priority: 2 },
+			{ key: fmt(d.restore.key), label: "Restore", priority: 3 },
+			{ key: fmt(d.exportMd.key), label: "Export MD", priority: 3 },
+		);
+	}
+	return base;
+}
+
+function buildDocumentHints(): FooterHint[] {
+	const config = getMergedConfig();
+	const doc = config.shortcuts.document;
+	const pane = config.shortcuts.pane;
+	return [
+		{ key: fmt(doc.save.key), label: "Save", priority: 1 },
+		{ key: fmt(doc.back.key), label: "Back", priority: 1 },
+		{ key: fmt(doc.focusEditor.key), label: "Focus editor", priority: 2 },
+		{ key: fmt(doc.exportMd.key), label: "Export MD", priority: 2 },
+		{ key: fmt(pane.splitRight.key), label: "Split right", priority: 3 },
+	];
+}
+
+function buildJournalHints(hasSelection: boolean): FooterHint[] {
+	const config = getMergedConfig();
+	const j = config.shortcuts.journal;
+	const hints: FooterHint[] = [
+		{ key: "←→", label: "Change date", priority: 1 },
+		{ key: `${fmt(j.nextDay.key)}/${fmt(j.prevDay.key)}`, label: "Next/prev day", priority: 2 },
+		{ key: "↑↓", label: "Navigate", priority: 1 },
+		{ key: fmt(j.toggleSelection.key), label: "Select", priority: 2 },
+	];
+	if (hasSelection) {
+		hints.push({ key: fmt(j.promote.key), label: "Promote", priority: 3 });
+	}
+	return hints;
+}
+
+function buildProjectsHints(hasSelection: boolean): FooterHint[] {
+	const config = getMergedConfig();
+	const p = config.shortcuts.projects;
+	const hints: FooterHint[] = [
+		{ key: "↑↓", label: "Navigate", priority: 1 },
+		{ key: fmt(p.switchToSelected.key), label: "Open", priority: 1 },
+		{ key: fmt(p.newProject.key), label: "New", priority: 2 },
+	];
+	if (hasSelection) {
+		hints.push({ key: fmt(p.restore.key), label: "Restore", priority: 3 });
+	}
+	return hints;
+}
+
+function buildSearchHints(): FooterHint[] {
+	const config = getMergedConfig();
+	const s = config.shortcuts.search;
+	return [
+		{ key: fmt(s.focusInput.key), label: "Focus search", priority: 1 },
+		{ key: "↑↓", label: "Navigate", priority: 1 },
+		{ key: fmt(s.open.key), label: "Open", priority: 1 },
+		{ key: fmt(s.toResults.key), label: "To results", priority: 2 },
+	];
+}
+
+function buildQuickCaptureHints(): FooterHint[] {
+	const config = getMergedConfig();
+	const qc = config.shortcuts.quickCapture;
+	return [
+		{ key: fmt(qc.save.key), label: "Save", priority: 1 },
+		{ key: fmt(qc.saveAndStay.key), label: "Save & stay", priority: 2 },
+		{ key: fmt(qc.cancel.key), label: "Cancel", priority: 2 },
+	];
+}
+
+function buildHintsForPage(ctx: FooterHintContext): FooterHint[] {
+	const { currentPage, hasSelection = false, documentCount = 0 } = ctx;
+	switch (currentPage) {
+		case "dashboard":
+			return buildDashboardHints(hasSelection, documentCount);
+		case "document":
+			return buildDocumentHints();
+		case "journal":
+			return buildJournalHints(hasSelection);
+		case "projects":
+			return buildProjectsHints(hasSelection);
+		case "search":
+			return buildSearchHints();
+		case "settings":
+			return [{ key: "j/k", label: "Navigate sections", priority: 1 }];
+		case "quick-capture":
+			return buildQuickCaptureHints();
+		default:
+			return [];
+	}
+}
 
 export interface UseFooterHintsOptions {
-	/**
-	 * The current page context/route
-	 */
 	currentPage: PageName;
+	hasSelection?: boolean;
+	documentCount?: number;
 }
 
 export interface UseFooterHintsReturn {
-	/**
-	 * The hints to display for the current page context
-	 */
 	hints: FooterHint[];
 }
 
-/**
- * Hook that returns context-aware keyboard shortcut hints based on the current page.
- *
- * @param options - Options containing the current page context
- * @returns Object containing the hints array for the current page
- *
- * @example
- * ```tsx
- * const { hints } = useFooterHints({ currentPage: "dashboard" });
- * return <FooterHintBar hints={hints} />;
- * ```
- */
-export function useFooterHints({ currentPage }: UseFooterHintsOptions): UseFooterHintsReturn {
+export function useFooterHints({
+	currentPage,
+	hasSelection,
+	documentCount,
+}: UseFooterHintsOptions): UseFooterHintsReturn {
+	const { shortcuts } = useMergedConfig();
 	const hints = useMemo(() => {
-		const pageKey = currentPage as PageContext;
-		return HINT_CONFIGS[pageKey] ?? DEFAULT_HINTS;
-	}, [currentPage]);
+		return buildHintsForPage({ currentPage, hasSelection, documentCount });
+	}, [currentPage, hasSelection, documentCount, shortcuts]);
 
 	return { hints };
 }
 
-/**
- * Get hints for a specific page context (non-hook version for testing/utilities)
- */
 export function getHintsForPage(page: PageContext | PageName): FooterHint[] {
-	const pageKey = page as PageContext;
-	return HINT_CONFIGS[pageKey] ?? DEFAULT_HINTS;
+	return buildHintsForPage({ currentPage: page });
 }
 
-/**
- * Universal entry-point hints that stay visible on every page, regardless of
- * which page-specific hints apply. These are the always-available affordances a
- * first-timer needs to discover the rest of the app without docs: the command
- * palette and the help overlay. Keys are platform-aware (⌘K on macOS, Ctrl+K
- * elsewhere) via the shared shortcut formatter.
- */
 export function getGlobalFooterHints(): FooterHint[] {
+	const config = getMergedConfig();
+	const g = config.shortcuts.global;
 	return [
-		{ key: getShortcutForCommand("command-palette") ?? "Ctrl+K", label: "Commands", priority: 1 },
-		// Vim leader navigation (see useLeaderKeys): g then d/j/s/p/, jumps anywhere.
+		{ key: fmt(g.commandPalette.key), label: "Commands", priority: 1 },
 		{ key: "g", label: "Jump (d/j/s/p)", priority: 1 },
-		{ key: getShortcutForCommand("show-help") ?? "?", label: "Help", priority: 1 },
+		{ key: fmt(g.help.key), label: "Help", priority: 1 },
 	];
 }

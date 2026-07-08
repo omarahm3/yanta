@@ -90,6 +90,8 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 				currentPage="dashboard"
 				headerActions={headerActions}
 				onRegisterToggleSidebar={onRegisterToggleSidebar}
+				hasSelection={documentList.selectedDocuments.size > 0}
+				documentCount={documents.length}
 			>
 				{isLoading ? (
 					<div className="flex h-full flex-col overflow-hidden">

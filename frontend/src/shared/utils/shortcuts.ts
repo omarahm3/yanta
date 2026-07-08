@@ -1,3 +1,6 @@
+import { formatShortcutKeyForDisplay } from "@/config/shortcuts";
+import { getMergedConfig } from "@/shared/stores/preferences.store";
+
 type CommandId =
 	| "nav-dashboard"
 	| "nav-projects"
@@ -21,7 +24,17 @@ interface ShortcutMapping {
 	metaKey?: boolean;
 }
 
-const COMMAND_SHORTCUTS: Record<CommandId, ShortcutMapping> = {
+const COMMAND_TO_CONFIG: Partial<Record<CommandId, { group: string; key: string }>> = {
+	"command-palette": { group: "global", key: "commandPalette" },
+	"show-help": { group: "global", key: "help" },
+	"nav-today": { group: "global", key: "today" },
+	"switch-last": { group: "global", key: "switchProject" },
+	"toggle-sidebar": { group: "sidebar", key: "toggle" },
+	"new-document": { group: "dashboard", key: "newDocument" },
+	"save-document": { group: "document", key: "save" },
+};
+
+const COMMAND_KEYBOARD_MAPPINGS: Record<CommandId, ShortcutMapping> = {
 	"nav-journal": { key: "J", ctrlKey: true },
 	"nav-search": { key: "F", ctrlKey: true, shiftKey: true },
 	"new-document": { key: "N", ctrlKey: true },
@@ -38,40 +51,36 @@ const COMMAND_SHORTCUTS: Record<CommandId, ShortcutMapping> = {
 	"save-document": { key: "S", ctrlKey: true },
 };
 
-function isMacOS(): boolean {
-	if (typeof navigator === "undefined") {
-		return false;
-	}
-	return navigator.platform.toUpperCase().indexOf("MAC") >= 0;
-}
-
-function formatShortcut(mapping: ShortcutMapping): string {
-	const isMac = isMacOS();
-	const parts: string[] = [];
-
-	if (mapping.ctrlKey) {
-		parts.push(isMac ? "⌘" : "Ctrl");
-	}
-	if (mapping.shiftKey) {
-		parts.push(isMac ? "⇧" : "Shift");
-	}
-
-	parts.push(mapping.key);
-
-	return isMac ? parts.join("") : parts.join("+");
-}
-
 export function getShortcutForCommand(commandId: string): string | undefined {
-	const mapping = COMMAND_SHORTCUTS[commandId as CommandId];
-	if (!mapping) {
-		return undefined;
+	const mapping = COMMAND_TO_CONFIG[commandId as CommandId];
+	if (mapping) {
+		const config = getMergedConfig();
+		const group = config.shortcuts[mapping.group as keyof typeof config.shortcuts];
+		if (group) {
+			const shortcutDef = (group as Record<string, { key: string }>)[mapping.key];
+			if (shortcutDef?.key) {
+				return formatShortcutKeyForDisplay(shortcutDef.key);
+			}
+		}
 	}
-	return formatShortcut(mapping);
+	const staticMapping = COMMAND_KEYBOARD_MAPPINGS[commandId as CommandId];
+	if (staticMapping) {
+		const parts: string[] = [];
+		if (staticMapping.ctrlKey) parts.push("mod");
+		if (staticMapping.shiftKey) parts.push("shift");
+		if (staticMapping.metaKey) parts.push("meta");
+		parts.push(staticMapping.key);
+		return formatShortcutKeyForDisplay(parts.join("+"));
+	}
+	return undefined;
 }
 
 export function getCommandIdForKeyboardEvent(event: KeyboardEvent): CommandId | undefined {
 	const mod = event.ctrlKey || event.metaKey;
-	for (const [id, mapping] of Object.entries(COMMAND_SHORTCUTS) as [CommandId, ShortcutMapping][]) {
+	for (const [id, mapping] of Object.entries(COMMAND_KEYBOARD_MAPPINGS) as [
+		CommandId,
+		ShortcutMapping,
+	][]) {
 		const modMatch = mapping.ctrlKey ? mod : !mod;
 		const shiftMatch = mapping.shiftKey === undefined ? true : !!mapping.shiftKey === event.shiftKey;
 		const keyMatch =

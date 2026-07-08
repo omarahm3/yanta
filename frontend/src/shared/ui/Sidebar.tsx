@@ -1,5 +1,7 @@
 import { Command } from "lucide-react";
 import type React from "react";
+import { formatShortcutKeyForDisplay } from "@/config/shortcuts";
+import { getMergedConfig } from "@/shared/stores/preferences.store";
 import logoImage from "../../assets/images/logo-universal.png";
 import { useCommandPaletteStore } from "../../command-palette/commandPalette.store";
 import { cn } from "../utils/cn";
@@ -78,6 +80,9 @@ const RailButton: React.FC<{ item: SidebarItem }> = ({ item }) => {
  */
 export const Sidebar: React.FC<SidebarProps> = ({ sections, className }) => {
 	const openPalette = useCommandPaletteStore((s) => s.open);
+	const paletteShortcut = formatShortcutKeyForDisplay(
+		getMergedConfig().shortcuts.global.commandPalette.key,
+	);
 
 	const nav = sections.find((s) => s.id === "navigation");
 	const items = nav?.items ?? [];
@@ -100,7 +105,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ sections, className }) => {
 				<img src={logoImage} alt="" aria-hidden="true" className="h-7 w-7 object-contain" />
 			</button>
 
-			<Tooltip tooltipId="rail-command" content="Command palette" shortcut="Ctrl+K" placement="right">
+			<Tooltip
+				tooltipId="rail-command"
+				content="Command palette"
+				shortcut={paletteShortcut}
+				placement="right"
+			>
 				<button
 					type="button"
 					onClick={openPalette}

@@ -11,6 +11,7 @@ export interface UseDashboardSelectionResult {
 	selectedDocuments: Set<string>;
 	selectedDocumentsRef: React.MutableRefObject<Set<string>>;
 	handleToggleSelection: (path?: string) => void;
+	handleSelectAll: () => void;
 	clearSelection: () => void;
 }
 
@@ -29,6 +30,11 @@ export function useDashboardSelection({
 	const clearSelection = useCallback(() => {
 		setSelectedDocuments(new Set());
 	}, []);
+
+	const handleSelectAll = useCallback(() => {
+		const documents = documentsRef.current ?? [];
+		setSelectedDocuments(new Set(documents.map((d) => d.path)));
+	}, [documentsRef]);
 
 	const handleToggleSelection = useCallback(
 		(path?: string) => {
@@ -66,6 +72,7 @@ export function useDashboardSelection({
 		selectedDocuments,
 		selectedDocumentsRef,
 		handleToggleSelection,
+		handleSelectAll,
 		clearSelection,
 	};
 }

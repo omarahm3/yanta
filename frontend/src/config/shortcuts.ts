@@ -52,6 +52,7 @@ export const DOCUMENT_SHORTCUTS = {
 export const DASHBOARD_SHORTCUTS = {
 	newDocument: { key: "mod+N", description: "Create new document" },
 	toggleArchived: { key: "mod+shift+A", description: "Toggle archived documents view" },
+	selectAll: { key: "mod+A", description: "Select all documents" },
 	softDelete: { key: "mod+D", description: "Soft delete selected documents" },
 	permanentDelete: { key: "mod+shift+D", description: "Permanently delete selected documents" },
 	toggleSelection: { key: "Space", description: "Select/deselect highlighted document" },
@@ -61,7 +62,7 @@ export const DASHBOARD_SHORTCUTS = {
 	navigateDown: { key: "ArrowDown", description: "Navigate down" },
 	navigateUp: { key: "ArrowUp", description: "Navigate up" },
 	move: { key: "mod+M", description: "Move selected documents to another project" },
-	archive: { key: "mod+A", description: "Archive selected documents" },
+	archive: { key: "", description: "Archive selected documents" },
 	restore: { key: "mod+U", description: "Restore archived documents" },
 	exportMd: { key: "mod+E", description: "Export selected documents to markdown" },
 	exportPdf: { key: "mod+shift+E", description: "Export selected documents to PDF" },
@@ -90,7 +91,8 @@ export const PROJECTS_SHORTCUTS = {
 	arrowDown: { key: "ArrowDown", description: "Select next project" },
 	arrowUp: { key: "ArrowUp", description: "Select previous project" },
 	switchToSelected: { key: "Enter", description: "Switch to selected project" },
-	archive: { key: "mod+A", description: "Archive selected project" },
+	selectAll: { key: "mod+A", description: "Select all projects" },
+	archive: { key: "", description: "Archive selected project" },
 	restore: { key: "mod+U", description: "Restore archived project" },
 	delete: { key: "mod+D", description: "Delete selected project" },
 	permanentDelete: { key: "mod+shift+D", description: "Permanently delete selected project" },
@@ -147,19 +149,70 @@ const KEY_DISPLAY_MAP: Record<string, string> = {
 	ArrowRight: "→",
 };
 
+const MAC_SYMBOL_MAP: Record<string, string> = {
+	escape: "⎋",
+	enter: "↩",
+	tab: "⇥",
+	arrowup: "↑",
+	arrowdown: "↓",
+	arrowleft: "←",
+	arrowright: "→",
+	" ": "SPACE",
+};
+
+const KEY_DISPLAY_MAP_LOWER: Record<string, string> = Object.fromEntries(
+	Object.entries(KEY_DISPLAY_MAP).map(([k, v]) => [k.toLowerCase(), v]),
+);
+
+let _isMacCached: boolean | undefined;
+
+export function getIsMac(): boolean {
+	if (_isMacCached !== undefined) return _isMacCached;
+	_isMacCached = typeof navigator !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+	return _isMacCached;
+}
+
 /**
- * Format hotkey string for display (e.g. "mod+K" → "Ctrl+K", "Escape" → "ESC").
- * Use in Settings and Help modal so display matches config keys.
+ * Format hotkey string for display.
+ * Platform-aware: on macOS uses ⌘/⇧/⌥/^ symbols, elsewhere uses Ctrl/Shift/Alt text.
+ * "mod" → ⌘ (Mac) / Ctrl (other), "ctrl" → ^ (Mac) / Ctrl (other).
  */
 export function formatShortcutKeyForDisplay(key: string): string {
-	return key
-		.replace(/mod/gi, "Ctrl")
-		.replace(/shift/gi, "Shift")
-		.replace(/alt/gi, "Alt")
-		.replace(/meta/gi, "Meta")
-		.replace(/\+/g, "+")
-		.split("+")
-		.map((part) => KEY_DISPLAY_MAP[part] || part.toUpperCase())
+	const isMac = getIsMac();
+	const parts = key.split("+");
+
+	if (isMac) {
+		const mods: string[] = [];
+		let mainKey = "KEY";
+
+		for (const part of parts) {
+			const normalized = part.trim().toLowerCase();
+			if (normalized === "mod" || normalized === "meta" || normalized === "cmd") {
+				mods.push("⌘");
+			} else if (normalized === "ctrl" || normalized === "control") {
+				mods.push("^");
+			} else if (normalized === "shift") {
+				mods.push("⇧");
+			} else if (normalized === "alt" || normalized === "option") {
+				mods.push("⌥");
+			} else {
+				mainKey = MAC_SYMBOL_MAP[normalized] || part.toUpperCase();
+			}
+		}
+
+		return mods.join("") + mainKey;
+	}
+
+	return parts
+		.map((part) => {
+			const normalized = part.trim().toLowerCase();
+			if (normalized === "mod") return "Ctrl";
+			if (normalized === "shift") return "Shift";
+			if (normalized === "alt") return "Alt";
+			if (normalized === "ctrl" || normalized === "control") return "Ctrl";
+			if (normalized === "meta" || normalized === "win") return "Win";
+			return KEY_DISPLAY_MAP_LOWER[normalized] || part.toUpperCase();
+		})
 		.join("+");
 }
 

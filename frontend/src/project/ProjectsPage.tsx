@@ -2,7 +2,7 @@ import { formatRelative } from "date-fns";
 import { FolderPlus } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Layout } from "@/app";
-import { PROJECTS_SHORTCUTS } from "@/config/public";
+import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import type { ProjectResult } from "../../bindings/yanta/internal/commandline/models";
 import { Parse } from "../../bindings/yanta/internal/commandline/projectcommands";
 import {
@@ -360,34 +360,41 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 		[loadProjects, fetchDocumentData, notifyError],
 	);
 
+	const { shortcuts } = useMergedConfig();
+	const pShortcuts = shortcuts.projects;
+
 	const projectHotkeys = useMemo(
 		() => [
 			{
-				...PROJECTS_SHORTCUTS.newProject,
+				...pShortcuts.newProject,
 				handler: () => setIsNewProjectDialogOpen(true),
 				allowInInput: false,
 			},
-			{ ...PROJECTS_SHORTCUTS.selectNext, handler: selectNext, allowInInput: false },
-			{ ...PROJECTS_SHORTCUTS.selectPrev, handler: selectPrevious, allowInInput: false },
-			{ ...PROJECTS_SHORTCUTS.arrowDown, handler: selectNext, allowInInput: false },
-			{ ...PROJECTS_SHORTCUTS.arrowUp, handler: selectPrevious, allowInInput: false },
+			{ ...pShortcuts.selectNext, handler: selectNext, allowInInput: false },
+			{ ...pShortcuts.selectPrev, handler: selectPrevious, allowInInput: false },
+			{ ...pShortcuts.arrowDown, handler: selectNext, allowInInput: false },
+			{ ...pShortcuts.arrowUp, handler: selectPrevious, allowInInput: false },
 			{
-				...PROJECTS_SHORTCUTS.switchToSelected,
+				...pShortcuts.switchToSelected,
 				handler: selectCurrentProject,
 				allowInInput: false,
 			},
+			...(pShortcuts.archive.key
+				? [
+						{
+							...pShortcuts.archive,
+							handler: () => {
+								const selected = projectsRef.current.find((p) => p.id === selectedProjectIdRef.current);
+								if (selected) {
+									void executeProjectCommand(`archive ${selected.alias}`);
+								}
+							},
+							allowInInput: false,
+						},
+					]
+				: []),
 			{
-				...PROJECTS_SHORTCUTS.archive,
-				handler: () => {
-					const selected = projectsRef.current.find((p) => p.id === selectedProjectIdRef.current);
-					if (selected) {
-						void executeProjectCommand(`archive ${selected.alias}`);
-					}
-				},
-				allowInInput: false,
-			},
-			{
-				...PROJECTS_SHORTCUTS.restore,
+				...pShortcuts.restore,
 				handler: () => {
 					const selected = archivedProjectsRef.current.find(
 						(p) => p.id === selectedProjectIdRef.current,
@@ -399,7 +406,7 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 				allowInInput: false,
 			},
 			{
-				...PROJECTS_SHORTCUTS.delete,
+				...pShortcuts.delete,
 				handler: () => {
 					const selected = projectsRef.current.find((p) => p.id === selectedProjectIdRef.current);
 					if (selected) {
@@ -409,7 +416,7 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 				allowInInput: false,
 			},
 			{
-				...PROJECTS_SHORTCUTS.permanentDelete,
+				...pShortcuts.permanentDelete,
 				handler: () => {
 					const allProjects = [...projectsRef.current, ...archivedProjectsRef.current];
 					const selected = allProjects.find((p) => p.id === selectedProjectIdRef.current);
@@ -420,7 +427,7 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 				allowInInput: false,
 			},
 		],
-		[selectNext, selectPrevious, selectCurrentProject, executeProjectCommand],
+		[selectNext, selectPrevious, selectCurrentProject, executeProjectCommand, pShortcuts],
 	);
 
 	useHotkeys(projectHotkeys);

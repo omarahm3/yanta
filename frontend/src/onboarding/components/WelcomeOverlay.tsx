@@ -1,5 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useRef } from "react";
+import { formatShortcutKeyForDisplay, getIsMac } from "@/config/shortcuts";
 import { getMergedConfig } from "@/shared/stores/preferences.store";
 import { useDialog } from "../../shared/stores/dialog.store";
 import { cn } from "../../shared/utils/cn";
@@ -12,6 +13,23 @@ export interface WelcomeOverlayProps {
 interface ShortcutBadgeProps {
 	keys: string[];
 	label: string;
+}
+
+function splitFormattedShortcut(formatted: string): string[] {
+	if (formatted.includes("+")) return formatted.split("+");
+	const parts: string[] = [];
+	let current = "";
+	for (const ch of formatted) {
+		if ("⌘⇧⌥^".includes(ch)) {
+			if (current) parts.push(current);
+			parts.push(ch);
+			current = "";
+		} else {
+			current += ch;
+		}
+	}
+	if (current) parts.push(current);
+	return parts;
 }
 
 const ShortcutBadge: React.FC<ShortcutBadgeProps> = ({ keys, label }) => {
@@ -106,7 +124,12 @@ export const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ className }) => 
 
 				{/* Keyboard shortcuts */}
 				<div className="space-y-3 mb-6">
-					<ShortcutBadge keys={["Ctrl", "K"]} label="Open Command Palette" />
+					<ShortcutBadge
+						keys={splitFormattedShortcut(
+							formatShortcutKeyForDisplay(getMergedConfig().shortcuts.global.commandPalette.key),
+						)}
+						label="Open Command Palette"
+					/>
 					<ShortcutBadge keys={["?"]} label="View All Shortcuts" />
 				</div>
 
