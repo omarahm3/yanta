@@ -167,15 +167,12 @@ describe("useQuickCapture", () => {
 			result.current.setSelectedProject("project");
 		});
 
+		let returnValue: boolean | undefined;
 		await act(async () => {
-			try {
-				await result.current.save();
-			} catch {
-				// Expected to throw
-			}
+			returnValue = await result.current.save();
 		});
 
-		// Content should NOT be cleared on error
+		expect(returnValue).toBe(false);
 		expect(result.current.content).toBe("Test note");
 		expect(result.current.error).toBe("Failed to save. Try again.");
 	});
@@ -211,5 +208,46 @@ describe("useQuickCapture", () => {
 
 		expect(result.current.content).toBe("");
 		expect(result.current.tags).toEqual([]);
+	});
+
+	it("blocks re-entry while saving", async () => {
+		const { AppendEntry } = await import("../../../bindings/yanta/internal/journal/wailsservice");
+		const mockAppendEntry = AppendEntry as ReturnType<typeof vi.fn>;
+		let resolveSave: (v: unknown) => void;
+		mockAppendEntry.mockReturnValue(
+			new Promise((resolve) => {
+				resolveSave = resolve;
+			}),
+		);
+
+		const { result } = renderHook(() => useQuickCapture());
+
+		act(() => {
+			result.current.setContent("Test note");
+			result.current.setSelectedProject("project");
+		});
+
+		let firstSaveResolved = false;
+		const firstSave = result.current.save().then((v) => {
+			firstSaveResolved = true;
+			return v;
+		});
+
+		await act(async () => {
+			await Promise.resolve();
+		});
+
+		expect(result.current.isSaving).toBe(true);
+
+		const secondResult = await result.current.save();
+		expect(secondResult).toBe(false);
+		expect(mockAppendEntry).toHaveBeenCalledTimes(1);
+
+		await act(async () => {
+			resolveSave?.({ id: "abc123" });
+			await firstSave;
+		});
+
+		expect(firstSaveResolved).toBe(true);
 	});
 });

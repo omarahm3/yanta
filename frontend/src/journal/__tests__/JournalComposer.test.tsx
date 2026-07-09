@@ -8,6 +8,11 @@ describe("JournalComposer", () => {
 		expect(screen.getByText("Ctrl+Shift+N")).toBeInTheDocument();
 	});
 
+	it("hides the Quick Capture hint when hotkeyHint is null", () => {
+		render(<JournalComposer onAdd={vi.fn()} hotkeyHint={null} />);
+		expect(screen.queryByText("Quick Capture:")).not.toBeInTheDocument();
+	});
+
 	it("disables Add until there is text", () => {
 		render(<JournalComposer onAdd={vi.fn()} hotkeyHint="Ctrl+Shift+N" />);
 		expect(screen.getByRole("button", { name: "Add entry" })).toBeDisabled();

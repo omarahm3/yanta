@@ -252,4 +252,121 @@ describe("QuickCapture", () => {
 			expect(screen.getByText(/Please select a project/)).toBeInTheDocument();
 		});
 	});
+
+	it("ignores rapid double-save (re-entry guard)", async () => {
+		const { AppendEntry } = await import("../../../bindings/yanta/internal/journal/wailsservice");
+		const mockAppendEntry = AppendEntry as ReturnType<typeof vi.fn>;
+		let resolveSave: (v: unknown) => void;
+		mockAppendEntry.mockReturnValue(
+			new Promise((resolve) => {
+				resolveSave = resolve;
+			}),
+		);
+
+		localStorage.setItem("yanta:lastProject", MOCK_PROJECTS[0].alias);
+		renderQuickCapture();
+
+		await waitFor(() => {
+			expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
+		});
+
+		const textarea = screen.getByRole("textbox");
+		fireEvent.change(textarea, { target: { value: "Test note" } });
+		fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true });
+		fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true });
+
+		expect(mockAppendEntry).toHaveBeenCalledTimes(1);
+
+		resolveSave?.({ id: "abc123", content: "Test" });
+	});
+
+	it("ignores Ctrl+Enter autorepeat (event.repeat)", async () => {
+		const { AppendEntry } = await import("../../../bindings/yanta/internal/journal/wailsservice");
+		const mockAppendEntry = AppendEntry as ReturnType<typeof vi.fn>;
+		mockAppendEntry.mockResolvedValue({ id: "abc123", content: "Test" });
+
+		localStorage.setItem("yanta:lastProject", MOCK_PROJECTS[0].alias);
+		renderQuickCapture();
+
+		await waitFor(() => {
+			expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
+		});
+
+		const textarea = screen.getByRole("textbox");
+		fireEvent.change(textarea, { target: { value: "Test note" } });
+		fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true, repeat: true });
+
+		expect(mockAppendEntry).not.toHaveBeenCalled();
+	});
+
+	it("shows error on failed save without unhandled rejection", async () => {
+		const { AppendEntry } = await import("../../../bindings/yanta/internal/journal/wailsservice");
+		const mockAppendEntry = AppendEntry as ReturnType<typeof vi.fn>;
+		mockAppendEntry.mockRejectedValue(new Error("Network error"));
+
+		const unhandledRejections: unknown[] = [];
+		const handler = (e: PromiseRejectionEvent) => {
+			unhandledRejections.push(e.reason);
+		};
+		window.addEventListener("unhandledrejection", handler);
+
+		localStorage.setItem("yanta:lastProject", MOCK_PROJECTS[0].alias);
+		renderQuickCapture();
+
+		await waitFor(() => {
+			expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
+		});
+
+		const textarea = screen.getByRole("textbox");
+		fireEvent.change(textarea, { target: { value: "Test note" } });
+		fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true });
+
+		await waitFor(() => {
+			expect(screen.getByText(/Failed to save/)).toBeInTheDocument();
+		});
+
+		await new Promise((r) => setTimeout(r, 50));
+		expect(unhandledRejections).toHaveLength(0);
+
+		window.removeEventListener("unhandledrejection", handler);
+	});
+
+	it("disables Save and Save & New buttons while saving", async () => {
+		const { AppendEntry } = await import("../../../bindings/yanta/internal/journal/wailsservice");
+		const mockAppendEntry = AppendEntry as ReturnType<typeof vi.fn>;
+		let resolveSave: (v: unknown) => void;
+		mockAppendEntry.mockReturnValue(
+			new Promise((resolve) => {
+				resolveSave = resolve;
+			}),
+		);
+
+		localStorage.setItem("yanta:lastProject", MOCK_PROJECTS[0].alias);
+		renderQuickCapture();
+
+		await waitFor(() => {
+			expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
+		});
+
+		const textarea = screen.getByRole("textbox");
+		fireEvent.change(textarea, { target: { value: "Test note" } });
+
+		const buttons = screen.getAllByRole("button");
+		const saveButton = buttons.find(
+			(b) => b.textContent?.includes("Save") && !b.textContent?.includes("Save & New"),
+		);
+		const saveNewButton = screen.getByRole("button", { name: /Save & New/ });
+
+		expect(saveButton).not.toBeDisabled();
+		expect(saveNewButton).not.toBeDisabled();
+
+		fireEvent.click(saveButton ?? new HTMLElement());
+
+		await waitFor(() => {
+			expect(saveButton).toBeDisabled();
+		});
+		expect(saveNewButton).toBeDisabled();
+
+		resolveSave?.({ id: "abc123", content: "Test" });
+	});
 });

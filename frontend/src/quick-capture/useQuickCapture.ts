@@ -1,6 +1,7 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { AppendEntryRequest } from "../../bindings/yanta/internal/journal/models";
 import { AppendEntry } from "../../bindings/yanta/internal/journal/wailsservice";
+import { BackendLogger } from "../shared/utils/backendLogger";
 import { parseContent, parseProject, parseTags } from "./parser";
 
 const LAST_PROJECT_KEY = "yanta:lastProject";
@@ -30,6 +31,9 @@ export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptu
 	);
 	const [error, setError] = useState<string | null>(null);
 	const [isSaving, setIsSaving] = useState(false);
+	const isSavingRef = useRef(false);
+	const optionsRef = useRef(options);
+	optionsRef.current = options;
 
 	// Parse content to extract tags and project
 	const setContent = useCallback((newContent: string) => {
@@ -48,6 +52,8 @@ export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptu
 	}, []);
 
 	const save = useCallback(async (): Promise<boolean> => {
+		if (isSavingRef.current) return false;
+
 		if (!selectedProject) {
 			setError("Please select a project");
 			return false;
@@ -59,6 +65,7 @@ export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptu
 			return false;
 		}
 
+		isSavingRef.current = true;
 		setIsSaving(true);
 		setError(null);
 
@@ -72,19 +79,20 @@ export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptu
 			});
 
 			await AppendEntry(request);
-			options?.onEntrySaved?.();
+			optionsRef.current?.onEntrySaved?.();
 
 			localStorage.setItem(LAST_PROJECT_KEY, projectAlias);
 
-			// Clear content and tags after successful save
 			setContentInternal("");
 			setTags([]);
 
 			return true;
 		} catch (err) {
+			BackendLogger.error("Quick capture save failed:", err);
 			setError("Failed to save. Try again.");
-			throw err;
+			return false;
 		} finally {
+			isSavingRef.current = false;
 			setIsSaving(false);
 		}
 	}, [content, tags, selectedProject]);

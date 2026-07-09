@@ -26,7 +26,7 @@ export const QuickCapture: React.FC = () => {
 
 	const { incrementJournalEntriesCreated } = useUserProgressContext();
 	const { error: notifyError } = useNotification();
-	const { content, setContent, tags, selectedProject, error, save, removeTag, clear } =
+	const { content, setContent, tags, selectedProject, error, isSaving, save, removeTag, clear } =
 		useQuickCapture({
 			onEntrySaved: incrementJournalEntriesCreated,
 		});
@@ -100,6 +100,7 @@ export const QuickCapture: React.FC = () => {
 				...QUICK_CAPTURE_SHORTCUTS.save,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
+					if (event.repeat) return;
 					void handleSave(false);
 				},
 				allowInInput: true,
@@ -109,6 +110,7 @@ export const QuickCapture: React.FC = () => {
 				...QUICK_CAPTURE_SHORTCUTS.saveAndStay,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
+					if (event.repeat) return;
 					void handleSave(true);
 				},
 				allowInInput: true,
@@ -203,11 +205,16 @@ export const QuickCapture: React.FC = () => {
 				style={{ "--wails-draggable": "no-drag" } as React.CSSProperties}
 			>
 				<div className="flex items-center gap-1.5">
-					<Button variant="primary" size="sm" onClick={() => void handleSave(false)}>
+					<Button variant="primary" size="sm" disabled={isSaving} onClick={() => void handleSave(false)}>
 						Save
 						<span className="ml-1.5 font-mono text-[11px] opacity-70">Ctrl ↵</span>
 					</Button>
-					<FooterAction kbd="Shift ↵" label="Save & New" onClick={() => void handleSave(true)} />
+					<FooterAction
+						kbd="Shift ↵"
+						label="Save & New"
+						disabled={isSaving}
+						onClick={() => void handleSave(true)}
+					/>
 				</div>
 				<FooterAction kbd="Esc" label="Cancel" onClick={handleCancel} />
 			</footer>
@@ -215,15 +222,17 @@ export const QuickCapture: React.FC = () => {
 	);
 };
 
-const FooterAction: React.FC<{ kbd: string; label: string; onClick: () => void }> = ({
-	kbd,
-	label,
-	onClick,
-}) => (
+const FooterAction: React.FC<{
+	kbd: string;
+	label: string;
+	onClick: () => void;
+	disabled?: boolean;
+}> = ({ kbd, label, onClick, disabled }) => (
 	<button
 		type="button"
 		onClick={onClick}
-		className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-text-dim transition-colors hover:bg-accent/8 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+		disabled={disabled}
+		className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-text-dim transition-colors hover:bg-accent/8 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 disabled:pointer-events-none"
 	>
 		<Kbd className="text-[10px]">{kbd}</Kbd>
 		<span>{label}</span>

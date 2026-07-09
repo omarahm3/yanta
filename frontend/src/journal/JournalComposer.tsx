@@ -5,8 +5,8 @@ import { Kbd } from "../shared/ui/Kbd";
 export interface JournalComposerProps {
 	/** Append raw text (with inline #tags) to the currently-viewed day. */
 	onAdd: (rawText: string) => Promise<void>;
-	/** Formatted Quick Capture hotkey, shown as a hint. */
-	hotkeyHint: string;
+	/** Formatted Quick Capture hotkey, shown as a hint. Null to hide. */
+	hotkeyHint: string | null;
 	className?: string;
 }
 
@@ -65,10 +65,12 @@ export const JournalComposer: React.FC<JournalComposerProps> = ({
 					<Kbd>Enter</Kbd>
 					<span>to add</span>
 				</span>
-				<span className="ml-auto flex items-center gap-1">
-					<span>Quick Capture:</span>
-					<Kbd>{hotkeyHint}</Kbd>
-				</span>
+				{hotkeyHint && (
+					<span className="ml-auto flex items-center gap-1">
+						<span>Quick Capture:</span>
+						<Kbd>{hotkeyHint}</Kbd>
+					</span>
+				)}
 			</div>
 		</div>
 	);

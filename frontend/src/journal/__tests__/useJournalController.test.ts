@@ -1,4 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { System } from "@wailsio/runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DeleteEntry, RestoreEntry } from "../../../bindings/yanta/internal/journal/wailsservice";
 import { useJournalController } from "../useJournalController";
@@ -385,5 +386,28 @@ describe("useJournalController", () => {
 		expect(result.current.confirmDialog).toBeDefined();
 		expect(result.current.confirmDialog.isOpen).toBe(false);
 		expect(result.current.setConfirmDialog).toBeDefined();
+	});
+
+	it("returns quickCaptureHint on Windows", async () => {
+		vi.mocked(System.IsWindows).mockReturnValueOnce(true);
+		const { result } = renderHook(() => useJournalController({ onNavigate: vi.fn() }));
+
+		await waitFor(() => {
+			expect(result.current.entries).toHaveLength(3);
+		});
+
+		expect(result.current.quickCaptureHint).toBeTruthy();
+	});
+
+	it("returns null quickCaptureHint off-Windows", async () => {
+		vi.mocked(System.IsWindows).mockReturnValue(false);
+		const { result } = renderHook(() => useJournalController({ onNavigate: vi.fn() }));
+
+		await waitFor(() => {
+			expect(result.current.entries).toHaveLength(3);
+		});
+
+		expect(result.current.quickCaptureHint).toBeNull();
+		vi.mocked(System.IsWindows).mockReturnValue(true);
 	});
 });
