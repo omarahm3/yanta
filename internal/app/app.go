@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 
 	"yanta/internal/asset"
 	"yanta/internal/backup"
@@ -55,6 +56,7 @@ type App struct {
 
 	wailsApp   *application.App
 	mainWindow *application.WebviewWindow
+	notifier   *notifications.NotificationService
 
 	mcpVault   mcp.Vault
 	mcpManager *mcpctl.Manager
@@ -274,6 +276,12 @@ func (a *App) SetWailsApp(app *application.App) {
 	}
 }
 
+// SetNotifier wires the native OS notification service used to surface the
+// "running in background" hint reliably even after the window is hidden.
+func (a *App) SetNotifier(notifier *notifications.NotificationService) {
+	a.notifier = notifier
+}
+
 func (a *App) SetMainWindow(window *application.WebviewWindow) {
 	a.mainWindow = window
 
@@ -345,19 +353,49 @@ func (a *App) BeforeClose() bool {
 
 	if keepInBackground {
 		logger.Debug("hiding window to background")
+
+		// Prefer a native OS notification: it renders regardless of window
+		// visibility, so it survives the Hide() below. The in-webview toast is
+		// only a fallback for when the native path is unavailable (e.g. an
+		// unsigned macOS build or a Linux session with no notification daemon),
+		// since it races against the window being hidden.
+		notified := false
+		if a.notifier != nil {
+			err := a.notifier.SendNotification(notifications.NotificationOptions{
+				ID:    "yanta-background",
+				Title: "YANTA",
+				Body:  backgroundRecoveryMessage(runtime.GOOS),
+			})
+			if err != nil {
+				logger.Debugf("native background notification unavailable, falling back to toast: %v", err)
+			} else {
+				notified = true
+			}
+		}
+		if !notified && a.wailsApp != nil {
+			a.wailsApp.Event.Emit(events.WindowHidden, map[string]any{
+				"reason":   "keep_in_background",
+				"platform": runtime.GOOS,
+			})
+		}
 		if a.mainWindow != nil {
 			a.mainWindow.Hide()
-		}
-		if a.wailsApp != nil {
-			a.wailsApp.Event.Emit(events.WindowHidden, map[string]any{
-				"reason": "keep_in_background",
-			})
 		}
 		return true
 	}
 
 	logger.Debug("allowing window close")
 	return false
+}
+
+// backgroundRecoveryMessage returns the platform-appropriate hint shown when the
+// app hides to the background. Only Windows has a global restore hotkey; every
+// platform now has the system tray.
+func backgroundRecoveryMessage(goos string) string {
+	if goos == "windows" {
+		return "YANTA is running in the background. Press Ctrl+Shift+Y anywhere to restore, or click the system tray icon."
+	}
+	return "YANTA is running in the background. Click the system tray icon to restore."
 }
 
 func (a *App) OnShutdown() {
