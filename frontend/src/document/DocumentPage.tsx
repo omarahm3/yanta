@@ -27,13 +27,20 @@ export const Document = memo<DocumentProps>(function Document({
 	useHotkeys(controller.hotkeys);
 
 	if (controller.isLoading) {
-		return <DocumentLoadingState sidebarSections={controller.sidebarSections} />;
+		return (
+			<DocumentLoadingState
+				sidebarSections={controller.sidebarSections}
+				onRegisterToggleSidebar={onRegisterToggleSidebar}
+			/>
+		);
 	}
 
 	if (controller.showError) {
 		return (
 			<DocumentErrorState
 				sidebarSections={controller.sidebarSections}
+				error={controller.loadError ?? "Unknown error"}
+				onRetry={controller.reload}
 				onNavigate={onNavigate}
 				onRegisterToggleSidebar={onRegisterToggleSidebar}
 			/>

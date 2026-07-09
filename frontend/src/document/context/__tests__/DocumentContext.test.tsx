@@ -55,3 +55,49 @@ describe("DocumentContext refresh", () => {
 		await waitFor(() => expect(listByProject).toHaveBeenCalledWith("proj", false));
 	});
 });
+
+describe("DocumentContext race guard (MRG-378)", () => {
+	beforeEach(() => {
+		listByProject.mockClear();
+	});
+
+	it("discards stale responses when project-switch calls overlap", async () => {
+		const docA = [{ id: "a", title: "Doc A", path: "/a", createdAt: "", updatedAt: "" }];
+		const docB = [{ id: "b", title: "Doc B", path: "/b", createdAt: "", updatedAt: "" }];
+
+		let resolveA: (docs: typeof docA) => void;
+		let resolveB: (docs: typeof docB) => void;
+		const promiseA = new Promise<typeof docA>((r) => {
+			resolveA = r;
+		});
+		const promiseB = new Promise<typeof docB>((r) => {
+			resolveB = r;
+		});
+
+		listByProject.mockReturnValueOnce(promiseA).mockReturnValueOnce(promiseB);
+
+		const { result } = renderHook(() => useDocumentContext(), { wrapper });
+
+		// Fire two loads without awaiting — simulates rapid project switching.
+		let loadAPromise: Promise<void> = Promise.resolve();
+		let loadBPromise: Promise<void> = Promise.resolve();
+		await act(async () => {
+			loadAPromise = result.current.loadDocuments("projA", false);
+			loadBPromise = result.current.loadDocuments("projB", false);
+		});
+
+		// Resolve B (latest) first, then A (stale).
+		await act(async () => {
+			resolveB?.(docB);
+			await loadBPromise;
+		});
+		expect(result.current.documents).toEqual(docB);
+
+		await act(async () => {
+			resolveA?.(docA);
+			await loadAPromise;
+		});
+		// A's response must be discarded — B's docs should still be shown.
+		expect(result.current.documents).toEqual(docB);
+	});
+});

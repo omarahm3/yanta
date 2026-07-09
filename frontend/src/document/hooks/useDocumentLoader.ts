@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DocumentServiceWrapper } from "../../shared/services/DocumentService";
 import type { Document } from "../../shared/types/Document";
 import { BackendLogger } from "../../shared/utils/backendLogger";
@@ -22,7 +22,12 @@ export const useDocumentLoader = (documentPath?: string) => {
 	const [data, setData] = useState<Document | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [reloadNonce, setReloadNonce] = useState(0);
 	const prevPathRef = useRef<string | undefined>(documentPath);
+
+	const reload = useCallback(() => {
+		setReloadNonce((n) => n + 1);
+	}, []);
 
 	useEffect(() => {
 		if (!documentPath) {
@@ -69,11 +74,12 @@ export const useDocumentLoader = (documentPath?: string) => {
 		return () => {
 			cancelled = true;
 		};
-	}, [documentPath]);
+	}, [documentPath, reloadNonce]);
 
 	return {
 		data,
 		isLoading,
 		error,
+		reload,
 	};
 };

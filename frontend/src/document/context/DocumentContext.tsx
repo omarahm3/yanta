@@ -38,9 +38,13 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 	// (archive/restore/create/delete) don't silently drop back to active-only and
 	// render active docs under the "Archived" header.
 	const lastIncludeArchivedRef = useRef(false);
+	// Monotonic request id so overlapping loadDocuments calls (e.g. rapid project
+	// switching) cannot resolve out of order and render stale documents.
+	const latestRequestRef = useRef(0);
 
 	const loadDocuments = useCallback(
 		async (projectAlias: string, includeArchived: boolean = false) => {
+			const token = ++latestRequestRef.current;
 			setIsLoading(true);
 			setError(null);
 			setCurrentProjectAlias(projectAlias);
@@ -48,11 +52,13 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
 			try {
 				const docs = await DocumentServiceWrapper.listByProject(projectAlias, includeArchived);
+				if (token !== latestRequestRef.current) return;
 				setDocuments(docs);
 			} catch (err) {
+				if (token !== latestRequestRef.current) return;
 				setError(err instanceof Error ? err.message : "Failed to load documents");
 			} finally {
-				setIsLoading(false);
+				if (token === latestRequestRef.current) setIsLoading(false);
 			}
 		},
 		[],
