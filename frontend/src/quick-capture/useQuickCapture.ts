@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { AppendEntryRequest } from "../../bindings/yanta/internal/journal/models";
 import { AppendEntry } from "../../bindings/yanta/internal/journal/wailsservice";
+import { BackendLogger } from "../shared/utils/backendLogger";
 import { parseContent, parseProject, parseTags } from "./parser";
 
 const LAST_PROJECT_KEY = "yanta:lastProject";
@@ -31,6 +32,8 @@ export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptu
 	const [error, setError] = useState<string | null>(null);
 	const [isSaving, setIsSaving] = useState(false);
 	const isSavingRef = useRef(false);
+	const optionsRef = useRef(options);
+	optionsRef.current = options;
 
 	// Parse content to extract tags and project
 	const setContent = useCallback((newContent: string) => {
@@ -76,7 +79,7 @@ export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptu
 			});
 
 			await AppendEntry(request);
-			options?.onEntrySaved?.();
+			optionsRef.current?.onEntrySaved?.();
 
 			localStorage.setItem(LAST_PROJECT_KEY, projectAlias);
 
@@ -84,7 +87,8 @@ export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptu
 			setTags([]);
 
 			return true;
-		} catch {
+		} catch (err) {
+			BackendLogger.error("Quick capture save failed:", err);
 			setError("Failed to save. Try again.");
 			return false;
 		} finally {
