@@ -29,7 +29,6 @@ export interface CommandRegistryContext {
 	onToggleSidebar?: () => void;
 	onShowHelp?: () => void;
 	resetLayout: () => void;
-	setShowRecentDocuments: (show: boolean) => void;
 }
 
 /** Registry interface: register commands per source and retrieve flattened list. */

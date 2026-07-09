@@ -7,7 +7,6 @@ type CommandId =
 	| "nav-search"
 	| "nav-journal"
 	| "nav-settings"
-	| "nav-recent"
 	| "nav-today"
 	| "new-document"
 	| "git-sync"
@@ -47,7 +46,6 @@ const COMMAND_KEYBOARD_MAPPINGS: Record<CommandId, ShortcutMapping> = {
 	"toggle-sidebar": { key: "B", ctrlKey: true },
 	"command-palette": { key: "K", ctrlKey: true },
 	"show-help": { key: "?" },
-	"nav-recent": { key: "E", ctrlKey: true },
 	"nav-today": { key: "T", ctrlKey: true },
 	"switch-last": { key: "Tab", ctrlKey: true },
 	"save-document": { key: "S", ctrlKey: true },

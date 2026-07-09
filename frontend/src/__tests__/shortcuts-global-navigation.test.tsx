@@ -335,7 +335,7 @@ describe("Global Navigation Shortcuts", () => {
 			});
 		});
 
-		it("mod+T does not trigger when in input field", async () => {
+		it("mod+T triggers even when in input field (allowInInput: true)", async () => {
 			render(<MockApp />);
 
 			await waitFor(() => {
@@ -343,7 +343,7 @@ describe("Global Navigation Shortcuts", () => {
 			});
 
 			const hotkey = findHotkey("mod+T");
-			expect(hotkey?.allowInInput).toBe(false);
+			expect(hotkey?.allowInInput).toBe(true);
 		});
 	});
 

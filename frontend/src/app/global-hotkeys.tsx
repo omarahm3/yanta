@@ -35,7 +35,8 @@ const GlobalCommandHotkey = () => {
 	useHotkey({
 		...global.commandPalette,
 		handler: () => openCommandPalette(),
-		allowInInput: false,
+		allowInInput: true,
+		capture: true,
 	});
 
 	useHotkey({
@@ -44,7 +45,8 @@ const GlobalCommandHotkey = () => {
 			e.preventDefault();
 			nav.onNavigate("journal", { date: todayLocalString() });
 		},
-		allowInInput: false,
+		allowInInput: true,
+		capture: true,
 	});
 
 	const { switchToLastProject, previousProject, projects, setCurrentProject } = useProjectContext();
@@ -71,7 +73,8 @@ const GlobalCommandHotkey = () => {
 			e.preventDefault();
 			openProjectSwitcher();
 		},
-		allowInInput: false,
+		allowInInput: true,
+		capture: true,
 	});
 
 	useHotkey({

@@ -1,4 +1,4 @@
-import { BookOpen, Calendar, Clock, Folder, LayoutDashboard, Search, Settings } from "lucide-react";
+import { BookOpen, Calendar, Folder, LayoutDashboard, Search, Settings } from "lucide-react";
 import type { CommandOption } from "../../../shared/ui";
 import { todayLocalString } from "../../../shared/utils/date";
 import { getShortcutForCommand } from "../../../shared/utils/shortcuts";
@@ -8,7 +8,7 @@ export function registerNavigationCommands(
 	registry: CommandRegistry,
 	ctx: CommandRegistryContext,
 ): void {
-	const { onNavigate, handleClose, setShowRecentDocuments } = ctx;
+	const { onNavigate, handleClose } = ctx;
 	const commands: CommandOption[] = [
 		{
 			id: "nav-dashboard",
@@ -72,18 +72,6 @@ export function registerNavigationCommands(
 			action: () => {
 				onNavigate("settings");
 				handleClose();
-			},
-		},
-		{
-			id: "nav-recent",
-			icon: <Clock className="text-lg" />,
-			text: "Recent Documents",
-			shortcut: getShortcutForCommand("nav-recent"),
-			group: "Navigation",
-			keywords: ["recent", "history", "opened"],
-			keepOpen: true,
-			action: () => {
-				setShowRecentDocuments(true);
 			},
 		},
 		{
