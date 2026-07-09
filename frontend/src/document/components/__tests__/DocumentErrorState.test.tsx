@@ -30,9 +30,8 @@ describe("DocumentErrorState (MRG-328)", () => {
 	it("renders the real error message", () => {
 		render(<DocumentErrorState sidebarSections={[]} error="document not found" onRetry={() => {}} />);
 
-		// The heading (text-xl text-red) should show "Document Not Found"
-		const heading = document.querySelector(".text-xl.text-red");
-		expect(heading?.textContent).toContain("Document Not Found");
+		// The heading should show "Document Not Found"
+		expect(screen.getByText(/Document Not Found/)).toBeInTheDocument();
 		// The raw error should also be displayed
 		expect(screen.getByText("document not found")).toBeInTheDocument();
 	});
@@ -55,9 +54,8 @@ describe("DocumentErrorState (MRG-328)", () => {
 			<DocumentErrorState sidebarSections={[]} error="document not found" onRetry={() => {}} />,
 		);
 
-		// Not-found: heading contains "Document Not Found"
-		const heading = document.querySelector(".text-xl.text-red");
-		expect(heading?.textContent).toContain("Document Not Found");
+		// Not-found: heading shows "Document Not Found"
+		expect(screen.getByText(/Document Not Found/)).toBeInTheDocument();
 		expect(screen.getByText(/It may have been deleted or doesn't exist/)).toBeInTheDocument();
 
 		rerender(
@@ -65,8 +63,7 @@ describe("DocumentErrorState (MRG-328)", () => {
 		);
 
 		// Corrupted: heading changes to "Document Corrupted"
-		const corruptedHeading = document.querySelector(".text-xl.text-red");
-		expect(corruptedHeading?.textContent).toContain("Document Corrupted");
+		expect(screen.getByText(/Document Corrupted/)).toBeInTheDocument();
 		expect(screen.getByText(/could not be parsed/i)).toBeInTheDocument();
 	});
 

@@ -27,7 +27,11 @@ export const DocumentErrorState: React.FC<DocumentErrorStateProps> = React.memo(
 				currentPage="document"
 				onRegisterToggleSidebar={onRegisterToggleSidebar}
 			>
-				<div className="flex flex-col items-center justify-center h-full gap-4">
+				<div
+					className="flex flex-col items-center justify-center h-full gap-4"
+					role="alert"
+					aria-live="assertive"
+				>
 					<div className="text-xl text-red">
 						{corrupted ? "⚠" : "❌"} {heading}
 					</div>

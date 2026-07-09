@@ -79,8 +79,8 @@ describe("DocumentContext race guard (MRG-378)", () => {
 		const { result } = renderHook(() => useDocumentContext(), { wrapper });
 
 		// Fire two loads without awaiting — simulates rapid project switching.
-		let loadAPromise: Promise<void>;
-		let loadBPromise: Promise<void>;
+		let loadAPromise: Promise<void> = Promise.resolve();
+		let loadBPromise: Promise<void> = Promise.resolve();
 		await act(async () => {
 			loadAPromise = result.current.loadDocuments("projA", false);
 			loadBPromise = result.current.loadDocuments("projB", false);

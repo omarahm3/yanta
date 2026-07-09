@@ -1,17 +1,15 @@
 import React from "react";
 import { Layout } from "@/app";
-import type { PageName } from "../../shared/types";
 import type { SidebarSection } from "../../shared/ui";
 import { Skeleton } from "../../shared/ui/Skeleton";
 
 interface DocumentLoadingStateProps {
 	sidebarSections: SidebarSection[];
-	onNavigate?: (page: PageName) => void;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
 export const DocumentLoadingState: React.FC<DocumentLoadingStateProps> = React.memo(
-	({ sidebarSections, onNavigate: _onNavigate, onRegisterToggleSidebar }) => (
+	({ sidebarSections, onRegisterToggleSidebar }) => (
 		<Layout
 			sidebarSections={sidebarSections}
 			currentPage="document"

@@ -30,7 +30,6 @@ export const Document = memo<DocumentProps>(function Document({
 		return (
 			<DocumentLoadingState
 				sidebarSections={controller.sidebarSections}
-				onNavigate={onNavigate}
 				onRegisterToggleSidebar={onRegisterToggleSidebar}
 			/>
 		);
