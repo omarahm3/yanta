@@ -88,6 +88,10 @@ export const QuickCapture: React.FC = () => {
 
 	const handleUndo = useCallback(
 		async (entry: SavedEntryInfo) => {
+			if (closeTimeoutRef.current) {
+				clearTimeout(closeTimeoutRef.current);
+				closeTimeoutRef.current = undefined;
+			}
 			try {
 				await DeleteEntry(entry.projectAlias, entry.date, entry.id);
 				notifySuccess("Entry deleted");
