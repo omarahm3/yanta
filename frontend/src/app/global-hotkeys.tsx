@@ -9,8 +9,8 @@ import { useProjectContext } from "../project";
 import { ProjectSwitcher, useProjectSwitcherStore } from "../project-switcher";
 import { useAppGlobalEffects } from "./hooks";
 import { useLeaderKeys } from "./hooks/useLeaderKeys";
-import { useOpenJournalFromCapture } from "./hooks/useOpenJournalFromCapture";
 import { NavGuardDialog } from "./hooks/useNavGuard";
+import { useOpenJournalFromCapture } from "./hooks/useOpenJournalFromCapture";
 import { Router } from "./Router";
 import { useAppNavigation } from "./useAppNavigation";
 

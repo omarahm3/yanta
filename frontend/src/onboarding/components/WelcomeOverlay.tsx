@@ -1,6 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useRef } from "react";
-import { formatShortcutKeyForDisplay, getIsMac } from "@/config/shortcuts";
+import { formatShortcutKeyForDisplay } from "@/config/shortcuts";
 import { getMergedConfig } from "@/shared/stores/preferences.store";
 import { useDialog } from "../../shared/stores/dialog.store";
 import { cn } from "../../shared/utils/cn";
