@@ -21,7 +21,7 @@ export const useDocumentInitialization = ({
 	initialTitle,
 	initializeForm,
 }: UseDocumentInitializationProps) => {
-	const { data, isLoading, error: loadError } = useDocumentLoader(documentPath);
+	const { data, isLoading, error: loadError, reload } = useDocumentLoader(documentPath);
 
 	const [shouldAutoSave, setShouldAutoSave] = useState(false);
 	const [documentHash, setDocumentHash] = useState<string | null>(null);
@@ -97,6 +97,7 @@ export const useDocumentInitialization = ({
 		data,
 		isLoading,
 		loadError,
+		reload,
 		shouldAutoSave,
 		resetAutoSave,
 		documentHash,

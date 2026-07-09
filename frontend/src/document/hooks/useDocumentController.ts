@@ -33,6 +33,8 @@ export interface DocumentControllerOptions {
 export interface DocumentControllerResult {
 	isLoading: boolean;
 	showError: boolean;
+	loadError: string | null;
+	reload: () => void;
 	sidebarSections: ReturnType<typeof useSidebarSections>;
 	contentProps: DocumentContentProps;
 	hotkeys: HotkeyConfig[];
@@ -90,6 +92,7 @@ export function useDocumentController({
 		data,
 		isLoading,
 		loadError,
+		reload,
 		shouldAutoSave,
 		resetAutoSave,
 		documentHash,
@@ -401,6 +404,8 @@ export function useDocumentController({
 	return {
 		isLoading,
 		showError: Boolean(loadError && isEditMode),
+		loadError,
+		reload,
 		sidebarSections,
 		contentProps,
 		hotkeys,
