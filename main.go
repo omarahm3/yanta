@@ -17,6 +17,7 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
+	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 
 	"yanta/internal/app"
 	"yanta/internal/asset"
@@ -99,6 +100,11 @@ func run() {
 	singleInstanceID := buildSingleInstanceID()
 	logger.Infof("single instance id: %s", singleInstanceID)
 
+	// Native OS notification service, used for the reliable "running in
+	// background" hint (see App.BeforeClose). Registered as a Wails service so
+	// its platform backend (D-Bus on Linux, etc.) is started with the app.
+	notifier := notifications.New()
+
 	wailsApp := application.New(application.Options{
 		Name:        "YANTA",
 		Description: "Your Advanced Note Taking Application",
@@ -145,6 +151,7 @@ func run() {
 			application.NewService(a.Bindings.DocumentCommands),
 			application.NewService(a.Bindings.MCP),
 			application.NewService(windowcfg.NewService()),
+			application.NewService(notifier),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -158,6 +165,7 @@ func run() {
 	})
 
 	a.SetWailsApp(wailsApp)
+	a.SetNotifier(notifier)
 
 	// Set app reference for Quick Capture window creation
 	quickcapture.SetApp(wailsApp)
