@@ -11,6 +11,7 @@ export interface QuickEditorProps {
 	value: string;
 	onChange: (value: string) => void;
 	onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+	onAutocompleteOpenChange?: (isOpen: boolean) => void;
 	projects?: ProjectOption[];
 	maxLength?: number;
 	autoFocus?: boolean;
@@ -36,6 +37,7 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 	value,
 	onChange,
 	onKeyDown,
+	onAutocompleteOpenChange,
 	projects = [],
 	maxLength = 10000,
 	autoFocus = false,
@@ -74,6 +76,10 @@ export const QuickEditor: React.FC<QuickEditorProps> = ({
 	}, [projects, trigger]);
 
 	const showProjectList = trigger !== null && filteredProjects.length > 0 && !listDismissed;
+
+	useEffect(() => {
+		onAutocompleteOpenChange?.(showProjectList);
+	}, [showProjectList, onAutocompleteOpenChange]);
 
 	useEffect(() => {
 		setHighlightedIndex(0);

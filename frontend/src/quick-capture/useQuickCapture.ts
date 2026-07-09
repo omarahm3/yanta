@@ -6,6 +6,12 @@ import { parseContent, parseProject, parseTags } from "./parser";
 
 const LAST_PROJECT_KEY = "yanta:lastProject";
 
+export interface SavedEntryInfo {
+	id: string;
+	projectAlias: string;
+	date: string;
+}
+
 export interface UseQuickCaptureReturn {
 	content: string;
 	setContent: (content: string) => void;
@@ -14,13 +20,18 @@ export interface UseQuickCaptureReturn {
 	setSelectedProject: (alias: string) => void;
 	error: string | null;
 	isSaving: boolean;
-	save: () => Promise<boolean>;
+	save: () => Promise<SavedEntryInfo | null>;
 	removeTag: (tag: string) => void;
 	clear: () => void;
 }
 
 interface UseQuickCaptureOptions {
 	onEntrySaved?: () => void;
+}
+
+function formatToday(): string {
+	const d = new Date();
+	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptureReturn {
@@ -51,18 +62,18 @@ export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptu
 		setSelectedProjectInternal(alias);
 	}, []);
 
-	const save = useCallback(async (): Promise<boolean> => {
-		if (isSavingRef.current) return false;
+	const save = useCallback(async (): Promise<SavedEntryInfo | null> => {
+		if (isSavingRef.current) return null;
 
 		if (!selectedProject) {
 			setError("Please select a project");
-			return false;
+			return null;
 		}
 
 		const cleanContent = parseContent(content);
 		if (!cleanContent.trim()) {
 			setError("Please enter some content");
-			return false;
+			return null;
 		}
 
 		isSavingRef.current = true;
@@ -78,7 +89,9 @@ export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptu
 				tags: tags,
 			});
 
-			await AppendEntry(request);
+			const entry = await AppendEntry(request);
+			if (!entry?.id) return null;
+
 			optionsRef.current?.onEntrySaved?.();
 
 			localStorage.setItem(LAST_PROJECT_KEY, projectAlias);
@@ -86,11 +99,11 @@ export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptu
 			setContentInternal("");
 			setTags([]);
 
-			return true;
+			return { id: entry.id, projectAlias, date: formatToday() };
 		} catch (err) {
 			BackendLogger.error("Quick capture save failed:", err);
 			setError("Failed to save. Try again.");
-			return false;
+			return null;
 		} finally {
 			isSavingRef.current = false;
 			setIsSaving(false);

@@ -1,8 +1,9 @@
 import { Window } from "@wailsio/runtime";
 import { PenLine } from "lucide-react";
 import type React from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { QUICK_CAPTURE_SHORTCUTS } from "@/config/public";
+import { DeleteEntry } from "../../bindings/yanta/internal/journal/wailsservice";
 import { ListActive } from "../../bindings/yanta/internal/project/service";
 import { useHotkeys } from "../hotkeys";
 import { useUserProgressContext } from "../onboarding";
@@ -13,7 +14,7 @@ import { BackendLogger } from "../shared/utils/backendLogger";
 import type { ProjectOption } from "./ProjectPicker";
 import { QuickEditor } from "./QuickEditor";
 import { TagChips } from "./TagChips";
-import { useQuickCapture } from "./useQuickCapture";
+import { type SavedEntryInfo, useQuickCapture } from "./useQuickCapture";
 
 /**
  * Quick Capture Window
@@ -23,13 +24,16 @@ export const QuickCapture: React.FC = () => {
 	const [projects, setProjects] = useState<ProjectOption[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [showEscapeHint, setShowEscapeHint] = useState(false);
+	const isAutocompleteOpenRef = useRef(false);
 
 	const { incrementJournalEntriesCreated } = useUserProgressContext();
-	const { error: notifyError } = useNotification();
+	const { error: notifyError, success: notifySuccess } = useNotification();
 	const { content, setContent, tags, selectedProject, error, isSaving, save, removeTag, clear } =
 		useQuickCapture({
 			onEntrySaved: incrementJournalEntriesCreated,
 		});
+	const [showSavedFlash, setShowSavedFlash] = useState(false);
+	const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
 	// Capture time, stamped once when the window opens — a quiet "now" cue.
 	const capturedAt = useMemo(
@@ -70,14 +74,39 @@ export const QuickCapture: React.FC = () => {
 		}
 	}, []);
 
-	const handleSave = useCallback(
-		async (keepOpen: boolean = false) => {
-			const success = await save();
-			if (success && !keepOpen) {
-				handleClose();
+	const handleAutocompleteOpenChange = useCallback((isOpen: boolean) => {
+		isAutocompleteOpenRef.current = isOpen;
+	}, []);
+
+	const handleUndo = useCallback(
+		async (entry: SavedEntryInfo) => {
+			try {
+				await DeleteEntry(entry.projectAlias, entry.date, entry.id);
+				notifySuccess("Entry deleted");
+			} catch (err) {
+				BackendLogger.error("Failed to undo entry:", err);
+				notifyError("Failed to undo");
 			}
 		},
-		[save, handleClose],
+		[notifySuccess, notifyError],
+	);
+
+	const handleSave = useCallback(
+		async (keepOpen: boolean = false) => {
+			const result = await save();
+			if (result) {
+				notifySuccess(`Saved to ${result.projectAlias}`, {
+					action: { label: "Undo", onClick: () => void handleUndo(result) },
+				});
+				if (keepOpen) {
+					setShowSavedFlash(true);
+					setTimeout(() => setShowSavedFlash(false), 2000);
+				} else {
+					closeTimeoutRef.current = setTimeout(() => handleClose(), 2000);
+				}
+			}
+		},
+		[save, handleClose, notifySuccess, handleUndo],
 	);
 
 	// Cancel: close immediately when empty; otherwise require a confirming second
@@ -119,6 +148,7 @@ export const QuickCapture: React.FC = () => {
 			{
 				...QUICK_CAPTURE_SHORTCUTS.cancel,
 				handler: (event: KeyboardEvent) => {
+					if (isAutocompleteOpenRef.current) return false;
 					event.preventDefault();
 					handleCancel();
 				},
@@ -181,6 +211,7 @@ export const QuickCapture: React.FC = () => {
 					value={content}
 					onChange={setContent}
 					onKeyDown={handleKeyDown}
+					onAutocompleteOpenChange={handleAutocompleteOpenChange}
 					projects={projects}
 					autoFocus
 					maxLength={10000}
@@ -188,7 +219,7 @@ export const QuickCapture: React.FC = () => {
 				/>
 			</div>
 
-			{(tags.length > 0 || error || showEscapeHint) && (
+			{(tags.length > 0 || error || showEscapeHint || showSavedFlash) && (
 				<div
 					className="shrink-0 space-y-1 px-3 pb-1"
 					style={{ "--wails-draggable": "no-drag" } as React.CSSProperties}
@@ -196,6 +227,7 @@ export const QuickCapture: React.FC = () => {
 					{tags.length > 0 && <TagChips tags={tags} onRemove={removeTag} />}
 					{error && <div className="text-xs text-red">{error}</div>}
 					{showEscapeHint && <div className="text-xs text-text-dim">Press Esc again to discard</div>}
+					{showSavedFlash && <div className="text-xs text-emerald-400">Saved ✓</div>}
 				</div>
 			)}
 

@@ -39,6 +39,7 @@ vi.mock("../../shared/hooks", () => ({
 // Mock the journal service
 vi.mock("../../../bindings/yanta/internal/journal/wailsservice", () => ({
 	AppendEntry: vi.fn(() => Promise.resolve({ id: "abc123", content: "Test" })),
+	DeleteEntry: vi.fn(() => Promise.resolve()),
 }));
 
 // Mock the project service
@@ -368,5 +369,101 @@ describe("QuickCapture", () => {
 		expect(saveNewButton).toBeDisabled();
 
 		resolveSave?.({ id: "abc123", content: "Test" });
+	});
+
+	it("Esc with popup open dismisses popup and does NOT show discard hint", async () => {
+		renderQuickCapture();
+
+		await waitFor(() => {
+			expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
+		});
+
+		const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+		fireEvent.change(textarea, { target: { value: "@" } });
+		textarea.setSelectionRange(1, 1);
+		fireEvent.select(textarea);
+
+		await waitFor(() => {
+			expect(screen.getByTestId("project-list")).toBeInTheDocument();
+		});
+
+		fireEvent.keyDown(textarea, { key: "Escape" });
+
+		await waitFor(() => {
+			expect(screen.queryByTestId("project-list")).not.toBeInTheDocument();
+		});
+
+		expect(screen.queryByText(/Press Esc again to discard/)).not.toBeInTheDocument();
+	});
+
+	it("shows success toast with Undo action on save", async () => {
+		localStorage.setItem("yanta:lastProject", MOCK_PROJECTS[0].alias);
+		renderQuickCapture();
+
+		await waitFor(() => {
+			expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
+		});
+
+		const textarea = screen.getByRole("textbox");
+		fireEvent.change(textarea, { target: { value: "Test note" } });
+		fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true });
+
+		await waitFor(() => {
+			expect(mockNotify.success).toHaveBeenCalledWith(
+				expect.stringContaining("@personal"),
+				expect.objectContaining({
+					action: expect.objectContaining({ label: "Undo" }),
+				}),
+			);
+		});
+	});
+
+	it("Undo action calls DeleteEntry with correct args", async () => {
+		const { DeleteEntry } = await import("../../../bindings/yanta/internal/journal/wailsservice");
+		const mockDeleteEntry = DeleteEntry as ReturnType<typeof vi.fn>;
+
+		localStorage.setItem("yanta:lastProject", MOCK_PROJECTS[0].alias);
+		renderQuickCapture();
+
+		await waitFor(() => {
+			expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
+		});
+
+		const textarea = screen.getByRole("textbox");
+		fireEvent.change(textarea, { target: { value: "Test note" } });
+		fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true });
+
+		await waitFor(() => {
+			expect(mockNotify.success).toHaveBeenCalled();
+		});
+
+		const callArgs = mockNotify.success.mock.calls[0];
+		const undoAction = callArgs[1]?.action;
+		undoAction?.onClick();
+
+		await waitFor(() => {
+			expect(mockDeleteEntry).toHaveBeenCalledWith(
+				"@personal",
+				expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+				"abc123",
+			);
+		});
+	});
+
+	it("Save & New shows flash message", async () => {
+		localStorage.setItem("yanta:lastProject", MOCK_PROJECTS[0].alias);
+		renderQuickCapture();
+
+		await waitFor(() => {
+			expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
+		});
+
+		const textarea = screen.getByRole("textbox");
+		fireEvent.change(textarea, { target: { value: "Test note" } });
+		fireEvent.keyDown(textarea, { key: "Enter", shiftKey: true });
+
+		await waitFor(() => {
+			expect(screen.getByText("Saved ✓")).toBeInTheDocument();
+		});
 	});
 });
