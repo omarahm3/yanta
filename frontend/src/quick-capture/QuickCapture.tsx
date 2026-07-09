@@ -34,6 +34,14 @@ export const QuickCapture: React.FC = () => {
 		});
 	const [showSavedFlash, setShowSavedFlash] = useState(false);
 	const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+	const flashTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+	useEffect(() => {
+		return () => {
+			if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+			if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+		};
+	}, []);
 
 	// Capture time, stamped once when the window opens — a quiet "now" cue.
 	const capturedAt = useMemo(
@@ -100,8 +108,10 @@ export const QuickCapture: React.FC = () => {
 				});
 				if (keepOpen) {
 					setShowSavedFlash(true);
-					setTimeout(() => setShowSavedFlash(false), 2000);
+					if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+					flashTimeoutRef.current = setTimeout(() => setShowSavedFlash(false), 2000);
 				} else {
+					if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
 					closeTimeoutRef.current = setTimeout(() => handleClose(), 2000);
 				}
 			}
