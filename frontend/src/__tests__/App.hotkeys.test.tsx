@@ -129,6 +129,10 @@ vi.mock("../config", async (importOriginal) => {
 				key: "ctrl+Tab",
 				description: "Switch to last project",
 			},
+			projectSwitcher: {
+				key: "mod+shift+K",
+				description: "Switch project",
+			},
 		},
 		SIDEBAR_SHORTCUTS: {
 			toggle: {
@@ -214,6 +218,8 @@ describe("App hotkeys", () => {
 
 		const hotkey = capturedHotkeyContext?.getRegisteredHotkeys().find((h) => h.key === "mod+K");
 		expect(hotkey).toBeDefined();
+		expect(hotkey?.allowInInput).toBe(true);
+		expect(hotkey?.capture).toBe(true);
 
 		await act(async () => {
 			hotkey?.handler(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }));
@@ -221,5 +227,31 @@ describe("App hotkeys", () => {
 
 		expect(palette).toHaveAttribute("data-open", "true");
 		expect(commandPaletteRender).toHaveBeenLastCalledWith(expect.objectContaining({ isOpen: true }));
+	});
+
+	it("registers today hotkey with allowInInput and capture flags", async () => {
+		render(<MockApp />);
+
+		await waitFor(() => {
+			expect(capturedHotkeyContext).not.toBeNull();
+		});
+
+		const hotkey = capturedHotkeyContext?.getRegisteredHotkeys().find((h) => h.key === "mod+T");
+		expect(hotkey).toBeDefined();
+		expect(hotkey?.allowInInput).toBe(true);
+		expect(hotkey?.capture).toBe(true);
+	});
+
+	it("registers projectSwitcher hotkey with allowInInput and capture flags", async () => {
+		render(<MockApp />);
+
+		await waitFor(() => {
+			expect(capturedHotkeyContext).not.toBeNull();
+		});
+
+		const hotkey = capturedHotkeyContext?.getRegisteredHotkeys().find((h) => h.key === "mod+shift+K");
+		expect(hotkey).toBeDefined();
+		expect(hotkey?.allowInInput).toBe(true);
+		expect(hotkey?.capture).toBe(true);
 	});
 });

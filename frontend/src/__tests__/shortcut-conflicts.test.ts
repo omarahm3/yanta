@@ -85,7 +85,8 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 		description: "Open command palette",
 		context: "global",
 		source: "App.tsx - GlobalCommandHotkey",
-		allowInInput: false,
+		allowInInput: true,
+		capture: true,
 	});
 
 	shortcuts.push({
@@ -93,7 +94,8 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 		description: "Jump to today's journal",
 		context: "global",
 		source: "App.tsx - GlobalCommandHotkey",
-		allowInInput: false,
+		allowInInput: true,
+		capture: true,
 	});
 
 	shortcuts.push({
@@ -109,7 +111,8 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 		description: "Switch project",
 		context: "global",
 		source: "App.tsx - GlobalCommandHotkey",
-		allowInInput: false,
+		allowInInput: true,
+		capture: true,
 	});
 
 	shortcuts.push({
@@ -808,7 +811,7 @@ describe("Shortcut Conflict Detection", () => {
 		expect(modShortcuts.length).toBeGreaterThan(0);
 	});
 
-	it("documents mod+e usage (Recent Documents in palette, Export in document)", () => {
+	it("documents mod+e usage (Export in document)", () => {
 		const modEShortcuts = allShortcuts.filter((s) => normalizeKey(s.key) === "mod+e");
 
 		console.log("\n=== mod+e shortcut usage ===");

@@ -49,7 +49,6 @@ const createMockCtx = (overrides?: Partial<CommandRegistryContext>): CommandRegi
 	},
 	showGitError: vi.fn(),
 	resetLayout: vi.fn(),
-	setShowRecentDocuments: vi.fn(),
 	...overrides,
 });
 

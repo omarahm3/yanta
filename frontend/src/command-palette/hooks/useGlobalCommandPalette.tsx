@@ -154,10 +154,6 @@ export function useGlobalCommandPalette(
 		};
 	}, []);
 
-	const setShowRecentDocuments = useCallback((_show: boolean) => {
-		// No-op: documents are now inline
-	}, []);
-
 	// Build context for domain command registration
 	const ctx: CommandRegistryContext = useMemo(
 		() => ({
@@ -182,7 +178,6 @@ export function useGlobalCommandPalette(
 			onToggleSidebar: hasToggleSidebar ? onToggleSidebarLatest : undefined,
 			onShowHelp: hasShowHelp ? onShowHelpLatest : undefined,
 			resetLayout: resetLayoutLatest,
-			setShowRecentDocuments,
 		}),
 		[
 			navigate,
@@ -203,7 +198,6 @@ export function useGlobalCommandPalette(
 			hasShowHelp,
 			onShowHelpLatest,
 			resetLayoutLatest,
-			setShowRecentDocuments,
 		],
 	);
 

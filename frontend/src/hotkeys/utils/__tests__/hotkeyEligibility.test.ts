@@ -96,4 +96,29 @@ describe("isHotkeyEligibleForTarget", () => {
 		// Escape is still blocked in editable fields (handled via allowInInput there).
 		expect(isHotkeyEligibleForTarget(keydown({ key: "Escape" }), el("input"), false)).toBe(false);
 	});
+
+	it("allows modifier combos on contentEditable targets when allowInInput is true", () => {
+		const contentEditable = el("div", { contenteditable: "true" });
+		const editorParagraph = el("p");
+		contentEditable.appendChild(editorParagraph);
+		document.body.appendChild(contentEditable);
+
+		try {
+			expect(
+				isHotkeyEligibleForTarget(keydown({ key: "k", ctrlKey: true }), editorParagraph, true),
+			).toBe(true);
+			expect(
+				isHotkeyEligibleForTarget(keydown({ key: "t", ctrlKey: true }), editorParagraph, true),
+			).toBe(true);
+			expect(
+				isHotkeyEligibleForTarget(
+					keydown({ key: "K", ctrlKey: true, shiftKey: true }),
+					editorParagraph,
+					true,
+				),
+			).toBe(true);
+		} finally {
+			document.body.removeChild(contentEditable);
+		}
+	});
 });
