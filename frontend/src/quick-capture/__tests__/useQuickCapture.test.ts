@@ -98,6 +98,56 @@ describe("useQuickCapture", () => {
 		);
 	});
 
+	it("returns created entry info on save", async () => {
+		const { AppendEntry } = await import("../../../bindings/yanta/internal/journal/wailsservice");
+		const mockAppendEntry = AppendEntry as ReturnType<typeof vi.fn>;
+		mockAppendEntry.mockResolvedValue({ id: "abc123", content: "Test" });
+
+		const { result } = renderHook(() => useQuickCapture());
+
+		act(() => {
+			result.current.setContent("Test note");
+			result.current.setSelectedProject("work");
+		});
+
+		let savedEntry: Awaited<ReturnType<typeof result.current.save>> | undefined;
+		await act(async () => {
+			savedEntry = await result.current.save();
+		});
+
+		expect(savedEntry).toEqual({
+			id: "abc123",
+			projectAlias: "@work",
+			date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+		});
+	});
+
+	it("derives the entry date from the backend `created` timestamp, not the client clock", async () => {
+		const { AppendEntry } = await import("../../../bindings/yanta/internal/journal/wailsservice");
+		const mockAppendEntry = AppendEntry as ReturnType<typeof vi.fn>;
+		// No timezone suffix → parsed as local time, so the local Y-M-D is stable
+		// regardless of the runner's timezone. This is a different day than "today".
+		mockAppendEntry.mockResolvedValue({
+			id: "abc123",
+			content: "Test",
+			created: "2020-01-15T12:00:00",
+		});
+
+		const { result } = renderHook(() => useQuickCapture());
+
+		act(() => {
+			result.current.setContent("Test note");
+			result.current.setSelectedProject("work");
+		});
+
+		let savedEntry: Awaited<ReturnType<typeof result.current.save>> | undefined;
+		await act(async () => {
+			savedEntry = await result.current.save();
+		});
+
+		expect(savedEntry?.date).toBe("2020-01-15");
+	});
+
 	it("clears content after save", async () => {
 		const { AppendEntry } = await import("../../../bindings/yanta/internal/journal/wailsservice");
 		const mockAppendEntry = AppendEntry as ReturnType<typeof vi.fn>;
@@ -167,12 +217,12 @@ describe("useQuickCapture", () => {
 			result.current.setSelectedProject("project");
 		});
 
-		let returnValue: boolean | undefined;
+		let returnValue: Awaited<ReturnType<typeof result.current.save>> | undefined;
 		await act(async () => {
 			returnValue = await result.current.save();
 		});
 
-		expect(returnValue).toBe(false);
+		expect(returnValue).toBeNull();
 		expect(result.current.content).toBe("Test note");
 		expect(result.current.error).toBe("Failed to save. Try again.");
 	});
@@ -240,7 +290,7 @@ describe("useQuickCapture", () => {
 		expect(result.current.isSaving).toBe(true);
 
 		const secondResult = await result.current.save();
-		expect(secondResult).toBe(false);
+		expect(secondResult).toBeNull();
 		expect(mockAppendEntry).toHaveBeenCalledTimes(1);
 
 		await act(async () => {

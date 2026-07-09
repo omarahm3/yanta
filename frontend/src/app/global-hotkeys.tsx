@@ -10,6 +10,7 @@ import { ProjectSwitcher, useProjectSwitcherStore } from "../project-switcher";
 import { useAppGlobalEffects } from "./hooks";
 import { useLeaderKeys } from "./hooks/useLeaderKeys";
 import { NavGuardDialog } from "./hooks/useNavGuard";
+import { useOpenJournalFromCapture } from "./hooks/useOpenJournalFromCapture";
 import { Router } from "./Router";
 import { useAppNavigation } from "./useAppNavigation";
 
@@ -46,9 +47,12 @@ const GlobalCommandHotkey = () => {
 		allowInInput: false,
 	});
 
-	const { switchToLastProject, previousProject } = useProjectContext();
+	const { switchToLastProject, previousProject, projects, setCurrentProject } = useProjectContext();
 	const openProjectSwitcher = useProjectSwitcherStore((s) => s.open);
 	const openGlobalSearch = useGlobalSearchStore((s) => s.open);
+
+	// Route the Quick Capture window's "Open" action to the entry's journal.
+	useOpenJournalFromCapture({ onNavigate: nav.onNavigate, projects, setCurrentProject });
 
 	useHotkey({
 		...global.switchProject,

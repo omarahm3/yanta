@@ -6,6 +6,12 @@ import { parseContent, parseProject, parseTags } from "./parser";
 
 const LAST_PROJECT_KEY = "yanta:lastProject";
 
+export interface SavedEntryInfo {
+	id: string;
+	projectAlias: string;
+	date: string;
+}
+
 export interface UseQuickCaptureReturn {
 	content: string;
 	setContent: (content: string) => void;
@@ -14,13 +20,30 @@ export interface UseQuickCaptureReturn {
 	setSelectedProject: (alias: string) => void;
 	error: string | null;
 	isSaving: boolean;
-	save: () => Promise<boolean>;
+	save: () => Promise<SavedEntryInfo | null>;
 	removeTag: (tag: string) => void;
 	clear: () => void;
 }
 
 interface UseQuickCaptureOptions {
 	onEntrySaved?: () => void;
+}
+
+function formatLocalDate(d: Date): string {
+	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// Derive the journal file-bucket date from the backend-assigned `created`
+// timestamp rather than a fresh client clock read. The backend buckets the
+// entry by its own time at write time; recomputing "today" on the client
+// *after* the IPC round-trip can land on the wrong day across midnight, which
+// would make Undo's DeleteEntry(date, …) target the wrong file and miss it.
+function entryDate(created: unknown): string {
+	if (typeof created === "string" && created) {
+		const parsed = new Date(created);
+		if (!Number.isNaN(parsed.getTime())) return formatLocalDate(parsed);
+	}
+	return formatLocalDate(new Date());
 }
 
 export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptureReturn {
@@ -51,18 +74,18 @@ export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptu
 		setSelectedProjectInternal(alias);
 	}, []);
 
-	const save = useCallback(async (): Promise<boolean> => {
-		if (isSavingRef.current) return false;
+	const save = useCallback(async (): Promise<SavedEntryInfo | null> => {
+		if (isSavingRef.current) return null;
 
 		if (!selectedProject) {
 			setError("Please select a project");
-			return false;
+			return null;
 		}
 
 		const cleanContent = parseContent(content);
 		if (!cleanContent.trim()) {
 			setError("Please enter some content");
-			return false;
+			return null;
 		}
 
 		isSavingRef.current = true;
@@ -78,7 +101,9 @@ export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptu
 				tags: tags,
 			});
 
-			await AppendEntry(request);
+			const entry = await AppendEntry(request);
+			if (!entry?.id) return null;
+
 			optionsRef.current?.onEntrySaved?.();
 
 			localStorage.setItem(LAST_PROJECT_KEY, projectAlias);
@@ -86,11 +111,11 @@ export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptu
 			setContentInternal("");
 			setTags([]);
 
-			return true;
+			return { id: entry.id, projectAlias, date: entryDate(entry.created) };
 		} catch (err) {
 			BackendLogger.error("Quick capture save failed:", err);
 			setError("Failed to save. Try again.");
-			return false;
+			return null;
 		} finally {
 			isSavingRef.current = false;
 			setIsSaving(false);
