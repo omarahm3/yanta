@@ -266,8 +266,8 @@ func run() {
 					Height: savedGeom.Height,
 				}
 				clamped := windowcfg.ClampToVisibleArea(savedRect, screens)
-				mainWindow.SetRelativePosition(clamped.X, clamped.Y)
-				logger.Infof("restored window position to X=%d Y=%d", clamped.X, clamped.Y)
+				mainWindow.SetBounds(clamped)
+				logger.Infof("restored window bounds to X=%d Y=%d W=%d H=%d", clamped.X, clamped.Y, clamped.Width, clamped.Height)
 			}
 
 			// If this is a quick launch, open Quick Capture window
@@ -333,7 +333,12 @@ func run() {
 
 	saveGeometry := func() {
 		if mainWindow.IsMaximised() {
+			prev := config.GetWindowGeometry()
 			geom := config.WindowGeometry{
+				X:         prev.X,
+				Y:         prev.Y,
+				Width:     prev.Width,
+				Height:    prev.Height,
 				Maximised: true,
 			}
 			if err := config.SetWindowGeometry(geom); err != nil {
@@ -358,11 +363,15 @@ func run() {
 	}
 
 	mainWindow.RegisterHook(events.Common.WindowDidMove, func(e *application.WindowEvent) {
-		saveGeometry()
+		if !mainWindow.IsMaximised() {
+			saveGeometry()
+		}
 	})
 
 	mainWindow.RegisterHook(events.Common.WindowDidResize, func(e *application.WindowEvent) {
-		saveGeometry()
+		if !mainWindow.IsMaximised() {
+			saveGeometry()
+		}
 	})
 
 	mainWindow.RegisterHook(events.Common.WindowMaximise, func(e *application.WindowEvent) {

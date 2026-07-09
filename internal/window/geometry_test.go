@@ -186,3 +186,26 @@ func TestClampToVisibleArea_NoPrimaryScreen(t *testing.T) {
 	assert.Equal(t, expectedX, result.X)
 	assert.Equal(t, expectedY, result.Y)
 }
+
+func TestClampToVisibleArea_SecondaryMonitor_NonZeroOrigin(t *testing.T) {
+	// Secondary monitor at X=1920 (right of primary)
+	screens := []*application.Screen{
+		{
+			IsPrimary: true,
+			WorkArea:  application.Rect{X: 0, Y: 0, Width: 1920, Height: 1080},
+		},
+		{
+			IsPrimary: false,
+			WorkArea:  application.Rect{X: 1920, Y: 0, Width: 2560, Height: 1440},
+		},
+	}
+	// Window saved on secondary monitor
+	saved := application.Rect{X: 2500, Y: 200, Width: 1200, Height: 900}
+	result := ClampToVisibleArea(saved, screens)
+
+	// Should stay on secondary monitor with same coordinates
+	assert.Equal(t, 2500, result.X)
+	assert.Equal(t, 200, result.Y)
+	assert.Equal(t, 1200, result.Width)
+	assert.Equal(t, 900, result.Height)
+}

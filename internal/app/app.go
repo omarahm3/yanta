@@ -347,7 +347,8 @@ func (a *App) BeforeClose() bool {
 		logger.Debug("hiding window to background")
 		if a.wailsApp != nil {
 			a.wailsApp.Event.Emit(events.WindowHidden, map[string]any{
-				"reason": "keep_in_background",
+				"reason":   "keep_in_background",
+				"platform": runtime.GOOS,
 			})
 		}
 		if a.mainWindow != nil {
