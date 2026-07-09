@@ -81,6 +81,15 @@ const GlobalCommandHotkey = () => {
 	});
 
 	useHotkey({
+		...shortcuts.quickCapture.default,
+		handler: (e) => {
+			e.preventDefault();
+			nav.onNavigate("quick-capture");
+		},
+		allowInInput: false,
+	});
+
+	useHotkey({
 		...global.navBack,
 		handler: (e) => {
 			e.preventDefault();

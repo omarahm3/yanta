@@ -1,4 +1,4 @@
-import { Bug, HelpCircle, PanelLeft, RotateCcw } from "lucide-react";
+import { Bug, HelpCircle, PanelLeft, PenLine, RotateCcw } from "lucide-react";
 import type { CommandOption } from "../../../shared/ui";
 import { getShortcutForCommand } from "../../../shared/utils/shortcuts";
 import type { CommandRegistry, CommandRegistryContext } from "../types";
@@ -9,6 +9,18 @@ export function registerApplicationCommands(
 ): void {
 	const { onNavigate, handleClose, onToggleSidebar, onShowHelp, resetLayout } = ctx;
 	const commands: CommandOption[] = [
+		{
+			id: "open-quick-capture",
+			icon: <PenLine className="text-lg" />,
+			text: "Quick Capture",
+			hint: "Quick note",
+			group: "Application",
+			keywords: ["quick", "capture", "note", "notebook", "entry"],
+			action: () => {
+				onNavigate("quick-capture");
+				handleClose();
+			},
+		},
 		{
 			id: "reset-panes",
 			icon: <RotateCcw className="text-lg" />,

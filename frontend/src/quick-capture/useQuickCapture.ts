@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { AppendEntryRequest } from "../../bindings/yanta/internal/journal/models";
 import { AppendEntry } from "../../bindings/yanta/internal/journal/wailsservice";
 import { parseContent, parseProject, parseTags } from "./parser";
@@ -30,6 +30,7 @@ export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptu
 	);
 	const [error, setError] = useState<string | null>(null);
 	const [isSaving, setIsSaving] = useState(false);
+	const isSavingRef = useRef(false);
 
 	// Parse content to extract tags and project
 	const setContent = useCallback((newContent: string) => {
@@ -48,6 +49,8 @@ export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptu
 	}, []);
 
 	const save = useCallback(async (): Promise<boolean> => {
+		if (isSavingRef.current) return false;
+
 		if (!selectedProject) {
 			setError("Please select a project");
 			return false;
@@ -59,6 +62,7 @@ export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptu
 			return false;
 		}
 
+		isSavingRef.current = true;
 		setIsSaving(true);
 		setError(null);
 
@@ -76,15 +80,15 @@ export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptu
 
 			localStorage.setItem(LAST_PROJECT_KEY, projectAlias);
 
-			// Clear content and tags after successful save
 			setContentInternal("");
 			setTags([]);
 
 			return true;
-		} catch (err) {
+		} catch {
 			setError("Failed to save. Try again.");
-			throw err;
+			return false;
 		} finally {
+			isSavingRef.current = false;
 			setIsSaving(false);
 		}
 	}, [content, tags, selectedProject]);

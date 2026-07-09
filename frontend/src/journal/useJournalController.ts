@@ -1,3 +1,4 @@
+import { System } from "@wailsio/runtime";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ListDates } from "../../bindings/yanta/internal/journal/wailsservice";
 import { formatShortcutKeyForDisplay } from "../config/shortcuts";
@@ -84,8 +85,8 @@ export interface JournalControllerResult {
 	handlePromoteSelected: () => Promise<void>;
 	updateEntry: (id: string, content: string, tags: string[]) => Promise<void>;
 	addEntry: (rawText: string) => Promise<void>;
-	/** Formatted Quick Capture hotkey, shown on the in-page add affordance. */
-	quickCaptureHint: string;
+	/** Formatted Quick Capture hotkey, shown on the in-page add affordance. Null off-Windows (global hotkey is a no-op there). */
+	quickCaptureHint: string | null;
 
 	// UI
 	sidebarSections: ReturnType<typeof useSidebarSections>;
@@ -108,7 +109,9 @@ export function useJournalController({
 	const { setPageContext } = useHelp();
 	const { error: notifyError, success: notifySuccess } = useNotification();
 	const { shortcuts } = useMergedConfig();
-	const quickCaptureHint = formatShortcutKeyForDisplay(shortcuts.quickCapture.default.key);
+	const quickCaptureHint: string | null = System.IsWindows()
+		? formatShortcutKeyForDisplay(shortcuts.quickCapture.default.key)
+		: null;
 
 	const [datesWithEntries, setDatesWithEntries] = useState<string[]>([]);
 	const [highlightedIndex, setHighlightedIndex] = useState(0);
