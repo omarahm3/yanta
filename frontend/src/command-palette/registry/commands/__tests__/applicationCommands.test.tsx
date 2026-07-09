@@ -1,4 +1,3 @@
-import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useGlobalSearchStore } from "../../../../global-search/globalSearch.store";
 import { useSearchIndexStore } from "../../../../search-index/searchIndex.store";
@@ -102,10 +101,11 @@ describe("registerApplicationCommands", () => {
 		expect(ctx.handleClose).toHaveBeenCalled();
 	});
 
-	it("registers rebuild-search-index that calls build()", async () => {
+	it("registers rebuild-search-index that reports success when build succeeds", async () => {
 		const buildMock = vi.fn().mockResolvedValue(undefined);
 		vi.mocked(useSearchIndexStore.getState).mockReturnValue({
 			build: buildMock,
+			status: "ready",
 		} as unknown as ReturnType<typeof useSearchIndexStore.getState>);
 
 		const registry = createMockRegistry();
@@ -120,6 +120,32 @@ describe("registerApplicationCommands", () => {
 		await rebuildCommand?.action();
 
 		expect(buildMock).toHaveBeenCalled();
+		expect(ctx.notification.success).toHaveBeenCalledWith("Search index rebuilt");
+		expect(ctx.notification.error).not.toHaveBeenCalled();
+	});
+
+	it("rebuild-search-index reports error when build fails (build swallows the error)", async () => {
+		// build() catches its own errors and reflects failure via store status
+		// rather than throwing, so a try/catch here would never fire.
+		const buildMock = vi.fn().mockResolvedValue(undefined);
+		vi.mocked(useSearchIndexStore.getState).mockReturnValue({
+			build: buildMock,
+			status: "error",
+		} as unknown as ReturnType<typeof useSearchIndexStore.getState>);
+
+		const registry = createMockRegistry();
+		const ctx = createMockCtx();
+
+		registerApplicationCommands(registry, ctx);
+
+		const appCommands = getCommands(registry);
+		const rebuildCommand = appCommands.find((cmd) => cmd.id === "rebuild-search-index");
+
+		await rebuildCommand?.action();
+
+		expect(buildMock).toHaveBeenCalled();
+		expect(ctx.notification.error).toHaveBeenCalledWith("Failed to rebuild search index");
+		expect(ctx.notification.success).not.toHaveBeenCalled();
 	});
 
 	it("registers toggle-theme that cycles dark → light → system", async () => {
@@ -145,6 +171,26 @@ describe("registerApplicationCommands", () => {
 				appearance: expect.objectContaining({ theme: "light" }),
 			}),
 		);
+	});
+
+	it("toggle-theme surfaces an error notification if persistence fails", async () => {
+		const saveMock = vi.fn().mockRejectedValue(new Error("disk full"));
+		vi.mocked(usePreferencesStore.getState).mockReturnValue({
+			overrides: { appearance: { theme: "dark" } },
+			saveOverrides: saveMock,
+		} as unknown as ReturnType<typeof usePreferencesStore.getState>);
+
+		const registry = createMockRegistry();
+		const ctx = createMockCtx();
+
+		registerApplicationCommands(registry, ctx);
+
+		const appCommands = getCommands(registry);
+		const themeCommand = appCommands.find((cmd) => cmd.id === "toggle-theme");
+
+		// Must not reject — a thrown saveOverrides would become an unhandled rejection.
+		await expect(themeCommand?.action()).resolves.toBeUndefined();
+		expect(ctx.notification.error).toHaveBeenCalledWith("Failed to change theme");
 	});
 
 	it("registers zoom-in that increases scale", () => {

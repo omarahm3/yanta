@@ -226,32 +226,6 @@ export function useDocumentController({
 		};
 	}, []);
 
-	// Register save handler for command palette / global "Save Document"
-	useEffect(() => {
-		const handleSaveRequest = () => {
-			if (isArchivedRef.current) {
-				error("Restore the document before saving.");
-				return;
-			}
-			if (loadError) {
-				error("Document could not be loaded.");
-				return;
-			}
-			autoSaveRef.current.saveNow().catch((err) => {
-				BackendLogger.error("[Document] Failed to save from command palette:", err);
-				error("Failed to save document");
-			});
-		};
-		useDocumentCommandStore.getState().registerSaveHandler(handleSaveRequest);
-		useDocumentCommandStore.getState().registerFindHandler(openFind);
-		useDocumentCommandStore.getState().registerReplaceHandler(openReplace);
-		return () => {
-			useDocumentCommandStore.getState().registerSaveHandler(null);
-			useDocumentCommandStore.getState().registerFindHandler(null);
-			useDocumentCommandStore.getState().registerReplaceHandler(null);
-		};
-	}, [error, loadError, openFind, openReplace]);
-
 	const handleCancel = useCallback(() => {
 		if (autoSave.hasUnsavedChanges && !isEditMode) {
 			return;
@@ -301,6 +275,40 @@ export function useDocumentController({
 			setIsRestoring(false);
 		}
 	}, [documentPath, error, isRestoring]);
+
+	// Register command-palette / global document handlers. Only the active pane
+	// registers: the store keeps a single module-level handler per command, so an
+	// unconditional register would let the last-mounted pane clobber the focused
+	// one — routing Save/Find/Replace/Restore to the wrong document.
+	useEffect(() => {
+		if (!isActivePane) return;
+		const handleSaveRequest = () => {
+			if (isArchivedRef.current) {
+				error("Restore the document before saving.");
+				return;
+			}
+			if (loadError) {
+				error("Document could not be loaded.");
+				return;
+			}
+			autoSaveRef.current.saveNow().catch((err) => {
+				BackendLogger.error("[Document] Failed to save from command palette:", err);
+				error("Failed to save document");
+			});
+		};
+		const store = useDocumentCommandStore.getState();
+		store.registerSaveHandler(handleSaveRequest);
+		store.registerFindHandler(openFind);
+		store.registerReplaceHandler(openReplace);
+		store.registerRestoreHandler(handleRestore);
+		return () => {
+			const s = useDocumentCommandStore.getState();
+			s.registerSaveHandler(null);
+			s.registerFindHandler(null);
+			s.registerReplaceHandler(null);
+			s.registerRestoreHandler(null);
+		};
+	}, [error, loadError, openFind, openReplace, handleRestore, isActivePane]);
 
 	useEffect(() => {
 		const refreshTags = async () => {

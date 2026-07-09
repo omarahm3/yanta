@@ -73,11 +73,13 @@ export function registerApplicationCommands(
 			keywords: ["rebuild", "reindex", "search", "index"],
 			action: async () => {
 				handleClose();
-				try {
-					await useSearchIndexStore.getState().build();
-					notification.success("Search index rebuilt");
-				} catch {
+				// build() handles its own errors and reports outcome via store status
+				// rather than throwing, so inspect status instead of catching.
+				await useSearchIndexStore.getState().build();
+				if (useSearchIndexStore.getState().status === "error") {
 					notification.error("Failed to rebuild search index");
+				} else {
+					notification.success("Search index rebuilt");
 				}
 			},
 		},
@@ -91,11 +93,15 @@ export function registerApplicationCommands(
 			action: async () => {
 				const current = usePreferencesStore.getState().overrides?.appearance?.theme ?? "dark";
 				const next = current === "dark" ? "light" : current === "light" ? "system" : "dark";
-				await usePreferencesStore.getState().saveOverrides({
-					...usePreferencesStore.getState().overrides,
-					appearance: { ...usePreferencesStore.getState().overrides?.appearance, theme: next },
-				});
-				notification.info(`Theme: ${next}`);
+				try {
+					await usePreferencesStore.getState().saveOverrides({
+						...usePreferencesStore.getState().overrides,
+						appearance: { ...usePreferencesStore.getState().overrides?.appearance, theme: next },
+					});
+					notification.info(`Theme: ${next}`);
+				} catch {
+					notification.error("Failed to change theme");
+				}
 			},
 		},
 		{

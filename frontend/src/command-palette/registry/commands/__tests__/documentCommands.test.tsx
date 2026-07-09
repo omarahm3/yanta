@@ -155,6 +155,38 @@ describe("registerDocumentCommands", () => {
 
 			expect(SoftDelete).toHaveBeenCalledWith("docs/test.json");
 			expect(ctx.notification.success).toHaveBeenCalledWith("Document archived");
+			// Leave the archived document's editor so it can't keep being edited.
+			expect(ctx.onNavigate).toHaveBeenCalledWith("dashboard");
+		});
+	});
+
+	describe("restore-document", () => {
+		it("routes through the controller's requestRestore handler, not the backend directly", async () => {
+			const { Restore } = await import("../../../../../bindings/yanta/internal/document/service");
+			const requestRestore = vi.fn();
+			vi.spyOn(useDocumentCommandStore, "getState").mockReturnValue({
+				requestRestore,
+			} as unknown as ReturnType<typeof useDocumentCommandStore.getState>);
+
+			const registry = createMockRegistry();
+			const ctx = createMockCtx({
+				currentPage: "document",
+				getSelectedDocument: () => ({ path: "docs/test.json" }),
+			});
+
+			registerDocumentCommands(registry, ctx);
+
+			const commands = getCommands(registry);
+			const restoreCommand = commands.find((cmd) => cmd.id === "restore-document");
+			expect(restoreCommand).toBeDefined();
+
+			restoreCommand?.action();
+
+			expect(requestRestore).toHaveBeenCalled();
+			// Backend Restore must not be called directly — it would bypass the
+			// controller's hasRestored state and leave the archived banner stuck.
+			expect(Restore).not.toHaveBeenCalled();
+			expect(ctx.handleClose).toHaveBeenCalled();
 		});
 	});
 });

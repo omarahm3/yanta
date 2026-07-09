@@ -3,6 +3,7 @@ import { create } from "zustand";
 let saveHandler: (() => void) | null = null;
 let findHandler: (() => void) | null = null;
 let replaceHandler: (() => void) | null = null;
+let restoreHandler: (() => void) | null = null;
 
 interface DocumentCommandState {
 	registerSaveHandler: (handler: (() => void) | null) => void;
@@ -11,6 +12,8 @@ interface DocumentCommandState {
 	requestFind: () => void;
 	registerReplaceHandler: (handler: (() => void) | null) => void;
 	requestReplace: () => void;
+	registerRestoreHandler: (handler: (() => void) | null) => void;
+	requestRestore: () => void;
 }
 
 export const useDocumentCommandStore = create<DocumentCommandState>(() => ({
@@ -31,5 +34,11 @@ export const useDocumentCommandStore = create<DocumentCommandState>(() => ({
 	},
 	requestReplace: () => {
 		if (replaceHandler) replaceHandler();
+	},
+	registerRestoreHandler: (handler) => {
+		restoreHandler = handler;
+	},
+	requestRestore: () => {
+		if (restoreHandler) restoreHandler();
 	},
 }));

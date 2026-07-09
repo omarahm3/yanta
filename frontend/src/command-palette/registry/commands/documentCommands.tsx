@@ -1,10 +1,6 @@
-import { Archive, FileDown, Save, Search } from "lucide-react";
+import { Archive, ArchiveRestore, FileDown, Save, Search } from "lucide-react";
 import { ExportDocumentRequest } from "../../../../bindings/yanta/internal/document/models";
-import {
-	ExportDocument,
-	Restore,
-	SoftDelete,
-} from "../../../../bindings/yanta/internal/document/service";
+import { ExportDocument, SoftDelete } from "../../../../bindings/yanta/internal/document/service";
 import { ExportRequest } from "../../../../bindings/yanta/internal/export";
 import { ExportToPDF } from "../../../../bindings/yanta/internal/export/service";
 import { OpenDirectoryDialog } from "../../../../bindings/yanta/internal/system/service";
@@ -17,7 +13,7 @@ export function registerDocumentCommands(
 	registry: CommandRegistry,
 	ctx: CommandRegistryContext,
 ): void {
-	const { handleClose, currentPage, getSelectedDocument, notification } = ctx;
+	const { handleClose, currentPage, getSelectedDocument, notification, onNavigate } = ctx;
 	const commands: CommandOption[] = [];
 	const hasDocument = currentPage === "document" && Boolean(getSelectedDocument()?.path);
 
@@ -65,6 +61,9 @@ export function registerDocumentCommands(
 				try {
 					await SoftDelete(currentDocument.path);
 					notification.success("Document archived");
+					// The editor is still showing the now-archived document; leave it
+					// so the user can't keep editing a soft-deleted doc.
+					onNavigate("dashboard");
 				} catch (err) {
 					notification.error(`Archive failed: ${err}`);
 				}
@@ -73,24 +72,17 @@ export function registerDocumentCommands(
 
 		commands.push({
 			id: "restore-document",
-			icon: <Archive className="text-lg" />,
+			icon: <ArchiveRestore className="text-lg" />,
 			text: "Restore Document",
 			hint: "Unarchive current document",
 			group: "Document",
 			keywords: ["restore", "unarchive"],
-			action: async () => {
+			// Route through the active controller's handler (not the backend binding
+			// directly) so its local `hasRestored` state updates and the archived
+			// banner / read-only editor clear without a reload.
+			action: () => {
 				handleClose();
-				const currentDocument = getSelectedDocument();
-				if (!currentDocument?.path) {
-					notification.error("No document open");
-					return;
-				}
-				try {
-					await Restore(currentDocument.path);
-					notification.success("Document restored");
-				} catch (err) {
-					notification.error(`Restore failed: ${err}`);
-				}
+				useDocumentCommandStore.getState().requestRestore();
 			},
 		});
 
