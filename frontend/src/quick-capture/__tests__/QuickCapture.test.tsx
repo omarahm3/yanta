@@ -47,6 +47,11 @@ vi.mock("../../../bindings/yanta/internal/project/service", () => ({
 	ListActive: vi.fn(() => Promise.resolve(MOCK_PROJECTS)),
 }));
 
+// Mock the system service (ShowWindow is called by the "Open" action)
+vi.mock("../../../bindings/yanta/internal/system/service", () => ({
+	ShowWindow: vi.fn(() => Promise.resolve()),
+}));
+
 // Mock window close - use module-level mock
 vi.mock("@wailsio/runtime", () => ({
 	Call: {
@@ -396,7 +401,7 @@ describe("QuickCapture", () => {
 		expect(screen.queryByText(/Press Esc again to discard/)).not.toBeInTheDocument();
 	});
 
-	it("shows success toast with Undo action on save", async () => {
+	it("shows in-window success bar with Open and Undo after save-and-close", async () => {
 		localStorage.setItem("yanta:lastProject", MOCK_PROJECTS[0].alias);
 		renderQuickCapture();
 
@@ -409,16 +414,16 @@ describe("QuickCapture", () => {
 		fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true });
 
 		await waitFor(() => {
-			expect(mockNotify.success).toHaveBeenCalledWith(
-				expect.stringContaining("@personal"),
-				expect.objectContaining({
-					action: expect.objectContaining({ label: "Undo" }),
-				}),
-			);
+			expect(screen.getByText("Saved ✓")).toBeInTheDocument();
 		});
+		expect(screen.getByText(/to @personal/)).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Open" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+		// Window must NOT close immediately — the success bar has to stay actionable.
+		expect(mockClose).not.toHaveBeenCalled();
 	});
 
-	it("Undo action calls DeleteEntry with correct args", async () => {
+	it("Undo in the success bar calls DeleteEntry and returns to the editor", async () => {
 		const { DeleteEntry } = await import("../../../bindings/yanta/internal/journal/wailsservice");
 		const mockDeleteEntry = DeleteEntry as ReturnType<typeof vi.fn>;
 
@@ -433,13 +438,8 @@ describe("QuickCapture", () => {
 		fireEvent.change(textarea, { target: { value: "Test note" } });
 		fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true });
 
-		await waitFor(() => {
-			expect(mockNotify.success).toHaveBeenCalled();
-		});
-
-		const callArgs = mockNotify.success.mock.calls[0];
-		const undoAction = callArgs[1]?.action;
-		undoAction?.onClick();
+		const undoButton = await screen.findByRole("button", { name: "Undo" });
+		fireEvent.click(undoButton);
 
 		await waitFor(() => {
 			expect(mockDeleteEntry).toHaveBeenCalledWith(
@@ -448,6 +448,40 @@ describe("QuickCapture", () => {
 				"abc123",
 			);
 		});
+		// Back to the editor (bar dismissed), window still open for re-capture.
+		await waitFor(() => {
+			expect(screen.getByRole("button", { name: /Save & New/ })).toBeInTheDocument();
+		});
+		expect(mockClose).not.toHaveBeenCalled();
+	});
+
+	it("Open in the success bar emits the navigate event, focuses main window, and closes", async () => {
+		const { Events } = await import("@wailsio/runtime");
+		const { ShowWindow } = await import("../../../bindings/yanta/internal/system/service");
+
+		localStorage.setItem("yanta:lastProject", MOCK_PROJECTS[0].alias);
+		renderQuickCapture();
+
+		await waitFor(() => {
+			expect(screen.getByPlaceholderText("What's on your mind?")).toBeInTheDocument();
+		});
+
+		const textarea = screen.getByRole("textbox");
+		fireEvent.change(textarea, { target: { value: "Test note" } });
+		fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true });
+
+		const openButton = await screen.findByRole("button", { name: "Open" });
+		fireEvent.click(openButton);
+
+		expect(Events.Emit).toHaveBeenCalledWith(
+			"yanta/navigate/journal",
+			expect.objectContaining({
+				projectAlias: "@personal",
+				date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+			}),
+		);
+		expect(ShowWindow).toHaveBeenCalled();
+		expect(mockClose).toHaveBeenCalled();
 	});
 
 	it("Save & New shows flash message", async () => {

@@ -1,10 +1,11 @@
-import { Window } from "@wailsio/runtime";
+import { Events, Window } from "@wailsio/runtime";
 import { PenLine } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { QUICK_CAPTURE_SHORTCUTS } from "@/config/public";
 import { DeleteEntry } from "../../bindings/yanta/internal/journal/wailsservice";
 import { ListActive } from "../../bindings/yanta/internal/project/service";
+import { ShowWindow } from "../../bindings/yanta/internal/system/service";
 import { useHotkeys } from "../hotkeys";
 import { useUserProgressContext } from "../onboarding";
 import { useNotification } from "../shared/hooks";
@@ -20,6 +21,18 @@ import { type SavedEntryInfo, useQuickCapture } from "./useQuickCapture";
  * Quick Capture Window
  * Based on PRD Section 3 - Look & Feel
  */
+
+// Cross-window event: ask the main window to open the journal for a saved
+// entry. Emitted from this (separate) Quick Capture window; a listener in the
+// main window routes it. Kept as a plain string to match existing event names.
+const NAVIGATE_JOURNAL_EVENT = "yanta/navigate/journal";
+
+// After a "Save & close", keep the window open briefly so the success bar's
+// Open/Undo actions are usable, then auto-close. The success bar lives for this
+// whole window (not a racing toast), so the actions stay clickable throughout.
+const SAVE_CLOSE_DELAY_MS = 4000;
+const FLASH_DURATION_MS = 2000;
+
 export const QuickCapture: React.FC = () => {
 	const [projects, setProjects] = useState<ProjectOption[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
@@ -32,6 +45,9 @@ export const QuickCapture: React.FC = () => {
 		useQuickCapture({
 			onEntrySaved: incrementJournalEntriesCreated,
 		});
+	// Saved-and-closing state: when set, the success bar (Open / Undo) is shown
+	// in place of the editor actions while the window waits to auto-close.
+	const [savedEntry, setSavedEntry] = useState<SavedEntryInfo | null>(null);
 	const [showSavedFlash, setShowSavedFlash] = useState(false);
 	const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 	const flashTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -86,12 +102,19 @@ export const QuickCapture: React.FC = () => {
 		isAutocompleteOpenRef.current = isOpen;
 	}, []);
 
+	const cancelPendingClose = useCallback(() => {
+		if (closeTimeoutRef.current) {
+			clearTimeout(closeTimeoutRef.current);
+			closeTimeoutRef.current = undefined;
+		}
+	}, []);
+
+	// Undo a just-saved entry: cancel the pending auto-close, delete it, and
+	// return to an empty editor so the user can keep capturing.
 	const handleUndo = useCallback(
 		async (entry: SavedEntryInfo) => {
-			if (closeTimeoutRef.current) {
-				clearTimeout(closeTimeoutRef.current);
-				closeTimeoutRef.current = undefined;
-			}
+			cancelPendingClose();
+			setSavedEntry(null);
 			try {
 				await DeleteEntry(entry.projectAlias, entry.date, entry.id);
 				notifySuccess("Entry deleted");
@@ -100,27 +123,47 @@ export const QuickCapture: React.FC = () => {
 				notifyError("Failed to undo");
 			}
 		},
-		[notifySuccess, notifyError],
+		[cancelPendingClose, notifySuccess, notifyError],
+	);
+
+	// Open the saved entry in the main window. Quick Capture is a separate Wails
+	// window, so it can't drive the main router directly: emit a cross-window
+	// event the main window listens for, focus that window, then close here.
+	const handleOpen = useCallback(
+		(entry: SavedEntryInfo) => {
+			cancelPendingClose();
+			try {
+				Events.Emit(NAVIGATE_JOURNAL_EVENT, {
+					projectAlias: entry.projectAlias,
+					date: entry.date,
+				});
+				void ShowWindow();
+			} catch (err) {
+				BackendLogger.error("Failed to open entry:", err);
+			}
+			handleClose();
+		},
+		[cancelPendingClose, handleClose],
 	);
 
 	const handleSave = useCallback(
 		async (keepOpen: boolean = false) => {
 			const result = await save();
-			if (result) {
-				notifySuccess(`Saved to ${result.projectAlias}`, {
-					action: { label: "Undo", onClick: () => void handleUndo(result) },
-				});
-				if (keepOpen) {
-					setShowSavedFlash(true);
-					if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
-					flashTimeoutRef.current = setTimeout(() => setShowSavedFlash(false), 2000);
-				} else {
-					if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
-					closeTimeoutRef.current = setTimeout(() => handleClose(), 2000);
-				}
+			if (!result) return;
+
+			if (keepOpen) {
+				// Stay open for the next note — a brief in-window flash confirms.
+				setShowSavedFlash(true);
+				if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+				flashTimeoutRef.current = setTimeout(() => setShowSavedFlash(false), FLASH_DURATION_MS);
+			} else {
+				// Show the success bar (Open / Undo) and auto-close after a beat.
+				setSavedEntry(result);
+				cancelPendingClose();
+				closeTimeoutRef.current = setTimeout(() => handleClose(), SAVE_CLOSE_DELAY_MS);
 			}
 		},
-		[save, handleClose, notifySuccess, handleUndo],
+		[save, handleClose, cancelPendingClose],
 	);
 
 	// Cancel: close immediately when empty; otherwise require a confirming second
@@ -245,31 +288,51 @@ export const QuickCapture: React.FC = () => {
 				</div>
 			)}
 
-			{/* Action bar */}
+			{/* Action bar — swaps to a success bar with Open / Undo after a save-and-close. */}
 			<footer
 				className="flex shrink-0 items-center justify-between gap-2 border-t border-border px-3 py-2.5"
 				style={{ "--wails-draggable": "no-drag" } as React.CSSProperties}
 			>
-				<div className="flex items-center gap-1.5">
-					<Button variant="primary" size="sm" disabled={isSaving} onClick={() => void handleSave(false)}>
-						Save
-						<span className="ml-1.5 font-mono text-[11px] opacity-70">Ctrl ↵</span>
-					</Button>
-					<FooterAction
-						kbd="Shift ↵"
-						label="Save & New"
-						disabled={isSaving}
-						onClick={() => void handleSave(true)}
-					/>
-				</div>
-				<FooterAction kbd="Esc" label="Cancel" onClick={handleCancel} />
+				{savedEntry ? (
+					<>
+						<span className="flex items-center gap-1.5 text-xs">
+							<span className="font-medium text-emerald-400">Saved ✓</span>
+							<span className="text-text-dim">to {savedEntry.projectAlias}</span>
+						</span>
+						<div className="flex items-center gap-1.5">
+							<FooterAction label="Open" onClick={() => handleOpen(savedEntry)} />
+							<FooterAction label="Undo" onClick={() => void handleUndo(savedEntry)} />
+						</div>
+					</>
+				) : (
+					<>
+						<div className="flex items-center gap-1.5">
+							<Button
+								variant="primary"
+								size="sm"
+								disabled={isSaving}
+								onClick={() => void handleSave(false)}
+							>
+								Save
+								<span className="ml-1.5 font-mono text-[11px] opacity-70">Ctrl ↵</span>
+							</Button>
+							<FooterAction
+								kbd="Shift ↵"
+								label="Save & New"
+								disabled={isSaving}
+								onClick={() => void handleSave(true)}
+							/>
+						</div>
+						<FooterAction kbd="Esc" label="Cancel" onClick={handleCancel} />
+					</>
+				)}
 			</footer>
 		</div>
 	);
 };
 
 const FooterAction: React.FC<{
-	kbd: string;
+	kbd?: string;
 	label: string;
 	onClick: () => void;
 	disabled?: boolean;
@@ -280,7 +343,7 @@ const FooterAction: React.FC<{
 		disabled={disabled}
 		className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-text-dim transition-colors hover:bg-accent/8 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 disabled:pointer-events-none"
 	>
-		<Kbd className="text-[10px]">{kbd}</Kbd>
+		{kbd && <Kbd className="text-[10px]">{kbd}</Kbd>}
 		<span>{label}</span>
 	</button>
 );

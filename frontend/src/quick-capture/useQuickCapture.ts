@@ -29,9 +29,21 @@ interface UseQuickCaptureOptions {
 	onEntrySaved?: () => void;
 }
 
-function formatToday(): string {
-	const d = new Date();
+function formatLocalDate(d: Date): string {
 	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// Derive the journal file-bucket date from the backend-assigned `created`
+// timestamp rather than a fresh client clock read. The backend buckets the
+// entry by its own time at write time; recomputing "today" on the client
+// *after* the IPC round-trip can land on the wrong day across midnight, which
+// would make Undo's DeleteEntry(date, …) target the wrong file and miss it.
+function entryDate(created: unknown): string {
+	if (typeof created === "string" && created) {
+		const parsed = new Date(created);
+		if (!Number.isNaN(parsed.getTime())) return formatLocalDate(parsed);
+	}
+	return formatLocalDate(new Date());
 }
 
 export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptureReturn {
@@ -99,7 +111,7 @@ export function useQuickCapture(options?: UseQuickCaptureOptions): UseQuickCaptu
 			setContentInternal("");
 			setTags([]);
 
-			return { id: entry.id, projectAlias, date: formatToday() };
+			return { id: entry.id, projectAlias, date: entryDate(entry.created) };
 		} catch (err) {
 			BackendLogger.error("Quick capture save failed:", err);
 			setError("Failed to save. Try again.");
