@@ -1,13 +1,32 @@
-import { Bug, HelpCircle, PanelLeft, PenLine, RotateCcw } from "lucide-react";
+import {
+	ArrowDown,
+	Bug,
+	HelpCircle,
+	Moon,
+	PanelLeft,
+	PenLine,
+	RotateCcw,
+	Search,
+	ZoomIn,
+	ZoomOut,
+} from "lucide-react";
+import { useGlobalSearchStore } from "../../../global-search/globalSearch.store";
+import { useSearchIndexStore } from "../../../search-index/searchIndex.store";
+import { usePreferencesStore } from "../../../shared/stores/preferences.store";
+import { useScaleStore } from "../../../shared/stores/scale.store";
 import type { CommandOption } from "../../../shared/ui";
 import { getShortcutForCommand } from "../../../shared/utils/shortcuts";
 import type { CommandRegistry, CommandRegistryContext } from "../types";
+
+const SCALE_STEP = 0.1;
+const SCALE_MIN = 0.5;
+const SCALE_MAX = 2.0;
 
 export function registerApplicationCommands(
 	registry: CommandRegistry,
 	ctx: CommandRegistryContext,
 ): void {
-	const { onNavigate, handleClose, onToggleSidebar, onShowHelp, resetLayout } = ctx;
+	const { onNavigate, handleClose, onToggleSidebar, onShowHelp, resetLayout, notification } = ctx;
 	const commands: CommandOption[] = [
 		{
 			id: "open-quick-capture",
@@ -22,6 +41,18 @@ export function registerApplicationCommands(
 			},
 		},
 		{
+			id: "open-finder",
+			icon: <Search className="text-lg" />,
+			text: "Open Finder",
+			hint: "Search all documents",
+			group: "Application",
+			keywords: ["finder", "search", "global", "lookup"],
+			action: () => {
+				handleClose();
+				useGlobalSearchStore.getState().open();
+			},
+		},
+		{
 			id: "reset-panes",
 			icon: <RotateCcw className="text-lg" />,
 			text: "Reset Panes",
@@ -33,10 +64,79 @@ export function registerApplicationCommands(
 				handleClose();
 			},
 		},
+		{
+			id: "rebuild-search-index",
+			icon: <Search className="text-lg" />,
+			text: "Rebuild Search Index",
+			hint: "Reindex all documents",
+			group: "Application",
+			keywords: ["rebuild", "reindex", "search", "index"],
+			action: async () => {
+				handleClose();
+				try {
+					await useSearchIndexStore.getState().build();
+					notification.success("Search index rebuilt");
+				} catch {
+					notification.error("Failed to rebuild search index");
+				}
+			},
+		},
+		{
+			id: "toggle-theme",
+			icon: <Moon className="text-lg" />,
+			text: "Toggle Theme",
+			hint: "Cycle dark / light / system",
+			group: "Application",
+			keywords: ["theme", "dark", "light", "system", "appearance"],
+			action: async () => {
+				const current = usePreferencesStore.getState().overrides?.appearance?.theme ?? "dark";
+				const next = current === "dark" ? "light" : current === "light" ? "system" : "dark";
+				await usePreferencesStore.getState().saveOverrides({
+					...usePreferencesStore.getState().overrides,
+					appearance: { ...usePreferencesStore.getState().overrides?.appearance, theme: next },
+				});
+				notification.info(`Theme: ${next}`);
+			},
+		},
+		{
+			id: "zoom-in",
+			icon: <ZoomIn className="text-lg" />,
+			text: "Zoom In",
+			hint: "Increase scale",
+			group: "Application",
+			keywords: ["zoom", "scale", "bigger", "larger"],
+			action: () => {
+				const current = useScaleStore.getState().scale;
+				const next = Math.min(SCALE_MAX, Math.round((current + SCALE_STEP) * 10) / 10);
+				useScaleStore.getState().setScale(next);
+			},
+		},
+		{
+			id: "zoom-out",
+			icon: <ZoomOut className="text-lg" />,
+			text: "Zoom Out",
+			hint: "Decrease scale",
+			group: "Application",
+			keywords: ["zoom", "scale", "smaller", "reduce"],
+			action: () => {
+				const current = useScaleStore.getState().scale;
+				const next = Math.max(SCALE_MIN, Math.round((current - SCALE_STEP) * 10) / 10);
+				useScaleStore.getState().setScale(next);
+			},
+		},
+		{
+			id: "zoom-reset",
+			icon: <ArrowDown className="text-lg" />,
+			text: "Reset Zoom",
+			hint: "100% scale",
+			group: "Application",
+			keywords: ["zoom", "scale", "reset", "default"],
+			action: () => {
+				useScaleStore.getState().setScale(1.0);
+			},
+		},
 	];
 
-	// The BlockNote/Wayland debug page is a dev-only tool; keep it out of
-	// production builds and the command palette. See bnote-stable.md P4.6.
 	if (import.meta.env.DEV) {
 		commands.unshift({
 			id: "nav-test",

@@ -243,10 +243,14 @@ export function useDocumentController({
 			});
 		};
 		useDocumentCommandStore.getState().registerSaveHandler(handleSaveRequest);
+		useDocumentCommandStore.getState().registerFindHandler(openFind);
+		useDocumentCommandStore.getState().registerReplaceHandler(openReplace);
 		return () => {
 			useDocumentCommandStore.getState().registerSaveHandler(null);
+			useDocumentCommandStore.getState().registerFindHandler(null);
+			useDocumentCommandStore.getState().registerReplaceHandler(null);
 		};
-	}, [error, loadError]);
+	}, [error, loadError, openFind, openReplace]);
 
 	const handleCancel = useCallback(() => {
 		if (autoSave.hasUnsavedChanges && !isEditMode) {

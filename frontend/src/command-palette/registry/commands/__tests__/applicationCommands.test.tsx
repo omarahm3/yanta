@@ -1,6 +1,27 @@
+import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { useGlobalSearchStore } from "../../../../global-search/globalSearch.store";
+import { useSearchIndexStore } from "../../../../search-index/searchIndex.store";
+import { usePreferencesStore } from "../../../../shared/stores/preferences.store";
+import { useScaleStore } from "../../../../shared/stores/scale.store";
 import type { CommandRegistry, CommandRegistryContext } from "../../types";
 import { registerApplicationCommands } from "../applicationCommands";
+
+vi.mock("../../../../global-search/globalSearch.store", () => ({
+	useGlobalSearchStore: { getState: vi.fn() },
+}));
+
+vi.mock("../../../../search-index/searchIndex.store", () => ({
+	useSearchIndexStore: { getState: vi.fn() },
+}));
+
+vi.mock("../../../../shared/stores/preferences.store", () => ({
+	usePreferencesStore: { getState: vi.fn() },
+}));
+
+vi.mock("../../../../shared/stores/scale.store", () => ({
+	useScaleStore: { getState: vi.fn() },
+}));
 
 const createMockRegistry = (): CommandRegistry => ({
 	setCommands: vi.fn(),
@@ -30,6 +51,14 @@ const createMockCtx = (overrides?: Partial<CommandRegistryContext>): CommandRegi
 	...overrides,
 });
 
+const getCommands = (registry: CommandRegistry) => {
+	const calls = (registry.setCommands as ReturnType<typeof vi.fn>).mock.calls;
+	return calls.find((call: unknown[]) => call[0] === "application")?.[1] as Array<{
+		id: string;
+		action: () => void | Promise<void>;
+	}>;
+};
+
 describe("registerApplicationCommands", () => {
 	it("registers a Quick Capture command that navigates to quick-capture", () => {
 		const registry = createMockRegistry();
@@ -37,11 +66,7 @@ describe("registerApplicationCommands", () => {
 
 		registerApplicationCommands(registry, ctx);
 
-		const setCommandsCalls = (registry.setCommands as ReturnType<typeof vi.fn>).mock.calls;
-		const appCommands = setCommandsCalls.find(
-			(call: unknown[]) => call[0] === "application",
-		)?.[1] as Array<{ id: string; action: () => void }>;
-
+		const appCommands = getCommands(registry);
 		expect(appCommands).toBeDefined();
 		const qcCommand = appCommands.find((cmd) => cmd.id === "open-quick-capture");
 		expect(qcCommand).toBeDefined();
@@ -50,5 +75,138 @@ describe("registerApplicationCommands", () => {
 
 		expect(ctx.onNavigate).toHaveBeenCalledWith("quick-capture");
 		expect(ctx.handleClose).toHaveBeenCalled();
+	});
+
+	it("registers open-finder that opens global search", () => {
+		const openMock = vi.fn();
+		vi.mocked(useGlobalSearchStore.getState).mockReturnValue({
+			open: openMock,
+			close: vi.fn(),
+			toggle: vi.fn(),
+			reset: vi.fn(),
+			isOpen: false,
+		} as unknown as ReturnType<typeof useGlobalSearchStore.getState>);
+
+		const registry = createMockRegistry();
+		const ctx = createMockCtx();
+
+		registerApplicationCommands(registry, ctx);
+
+		const appCommands = getCommands(registry);
+		const finderCommand = appCommands.find((cmd) => cmd.id === "open-finder");
+		expect(finderCommand).toBeDefined();
+
+		finderCommand?.action();
+
+		expect(openMock).toHaveBeenCalled();
+		expect(ctx.handleClose).toHaveBeenCalled();
+	});
+
+	it("registers rebuild-search-index that calls build()", async () => {
+		const buildMock = vi.fn().mockResolvedValue(undefined);
+		vi.mocked(useSearchIndexStore.getState).mockReturnValue({
+			build: buildMock,
+		} as unknown as ReturnType<typeof useSearchIndexStore.getState>);
+
+		const registry = createMockRegistry();
+		const ctx = createMockCtx();
+
+		registerApplicationCommands(registry, ctx);
+
+		const appCommands = getCommands(registry);
+		const rebuildCommand = appCommands.find((cmd) => cmd.id === "rebuild-search-index");
+		expect(rebuildCommand).toBeDefined();
+
+		await rebuildCommand?.action();
+
+		expect(buildMock).toHaveBeenCalled();
+	});
+
+	it("registers toggle-theme that cycles dark → light → system", async () => {
+		const saveMock = vi.fn().mockResolvedValue(undefined);
+		vi.mocked(usePreferencesStore.getState).mockReturnValue({
+			overrides: { appearance: { theme: "dark" } },
+			saveOverrides: saveMock,
+		} as unknown as ReturnType<typeof usePreferencesStore.getState>);
+
+		const registry = createMockRegistry();
+		const ctx = createMockCtx();
+
+		registerApplicationCommands(registry, ctx);
+
+		const appCommands = getCommands(registry);
+		const themeCommand = appCommands.find((cmd) => cmd.id === "toggle-theme");
+		expect(themeCommand).toBeDefined();
+
+		await themeCommand?.action();
+
+		expect(saveMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				appearance: expect.objectContaining({ theme: "light" }),
+			}),
+		);
+	});
+
+	it("registers zoom-in that increases scale", () => {
+		const setScaleMock = vi.fn();
+		vi.mocked(useScaleStore.getState).mockReturnValue({
+			scale: 1.0,
+			setScale: setScaleMock,
+		} as unknown as ReturnType<typeof useScaleStore.getState>);
+
+		const registry = createMockRegistry();
+		const ctx = createMockCtx();
+
+		registerApplicationCommands(registry, ctx);
+
+		const appCommands = getCommands(registry);
+		const zoomInCommand = appCommands.find((cmd) => cmd.id === "zoom-in");
+		expect(zoomInCommand).toBeDefined();
+
+		zoomInCommand?.action();
+
+		expect(setScaleMock).toHaveBeenCalledWith(1.1);
+	});
+
+	it("registers zoom-out that decreases scale", () => {
+		const setScaleMock = vi.fn();
+		vi.mocked(useScaleStore.getState).mockReturnValue({
+			scale: 1.0,
+			setScale: setScaleMock,
+		} as unknown as ReturnType<typeof useScaleStore.getState>);
+
+		const registry = createMockRegistry();
+		const ctx = createMockCtx();
+
+		registerApplicationCommands(registry, ctx);
+
+		const appCommands = getCommands(registry);
+		const zoomOutCommand = appCommands.find((cmd) => cmd.id === "zoom-out");
+		expect(zoomOutCommand).toBeDefined();
+
+		zoomOutCommand?.action();
+
+		expect(setScaleMock).toHaveBeenCalledWith(0.9);
+	});
+
+	it("registers zoom-reset that sets scale to 1.0", () => {
+		const setScaleMock = vi.fn();
+		vi.mocked(useScaleStore.getState).mockReturnValue({
+			scale: 1.5,
+			setScale: setScaleMock,
+		} as unknown as ReturnType<typeof useScaleStore.getState>);
+
+		const registry = createMockRegistry();
+		const ctx = createMockCtx();
+
+		registerApplicationCommands(registry, ctx);
+
+		const appCommands = getCommands(registry);
+		const zoomResetCommand = appCommands.find((cmd) => cmd.id === "zoom-reset");
+		expect(zoomResetCommand).toBeDefined();
+
+		zoomResetCommand?.action();
+
+		expect(setScaleMock).toHaveBeenCalledWith(1.0);
 	});
 });
