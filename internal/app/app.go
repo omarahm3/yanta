@@ -345,13 +345,13 @@ func (a *App) BeforeClose() bool {
 
 	if keepInBackground {
 		logger.Debug("hiding window to background")
-		if a.mainWindow != nil {
-			a.mainWindow.Hide()
-		}
 		if a.wailsApp != nil {
 			a.wailsApp.Event.Emit(events.WindowHidden, map[string]any{
 				"reason": "keep_in_background",
 			})
+		}
+		if a.mainWindow != nil {
+			a.mainWindow.Hide()
 		}
 		return true
 	}

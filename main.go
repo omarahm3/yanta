@@ -87,6 +87,10 @@ func run() {
 		config.GetLinuxWindowMode(),
 	)
 
+	savedGeom := config.GetWindowGeometry()
+	logger.Infof("saved window geometry: X=%d Y=%d W=%d H=%d maximised=%v",
+		savedGeom.X, savedGeom.Y, savedGeom.Width, savedGeom.Height, savedGeom.Maximised)
+
 	customAssetHandler := createCustomAssetHandler(a.Bindings.Assets)
 
 	// Check if this is a quick capture launch
@@ -174,16 +178,29 @@ func run() {
 		winTheme = application.SystemDefault
 	}
 
+	initialWidth := windowcfg.DefaultWidth
+	initialHeight := windowcfg.DefaultHeight
+	if savedGeom.Width >= windowcfg.MinWidth && savedGeom.Height >= windowcfg.MinHeight {
+		initialWidth = savedGeom.Width
+		initialHeight = savedGeom.Height
+	}
+
+	startState := application.WindowStateNormal
+	if savedGeom.Maximised {
+		startState = application.WindowStateMaximised
+	}
+
 	mainWindow := wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:            "YANTA",
-		Width:            windowcfg.DefaultWidth,
-		Height:           windowcfg.DefaultHeight,
+		Width:            initialWidth,
+		Height:           initialHeight,
 		MinWidth:         windowcfg.MinWidth,
 		MinHeight:        windowcfg.MinHeight,
 		Hidden:           startHidden,
 		Frameless:        frameless,
 		URL:              "/",
 		BackgroundColour: bgColour,
+		StartState:       startState,
 		Mac: application.MacWindow{
 			TitleBar:                application.MacTitleBarHiddenInset,
 			Appearance:              macAppearance,
@@ -203,12 +220,55 @@ func run() {
 	a.SetMainWindow(mainWindow)
 	config.InitWailsService(a.Bindings.Config, a.Bindings.EventBus, mainWindow)
 
+	tray := wailsApp.SystemTray.New()
+	tray.SetIcon(appIcon)
+	tray.SetTooltip("YANTA")
+
+	trayMenu := application.NewMenu()
+	showItem := trayMenu.Add("Show")
+	showItem.OnClick(func(ctx *application.Context) {
+		mainWindow.Show()
+		mainWindow.Restore()
+		mainWindow.Focus()
+	})
+	quickCaptureItem := trayMenu.Add("Quick Capture")
+	quickCaptureItem.OnClick(func(ctx *application.Context) {
+		quickcapture.ShowWindow()
+	})
+	trayMenu.AddSeparator()
+	quitItem := trayMenu.Add("Quit")
+	quitItem.OnClick(func(ctx *application.Context) {
+		wailsApp.Quit()
+	})
+	tray.SetMenu(trayMenu)
+	tray.OnClick(func() {
+		mainWindow.Show()
+		mainWindow.Restore()
+		mainWindow.Focus()
+	})
+
+	logger.Debug("system tray created")
+
 	wailsApp.Event.OnApplicationEvent(
 		events.Common.ApplicationStarted,
 		func(event *application.ApplicationEvent) {
 			logger.Debug("ApplicationStarted event fired, calling app.Startup()")
 			a.Startup(context.Background())
 			app.MarkGraphicsStartupSuccessful()
+
+			// Restore window position if not maximised
+			if !savedGeom.Maximised && savedGeom.Width >= windowcfg.MinWidth && savedGeom.Height >= windowcfg.MinHeight {
+				screens := wailsApp.Screen.GetAll()
+				savedRect := application.Rect{
+					X:      savedGeom.X,
+					Y:      savedGeom.Y,
+					Width:  savedGeom.Width,
+					Height: savedGeom.Height,
+				}
+				clamped := windowcfg.ClampToVisibleArea(savedRect, screens)
+				mainWindow.SetRelativePosition(clamped.X, clamped.Y)
+				logger.Infof("restored window position to X=%d Y=%d", clamped.X, clamped.Y)
+			}
 
 			// If this is a quick launch, open Quick Capture window
 			if isQuickLaunch {
@@ -269,6 +329,48 @@ func run() {
 				wailsApp.Quit()
 			}()
 		}
+	})
+
+	saveGeometry := func() {
+		if mainWindow.IsMaximised() {
+			geom := config.WindowGeometry{
+				Maximised: true,
+			}
+			if err := config.SetWindowGeometry(geom); err != nil {
+				logger.Errorf("failed to save window geometry: %v", err)
+			}
+			logger.Debug("saved window geometry (maximised)")
+			return
+		}
+
+		bounds := mainWindow.Bounds()
+		geom := config.WindowGeometry{
+			X:         bounds.X,
+			Y:         bounds.Y,
+			Width:     bounds.Width,
+			Height:    bounds.Height,
+			Maximised: false,
+		}
+		if err := config.SetWindowGeometry(geom); err != nil {
+			logger.Errorf("failed to save window geometry: %v", err)
+		}
+		logger.Debugf("saved window geometry: X=%d Y=%d W=%d H=%d", geom.X, geom.Y, geom.Width, geom.Height)
+	}
+
+	mainWindow.RegisterHook(events.Common.WindowDidMove, func(e *application.WindowEvent) {
+		saveGeometry()
+	})
+
+	mainWindow.RegisterHook(events.Common.WindowDidResize, func(e *application.WindowEvent) {
+		saveGeometry()
+	})
+
+	mainWindow.RegisterHook(events.Common.WindowMaximise, func(e *application.WindowEvent) {
+		saveGeometry()
+	})
+
+	mainWindow.RegisterHook(events.Common.WindowUnMaximise, func(e *application.WindowEvent) {
+		saveGeometry()
 	})
 
 	err = wailsApp.Run()

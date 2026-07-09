@@ -1046,6 +1046,16 @@ func (s *Service) GetAvailableHotkeyModifiers(ctx context.Context) []string {
 	return []string{"Ctrl", "Shift", "Alt", "Win"}
 }
 
+// GetWindowGeometry returns the saved window geometry.
+func (s *Service) GetWindowGeometry(ctx context.Context) config.WindowGeometry {
+	return config.GetWindowGeometry()
+}
+
+// SetWindowGeometry saves the window geometry.
+func (s *Service) SetWindowGeometry(ctx context.Context, geom config.WindowGeometry) error {
+	return config.SetWindowGeometry(geom)
+}
+
 // GetPlatform returns the current platform name.
 func (s *Service) GetPlatform(ctx context.Context) string {
 	return runtime.GOOS

@@ -29,7 +29,15 @@ type BackupConfig struct {
 type HotkeyConfig struct {
 	QuickCaptureEnabled   bool     `toml:"quick_capture_enabled"`
 	QuickCaptureModifiers []string `toml:"quick_capture_modifiers"` // e.g., ["Ctrl", "Shift"]
-	QuickCaptureKey       string   `toml:"quick_capture_key"`       // e.g., "N"
+	QuickCaptureKey       string   `toml:"quick_capture_key"`       // e.g., "n"
+}
+
+type WindowGeometry struct {
+	X         int  `toml:"x"`
+	Y         int  `toml:"y"`
+	Width     int  `toml:"width"`
+	Height    int  `toml:"height"`
+	Maximised bool `toml:"maximised"`
 }
 
 // FeatureFlags defines launch-time feature gates loaded from config.toml [feature_flags].
@@ -103,6 +111,7 @@ type Config struct {
 	LinuxWindowMode      string               `toml:"linux_window_mode"`
 	AppScale             float64              `toml:"app_scale"`
 	Hotkey               HotkeyConfig         `toml:"hotkey"`
+	WindowGeometry       WindowGeometry       `toml:"window_geometry"`
 	SidebarVisible       bool                 `toml:"sidebar_visible"`
 	ShowFooterHints      bool                 `toml:"show_footer_hints"`
 	ShowShortcutTooltips bool                 `toml:"show_shortcut_tooltips"`
@@ -543,6 +552,22 @@ func SetHotkeyConfig(hotkeyCfg HotkeyConfig) error {
 	}
 
 	instance.Hotkey = hotkeyCfg
+	return save(instance)
+}
+
+func GetWindowGeometry() WindowGeometry {
+	return Get().WindowGeometry
+}
+
+func SetWindowGeometry(geom WindowGeometry) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if instance == nil {
+		instance = &Config{}
+	}
+
+	instance.WindowGeometry = geom
 	return save(instance)
 }
 
