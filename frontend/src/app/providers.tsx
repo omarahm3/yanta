@@ -2,7 +2,7 @@ import { ENABLE_PLUGINS } from "../config/featureFlags";
 import { DocumentProvider } from "../document";
 import { HelpModal, HelpProvider } from "../help";
 import { HotkeyProvider } from "../hotkeys";
-import { MilestoneHintManager } from "../onboarding";
+import { MilestoneHintManager, WelcomeOverlay } from "../onboarding";
 import { PaneLayoutProvider } from "../pane";
 import { PluginBootstrap } from "../plugins";
 import { ReducedEffectsInit } from "../shared/stores/appearance.store";
@@ -45,6 +45,7 @@ export function AppProviders() {
 							<GlobalCommandHotkey />
 							<HelpModal />
 							<MilestoneHintManager />
+							<WelcomeOverlay />
 						</PaneLayoutProvider>
 					</DocumentProvider>
 				</HelpProvider>

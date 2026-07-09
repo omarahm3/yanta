@@ -15,7 +15,8 @@ type CommandId =
 	| "command-palette"
 	| "show-help"
 	| "switch-last"
-	| "save-document";
+	| "save-document"
+	| "find-in-document";
 
 interface ShortcutMapping {
 	key: string;
@@ -32,6 +33,7 @@ const COMMAND_TO_CONFIG: Partial<Record<CommandId, { group: string; key: string 
 	"toggle-sidebar": { group: "sidebar", key: "toggle" },
 	"new-document": { group: "dashboard", key: "newDocument" },
 	"save-document": { group: "document", key: "save" },
+	"find-in-document": { group: "document", key: "documentSearch" },
 };
 
 const COMMAND_KEYBOARD_MAPPINGS: Record<CommandId, ShortcutMapping> = {
@@ -49,6 +51,7 @@ const COMMAND_KEYBOARD_MAPPINGS: Record<CommandId, ShortcutMapping> = {
 	"nav-today": { key: "T", ctrlKey: true },
 	"switch-last": { key: "Tab", ctrlKey: true },
 	"save-document": { key: "S", ctrlKey: true },
+	"find-in-document": { key: "F", ctrlKey: true },
 };
 
 export function getShortcutForCommand(commandId: string): string | undefined {
