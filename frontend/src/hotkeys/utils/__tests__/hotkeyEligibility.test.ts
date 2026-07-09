@@ -103,18 +103,22 @@ describe("isHotkeyEligibleForTarget", () => {
 		contentEditable.appendChild(editorParagraph);
 		document.body.appendChild(contentEditable);
 
-		expect(
-			isHotkeyEligibleForTarget(keydown({ key: "k", ctrlKey: true }), editorParagraph, true),
-		).toBe(true);
-		expect(
-			isHotkeyEligibleForTarget(keydown({ key: "t", ctrlKey: true }), editorParagraph, true),
-		).toBe(true);
-		expect(
-			isHotkeyEligibleForTarget(
-				keydown({ key: "K", ctrlKey: true, shiftKey: true }),
-				editorParagraph,
-				true,
-			),
-		).toBe(true);
+		try {
+			expect(
+				isHotkeyEligibleForTarget(keydown({ key: "k", ctrlKey: true }), editorParagraph, true),
+			).toBe(true);
+			expect(
+				isHotkeyEligibleForTarget(keydown({ key: "t", ctrlKey: true }), editorParagraph, true),
+			).toBe(true);
+			expect(
+				isHotkeyEligibleForTarget(
+					keydown({ key: "K", ctrlKey: true, shiftKey: true }),
+					editorParagraph,
+					true,
+				),
+			).toBe(true);
+		} finally {
+			document.body.removeChild(contentEditable);
+		}
 	});
 });

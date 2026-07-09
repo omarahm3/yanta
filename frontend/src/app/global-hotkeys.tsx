@@ -34,7 +34,10 @@ const GlobalCommandHotkey = () => {
 
 	useHotkey({
 		...global.commandPalette,
-		handler: () => openCommandPalette(),
+		handler: (e) => {
+			e.preventDefault();
+			openCommandPalette();
+		},
 		allowInInput: true,
 		capture: true,
 	});
