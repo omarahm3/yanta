@@ -18,6 +18,7 @@ export const GLOBAL_SHORTCUTS = {
 	projectSwitcher: { key: "mod+shift+K", description: "Switch project" },
 	navBack: { key: "alt+ArrowLeft", description: "Go back" },
 	navForward: { key: "alt+ArrowRight", description: "Go forward" },
+	gitSync: { key: "mod+shift+S", description: "Sync to git remote" },
 } as const satisfies Record<string, ShortcutDef>;
 
 /** Sidebar (Layout.tsx) */

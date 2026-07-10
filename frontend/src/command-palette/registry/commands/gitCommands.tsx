@@ -1,12 +1,12 @@
 import { CloudDownload, CloudUpload, GitCommit } from "lucide-react";
 import { SyncStatus } from "../../../../bindings/yanta/internal/git/models";
-import { GitPull, GitPush, SyncNow } from "../../../../bindings/yanta/internal/system/service";
+import { GitPull, GitPush } from "../../../../bindings/yanta/internal/system/service";
 import { recordCommandInFlightDelta } from "../../../shared/monitoring/appMonitor";
+import { useSyncStore } from "../../../shared/stores/sync.store";
 import type { CommandOption } from "../../../shared/ui";
 import { getShortcutForCommand } from "../../../shared/utils/shortcuts";
 import type { CommandRegistry, CommandRegistryContext } from "../types";
 
-let gitSyncInFlight = false;
 let gitPullInFlight = false;
 
 export function registerGitCommands(registry: CommandRegistry, ctx: CommandRegistryContext): void {
@@ -22,14 +22,15 @@ export function registerGitCommands(registry: CommandRegistry, ctx: CommandRegis
 			keywords: ["save", "backup", "commit", "push"],
 			action: async () => {
 				handleClose();
-				if (gitSyncInFlight) {
+				if (useSyncStore.getState().inProgress) {
 					notification.info("Sync is already in progress");
 					return;
 				}
-				gitSyncInFlight = true;
-				recordCommandInFlightDelta("syncNow", 1);
 				try {
-					const result = await SyncNow();
+					const result = await useSyncStore.getState().syncNow();
+					if (result === undefined) {
+						return;
+					}
 					if (!result) {
 						notification.info("Sync completed");
 						return;
@@ -58,9 +59,6 @@ export function registerGitCommands(registry: CommandRegistry, ctx: CommandRegis
 					}
 				} catch (err) {
 					showGitError(err);
-				} finally {
-					recordCommandInFlightDelta("syncNow", -1);
-					gitSyncInFlight = false;
 				}
 			},
 		},

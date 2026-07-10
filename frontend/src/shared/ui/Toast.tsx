@@ -95,10 +95,15 @@ const ToastItem: React.FC<{
 	toast: Toast;
 	onDismiss: (id: string) => void;
 }> = ({ toast, onDismiss }) => {
+	// Only an explicit numeric 0/Infinity means persistent. Guarding on the type
+	// avoids `!Number.isFinite(undefined) === true` turning default-duration
+	// toasts persistent.
+	const isPersistent =
+		typeof toast.duration === "number" && (toast.duration === 0 || !Number.isFinite(toast.duration));
 	return (
 		<ToastRoot
 			variant={getVariant(toast.type)}
-			duration={toast.duration}
+			duration={isPersistent ? 0 : toast.duration}
 			onOpenChange={(open) => {
 				if (!open) {
 					onDismiss(toast.id);

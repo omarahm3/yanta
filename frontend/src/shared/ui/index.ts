@@ -40,6 +40,7 @@ export { Sidebar, type SidebarItem, type SidebarItemTooltip, type SidebarSection
 export { StatusBar } from "./StatusBar";
 export { StatusBarItem } from "./StatusBarItem";
 export { StatusMessage } from "./StatusMessage";
+export { SyncToast } from "./SyncToast";
 export { Table, type TableColumn, type TableRow } from "./Table";
 export { type Tag, Tags } from "./Tags";
 export { Text } from "./Text";
