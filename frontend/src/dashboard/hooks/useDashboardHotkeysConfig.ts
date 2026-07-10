@@ -5,7 +5,7 @@ import type { HotkeyConfig } from "../../shared/types/hotkeys";
 export interface UseDashboardHotkeysConfigOptions {
 	handleNewDocument: () => void;
 	handleToggleArchived: () => void;
-	handleDeleteSelectedDocuments: (hard: boolean) => void;
+	handleDeleteSelectedDocuments: () => void;
 	handleMoveSelectedDocuments: () => void;
 	handleToggleSelection: () => void;
 	handleSelectAll: () => void;
@@ -60,20 +60,11 @@ export function useDashboardHotkeysConfig({
 				allowInInput: false,
 			},
 			{
-				...dashboard.softDelete,
-				handler: (event: KeyboardEvent) => {
-					event.preventDefault();
-					event.stopPropagation();
-					handleDeleteSelectedDocuments(false);
-				},
-				allowInInput: false,
-			},
-			{
 				...dashboard.permanentDelete,
 				handler: (event: KeyboardEvent) => {
 					event.preventDefault();
 					event.stopPropagation();
-					handleDeleteSelectedDocuments(true);
+					handleDeleteSelectedDocuments();
 				},
 				allowInInput: false,
 			},

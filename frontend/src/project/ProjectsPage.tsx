@@ -367,8 +367,7 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 
 					if (isArchive) {
 						title = "Archive Project";
-						message =
-							preview.message || `This will archive project "${projectName}". You can restore it later.`;
+						message = `This will archive project "${projectName}". You can restore it later.`;
 						danger = false;
 					} else if (isDelete) {
 						if (isHard) {
@@ -382,9 +381,7 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 							danger = true;
 						} else {
 							title = "Delete Project";
-							message =
-								preview.message ||
-								`This will delete project "${projectName}" and archive all of its documents. You can restore them later.`;
+							message = `This will archive project "${projectName}" and all of its documents. You can restore the project from the archived view; its documents stay archived and can be restored individually.`;
 							danger = false;
 						}
 					}

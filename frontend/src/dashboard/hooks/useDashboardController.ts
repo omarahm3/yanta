@@ -44,7 +44,7 @@ const helpCommands = [
 	},
 	{
 		command: `${DocumentCommand.DocumentCommandDelete} <index>`,
-		description: "Soft delete a document (can be restored)",
+		description: "Archive a document (can be restored)",
 	},
 	{
 		command: `${DocumentCommand.DocumentCommandDelete} <index> --force --hard`,
@@ -97,7 +97,7 @@ export interface DashboardControllerResult {
 	handleArchiveDocument: (path: string) => Promise<void>;
 	handleRestoreDocument: (path: string) => Promise<void>;
 	handleOpenMoveDialog: (path: string) => void;
-	handleDeleteSelectedDocuments: (hard: boolean) => void;
+	handleDeleteSelectedDocuments: () => void;
 	handleExportSelectedMarkdown: () => Promise<void>;
 	handleExportSelectedPDF: () => Promise<void>;
 	confirmDialog: ConfirmDialogState;
@@ -377,135 +377,90 @@ export function useDashboardController({
 		clearSelection();
 	}, [reloadDocuments, clearSelection]);
 
-	const handleDeleteSelectedDocuments = useCallback(
-		(hard: boolean) => {
-			const selectedPaths = Array.from(selectedDocumentsRef.current ?? []);
-			if (selectedPaths.length === 0) {
-				error(hard ? "No documents selected to permanently delete" : "No documents selected to delete");
+	const handleDeleteSelectedDocuments = useCallback(() => {
+		const selectedPaths = Array.from(selectedDocumentsRef.current ?? []);
+		if (selectedPaths.length === 0) {
+			error("No documents selected to permanently delete");
+			return;
+		}
+
+		const count = selectedPaths.length;
+
+		if (count === 1) {
+			const doc = documentsByPathRef.current.get(selectedPaths[0]);
+			if (!doc) {
+				error("Unable to find selected document");
 				return;
 			}
 
-			const count = selectedPaths.length;
-
-			if (count === 1) {
-				const doc = documentsByPathRef.current.get(selectedPaths[0]);
-				if (!doc) {
-					error("Unable to find selected document");
-					return;
-				}
-
-				if (hard) {
-					commandInputRef.current?.blur();
-					setConfirmDialog({
-						isOpen: true,
-						title: "Permanently Delete Document",
-						message: `This will PERMANENTLY delete "${doc.title}" from the vault. This action CANNOT be undone!`,
-						onConfirm: async () => {
-							try {
-								const result = await ParseWithContext(
-									`delete ${doc.path} --force --hard`,
-									currentProjectRef.current?.alias || "",
-								);
-								if (!result) {
-									error("Command returned null");
-								} else if (!result.success) {
-									error(result.message || "Failed to delete");
-								} else {
-									await reloadDocuments();
-									clearSelection();
-									success("Document permanently deleted");
-								}
-							} catch (err) {
-								error(err instanceof Error ? err.message : "Failed to permanently delete");
-							} finally {
-								setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+			commandInputRef.current?.blur();
+			setConfirmDialog({
+				isOpen: true,
+				title: "Permanently Delete Document",
+				message: `This will PERMANENTLY delete "${doc.title}" from the vault. This action CANNOT be undone!`,
+				onConfirm: async () => {
+					try {
+						const result = await ParseWithContext(
+							`delete ${doc.path} --force --hard`,
+							currentProjectRef.current?.alias || "",
+						);
+						if (!result) {
+							error("Command returned null");
+						} else if (!result.success) {
+							error(result.message || "Failed to delete");
+						} else {
+							removeRecentDocument(doc.path);
+							await reloadDocuments();
+							clearSelection();
+							success("Document permanently deleted");
+						}
+					} catch (err) {
+						error(err instanceof Error ? err.message : "Failed to permanently delete");
+					} finally {
+						setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+					}
+				},
+				danger: true,
+				showCheckbox: true,
+			});
+		} else {
+			commandInputRef.current?.blur();
+			setConfirmDialog({
+				isOpen: true,
+				title: "Permanently Delete Multiple Documents",
+				message: `This will PERMANENTLY delete ${count} document${
+					count > 1 ? "s" : ""
+				} from the vault. This action CANNOT be undone!`,
+				onConfirm: async () => {
+					try {
+						const pathsString = selectedPaths.join(",");
+						const result = await ParseWithContext(
+							`delete ${pathsString} --force --hard`,
+							currentProjectRef.current?.alias || "",
+						);
+						if (!result) {
+							error("Command returned null");
+						} else if (!result.success) {
+							error(result.message || "Failed to delete");
+						} else {
+							for (const path of selectedPaths) {
+								removeRecentDocument(path);
 							}
-						},
-						danger: true,
-						showCheckbox: true,
-					});
-				} else {
-					commandInputRef.current?.blur();
-					setConfirmDialog({
-						isOpen: true,
-						title: "Delete Document",
-						message: `This will soft delete "${doc.title}". You can restore it later from archived view.`,
-						onConfirm: async () => {
-							try {
-								await SoftDelete(doc.path);
-								removeRecentDocument(doc.path);
-								await reloadDocuments();
-								clearSelection();
-							} catch (err) {
-								error(err instanceof Error ? err.message : "Failed to delete");
-							} finally {
-								setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
-							}
-						},
-					});
-				}
-			} else {
-				if (hard) {
-					commandInputRef.current?.blur();
-					setConfirmDialog({
-						isOpen: true,
-						title: "Permanently Delete Multiple Documents",
-						message: `This will PERMANENTLY delete ${count} document${
-							count > 1 ? "s" : ""
-						} from the vault. This action CANNOT be undone!`,
-						onConfirm: async () => {
-							try {
-								const pathsString = selectedPaths.join(",");
-								const result = await ParseWithContext(
-									`delete ${pathsString} --force --hard`,
-									currentProjectRef.current?.alias || "",
-								);
-								if (!result) {
-									error("Command returned null");
-								} else if (!result.success) {
-									error(result.message || "Failed to delete");
-								} else {
-									await reloadDocuments();
-									clearSelection();
-									success(`${count} documents permanently deleted`);
-								}
-							} catch (err) {
-								error(err instanceof Error ? err.message : "Failed to permanently delete");
-							} finally {
-								setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
-							}
-						},
-						danger: true,
-						showCheckbox: true,
-					});
-				} else {
-					commandInputRef.current?.blur();
-					setConfirmDialog({
-						isOpen: true,
-						title: "Delete Multiple Documents",
-						message: `This will soft delete ${count} document${
-							count > 1 ? "s" : ""
-						}. You can restore them later from archived view.`,
-						onConfirm: async () => {
-							try {
-								for (const path of selectedPaths) {
-									await SoftDelete(path);
-									removeRecentDocument(path);
-								}
-								await reloadDocuments();
-								clearSelection();
-							} catch (err) {
-								error(err instanceof Error ? err.message : "Failed to delete");
-							} finally {
-								setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
-							}
-						},
-					});
-				}
-			}
-		},
-		[error, reloadDocuments, clearSelection, success, removeRecentDocument],
-	);
+							await reloadDocuments();
+							clearSelection();
+							success(`${count} documents permanently deleted`);
+						}
+					} catch (err) {
+						error(err instanceof Error ? err.message : "Failed to permanently delete");
+					} finally {
+						setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+					}
+				},
+				danger: true,
+				showCheckbox: true,
+			});
+		}
+	}, [error, reloadDocuments, clearSelection, success, removeRecentDocument]);
 
 	const handleOpenHighlightedDocument = useCallback(() => {
 		if (

@@ -12,7 +12,6 @@ function createDashboardShortcuts() {
 	return {
 		newDocument: { key: "mod+N", description: "Create new document" },
 		toggleArchived: { key: "mod+shift+A", description: "Toggle archived documents view" },
-		softDelete: { key: "mod+D", description: "Soft delete selected documents" },
 		permanentDelete: { key: "mod+shift+D", description: "Permanently delete selected documents" },
 		toggleSelection: { key: "Space", description: "Select/deselect highlighted document" },
 		openHighlighted: { key: "Enter", description: "Open highlighted document" },
@@ -21,7 +20,7 @@ function createDashboardShortcuts() {
 		navigateDown: { key: "ArrowDown", description: "Navigate down" },
 		navigateUp: { key: "ArrowUp", description: "Navigate up" },
 		move: { key: "mod+M", description: "Move selected documents" },
-		archive: { key: "mod+A", description: "Archive selected documents" },
+		archive: { key: "mod+D", description: "Archive selected documents" },
 		restore: { key: "mod+U", description: "Restore archived documents" },
 		exportMd: { key: "mod+E", description: "Export selected documents to markdown" },
 		exportPdf: { key: "mod+shift+E", description: "Export selected documents to PDF" },
@@ -65,13 +64,12 @@ describe("useDashboardHotkeysConfig", () => {
 		const options = createHookOptions();
 		const { result } = renderHook(() => useDashboardHotkeysConfig(options));
 
-		expect(result.current).toHaveLength(15);
+		expect(result.current).toHaveLength(14);
 		expect(result.current.every((hotkey) => hotkey.allowInInput === false)).toBe(true);
 		expect(result.current.map((hotkey) => hotkey.key)).toEqual(
 			expect.arrayContaining([
 				"mod+N",
 				"mod+shift+A",
-				"mod+D",
 				"mod+shift+D",
 				"Space",
 				"Enter",
@@ -80,7 +78,7 @@ describe("useDashboardHotkeysConfig", () => {
 				"ArrowDown",
 				"ArrowUp",
 				"mod+M",
-				"mod+A",
+				"mod+D",
 				"mod+U",
 				"mod+E",
 				"mod+shift+E",
@@ -88,24 +86,20 @@ describe("useDashboardHotkeysConfig", () => {
 		);
 	});
 
-	it("routes delete hotkeys with correct hard-delete flag", () => {
+	it("routes permanent delete hotkey without soft-delete flag", () => {
 		const options = createHookOptions();
 		const { result } = renderHook(() => useDashboardHotkeysConfig(options));
 
-		const softDeleteHotkey = result.current.find((hotkey) => hotkey.key === "mod+D");
-		const hardDeleteHotkey = result.current.find((hotkey) => hotkey.key === "mod+shift+D");
+		const permanentDeleteHotkey = result.current.find((hotkey) => hotkey.key === "mod+shift+D");
 
-		expect(softDeleteHotkey).toBeDefined();
-		expect(hardDeleteHotkey).toBeDefined();
+		expect(permanentDeleteHotkey).toBeDefined();
 
 		const event = createKeyboardEventStub();
 		act(() => {
-			softDeleteHotkey?.handler(event);
-			hardDeleteHotkey?.handler(event);
+			permanentDeleteHotkey?.handler(event);
 		});
 
-		expect(options.handleDeleteSelectedDocuments).toHaveBeenNthCalledWith(1, false);
-		expect(options.handleDeleteSelectedDocuments).toHaveBeenNthCalledWith(2, true);
+		expect(options.handleDeleteSelectedDocuments).toHaveBeenCalledWith();
 		expect(event.preventDefault).toHaveBeenCalled();
 		expect(event.stopPropagation).toHaveBeenCalled();
 	});
@@ -142,7 +136,7 @@ describe("useDashboardHotkeysConfig", () => {
 		const { result } = renderHook(() => useDashboardHotkeysConfig(options));
 		const event = createKeyboardEventStub();
 
-		const archiveHotkey = result.current.find((hotkey) => hotkey.key === "mod+A");
+		const archiveHotkey = result.current.find((hotkey) => hotkey.key === "mod+D");
 		const restoreHotkey = result.current.find((hotkey) => hotkey.key === "mod+U");
 		const exportMdHotkey = result.current.find((hotkey) => hotkey.key === "mod+E");
 		const exportPdfHotkey = result.current.find((hotkey) => hotkey.key === "mod+shift+E");
