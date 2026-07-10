@@ -125,4 +125,54 @@ describe("Projects mouse actions", () => {
 			projectId: "2",
 		});
 	});
+
+	it("delete dialog does not promise document restore (MRG-337)", async () => {
+		parse.mockResolvedValueOnce({
+			success: true,
+			message: "",
+			data: {
+				alias: "@alpha",
+				requiresConfirmation: true,
+				confirmationCommand: "delete @alpha --force",
+			},
+		});
+
+		renderProjects();
+		fireEvent.click(screen.getByRole("button", { name: "Delete Alpha" }));
+
+		await waitFor(() => {
+			const dialog = screen.getByRole("dialog");
+			expect(dialog).toBeInTheDocument();
+		});
+
+		// The dialog must NOT promise that documents can be restored
+		const dialogText = screen.getByRole("dialog").textContent;
+		expect(dialogText).not.toMatch(/restore them later/i);
+		expect(dialogText).toMatch(/documents stay archived/i);
+	});
+
+	it("archive dialog copy is honest — archives project only, no document mention (MRG-337)", async () => {
+		parse.mockResolvedValueOnce({
+			success: true,
+			message: "Backend will archive 5 entries",
+			data: {
+				alias: "@alpha",
+				requiresConfirmation: true,
+				confirmationCommand: "archive @alpha --force",
+			},
+		});
+
+		renderProjects();
+		fireEvent.click(screen.getByRole("button", { name: "Archive Alpha" }));
+
+		await waitFor(() => {
+			const dialog = screen.getByRole("dialog");
+			expect(dialog).toBeInTheDocument();
+		});
+
+		// The dialog must use the honest frontend copy, not the misleading backend message
+		const dialogText = screen.getByRole("dialog").textContent;
+		expect(dialogText).toMatch(/archive project "Alpha"/i);
+		expect(dialogText).not.toMatch(/archive \d+ entries/i);
+	});
 });

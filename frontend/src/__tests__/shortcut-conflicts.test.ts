@@ -191,14 +191,6 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 	});
 
 	shortcuts.push({
-		key: "mod+D",
-		description: "Soft delete selected documents",
-		context: "dashboard",
-		source: "useDashboardController.ts",
-		allowInInput: false,
-	});
-
-	shortcuts.push({
 		key: "mod+shift+D",
 		description: "Permanently delete selected documents",
 		context: "dashboard",
@@ -255,7 +247,7 @@ function collectAllShortcuts(): ShortcutDefinition[] {
 	});
 
 	shortcuts.push({
-		key: "mod+A",
+		key: "mod+D",
 		description: "Archive selected documents",
 		context: "dashboard",
 		source: "useDashboardController.ts",

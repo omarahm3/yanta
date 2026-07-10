@@ -8,7 +8,6 @@ import { useDashboardHotkeysConfig } from "../hooks/useDashboardHotkeysConfig";
 const dashboardShortcuts = {
 	newDocument: { key: "mod+N", description: "Create new document" },
 	toggleArchived: { key: "mod+shift+A", description: "Toggle archived documents view" },
-	softDelete: { key: "mod+D", description: "Soft delete selected documents" },
 	permanentDelete: { key: "mod+shift+D", description: "Permanently delete selected documents" },
 	toggleSelection: { key: "Space", description: "Select/deselect highlighted document" },
 	openHighlighted: { key: "Enter", description: "Open highlighted document" },
@@ -17,7 +16,7 @@ const dashboardShortcuts = {
 	navigateDown: { key: "ArrowDown", description: "Navigate down" },
 	navigateUp: { key: "ArrowUp", description: "Navigate up" },
 	move: { key: "mod+M", description: "Move selected documents" },
-	archive: { key: "mod+A", description: "Archive selected documents" },
+	archive: { key: "mod+D", description: "Archive selected documents" },
 	restore: { key: "mod+U", description: "Restore archived documents" },
 	exportMd: { key: "mod+E", description: "Export selected documents to markdown" },
 	exportPdf: { key: "mod+shift+E", description: "Export selected documents to PDF" },
@@ -88,13 +87,11 @@ describe("Dashboard hotkeys integration", () => {
 
 		fireEvent.keyDown(document, { key: "n", ...modKey });
 		fireEvent.keyDown(document, { key: "a", shiftKey: true, ...modKey });
-		fireEvent.keyDown(document, { key: "d", ...modKey });
 		fireEvent.keyDown(document, { key: "d", shiftKey: true, ...modKey });
 
 		expect(options.handleNewDocument).toHaveBeenCalledTimes(1);
 		expect(options.handleToggleArchived).toHaveBeenCalledTimes(1);
-		expect(options.handleDeleteSelectedDocuments).toHaveBeenNthCalledWith(1, false);
-		expect(options.handleDeleteSelectedDocuments).toHaveBeenNthCalledWith(2, true);
+		expect(options.handleDeleteSelectedDocuments).toHaveBeenCalledTimes(1);
 	});
 
 	it("does not trigger dashboard hotkeys while typing in input fields", () => {
@@ -114,5 +111,6 @@ describe("Dashboard hotkeys integration", () => {
 		expect(options.highlightNext).not.toHaveBeenCalled();
 		expect(options.handleOpenHighlightedDocument).not.toHaveBeenCalled();
 		expect(options.handleDeleteSelectedDocuments).not.toHaveBeenCalled();
+		expect(options.handleArchiveSelectedDocuments).not.toHaveBeenCalled();
 	});
 });
