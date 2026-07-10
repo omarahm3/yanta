@@ -30,6 +30,7 @@ import { cn } from "../shared/utils/cn";
 import { useTitleBarContext } from "./context";
 
 function formatLastSync(timestamp: number): string {
+	if (!timestamp || !Number.isFinite(timestamp)) return "never";
 	const diffMs = Date.now() - timestamp;
 	const diffSec = Math.floor(diffMs / 1000);
 	if (diffSec < 60) return "just now";
@@ -253,7 +254,7 @@ export const Layout: React.FC<LayoutProps> = ({
 					</div>
 				</div>
 
-				{(!footerHintsLoading || gitStatus?.enabled) && (
+				{((!footerHintsLoading && showFooterHints) || gitStatus?.enabled) && (
 					<div className="flex items-center justify-between min-h-8 bg-surface border-t border-border z-40">
 						{!footerHintsLoading && showFooterHints && (
 							<FooterHintBar hints={allFooterHints} className="flex-1 min-w-0 border-t-0 bg-transparent" />
@@ -261,9 +262,7 @@ export const Layout: React.FC<LayoutProps> = ({
 						{gitStatus?.enabled && (
 							<div className="flex items-center gap-2 px-3 shrink-0">
 								{lastSynced && (
-									<span className="text-xs text-text-dim">
-										Last synced {formatLastSync(lastSynced.at)}
-									</span>
+									<span className="text-xs text-text-dim">Last synced {formatLastSync(lastSynced.at)}</span>
 								)}
 								<GitStatusIndicator
 									status={gitStatus}

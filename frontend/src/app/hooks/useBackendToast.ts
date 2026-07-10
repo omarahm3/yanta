@@ -29,6 +29,9 @@ export function useBackendToast(): void {
 					toast.warning(payload.message, { duration });
 					break;
 				case "success":
+					// A successful (background) sync clears any prior sync error so the
+					// GitStatusIndicator doesn't stay stuck in an error state.
+					useSyncStore.getState().setLastError(null);
 					toast.success(payload.message, { duration });
 					break;
 				default:

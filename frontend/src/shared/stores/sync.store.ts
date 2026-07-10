@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { SyncStatus, type SyncResult } from "../../../bindings/yanta/internal/git/models";
+import { type SyncResult, SyncStatus } from "../../../bindings/yanta/internal/git/models";
 import { SyncNow } from "../../../bindings/yanta/internal/system/service";
 import { recordCommandInFlightDelta } from "../monitoring/appMonitor";
 
@@ -23,7 +23,20 @@ interface SyncStoreState {
 function readPersistedLastSync(): { at: number; status: SyncOutcome } | null {
 	try {
 		const raw = localStorage.getItem(LAST_SYNC_KEY);
-		return raw ? JSON.parse(raw) : null;
+		if (!raw) return null;
+		const parsed = JSON.parse(raw);
+		// Guard against corrupted/outdated persisted shape so the UI never renders
+		// "NaNd ago" from a bad `at`.
+		if (
+			parsed &&
+			typeof parsed === "object" &&
+			typeof parsed.at === "number" &&
+			Number.isFinite(parsed.at) &&
+			typeof parsed.status === "string"
+		) {
+			return parsed as { at: number; status: SyncOutcome };
+		}
+		return null;
 	} catch {
 		return null;
 	}
@@ -31,7 +44,11 @@ function readPersistedLastSync(): { at: number; status: SyncOutcome } | null {
 
 function persistLastSync(sync: { at: number; status: SyncOutcome } | null) {
 	try {
-		if (sync) localStorage.setItem(LAST_SYNC_KEY, JSON.stringify(sync));
+		if (sync) {
+			localStorage.setItem(LAST_SYNC_KEY, JSON.stringify(sync));
+		} else {
+			localStorage.removeItem(LAST_SYNC_KEY);
+		}
 	} catch {
 		// non-fatal: last-sync display just won't persist
 	}

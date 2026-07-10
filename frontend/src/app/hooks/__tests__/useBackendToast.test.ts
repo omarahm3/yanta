@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { Events } from "@wailsio/runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useSyncStore } from "../../shared/stores/sync.store";
+import { useSyncStore } from "../../../shared/stores/sync.store";
 import { useBackendToast } from "../useBackendToast";
 
 const mockToast = {
@@ -14,9 +14,20 @@ const mockToast = {
 
 vi.mock("@wailsio/runtime", () => ({
 	Events: { On: vi.fn(() => () => {}) },
+	// sync.store pulls in Wails bindings (models/service) that touch these at
+	// module load, so provide the minimal runtime surface they need.
+	Call: { ByID: vi.fn(() => Promise.resolve({})), ByName: vi.fn(() => Promise.resolve({})) },
+	CancellablePromise: Promise,
+	Create: {
+		Any: (x: unknown) => x,
+		Array: () => (arr: unknown) => arr,
+		Map: () => (obj: unknown) => obj,
+		Nullable: () => (val: unknown) => val,
+		Struct: () => (x: unknown) => x,
+	},
 }));
 
-vi.mock("../../shared/ui", () => ({
+vi.mock("../../../shared/ui", () => ({
 	useToast: () => mockToast,
 }));
 

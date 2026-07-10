@@ -7,8 +7,8 @@ import { useHelp } from "../help";
 import { useHotkey } from "../hotkeys";
 import { useProjectContext } from "../project";
 import { ProjectSwitcher, useProjectSwitcherStore } from "../project-switcher";
-import { SyncToast } from "../shared/ui";
 import { useSyncStore } from "../shared/stores/sync.store";
+import { SyncToast } from "../shared/ui";
 import { useAppGlobalEffects } from "./hooks";
 import { useLeaderKeys } from "./hooks/useLeaderKeys";
 import { NavGuardDialog } from "./hooks/useNavGuard";
@@ -123,7 +123,12 @@ const GlobalCommandHotkey = () => {
 		...global.gitSync,
 		handler: (e) => {
 			e.preventDefault();
-			useSyncStore.getState().syncNow();
+			// syncNow() re-throws after recording lastError; swallow here so a
+			// shortcut-triggered failure doesn't become an unhandled rejection.
+			void useSyncStore
+				.getState()
+				.syncNow()
+				.catch(() => {});
 		},
 		allowInInput: true,
 	});

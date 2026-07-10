@@ -19,6 +19,13 @@ export const SyncToast: React.FC = () => {
 			toast.dismiss(toastIdRef.current);
 			toastIdRef.current = null;
 		}
+		// Dismiss the persistent (duration: 0) toast on unmount so it can't leak.
+		return () => {
+			if (toastIdRef.current) {
+				toast.dismiss(toastIdRef.current);
+				toastIdRef.current = null;
+			}
+		};
 	}, [inProgress, toast]);
 
 	return null;
