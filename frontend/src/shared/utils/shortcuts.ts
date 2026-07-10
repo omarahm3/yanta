@@ -33,6 +33,7 @@ const COMMAND_TO_CONFIG: Partial<Record<CommandId, { group: string; key: string 
 	"new-document": { group: "dashboard", key: "newDocument" },
 	"save-document": { group: "document", key: "save" },
 	"find-in-document": { group: "document", key: "documentSearch" },
+	"git-sync": { group: "global", key: "gitSync" },
 };
 
 const COMMAND_KEYBOARD_MAPPINGS: Record<CommandId, ShortcutMapping> = {

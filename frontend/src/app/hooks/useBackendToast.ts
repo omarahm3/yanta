@@ -1,5 +1,6 @@
 import { Events } from "@wailsio/runtime";
 import { useEffect } from "react";
+import { useSyncStore } from "../../shared/stores/sync.store";
 import { useToast } from "../../shared/ui";
 
 type BackendToastPayload = {
@@ -24,7 +25,8 @@ export function useBackendToast(): void {
 					toast.warning(payload.message, { duration });
 					break;
 				case "error":
-					toast.error(payload.message, { duration });
+					useSyncStore.getState().setLastError(payload.message);
+					toast.warning(payload.message, { duration });
 					break;
 				case "success":
 					toast.success(payload.message, { duration });

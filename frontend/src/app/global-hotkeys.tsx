@@ -7,6 +7,8 @@ import { useHelp } from "../help";
 import { useHotkey } from "../hotkeys";
 import { useProjectContext } from "../project";
 import { ProjectSwitcher, useProjectSwitcherStore } from "../project-switcher";
+import { SyncToast } from "../shared/ui";
+import { useSyncStore } from "../shared/stores/sync.store";
 import { useAppGlobalEffects } from "./hooks";
 import { useLeaderKeys } from "./hooks/useLeaderKeys";
 import { NavGuardDialog } from "./hooks/useNavGuard";
@@ -117,6 +119,15 @@ const GlobalCommandHotkey = () => {
 		allowInInput: false,
 	});
 
+	useHotkey({
+		...global.gitSync,
+		handler: (e) => {
+			e.preventDefault();
+			useSyncStore.getState().syncNow();
+		},
+		allowInInput: true,
+	});
+
 	// Mouse buttons 3/4 (back/forward on multi-button mice).
 	useEffect(() => {
 		const handleMouseUp = (e: MouseEvent) => {
@@ -145,6 +156,7 @@ const GlobalCommandHotkey = () => {
 				onToggleSidebar={nav.onToggleSidebar}
 				onShowHelp={openHelp}
 			/>
+			<SyncToast />
 			<Router
 				currentPage={nav.currentPage}
 				navigationState={nav.navigationState}

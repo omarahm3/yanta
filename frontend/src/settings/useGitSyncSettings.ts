@@ -9,14 +9,11 @@ import {
 	GetGitSyncConfig,
 	IsDataDirectoryOverridden,
 	SetGitSyncConfig,
-	SyncNow,
 } from "../../bindings/yanta/internal/system/service";
 import { useNotification } from "../shared/hooks";
-import { recordCommandInFlightDelta } from "../shared/monitoring/appMonitor";
+import { useSyncStore } from "../shared/stores/sync.store";
 import type { SelectOption } from "../shared/ui";
 import { BackendLogger } from "../shared/utils/backendLogger";
-
-const LAST_SYNC_KEY = "yanta.gitSync.lastSync";
 
 export interface GitSyncSettings {
 	enabled: boolean;
@@ -47,25 +44,8 @@ export function useGitSyncSettings() {
 	});
 	const [gitBranches, setGitBranches] = useState<string[]>([]);
 	const [currentGitBranch, setCurrentGitBranch] = useState<string>("");
-	const [syncNowInFlight, setSyncNowInFlight] = useState(false);
-	const [lastSync, setLastSync] = useState<{ at: number; status: SyncStatus | "error" } | null>(
-		() => {
-			// Persisted so "last synced …" survives an app restart.
-			try {
-				const raw = localStorage.getItem(LAST_SYNC_KEY);
-				return raw ? JSON.parse(raw) : null;
-			} catch {
-				return null;
-			}
-		},
-	);
-	useEffect(() => {
-		try {
-			if (lastSync) localStorage.setItem(LAST_SYNC_KEY, JSON.stringify(lastSync));
-		} catch {
-			// non-fatal: last-sync display just won't persist
-		}
-	}, [lastSync]);
+	const syncNowInFlight = useSyncStore((s) => s.inProgress);
+	const lastSync = useSyncStore((s) => s.lastSynced);
 	const { success, error, info, warning } = useNotification();
 
 	useEffect(() => {
@@ -196,16 +176,15 @@ export function useGitSyncSettings() {
 			info("Sync is already in progress");
 			return;
 		}
-		setSyncNowInFlight(true);
-		recordCommandInFlightDelta("syncNow", 1);
 		try {
-			const result = await SyncNow();
+			const result = await useSyncStore.getState().syncNow();
+			if (result === undefined) {
+				return;
+			}
 			if (!result) {
-				setLastSync({ at: Date.now(), status: SyncStatus.SyncStatusSynced });
 				info("Sync completed");
 				return;
 			}
-			setLastSync({ at: Date.now(), status: result.status });
 			switch (result.status) {
 				case SyncStatus.SyncStatusNoChanges:
 					info(result.message || "No changes to sync");
@@ -229,13 +208,7 @@ export function useGitSyncSettings() {
 					success(result.message || "Sync completed");
 			}
 		} catch (err) {
-			setLastSync({ at: Date.now(), status: "error" });
-			// Pass the raw error so the dialog can recognize typed git failures
-			// (REBASE_CONFLICT, non-fast-forward, …) and show tailored guidance.
 			error(String(err));
-		} finally {
-			recordCommandInFlightDelta("syncNow", -1);
-			setSyncNowInFlight(false);
 		}
 	}, [syncNowInFlight, success, error, info, warning]);
 

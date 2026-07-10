@@ -95,10 +95,11 @@ const ToastItem: React.FC<{
 	toast: Toast;
 	onDismiss: (id: string) => void;
 }> = ({ toast, onDismiss }) => {
+	const isPersistent = toast.duration === 0 || !Number.isFinite(toast.duration);
 	return (
 		<ToastRoot
 			variant={getVariant(toast.type)}
-			duration={toast.duration}
+			duration={isPersistent ? 0 : toast.duration}
 			onOpenChange={(open) => {
 				if (!open) {
 					onDismiss(toast.id);

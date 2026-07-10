@@ -6,12 +6,14 @@ import {
 	selectCanGoForward,
 	useNavHistoryStore,
 } from "@/shared/stores/navHistory.store";
+import { useSyncStore } from "@/shared/stores/sync.store";
 import { useHotkeys } from "../hotkeys";
 import { useProjectContext } from "../project";
 import {
 	getGlobalFooterHints,
 	useFooterHints,
 	useFooterHintsSetting,
+	useGitStatus,
 	useSidebarSetting,
 } from "../shared/hooks";
 import { useResponsive } from "../shared/hooks/useResponsive";
@@ -19,12 +21,25 @@ import type { PageName } from "../shared/types";
 import {
 	type BreadcrumbItem,
 	FooterHintBar,
+	GitStatusIndicator,
 	HeaderBar,
 	type SidebarSection,
 	Sidebar as UISidebar,
 } from "../shared/ui";
 import { cn } from "../shared/utils/cn";
 import { useTitleBarContext } from "./context";
+
+function formatLastSync(timestamp: number): string {
+	const diffMs = Date.now() - timestamp;
+	const diffSec = Math.floor(diffMs / 1000);
+	if (diffSec < 60) return "just now";
+	const diffMin = Math.floor(diffSec / 60);
+	if (diffMin < 60) return `${diffMin}m ago`;
+	const diffHr = Math.floor(diffMin / 60);
+	if (diffHr < 24) return `${diffHr}h ago`;
+	const diffDays = Math.floor(diffHr / 24);
+	return `${diffDays}d ago`;
+}
 
 const getPageDisplayName = (page: PageName): string => {
 	switch (page) {
@@ -113,6 +128,9 @@ export const Layout: React.FC<LayoutProps> = ({
 	const { isBelowLg } = useResponsive();
 	const canGoBack = useNavHistoryStore(selectCanGoBack);
 	const canGoForward = useNavHistoryStore(selectCanGoForward);
+	const { status: gitStatus, isLoading: gitStatusLoading } = useGitStatus(30_000);
+	const syncInProgress = useSyncStore((s) => s.inProgress);
+	const lastSynced = useSyncStore((s) => s.lastSynced);
 	const goBack = useCallback(() => {
 		if (typeof window !== "undefined" && useNavHistoryStore.getState().index > 0) {
 			window.history.back();
@@ -235,7 +253,27 @@ export const Layout: React.FC<LayoutProps> = ({
 					</div>
 				</div>
 
-				{!footerHintsLoading && showFooterHints && <FooterHintBar hints={allFooterHints} />}
+				{(!footerHintsLoading || gitStatus?.enabled) && (
+					<div className="flex items-center justify-between min-h-8 bg-surface border-t border-border z-40">
+						{!footerHintsLoading && showFooterHints && (
+							<FooterHintBar hints={allFooterHints} className="flex-1 min-w-0 border-t-0 bg-transparent" />
+						)}
+						{gitStatus?.enabled && (
+							<div className="flex items-center gap-2 px-3 shrink-0">
+								{lastSynced && (
+									<span className="text-xs text-text-dim">
+										Last synced {formatLastSync(lastSynced.at)}
+									</span>
+								)}
+								<GitStatusIndicator
+									status={gitStatus}
+									isLoading={gitStatusLoading || syncInProgress}
+									compact
+								/>
+							</div>
+						)}
+					</div>
+				)}
 			</div>
 		</div>
 	);
