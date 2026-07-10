@@ -409,6 +409,7 @@ export function useDashboardController({
 						} else if (!result.success) {
 							error(result.message || "Failed to delete");
 						} else {
+							removeRecentDocument(doc.path);
 							await reloadDocuments();
 							clearSelection();
 							success("Document permanently deleted");
@@ -442,6 +443,9 @@ export function useDashboardController({
 						} else if (!result.success) {
 							error(result.message || "Failed to delete");
 						} else {
+							for (const path of selectedPaths) {
+								removeRecentDocument(path);
+							}
 							await reloadDocuments();
 							clearSelection();
 							success(`${count} documents permanently deleted`);
@@ -456,7 +460,7 @@ export function useDashboardController({
 				showCheckbox: true,
 			});
 		}
-	}, [error, reloadDocuments, clearSelection, success]);
+	}, [error, reloadDocuments, clearSelection, success, removeRecentDocument]);
 
 	const handleOpenHighlightedDocument = useCallback(() => {
 		if (

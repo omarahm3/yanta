@@ -87,10 +87,13 @@ describe("Dashboard hotkeys integration", () => {
 
 		fireEvent.keyDown(document, { key: "n", ...modKey });
 		fireEvent.keyDown(document, { key: "a", shiftKey: true, ...modKey });
+		fireEvent.keyDown(document, { key: "d", ...modKey });
 		fireEvent.keyDown(document, { key: "d", shiftKey: true, ...modKey });
 
 		expect(options.handleNewDocument).toHaveBeenCalledTimes(1);
 		expect(options.handleToggleArchived).toHaveBeenCalledTimes(1);
+		// mod+D archives the selection (mod+shift+D permanently deletes).
+		expect(options.handleArchiveSelectedDocuments).toHaveBeenCalledTimes(1);
 		expect(options.handleDeleteSelectedDocuments).toHaveBeenCalledTimes(1);
 	});
 
