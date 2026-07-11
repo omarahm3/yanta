@@ -59,7 +59,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		for (const [group, groupOverrides] of Object.entries(overrides.shortcuts)) {
 			if (groupOverrides && typeof groupOverrides === "object") {
 				for (const [key, value] of Object.entries(groupOverrides)) {
-					map[`${group}.${key}`] = value;
+					map[`${group}.${key}`] = value as string;
 				}
 			}
 		}

@@ -251,7 +251,7 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
 	deleteShortcutOverride: async (group: string, key: string) => {
 		try {
 			const existing = get().overrides ?? {};
-			const groupKey = group as keyof PreferencesOverrides["shortcuts"];
+			const groupKey = group as keyof NonNullable<PreferencesOverrides["shortcuts"]>;
 			const existingGroup = existing.shortcuts?.[groupKey];
 			if (!existingGroup || !(key in existingGroup)) {
 				return; // Nothing to delete

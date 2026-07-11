@@ -87,6 +87,7 @@ export function preferencesFromModel(model: {
 	Graphics?: { LinuxMode?: LinuxGraphicsMode };
 	Appearance?: { Theme?: string };
 	Editor?: { FontSize?: number; FontFamily?: string; LineWidth?: number; Spellcheck?: boolean };
+	General?: { LaunchAtStartup?: boolean };
 	Plugins?: Record<string, Record<string, unknown>>;
 }): PreferencesOverrides {
 	const overrides: PreferencesOverrides = {};
@@ -134,10 +135,14 @@ export function preferencesFromModel(model: {
 	}
 	if (model.Editor) {
 		overrides.editor = {};
-		if (model.Editor.FontSize) overrides.editor.fontSize = model.Editor.FontSize;
-		if (model.Editor.FontFamily) overrides.editor.fontFamily = model.Editor.FontFamily;
-		if (model.Editor.LineWidth) overrides.editor.lineWidth = model.Editor.LineWidth;
+		// Use !== undefined so a valid 0 (e.g. lineWidth 0 = "Full Width") isn't dropped.
+		if (model.Editor.FontSize !== undefined) overrides.editor.fontSize = model.Editor.FontSize;
+		if (model.Editor.FontFamily !== undefined) overrides.editor.fontFamily = model.Editor.FontFamily;
+		if (model.Editor.LineWidth !== undefined) overrides.editor.lineWidth = model.Editor.LineWidth;
 		if (model.Editor.Spellcheck !== undefined) overrides.editor.spellcheck = model.Editor.Spellcheck;
+	}
+	if (model.General?.LaunchAtStartup !== undefined) {
+		overrides.general = { launchAtStartup: model.General.LaunchAtStartup };
 	}
 	if (model.Plugins && typeof model.Plugins === "object" && Object.keys(model.Plugins).length > 0) {
 		overrides.plugins = model.Plugins as PreferencesPluginOverrides;
@@ -153,6 +158,7 @@ export function preferencesToModel(overrides: PreferencesOverrides): {
 	Graphics: Record<string, LinuxGraphicsMode>;
 	Appearance: Record<string, ThemeMode>;
 	Editor: Record<string, number | string | boolean>;
+	General: Record<string, boolean>;
 	Plugins: Record<string, Record<string, unknown>>;
 } {
 	const model: {
@@ -162,6 +168,7 @@ export function preferencesToModel(overrides: PreferencesOverrides): {
 		Graphics: Record<string, LinuxGraphicsMode>;
 		Appearance: Record<string, ThemeMode>;
 		Editor: Record<string, number | string | boolean>;
+		General: Record<string, boolean>;
 		Plugins: Record<string, Record<string, unknown>>;
 	} = {
 		Timeouts: {},
@@ -170,6 +177,7 @@ export function preferencesToModel(overrides: PreferencesOverrides): {
 		Graphics: {},
 		Appearance: {},
 		Editor: {},
+		General: {},
 		Plugins: {},
 	};
 	if (overrides.timeouts) {
@@ -214,10 +222,14 @@ export function preferencesToModel(overrides: PreferencesOverrides): {
 	}
 	if (overrides.editor) {
 		const e = overrides.editor;
-		if (e.fontSize) model.Editor.FontSize = e.fontSize;
-		if (e.fontFamily) model.Editor.FontFamily = e.fontFamily;
-		if (e.lineWidth) model.Editor.LineWidth = e.lineWidth;
+		// Use !== undefined so a valid 0 (e.g. lineWidth 0 = "Full Width") isn't dropped.
+		if (e.fontSize !== undefined) model.Editor.FontSize = e.fontSize;
+		if (e.fontFamily !== undefined) model.Editor.FontFamily = e.fontFamily;
+		if (e.lineWidth !== undefined) model.Editor.LineWidth = e.lineWidth;
 		if (e.spellcheck !== undefined) model.Editor.Spellcheck = e.spellcheck;
+	}
+	if (overrides.general?.launchAtStartup !== undefined) {
+		model.General.LaunchAtStartup = overrides.general.launchAtStartup;
 	}
 	if (
 		overrides.plugins &&

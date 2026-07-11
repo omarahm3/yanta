@@ -55,7 +55,7 @@ export const EditorSection = React.forwardRef<HTMLDivElement, EditorSectionProps
 							<Select
 								value={fontSize.toString()}
 								onChange={(value) =>
-									onEditorPrefsChange({ ...editorPrefs, fontSize: Number.parseInt(value) })
+									onEditorPrefsChange({ ...editorPrefs, fontSize: Number.parseInt(value, 10) })
 								}
 								options={FONT_SIZE_OPTIONS}
 							/>
@@ -77,7 +77,7 @@ export const EditorSection = React.forwardRef<HTMLDivElement, EditorSectionProps
 							<Select
 								value={lineWidth.toString()}
 								onChange={(value) =>
-									onEditorPrefsChange({ ...editorPrefs, lineWidth: Number.parseInt(value) })
+									onEditorPrefsChange({ ...editorPrefs, lineWidth: Number.parseInt(value, 10) })
 								}
 								options={LINE_WIDTH_OPTIONS}
 							/>

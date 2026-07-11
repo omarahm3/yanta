@@ -1,14 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { groupShortcutsByCategory, filterShortcutsByQuery } from "../ShortcutsSection";
 import type { Shortcut } from "../../shared/ui";
+import { filterShortcutsByQuery, groupShortcutsByCategory } from "../ShortcutsSection";
 
 describe("Shortcuts table grouping and search (MRG-362)", () => {
 	const shortcuts: Shortcut[] = [
 		{ id: "global.help", action: "Toggle help", defaultKey: "shift+/", currentKey: "shift+/" },
-		{ id: "global.commandPalette", action: "Open command palette", defaultKey: "mod+K", currentKey: "mod+K" },
+		{
+			id: "global.commandPalette",
+			action: "Open command palette",
+			defaultKey: "mod+K",
+			currentKey: "mod+K",
+		},
 		{ id: "sidebar.toggle", action: "Toggle sidebar", defaultKey: "ctrl+B", currentKey: "ctrl+B" },
 		{ id: "document.save", action: "Save document", defaultKey: "mod+S", currentKey: "mod+S" },
-		{ id: "dashboard.newDocument", action: "Create new document", defaultKey: "mod+N", currentKey: "mod+N" },
+		{
+			id: "dashboard.newDocument",
+			action: "Create new document",
+			defaultKey: "mod+N",
+			currentKey: "mod+N",
+		},
 	];
 
 	describe("groupShortcutsByCategory", () => {

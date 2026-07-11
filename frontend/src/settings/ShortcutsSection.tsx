@@ -1,5 +1,6 @@
 import { RotateCcw, Search } from "lucide-react";
 import React from "react";
+import { formatShortcutKeyForDisplay } from "../config/shortcuts";
 import { useReducedEffects } from "../shared/stores/appearance.store";
 import type { GlobalHotkeyConfig } from "../shared/types";
 import {
@@ -40,7 +41,7 @@ export function detectShortcutConflict(
 	const normalizedKey = key.toLowerCase();
 	for (const shortcut of shortcuts) {
 		if (shortcut.id === currentId) continue;
-		if (shortcut.currentKey.toLowerCase() === normalizedKey) {
+		if (shortcut.currentKey?.toLowerCase() === normalizedKey) {
 			return { id: shortcut.id, action: shortcut.action };
 		}
 	}
@@ -64,7 +65,7 @@ export function filterShortcutsByQuery(shortcuts: Shortcut[], query: string): Sh
 	if (!query) return shortcuts;
 	const q = query.toLowerCase();
 	return shortcuts.filter(
-		(s) => s.action.toLowerCase().includes(q) || s.currentKey.toLowerCase().includes(q),
+		(s) => s.action.toLowerCase().includes(q) || !!s.currentKey?.toLowerCase().includes(q),
 	);
 }
 
@@ -138,7 +139,7 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 		// Filter and group shortcuts for the editable table
 		const filteredShortcuts = filterShortcutsByQuery(shortcuts, searchQuery);
 		const groupedShortcuts = groupShortcutsByCategory(filteredShortcuts);
-		const groupOrder = [
+		const baseGroupOrder = [
 			"global",
 			"sidebar",
 			"document",
@@ -150,6 +151,12 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 			"commandLine",
 			"search",
 			"pane",
+		];
+		// Append any groups not in the base order (e.g. "other" or a newly added
+		// category) so no shortcut is silently hidden from the UI.
+		const groupOrder = [
+			...baseGroupOrder,
+			...Object.keys(groupedShortcuts).filter((g) => !baseGroupOrder.includes(g)),
 		];
 
 		return (
@@ -310,7 +317,13 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 													<div className="space-y-2">
 														{groupShortcuts.map((shortcut) => {
 															const isOverridden = shortcut.id in shortcutOverrides;
-															const currentKey = shortcutOverrides[shortcut.id] ?? shortcut.currentKey ?? "";
+															// Overrides are stored in config format (e.g. "mod+K"); format them
+															// for display so they match shortcut.currentKey and conflict detection.
+															const overrideRaw = shortcutOverrides[shortcut.id];
+															const currentKey =
+																overrideRaw !== undefined
+																	? formatShortcutKeyForDisplay(overrideRaw)
+																	: (shortcut.currentKey ?? "");
 															const conflict = detectShortcutConflict(shortcut.id, currentKey, shortcuts);
 															return (
 																<div
@@ -341,6 +354,7 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 																				size="sm"
 																				onClick={() => onShortcutReset(shortcut.id)}
 																				title="Reset to default"
+																				aria-label="Reset to default"
 																				className="px-2"
 																			>
 																				<RotateCcw className="h-4 w-4" />

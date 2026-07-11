@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import React from "react";
+import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EditorSection } from "../EditorSection";
 import { GeneralSection } from "../GeneralSection";
@@ -48,9 +48,7 @@ describe("EditorSection (MRG-363)", () => {
 		const spellcheckToggle = screen.getByRole("switch");
 		fireEvent.click(spellcheckToggle);
 
-		expect(mockOnChange).toHaveBeenCalledWith(
-			expect.objectContaining({ spellcheck: false }),
-		);
+		expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({ spellcheck: false }));
 	});
 });
 
@@ -115,6 +113,8 @@ describe("GeneralSection launch at startup (MRG-363)", () => {
 			/>,
 		);
 
-		expect(screen.getByText(/Automatically start YANTA when you log in to your Mac/)).toBeInTheDocument();
+		expect(
+			screen.getByText(/Automatically start YANTA when you log in to your Mac/),
+		).toBeInTheDocument();
 	});
 });
