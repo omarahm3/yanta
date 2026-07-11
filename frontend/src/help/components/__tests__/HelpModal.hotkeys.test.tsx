@@ -1,16 +1,19 @@
-import { fireEvent, render } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { useEffect } from "react";
 import { vi } from "vitest";
+import { classifyEventTarget } from "../../../hotkeys/utils/hotkeyMatcher";
 import { HelpModal } from "../HelpModal";
 
 const closeHelp = vi.fn();
+const searchInputRef = { current: null as HTMLInputElement | null };
 
 vi.mock("../../hooks/useHelpModalController", () => ({
 	useHelpModalController: () => {
-		// Replicate the real hook's keydown listener for "?"
 		useEffect(() => {
 			const handleKeyDown = (e: KeyboardEvent) => {
 				if (e.key === "?") {
+					const { inInputField } = classifyEventTarget(e.target);
+					if (inInputField) return;
 					e.preventDefault();
 					closeHelp();
 				}
@@ -28,7 +31,7 @@ vi.mock("../../hooks/useHelpModalController", () => ({
 			expandedSections: new Set(["global"]),
 			toggleSection: vi.fn(),
 			announcement: "",
-			searchInputRef: { current: null },
+			searchInputRef,
 			closeButtonRef: { current: null },
 			filteredSections: [],
 			filteredGlobalCommands: [],
@@ -46,6 +49,7 @@ vi.mock("../../hooks/useHelpModalController", () => ({
 describe("HelpModal hotkeys", () => {
 	beforeEach(() => {
 		closeHelp.mockClear();
+		searchInputRef.current = null;
 	});
 
 	it("closes with Escape", () => {
@@ -55,10 +59,20 @@ describe("HelpModal hotkeys", () => {
 		expect(closeHelp).toHaveBeenCalledTimes(1);
 	});
 
-	it("closes with ?", () => {
+	it("closes with ? on a non-editable target", () => {
 		render(<HelpModal />);
 
 		fireEvent.keyDown(document, { key: "?" });
 		expect(closeHelp).toHaveBeenCalledTimes(1);
+	});
+
+	it("does not close with ? when the search input is focused", async () => {
+		render(<HelpModal />);
+
+		const input = await screen.findByPlaceholderText("Search shortcuts...");
+		input.focus();
+
+		fireEvent.keyDown(input, { key: "?" });
+		expect(closeHelp).not.toHaveBeenCalled();
 	});
 });

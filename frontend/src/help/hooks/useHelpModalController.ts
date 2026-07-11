@@ -7,6 +7,7 @@ import {
 } from "@/config/public";
 import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import { useHotkeyContext } from "../../hotkeys";
+import { classifyEventTarget } from "../../hotkeys/utils/hotkeyMatcher";
 import type { HelpSectionData, HelpSectionId } from "../utils/helpModalUtils";
 import { categorizeHotkey, getDefaultExpandedSections } from "../utils/helpModalUtils";
 import { useHelp } from "./useHelp";
@@ -97,6 +98,7 @@ export function useHelpModalController(): UseHelpModalControllerResult {
 
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (e.key === "?") {
+				if (classifyEventTarget(e.target).inInputField) return;
 				e.preventDefault();
 				closeHelp();
 			} else if (e.key === "Escape") {
