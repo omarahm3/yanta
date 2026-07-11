@@ -388,7 +388,7 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 				{/* Search Info Bar */}
 				<div className="flex items-center justify-between px-5 py-2 text-xs border-b bg-glass-bg/10 border-glass-border text-text-dim shrink-0">
 					<div className="flex gap-4">
-						{isLoading ? (
+						{isLoading && rawQuery.trim() ? (
 							<span className="text-yellow">Searching...</span>
 						) : rawQuery.trim() ? (
 							<>

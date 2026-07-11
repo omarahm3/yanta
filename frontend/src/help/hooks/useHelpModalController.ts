@@ -102,7 +102,9 @@ export function useHelpModalController(): UseHelpModalControllerResult {
 				e.preventDefault();
 				closeHelp();
 			} else if (e.key === "Escape") {
-				if (searchQuery.trim()) {
+				// Read the live input value via the ref so this listener doesn't
+				// depend on searchQuery (which would re-register it on every keystroke).
+				if (searchInputRef.current?.value.trim()) {
 					e.preventDefault();
 					e.stopPropagation();
 					setSearchQuery("");
@@ -114,7 +116,7 @@ export function useHelpModalController(): UseHelpModalControllerResult {
 
 		document.addEventListener("keydown", handleKeyDown);
 		return () => document.removeEventListener("keydown", handleKeyDown);
-	}, [isOpen, closeHelp, searchQuery, announce]);
+	}, [isOpen, closeHelp, announce, setSearchQuery]);
 
 	const allHotkeys = useMemo(() => {
 		if (pageName === "SETTINGS") return [];
