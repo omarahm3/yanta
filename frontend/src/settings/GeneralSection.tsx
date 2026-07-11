@@ -7,9 +7,11 @@ interface GeneralSectionProps {
 	keepInBackground: boolean;
 	startHidden: boolean;
 	linuxWindowMode: string;
+	launchAtStartup: boolean;
 	onKeepInBackgroundToggle: (enabled: boolean) => void;
 	onStartHiddenToggle: (enabled: boolean) => void;
 	onLinuxWindowModeToggle: (frameless: boolean) => void;
+	onLaunchAtStartupToggle: (enabled: boolean) => void;
 }
 
 export const GeneralSection = React.forwardRef<HTMLDivElement, GeneralSectionProps>(
@@ -19,16 +21,17 @@ export const GeneralSection = React.forwardRef<HTMLDivElement, GeneralSectionPro
 			keepInBackground,
 			startHidden,
 			linuxWindowMode,
+			launchAtStartup,
 			onKeepInBackgroundToggle,
 			onStartHiddenToggle,
 			onLinuxWindowModeToggle,
+			onLaunchAtStartupToggle,
 		},
 		ref,
 	) => {
 		const platform = systemInfo?.app?.platform ?? "";
 		const isLinux = platform.includes("linux");
 		const isMac = platform.includes("darwin");
-		const _backgroundUnavailable = isLinux || isMac;
 
 		const isWindows = !isLinux && !isMac;
 
@@ -36,6 +39,23 @@ export const GeneralSection = React.forwardRef<HTMLDivElement, GeneralSectionPro
 			<div ref={ref}>
 				<SettingsSection id="general" title="General" subtitle="Application behavior settings">
 					<div className="space-y-4">
+						<div className="flex items-center justify-between">
+							<div>
+								<div className="text-sm text-text">Launch at startup</div>
+								<div className="text-xs text-text-dim">
+									{isMac
+										? "Automatically start YANTA when you log in to your Mac."
+										: isLinux
+											? "Automatically start YANTA when you log in (requires desktop environment support)."
+											: "Automatically start YANTA when you log in to Windows."}
+									{!isWindows && (
+										<span className="text-yellow"> Backend support pending; preference is saved.</span>
+									)}
+								</div>
+							</div>
+							<Toggle checked={launchAtStartup} onChange={onLaunchAtStartupToggle} />
+						</div>
+
 						{isWindows && (
 							<>
 								<div className="flex items-center justify-between">

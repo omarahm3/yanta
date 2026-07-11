@@ -17,6 +17,7 @@ import { AboutSection } from "./AboutSection";
 import { AppearanceSection } from "./AppearanceSection";
 import { BackupSection } from "./BackupSection";
 import { DatabaseSection } from "./DatabaseSection";
+import { EditorSection } from "./EditorSection";
 import { GeneralSection } from "./GeneralSection";
 import { GitSyncSection } from "./GitSyncSection";
 import { sectionMatchesQuery, useSettingsPage } from "./hooks/useSettingsPage";
@@ -84,6 +85,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		syncNow,
 		generalRef,
 		appearanceRef,
+		editorRef,
 		pluginsRef,
 		databaseRef,
 		shortcutsRef,
@@ -199,6 +201,32 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		[setOverrides, notifyError],
 	);
 
+	const handleEditorPrefsChange = useCallback(
+		async (
+			editorPrefs: Parameters<
+				NonNullable<React.ComponentProps<typeof EditorSection>["onEditorPrefsChange"]>
+			>[0],
+		) => {
+			try {
+				await setOverrides({ editor: editorPrefs });
+			} catch (err) {
+				notifyError(`Failed to save editor settings: ${err}`);
+			}
+		},
+		[setOverrides, notifyError],
+	);
+
+	const handleLaunchAtStartupToggle = useCallback(
+		async (enabled: boolean) => {
+			try {
+				await setOverrides({ general: { launchAtStartup: enabled } });
+			} catch (err) {
+				notifyError(`Failed to save launch at startup setting: ${err}`);
+			}
+		},
+		[setOverrides, notifyError],
+	);
+
 	return (
 		<Layout
 			sidebarSections={sidebarSections}
@@ -268,9 +296,11 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 									keepInBackground={controller.keepInBackground}
 									startHidden={controller.startHidden}
 									linuxWindowMode={controller.linuxWindowMode}
+									launchAtStartup={overrides?.general?.launchAtStartup ?? false}
 									onKeepInBackgroundToggle={controller.handlers.handleKeepInBackgroundToggle}
 									onStartHiddenToggle={controller.handlers.handleStartHiddenToggle}
 									onLinuxWindowModeToggle={controller.handlers.handleLinuxWindowModeToggle}
+									onLaunchAtStartupToggle={handleLaunchAtStartupToggle}
 								/>
 							</div>
 
@@ -294,6 +324,14 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 									onShowShortcutTooltipsChange={setShowShortcutTooltips}
 									shortcutTooltipsLoading={shortcutTooltipsLoading}
 									tooltipHintsFeatureEnabled={tooltipHintsFeatureEnabled}
+								/>
+							</div>
+
+							<div className={cn(!isVisible("editor") && "hidden")}>
+								<EditorSection
+									ref={editorRef}
+									editorPrefs={overrides?.editor ?? {}}
+									onEditorPrefsChange={handleEditorPrefsChange}
 								/>
 							</div>
 

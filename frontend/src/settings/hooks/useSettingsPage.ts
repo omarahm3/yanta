@@ -16,6 +16,7 @@ import { useSettingsController } from "../useSettingsController";
 const BASE_SECTION_IDS = [
 	"general",
 	"appearance",
+	"editor",
 	"database",
 	"shortcuts",
 	"logging",
@@ -28,10 +29,17 @@ type SettingsSectionId = (typeof BASE_SECTION_IDS)[number] | "plugins";
 
 /** Display label + filter keywords for each section's TOC entry. */
 const SECTION_META: Record<SettingsSectionId, { label: string; keywords: string }> = {
-	general: { label: "General", keywords: "window background startup hidden linux" },
+	general: {
+		label: "General",
+		keywords: "window background startup hidden linux mac autostart launch",
+	},
 	appearance: {
 		label: "Appearance",
 		keywords: "theme dark light density scale sidebar hints tooltips effects glass",
+	},
+	editor: {
+		label: "Editor",
+		keywords: "font size family line width spellcheck text editing",
 	},
 	plugins: { label: "Plugins", keywords: "community install extensions" },
 	database: { label: "Storage", keywords: "storage database reindex search index data" },
@@ -52,6 +60,7 @@ const SECTION_ROWS: Record<SettingsSectionId, { title: string; description: stri
 		{ title: "Keep running in background", description: "closing window hides instead of quitting" },
 		{ title: "Start hidden", description: "launch minimized to background" },
 		{ title: "Frameless window", description: "remove window borders title bar linux" },
+		{ title: "Launch at startup", description: "autostart login boot mac windows" },
 	],
 	appearance: [
 		{ title: "Theme", description: "dark light system mode" },
@@ -62,6 +71,12 @@ const SECTION_ROWS: Record<SettingsSectionId, { title: string; description: stri
 		{ title: "Density", description: "comfortable compact spacing" },
 		{ title: "Interface Scale", description: "zoom text size percentage" },
 		{ title: "Linux Graphics Mode", description: "gpu rendering compatibility" },
+	],
+	editor: [
+		{ title: "Font Size", description: "text size pixels" },
+		{ title: "Font Family", description: "typeface serif sans monospace" },
+		{ title: "Line Width", description: "max width reading comfortable" },
+		{ title: "Spellcheck", description: "spelling grammar browser" },
 	],
 	plugins: [
 		{ title: "Plugin Directory", description: "install path folder" },
@@ -167,6 +182,7 @@ export function useSettingsPage({
 
 	const generalRef = useRef<HTMLDivElement>(null);
 	const appearanceRef = useRef<HTMLDivElement>(null);
+	const editorRef = useRef<HTMLDivElement>(null);
 	const pluginsRef = useRef<HTMLDivElement>(null);
 	const databaseRef = useRef<HTMLDivElement>(null);
 	const shortcutsRef = useRef<HTMLDivElement>(null);
@@ -183,6 +199,7 @@ export function useSettingsPage({
 				? [
 						"general",
 						"appearance",
+						"editor",
 						"plugins",
 						"database",
 						"shortcuts",
@@ -271,6 +288,7 @@ export function useSettingsPage({
 		// Section refs and navigation
 		generalRef,
 		appearanceRef,
+		editorRef,
 		pluginsRef,
 		databaseRef,
 		shortcutsRef,
