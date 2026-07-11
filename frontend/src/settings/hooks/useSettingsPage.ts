@@ -46,6 +46,67 @@ const SECTION_META: Record<SettingsSectionId, { label: string; keywords: string 
 	about: { label: "About", keywords: "version system info" },
 };
 
+/** Searchable row metadata for each section. Used to index individual controls. */
+const SECTION_ROWS: Record<SettingsSectionId, { title: string; description: string }[]> = {
+	general: [
+		{ title: "Keep running in background", description: "closing window hides instead of quitting" },
+		{ title: "Start hidden", description: "launch minimized to background" },
+		{ title: "Frameless window", description: "remove window borders title bar linux" },
+	],
+	appearance: [
+		{ title: "Theme", description: "dark light system mode" },
+		{ title: "Show Sidebar", description: "navigation sidebar toggle" },
+		{ title: "Show Keyboard Hints", description: "footer context shortcuts" },
+		{ title: "Show Shortcut Tooltips", description: "hover tooltips buttons" },
+		{ title: "Reduce Visual Effects", description: "disable glass blur performance" },
+		{ title: "Density", description: "comfortable compact spacing" },
+		{ title: "Interface Scale", description: "zoom text size percentage" },
+		{ title: "Linux Graphics Mode", description: "gpu rendering compatibility" },
+	],
+	plugins: [
+		{ title: "Plugin Directory", description: "install path folder" },
+		{ title: "Community Plugins", description: "enable third-party extensions" },
+	],
+	database: [
+		{ title: "Documents", description: "count entries" },
+		{ title: "Projects", description: "count" },
+		{ title: "Storage", description: "used space size" },
+		{ title: "Rebuild Search Index", description: "reindex recreate json" },
+	],
+	shortcuts: [
+		{ title: "Quick Capture Hotkey", description: "global system-wide background" },
+		{ title: "Restore Window", description: "show focus hidden" },
+		{ title: "Override Shortcuts", description: "customize rebind keys" },
+		{ title: "Application Shortcuts", description: "reference table all" },
+	],
+	logging: [{ title: "Log Level", description: "debug info warn error verbosity" }],
+	backup: [
+		{ title: "Enable Backup", description: "automatic snapshot" },
+		{ title: "Max Backups", description: "retention count limit" },
+		{ title: "Restore Backup", description: "recover snapshot" },
+		{ title: "Delete Backup", description: "remove snapshot" },
+	],
+	sync: [
+		{ title: "Git Sync", description: "enable automatic commit" },
+		{ title: "Commit Interval", description: "frequency minutes auto" },
+		{ title: "Auto Push", description: "push remote automatic" },
+		{ title: "Branch", description: "git branch name" },
+		{ title: "Data Directory", description: "override path location" },
+		{ title: "Migrate Data", description: "move directory git" },
+		{ title: "Sync Now", description: "manual trigger immediate" },
+	],
+	mcp: [
+		{ title: "Enable MCP Server", description: "start stop model context protocol" },
+		{ title: "Port", description: "network port number" },
+		{ title: "Regenerate Token", description: "api key authentication" },
+	],
+	about: [
+		{ title: "Version", description: "build number" },
+		{ title: "Reset Onboarding", description: "welcome screen tutorial" },
+		{ title: "Reset Hints", description: "milestone tooltips" },
+	],
+};
+
 export interface SettingsSectionEntry {
 	id: SettingsSectionId;
 	label: string;
@@ -55,6 +116,21 @@ export interface SettingsSectionEntry {
 export interface UseSettingsPageProps {
 	onNavigate?: (page: PageName) => void;
 	enablePluginsSection?: boolean;
+}
+
+/** Check if a section matches a search query (including row content). */
+export function sectionMatchesQuery(section: SettingsSectionEntry, query: string): boolean {
+	const q = query.toLowerCase();
+	if (section.label.toLowerCase().includes(q)) return true;
+	if (section.keywords.includes(q)) return true;
+	const rows = SECTION_ROWS[section.id as SettingsSectionId];
+	if (rows) {
+		for (const row of rows) {
+			if (row.title.toLowerCase().includes(q)) return true;
+			if (row.description.toLowerCase().includes(q)) return true;
+		}
+	}
+	return false;
 }
 
 export function useSettingsPage({

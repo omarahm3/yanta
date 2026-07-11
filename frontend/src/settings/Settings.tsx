@@ -19,7 +19,7 @@ import { BackupSection } from "./BackupSection";
 import { DatabaseSection } from "./DatabaseSection";
 import { GeneralSection } from "./GeneralSection";
 import { GitSyncSection } from "./GitSyncSection";
-import { useSettingsPage } from "./hooks/useSettingsPage";
+import { sectionMatchesQuery, useSettingsPage } from "./hooks/useSettingsPage";
 import { LoggingSection } from "./LoggingSection";
 import { McpSection } from "./McpSection";
 import { PluginsSection } from "./PluginsSection";
@@ -89,10 +89,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 	const [filter, setFilter] = useState("");
 	const query = filter.trim().toLowerCase();
 	const visibleSections = useMemo(
-		() =>
-			query === ""
-				? sections
-				: sections.filter((s) => s.label.toLowerCase().includes(query) || s.keywords.includes(query)),
+		() => (query === "" ? sections : sections.filter((s) => sectionMatchesQuery(s, query))),
 		[sections, query],
 	);
 	const visibleIds = useMemo(
