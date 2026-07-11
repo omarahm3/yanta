@@ -35,7 +35,7 @@ interface SettingsProps {
 
 const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
 	const { shortcuts: mergedShortcuts, graphics: mergedGraphics } = useMergedConfig();
-	const { setOverrides } = usePreferencesOverrides();
+	const { overrides, setOverrides, deleteShortcutOverride } = usePreferencesOverrides();
 	const { error: notifyError } = useNotification();
 	const pluginSettings = usePluginSettings(ENABLE_PLUGINS);
 	const mcpSettings = useMcpSettings();
@@ -50,6 +50,20 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 			})),
 		[mergedShortcuts],
 	);
+
+	// Build a flat map of shortcut overrides for the ShortcutsSection
+	const shortcutOverrides = useMemo(() => {
+		const map: Record<string, string> = {};
+		if (!overrides?.shortcuts) return map;
+		for (const [group, groupOverrides] of Object.entries(overrides.shortcuts)) {
+			if (groupOverrides && typeof groupOverrides === "object") {
+				for (const [key, value] of Object.entries(groupOverrides)) {
+					map[`${group}.${key}`] = value;
+				}
+			}
+		}
+		return map;
+	}, [overrides]);
 
 	const {
 		controller,
@@ -141,6 +155,21 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 			}
 		},
 		[setOverrides, controller.platform, notifyError],
+	);
+
+	const handleShortcutReset = useCallback(
+		async (id: string) => {
+			const dot = id.indexOf(".");
+			if (dot === -1) return;
+			const group = id.slice(0, dot);
+			const key = id.slice(dot + 1);
+			try {
+				await deleteShortcutOverride(group, key);
+			} catch (err) {
+				notifyError(`Failed to reset shortcut: ${err}`);
+			}
+		},
+		[deleteShortcutOverride, notifyError],
 	);
 
 	const handleLinuxGraphicsModeChange = useCallback(
@@ -304,7 +333,9 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 									onHotkeyConfigChange={controller.handlers.handleHotkeyConfigChange}
 									hotkeyError={controller.hotkeyError}
 									shortcuts={shortcutsForSettings}
+									shortcutOverrides={shortcutOverrides}
 									onShortcutOverride={handleShortcutOverride}
+									onShortcutReset={handleShortcutReset}
 								/>
 							</div>
 

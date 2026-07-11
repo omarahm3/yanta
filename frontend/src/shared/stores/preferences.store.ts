@@ -175,6 +175,7 @@ interface PreferencesState {
 	isLoading: boolean;
 	loadOverrides: () => Promise<void>;
 	saveOverrides: (overrides: PreferencesOverrides) => Promise<void>;
+	deleteShortcutOverride: (group: string, key: string) => Promise<void>;
 	getMergedConfig: () => MergedConfig;
 }
 
@@ -241,6 +242,34 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
 			set({ overrides: merged });
 		} catch (err) {
 			BackendLogger.error("[preferences.store] Failed to save:", err);
+			throw err;
+		}
+	},
+
+	deleteShortcutOverride: async (group: string, key: string) => {
+		try {
+			const existing = get().overrides ?? {};
+			const groupKey = group as keyof PreferencesOverrides["shortcuts"];
+			const existingGroup = existing.shortcuts?.[groupKey];
+			if (!existingGroup || !(key in existingGroup)) {
+				return; // Nothing to delete
+			}
+			const updatedGroup = { ...existingGroup };
+			delete updatedGroup[key];
+			const updatedShortcuts = { ...existing.shortcuts };
+			if (Object.keys(updatedGroup).length === 0) {
+				delete updatedShortcuts[groupKey];
+			} else {
+				updatedShortcuts[groupKey] = updatedGroup;
+			}
+			const updated: PreferencesOverrides = {
+				...existing,
+				shortcuts: Object.keys(updatedShortcuts).length > 0 ? updatedShortcuts : undefined,
+			};
+			await setPreferencesOverrides(updated);
+			set({ overrides: updated });
+		} catch (err) {
+			BackendLogger.error("[preferences.store] Failed to delete shortcut override:", err);
 			throw err;
 		}
 	},

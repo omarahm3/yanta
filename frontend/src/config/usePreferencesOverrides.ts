@@ -9,6 +9,7 @@ export function usePreferencesOverrides() {
 	const overrides = usePreferencesStore((s) => s.overrides);
 	const isLoading = usePreferencesStore((s) => s.isLoading);
 	const saveOverrides = usePreferencesStore((s) => s.saveOverrides);
+	const deleteShortcutOverride = usePreferencesStore((s) => s.deleteShortcutOverride);
 	const config = useMergedConfig();
 
 	const setOverrides = useCallback(
@@ -23,6 +24,7 @@ export function usePreferencesOverrides() {
 		overrides,
 		isLoading,
 		setOverrides,
+		deleteShortcutOverride,
 	};
 }
 

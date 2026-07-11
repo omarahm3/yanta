@@ -1,3 +1,4 @@
+import { RotateCcw } from "lucide-react";
 import React from "react";
 import { useReducedEffects } from "../shared/stores/appearance.store";
 import type { GlobalHotkeyConfig } from "../shared/types";
@@ -11,6 +12,40 @@ import {
 	ShortcutsTable,
 	Text,
 } from "../shared/ui";
+
+/** Shortcut entry for conflict detection. */
+export interface ShortcutEntry {
+	id: string;
+	action: string;
+	defaultKey: string;
+	currentKey: string;
+}
+
+/** Conflict info returned by detectShortcutConflict. */
+export interface ShortcutConflict {
+	id: string;
+	action: string;
+}
+
+/**
+ * Detect if a shortcut key conflicts with another action.
+ * Returns the conflicting shortcut info, or null if no conflict.
+ */
+export function detectShortcutConflict(
+	currentId: string,
+	key: string,
+	shortcuts: ShortcutEntry[],
+): ShortcutConflict | null {
+	if (!key) return null;
+	const normalizedKey = key.toLowerCase();
+	for (const shortcut of shortcuts) {
+		if (shortcut.id === currentId) continue;
+		if (shortcut.currentKey.toLowerCase() === normalizedKey) {
+			return { id: shortcut.id, action: shortcut.action };
+		}
+	}
+	return null;
+}
 
 /** Shortcut IDs that users can override (subset of full shortcut list). */
 const OVERRIDABLE_SHORTCUT_IDS = [
@@ -31,6 +66,7 @@ interface ShortcutsSectionProps {
 	/** Override shortcuts (from preferences). Key: "group.key", value: key combo e.g. "mod+K" */
 	shortcutOverrides?: Record<string, string>;
 	onShortcutOverride?: (id: string, newKey: string) => void;
+	onShortcutReset?: (id: string) => void;
 }
 
 export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectionProps>(
@@ -43,6 +79,7 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 			shortcuts,
 			shortcutOverrides = {},
 			onShortcutOverride,
+			onShortcutReset,
 		},
 		ref,
 	) => {
@@ -192,17 +229,39 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 									{OVERRIDABLE_SHORTCUT_IDS.map(({ id, label }) => {
 										const shortcut = shortcuts.find((s) => s.id === id);
 										const currentKey = shortcutOverrides[id] ?? shortcut?.currentKey ?? "";
+										const isOverridden = id in shortcutOverrides;
+										const conflict = detectShortcutConflict(id, currentKey, shortcuts);
 										return (
 											<div
 												key={id}
 												className="flex items-center justify-between gap-4 rounded-lg border border-border p-3"
 											>
-												<span className="text-sm text-text">{label}</span>
-												<HotkeyInput
-													value={currentKey}
-													onChange={(key) => onShortcutOverride(id, key)}
-													placeholder="Click and press keys..."
-												/>
+												<div className="flex-1">
+													<span className="text-sm text-text">{label}</span>
+													{conflict && (
+														<div className="mt-1 text-xs text-red-500">
+															Conflict: already assigned to "{conflict.action}"
+														</div>
+													)}
+												</div>
+												<div className="flex items-center gap-2">
+													<HotkeyInput
+														value={currentKey}
+														onChange={(key) => onShortcutOverride(id, key)}
+														placeholder="Click and press keys..."
+													/>
+													{isOverridden && onShortcutReset && (
+														<Button
+															variant="ghost"
+															size="sm"
+															onClick={() => onShortcutReset(id)}
+															title="Reset to default"
+															className="px-2"
+														>
+															<RotateCcw className="h-4 w-4" />
+														</Button>
+													)}
+												</div>
 											</div>
 										);
 									})}
