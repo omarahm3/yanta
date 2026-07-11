@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronRight, ChevronUp, X } from "lucide-react";
 import type React from "react";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useImperativeHandle, useRef } from "react";
 import { useHotkey } from "../../hotkeys";
 import { cn } from "../../shared/utils/cn";
 import type { EditorHandle } from "../types";
@@ -14,6 +14,8 @@ interface FindBarProps {
 	showReplace?: boolean;
 	/** Toggle the replace row (also opens find if closed). */
 	onToggleReplace?: () => void;
+	/** Ref to expose focus and setQuery methods for external refocus. */
+	barRef?: React.RefObject<{ setQuery: (q: string) => void; focusInput: () => void } | null>;
 }
 
 const iconButton =
@@ -30,11 +32,25 @@ const textButton =
  * handler) and returns focus to the editor so a following Escape blurs the
  * editor rather than ejecting to the dashboard.
  */
-export function FindBar({ editor, onClose, showReplace = false, onToggleReplace }: FindBarProps) {
+export function FindBar({
+	editor,
+	onClose,
+	showReplace = false,
+	onToggleReplace,
+	barRef,
+}: FindBarProps) {
 	const find = useEditorFind(editor);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const replaceInputRef = useRef<HTMLInputElement>(null);
 	const isFirstRender = useRef(true);
+
+	useImperativeHandle(barRef, () => ({
+		setQuery: (q: string) => find.setQuery(q),
+		focusInput: () => {
+			inputRef.current?.focus();
+			inputRef.current?.select();
+		},
+	}));
 
 	useEffect(() => {
 		inputRef.current?.focus();
