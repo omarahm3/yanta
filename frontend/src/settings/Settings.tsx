@@ -8,6 +8,7 @@ import {
 	parseDisplayKeyToConfigKey,
 } from "@/config/shortcuts";
 import { useMergedConfig, usePreferencesOverrides } from "@/config/usePreferencesOverrides";
+import { useNotification } from "@/shared/hooks";
 import { type ThemeMode, useTheme } from "../shared/stores/theme.store";
 import type { PageName } from "../shared/types";
 import { Callout, ConfirmDialog, MigrationConflictDialog, type Shortcut } from "../shared/ui";
@@ -35,6 +36,7 @@ interface SettingsProps {
 const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
 	const { shortcuts: mergedShortcuts, graphics: mergedGraphics } = useMergedConfig();
 	const { setOverrides } = usePreferencesOverrides();
+	const { error: notifyError } = useNotification();
 	const pluginSettings = usePluginSettings(ENABLE_PLUGINS);
 	const mcpSettings = useMcpSettings();
 	const shortcutsForSettings: Shortcut[] = useMemo(
@@ -131,32 +133,44 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 				| "pane";
 			const key = id.slice(dot + 1);
 			const configKey = parseDisplayKeyToConfigKey(displayKey, controller.platform);
-			await setOverrides({
-				shortcuts: {
-					[group]: { [key]: configKey },
-				},
-			});
+			try {
+				await setOverrides({
+					shortcuts: {
+						[group]: { [key]: configKey },
+					},
+				});
+			} catch (err) {
+				notifyError(`Failed to save shortcut: ${err}`);
+			}
 		},
-		[setOverrides, controller.platform],
+		[setOverrides, controller.platform, notifyError],
 	);
 
 	const handleLinuxGraphicsModeChange = useCallback(
 		async (mode: "auto" | "native" | "compat" | "software") => {
-			await setOverrides({
-				graphics: {
-					linuxMode: mode,
-				},
-			});
+			try {
+				await setOverrides({
+					graphics: {
+						linuxMode: mode,
+					},
+				});
+			} catch (err) {
+				notifyError(`Failed to save graphics mode: ${err}`);
+			}
 		},
-		[setOverrides],
+		[setOverrides, notifyError],
 	);
 
 	const theme = useTheme();
 	const handleThemeChange = useCallback(
 		async (value: ThemeMode) => {
-			await setOverrides({ appearance: { theme: value } });
+			try {
+				await setOverrides({ appearance: { theme: value } });
+			} catch (err) {
+				notifyError(`Failed to save theme: ${err}`);
+			}
 		},
-		[setOverrides],
+		[setOverrides, notifyError],
 	);
 
 	return (
