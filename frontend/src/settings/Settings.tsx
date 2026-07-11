@@ -8,6 +8,7 @@ import {
 	parseDisplayKeyToConfigKey,
 } from "@/config/shortcuts";
 import { useMergedConfig, usePreferencesOverrides } from "@/config/usePreferencesOverrides";
+import { useNotification } from "@/shared/hooks";
 import { type ThemeMode, useTheme } from "../shared/stores/theme.store";
 import type { PageName } from "../shared/types";
 import { Callout, ConfirmDialog, MigrationConflictDialog, type Shortcut } from "../shared/ui";
@@ -16,9 +17,10 @@ import { AboutSection } from "./AboutSection";
 import { AppearanceSection } from "./AppearanceSection";
 import { BackupSection } from "./BackupSection";
 import { DatabaseSection } from "./DatabaseSection";
+import { EditorSection } from "./EditorSection";
 import { GeneralSection } from "./GeneralSection";
 import { GitSyncSection } from "./GitSyncSection";
-import { useSettingsPage } from "./hooks/useSettingsPage";
+import { sectionMatchesQuery, useSettingsPage } from "./hooks/useSettingsPage";
 import { LoggingSection } from "./LoggingSection";
 import { McpSection } from "./McpSection";
 import { PluginsSection } from "./PluginsSection";
@@ -34,7 +36,8 @@ interface SettingsProps {
 
 const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
 	const { shortcuts: mergedShortcuts, graphics: mergedGraphics } = useMergedConfig();
-	const { setOverrides } = usePreferencesOverrides();
+	const { overrides, setOverrides, deleteShortcutOverride } = usePreferencesOverrides();
+	const { error: notifyError } = useNotification();
 	const pluginSettings = usePluginSettings(ENABLE_PLUGINS);
 	const mcpSettings = useMcpSettings();
 	const shortcutsForSettings: Shortcut[] = useMemo(
@@ -48,6 +51,20 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 			})),
 		[mergedShortcuts],
 	);
+
+	// Build a flat map of shortcut overrides for the ShortcutsSection
+	const shortcutOverrides = useMemo(() => {
+		const map: Record<string, string> = {};
+		if (!overrides?.shortcuts) return map;
+		for (const [group, groupOverrides] of Object.entries(overrides.shortcuts)) {
+			if (groupOverrides && typeof groupOverrides === "object") {
+				for (const [key, value] of Object.entries(groupOverrides)) {
+					map[`${group}.${key}`] = value as string;
+				}
+			}
+		}
+		return map;
+	}, [overrides]);
 
 	const {
 		controller,
@@ -68,6 +85,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 		syncNow,
 		generalRef,
 		appearanceRef,
+		editorRef,
 		pluginsRef,
 		databaseRef,
 		shortcutsRef,
@@ -87,10 +105,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 	const [filter, setFilter] = useState("");
 	const query = filter.trim().toLowerCase();
 	const visibleSections = useMemo(
-		() =>
-			query === ""
-				? sections
-				: sections.filter((s) => s.label.toLowerCase().includes(query) || s.keywords.includes(query)),
+		() => (query === "" ? sections : sections.filter((s) => sectionMatchesQuery(s, query))),
 		[sections, query],
 	);
 	const visibleIds = useMemo(
@@ -131,32 +146,85 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 				| "pane";
 			const key = id.slice(dot + 1);
 			const configKey = parseDisplayKeyToConfigKey(displayKey, controller.platform);
-			await setOverrides({
-				shortcuts: {
-					[group]: { [key]: configKey },
-				},
-			});
+			try {
+				await setOverrides({
+					shortcuts: {
+						[group]: { [key]: configKey },
+					},
+				});
+			} catch (err) {
+				notifyError(`Failed to save shortcut: ${err}`);
+			}
 		},
-		[setOverrides, controller.platform],
+		[setOverrides, controller.platform, notifyError],
+	);
+
+	const handleShortcutReset = useCallback(
+		async (id: string) => {
+			const dot = id.indexOf(".");
+			if (dot === -1) return;
+			const group = id.slice(0, dot);
+			const key = id.slice(dot + 1);
+			try {
+				await deleteShortcutOverride(group, key);
+			} catch (err) {
+				notifyError(`Failed to reset shortcut: ${err}`);
+			}
+		},
+		[deleteShortcutOverride, notifyError],
 	);
 
 	const handleLinuxGraphicsModeChange = useCallback(
 		async (mode: "auto" | "native" | "compat" | "software") => {
-			await setOverrides({
-				graphics: {
-					linuxMode: mode,
-				},
-			});
+			try {
+				await setOverrides({
+					graphics: {
+						linuxMode: mode,
+					},
+				});
+			} catch (err) {
+				notifyError(`Failed to save graphics mode: ${err}`);
+			}
 		},
-		[setOverrides],
+		[setOverrides, notifyError],
 	);
 
 	const theme = useTheme();
 	const handleThemeChange = useCallback(
 		async (value: ThemeMode) => {
-			await setOverrides({ appearance: { theme: value } });
+			try {
+				await setOverrides({ appearance: { theme: value } });
+			} catch (err) {
+				notifyError(`Failed to save theme: ${err}`);
+			}
 		},
-		[setOverrides],
+		[setOverrides, notifyError],
+	);
+
+	const handleEditorPrefsChange = useCallback(
+		async (
+			editorPrefs: Parameters<
+				NonNullable<React.ComponentProps<typeof EditorSection>["onEditorPrefsChange"]>
+			>[0],
+		) => {
+			try {
+				await setOverrides({ editor: editorPrefs });
+			} catch (err) {
+				notifyError(`Failed to save editor settings: ${err}`);
+			}
+		},
+		[setOverrides, notifyError],
+	);
+
+	const handleLaunchAtStartupToggle = useCallback(
+		async (enabled: boolean) => {
+			try {
+				await setOverrides({ general: { launchAtStartup: enabled } });
+			} catch (err) {
+				notifyError(`Failed to save launch at startup setting: ${err}`);
+			}
+		},
+		[setOverrides, notifyError],
 	);
 
 	return (
@@ -228,9 +296,11 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 									keepInBackground={controller.keepInBackground}
 									startHidden={controller.startHidden}
 									linuxWindowMode={controller.linuxWindowMode}
+									launchAtStartup={overrides?.general?.launchAtStartup ?? false}
 									onKeepInBackgroundToggle={controller.handlers.handleKeepInBackgroundToggle}
 									onStartHiddenToggle={controller.handlers.handleStartHiddenToggle}
 									onLinuxWindowModeToggle={controller.handlers.handleLinuxWindowModeToggle}
+									onLaunchAtStartupToggle={handleLaunchAtStartupToggle}
 								/>
 							</div>
 
@@ -254,6 +324,14 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 									onShowShortcutTooltipsChange={setShowShortcutTooltips}
 									shortcutTooltipsLoading={shortcutTooltipsLoading}
 									tooltipHintsFeatureEnabled={tooltipHintsFeatureEnabled}
+								/>
+							</div>
+
+							<div className={cn(!isVisible("editor") && "hidden")}>
+								<EditorSection
+									ref={editorRef}
+									editorPrefs={overrides?.editor ?? {}}
+									onEditorPrefsChange={handleEditorPrefsChange}
 								/>
 							</div>
 
@@ -293,7 +371,9 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 									onHotkeyConfigChange={controller.handlers.handleHotkeyConfigChange}
 									hotkeyError={controller.hotkeyError}
 									shortcuts={shortcutsForSettings}
+									shortcutOverrides={shortcutOverrides}
 									onShortcutOverride={handleShortcutOverride}
+									onShortcutReset={handleShortcutReset}
 								/>
 							</div>
 
@@ -376,7 +456,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 				isOpen={controller.showReindexConfirm}
 				onCancel={controller.handlers.handleCancelReindex}
 				onConfirm={controller.handlers.handleConfirmReindex}
-				title="Reindex Database?"
+				title="Rebuild Search Index?"
 				message="This will rebuild the entire search index from your JSON files. The operation may take a few moments depending on the number of documents."
 				confirmText="Reindex"
 				cancelText="Cancel"

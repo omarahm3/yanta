@@ -15,8 +15,8 @@ export const DatabaseSection = React.forwardRef<HTMLDivElement, DatabaseSectionP
 			<div ref={ref}>
 				<SettingsSection
 					id="database"
-					title="Database"
-					subtitle="Manage your local database and search index"
+					title="Storage"
+					subtitle="Manage your local data and search index"
 				>
 					<div className="space-y-4">
 						<div className="grid grid-cols-3 gap-4 rounded-lg bg-bg-dark p-4">
@@ -61,7 +61,7 @@ export const DatabaseSection = React.forwardRef<HTMLDivElement, DatabaseSectionP
 							)}
 
 							<Button onClick={onReindex} disabled={isReindexing} variant="secondary" size="sm">
-								{isReindexing ? "Reindexing..." : "Reindex Database"}
+								{isReindexing ? "Reindexing..." : "Rebuild Search Index"}
 							</Button>
 						</div>
 					</div>

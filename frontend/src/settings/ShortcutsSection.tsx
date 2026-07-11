@@ -1,4 +1,6 @@
+import { RotateCcw, Search } from "lucide-react";
 import React from "react";
+import { formatShortcutKeyForDisplay } from "../config/shortcuts";
 import { useReducedEffects } from "../shared/stores/appearance.store";
 import type { GlobalHotkeyConfig } from "../shared/types";
 import {
@@ -6,21 +8,81 @@ import {
 	Heading,
 	HotkeyEditor,
 	HotkeyInput,
+	Input,
 	SettingsSection,
 	type Shortcut,
-	ShortcutsTable,
 	Text,
 } from "../shared/ui";
 
-/** Shortcut IDs that users can override (subset of full shortcut list). */
-const OVERRIDABLE_SHORTCUT_IDS = [
-	{ id: "global.help", label: "Toggle help" },
-	{ id: "global.commandPalette", label: "Open command palette" },
-	{ id: "global.today", label: "Jump to today's journal" },
-	{ id: "sidebar.toggle", label: "Toggle sidebar" },
-	{ id: "dashboard.newDocument", label: "Create new document" },
-	{ id: "document.save", label: "Save document" },
-] as const;
+/** Shortcut entry for conflict detection. */
+export interface ShortcutEntry {
+	id: string;
+	action: string;
+	defaultKey: string;
+	currentKey: string;
+}
+
+/** Conflict info returned by detectShortcutConflict. */
+export interface ShortcutConflict {
+	id: string;
+	action: string;
+}
+
+/**
+ * Detect if a shortcut key conflicts with another action.
+ * Returns the conflicting shortcut info, or null if no conflict.
+ */
+export function detectShortcutConflict(
+	currentId: string,
+	key: string,
+	shortcuts: ShortcutEntry[],
+): ShortcutConflict | null {
+	if (!key) return null;
+	const normalizedKey = key.toLowerCase();
+	for (const shortcut of shortcuts) {
+		if (shortcut.id === currentId) continue;
+		if (shortcut.currentKey?.toLowerCase() === normalizedKey) {
+			return { id: shortcut.id, action: shortcut.action };
+		}
+	}
+	return null;
+}
+
+/** Group shortcuts by their category (prefix before the dot). */
+export function groupShortcutsByCategory(shortcuts: Shortcut[]): Record<string, Shortcut[]> {
+	const groups: Record<string, Shortcut[]> = {};
+	for (const shortcut of shortcuts) {
+		const dot = shortcut.id.indexOf(".");
+		const group = dot === -1 ? "other" : shortcut.id.slice(0, dot);
+		if (!groups[group]) groups[group] = [];
+		groups[group].push(shortcut);
+	}
+	return groups;
+}
+
+/** Filter shortcuts by search query (matches action or key). */
+export function filterShortcutsByQuery(shortcuts: Shortcut[], query: string): Shortcut[] {
+	if (!query) return shortcuts;
+	const q = query.toLowerCase();
+	return shortcuts.filter(
+		(s) => s.action.toLowerCase().includes(q) || !!s.currentKey?.toLowerCase().includes(q),
+	);
+}
+
+/** Human-readable labels for shortcut groups. */
+const GROUP_LABELS: Record<string, string> = {
+	global: "Global",
+	sidebar: "Sidebar",
+	document: "Document",
+	dashboard: "Dashboard",
+	journal: "Journal",
+	projects: "Projects",
+	quickCapture: "Quick Capture",
+	settings: "Settings",
+	commandLine: "Command Line",
+	search: "Search",
+	pane: "Pane",
+};
 
 interface ShortcutsSectionProps {
 	platform: string;
@@ -31,6 +93,7 @@ interface ShortcutsSectionProps {
 	/** Override shortcuts (from preferences). Key: "group.key", value: key combo e.g. "mod+K" */
 	shortcutOverrides?: Record<string, string>;
 	onShortcutOverride?: (id: string, newKey: string) => void;
+	onShortcutReset?: (id: string) => void;
 }
 
 export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectionProps>(
@@ -43,11 +106,13 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 			shortcuts,
 			shortcutOverrides = {},
 			onShortcutOverride,
+			onShortcutReset,
 		},
 		ref,
 	) => {
 		const reducedEffects = useReducedEffects();
 		const [showShortcutReference, setShowShortcutReference] = React.useState(!reducedEffects);
+		const [searchQuery, setSearchQuery] = React.useState("");
 		React.useEffect(() => {
 			if (reducedEffects) {
 				setShowShortcutReference(false);
@@ -70,6 +135,29 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 				quickCaptureEnabled: enabled,
 			});
 		};
+
+		// Filter and group shortcuts for the editable table
+		const filteredShortcuts = filterShortcutsByQuery(shortcuts, searchQuery);
+		const groupedShortcuts = groupShortcutsByCategory(filteredShortcuts);
+		const baseGroupOrder = [
+			"global",
+			"sidebar",
+			"document",
+			"dashboard",
+			"journal",
+			"projects",
+			"quickCapture",
+			"settings",
+			"commandLine",
+			"search",
+			"pane",
+		];
+		// Append any groups not in the base order (e.g. "other" or a newly added
+		// category) so no shortcut is silently hidden from the UI.
+		const groupOrder = [
+			...baseGroupOrder,
+			...Object.keys(groupedShortcuts).filter((g) => !baseGroupOrder.includes(g)),
+		];
 
 		return (
 			<div ref={ref}>
@@ -179,42 +267,11 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 							)}
 						</div>
 
-						{/* Override Shortcuts (when supported) */}
-						{onShortcutOverride && (
-							<div>
-								<Heading as="h3" size="sm" variant="bright" weight="medium" className="mb-2">
-									Override Shortcuts
-								</Heading>
-								<Text size="sm" variant="dim" className="mb-4">
-									Customize these shortcuts. Changes take effect immediately.
-								</Text>
-								<div className="space-y-3">
-									{OVERRIDABLE_SHORTCUT_IDS.map(({ id, label }) => {
-										const shortcut = shortcuts.find((s) => s.id === id);
-										const currentKey = shortcutOverrides[id] ?? shortcut?.currentKey ?? "";
-										return (
-											<div
-												key={id}
-												className="flex items-center justify-between gap-4 rounded-lg border border-border p-3"
-											>
-												<span className="text-sm text-text">{label}</span>
-												<HotkeyInput
-													value={currentKey}
-													onChange={(key) => onShortcutOverride(id, key)}
-													placeholder="Click and press keys..."
-												/>
-											</div>
-										);
-									})}
-								</div>
-							</div>
-						)}
-
-						{/* Application Shortcuts Section */}
+						{/* All Shortcuts - Grouped, Searchable, Editable */}
 						<div>
-							<div className="mb-2 flex items-center justify-between gap-3">
+							<div className="mb-4 flex items-center justify-between gap-3">
 								<Heading as="h3" size="sm" variant="bright" weight="medium">
-									Application Shortcuts
+									All Shortcuts
 								</Heading>
 								<Button
 									variant="ghost"
@@ -225,18 +282,105 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 									{showShortcutReference ? "Hide table" : "Show table"}
 								</Button>
 							</div>
+
+							{showShortcutReference && (
+								<>
+									{/* Search box */}
+									{onShortcutOverride && (
+										<div className="relative mb-4">
+											<Search
+												className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-dim"
+												aria-hidden="true"
+											/>
+											<Input
+												variant="default"
+												value={searchQuery}
+												onChange={(e) => setSearchQuery(e.target.value)}
+												placeholder="Search shortcuts..."
+												aria-label="Search shortcuts"
+												className="pl-9"
+											/>
+										</div>
+									)}
+
+									{/* Grouped shortcuts list */}
+									<div className="space-y-6">
+										{groupOrder.map((group) => {
+											const groupShortcuts = groupedShortcuts[group];
+											if (!groupShortcuts || groupShortcuts.length === 0) return null;
+											const groupLabel = GROUP_LABELS[group] || group;
+											return (
+												<div key={group}>
+													<Heading as="h4" size="xs" variant="bright" weight="medium" className="mb-2">
+														{groupLabel}
+													</Heading>
+													<div className="space-y-2">
+														{groupShortcuts.map((shortcut) => {
+															const isOverridden = shortcut.id in shortcutOverrides;
+															// Overrides are stored in config format (e.g. "mod+K"); format them
+															// for display so they match shortcut.currentKey and conflict detection.
+															const overrideRaw = shortcutOverrides[shortcut.id];
+															const currentKey =
+																overrideRaw !== undefined
+																	? formatShortcutKeyForDisplay(overrideRaw)
+																	: (shortcut.currentKey ?? "");
+															const conflict = detectShortcutConflict(shortcut.id, currentKey, shortcuts);
+															return (
+																<div
+																	key={shortcut.id}
+																	className="flex items-center justify-between gap-4 rounded-lg border border-border p-3"
+																>
+																	<div className="flex-1">
+																		<span className="text-sm text-text">{shortcut.action}</span>
+																		{conflict && (
+																			<div className="mt-1 text-xs text-red-500">
+																				Conflict: already assigned to "{conflict.action}"
+																			</div>
+																		)}
+																	</div>
+																	<div className="flex items-center gap-2">
+																		{onShortcutOverride ? (
+																			<HotkeyInput
+																				value={currentKey}
+																				onChange={(key) => onShortcutOverride(shortcut.id, key)}
+																				placeholder="Click and press keys..."
+																			/>
+																		) : (
+																			<span className="font-mono text-sm text-text-bright">{currentKey}</span>
+																		)}
+																		{isOverridden && onShortcutReset && (
+																			<Button
+																				variant="ghost"
+																				size="sm"
+																				onClick={() => onShortcutReset(shortcut.id)}
+																				title="Reset to default"
+																				aria-label="Reset to default"
+																				className="px-2"
+																			>
+																				<RotateCcw className="h-4 w-4" />
+																			</Button>
+																		)}
+																	</div>
+																</div>
+															);
+														})}
+													</div>
+												</div>
+											);
+										})}
+										{filteredShortcuts.length === 0 && searchQuery && (
+											<div className="rounded border border-border p-4 text-center text-sm text-text-dim">
+												No shortcuts match "{searchQuery}"
+											</div>
+										)}
+									</div>
+								</>
+							)}
+
 							{!showShortcutReference && (
 								<div className="rounded border border-border p-3 text-xs text-text-dim">
 									Shortcut reference is collapsed to reduce render load on this page.
 								</div>
-							)}
-							{showShortcutReference && (
-								<>
-									<Text size="sm" variant="dim" className="mb-4">
-										Keyboard shortcuts available within YANTA
-									</Text>
-									<ShortcutsTable shortcuts={shortcuts} />
-								</>
 							)}
 						</div>
 					</div>
