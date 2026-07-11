@@ -8,6 +8,9 @@ interface DocumentEditorActionsProps {
 	lastSaved: Date | null;
 	hasUnsavedChanges: boolean;
 	saveError: Error | null;
+	wordCount?: number;
+	charCount?: number;
+	selectionCount?: number;
 }
 
 // TODO: this function is manual, replace with external library
@@ -27,6 +30,9 @@ export const DocumentEditorActions: React.FC<DocumentEditorActionsProps> = ({
 	lastSaved,
 	hasUnsavedChanges,
 	saveError,
+	wordCount = 0,
+	charCount = 0,
+	selectionCount,
 }) => {
 	const getStatusIndicator = () => {
 		if (isArchived) {
@@ -80,12 +86,18 @@ export const DocumentEditorActions: React.FC<DocumentEditorActionsProps> = ({
 	const status = getStatusIndicator();
 	const IconComponent = status.icon;
 
+	const countDisplay =
+		selectionCount !== undefined && selectionCount > 0
+			? `${selectionCount} selected`
+			: `${wordCount} words · ${charCount} chars`;
+
 	return (
-		<div className="flex items-center justify-center px-4 py-2 border-t border-glass-border/50 bg-glass-bg/20 backdrop-blur-sm">
+		<div className="flex items-center justify-between px-4 py-2 border-t border-glass-border/50 bg-glass-bg/20 backdrop-blur-sm">
 			<div className={`flex items-center gap-2 text-xs ${status.color}`}>
 				<IconComponent className={status.iconClass} />
 				<span>{status.text}</span>
 			</div>
+			<div className="text-xs text-text-dim tabular-nums">{countDisplay}</div>
 		</div>
 	);
 };
