@@ -12,7 +12,11 @@ export const LoggingSection = React.forwardRef<HTMLDivElement, LoggingSectionPro
 	({ systemInfo, logLevelOptions, onLogLevelChange }, ref) => {
 		return (
 			<div ref={ref}>
-				<SettingsSection id="logging" title="Logging" subtitle="Configure application logging level">
+				<SettingsSection
+					id="logging"
+					title="Diagnostics"
+					subtitle="Configure application logging and troubleshooting"
+				>
 					<div className="space-y-4">
 						<div className="space-y-2">
 							<Label variant="uppercase">Log Level</Label>

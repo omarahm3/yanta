@@ -34,9 +34,9 @@ const SECTION_META: Record<SettingsSectionId, { label: string; keywords: string 
 		keywords: "theme dark light density scale sidebar hints tooltips effects glass",
 	},
 	plugins: { label: "Plugins", keywords: "community install extensions" },
-	database: { label: "Database", keywords: "reindex search index" },
+	database: { label: "Storage", keywords: "storage database reindex search index data" },
 	shortcuts: { label: "Keyboard Shortcuts", keywords: "hotkeys keys quick capture override" },
-	logging: { label: "Logging", keywords: "log level debug verbose" },
+	logging: { label: "Diagnostics", keywords: "diagnostics log level debug verbose troubleshooting" },
 	backup: { label: "Backup", keywords: "snapshot restore" },
 	sync: { label: "Git Sync", keywords: "git commit push branch migrate data directory" },
 	mcp: {
