@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useMergedConfig } from "@/config/usePreferencesOverrides";
+import type { EditorHandle } from "../../editor/types";
 import type { HotkeyConfig } from "../../shared/types/hotkeys";
 
 export interface UseDocumentHotkeysConfigOptions {
@@ -15,6 +16,12 @@ export interface UseDocumentHotkeysConfigOptions {
 	focusEditor: () => void;
 	openFind: () => void;
 	openReplace: () => void;
+	deleteBlock: () => void;
+	moveBlockUp: () => void;
+	moveBlockDown: () => void;
+	duplicateBlock: () => void;
+	toggleOutline: () => void;
+	editorRef: React.RefObject<EditorHandle | null>;
 }
 
 export function useDocumentHotkeysConfig({
@@ -29,6 +36,12 @@ export function useDocumentHotkeysConfig({
 	focusEditor,
 	openFind,
 	openReplace,
+	deleteBlock,
+	moveBlockUp,
+	moveBlockDown,
+	duplicateBlock,
+	toggleOutline,
+	editorRef,
 }: UseDocumentHotkeysConfigOptions): HotkeyConfig[] {
 	const { shortcuts } = useMergedConfig();
 	const document = shortcuts.document;
@@ -120,28 +133,105 @@ export function useDocumentHotkeysConfig({
 				},
 				allowInInput: true,
 			},
-			{
-				...document.focusEditor,
-				handler: () => {
-					if (!isActivePaneRef.current) return false;
-					focusEditor();
-				},
-				allowInInput: false,
+		{
+			...document.focusEditor,
+			handler: () => {
+				if (!isActivePaneRef.current) return false;
+				focusEditor();
 			},
-		],
-		[
-			document,
-			saveNow,
-			error,
-			focusEditor,
-			handleEscape,
-			handleUnfocus,
-			isArchived,
-			handleExportToMarkdown,
-			handleExportToPDF,
-			isActivePaneRef,
-			openFind,
-			openReplace,
-		],
-	);
+			allowInInput: false,
+		},
+		{
+			...document.deleteBlock,
+			handler: (event: KeyboardEvent) => {
+				if (!isActivePaneRef.current) return false;
+				event.preventDefault();
+				event.stopPropagation();
+				if (isArchived) {
+					error("Restore the document before editing.");
+					return;
+				}
+				deleteBlock();
+			},
+			allowInInput: true,
+			capture: true,
+		},
+		{
+			...document.moveBlockUp,
+			handler: (event: KeyboardEvent) => {
+				if (!isActivePaneRef.current) return false;
+				event.preventDefault();
+				event.stopPropagation();
+				if (isArchived) {
+					error("Restore the document before editing.");
+					return;
+				}
+				moveBlockUp();
+			},
+			allowInInput: true,
+			capture: true,
+		},
+		{
+			...document.moveBlockDown,
+			handler: (event: KeyboardEvent) => {
+				if (!isActivePaneRef.current) return false;
+				event.preventDefault();
+				event.stopPropagation();
+				if (isArchived) {
+					error("Restore the document before editing.");
+					return;
+				}
+				moveBlockDown();
+			},
+			allowInInput: true,
+			capture: true,
+		},
+		{
+			...document.duplicateBlock,
+			handler: (event: KeyboardEvent) => {
+				if (!isActivePaneRef.current) return false;
+				event.preventDefault();
+				event.stopPropagation();
+				if (isArchived) {
+					error("Restore the document before editing.");
+					return;
+				}
+				duplicateBlock();
+			},
+			allowInInput: true,
+			capture: true,
+		},
+		{
+			...document.toggleOutline,
+			handler: (event: KeyboardEvent) => {
+				if (!isActivePaneRef.current) return false;
+				event.preventDefault();
+				event.stopPropagation();
+				toggleOutline();
+			},
+			allowInInput: true,
+			capture: true,
+		},
+	],
+	[
+		document,
+		saveNow,
+		error,
+		focusEditor,
+		handleEscape,
+		handleUnfocus,
+		isArchived,
+		handleExportToMarkdown,
+		handleExportToPDF,
+		isActivePaneRef,
+		openFind,
+		openReplace,
+		deleteBlock,
+		moveBlockUp,
+		moveBlockDown,
+		duplicateBlock,
+		toggleOutline,
+		editorRef,
+	],
+);
 }

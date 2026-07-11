@@ -120,7 +120,44 @@ export function useDocumentController({
 	const [isEditorReady, setIsEditorReady] = useState(false);
 	const [isFindOpen, setFindOpen] = useState(false);
 	const [isReplaceOpen, setReplaceOpen] = useState(false);
-	const openFind = useCallback(() => setFindOpen(true), []);
+	const [isOutlineOpen, setOutlineOpen] = useState(false);
+	const lastQueryRef = useRef<string>("");
+	const findBarRef = useRef<{ setQuery: (q: string) => void; focusInput: () => void } | null>(null);
+
+	const openFind = useCallback(() => {
+		if (isFindOpen) {
+			// Find is already open - refocus and optionally seed from selection
+			const editor = editorRef.current;
+			if (editor && findBarRef.current) {
+				const selection = editor.getSelection();
+				if (selection && selection.blocks.length > 0) {
+					const selectionText = selection.blocks
+						.map((block) => {
+							const extractText = (content: unknown): string => {
+								if (!content || !Array.isArray(content)) return "";
+								return content
+									.map((c: unknown) => {
+										if (typeof c === "object" && c !== null && "text" in c) {
+											return (c as { text?: string }).text || "";
+										}
+										return "";
+									})
+									.join("");
+							};
+							return extractText((block as { content?: unknown }).content);
+						})
+						.join("");
+					if (selectionText.trim()) {
+						findBarRef.current.setQuery(selectionText);
+						lastQueryRef.current = selectionText;
+					}
+				}
+				findBarRef.current.focusInput();
+			}
+		} else {
+			setFindOpen(true);
+		}
+	}, [isFindOpen]);
 	const openReplace = useCallback(() => {
 		setFindOpen(true);
 		setReplaceOpen(true);
@@ -133,6 +170,41 @@ export function useDocumentController({
 		setFindOpen(false);
 		setReplaceOpen(false);
 	}, []);
+
+	const handleRefocus = useCallback(
+		(seedFromSelection?: boolean) => {
+			const editor = editorRef.current;
+			if (!editor || !findBarRef.current) return;
+
+			if (seedFromSelection) {
+				const selection = editor.getSelection();
+				if (selection && selection.blocks.length > 0) {
+					const selectionText = selection.blocks
+						.map((block) => {
+							const extractText = (content: unknown): string => {
+								if (!content || !Array.isArray(content)) return "";
+								return content
+									.map((c: unknown) => {
+										if (typeof c === "object" && c !== null && "text" in c) {
+											return (c as { text?: string }).text || "";
+										}
+										return "";
+									})
+									.join("");
+							};
+							return extractText((block as { content?: unknown }).content);
+						})
+						.join("");
+					if (selectionText.trim()) {
+						findBarRef.current.setQuery(selectionText);
+						lastQueryRef.current = selectionText;
+					}
+				}
+			}
+			findBarRef.current.focusInput();
+		},
+		[],
+	);
 	// Close the find bar when switching to a different document.
 	useEffect(() => {
 		setFindOpen(false);
@@ -249,6 +321,58 @@ export function useDocumentController({
 		}
 	}, []);
 
+	const deleteBlock = useCallback(() => {
+		const editor = editorRef.current;
+		if (!editor) return;
+
+		const selection = editor.getSelection();
+		if (selection && selection.blocks.length > 0) {
+			editor.removeBlocks(selection.blocks);
+		} else {
+			const cursor = editor.getTextCursorPosition();
+			if (cursor?.block) {
+				editor.removeBlocks([cursor.block]);
+			}
+		}
+	}, []);
+
+	const moveBlockUp = useCallback(() => {
+		const editor = editorRef.current;
+		if (!editor) return;
+		editor.moveBlocksUp();
+	}, []);
+
+	const moveBlockDown = useCallback(() => {
+		const editor = editorRef.current;
+		if (!editor) return;
+		editor.moveBlocksDown();
+	}, []);
+
+	const duplicateBlock = useCallback(() => {
+		const editor = editorRef.current;
+		if (!editor) return;
+
+		const selection = editor.getSelection();
+		const blocksToDuplicate =
+			selection && selection.blocks.length > 0
+				? selection.blocks
+				: [editor.getTextCursorPosition().block];
+
+		if (!blocksToDuplicate || blocksToDuplicate.length === 0) return;
+
+		// Duplicate by inserting copies after the last block
+		const lastBlock = blocksToDuplicate[blocksToDuplicate.length - 1];
+		const copies = blocksToDuplicate.map((block) => ({
+			...block,
+			id: undefined, // Let BlockNote generate new IDs
+		}));
+		editor.insertBlocks(copies, lastBlock, "after");
+	}, []);
+
+	const toggleOutline = useCallback(() => {
+		setOutlineOpen((prev) => !prev);
+	}, []);
+
 	const hotkeys = useDocumentHotkeysConfig({
 		isActivePaneRef,
 		isArchived,
@@ -261,6 +385,12 @@ export function useDocumentController({
 		focusEditor,
 		openFind,
 		openReplace,
+		deleteBlock,
+		moveBlockUp,
+		moveBlockDown,
+		duplicateBlock,
+		toggleOutline,
+		editorRef,
 	});
 
 	const handleRestore = useCallback(async () => {
@@ -395,10 +525,14 @@ export function useDocumentController({
 			onClose: closeFind,
 			showReplace: isReplaceOpen,
 			onToggleReplace: toggleReplace,
+			onRefocus: handleRefocus,
 		},
 		hasConflict,
 		onReloadFromDisk: handleReloadFromDisk,
 		onKeepMine: handleKeepMine,
+		findBarRef,
+		isOutlineOpen,
+		onCloseOutline: () => setOutlineOpen(false),
 	};
 
 	return {
