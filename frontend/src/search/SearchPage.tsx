@@ -40,6 +40,16 @@ interface SearchProps {
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
 
+const SEARCH_OPERATORS = [
+	"project:alias",
+	"tag:name",
+	"title:text",
+	"body:text",
+	"-exclude",
+	'"phrase"',
+	"AND OR",
+] as const;
+
 const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
 	const [rawQuery, setRawQuery] = useState("");
 	const [results, setResults] = useState<SearchResult[]>([]);
@@ -352,7 +362,7 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 						<Input
 							ref={searchInputRef}
 							variant="default"
-							placeholder="Search entries... (try: project:alias, tag:name, title:text, -exclude, AND, OR)"
+							placeholder="Search entries..."
 							value={rawQuery}
 							onChange={(e) => setRawQuery((e.target as HTMLInputElement).value)}
 							className="flex-1 text-base bg-surface/80 border-border"
@@ -378,9 +388,9 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 				{/* Search Info Bar */}
 				<div className="flex items-center justify-between px-5 py-2 text-xs border-b bg-glass-bg/10 border-glass-border text-text-dim shrink-0">
 					<div className="flex gap-4">
-						{isLoading ? (
+						{isLoading && rawQuery.trim() ? (
 							<span className="text-yellow">Searching...</span>
-						) : (
+						) : rawQuery.trim() ? (
 							<>
 								<span>
 									Found <span className="font-semibold text-text">{groupedResults.length}</span>{" "}
@@ -388,17 +398,15 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 								</span>
 								{queryTime > 0 && <span className="text-text-dim">in {queryTime}ms</span>}
 							</>
-						)}
+						) : null}
 					</div>
 					<div className="flex gap-4">
 						<span>Syntax:</span>
-						<span className="font-mono text-accent">project:alias</span>
-						<span className="font-mono text-accent">tag:name</span>
-						<span className="font-mono text-accent">title:text</span>
-						<span className="font-mono text-accent">body:text</span>
-						<span className="font-mono text-accent">-exclude</span>
-						<span className="font-mono text-accent">"phrase"</span>
-						<span className="font-mono text-accent">AND OR</span>
+						{SEARCH_OPERATORS.map((op) => (
+							<span key={op} className="font-mono text-accent">
+								{op}
+							</span>
+						))}
 					</div>
 				</div>
 

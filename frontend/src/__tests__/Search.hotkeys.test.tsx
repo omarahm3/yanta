@@ -224,6 +224,62 @@ describe("Search hotkeys", () => {
 		resolveQuery?.([]);
 	});
 
+	it("hides the result count before any query is typed", async () => {
+		render(
+			<DialogProvider>
+				<HotkeyProvider>
+					<Search onNavigate={onNavigate} />
+				</HotkeyProvider>
+			</DialogProvider>,
+		);
+
+		await screen.findByPlaceholderText(/Search entries/);
+		expect(
+			screen.queryByText((_content, element) => {
+				return element?.textContent?.match(/Found \d+ results?/) !== null;
+			}),
+		).not.toBeInTheDocument();
+	});
+
+	it("shows the result count after a query is submitted", async () => {
+		render(
+			<DialogProvider>
+				<HotkeyProvider>
+					<Search onNavigate={onNavigate} />
+				</HotkeyProvider>
+			</DialogProvider>,
+		);
+
+		const input = (await screen.findByPlaceholderText(/Search entries/)) as HTMLInputElement;
+		fireEvent.change(input, { target: { value: "test" } });
+		await waitFor(() => expect(Query).toHaveBeenCalled());
+
+		await waitFor(() => {
+			const elements = screen.getAllByText((_content, element) => {
+				return element?.textContent?.match(/Found \d+ results?/) !== null;
+			});
+			expect(elements.length).toBeGreaterThan(0);
+		});
+	});
+
+	it("renders syntax operators only in the info strip, not in the placeholder", async () => {
+		render(
+			<DialogProvider>
+				<HotkeyProvider>
+					<Search onNavigate={onNavigate} />
+				</HotkeyProvider>
+			</DialogProvider>,
+		);
+
+		const input = (await screen.findByPlaceholderText("Search entries...")) as HTMLInputElement;
+		expect(input).toBeDefined();
+		expect(input.placeholder).not.toContain("project:");
+		expect(input.placeholder).not.toContain("tag:");
+
+		expect(screen.getByText("project:alias")).toBeInTheDocument();
+		expect(screen.getByText("tag:name")).toBeInTheDocument();
+	});
+
 	it("shows a no-results empty state with a clear action", async () => {
 		vi.mocked(Query).mockResolvedValueOnce([]);
 
