@@ -1,5 +1,5 @@
 import { FileText, Pin, PinOff } from "lucide-react";
-import React, { useCallback } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { Layout } from "@/app";
 import type { DocumentFindControls } from "../../editor/find";
 import type { EditorHandle } from "../../editor/types";
@@ -12,6 +12,7 @@ import { Button, type SidebarSection } from "../../shared/ui";
 import { ConflictBanner } from "./ConflictBanner";
 import { DocumentEditorActions } from "./DocumentEditorActions";
 import { DocumentEditorForm } from "./DocumentEditorForm";
+import { DocumentOutline } from "./DocumentOutline";
 
 export interface DocumentContentProps {
 	sidebarSections: SidebarSection[];
@@ -49,6 +50,12 @@ export interface DocumentContentProps {
 	hasConflict?: boolean;
 	onReloadFromDisk?: () => void;
 	onKeepMine?: () => void;
+	/** Ref to the find bar for external refocus/seed control. */
+	findBarRef?: React.RefObject<{ setQuery: (q: string) => void; focusInput: () => void } | null>;
+	/** Whether the document outline panel is open. */
+	isOutlineOpen?: boolean;
+	/** Callback to close the document outline panel. */
+	onCloseOutline?: () => void;
 }
 
 const PinButton: React.FC<{
@@ -106,6 +113,9 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 		hasConflict = false,
 		onReloadFromDisk,
 		onKeepMine,
+		findBarRef: externalFindBarRef,
+		isOutlineOpen = false,
+		onCloseOutline,
 	}) => {
 		const breadcrumbs = currentProject
 			? [
@@ -122,6 +132,30 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 					projectAlias={currentProject?.alias}
 				/>
 			) : undefined;
+
+		const [counts, setCounts] = useState({
+			wordCount: 0,
+			charCount: 0,
+			selectionCount: undefined as number | undefined,
+		});
+
+		const handleCountChange = useCallback(
+			(newCounts: { wordCount: number; charCount: number; selectionCount?: number }) => {
+				setCounts(newCounts);
+			},
+			[],
+		);
+
+		const findBarRef = externalFindBarRef ?? React.useRef(null);
+
+		const editorRef = useRef<EditorHandle | null>(null);
+		const handleEditorReadyWithRef = useCallback(
+			(editor: EditorHandle) => {
+				editorRef.current = editor;
+				onEditorReady(editor);
+			},
+			[onEditorReady],
+		);
 
 		return (
 			<Layout
@@ -162,28 +196,40 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 						</div>
 					)}
 					{hasConflict && <ConflictBanner onKeepMine={onKeepMine} onReloadFromDisk={onReloadFromDisk} />}
-					<DocumentEditorForm
-						blocks={formData.blocks}
-						tags={formData.tags}
-						isEditMode={isEditMode}
-						isLoading={isLoading}
-						isReadOnly={isArchived}
-						onTitleChange={onTitleChange}
-						onBlocksChange={onBlocksChange}
-						onTagRemove={onTagRemove}
-						onEditorReady={onEditorReady}
-						find={find}
-					/>
+				<DocumentEditorForm
+					blocks={formData.blocks}
+					tags={formData.tags}
+					isEditMode={isEditMode}
+					isLoading={isLoading}
+					isReadOnly={isArchived}
+					onTitleChange={onTitleChange}
+					onBlocksChange={onBlocksChange}
+					onTagRemove={onTagRemove}
+					onEditorReady={handleEditorReadyWithRef}
+					find={find}
+					onNavigate={onNavigate}
+					onCountChange={handleCountChange}
+					findBarRef={findBarRef}
+				/>
 
-					<DocumentEditorActions
-						saveState={autoSave.saveState}
-						lastSaved={autoSave.lastSaved}
-						hasUnsavedChanges={autoSave.hasUnsavedChanges}
-						saveError={autoSave.saveError}
-						isArchived={isArchived}
-					/>
-				</div>
-			</Layout>
+				<DocumentEditorActions
+					saveState={autoSave.saveState}
+					lastSaved={autoSave.lastSaved}
+					hasUnsavedChanges={autoSave.hasUnsavedChanges}
+					saveError={autoSave.saveError}
+					isArchived={isArchived}
+					wordCount={counts.wordCount}
+					charCount={counts.charCount}
+					selectionCount={counts.selectionCount}
+				/>
+			</div>
+			<DocumentOutline
+				editor={editorRef.current}
+				blocks={formData.blocks}
+				isOpen={isOutlineOpen}
+				onClose={onCloseOutline ?? (() => {})}
+			/>
+		</Layout>
 		);
 	},
 );
