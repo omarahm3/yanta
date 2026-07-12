@@ -257,6 +257,67 @@ func run() {
 
 	logger.Debug("system tray created")
 
+	// MRG-344: Native application menu
+	appMenu := wailsApp.NewMenu()
+
+	// App menu (macOS) / first menu (other platforms)
+	appSubMenu := appMenu.AddSubmenu("App")
+	aboutItem := appSubMenu.Add("About YANTA")
+	aboutItem.OnClick(func(ctx *application.Context) {
+		mainWindow.Show()
+		mainWindow.Restore()
+		mainWindow.Focus()
+	})
+	settingsItem := appSubMenu.Add("Settings")
+	settingsItem.OnClick(func(ctx *application.Context) {
+		mainWindow.Show()
+		mainWindow.Restore()
+		mainWindow.Focus()
+		mainWindow.ExecJS("window.dispatchEvent(new CustomEvent('yanta:navigate', {detail: {page: 'settings'}}))")
+	})
+	appSubMenu.AddSeparator()
+	quitAppItem := appSubMenu.Add("Quit")
+	quitAppItem.OnClick(func(ctx *application.Context) {
+		wailsApp.Quit()
+	})
+
+	// File menu
+	fileMenu := appMenu.AddSubmenu("File")
+	quickCaptureFileItem := fileMenu.Add("Quick Capture")
+	quickCaptureFileItem.OnClick(func(ctx *application.Context) {
+		quickcapture.ShowWindow()
+	})
+	syncItem := fileMenu.Add("Sync Now")
+	syncItem.OnClick(func(ctx *application.Context) {
+		mainWindow.ExecJS("window.dispatchEvent(new CustomEvent('yanta:sync-now'))")
+	})
+
+	// Edit menu (standard cut/copy/paste/undo/redo)
+	editMenu := appMenu.AddSubmenu("Edit")
+	undoItem := editMenu.Add("Undo")
+	undoItem.SetAccelerator("CmdOrCtrl+Z")
+	redoItem := editMenu.Add("Redo")
+	redoItem.SetAccelerator("CmdOrCtrl+Shift+Z")
+	editMenu.AddSeparator()
+	cutItem := editMenu.Add("Cut")
+	cutItem.SetAccelerator("CmdOrCtrl+X")
+	copyItem := editMenu.Add("Copy")
+	copyItem.SetAccelerator("CmdOrCtrl+C")
+	pasteItem := editMenu.Add("Paste")
+	pasteItem.SetAccelerator("CmdOrCtrl+V")
+	selectAllItem := editMenu.Add("Select All")
+	selectAllItem.SetAccelerator("CmdOrCtrl+A")
+
+	// View menu
+	viewMenu := appMenu.AddSubmenu("View")
+	reloadItem := viewMenu.Add("Reload")
+	reloadItem.SetAccelerator("CmdOrCtrl+R")
+	fullScreenItem := viewMenu.Add("Toggle Full Screen")
+	fullScreenItem.SetAccelerator("CmdOrCtrl+Shift+F")
+
+	wailsApp.Menu.SetApplicationMenu(appMenu)
+	logger.Debug("native application menu created")
+
 	wailsApp.Event.OnApplicationEvent(
 		events.Common.ApplicationStarted,
 		func(event *application.ApplicationEvent) {
