@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { GranularErrorBoundary } from "@/app";
 import type { DocumentFindControls } from "../../editor/find";
 import { RichEditor } from "../../editor/RichEditor";
@@ -10,7 +10,10 @@ import {
 } from "../../plugins/registry";
 import { useNotification } from "../../shared/hooks";
 import type { BlockNoteBlock } from "../../shared/types/Document";
+import type { NavigationState, PageName } from "../../shared/types/navigation";
 import { Button } from "../../shared/ui";
+import { countChars, countWords } from "../utils/editorCountUtils";
+import { getDocumentText, getSelectedText } from "../utils/editorSelection";
 
 interface DocumentEditorFormProps {
 	blocks: BlockNoteBlock[];
@@ -24,6 +27,13 @@ interface DocumentEditorFormProps {
 	onTagRemove: (tag: string) => void;
 	onEditorReady?: (editor: EditorHandle) => void;
 	find?: DocumentFindControls;
+	onNavigate?: (page: PageName, state?: NavigationState) => void;
+	onCountChange?: (counts: {
+		wordCount: number;
+		charCount: number;
+		selectionCount?: number;
+	}) => void;
+	findBarRef?: React.RefObject<{ setQuery: (q: string) => void; focusInput: () => void } | null>;
 }
 
 export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
@@ -38,7 +48,62 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 	onTagRemove,
 	onEditorReady,
 	find,
+	onNavigate,
+	onCountChange,
+	findBarRef,
 }) => {
+	const [editorHandle, setEditorHandle] = useState<EditorHandle | null>(null);
+
+	const handleEditorReady = useCallback(
+		(editor: EditorHandle) => {
+			setEditorHandle(editor);
+			onEditorReady?.(editor);
+		},
+		[onEditorReady],
+	);
+
+	useEffect(() => {
+		if (!editorHandle || !onCountChange) return;
+
+		const updateCounts = () => {
+			const text = getDocumentText(editorHandle);
+			const wordCount = countWords(text);
+			const charCount = countChars(text);
+			const selectionText = getSelectedText(editorHandle);
+			const selectionCount = selectionText ? countChars(selectionText) : undefined;
+			onCountChange({ wordCount, charCount, selectionCount });
+		};
+
+		// onChange (content) and the mouseup/keyup listeners (selection) can both
+		// fire for a single keystroke; coalesce them into one update per frame.
+		let rafId = 0;
+		const scheduleUpdate = () => {
+			if (rafId) return;
+			rafId = requestAnimationFrame(() => {
+				rafId = 0;
+				updateCounts();
+			});
+		};
+
+		updateCounts();
+
+		const unsubscribe = editorHandle.onChange(scheduleUpdate);
+
+		const prosemirrorView = editorHandle.prosemirrorView;
+		if (prosemirrorView) {
+			prosemirrorView.dom.addEventListener("mouseup", scheduleUpdate);
+			prosemirrorView.dom.addEventListener("keyup", scheduleUpdate);
+		}
+
+		return () => {
+			if (rafId) cancelAnimationFrame(rafId);
+			unsubscribe();
+			if (prosemirrorView) {
+				prosemirrorView.dom.removeEventListener("mouseup", scheduleUpdate);
+				prosemirrorView.dom.removeEventListener("keyup", scheduleUpdate);
+			}
+		};
+	}, [editorHandle, onCountChange]);
 	const handleTagKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLButtonElement>, tag: string) => {
 			if (isReadOnly) {
@@ -121,12 +186,13 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 						docKey={isEditMode ? `edit:${blocksJson ? "loaded" : "pending"}` : "new"}
 						onChange={handleBlocksChange}
 						onTitleChange={handleTitleChange}
-						onReady={onEditorReady}
+						onReady={handleEditorReady}
 						editable={!isLoading && !isReadOnly}
 						isLoading={isLoading && isEditMode}
 						autoFocus={autoFocus}
 						disablePluginContributions={editorRecoveryMode}
 						find={find}
+						findBarRef={findBarRef}
 						className="h-full"
 					/>
 				</GranularErrorBoundary>
@@ -141,12 +207,13 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 								isLoading={isLoading}
 								isReadOnly={isReadOnly}
 								onRemove={onTagRemove}
+								onFilter={(t) => onNavigate?.("search", { query: `tag:${t}` })}
 								onKeyDown={handleTagKeyDown}
 							/>
 						))}
 					</div>
 					<div className="mt-2 text-xs text-text-dim">
-						Use :tag to add tags, or click/focus and press Delete to remove
+						Use :tag to add tags. Click a tag to search by it, or press Delete to remove
 					</div>
 				</div>
 			)}
@@ -159,23 +226,38 @@ interface TagChipProps {
 	isLoading: boolean;
 	isReadOnly: boolean;
 	onRemove: (tag: string) => void;
+	onFilter: (tag: string) => void;
 	onKeyDown: (e: React.KeyboardEvent<HTMLButtonElement>, tag: string) => void;
 }
 
 const TagChip: React.FC<TagChipProps> = React.memo(
-	({ tag, isLoading, isReadOnly, onRemove, onKeyDown }) => (
-		<Button
-			variant="secondary"
-			size="sm"
-			onKeyDown={(e) => onKeyDown(e, tag)}
-			onClick={() => {
-				if (!isReadOnly) onRemove(tag);
-			}}
-			className="inline-flex items-center gap-1 text-sm"
-			disabled={isLoading || isReadOnly}
-			title="Click or press Delete/Backspace to remove"
-		>
-			{tag}
-		</Button>
+	({ tag, isLoading, isReadOnly, onRemove, onFilter, onKeyDown }) => (
+		<span className="inline-flex items-center gap-1">
+			<Button
+				variant="secondary"
+				size="sm"
+				onKeyDown={(e) => onKeyDown(e, tag)}
+				onClick={() => {
+					if (!isReadOnly) onFilter(tag);
+				}}
+				className="inline-flex items-center gap-1 text-sm"
+				disabled={isLoading || isReadOnly}
+				title="Click to search by this tag"
+			>
+				{tag}
+			</Button>
+			{!isReadOnly && (
+				<button
+					type="button"
+					onClick={() => onRemove(tag)}
+					disabled={isLoading}
+					className="flex h-5 w-5 items-center justify-center rounded text-text-dim hover:text-text-bright hover:bg-glass-bg/30 transition-colors disabled:opacity-50"
+					aria-label={`Remove ${tag}`}
+					title="Remove tag"
+				>
+					×
+				</button>
+			)}
+		</span>
 	),
 );

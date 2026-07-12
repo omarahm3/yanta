@@ -1,5 +1,5 @@
 import { act, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { ToastProvider, useToast } from "../Toast";
 
 const TestConsumer = ({ onMount }: { onMount: (toast: ReturnType<typeof useToast>) => void }) => {

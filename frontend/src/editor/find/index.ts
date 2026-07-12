@@ -8,4 +8,6 @@ export interface DocumentFindControls {
 	showReplace: boolean;
 	/** Toggle the replace row (opening find if needed). */
 	onToggleReplace: () => void;
+	/** Refocus the find input and optionally seed with selection text. */
+	onRefocus?: (seedFromSelection?: boolean) => void;
 }

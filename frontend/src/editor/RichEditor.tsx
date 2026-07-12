@@ -30,6 +30,7 @@ export interface RichEditorProps {
 	autoFocus?: boolean;
 	disablePluginContributions?: boolean;
 	find?: DocumentFindControls;
+	findBarRef?: React.RefObject<{ setQuery: (q: string) => void; focusInput: () => void } | null>;
 }
 
 const createDefaultInitialBlock = (): PartialBlock => ({
@@ -54,6 +55,7 @@ type EditorInnerProps = {
 	autoFocus: boolean;
 	disablePluginContributions: boolean;
 	find?: DocumentFindControls;
+	findBarRef?: React.RefObject<{ setQuery: (q: string) => void; focusInput: () => void } | null>;
 };
 
 interface PluginSlashMenuProps {
@@ -104,6 +106,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 			autoFocus,
 			disablePluginContributions,
 			find,
+			findBarRef,
 		},
 		ref,
 	) => {
@@ -163,6 +166,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 						onClose={find.onClose}
 						showReplace={find.showReplace}
 						onToggleReplace={find.onToggleReplace}
+						barRef={findBarRef}
 					/>
 				)}
 			</div>
@@ -186,6 +190,7 @@ export const RichEditor = React.forwardRef<HTMLDivElement, RichEditorProps>(
 			autoFocus = true,
 			disablePluginContributions = false,
 			find,
+			findBarRef,
 		},
 		ref,
 	) => {
@@ -234,6 +239,7 @@ export const RichEditor = React.forwardRef<HTMLDivElement, RichEditorProps>(
 				autoFocus={autoFocus}
 				disablePluginContributions={disablePluginContributions}
 				find={find}
+				findBarRef={findBarRef}
 			/>
 		);
 	},

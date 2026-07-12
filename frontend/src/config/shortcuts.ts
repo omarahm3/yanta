@@ -50,6 +50,10 @@ export const DOCUMENT_SHORTCUTS = {
 	unfocus: { key: "mod+shift+C", description: "Unfocus editor" },
 	focusEditor: { key: "Enter", description: "Focus editor when unfocused" },
 	deleteBlock: { key: "ctrl+d", description: "Delete block (Document page)" },
+	moveBlockUp: { key: "mod+shift+ArrowUp", description: "Move block up" },
+	moveBlockDown: { key: "mod+shift+ArrowDown", description: "Move block down" },
+	duplicateBlock: { key: "mod+shift+D", description: "Duplicate block" },
+	toggleOutline: { key: "mod+shift+O", description: "Toggle document outline" },
 } as const satisfies Record<string, ShortcutDef>;
 
 /** Dashboard (useDashboardController) */
