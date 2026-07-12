@@ -1,15 +1,15 @@
 import { create } from "zustand";
 
 let saveHandler: (() => void) | null = null;
-let findHandler: (() => void) | null = null;
+let findHandler: ((query?: string) => void) | null = null;
 let replaceHandler: (() => void) | null = null;
 let restoreHandler: (() => void) | null = null;
 
 interface DocumentCommandState {
 	registerSaveHandler: (handler: (() => void) | null) => void;
 	requestSave: () => void;
-	registerFindHandler: (handler: (() => void) | null) => void;
-	requestFind: () => void;
+	registerFindHandler: (handler: ((query?: string) => void) | null) => void;
+	requestFind: (query?: string) => void;
 	registerReplaceHandler: (handler: (() => void) | null) => void;
 	requestReplace: () => void;
 	registerRestoreHandler: (handler: (() => void) | null) => void;
@@ -26,8 +26,8 @@ export const useDocumentCommandStore = create<DocumentCommandState>(() => ({
 	registerFindHandler: (handler) => {
 		findHandler = handler;
 	},
-	requestFind: () => {
-		if (findHandler) findHandler();
+	requestFind: (query) => {
+		if (findHandler) findHandler(query);
 	},
 	registerReplaceHandler: (handler) => {
 		replaceHandler = handler;

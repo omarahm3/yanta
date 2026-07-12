@@ -125,22 +125,34 @@ export function useDocumentController({
 	const lastQueryRef = useRef<string>("");
 	const findBarRef = useRef<{ setQuery: (q: string) => void; focusInput: () => void } | null>(null);
 
-	const openFind = useCallback(() => {
-		if (isFindOpen) {
-			// Find is already open - refocus and optionally seed from selection
-			const editor = editorRef.current;
-			if (editor && findBarRef.current) {
-				const selectionText = getSelectedText(editor);
-				if (selectionText.trim()) {
-					findBarRef.current.setQuery(selectionText);
-					lastQueryRef.current = selectionText;
+	const openFind = useCallback(
+		(query?: string) => {
+			if (isFindOpen) {
+				// Find is already open - refocus and optionally seed from selection or passed query
+				const editor = editorRef.current;
+				if (editor && findBarRef.current) {
+					if (query) {
+						findBarRef.current.setQuery(query);
+						lastQueryRef.current = query;
+					} else {
+						const selectionText = getSelectedText(editor);
+						if (selectionText.trim()) {
+							findBarRef.current.setQuery(selectionText);
+							lastQueryRef.current = selectionText;
+						}
+					}
+					findBarRef.current.focusInput();
 				}
-				findBarRef.current.focusInput();
+			} else {
+				setFindOpen(true);
+				if (query && findBarRef.current) {
+					findBarRef.current.setQuery(query);
+					lastQueryRef.current = query;
+				}
 			}
-		} else {
-			setFindOpen(true);
-		}
-	}, [isFindOpen]);
+		},
+		[isFindOpen],
+	);
 	const openReplace = useCallback(() => {
 		setFindOpen(true);
 		setReplaceOpen(true);

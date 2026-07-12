@@ -3,6 +3,7 @@ import type React from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useProjectContext } from "../project";
 import type { NavigationState, PageName } from "../shared/types";
+import { useDocumentCommandStore } from "../shared/stores/documentCommand.store";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../shared/ui/dialog";
 import { Kbd } from "../shared/ui/Kbd";
 import { cn } from "../shared/utils/cn";
@@ -81,10 +82,17 @@ function GlobalSearchInner({
 				onNavigate("journal", { date: item.updated, noteId: item.noteId });
 			} else {
 				onNavigate("document", { documentPath: item.path });
+				// Pass the query to the find bar so the doc opens at the match
+				if (query.trim()) {
+					// Use setTimeout to ensure navigation completes before triggering find
+					setTimeout(() => {
+						useDocumentCommandStore.getState().requestFind(query.trim());
+					}, 0);
+				}
 			}
 			onClose();
 		},
-		[projects, setCurrentProject, onNavigate, onClose],
+		[projects, setCurrentProject, onNavigate, onClose, query],
 	);
 
 	const moveSelection = useCallback((delta: number) => {
@@ -237,22 +245,33 @@ function ResultRow({ id, item, index, selected, onSelect, onOpen }: ResultRowPro
 			}}
 			onClick={() => onOpen(item)}
 			className={cn(
-				"flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150",
+				"flex cursor-pointer flex-col gap-1 rounded-md px-3 py-2 text-sm transition-colors duration-150",
 				selected ? "bg-accent/12 text-accent" : "text-text hover:bg-accent/[0.06]",
 			)}
 		>
-			<Icon
-				className={cn("size-4 shrink-0", selected ? "text-accent" : "text-text-dim")}
-				aria-hidden="true"
-			/>
-			<span className="flex-1 truncate">{item.title || "Untitled"}</span>
-			{item.projectAlias && (
-				<span className="shrink-0 font-mono text-[11px] text-text-dim">
-					@{item.projectAlias.replace(/^@+/, "")}
-				</span>
-			)}
-			{item.matchCount > 1 && (
-				<span className="shrink-0 text-[11px] text-text-dim">{item.matchCount}</span>
+			<div className="flex items-center gap-2.5">
+				<Icon
+					className={cn("size-4 shrink-0", selected ? "text-accent" : "text-text-dim")}
+					aria-hidden="true"
+				/>
+				<span className="flex-1 truncate">{item.title || "Untitled"}</span>
+				{item.projectAlias && (
+					<span className="shrink-0 font-mono text-[11px] text-text-dim">
+						@{item.projectAlias.replace(/^@+/, "")}
+					</span>
+				)}
+				{item.matchCount > 0 && (
+					<span className="shrink-0 text-[11px] text-text-dim">
+						{item.matchCount} {item.matchCount === 1 ? "match" : "matches"}
+					</span>
+				)}
+			</div>
+			{item.snippets.length > 0 && (
+				<div
+					// biome-ignore lint/security/noDangerouslySetInnerHtml: snippets are trusted HTML from buildSnippet with only <mark> tags
+					className="truncate text-xs text-text-dim [&_mark]:bg-yellow/20 [&_mark]:text-yellow [&_mark]:px-0.5 [&_mark]:rounded"
+					dangerouslySetInnerHTML={{ __html: item.snippets[0] }}
+				/>
 			)}
 		</div>
 	);
