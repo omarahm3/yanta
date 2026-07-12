@@ -140,5 +140,12 @@ describe("DocumentList", () => {
 		fireEvent.keyDown(contentArea, { key: "Enter" });
 		expect(onHighlightDocument).toHaveBeenCalledWith(0);
 		expect(onDocumentClick).toHaveBeenCalledWith("doc-1");
+
+		// Space should activate the row the same way as Enter.
+		onHighlightDocument.mockClear();
+		onDocumentClick.mockClear();
+		fireEvent.keyDown(contentArea, { key: " " });
+		expect(onHighlightDocument).toHaveBeenCalledWith(0);
+		expect(onDocumentClick).toHaveBeenCalledWith("doc-1");
 	});
 });

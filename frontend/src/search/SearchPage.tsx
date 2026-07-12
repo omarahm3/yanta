@@ -328,8 +328,11 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 	});
 
 	const renderSnippet = (snippet: string) => {
-		// biome-ignore lint/security/noDangerouslySetInnerHtml: search result HTML is trusted backend content with highlight marks
-		return <div className="leading-snug text-text" dangerouslySetInnerHTML={{ __html: snippet }} />;
+		// Snippets are meant to contain only <mark> highlight tags; strip any other
+		// tag so document content can't inject arbitrary HTML/scripts.
+		const safe = snippet.replace(/<(?!\/?mark\b)[^>]*>/gi, "");
+		// biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized to <mark>-only above
+		return <div className="leading-snug text-text" dangerouslySetInnerHTML={{ __html: safe }} />;
 	};
 
 	return (
@@ -439,7 +442,7 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 								/>
 							)
 						) : (
-							<div className="space-y-5">
+							<div className="space-y-5" role="listbox" aria-label="Search results">
 								{groupedResults.map((r, idx) => (
 									<SearchResultCard
 										key={r.path}
@@ -531,6 +534,9 @@ const SearchResultCard: React.FC<SearchResultCardProps> = React.memo(
 		const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
 			if (e.key === "Enter" || e.key === " ") {
 				e.preventDefault();
+				// Stop the native event bubbling to the document-level key handler,
+				// which would otherwise open the result a second time.
+				e.stopPropagation();
 				onSelect(index);
 				onOpen(index);
 			}

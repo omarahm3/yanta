@@ -123,6 +123,9 @@ export function useDocumentController({
 	const [isReplaceOpen, setReplaceOpen] = useState(false);
 	const [isOutlineOpen, setOutlineOpen] = useState(false);
 	const lastQueryRef = useRef<string>("");
+	// Query to seed once the find bar mounts (it isn't rendered yet when openFind
+	// is called while closed, so findBarRef.current is still null at that point).
+	const pendingQueryRef = useRef<string | null>(null);
 	const findBarRef = useRef<{ setQuery: (q: string) => void; focusInput: () => void } | null>(null);
 
 	const openFind = useCallback(
@@ -144,15 +147,23 @@ export function useDocumentController({
 					findBarRef.current.focusInput();
 				}
 			} else {
+				// Defer seeding until the find bar mounts (see effect below).
+				if (query) pendingQueryRef.current = query;
 				setFindOpen(true);
-				if (query && findBarRef.current) {
-					findBarRef.current.setQuery(query);
-					lastQueryRef.current = query;
-				}
 			}
 		},
 		[isFindOpen],
 	);
+
+	// Apply a query passed to openFind() while the bar was closed, once it mounts.
+	useEffect(() => {
+		if (isFindOpen && findBarRef.current && pendingQueryRef.current != null) {
+			findBarRef.current.setQuery(pendingQueryRef.current);
+			lastQueryRef.current = pendingQueryRef.current;
+			pendingQueryRef.current = null;
+			findBarRef.current.focusInput();
+		}
+	}, [isFindOpen]);
 	const openReplace = useCallback(() => {
 		setFindOpen(true);
 		setReplaceOpen(true);

@@ -136,6 +136,16 @@ export function useGlobalCommandPalette(
 		const recentMap = new Map(recentDocuments.map((doc) => [doc.path, doc]));
 		const commands: CommandOption[] = [];
 
+		// Switch the active project to the document's project before navigating, so
+		// opening a doc from another project doesn't leave a mismatched header
+		// (mirrors GlobalSearch/SearchPage).
+		const switchProjectByAlias = (alias?: string) => {
+			const a = (alias || "").replace(/^@+/, "");
+			if (!a) return;
+			const target = projects.find((p) => p.alias.replace(/^@+/, "") === a);
+			if (target) setCurrentProject(target);
+		};
+
 		// Add recent documents first
 		for (const doc of recentDocuments) {
 			commands.push({
@@ -146,7 +156,9 @@ export function useGlobalCommandPalette(
 				group: "Documents" as const,
 				keywords: [doc.title || "Untitled", doc.path],
 				action: () => {
-					navigate("document", { path: doc.path, projectAlias: doc.projectAlias });
+					switchProjectByAlias(doc.projectAlias);
+					// The document route reads state.documentPath (not path).
+					navigate("document", { documentPath: doc.path });
 					handleClose();
 				},
 			});
@@ -164,6 +176,7 @@ export function useGlobalCommandPalette(
 				group: "Documents" as const,
 				keywords: [doc.title || "Untitled", path],
 				action: () => {
+					switchProjectByAlias(doc.projectAlias);
 					navigate("document", { documentPath: path });
 					handleClose();
 				},
@@ -171,7 +184,7 @@ export function useGlobalCommandPalette(
 		}
 
 		return commands;
-	}, [recentDocuments, indexDocs, navigate, handleClose]);
+	}, [recentDocuments, indexDocs, navigate, handleClose, projects, setCurrentProject]);
 
 	// Registry: stable reference so domain registration runs only when context changes
 	const registry = useMemo(() => {
