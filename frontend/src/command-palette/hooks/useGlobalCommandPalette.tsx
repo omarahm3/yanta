@@ -8,6 +8,7 @@ import { useErrorDialogStore } from "../../shared/stores/errorDialog.store";
 import type { NavigationState, PageName } from "../../shared/types";
 import type { CommandOption } from "../../shared/ui";
 import { formatRelativeTimeFromTimestamp } from "../../shared/utils/date";
+import { useSearchIndexStore } from "../../search-index/searchIndex.store";
 import { useCommandPaletteStore } from "../commandPalette.store";
 import {
 	type CommandRegistryContext,
@@ -128,21 +129,49 @@ export function useGlobalCommandPalette(
 		[recordCommandUsage],
 	);
 
-	// Inline recent documents as CommandOption items (quick-switcher)
+	// Inline recent documents + all vault document titles as CommandOption items (quick-switcher)
+	const indexDocs = useSearchIndexStore((s) => s.docsById);
 	const documentCommands: CommandOption[] = useMemo(() => {
-		return recentDocuments.map((doc) => ({
-			id: `doc-${doc.path}`,
-			icon: <FileText className="size-4" />,
-			text: doc.title || "Untitled",
-			hint: formatRelativeTimeFromTimestamp(doc.lastOpened),
-			group: "Documents" as const,
-			keywords: [doc.title || "Untitled", doc.path],
-			action: () => {
-				navigate("document", { path: doc.path, projectAlias: doc.projectAlias });
-				handleClose();
-			},
-		}));
-	}, [recentDocuments, navigate, handleClose]);
+		// Start with recent documents
+		const recentMap = new Map(recentDocuments.map((doc) => [doc.path, doc]));
+		const commands: CommandOption[] = [];
+
+		// Add recent documents first
+		for (const doc of recentDocuments) {
+			commands.push({
+				id: `doc-${doc.path}`,
+				icon: <FileText className="size-4" />,
+				text: doc.title || "Untitled",
+				hint: formatRelativeTimeFromTimestamp(doc.lastOpened),
+				group: "Documents" as const,
+				keywords: [doc.title || "Untitled", doc.path],
+				action: () => {
+					navigate("document", { path: doc.path, projectAlias: doc.projectAlias });
+					handleClose();
+				},
+			});
+		}
+
+		// Add all other documents from the index (not already in recent)
+		for (const [path, doc] of indexDocs) {
+			if (recentMap.has(path)) continue;
+			if (doc.type === "note") continue; // Skip journal notes for now
+			commands.push({
+				id: `doc-${path}`,
+				icon: <FileText className="size-4" />,
+				text: doc.title || "Untitled",
+				hint: doc.projectAlias,
+				group: "Documents" as const,
+				keywords: [doc.title || "Untitled", path],
+				action: () => {
+					navigate("document", { documentPath: path });
+					handleClose();
+				},
+			});
+		}
+
+		return commands;
+	}, [recentDocuments, indexDocs, navigate, handleClose]);
 
 	// Registry: stable reference so domain registration runs only when context changes
 	const registry = useMemo(() => {
