@@ -97,8 +97,7 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({
 						<button
 							type="button"
 							className={cn(
-								"flex items-center justify-center rounded transition-colors",
-								isCompact ? "w-5 h-5" : "w-6 h-6",
+								"flex items-center justify-center rounded transition-colors min-w-6 min-h-6",
 								canSplit
 									? "text-text-dim hover:text-text-bright hover:bg-glass-bg/30"
 									: "text-text-dim/30 cursor-not-allowed",
@@ -114,8 +113,7 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({
 						<button
 							type="button"
 							className={cn(
-								"flex items-center justify-center rounded transition-colors",
-								isCompact ? "w-5 h-5" : "w-6 h-6",
+								"flex items-center justify-center rounded transition-colors min-w-6 min-h-6",
 								canSplit
 									? "text-text-dim hover:text-text-bright hover:bg-glass-bg/30"
 									: "text-text-dim/30 cursor-not-allowed",
@@ -132,8 +130,7 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({
 							<button
 								type="button"
 								className={cn(
-									"flex items-center justify-center rounded text-text-dim hover:text-text-bright hover:bg-glass-bg/30 transition-colors",
-									isCompact ? "w-5 h-5" : "w-6 h-6",
+									"flex items-center justify-center rounded text-text-dim hover:text-text-bright hover:bg-glass-bg/30 transition-colors min-w-6 min-h-6",
 								)}
 								onClick={handleClose}
 								title="Close pane"

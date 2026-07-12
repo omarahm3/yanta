@@ -275,6 +275,13 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 			onDocumentClick(doc.path);
 		};
 
+		const handleItemClickKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (event) => {
+			if (event.key === "Enter" || event.key === " ") {
+				event.preventDefault();
+				handleOpen();
+			}
+		};
+
 		const handleToggleSelect = () => onToggleSelection?.(doc.path);
 
 		const handleTogglePin = () => {
@@ -322,7 +329,13 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 							<span className={indexClasses} style={indexStyle}>
 								{index + 1}.
 							</span>
-							<div className="flex-1 cursor-pointer" onClick={handleItemClick}>
+							<div
+								className="flex-1 cursor-pointer"
+								role="button"
+								tabIndex={0}
+								onClick={handleItemClick}
+								onKeyDown={handleItemClickKeyDown}
+							>
 								<div className="flex items-center gap-2">
 									<Heading as="h3" size="base">
 										{doc.title}

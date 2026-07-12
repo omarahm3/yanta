@@ -1,7 +1,9 @@
 import { FileText, NotebookPen, Search } from "lucide-react";
 import type React from "react";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useProjectContext } from "../project";
+import { getFinderUnsupportedWarning } from "../search-index/queryParser";
+import { useDocumentCommandStore } from "../shared/stores/documentCommand.store";
 import type { NavigationState, PageName } from "../shared/types";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../shared/ui/dialog";
 import { Kbd } from "../shared/ui/Kbd";
@@ -47,7 +49,8 @@ function GlobalSearchInner({
 	onClose: () => void;
 }) {
 	const { projects, setCurrentProject } = useProjectContext();
-	const { query, setQuery, items, isLoading, error, hasQuery } = useDocumentSearch();
+	const { query, setQuery, items, isLoading, error, hasQuery, isUpdating, isError, rebuild } =
+		useDocumentSearch();
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const listRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -80,10 +83,17 @@ function GlobalSearchInner({
 				onNavigate("journal", { date: item.updated, noteId: item.noteId });
 			} else {
 				onNavigate("document", { documentPath: item.path });
+				// Pass the query to the find bar so the doc opens at the match
+				if (query.trim()) {
+					// Use setTimeout to ensure navigation completes before triggering find
+					setTimeout(() => {
+						useDocumentCommandStore.getState().requestFind(query.trim());
+					}, 0);
+				}
 			}
 			onClose();
 		},
-		[projects, setCurrentProject, onNavigate, onClose],
+		[projects, setCurrentProject, onNavigate, onClose, query],
 	);
 
 	const moveSelection = useCallback((delta: number) => {
@@ -121,6 +131,11 @@ function GlobalSearchInner({
 		const el = listRef.current?.querySelector<HTMLElement>(`[data-index="${safeIndex}"]`);
 		el?.scrollIntoView({ block: "nearest" });
 	}, [safeIndex]);
+
+	const unsupportedWarning = useMemo(
+		() => (hasQuery ? getFinderUnsupportedWarning(query) : null),
+		[hasQuery, query],
+	);
 
 	return (
 		<DialogContent
@@ -166,7 +181,14 @@ function GlobalSearchInner({
 						className="w-full shrink-0 overflow-y-auto p-1.5 md:w-2/5 md:border-r md:border-border"
 					>
 						{items.length === 0 ? (
-							<ListEmpty hasQuery={hasQuery} isLoading={isLoading} query={query} error={error} />
+							<ListEmpty
+								hasQuery={hasQuery}
+								isLoading={isLoading}
+								query={query}
+								error={error}
+								isError={isError}
+								onRebuild={rebuild}
+							/>
 						) : (
 							items.map((item, index) => (
 								<ResultRow
@@ -191,8 +213,12 @@ function GlobalSearchInner({
 					<FooterHint keyLabel="↑↓" label="Navigate" />
 					<FooterHint keyLabel="↵" label="Open" />
 					<FooterHint keyLabel="esc" label="Close" />
-					{isLoading && hasQuery ? (
-						<span className="ml-auto text-yellow">Searching…</span>
+					{unsupportedWarning ? (
+						<span className="ml-auto text-yellow truncate max-w-[50%]" title={unsupportedWarning}>
+							{unsupportedWarning}
+						</span>
+					) : isUpdating && hasQuery ? (
+						<span className="ml-auto text-yellow">Updating index…</span>
 					) : hasQuery && items.length > 0 ? (
 						<span className="ml-auto">
 							{items.length} {items.length === 1 ? "result" : "results"}
@@ -229,28 +255,41 @@ function ResultRow({ id, item, index, selected, onSelect, onOpen }: ResultRowPro
 			}}
 			onClick={() => onOpen(item)}
 			className={cn(
-				"flex cursor-pointer items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150",
+				"flex cursor-pointer flex-col gap-1 rounded-md px-3 py-2 text-sm transition-colors duration-150",
 				selected ? "bg-accent/12 text-accent" : "text-text hover:bg-accent/[0.06]",
 			)}
 		>
-			<Icon
-				className={cn("size-4 shrink-0", selected ? "text-accent" : "text-text-dim")}
-				aria-hidden="true"
-			/>
-			<span className="flex-1 truncate">{item.title || "Untitled"}</span>
-			{item.projectAlias && (
-				<span className="shrink-0 font-mono text-[11px] text-text-dim">
-					@{item.projectAlias.replace(/^@+/, "")}
-				</span>
-			)}
-			{item.matchCount > 1 && (
-				<span className="shrink-0 text-[11px] text-text-dim">{item.matchCount}</span>
+			<div className="flex items-center gap-2.5">
+				<Icon
+					className={cn("size-4 shrink-0", selected ? "text-accent" : "text-text-dim")}
+					aria-hidden="true"
+				/>
+				<span className="flex-1 truncate">{item.title || "Untitled"}</span>
+				{item.projectAlias && (
+					<span className="shrink-0 font-mono text-[11px] text-text-dim">
+						@{item.projectAlias.replace(/^@+/, "")}
+					</span>
+				)}
+				{item.matchCount > 0 && (
+					<span className="shrink-0 text-[11px] text-text-dim">
+						{item.matchCount} {item.matchCount === 1 ? "match" : "matches"}
+					</span>
+				)}
+			</div>
+			{item.snippets.length > 0 && (
+				<div
+					// biome-ignore lint/security/noDangerouslySetInnerHtml: snippets are trusted HTML from buildSnippet with only <mark> tags
+					className="truncate text-xs text-text-dim [&_mark]:bg-yellow/20 [&_mark]:text-yellow [&_mark]:px-0.5 [&_mark]:rounded"
+					dangerouslySetInnerHTML={{ __html: item.snippets[0] }}
+				/>
 			)}
 		</div>
 	);
 }
 
 function ListEmpty({
+	isError,
+	onRebuild,
 	hasQuery,
 	isLoading,
 	query,
@@ -260,9 +299,22 @@ function ListEmpty({
 	isLoading: boolean;
 	query: string;
 	error: string | null;
+	isError: boolean;
+	onRebuild: () => void;
 }) {
-	if (error) {
-		return <div className="px-3 py-12 text-center text-sm text-red">{error}</div>;
+	if (isError) {
+		return (
+			<div className="flex flex-col items-center gap-3 px-3 py-12 text-center text-sm">
+				<span className="text-red">{error || "Search index unavailable."}</span>
+				<button
+					type="button"
+					onClick={onRebuild}
+					className="rounded-md bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/20 transition-colors"
+				>
+					Rebuild Index
+				</button>
+			</div>
+		);
 	}
 	if (isLoading) {
 		return <div className="px-3 py-12 text-center text-sm text-text-dim">Searching…</div>;

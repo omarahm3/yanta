@@ -123,22 +123,45 @@ export function useDocumentController({
 	const [isReplaceOpen, setReplaceOpen] = useState(false);
 	const [isOutlineOpen, setOutlineOpen] = useState(false);
 	const lastQueryRef = useRef<string>("");
+	// Query to seed once the find bar mounts (it isn't rendered yet when openFind
+	// is called while closed, so findBarRef.current is still null at that point).
+	const pendingQueryRef = useRef<string | null>(null);
 	const findBarRef = useRef<{ setQuery: (q: string) => void; focusInput: () => void } | null>(null);
 
-	const openFind = useCallback(() => {
-		if (isFindOpen) {
-			// Find is already open - refocus and optionally seed from selection
-			const editor = editorRef.current;
-			if (editor && findBarRef.current) {
-				const selectionText = getSelectedText(editor);
-				if (selectionText.trim()) {
-					findBarRef.current.setQuery(selectionText);
-					lastQueryRef.current = selectionText;
+	const openFind = useCallback(
+		(query?: string) => {
+			if (isFindOpen) {
+				// Find is already open - refocus and optionally seed from selection or passed query
+				const editor = editorRef.current;
+				if (editor && findBarRef.current) {
+					if (query) {
+						findBarRef.current.setQuery(query);
+						lastQueryRef.current = query;
+					} else {
+						const selectionText = getSelectedText(editor);
+						if (selectionText.trim()) {
+							findBarRef.current.setQuery(selectionText);
+							lastQueryRef.current = selectionText;
+						}
+					}
+					findBarRef.current.focusInput();
 				}
-				findBarRef.current.focusInput();
+			} else {
+				// Defer seeding until the find bar mounts (see effect below).
+				if (query) pendingQueryRef.current = query;
+				setFindOpen(true);
 			}
-		} else {
-			setFindOpen(true);
+		},
+		[isFindOpen],
+	);
+
+	// Apply a query passed to openFind() while the bar was closed, once it mounts.
+	useEffect(() => {
+		if (isFindOpen && findBarRef.current && pendingQueryRef.current != null) {
+			findBarRef.current.setQuery(pendingQueryRef.current);
+			lastQueryRef.current = pendingQueryRef.current;
+			pendingQueryRef.current = null;
+			findBarRef.current.focusInput();
 		}
 	}, [isFindOpen]);
 	const openReplace = useCallback(() => {

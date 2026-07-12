@@ -117,4 +117,35 @@ describe("DocumentList", () => {
 		fireEvent.click(screen.getByRole("button", { name: "Create first document" }));
 		expect(onCreateDocument).toHaveBeenCalledTimes(1);
 	});
+
+	it("document content area exposes role=button and activates on Enter", () => {
+		const onDocumentClick = vi.fn();
+		const onHighlightDocument = vi.fn();
+		const document = buildDocument({ path: "doc-1", title: "Doc 1" });
+
+		render(
+			<DocumentList
+				documents={[document]}
+				onDocumentClick={onDocumentClick}
+				highlightedIndex={0}
+				onHighlightDocument={onHighlightDocument}
+			/>,
+		);
+
+		const contentAreas = screen.getAllByRole("button");
+		const contentArea = contentAreas.find((el) => el.querySelector("h3")) as HTMLElement;
+		expect(contentArea).toBeTruthy();
+		expect(contentArea).toHaveAttribute("tabIndex", "0");
+
+		fireEvent.keyDown(contentArea, { key: "Enter" });
+		expect(onHighlightDocument).toHaveBeenCalledWith(0);
+		expect(onDocumentClick).toHaveBeenCalledWith("doc-1");
+
+		// Space should activate the row the same way as Enter.
+		onHighlightDocument.mockClear();
+		onDocumentClick.mockClear();
+		fireEvent.keyDown(contentArea, { key: " " });
+		expect(onHighlightDocument).toHaveBeenCalledWith(0);
+		expect(onDocumentClick).toHaveBeenCalledWith("doc-1");
+	});
 });

@@ -11,6 +11,12 @@ export interface UseDocumentSearchReturn {
 	isLoading: boolean;
 	error: string | null;
 	hasQuery: boolean;
+	/** Index is rebuilding — results are still searchable but may be stale. */
+	isUpdating: boolean;
+	/** Index is in error state — offer rebuild. */
+	isError: boolean;
+	/** Trigger a rebuild of the search index. */
+	rebuild: () => Promise<void>;
 }
 
 /**
@@ -26,6 +32,7 @@ export function useDocumentSearch(): UseDocumentSearchReturn {
 
 	const status = useSearchIndexStore((s) => s.status);
 	const search = useSearchIndexStore((s) => s.search);
+	const build = useSearchIndexStore((s) => s.build);
 
 	const trimmed = query.trim();
 	const hasQuery = trimmed.length > 0;
@@ -68,10 +75,23 @@ export function useDocumentSearch(): UseDocumentSearchReturn {
 	}, [trimmed, hasQuery, search, status]);
 
 	const items = hasQuery ? results : recentItems;
-	const isLoading = hasQuery && status !== "ready" && status !== "error";
-	const error = status === "error" ? "Search index unavailable — try reopening the app." : null;
+	const isError = status === "error";
+	const isUpdating = status === "building";
+	const isLoading = hasQuery && status === "idle";
+	const error = isError ? "Search index unavailable." : null;
 
 	const stableSetQuery = useCallback((next: string) => setQuery(next), []);
+	const stableRebuild = useCallback(() => build(), [build]);
 
-	return { query, setQuery: stableSetQuery, items, isLoading, error, hasQuery };
+	return {
+		query,
+		setQuery: stableSetQuery,
+		items,
+		isLoading,
+		error,
+		hasQuery,
+		isUpdating,
+		isError,
+		rebuild: stableRebuild,
+	};
 }

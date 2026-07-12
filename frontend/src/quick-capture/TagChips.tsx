@@ -29,7 +29,7 @@ export const TagChips: React.FC<TagChipsProps> = ({ tags, onRemove, className })
 					<button
 						type="button"
 						onClick={() => onRemove(tag)}
-						className="ml-1 text-text-dim hover:text-text-bright transition-colors"
+						className="ml-1 flex min-w-6 min-h-6 items-center justify-center text-text-dim hover:text-text-bright transition-colors"
 						aria-label={`Remove ${tag}`}
 					>
 						×

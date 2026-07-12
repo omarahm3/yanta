@@ -8,6 +8,7 @@ import type * as tagModels from "../../bindings/yanta/internal/tag/models";
 import { ListActive as ListActiveTags } from "../../bindings/yanta/internal/tag/service";
 import { useHelp } from "../help";
 import { useProjectContext } from "../project";
+import { SEARCH_OPERATORS } from "../search-index/queryParser";
 import { useNotification, useSidebarSections } from "../shared/hooks";
 import type { NavigationState, PageName } from "../shared/types";
 import { Button, EmptyState, Input } from "../shared/ui";
@@ -24,7 +25,7 @@ interface SearchResult {
 	noteId?: string;
 }
 
-interface GroupedSearchResult {
+export interface GroupedSearchResult {
 	path: string;
 	title: string;
 	snippets: string[];
@@ -39,16 +40,6 @@ interface SearchProps {
 	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
-
-const SEARCH_OPERATORS = [
-	"project:alias",
-	"tag:name",
-	"title:text",
-	"body:text",
-	"-exclude",
-	'"phrase"',
-	"AND OR",
-] as const;
 
 const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
 	const [rawQuery, setRawQuery] = useState("");
@@ -337,8 +328,12 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 	});
 
 	const renderSnippet = (snippet: string) => {
-		// biome-ignore lint/security/noDangerouslySetInnerHtml: search result HTML is trusted backend content with highlight marks
-		return <div className="leading-snug text-text" dangerouslySetInnerHTML={{ __html: snippet }} />;
+		// Snippets are meant to contain only <mark> highlight tags. Normalize any
+		// <mark …> to a bare <mark> (dropping attributes like onclick), then strip
+		// every other tag so document content can't inject arbitrary HTML/scripts.
+		const safe = snippet.replace(/<mark\b[^>]*>/gi, "<mark>").replace(/<(?!\/?mark\b)[^>]*>/gi, "");
+		// biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized to <mark>-only above
+		return <div className="leading-snug text-text" dangerouslySetInnerHTML={{ __html: safe }} />;
 	};
 
 	return (
@@ -448,7 +443,7 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 								/>
 							)
 						) : (
-							<div className="space-y-5">
+							<div className="space-y-5" role="listbox" aria-label="Search results">
 								{groupedResults.map((r, idx) => (
 									<SearchResultCard
 										key={r.path}
@@ -537,6 +532,17 @@ const SearchResultCard: React.FC<SearchResultCardProps> = React.memo(
 			onSelect(index);
 		};
 
+		const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
+			if (e.key === "Enter" || e.key === " ") {
+				e.preventDefault();
+				// Stop the native event bubbling to the document-level key handler,
+				// which would otherwise open the result a second time.
+				e.stopPropagation();
+				onSelect(index);
+				onOpen(index);
+			}
+		};
+
 		const isNote = result.type === "note";
 		const projectAlias = result.projectAlias || result.path.split("/")[1] || "unknown";
 
@@ -549,10 +555,13 @@ const SearchResultCard: React.FC<SearchResultCardProps> = React.memo(
 		return (
 			<div
 				data-result-item="true"
+				role="option"
 				tabIndex={0}
+				aria-selected={isSelected}
 				className={cardClasses}
 				onClick={handleClick}
 				onFocus={handleFocus}
+				onKeyDown={handleKeyDown}
 			>
 				<div className="absolute -left-8 top-4 text-text-dim text-[11px] w-7 text-right">
 					{index + 1}
