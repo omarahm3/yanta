@@ -40,7 +40,7 @@ export const DocumentOutline: React.FC<DocumentOutlineProps> = ({
 			const prosemirrorView = editor.prosemirrorView;
 			if (!prosemirrorView) return;
 
-			const blockElement = prosemirrorView.dom.querySelector(`[data-id="${headingId}"]`);
+			const blockElement = prosemirrorView.dom.querySelector(`[data-id="${CSS.escape(headingId)}"]`);
 			if (blockElement) {
 				blockElement.scrollIntoView({ behavior: "smooth", block: "start" });
 				// Optionally focus the editor after scrolling
