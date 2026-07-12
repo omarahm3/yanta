@@ -328,9 +328,10 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 	});
 
 	const renderSnippet = (snippet: string) => {
-		// Snippets are meant to contain only <mark> highlight tags; strip any other
-		// tag so document content can't inject arbitrary HTML/scripts.
-		const safe = snippet.replace(/<(?!\/?mark\b)[^>]*>/gi, "");
+		// Snippets are meant to contain only <mark> highlight tags. Normalize any
+		// <mark …> to a bare <mark> (dropping attributes like onclick), then strip
+		// every other tag so document content can't inject arbitrary HTML/scripts.
+		const safe = snippet.replace(/<mark\b[^>]*>/gi, "<mark>").replace(/<(?!\/?mark\b)[^>]*>/gi, "");
 		// biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized to <mark>-only above
 		return <div className="leading-snug text-text" dangerouslySetInnerHTML={{ __html: safe }} />;
 	};
