@@ -24,7 +24,7 @@ interface SearchResult {
 	noteId?: string;
 }
 
-interface GroupedSearchResult {
+export interface GroupedSearchResult {
 	path: string;
 	title: string;
 	snippets: string[];
@@ -537,6 +537,14 @@ const SearchResultCard: React.FC<SearchResultCardProps> = React.memo(
 			onSelect(index);
 		};
 
+		const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
+			if (e.key === "Enter" || e.key === " ") {
+				e.preventDefault();
+				onSelect(index);
+				onOpen(index);
+			}
+		};
+
 		const isNote = result.type === "note";
 		const projectAlias = result.projectAlias || result.path.split("/")[1] || "unknown";
 
@@ -549,10 +557,13 @@ const SearchResultCard: React.FC<SearchResultCardProps> = React.memo(
 		return (
 			<div
 				data-result-item="true"
+				role="option"
 				tabIndex={0}
+				aria-selected={isSelected}
 				className={cardClasses}
 				onClick={handleClick}
 				onFocus={handleFocus}
+				onKeyDown={handleKeyDown}
 			>
 				<div className="absolute -left-8 top-4 text-text-dim text-[11px] w-7 text-right">
 					{index + 1}
