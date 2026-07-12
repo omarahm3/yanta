@@ -4,6 +4,7 @@ import type { IndexDoc } from "../../bindings/yanta/internal/search/models";
 import { ExportIndex } from "../../bindings/yanta/internal/search/service";
 import type { FinderItem } from "../global-search/types";
 import { BackendLogger } from "../shared/utils/backendLogger";
+import { parseQuery } from "./queryParser";
 import { createMiniSearch } from "./searchIndex";
 import { buildSnippet } from "./snippet";
 
@@ -29,33 +30,6 @@ let rebuildTimer: ReturnType<typeof setTimeout> | null = null;
 let rebuildPending = false;
 
 const stripAt = (s: string) => s.replace(/^@+/, "");
-const stripHash = (s: string) => s.replace(/^#+/, "");
-
-interface ParsedQuery {
-	text: string;
-	projects: string[];
-	tags: string[];
-}
-
-/** Pull `project:` and `tag:` filters out of the raw query; the rest is text. */
-function parseFilters(query: string): ParsedQuery {
-	const projects: string[] = [];
-	const tags: string[] = [];
-	const words: string[] = [];
-	for (const tok of query.split(/\s+/)) {
-		const lower = tok.toLowerCase();
-		if (lower.startsWith("project:")) {
-			const v = stripAt(tok.slice("project:".length));
-			if (v) projects.push(v.toLowerCase());
-		} else if (lower.startsWith("tag:")) {
-			const v = stripHash(tok.slice("tag:".length));
-			if (v) tags.push(v.toLowerCase());
-		} else if (tok) {
-			words.push(tok);
-		}
-	}
-	return { text: words.join(" "), projects, tags };
-}
 
 function docHasTag(doc: IndexDoc, tag: string): boolean {
 	return ` ${doc.tags.toLowerCase()} `.includes(` ${tag} `);
@@ -118,7 +92,7 @@ export const useSearchIndexStore = create<SearchIndexState>((set, get) => ({
 		const { index, docsById } = get();
 		if (!index) return [];
 
-		const { text, projects, tags } = parseFilters(query);
+		const { text, projects, tags } = parseQuery(query);
 		const hasText = text.trim().length > 0;
 		const hasFilters = projects.length > 0 || tags.length > 0;
 		if (!hasText && !hasFilters) return [];

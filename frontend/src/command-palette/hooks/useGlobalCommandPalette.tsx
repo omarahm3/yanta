@@ -3,12 +3,12 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useDocumentContext } from "../../document";
 import { usePaneLayout } from "../../pane";
 import { useProjectContext } from "../../project";
+import { useSearchIndexStore } from "../../search-index/searchIndex.store";
 import { useNotification, useRecentDocuments } from "../../shared/hooks";
 import { useErrorDialogStore } from "../../shared/stores/errorDialog.store";
 import type { NavigationState, PageName } from "../../shared/types";
 import type { CommandOption } from "../../shared/ui";
 import { formatRelativeTimeFromTimestamp } from "../../shared/utils/date";
-import { useSearchIndexStore } from "../../search-index/searchIndex.store";
 import { useCommandPaletteStore } from "../commandPalette.store";
 import {
 	type CommandRegistryContext,

@@ -8,6 +8,7 @@ import type * as tagModels from "../../bindings/yanta/internal/tag/models";
 import { ListActive as ListActiveTags } from "../../bindings/yanta/internal/tag/service";
 import { useHelp } from "../help";
 import { useProjectContext } from "../project";
+import { SEARCH_OPERATORS } from "../search-index/queryParser";
 import { useNotification, useSidebarSections } from "../shared/hooks";
 import type { NavigationState, PageName } from "../shared/types";
 import { Button, EmptyState, Input } from "../shared/ui";
@@ -39,16 +40,6 @@ interface SearchProps {
 	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 }
-
-const SEARCH_OPERATORS = [
-	"project:alias",
-	"tag:name",
-	"title:text",
-	"body:text",
-	"-exclude",
-	'"phrase"',
-	"AND OR",
-] as const;
 
 const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSidebar }) => {
 	const [rawQuery, setRawQuery] = useState("");

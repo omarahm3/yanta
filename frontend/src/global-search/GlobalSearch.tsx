@@ -1,9 +1,10 @@
 import { FileText, NotebookPen, Search } from "lucide-react";
 import type React from "react";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useProjectContext } from "../project";
-import type { NavigationState, PageName } from "../shared/types";
+import { getFinderUnsupportedWarning } from "../search-index/queryParser";
 import { useDocumentCommandStore } from "../shared/stores/documentCommand.store";
+import type { NavigationState, PageName } from "../shared/types";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../shared/ui/dialog";
 import { Kbd } from "../shared/ui/Kbd";
 import { cn } from "../shared/utils/cn";
@@ -131,6 +132,11 @@ function GlobalSearchInner({
 		el?.scrollIntoView({ block: "nearest" });
 	}, [safeIndex]);
 
+	const unsupportedWarning = useMemo(
+		() => (hasQuery ? getFinderUnsupportedWarning(query) : null),
+		[hasQuery, query],
+	);
+
 	return (
 		<DialogContent
 			showCloseButton={false}
@@ -207,7 +213,11 @@ function GlobalSearchInner({
 					<FooterHint keyLabel="↑↓" label="Navigate" />
 					<FooterHint keyLabel="↵" label="Open" />
 					<FooterHint keyLabel="esc" label="Close" />
-					{isUpdating && hasQuery ? (
+					{unsupportedWarning ? (
+						<span className="ml-auto text-yellow truncate max-w-[50%]" title={unsupportedWarning}>
+							{unsupportedWarning}
+						</span>
+					) : isUpdating && hasQuery ? (
 						<span className="ml-auto text-yellow">Updating index…</span>
 					) : hasQuery && items.length > 0 ? (
 						<span className="ml-auto">
