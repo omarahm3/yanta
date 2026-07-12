@@ -43,4 +43,11 @@ describe("TagChips", () => {
 		);
 		expect(container.firstChild).toHaveClass("custom-class");
 	});
+
+	it("tag remove buttons meet the 24×24 minimum hit target", () => {
+		render(<TagChips tags={["urgent"]} onRemove={vi.fn()} />);
+		const removeBtn = screen.getByRole("button", { name: /remove/i });
+		expect(removeBtn.className).toMatch(/min-w-6/);
+		expect(removeBtn.className).toMatch(/min-h-6/);
+	});
 });

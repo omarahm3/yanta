@@ -181,7 +181,7 @@ export const HelpModal: React.FC = () => {
 							<button
 								type="button"
 								onClick={handleClearSearch}
-								className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-xs text-text-dim hover:text-text transition-colors rounded hover:bg-bg-dim focus:outline-none focus:ring-2 focus:ring-accent/50"
+								className="absolute right-2 top-1/2 -translate-y-1/2 flex min-w-6 min-h-6 items-center justify-center px-2 py-1 text-xs text-text-dim hover:text-text transition-colors rounded hover:bg-bg-dim focus:outline-none focus:ring-2 focus:ring-accent/50"
 								aria-label="Clear search"
 							>
 								Clear

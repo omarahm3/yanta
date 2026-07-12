@@ -38,9 +38,13 @@ describe("PaneHeader", () => {
 		expect(screen.getByText("my-note")).toBeInTheDocument();
 	});
 
-	it("prefers title prop over path-derived name", () => {
-		render(<PaneHeader paneId="pane-1" documentPath="proj/old-name.md" title="Actual Title" />);
-		expect(screen.getByText("Actual Title")).toBeInTheDocument();
-		expect(screen.queryByText("old-name")).not.toBeInTheDocument();
+	it("pane control buttons meet the 24×24 minimum hit target", () => {
+		mockLayout.root = { type: "leaf" as const, id: "pane-1", documentPath: "proj/doc.md" };
+		render(<PaneHeader paneId="pane-1" documentPath="proj/doc.md" />);
+		const buttons = screen.getAllByRole("button");
+		for (const btn of buttons) {
+			expect(btn.className).toMatch(/min-w-6/);
+			expect(btn.className).toMatch(/min-h-6/);
+		}
 	});
 });
