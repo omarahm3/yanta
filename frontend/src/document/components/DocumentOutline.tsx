@@ -1,10 +1,10 @@
 import { List } from "lucide-react";
 import type React from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { EditorHandle } from "../../editor/types";
-import { cn } from "../../shared/utils/cn";
 import type { BlockNoteBlock } from "../../shared/types/Document";
-import { extractHeadings, type HeadingItem } from "../utils/documentOutlineUtils";
+import { cn } from "../../shared/utils/cn";
+import { extractHeadings } from "../utils/documentOutlineUtils";
 
 interface DocumentOutlineProps {
 	editor: EditorHandle | null;
@@ -19,11 +19,18 @@ export const DocumentOutline: React.FC<DocumentOutlineProps> = ({
 	isOpen,
 	onClose,
 }) => {
-	const [headings, setHeadings] = useState<HeadingItem[]>([]);
+	// extractHeadings is pure, so derive during render instead of an effect+state
+	// (which would add an extra render on every keystroke while editing).
+	const headings = useMemo(() => extractHeadings(blocks), [blocks]);
 
-	useEffect(() => {
-		setHeadings(extractHeadings(blocks));
-	}, [blocks]);
+	const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+	// Clear any pending focus timeout on unmount so focus() can't fire on a stale view.
+	useEffect(
+		() => () => {
+			if (focusTimeoutRef.current) clearTimeout(focusTimeoutRef.current);
+		},
+		[],
+	);
 
 	const scrollToHeading = useCallback(
 		(headingId: string) => {
@@ -37,7 +44,8 @@ export const DocumentOutline: React.FC<DocumentOutlineProps> = ({
 			if (blockElement) {
 				blockElement.scrollIntoView({ behavior: "smooth", block: "start" });
 				// Optionally focus the editor after scrolling
-				setTimeout(() => {
+				if (focusTimeoutRef.current) clearTimeout(focusTimeoutRef.current);
+				focusTimeoutRef.current = setTimeout(() => {
 					prosemirrorView.focus();
 				}, 100);
 			}

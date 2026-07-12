@@ -9,10 +9,11 @@ import {
 	hasActiveExternalPlugins,
 } from "../../plugins/registry";
 import { useNotification } from "../../shared/hooks";
-import type { NavigationState, PageName } from "../../shared/types/navigation";
 import type { BlockNoteBlock } from "../../shared/types/Document";
+import type { NavigationState, PageName } from "../../shared/types/navigation";
 import { Button } from "../../shared/ui";
-import { countWords, countChars } from "../utils/editorCountUtils";
+import { countChars, countWords } from "../utils/editorCountUtils";
+import { getDocumentText, getSelectedText } from "../utils/editorSelection";
 
 interface DocumentEditorFormProps {
 	blocks: BlockNoteBlock[];
@@ -27,7 +28,11 @@ interface DocumentEditorFormProps {
 	onEditorReady?: (editor: EditorHandle) => void;
 	find?: DocumentFindControls;
 	onNavigate?: (page: PageName, state?: NavigationState) => void;
-	onCountChange?: (counts: { wordCount: number; charCount: number; selectionCount?: number }) => void;
+	onCountChange?: (counts: {
+		wordCount: number;
+		charCount: number;
+		selectionCount?: number;
+	}) => void;
 	findBarRef?: React.RefObject<{ setQuery: (q: string) => void; focusInput: () => void } | null>;
 }
 
@@ -61,78 +66,41 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 		if (!editorHandle || !onCountChange) return;
 
 		const updateCounts = () => {
-			const text = editorHandle.document
-				.map((block) => {
-					const extractText = (content: unknown): string => {
-						if (!content || !Array.isArray(content)) return "";
-						return content
-							.map((c: unknown) => {
-								if (typeof c === "object" && c !== null && "text" in c) {
-									return (c as { text?: string }).text || "";
-								}
-								return "";
-							})
-							.join("");
-					};
-					return extractText((block as { content?: unknown }).content);
-				})
-				.join("\n");
-
+			const text = getDocumentText(editorHandle);
 			const wordCount = countWords(text);
 			const charCount = countChars(text);
-
-			const selection = editorHandle.getSelection();
-			let selectionCount: number | undefined;
-			if (selection && selection.blocks.length > 0) {
-				const selectionText = selection.blocks
-					.map((block) => {
-						const extractText = (content: unknown): string => {
-							if (!content || !Array.isArray(content)) return "";
-							return content
-								.map((c: unknown) => {
-									if (typeof c === "object" && c !== null && "text" in c) {
-										return (c as { text?: string }).text || "";
-									}
-									return "";
-								})
-								.join("");
-						};
-						return extractText((block as { content?: unknown }).content);
-					})
-					.join("");
-				selectionCount = countChars(selectionText);
-			}
-
+			const selectionText = getSelectedText(editorHandle);
+			const selectionCount = selectionText ? countChars(selectionText) : undefined;
 			onCountChange({ wordCount, charCount, selectionCount });
 		};
 
-		updateCounts();
-
-		const originalOnChange = editorHandle.onChange;
-		const wrappedOnChange = (callback: () => void) => {
-			return originalOnChange(() => {
-				callback();
+		// onChange (content) and the mouseup/keyup listeners (selection) can both
+		// fire for a single keystroke; coalesce them into one update per frame.
+		let rafId = 0;
+		const scheduleUpdate = () => {
+			if (rafId) return;
+			rafId = requestAnimationFrame(() => {
+				rafId = 0;
 				updateCounts();
 			});
 		};
 
-		const unsubscribe = wrappedOnChange(() => {});
+		updateCounts();
 
-		const handleSelectionChange = () => {
-			updateCounts();
-		};
+		const unsubscribe = editorHandle.onChange(scheduleUpdate);
 
 		const prosemirrorView = editorHandle.prosemirrorView;
 		if (prosemirrorView) {
-			prosemirrorView.dom.addEventListener("mouseup", handleSelectionChange);
-			prosemirrorView.dom.addEventListener("keyup", handleSelectionChange);
+			prosemirrorView.dom.addEventListener("mouseup", scheduleUpdate);
+			prosemirrorView.dom.addEventListener("keyup", scheduleUpdate);
 		}
 
 		return () => {
+			if (rafId) cancelAnimationFrame(rafId);
 			unsubscribe();
 			if (prosemirrorView) {
-				prosemirrorView.dom.removeEventListener("mouseup", handleSelectionChange);
-				prosemirrorView.dom.removeEventListener("keyup", handleSelectionChange);
+				prosemirrorView.dom.removeEventListener("mouseup", scheduleUpdate);
+				prosemirrorView.dom.removeEventListener("keyup", scheduleUpdate);
 			}
 		};
 	}, [editorHandle, onCountChange]);
@@ -213,42 +181,42 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 					onRetry={() => setEditorKey((k) => k + 1)}
 					onError={handleEditorBoundaryError}
 				>
-				<RichEditor
-					initialContent={blocksJson}
-					docKey={isEditMode ? `edit:${blocksJson ? "loaded" : "pending"}` : "new"}
-					onChange={handleBlocksChange}
-					onTitleChange={handleTitleChange}
-					onReady={handleEditorReady}
-					editable={!isLoading && !isReadOnly}
-					isLoading={isLoading && isEditMode}
-					autoFocus={autoFocus}
-					disablePluginContributions={editorRecoveryMode}
-					find={find}
-					findBarRef={findBarRef}
-					className="h-full"
-				/>
+					<RichEditor
+						initialContent={blocksJson}
+						docKey={isEditMode ? `edit:${blocksJson ? "loaded" : "pending"}` : "new"}
+						onChange={handleBlocksChange}
+						onTitleChange={handleTitleChange}
+						onReady={handleEditorReady}
+						editable={!isLoading && !isReadOnly}
+						isLoading={isLoading && isEditMode}
+						autoFocus={autoFocus}
+						disablePluginContributions={editorRecoveryMode}
+						find={find}
+						findBarRef={findBarRef}
+						className="h-full"
+					/>
 				</GranularErrorBoundary>
 			</div>
-		{tags.length > 0 && (
-			<div className="px-2 py-2">
-				<div className="flex flex-wrap gap-2">
-					{tags.map((tag) => (
-						<TagChip
-							key={tag}
-							tag={tag}
-							isLoading={isLoading}
-							isReadOnly={isReadOnly}
-							onRemove={onTagRemove}
-							onFilter={(t) => onNavigate?.("search", { query: `tag:${t}` })}
-							onKeyDown={handleTagKeyDown}
-						/>
-					))}
+			{tags.length > 0 && (
+				<div className="px-2 py-2">
+					<div className="flex flex-wrap gap-2">
+						{tags.map((tag) => (
+							<TagChip
+								key={tag}
+								tag={tag}
+								isLoading={isLoading}
+								isReadOnly={isReadOnly}
+								onRemove={onTagRemove}
+								onFilter={(t) => onNavigate?.("search", { query: `tag:${t}` })}
+								onKeyDown={handleTagKeyDown}
+							/>
+						))}
+					</div>
+					<div className="mt-2 text-xs text-text-dim">
+						Use :tag to add tags. Click a tag to search by it, or press Delete to remove
+					</div>
 				</div>
-				<div className="mt-2 text-xs text-text-dim">
-					Use :tag to add tags. Click a tag to search by it, or press Delete to remove
-				</div>
-			</div>
-		)}
+			)}
 		</div>
 	);
 };

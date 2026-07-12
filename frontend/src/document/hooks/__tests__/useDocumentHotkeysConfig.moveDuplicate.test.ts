@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { useDocumentHotkeysConfig } from "../useDocumentHotkeysConfig";
 
 vi.mock("@/config/usePreferencesOverrides", () => ({
@@ -45,6 +45,7 @@ describe("useDocumentHotkeysConfig - move/duplicate", () => {
 				moveBlockUp: vi.fn(),
 				moveBlockDown: vi.fn(),
 				duplicateBlock: vi.fn(),
+				toggleOutline: vi.fn(),
 				editorRef,
 			}),
 		);
@@ -75,6 +76,7 @@ describe("useDocumentHotkeysConfig - move/duplicate", () => {
 				moveBlockUp: vi.fn(),
 				moveBlockDown: vi.fn(),
 				duplicateBlock: vi.fn(),
+				toggleOutline: vi.fn(),
 				editorRef,
 			}),
 		);
@@ -105,6 +107,7 @@ describe("useDocumentHotkeysConfig - move/duplicate", () => {
 				moveBlockUp: vi.fn(),
 				moveBlockDown: vi.fn(),
 				duplicateBlock: vi.fn(),
+				toggleOutline: vi.fn(),
 				editorRef,
 			}),
 		);
@@ -136,6 +139,7 @@ describe("useDocumentHotkeysConfig - move/duplicate", () => {
 				moveBlockUp,
 				moveBlockDown: vi.fn(),
 				duplicateBlock: vi.fn(),
+				toggleOutline: vi.fn(),
 				editorRef,
 			}),
 		);
@@ -173,6 +177,7 @@ describe("useDocumentHotkeysConfig - move/duplicate", () => {
 				moveBlockUp: vi.fn(),
 				moveBlockDown: vi.fn(),
 				duplicateBlock,
+				toggleOutline: vi.fn(),
 				editorRef,
 			}),
 		);

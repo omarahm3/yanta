@@ -14,6 +14,7 @@ import type { HotkeyConfig } from "../../shared/types/hotkeys";
 import { BackendLogger } from "../../shared/utils/backendLogger";
 import type { DocumentContentProps } from "../components/DocumentContent";
 import { createEmptyDocument } from "../utils/documentBlockUtils";
+import { getSelectedText } from "../utils/editorSelection";
 import { useDocumentEditor } from "./useDocumentEditor";
 import { useDocumentEscapeHandling } from "./useDocumentEscapeHandling";
 import { useDocumentExports } from "./useDocumentExports";
@@ -129,28 +130,10 @@ export function useDocumentController({
 			// Find is already open - refocus and optionally seed from selection
 			const editor = editorRef.current;
 			if (editor && findBarRef.current) {
-				const selection = editor.getSelection();
-				if (selection && selection.blocks.length > 0) {
-					const selectionText = selection.blocks
-						.map((block) => {
-							const extractText = (content: unknown): string => {
-								if (!content || !Array.isArray(content)) return "";
-								return content
-									.map((c: unknown) => {
-										if (typeof c === "object" && c !== null && "text" in c) {
-											return (c as { text?: string }).text || "";
-										}
-										return "";
-									})
-									.join("");
-							};
-							return extractText((block as { content?: unknown }).content);
-						})
-						.join("");
-					if (selectionText.trim()) {
-						findBarRef.current.setQuery(selectionText);
-						lastQueryRef.current = selectionText;
-					}
+				const selectionText = getSelectedText(editor);
+				if (selectionText.trim()) {
+					findBarRef.current.setQuery(selectionText);
+					lastQueryRef.current = selectionText;
 				}
 				findBarRef.current.focusInput();
 			}
@@ -171,40 +154,19 @@ export function useDocumentController({
 		setReplaceOpen(false);
 	}, []);
 
-	const handleRefocus = useCallback(
-		(seedFromSelection?: boolean) => {
-			const editor = editorRef.current;
-			if (!editor || !findBarRef.current) return;
+	const handleRefocus = useCallback((seedFromSelection?: boolean) => {
+		const editor = editorRef.current;
+		if (!editor || !findBarRef.current) return;
 
-			if (seedFromSelection) {
-				const selection = editor.getSelection();
-				if (selection && selection.blocks.length > 0) {
-					const selectionText = selection.blocks
-						.map((block) => {
-							const extractText = (content: unknown): string => {
-								if (!content || !Array.isArray(content)) return "";
-								return content
-									.map((c: unknown) => {
-										if (typeof c === "object" && c !== null && "text" in c) {
-											return (c as { text?: string }).text || "";
-										}
-										return "";
-									})
-									.join("");
-							};
-							return extractText((block as { content?: unknown }).content);
-						})
-						.join("");
-					if (selectionText.trim()) {
-						findBarRef.current.setQuery(selectionText);
-						lastQueryRef.current = selectionText;
-					}
-				}
+		if (seedFromSelection) {
+			const selectionText = getSelectedText(editor);
+			if (selectionText.trim()) {
+				findBarRef.current.setQuery(selectionText);
+				lastQueryRef.current = selectionText;
 			}
-			findBarRef.current.focusInput();
-		},
-		[],
-	);
+		}
+		findBarRef.current.focusInput();
+	}, []);
 	// Close the find bar when switching to a different document.
 	useEffect(() => {
 		setFindOpen(false);
@@ -353,12 +315,11 @@ export function useDocumentController({
 		if (!editor) return;
 
 		const selection = editor.getSelection();
+		const cursorBlock = editor.getTextCursorPosition()?.block;
 		const blocksToDuplicate =
-			selection && selection.blocks.length > 0
-				? selection.blocks
-				: [editor.getTextCursorPosition().block];
+			selection && selection.blocks.length > 0 ? selection.blocks : cursorBlock ? [cursorBlock] : [];
 
-		if (!blocksToDuplicate || blocksToDuplicate.length === 0) return;
+		if (blocksToDuplicate.length === 0) return;
 
 		// Duplicate by inserting copies after the last block
 		const lastBlock = blocksToDuplicate[blocksToDuplicate.length - 1];

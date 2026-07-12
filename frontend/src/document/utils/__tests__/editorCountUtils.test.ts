@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countWords, countChars } from "../editorCountUtils";
+import { countChars, countWords } from "../editorCountUtils";
 
 describe("countWords", () => {
 	it("returns 0 for empty string", () => {

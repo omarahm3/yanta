@@ -13,15 +13,23 @@ export interface HeadingItem {
 export function extractHeadings(blocks: BlockNoteBlock[]): HeadingItem[] {
 	const headings: HeadingItem[] = [];
 
-	for (const block of blocks) {
-		if (block.type === "heading" && block.props?.level) {
-			const level = block.props.level as number;
-			if (level >= 1 && level <= 3) {
-				const text = extractTextFromContent(block.content);
-				headings.push({ id: block.id, level, text });
+	// Recurse so headings nested inside lists/callouts/groups (children blocks)
+	// are also surfaced in the outline, not just top-level ones.
+	const walk = (bs: BlockNoteBlock[]) => {
+		for (const block of bs) {
+			if (block.type === "heading" && block.props?.level) {
+				const level = block.props.level as number;
+				if (level >= 1 && level <= 3) {
+					headings.push({ id: block.id, level, text: extractTextFromContent(block.content) });
+				}
+			}
+			const children = (block as { children?: BlockNoteBlock[] }).children;
+			if (Array.isArray(children) && children.length > 0) {
+				walk(children);
 			}
 		}
-	}
+	};
+	walk(blocks);
 
 	return headings;
 }

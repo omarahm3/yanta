@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { extractHeadings, type HeadingItem } from "../documentOutlineUtils";
 import type { BlockNoteBlock } from "../../shared/types/Document";
+import { extractHeadings } from "../documentOutlineUtils";
 
 describe("extractHeadings", () => {
 	it("returns empty array for empty blocks", () => {

@@ -133,105 +133,105 @@ export function useDocumentHotkeysConfig({
 				},
 				allowInInput: true,
 			},
-		{
-			...document.focusEditor,
-			handler: () => {
-				if (!isActivePaneRef.current) return false;
-				focusEditor();
+			{
+				...document.focusEditor,
+				handler: () => {
+					if (!isActivePaneRef.current) return false;
+					focusEditor();
+				},
+				allowInInput: false,
 			},
-			allowInInput: false,
-		},
-		{
-			...document.deleteBlock,
-			handler: (event: KeyboardEvent) => {
-				if (!isActivePaneRef.current) return false;
-				event.preventDefault();
-				event.stopPropagation();
-				if (isArchived) {
-					error("Restore the document before editing.");
-					return;
-				}
-				deleteBlock();
+			{
+				...document.deleteBlock,
+				handler: (event: KeyboardEvent) => {
+					if (!isActivePaneRef.current) return false;
+					event.preventDefault();
+					event.stopPropagation();
+					if (isArchived) {
+						error("Restore the document before editing.");
+						return;
+					}
+					deleteBlock();
+				},
+				allowInInput: true,
+				capture: true,
 			},
-			allowInInput: true,
-			capture: true,
-		},
-		{
-			...document.moveBlockUp,
-			handler: (event: KeyboardEvent) => {
-				if (!isActivePaneRef.current) return false;
-				event.preventDefault();
-				event.stopPropagation();
-				if (isArchived) {
-					error("Restore the document before editing.");
-					return;
-				}
-				moveBlockUp();
+			{
+				...document.moveBlockUp,
+				handler: (event: KeyboardEvent) => {
+					if (!isActivePaneRef.current) return false;
+					event.preventDefault();
+					event.stopPropagation();
+					if (isArchived) {
+						error("Restore the document before editing.");
+						return;
+					}
+					moveBlockUp();
+				},
+				allowInInput: true,
+				capture: true,
 			},
-			allowInInput: true,
-			capture: true,
-		},
-		{
-			...document.moveBlockDown,
-			handler: (event: KeyboardEvent) => {
-				if (!isActivePaneRef.current) return false;
-				event.preventDefault();
-				event.stopPropagation();
-				if (isArchived) {
-					error("Restore the document before editing.");
-					return;
-				}
-				moveBlockDown();
+			{
+				...document.moveBlockDown,
+				handler: (event: KeyboardEvent) => {
+					if (!isActivePaneRef.current) return false;
+					event.preventDefault();
+					event.stopPropagation();
+					if (isArchived) {
+						error("Restore the document before editing.");
+						return;
+					}
+					moveBlockDown();
+				},
+				allowInInput: true,
+				capture: true,
 			},
-			allowInInput: true,
-			capture: true,
-		},
-		{
-			...document.duplicateBlock,
-			handler: (event: KeyboardEvent) => {
-				if (!isActivePaneRef.current) return false;
-				event.preventDefault();
-				event.stopPropagation();
-				if (isArchived) {
-					error("Restore the document before editing.");
-					return;
-				}
-				duplicateBlock();
+			{
+				...document.duplicateBlock,
+				handler: (event: KeyboardEvent) => {
+					if (!isActivePaneRef.current) return false;
+					event.preventDefault();
+					event.stopPropagation();
+					if (isArchived) {
+						error("Restore the document before editing.");
+						return;
+					}
+					duplicateBlock();
+				},
+				allowInInput: true,
+				capture: true,
 			},
-			allowInInput: true,
-			capture: true,
-		},
-		{
-			...document.toggleOutline,
-			handler: (event: KeyboardEvent) => {
-				if (!isActivePaneRef.current) return false;
-				event.preventDefault();
-				event.stopPropagation();
-				toggleOutline();
+			{
+				...document.toggleOutline,
+				handler: (event: KeyboardEvent) => {
+					if (!isActivePaneRef.current) return false;
+					event.preventDefault();
+					event.stopPropagation();
+					toggleOutline();
+				},
+				allowInInput: true,
+				capture: true,
 			},
-			allowInInput: true,
-			capture: true,
-		},
-	],
-	[
-		document,
-		saveNow,
-		error,
-		focusEditor,
-		handleEscape,
-		handleUnfocus,
-		isArchived,
-		handleExportToMarkdown,
-		handleExportToPDF,
-		isActivePaneRef,
-		openFind,
-		openReplace,
-		deleteBlock,
-		moveBlockUp,
-		moveBlockDown,
-		duplicateBlock,
-		toggleOutline,
-		editorRef,
-	],
-);
+		],
+		[
+			document,
+			saveNow,
+			error,
+			focusEditor,
+			handleEscape,
+			handleUnfocus,
+			isArchived,
+			handleExportToMarkdown,
+			handleExportToPDF,
+			isActivePaneRef,
+			openFind,
+			openReplace,
+			deleteBlock,
+			moveBlockUp,
+			moveBlockDown,
+			duplicateBlock,
+			toggleOutline,
+			editorRef,
+		],
+	);
 }

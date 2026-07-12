@@ -141,12 +141,18 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 
 		const handleCountChange = useCallback(
 			(newCounts: { wordCount: number; charCount: number; selectionCount?: number }) => {
-				setCounts(newCounts);
+				setCounts({
+					wordCount: newCounts.wordCount,
+					charCount: newCounts.charCount,
+					selectionCount: newCounts.selectionCount,
+				});
 			},
 			[],
 		);
 
-		const findBarRef = externalFindBarRef ?? React.useRef(null);
+		// Always call useRef unconditionally (Rules of Hooks); pick which ref to use.
+		const localFindBarRef = useRef(null);
+		const findBarRef = externalFindBarRef ?? localFindBarRef;
 
 		const editorRef = useRef<EditorHandle | null>(null);
 		const handleEditorReadyWithRef = useCallback(
@@ -165,71 +171,75 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 				headerActions={pinAction}
 				onRegisterToggleSidebar={onRegisterToggleSidebar}
 			>
-				<div className="flex flex-col w-full h-full">
-					{/* Page header with mode icon */}
-					<div className="px-4 pt-4 pb-2 border-b border-glass-border">
-						<div className="flex items-center gap-2">
-							<FileText
-								className="w-5 h-5"
-								style={{ color: "var(--mode-accent)" }}
-								aria-hidden="true"
-								data-testid="page-header-icon"
-							/>
-							<span className="text-sm text-text-dim">Document</span>
+				<div className="flex w-full h-full">
+					<div className="flex flex-col flex-1 min-w-0 h-full">
+						{/* Page header with mode icon */}
+						<div className="px-4 pt-4 pb-2 border-b border-glass-border">
+							<div className="flex items-center gap-2">
+								<FileText
+									className="w-5 h-5"
+									style={{ color: "var(--mode-accent)" }}
+									aria-hidden="true"
+									data-testid="page-header-icon"
+								/>
+								<span className="text-sm text-text-dim">Document</span>
+							</div>
 						</div>
-					</div>
-					{isArchived && (
-						<div className="flex flex-wrap items-center gap-3 border-b border-accent/30 bg-accent/10 px-6 py-3 text-xs uppercase tracking-widest text-accent">
-							<span className="font-semibold">Archived Document</span>
-							<span className="text-text-dim normal-case">Restore to resume editing.</span>
-							{onRestore && (
-								<Button
-									variant="primary"
-									size="sm"
-									onClick={onRestore}
-									disabled={isRestoring}
-									className="ml-auto text-xs font-semibold uppercase tracking-widest"
-								>
-									{isRestoring ? "Restoring..." : "Restore"}
-								</Button>
-							)}
-						</div>
-					)}
-					{hasConflict && <ConflictBanner onKeepMine={onKeepMine} onReloadFromDisk={onReloadFromDisk} />}
-				<DocumentEditorForm
-					blocks={formData.blocks}
-					tags={formData.tags}
-					isEditMode={isEditMode}
-					isLoading={isLoading}
-					isReadOnly={isArchived}
-					onTitleChange={onTitleChange}
-					onBlocksChange={onBlocksChange}
-					onTagRemove={onTagRemove}
-					onEditorReady={handleEditorReadyWithRef}
-					find={find}
-					onNavigate={onNavigate}
-					onCountChange={handleCountChange}
-					findBarRef={findBarRef}
-				/>
+						{isArchived && (
+							<div className="flex flex-wrap items-center gap-3 border-b border-accent/30 bg-accent/10 px-6 py-3 text-xs uppercase tracking-widest text-accent">
+								<span className="font-semibold">Archived Document</span>
+								<span className="text-text-dim normal-case">Restore to resume editing.</span>
+								{onRestore && (
+									<Button
+										variant="primary"
+										size="sm"
+										onClick={onRestore}
+										disabled={isRestoring}
+										className="ml-auto text-xs font-semibold uppercase tracking-widest"
+									>
+										{isRestoring ? "Restoring..." : "Restore"}
+									</Button>
+								)}
+							</div>
+						)}
+						{hasConflict && (
+							<ConflictBanner onKeepMine={onKeepMine} onReloadFromDisk={onReloadFromDisk} />
+						)}
+						<DocumentEditorForm
+							blocks={formData.blocks}
+							tags={formData.tags}
+							isEditMode={isEditMode}
+							isLoading={isLoading}
+							isReadOnly={isArchived}
+							onTitleChange={onTitleChange}
+							onBlocksChange={onBlocksChange}
+							onTagRemove={onTagRemove}
+							onEditorReady={handleEditorReadyWithRef}
+							find={find}
+							onNavigate={onNavigate}
+							onCountChange={handleCountChange}
+							findBarRef={findBarRef}
+						/>
 
-				<DocumentEditorActions
-					saveState={autoSave.saveState}
-					lastSaved={autoSave.lastSaved}
-					hasUnsavedChanges={autoSave.hasUnsavedChanges}
-					saveError={autoSave.saveError}
-					isArchived={isArchived}
-					wordCount={counts.wordCount}
-					charCount={counts.charCount}
-					selectionCount={counts.selectionCount}
-				/>
-			</div>
-			<DocumentOutline
-				editor={editorRef.current}
-				blocks={formData.blocks}
-				isOpen={isOutlineOpen}
-				onClose={onCloseOutline ?? (() => {})}
-			/>
-		</Layout>
+						<DocumentEditorActions
+							saveState={autoSave.saveState}
+							lastSaved={autoSave.lastSaved}
+							hasUnsavedChanges={autoSave.hasUnsavedChanges}
+							saveError={autoSave.saveError}
+							isArchived={isArchived}
+							wordCount={counts.wordCount}
+							charCount={counts.charCount}
+							selectionCount={counts.selectionCount}
+						/>
+					</div>
+					<DocumentOutline
+						editor={editorRef.current}
+						blocks={formData.blocks}
+						isOpen={isOutlineOpen}
+						onClose={onCloseOutline ?? (() => {})}
+					/>
+				</div>
+			</Layout>
 		);
 	},
 );

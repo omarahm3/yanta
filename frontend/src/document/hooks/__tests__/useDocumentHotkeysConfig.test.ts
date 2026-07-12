@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { useDocumentHotkeysConfig } from "../useDocumentHotkeysConfig";
 
 vi.mock("@/config/usePreferencesOverrides", () => ({
@@ -15,6 +15,10 @@ vi.mock("@/config/usePreferencesOverrides", () => ({
 				unfocus: { key: "mod+shift+C", description: "Unfocus editor" },
 				focusEditor: { key: "Enter", description: "Focus editor when unfocused" },
 				deleteBlock: { key: "ctrl+d", description: "Delete block (Document page)" },
+				moveBlockUp: { key: "mod+shift+ArrowUp", description: "Move block up" },
+				moveBlockDown: { key: "mod+shift+ArrowDown", description: "Move block down" },
+				duplicateBlock: { key: "mod+shift+d", description: "Duplicate block" },
+				outline: { key: "mod+shift+o", description: "Toggle outline" },
 			},
 		},
 	}),
@@ -39,6 +43,10 @@ describe("useDocumentHotkeysConfig - deleteBlock", () => {
 				openFind: vi.fn(),
 				openReplace: vi.fn(),
 				deleteBlock: vi.fn(),
+				moveBlockUp: vi.fn(),
+				moveBlockDown: vi.fn(),
+				duplicateBlock: vi.fn(),
+				toggleOutline: vi.fn(),
 				editorRef,
 			}),
 		);
@@ -67,6 +75,10 @@ describe("useDocumentHotkeysConfig - deleteBlock", () => {
 				openFind: vi.fn(),
 				openReplace: vi.fn(),
 				deleteBlock,
+				moveBlockUp: vi.fn(),
+				moveBlockDown: vi.fn(),
+				duplicateBlock: vi.fn(),
+				toggleOutline: vi.fn(),
 				editorRef,
 			}),
 		);
@@ -99,6 +111,10 @@ describe("useDocumentHotkeysConfig - deleteBlock", () => {
 				openFind: vi.fn(),
 				openReplace: vi.fn(),
 				deleteBlock,
+				moveBlockUp: vi.fn(),
+				moveBlockDown: vi.fn(),
+				duplicateBlock: vi.fn(),
+				toggleOutline: vi.fn(),
 				editorRef,
 			}),
 		);
@@ -131,6 +147,10 @@ describe("useDocumentHotkeysConfig - deleteBlock", () => {
 				openFind: vi.fn(),
 				openReplace: vi.fn(),
 				deleteBlock,
+				moveBlockUp: vi.fn(),
+				moveBlockDown: vi.fn(),
+				duplicateBlock: vi.fn(),
+				toggleOutline: vi.fn(),
 				editorRef,
 			}),
 		);
