@@ -47,7 +47,8 @@ function GlobalSearchInner({
 	onClose: () => void;
 }) {
 	const { projects, setCurrentProject } = useProjectContext();
-	const { query, setQuery, items, isLoading, error, hasQuery } = useDocumentSearch();
+	const { query, setQuery, items, isLoading, error, hasQuery, isUpdating, isError, rebuild } =
+		useDocumentSearch();
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const listRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -166,7 +167,14 @@ function GlobalSearchInner({
 						className="w-full shrink-0 overflow-y-auto p-1.5 md:w-2/5 md:border-r md:border-border"
 					>
 						{items.length === 0 ? (
-							<ListEmpty hasQuery={hasQuery} isLoading={isLoading} query={query} error={error} />
+							<ListEmpty
+								hasQuery={hasQuery}
+								isLoading={isLoading}
+								query={query}
+								error={error}
+								isError={isError}
+								onRebuild={rebuild}
+							/>
 						) : (
 							items.map((item, index) => (
 								<ResultRow
@@ -191,8 +199,8 @@ function GlobalSearchInner({
 					<FooterHint keyLabel="↑↓" label="Navigate" />
 					<FooterHint keyLabel="↵" label="Open" />
 					<FooterHint keyLabel="esc" label="Close" />
-					{isLoading && hasQuery ? (
-						<span className="ml-auto text-yellow">Searching…</span>
+					{isUpdating && hasQuery ? (
+						<span className="ml-auto text-yellow">Updating index…</span>
 					) : hasQuery && items.length > 0 ? (
 						<span className="ml-auto">
 							{items.length} {items.length === 1 ? "result" : "results"}
@@ -251,6 +259,8 @@ function ResultRow({ id, item, index, selected, onSelect, onOpen }: ResultRowPro
 }
 
 function ListEmpty({
+	isError,
+	onRebuild,
 	hasQuery,
 	isLoading,
 	query,
@@ -260,9 +270,22 @@ function ListEmpty({
 	isLoading: boolean;
 	query: string;
 	error: string | null;
+	isError: boolean;
+	onRebuild: () => void;
 }) {
-	if (error) {
-		return <div className="px-3 py-12 text-center text-sm text-red">{error}</div>;
+	if (isError) {
+		return (
+			<div className="flex flex-col items-center gap-3 px-3 py-12 text-center text-sm">
+				<span className="text-red">{error || "Search index unavailable."}</span>
+				<button
+					type="button"
+					onClick={onRebuild}
+					className="rounded-md bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/20 transition-colors"
+				>
+					Rebuild Index
+				</button>
+			</div>
+		);
 	}
 	if (isLoading) {
 		return <div className="px-3 py-12 text-center text-sm text-text-dim">Searching…</div>;
