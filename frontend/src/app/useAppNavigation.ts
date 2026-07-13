@@ -9,6 +9,43 @@ import { usePaneLayout } from "../pane";
 import type { NavigationState, PageName } from "../shared/types";
 import { useNavGuard } from "./hooks/useNavGuard";
 
+const LAST_NAV_KEY = "yanta:lastNavigation";
+
+interface PersistedNav {
+	page: PageName;
+	state?: NavigationState;
+}
+
+function readPersistedNav(): PersistedNav | null {
+	try {
+		if (typeof window === "undefined") return null;
+		const raw = window.localStorage.getItem(LAST_NAV_KEY);
+		if (!raw) return null;
+		return JSON.parse(raw) as PersistedNav;
+	} catch {
+		return null;
+	}
+}
+
+function writePersistedNav(page: PageName, state?: NavigationState): void {
+	try {
+		if (typeof window === "undefined") return;
+		window.localStorage.setItem(LAST_NAV_KEY, JSON.stringify({ page, state }));
+	} catch {
+		// Best-effort persistence; ignore failures
+	}
+}
+
+function hasExplicitUrlNav(): boolean {
+	if (typeof window === "undefined") return false;
+	try {
+		const url = new URL(window.location.href);
+		return url.searchParams.has("page");
+	} catch {
+		return false;
+	}
+}
+
 export interface UseAppNavigationReturn {
 	currentPage: PageName;
 	navigationState: NavigationState;
@@ -39,6 +76,12 @@ export function useAppNavigation(): UseAppNavigationReturn {
 		if (typeof window === "undefined") {
 			return "dashboard";
 		}
+		if (hasExplicitUrlNav()) {
+			const { page } = readNavigationFromUrl();
+			return page;
+		}
+		const persisted = readPersistedNav();
+		if (persisted) return persisted.page;
 		const { page } = readNavigationFromUrl();
 		return page;
 	});
@@ -46,6 +89,12 @@ export function useAppNavigation(): UseAppNavigationReturn {
 		if (typeof window === "undefined") {
 			return {};
 		}
+		if (hasExplicitUrlNav()) {
+			const { state } = readNavigationFromUrl();
+			return state;
+		}
+		const persisted = readPersistedNav();
+		if (persisted?.state) return persisted.state;
 		const { state } = readNavigationFromUrl();
 		return state;
 	});
@@ -61,6 +110,7 @@ export function useAppNavigation(): UseAppNavigationReturn {
 			} else {
 				setNavigationState({});
 			}
+			writePersistedNav(page, state);
 			if (page === "document" && state?.documentPath) {
 				const docPath = state.documentPath as string;
 				loadAndRestoreLayout(docPath);
@@ -143,7 +193,7 @@ export function useAppNavigation(): UseAppNavigationReturn {
 	}, []);
 
 	// Stamp the initial history entry with index 0 so back/forward from the first
-	// screen is consistent with entries pushed later.
+	// screen is never into a blank entry.
 	React.useEffect(() => {
 		if (typeof window === "undefined" || typeof window.history === "undefined") {
 			return;
@@ -155,6 +205,13 @@ export function useAppNavigation(): UseAppNavigationReturn {
 		} else {
 			// Reload mid-history: seed the store so back stays enabled.
 			useNavHistoryStore.getState().hydrate(current.idx);
+		}
+	}, []);
+
+	// Restore document layout on mount when the initial page is a document.
+	React.useEffect(() => {
+		if (currentPage === "document" && navigationState.documentPath) {
+			loadAndRestoreLayout(navigationState.documentPath as string);
 		}
 	}, []);
 

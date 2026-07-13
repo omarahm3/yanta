@@ -9,7 +9,8 @@ import { cn } from "../shared/utils/cn";
 import { DatePicker } from "./DatePicker";
 import { JournalComposer } from "./JournalComposer";
 import { JournalEntry } from "./JournalEntry";
-import { useJournalController } from "./useJournalController";
+import { PromoteDialog } from "./PromoteDialog";
+import { type PromoteDialogState, useJournalController } from "./useJournalController";
 
 const JOURNAL_ROW_ESTIMATE = 72;
 const JOURNAL_ROW_GAP = 4;
@@ -61,6 +62,9 @@ const JournalComponent: React.FC<JournalProps> = ({
 		sidebarSections,
 		confirmDialog,
 		setConfirmDialog,
+		promoteDialog,
+		setPromoteDialog,
+		handleConfirmPromote,
 		statusBar,
 	} = controller;
 
@@ -227,6 +231,14 @@ const JournalComponent: React.FC<JournalProps> = ({
 				onConfirm={confirmDialog.onConfirm}
 				onCancel={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
 				danger={confirmDialog.danger}
+			/>
+			<PromoteDialog
+				dialog={promoteDialog}
+				onClose={() => setPromoteDialog((prev: PromoteDialogState) => ({ ...prev, isOpen: false }))}
+				onConfirm={() => void handleConfirmPromote()}
+				onChange={(updates) =>
+					setPromoteDialog((prev: PromoteDialogState) => ({ ...prev, ...updates }))
+				}
 			/>
 		</>
 	);

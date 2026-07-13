@@ -1,5 +1,6 @@
+import { Menu, X } from "lucide-react";
 import type React from "react";
-import { type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import {
 	selectCanGoBack,
@@ -127,6 +128,7 @@ export const Layout: React.FC<LayoutProps> = ({
 	const { heightInRem } = useTitleBarContext();
 	const { hints: footerHints } = useFooterHints({ currentPage, hasSelection, documentCount });
 	const { isBelowLg } = useResponsive();
+	const [manualSidebarOpen, setManualSidebarOpen] = useState(false);
 	const canGoBack = useNavHistoryStore(selectCanGoBack);
 	const canGoForward = useNavHistoryStore(selectCanGoForward);
 	const { status: gitStatus, isLoading: gitStatusLoading } = useGitStatus(30_000);
@@ -193,8 +195,16 @@ export const Layout: React.FC<LayoutProps> = ({
 	// is on and the viewport is wide enough; it is force-collapsed on narrow
 	// viewports where the content needs the full width. While the setting is still
 	// loading we keep it shown to avoid a collapse flash on first paint.
-	const effectiveSidebarVisible = sidebarVisible && !isBelowLg;
+	// On narrow viewports, the user can manually open the sidebar via the
+	// hamburger button in the header; it overlays the content.
+	const effectiveSidebarVisible = manualSidebarOpen || (sidebarVisible && !isBelowLg);
 	const sidebarShown = sidebarLoading || effectiveSidebarVisible;
+
+	useEffect(() => {
+		if (!isBelowLg && manualSidebarOpen) {
+			setManualSidebarOpen(false);
+		}
+	}, [isBelowLg, manualSidebarOpen]);
 
 	return (
 		<div
@@ -235,7 +245,26 @@ export const Layout: React.FC<LayoutProps> = ({
 							currentPage={getPageDisplayName(currentPage)}
 							projectAlias={currentProject?.alias}
 							shortcuts={headerShortcuts}
-							headerActions={headerActions}
+							headerActions={
+								<div className="flex items-center gap-2">
+									{isBelowLg && (
+										<button
+											type="button"
+											onClick={() => setManualSidebarOpen((v) => !v)}
+											aria-label={manualSidebarOpen ? "Close navigation" : "Open navigation"}
+											title={manualSidebarOpen ? "Close navigation" : "Open navigation"}
+											className="flex h-7 w-7 items-center justify-center rounded-md text-text-dim transition-colors hover:bg-accent/8 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+										>
+											{manualSidebarOpen ? (
+												<X className="h-4 w-4" aria-hidden="true" />
+											) : (
+												<Menu className="h-4 w-4" aria-hidden="true" />
+											)}
+										</button>
+									)}
+									{headerActions}
+								</div>
+							}
 							onBack={goBack}
 							onForward={goForward}
 							canGoBack={canGoBack}

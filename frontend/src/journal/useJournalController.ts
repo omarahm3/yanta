@@ -12,10 +12,14 @@ import { BackendLogger } from "../shared/utils/backendLogger";
 import { addDaysLocalString } from "../shared/utils/date";
 import type { JournalEntryData } from "./JournalEntry";
 import { useJournal } from "./useJournal";
-import { type ConfirmDialogState, useJournalDialogs } from "./useJournalDialogs";
+import {
+	type ConfirmDialogState,
+	type PromoteDialogState,
+	useJournalDialogs,
+} from "./useJournalDialogs";
 import { useJournalHotkeysConfig } from "./useJournalHotkeysConfig";
 
-export type { ConfirmDialogState } from "./useJournalDialogs";
+export type { ConfirmDialogState, PromoteDialogState } from "./useJournalDialogs";
 
 const helpCommands = [
 	{
@@ -93,6 +97,9 @@ export interface JournalControllerResult {
 	hotkeys: HotkeyConfig[];
 	confirmDialog: ConfirmDialogState;
 	setConfirmDialog: React.Dispatch<React.SetStateAction<ConfirmDialogState>>;
+	promoteDialog: PromoteDialogState;
+	setPromoteDialog: React.Dispatch<React.SetStateAction<PromoteDialogState>>;
+	handleConfirmPromote: () => Promise<void>;
 	statusBar: {
 		totalEntries: number;
 		currentContext: string;
@@ -116,7 +123,7 @@ export function useJournalController({
 	const [datesWithEntries, setDatesWithEntries] = useState<string[]>([]);
 	const [highlightedIndex, setHighlightedIndex] = useState(0);
 
-	const { confirmDialog, setConfirmDialog } = useJournalDialogs();
+	const { confirmDialog, setConfirmDialog, promoteDialog, setPromoteDialog } = useJournalDialogs();
 
 	const {
 		entries,
@@ -258,28 +265,54 @@ export function useJournalController({
 		});
 	}, [deleteEntry, restoreEntries, clearSelection, notifySuccess]);
 
-	// Promote selected entries to document
+	// Open promote dialog for selected entries
 	const handlePromoteSelected = useCallback(async () => {
+		const ids = Array.from(selectedIdsRef.current);
+		if (ids.length === 0) return;
+
+		setPromoteDialog({
+			isOpen: true,
+			title: "Journal Notes",
+			targetProject: projectAlias,
+			keepOriginal: false,
+		});
+	}, [projectAlias]);
+
+	// Confirm promote with dialog options
+	const handleConfirmPromote = useCallback(async () => {
 		const ids = Array.from(selectedIdsRef.current);
 		if (ids.length === 0) return;
 
 		try {
 			const documentPath = await promoteToDocument({
 				entryIds: ids,
-				targetProject: projectAlias,
-				title: "Journal Notes",
-				keepOriginal: false,
+				targetProject: promoteDialog.targetProject || projectAlias,
+				title: promoteDialog.title || "Journal Notes",
+				keepOriginal: promoteDialog.keepOriginal,
 			});
 
 			clearSelection();
+			setPromoteDialog((prev) => ({ ...prev, isOpen: false }));
+			notifySuccess(
+				ids.length === 1 ? "Entry promoted to document" : `${ids.length} entries promoted to document`,
+			);
 
 			if (onNavigate) {
 				onNavigate("document", { documentPath });
 			}
 		} catch (err) {
 			BackendLogger.error("Failed to promote to document:", err);
+			notifyError(err instanceof Error ? err.message : "Failed to promote entries");
 		}
-	}, [promoteToDocument, projectAlias, clearSelection, onNavigate]);
+	}, [
+		promoteToDocument,
+		projectAlias,
+		clearSelection,
+		onNavigate,
+		promoteDialog,
+		notifySuccess,
+		notifyError,
+	]);
 
 	// Escape handler for clearing selection or closing dialog
 	useEffect(() => {
@@ -349,6 +382,9 @@ export function useJournalController({
 		hotkeys,
 		confirmDialog,
 		setConfirmDialog,
+		promoteDialog,
+		setPromoteDialog,
+		handleConfirmPromote,
 		statusBar: {
 			totalEntries: entries.length,
 			currentContext: projectAlias,

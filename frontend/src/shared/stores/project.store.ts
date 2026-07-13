@@ -5,6 +5,30 @@ import type { Project } from "../types";
 import { projectsFromModels } from "../types";
 import { BackendLogger } from "../utils/backendLogger";
 
+const LAST_PROJECT_KEY = "yanta:lastProjectAlias";
+
+function readLastProjectAlias(): string | null {
+	try {
+		if (typeof window === "undefined") return null;
+		return window.localStorage.getItem(LAST_PROJECT_KEY);
+	} catch {
+		return null;
+	}
+}
+
+function writeLastProjectAlias(alias: string | undefined): void {
+	try {
+		if (typeof window === "undefined") return;
+		if (alias) {
+			window.localStorage.setItem(LAST_PROJECT_KEY, alias);
+		} else {
+			window.localStorage.removeItem(LAST_PROJECT_KEY);
+		}
+	} catch {
+		// Best-effort persistence; ignore failures
+	}
+}
+
 export interface ProjectContextValue {
 	currentProject: Project | undefined;
 	setCurrentProject: (project: Project | undefined) => void;
@@ -34,8 +58,10 @@ export const useProjectStore = create<ProjectState>()(
 		setCurrentProject: (project) =>
 			set((s) => {
 				if (s.currentProject && s.currentProject.id !== project?.id) {
+					if (project) writeLastProjectAlias(project.alias);
 					return { currentProject: project, previousProject: s.currentProject };
 				}
+				if (project) writeLastProjectAlias(project.alias);
 				return { currentProject: project };
 			}),
 
@@ -57,9 +83,11 @@ export const useProjectStore = create<ProjectState>()(
 
 				set((s) => {
 					const prev = s.currentProject;
+					const lastAlias = readLastProjectAlias();
 					let nextCurrent: Project | undefined = prev;
 					if (!prev && activeProjects.length > 0) {
-						nextCurrent = activeProjects[0];
+						const restored = lastAlias ? activeProjects.find((p) => p.alias === lastAlias) : undefined;
+						nextCurrent = restored ?? activeProjects[0];
 					} else if (prev && activeProjects.find((p) => p.id === prev.id)) {
 						nextCurrent = prev;
 					} else if (
@@ -67,7 +95,11 @@ export const useProjectStore = create<ProjectState>()(
 						!activeProjects.find((p) => p.id === prev.id) &&
 						activeProjects.length > 0
 					) {
-						nextCurrent = activeProjects[0];
+						const restored = lastAlias ? activeProjects.find((p) => p.alias === lastAlias) : undefined;
+						nextCurrent = restored ?? activeProjects[0];
+					}
+					if (nextCurrent) {
+						writeLastProjectAlias(nextCurrent.alias);
 					}
 					return {
 						projects: activeProjects,

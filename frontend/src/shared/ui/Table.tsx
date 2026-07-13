@@ -7,6 +7,9 @@ export interface TableColumn {
 	label: string;
 	width?: string;
 	align?: "left" | "center" | "right";
+	sortable?: boolean;
+	sortDirection?: "asc" | "desc" | null;
+	onSort?: () => void;
 }
 
 export interface TableRow {
@@ -74,13 +77,36 @@ export const Table: React.FC<TableProps> = ({
 					<div
 						key={column.key}
 						role="columnheader"
-						tabIndex={-1}
+						tabIndex={column.sortable ? 0 : -1}
 						className={cn(
 							"min-w-0 overflow-hidden px-3 py-2 text-text-dim text-xs uppercase tracking-wider font-medium",
 							getColumnStyles(column),
+							column.sortable && "cursor-pointer select-none hover:text-text transition-colors",
 						)}
+						onClick={column.sortable ? column.onSort : undefined}
+						onKeyDown={
+							column.sortable
+								? (e) => {
+										if (e.key === "Enter" || e.key === " ") {
+											e.preventDefault();
+											column.onSort?.();
+										}
+									}
+								: undefined
+						}
+						aria-sort={
+							column.sortDirection === "asc"
+								? "ascending"
+								: column.sortDirection === "desc"
+									? "descending"
+									: undefined
+						}
 					>
-						{column.label}
+						<span className="inline-flex items-center gap-1">
+							{column.label}
+							{column.sortDirection === "asc" && "\u2191"}
+							{column.sortDirection === "desc" && "\u2193"}
+						</span>
 					</div>
 				))}
 			</div>
