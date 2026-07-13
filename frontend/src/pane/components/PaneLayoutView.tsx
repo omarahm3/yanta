@@ -12,14 +12,16 @@ export interface PaneLayoutViewProps {
 	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 	documentPath?: string;
+	openInSplit?: boolean;
 }
 
 export const PaneLayoutView: React.FC<PaneLayoutViewProps> = ({
 	onNavigate,
 	onRegisterToggleSidebar,
 	documentPath,
+	openInSplit,
 }) => {
-	const { layout, activePaneId, openDocumentInPane } = usePaneLayout();
+	const { layout, activePaneId, openDocumentInPane, splitPane } = usePaneLayout();
 
 	usePaneHotkeys();
 
@@ -41,13 +43,26 @@ export const PaneLayoutView: React.FC<PaneLayoutViewProps> = ({
 	});
 
 	const lastOpenedPathRef = useRef<string | undefined>(documentPath);
+	const pendingSplitOpenRef = useRef<string | null>(null);
 
 	useEffect(() => {
 		if (documentPath && documentPath !== lastOpenedPathRef.current) {
-			openDocumentInPane(activePaneId, documentPath);
+			if (openInSplit) {
+				pendingSplitOpenRef.current = documentPath;
+				splitPane(activePaneId, "horizontal");
+			} else {
+				openDocumentInPane(activePaneId, documentPath);
+			}
 			lastOpenedPathRef.current = documentPath;
 		}
-	}, [documentPath, activePaneId, openDocumentInPane]);
+	}, [documentPath, activePaneId, openDocumentInPane, openInSplit, splitPane]);
+
+	useEffect(() => {
+		if (pendingSplitOpenRef.current) {
+			openDocumentInPane(activePaneId, pendingSplitOpenRef.current);
+			pendingSplitOpenRef.current = null;
+		}
+	}, [activePaneId, openDocumentInPane]);
 
 	return (
 		<PaneNavigateProvider value={onNavigate ?? (() => {})}>

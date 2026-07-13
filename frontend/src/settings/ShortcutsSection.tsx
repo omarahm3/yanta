@@ -1,5 +1,6 @@
 import { RotateCcw, Search } from "lucide-react";
 import React from "react";
+import { EDITOR_HELP_COMMANDS } from "../config/editorCommands";
 import { formatShortcutKeyForDisplay } from "../config/shortcuts";
 import { useReducedEffects } from "../shared/stores/appearance.store";
 import type { GlobalHotkeyConfig } from "../shared/types";
@@ -167,6 +168,25 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 					subtitle="Configure global hotkeys and view application shortcuts"
 				>
 					<div className="space-y-6">
+						{/* Editor Shortcuts Reference */}
+						<div>
+							<Heading as="h3" size="sm" variant="bright" weight="medium" className="mb-2">
+								Editor Shortcuts
+							</Heading>
+							<div className="rounded-lg bg-bg-dark p-4">
+								<div className="grid grid-cols-2 gap-2 text-xs">
+									{EDITOR_HELP_COMMANDS.map((cmd) => (
+										<div key={cmd.command} className="flex items-center gap-2">
+											<code className="font-mono text-accent min-w-[100px]">
+												{formatShortcutKeyForDisplay(cmd.command)}
+											</code>
+											<span className="text-text-dim">{cmd.description}</span>
+										</div>
+									))}
+								</div>
+							</div>
+						</div>
+
 						{/* Global Hotkeys Section */}
 						<div>
 							<Heading as="h3" size="sm" variant="bright" weight="medium" className="mb-2">

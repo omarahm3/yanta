@@ -64,8 +64,14 @@ export const Router: React.FC<RouterProps> = ({
 			onNavigate: handleNavigation,
 			onRegisterToggleSidebar,
 			documentPath: navigationState.documentPath as string | undefined,
+			openInSplit: navigationState.openInSplit as boolean | undefined,
 		}),
-		[handleNavigation, onRegisterToggleSidebar, navigationState.documentPath],
+		[
+			handleNavigation,
+			onRegisterToggleSidebar,
+			navigationState.documentPath,
+			navigationState.openInSplit,
+		],
 	);
 
 	const journalProps = useMemo(

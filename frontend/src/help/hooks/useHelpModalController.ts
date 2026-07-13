@@ -1,6 +1,7 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+	EDITOR_HELP_COMMANDS,
 	formatShortcutKeyForDisplay,
 	GLOBAL_COMMANDS,
 	getHelpShortcutsFromMerged,
@@ -8,6 +9,7 @@ import {
 import { useMergedConfig } from "@/config/usePreferencesOverrides";
 import { useHotkeyContext } from "../../hotkeys";
 import { classifyEventTarget } from "../../hotkeys/utils/hotkeyMatcher";
+import { useLifoEscape } from "../../shared/hooks/useLifoEscape";
 import type { HelpSectionData, HelpSectionId } from "../utils/helpModalUtils";
 import { categorizeHotkey, getDefaultExpandedSections } from "../utils/helpModalUtils";
 import { useHelp } from "./useHelp";
@@ -101,22 +103,24 @@ export function useHelpModalController(): UseHelpModalControllerResult {
 				if (classifyEventTarget(e.target).inInputField) return;
 				e.preventDefault();
 				closeHelp();
-			} else if (e.key === "Escape") {
-				// Read the live input value via the ref so this listener doesn't
-				// depend on searchQuery (which would re-register it on every keystroke).
-				if (searchInputRef.current?.value.trim()) {
-					e.preventDefault();
-					e.stopPropagation();
-					setSearchQuery("");
-					searchInputRef.current?.focus();
-					announce("Search cleared");
-				}
 			}
 		};
 
 		document.addEventListener("keydown", handleKeyDown);
 		return () => document.removeEventListener("keydown", handleKeyDown);
 	}, [isOpen, closeHelp, announce, setSearchQuery]);
+
+	useLifoEscape({
+		when: isOpen,
+		onEscape: () => {
+			if (searchInputRef.current?.value.trim()) {
+				setSearchQuery("");
+				searchInputRef.current?.focus();
+				announce("Search cleared");
+			}
+		},
+		skipWhenDialogOpen: false,
+	});
 
 	const allHotkeys = useMemo(() => {
 		if (pageName === "SETTINGS") return [];
@@ -125,6 +129,10 @@ export function useHelpModalController(): UseHelpModalControllerResult {
 
 	const sections: HelpSectionData[] = useMemo(() => {
 		const fromConfig = getHelpShortcutsFromMerged(shortcuts);
+		const editorCommands = EDITOR_HELP_COMMANDS.map((cmd) => ({
+			key: formatShortcutKeyForDisplay(cmd.command),
+			description: cmd.description,
+		}));
 		const sectionMap: Record<HelpSectionId, { key: string; description: string }[]> = {
 			global: fromConfig.global,
 			navigation: [
@@ -136,7 +144,7 @@ export function useHelpModalController(): UseHelpModalControllerResult {
 			],
 			documents: fromConfig.documents,
 			journal: fromConfig.journal,
-			editor: fromConfig.editor,
+			editor: [...fromConfig.editor, ...editorCommands],
 			git: [{ key: formatShortcutKeyForDisplay("ctrl+shift+s"), description: "Git Sync" }],
 		};
 

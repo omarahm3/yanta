@@ -111,9 +111,9 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 
 						<div className="flex items-center justify-between">
 							<div>
-								<div className="text-sm text-text">Show Sidebar</div>
+								<div className="text-sm text-text">Expanded Sidebar</div>
 								<div className="text-xs text-text-dim">
-									Display the navigation sidebar. Use Ctrl+B to toggle.
+									Show the full sidebar panel. When off, only the icon rail is visible. Use Ctrl+B to toggle.
 								</div>
 							</div>
 							<Toggle

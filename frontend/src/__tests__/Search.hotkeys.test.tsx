@@ -4,6 +4,7 @@ import { vi } from "vitest";
 import { DialogProvider } from "../app/context";
 import { HotkeyProvider } from "../hotkeys";
 import { Search } from "../search";
+import { GlobalEscapeListener } from "../shared/ui/GlobalEscapeListener";
 
 const onNavigate = vi.fn();
 
@@ -160,6 +161,7 @@ describe("Search hotkeys", () => {
 		render(
 			<DialogProvider>
 				<HotkeyProvider>
+					<GlobalEscapeListener />
 					<Search onNavigate={onNavigate} />
 				</HotkeyProvider>
 			</DialogProvider>,
@@ -169,7 +171,7 @@ describe("Search hotkeys", () => {
 		input.focus();
 		expect(document.activeElement).toBe(input);
 
-		fireEvent.keyDown(document, { key: "Escape" });
+		fireEvent.keyDown(window, { key: "Escape" });
 		expect(document.activeElement).not.toBe(input);
 	});
 
