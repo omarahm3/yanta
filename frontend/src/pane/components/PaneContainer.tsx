@@ -14,13 +14,15 @@ interface PaneResizeHandleProps {
 const PaneResizeHandle: React.FC<PaneResizeHandleProps> = React.memo(({ direction }) => (
 	<Separator
 		className={cn(
-			"relative flex items-center justify-center",
+			// box-content so the padding adds to the 4px line instead of being absorbed
+			// into it (border-box would keep the real hit target at 4px).
+			"relative flex items-center justify-center box-content",
 			// The padding widens the pointer hit target; the thin visual line is drawn
 			// by the ::after pseudo-element so the background doesn't fill the padded area.
 			"after:block after:content-[''] after:bg-border hover:after:bg-accent/50 active:after:bg-accent after:transition-colors after:duration-[var(--duration-fast)] after:ease-[var(--ease-out-quart)]",
 			direction === "horizontal"
-				? "w-1 px-1.5 -mx-1.5 after:h-full after:w-px"
-				: "h-1 py-1.5 -my-1.5 after:w-full after:h-px",
+				? "w-px px-1.5 -mx-1.5 after:h-full after:w-px"
+				: "h-px py-1.5 -my-1.5 after:w-full after:h-px",
 		)}
 	/>
 ));
