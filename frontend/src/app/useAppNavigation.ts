@@ -11,6 +11,19 @@ import { useNavGuard } from "./hooks/useNavGuard";
 
 const LAST_NAV_KEY = "yanta:lastNavigation";
 
+// Guard against corrupt/tampered/old-schema localStorage: an invalid page would
+// otherwise become currentPage and get re-persisted on the next navigation.
+const KNOWN_PAGES: ReadonlySet<string> = new Set<PageName>([
+	"dashboard",
+	"document",
+	"projects",
+	"settings",
+	"search",
+	"test",
+	"quick-capture",
+	"journal",
+]);
+
 interface PersistedNav {
 	page: PageName;
 	state?: NavigationState;
@@ -21,7 +34,9 @@ function readPersistedNav(): PersistedNav | null {
 		if (typeof window === "undefined") return null;
 		const raw = window.localStorage.getItem(LAST_NAV_KEY);
 		if (!raw) return null;
-		return JSON.parse(raw) as PersistedNav;
+		const parsed = JSON.parse(raw) as PersistedNav;
+		if (!parsed || !KNOWN_PAGES.has(parsed.page)) return null;
+		return parsed;
 	} catch {
 		return null;
 	}
@@ -94,7 +109,7 @@ export function useAppNavigation(): UseAppNavigationReturn {
 			return state;
 		}
 		const persisted = readPersistedNav();
-		if (persisted?.state) return persisted.state;
+		if (persisted) return persisted.state ?? {};
 		const { state } = readNavigationFromUrl();
 		return state;
 	});

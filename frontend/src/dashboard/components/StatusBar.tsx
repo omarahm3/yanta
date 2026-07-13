@@ -136,23 +136,28 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 			{onSortChange && (
 				<div className="flex items-center gap-1">
 					<span className="text-text-dim mr-1">Sort:</span>
-					{(["updated", "created", "title"] as DocumentSortField[]).map((field) => (
-						<button
-							key={field}
-							type="button"
-							onClick={() => onSortChange(field)}
-							className={`px-1.5 py-0.5 rounded text-xs transition-colors ${
-								sortField === field
-									? "bg-accent/15 text-text-bright font-medium"
-									: "text-text-dim hover:text-text hover:bg-accent/8"
-							}`}
-						>
-							{field === "updated" ? "Updated" : field === "created" ? "Created" : "Title"}
-							{sortField === field && (
-								<span className="ml-0.5">{sortDirection === "asc" ? "\u2191" : "\u2193"}</span>
-							)}
-						</button>
-					))}
+					{(["updated", "created", "title"] as DocumentSortField[]).map((field) => {
+						const label = field === "updated" ? "Updated" : field === "created" ? "Created" : "Title";
+						return (
+							<button
+								key={field}
+								type="button"
+								onClick={() => onSortChange(field)}
+								aria-label={`Sort by ${label}${sortField === field ? ` (${sortDirection === "asc" ? "ascending" : "descending"})` : ""}`}
+								aria-pressed={sortField === field}
+								className={`px-1.5 py-0.5 rounded text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+									sortField === field
+										? "bg-accent/15 text-text-bright font-medium"
+										: "text-text-dim hover:text-text hover:bg-accent/8"
+								}`}
+							>
+								{label}
+								{sortField === field && (
+									<span className="ml-0.5">{sortDirection === "asc" ? "\u2191" : "\u2193"}</span>
+								)}
+							</button>
+						);
+					})}
 				</div>
 			)}
 			<button

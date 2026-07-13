@@ -97,6 +97,10 @@ export const useProjectStore = create<ProjectState>()(
 					) {
 						const restored = lastAlias ? activeProjects.find((p) => p.alias === lastAlias) : undefined;
 						nextCurrent = restored ?? activeProjects[0];
+					} else if (prev && !activeProjects.find((p) => p.id === prev.id)) {
+						// prev was archived/deleted and no active projects remain; don't
+						// keep pointing at a stale project.
+						nextCurrent = undefined;
 					}
 					if (nextCurrent) {
 						writeLastProjectAlias(nextCurrent.alias);

@@ -111,7 +111,7 @@ export function useJournalController({
 	onNavigate,
 	initialDate,
 }: JournalControllerOptions): JournalControllerResult {
-	const { currentProject } = useProjectContext();
+	const { currentProject, projects } = useProjectContext();
 	const projectAlias = currentProject?.alias || "@personal";
 	const { setPageContext } = useHelp();
 	const { error: notifyError, success: notifySuccess } = useNotification();
@@ -270,19 +270,33 @@ export function useJournalController({
 		const ids = Array.from(selectedIdsRef.current);
 		if (ids.length === 0) return;
 
+		// Open the dialog on a valid, selectable project. When the active alias
+		// isn't a real project (e.g. the "@personal" fallback with no active
+		// project), default to the first available one so promote can't be
+		// submitted against a non-existent target.
+		const defaultTarget = projects.some((p) => p.alias === projectAlias)
+			? projectAlias
+			: projects[0]?.alias || projectAlias;
+
 		setPromoteDialog({
 			isOpen: true,
 			title: "Journal Notes",
-			targetProject: projectAlias,
+			targetProject: defaultTarget,
 			keepOriginal: false,
 		});
-	}, [projectAlias]);
+	}, [projectAlias, projects, setPromoteDialog]);
+
+	// Guards against a second click firing another promote while the first is
+	// still awaiting, which would create duplicate documents.
+	const isPromotingRef = useRef(false);
 
 	// Confirm promote with dialog options
 	const handleConfirmPromote = useCallback(async () => {
+		if (isPromotingRef.current) return;
 		const ids = Array.from(selectedIdsRef.current);
 		if (ids.length === 0) return;
 
+		isPromotingRef.current = true;
 		try {
 			const documentPath = await promoteToDocument({
 				entryIds: ids,
@@ -303,6 +317,8 @@ export function useJournalController({
 		} catch (err) {
 			BackendLogger.error("Failed to promote to document:", err);
 			notifyError(err instanceof Error ? err.message : "Failed to promote entries");
+		} finally {
+			isPromotingRef.current = false;
 		}
 	}, [
 		promoteToDocument,

@@ -55,6 +55,34 @@ function writeProjectSort(config: { field: ProjectSortField; direction: SortDir 
 	}
 }
 
+/**
+ * Sorts the (already-extended) project rows. Shared by the active and archived
+ * lists so their ordering rules can never drift apart. The `lastEntry`
+ * comparator returns 0 when both entries are missing so it stays a valid strict
+ * weak ordering (returning 1 both ways would violate the sort contract).
+ */
+export function sortExtendedProjects<
+	T extends { name: string; alias: string; entryCount: number; lastEntry: unknown },
+>(list: T[], { field, direction }: { field: ProjectSortField; direction: SortDir }): T[] {
+	const mult = direction === "asc" ? 1 : -1;
+	return [...list].sort((a, b) => {
+		if (field === "name") return mult * a.name.localeCompare(b.name);
+		if (field === "alias") return mult * a.alias.localeCompare(b.alias);
+		if (field === "entryCount") return mult * (a.entryCount - b.entryCount);
+		if (field === "lastEntry") {
+			const aRaw = String(a.lastEntry).replace(/\s+/g, " ").trim();
+			const bRaw = String(b.lastEntry).replace(/\s+/g, " ").trim();
+			const aMissing = !aRaw || aRaw === "-";
+			const bMissing = !bRaw || bRaw === "-";
+			if (aMissing && bMissing) return 0;
+			if (aMissing) return 1;
+			if (bMissing) return -1;
+			return mult * (new Date(aRaw).getTime() - new Date(bRaw).getTime());
+		}
+		return 0;
+	});
+}
+
 /** Alias + name is all the row actions and rename dialog need. */
 interface ProjectActionTarget {
 	alias: string;
@@ -147,21 +175,7 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 			entryCount: documentCounts[p.id] || 0,
 			lastEntry: lastDocumentDates[p.id] || "-",
 		}));
-		const { field, direction } = projectSort;
-		const mult = direction === "asc" ? 1 : -1;
-		return extended.sort((a, b) => {
-			if (field === "name") return mult * a.name.localeCompare(b.name);
-			if (field === "alias") return mult * a.alias.localeCompare(b.alias);
-			if (field === "entryCount") return mult * (a.entryCount - b.entryCount);
-			if (field === "lastEntry") {
-				const aRaw = String(a.lastEntry).replace(/\s+/g, " ").trim();
-				const bRaw = String(b.lastEntry).replace(/\s+/g, " ").trim();
-				if (!aRaw || aRaw === "-") return 1;
-				if (!bRaw || bRaw === "-") return -1;
-				return mult * (new Date(aRaw).getTime() - new Date(bRaw).getTime());
-			}
-			return 0;
-		});
+		return sortExtendedProjects(extended, projectSort);
 	}, [projects, documentCounts, lastDocumentDates, projectSort]);
 
 	const archivedProjectDetails = useMemo(() => {
@@ -170,21 +184,7 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 			entryCount: documentCounts[p.id] || 0,
 			lastEntry: lastDocumentDates[p.id] || "-",
 		}));
-		const { field, direction } = projectSort;
-		const mult = direction === "asc" ? 1 : -1;
-		return extended.sort((a, b) => {
-			if (field === "name") return mult * a.name.localeCompare(b.name);
-			if (field === "alias") return mult * a.alias.localeCompare(b.alias);
-			if (field === "entryCount") return mult * (a.entryCount - b.entryCount);
-			if (field === "lastEntry") {
-				const aRaw = String(a.lastEntry).replace(/\s+/g, " ").trim();
-				const bRaw = String(b.lastEntry).replace(/\s+/g, " ").trim();
-				if (!aRaw || aRaw === "-") return 1;
-				if (!bRaw || bRaw === "-") return -1;
-				return mult * (new Date(aRaw).getTime() - new Date(bRaw).getTime());
-			}
-			return 0;
-		});
+		return sortExtendedProjects(extended, projectSort);
 	}, [archivedProjects, documentCounts, lastDocumentDates, projectSort]);
 
 	const handleProjectSort = useCallback((field: ProjectSortField) => {
