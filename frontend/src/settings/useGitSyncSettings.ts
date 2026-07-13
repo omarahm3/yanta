@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { SyncStatus } from "../../bindings/yanta/internal/git/models";
 import {
 	CheckGitInstalled,
@@ -44,49 +44,100 @@ export function useGitSyncSettings() {
 	});
 	const [gitBranches, setGitBranches] = useState<string[]>([]);
 	const [currentGitBranch, setCurrentGitBranch] = useState<string>("");
+	const [settingsLoadError, setSettingsLoadError] = useState<string | null>(null);
+	const [isLoadingSettings, setIsLoadingSettings] = useState(false);
+	const loadingRef = useRef(false);
 	const syncNowInFlight = useSyncStore((s) => s.inProgress);
 	const lastSync = useSyncStore((s) => s.lastSynced);
 	const { success, error, info, warning } = useNotification();
 
-	useEffect(() => {
-		CheckGitInstalled()
-			.then((installed) => setGitInstalled(installed))
-			.catch(() => setGitInstalled(false));
+	const loadSettings = useCallback(async () => {
+		// Guard against overlapping loads (e.g. rapid Retry clicks) racing on setters.
+		if (loadingRef.current) return;
+		loadingRef.current = true;
+		setIsLoadingSettings(true);
+		setSettingsLoadError(null);
+		const errors: string[] = [];
 
-		GetCurrentDataDirectory()
-			.then((dir) => setCurrentDataDir(dir))
-			.catch((err) => BackendLogger.error("Failed to get current data directory:", err));
+		try {
+			// Resolve git availability first — it gates the branch lookups below.
+			let gitInstalled = false;
+			await CheckGitInstalled()
+				.then((installed) => {
+					gitInstalled = installed;
+					setGitInstalled(installed);
+				})
+				.catch(() => setGitInstalled(false));
 
-		IsDataDirectoryOverridden()
-			.then((overridden) => setDataDirOverridden(overridden))
-			.catch((err) => BackendLogger.error("Failed to check data directory override:", err));
+			// These calls are independent, so run them concurrently.
+			const tasks: Promise<void>[] = [
+				GetCurrentDataDirectory()
+					.then((dir) => setCurrentDataDir(dir))
+					.catch((err) => {
+						BackendLogger.error("Failed to get current data directory:", err);
+						errors.push("data directory");
+					}),
+				IsDataDirectoryOverridden()
+					.then((overridden) => setDataDirOverridden(overridden))
+					.catch((err) => {
+						BackendLogger.error("Failed to check data directory override:", err);
+						errors.push("override check");
+					}),
+				GetAppHomeEnvVar()
+					.then((envVar) => setDataDirEnvVar(envVar))
+					.catch((err) => {
+						BackendLogger.error("Failed to get data directory env var:", err);
+						errors.push("env var");
+					}),
+				GetGitSyncConfig()
+					.then((config) => {
+						setGitSync({
+							enabled: config.Enabled,
+							commitInterval: config.CommitInterval,
+							autoPush: config.AutoPush,
+							branch: config.Branch || "",
+						});
+					})
+					.catch((err) => {
+						BackendLogger.error("Failed to get git sync config:", err);
+						errors.push("sync config");
+					}),
+			];
 
-		GetAppHomeEnvVar()
-			.then((envVar) => setDataDirEnvVar(envVar))
-			.catch((err) => BackendLogger.error("Failed to get data directory env var:", err));
+			// Branch lookups only make sense when git is installed; running them
+			// otherwise just fails and surfaces a misleading "Couldn't load settings"
+			// next to the "Git not installed" warning.
+			if (gitInstalled) {
+				tasks.push(
+					GetGitBranches()
+						.then((branches) => setGitBranches(branches || []))
+						.catch((err) => {
+							BackendLogger.error("Failed to get git branches:", err);
+							errors.push("branches");
+						}),
+					GetCurrentGitBranch()
+						.then((branch) => setCurrentGitBranch(branch || ""))
+						.catch((err) => {
+							BackendLogger.error("Failed to get current git branch:", err);
+							errors.push("current branch");
+						}),
+				);
+			}
 
-		GetGitSyncConfig()
-			.then((config) => {
-				setGitSync({
-					enabled: config.Enabled,
-					// Use the persisted value as-is (0 = "Manual only"); don't
-					// coerce 0 -> 10, which used to mask a saved "Manual only"
-					// and could silently re-enable auto-commit on an unrelated edit.
-					commitInterval: config.CommitInterval,
-					autoPush: config.AutoPush,
-					branch: config.Branch || "",
-				});
-			})
-			.catch((err) => BackendLogger.error("Failed to get git sync config:", err));
+			await Promise.all(tasks);
 
-		GetGitBranches()
-			.then((branches) => setGitBranches(branches || []))
-			.catch((err) => BackendLogger.error("Failed to get git branches:", err));
-
-		GetCurrentGitBranch()
-			.then((branch) => setCurrentGitBranch(branch || ""))
-			.catch((err) => BackendLogger.error("Failed to get current git branch:", err));
+			if (errors.length > 0) {
+				setSettingsLoadError(`Failed to load: ${errors.join(", ")}`);
+			}
+		} finally {
+			setIsLoadingSettings(false);
+			loadingRef.current = false;
+		}
 	}, []);
+
+	useEffect(() => {
+		loadSettings();
+	}, [loadSettings]);
 
 	const handleGitSyncToggle = useCallback(
 		async (enabled: boolean) => {
@@ -228,5 +279,8 @@ export function useGitSyncSettings() {
 		handleSyncNow,
 		syncNowInFlight,
 		lastSync,
+		settingsLoadError,
+		isLoadingSettings,
+		retryLoadSettings: loadSettings,
 	};
 }

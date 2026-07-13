@@ -1,5 +1,5 @@
 import { Check, Circle, Loader2, X } from "lucide-react";
-import type React from "react";
+import { type FC, useEffect, useState } from "react";
 import type { SaveState } from "../../shared/hooks";
 
 interface DocumentEditorActionsProps {
@@ -13,7 +13,6 @@ interface DocumentEditorActionsProps {
 	selectionCount?: number;
 }
 
-// TODO: this function is manual, replace with external library
 const formatTimeSince = (date: Date): string => {
 	const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
 	if (seconds < 5) return "just now";
@@ -24,7 +23,7 @@ const formatTimeSince = (date: Date): string => {
 	return `${hours}h ago`;
 };
 
-export const DocumentEditorActions: React.FC<DocumentEditorActionsProps> = ({
+export const DocumentEditorActions: FC<DocumentEditorActionsProps> = ({
 	isArchived = false,
 	saveState,
 	lastSaved,
@@ -34,6 +33,13 @@ export const DocumentEditorActions: React.FC<DocumentEditorActionsProps> = ({
 	charCount = 0,
 	selectionCount,
 }) => {
+	const [, setTick] = useState(0);
+	useEffect(() => {
+		if (!lastSaved) return;
+		const id = setInterval(() => setTick((n) => n + 1), 30_000);
+		return () => clearInterval(id);
+	}, [lastSaved]);
+
 	const getStatusIndicator = () => {
 		if (isArchived) {
 			return {

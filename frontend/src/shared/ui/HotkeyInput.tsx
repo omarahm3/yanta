@@ -11,7 +11,8 @@ export interface HotkeyInputProps {
 }
 
 /**
- * Modern hotkey input - click to focus, press keys to set, Enter to confirm, Esc to reset.
+ * Modern hotkey input - click to focus, press keys to set the hotkey immediately,
+ * Esc to cancel capturing.
  */
 export const HotkeyInput: React.FC<HotkeyInputProps> = ({
 	value,
@@ -21,7 +22,6 @@ export const HotkeyInput: React.FC<HotkeyInputProps> = ({
 	className,
 }) => {
 	const [isCapturing, setIsCapturing] = useState(false);
-	const [pendingHotkey, setPendingHotkey] = useState<string | null>(null);
 
 	const buildHotkeyString = useCallback((e: React.KeyboardEvent): string | null => {
 		const parts: string[] = [];
@@ -58,45 +58,31 @@ export const HotkeyInput: React.FC<HotkeyInputProps> = ({
 			e.preventDefault();
 			e.stopPropagation();
 
-			// Escape resets to original value
-			if (e.key === "Escape") {
-				setPendingHotkey(null);
+			if (e.key === "Escape" || e.key === "Enter") {
 				setIsCapturing(false);
 				return;
 			}
 
-			// Enter confirms the pending hotkey
-			if (e.key === "Enter") {
-				if (pendingHotkey) {
-					onChange(pendingHotkey);
-				}
-				setPendingHotkey(null);
-				setIsCapturing(false);
-				return;
-			}
-
-			// Build the hotkey string
 			const hotkey = buildHotkeyString(e);
 			if (hotkey) {
-				setPendingHotkey(hotkey);
+				onChange(hotkey);
+				setIsCapturing(false);
 			}
 		},
-		[disabled, pendingHotkey, onChange, buildHotkeyString],
+		[disabled, onChange, buildHotkeyString],
 	);
 
 	const handleFocus = useCallback(() => {
 		if (!disabled) {
 			setIsCapturing(true);
-			setPendingHotkey(null);
 		}
 	}, [disabled]);
 
 	const handleBlur = useCallback(() => {
 		setIsCapturing(false);
-		setPendingHotkey(null);
 	}, []);
 
-	const displayValue = isCapturing ? pendingHotkey || "Press keys..." : value || placeholder;
+	const displayValue = isCapturing ? "Press keys..." : value || placeholder;
 
 	return (
 		<div
@@ -116,9 +102,7 @@ export const HotkeyInput: React.FC<HotkeyInputProps> = ({
 			)}
 		>
 			{displayValue}
-			{isCapturing && (
-				<span className="ml-2 text-xs text-text-dim">(Enter to save, Esc to cancel)</span>
-			)}
+			{isCapturing && <span className="ml-2 text-xs text-text-dim">(Esc to cancel)</span>}
 		</div>
 	);
 };

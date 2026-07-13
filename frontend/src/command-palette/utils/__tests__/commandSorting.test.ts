@@ -311,10 +311,10 @@ describe("getTopRecentCommandIds", () => {
 		expect(recentIds.size).toBe(0);
 	});
 
-	it("returns empty set when no commands were used within the last hour", () => {
+	it("returns empty set when no commands were used within the last day", () => {
 		const usage: CommandUsageRecord = {
-			"cmd-a": { lastUsed: now - 2 * HOUR_MS, useCount: 1 },
-			"cmd-b": { lastUsed: now - 3 * HOUR_MS, useCount: 1 },
+			"cmd-a": { lastUsed: now - 2 * DAY_MS, useCount: 1 },
+			"cmd-b": { lastUsed: now - 3 * DAY_MS, useCount: 1 },
 		};
 
 		const recentIds = getTopRecentCommandIds(usage);
@@ -322,10 +322,10 @@ describe("getTopRecentCommandIds", () => {
 		expect(recentIds.size).toBe(0);
 	});
 
-	it("returns IDs of commands used within the last hour", () => {
+	it("returns IDs of commands used within the last day", () => {
 		const usage: CommandUsageRecord = {
 			"cmd-a": { lastUsed: now - 10 * 60 * 1000, useCount: 1 }, // 10 min ago
-			"cmd-b": { lastUsed: now - 2 * HOUR_MS, useCount: 1 }, // 2 hours ago
+			"cmd-b": { lastUsed: now - 2 * DAY_MS, useCount: 1 }, // 2 days ago
 			"cmd-c": { lastUsed: now - 30 * 60 * 1000, useCount: 1 }, // 30 min ago
 		};
 

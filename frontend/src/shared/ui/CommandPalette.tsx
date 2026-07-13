@@ -149,6 +149,8 @@ export interface CommandPaletteProps {
 	subPaletteItems?: SubPaletteItem[];
 	subPaletteTitle?: string;
 	onSubPaletteBack?: () => void;
+	/** Commands to show in a "Recently used" section on empty query. */
+	recentCommands?: CommandOption[];
 }
 
 const FOOTER_HINTS = [
@@ -165,8 +167,18 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 	subPaletteItems,
 	subPaletteTitle,
 	onSubPaletteBack,
+	recentCommands,
 }) => {
 	const isSubPaletteMode = !!subPaletteItems;
+	const [search, setSearch] = React.useState("");
+	// Clear the query on close so reopening starts fresh and shows "Recently used".
+	React.useEffect(() => {
+		if (!isOpen) {
+			setSearch("");
+		}
+	}, [isOpen]);
+	const showRecent =
+		!isSubPaletteMode && search === "" && recentCommands && recentCommands.length > 0;
 
 	const handleSelect = useCallback(
 		(command: CommandOption) => {
@@ -270,6 +282,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 				)}
 				<CommandInput
 					placeholder={isSubPaletteMode ? `Search ${subPaletteTitle?.toLowerCase()}...` : placeholder}
+					onValueChange={setSearch}
 				/>
 				<CommandList>
 					{isSubPaletteMode ? (
@@ -289,6 +302,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 									<span className="text-xs text-text-dim">Try a different search term</span>
 								</div>
 							</CommandEmpty>
+							{showRecent && (
+								<CommandGroup heading="Recently used">
+									{recentCommands.map((command) => (
+										<CommandPaletteItem
+											key={`recent-${command.id}`}
+											command={command}
+											onSelect={handleSelect}
+										/>
+									))}
+								</CommandGroup>
+							)}
 							{Array.from(groupedCommands.entries()).map(([groupName, groupCmds]) => (
 								<CommandGroup key={groupName} heading={groupName}>
 									{groupCmds.map((command) => (

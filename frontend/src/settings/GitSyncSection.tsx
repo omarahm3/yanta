@@ -49,6 +49,9 @@ interface GitSyncSectionProps {
 	gitStatusLoading?: boolean;
 	gitStatusError?: string | null;
 	lastSync?: LastSync | null;
+	settingsLoadError?: string | null;
+	isLoadingSettings?: boolean;
+	onRetryLoadSettings?: () => void;
 	onGitSyncToggle: (enabled: boolean) => void;
 	onCommitIntervalChange: (interval: number) => void;
 	onAutoPushToggle: (enabled: boolean) => void;
@@ -395,6 +398,9 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 			gitStatusLoading = false,
 			gitStatusError,
 			lastSync,
+			settingsLoadError,
+			isLoadingSettings = false,
+			onRetryLoadSettings,
 			onGitSyncToggle,
 			onCommitIntervalChange,
 			onAutoPushToggle,
@@ -441,6 +447,28 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 								title="Git not installed"
 							>
 								Git isn't in your system PATH. Install Git to enable sync.
+							</Callout>
+						)}
+
+						{settingsLoadError && (
+							<Callout
+								variant="danger"
+								icon={<AlertTriangle className="h-5 w-5" />}
+								title="Couldn't load settings"
+							>
+								<div className="flex items-center gap-3">
+									<span className="text-xs text-text-dim">{settingsLoadError}</span>
+									{onRetryLoadSettings && (
+										<Button
+											variant="secondary"
+											size="sm"
+											onClick={onRetryLoadSettings}
+											disabled={isLoadingSettings}
+										>
+											{isLoadingSettings ? "Retrying…" : "Retry"}
+										</Button>
+									)}
+								</div>
 							</Callout>
 						)}
 
