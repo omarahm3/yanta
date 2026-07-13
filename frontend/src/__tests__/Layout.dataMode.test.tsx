@@ -2,6 +2,12 @@ import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 import { DialogProvider, TitleBarProvider } from "../app/context";
 
+// Layout's project-switch toast hook needs a ToastProvider; this test mocks
+// `../shared/ui`, so stub the side-effect hook rather than wire a real provider.
+vi.mock("../app/hooks/useProjectSwitchNotification", () => ({
+	useProjectSwitchNotification: () => {},
+}));
+
 vi.mock("../config", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("../config")>();
 	return {

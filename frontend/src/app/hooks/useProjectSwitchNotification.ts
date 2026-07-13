@@ -9,8 +9,10 @@ import type { Project } from "../../shared/types";
  * (sidebar, ProjectSwitcher, Ctrl+Tab) get consistent feedback.
  */
 export const useProjectSwitchNotification = (): void => {
-	const { success, info } = useNotification();
-	const previousProjectRef = useRef<Project | undefined>(undefined);
+	const { success } = useNotification();
+	// Seed with the project already selected at mount so a remount (or the first
+	// load setting currentProject) doesn't fire a spurious "Switched to" toast.
+	const previousProjectRef = useRef<Project | undefined>(useProjectStore.getState().currentProject);
 
 	useEffect(() => {
 		const unsubscribe = useProjectStore.subscribe(
@@ -19,23 +21,19 @@ export const useProjectSwitchNotification = (): void => {
 				const previousProject = previousProjectRef.current;
 				previousProjectRef.current = currentProject;
 
-				// Skip initial mount
-				if (previousProject === undefined && currentProject === undefined) {
-					return;
-				}
-
 				// Skip if project didn't actually change
 				if (previousProject?.id === currentProject?.id) {
 					return;
 				}
 
-				// Show notification
+				// Show notification (fall back to name when alias is missing)
 				if (currentProject) {
-					success(`Switched to @${currentProject.alias}`);
+					const identifier = currentProject.alias ? `@${currentProject.alias}` : currentProject.name;
+					success(`Switched to ${identifier}`);
 				}
 			},
 		);
 
 		return unsubscribe;
-	}, [success, info]);
+	}, [success]);
 };

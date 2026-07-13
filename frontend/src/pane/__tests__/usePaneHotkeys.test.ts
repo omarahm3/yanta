@@ -40,6 +40,17 @@ vi.mock("../../hotkeys", () => ({
 	},
 }));
 
+// usePaneHotkeys shows warning toasts at pane limits; stub the toast hook so the
+// unit test doesn't require a ToastProvider.
+vi.mock("../../shared/hooks", () => ({
+	useNotification: () => ({
+		warning: vi.fn(),
+		success: vi.fn(),
+		error: vi.fn(),
+		info: vi.fn(),
+	}),
+}));
+
 import { usePaneHotkeys } from "../hooks/usePaneHotkeys";
 
 describe("usePaneHotkeys", () => {
