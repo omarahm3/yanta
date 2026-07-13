@@ -13,7 +13,7 @@ export interface HotkeyEditorProps {
 
 /**
  * Hotkey editor with enable toggle and modern key capture input.
- * Click the input, press your desired hotkey, Enter to save, Esc to cancel.
+ * Click the input, press your desired hotkey to save it, Esc to cancel.
  */
 export const HotkeyEditor: React.FC<HotkeyEditorProps> = ({
 	value,

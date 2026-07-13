@@ -184,7 +184,8 @@ export const ShortcutsSection = React.forwardRef<HTMLDivElement, ShortcutsSectio
 										<div className="mb-3">
 											<div className="text-sm font-medium text-text">Quick Capture</div>
 											<div className="text-xs text-text-dim">
-												Click the input below and press your desired hotkey. Press Enter to save, Esc to cancel.
+												Click the input below and press your desired hotkey. It saves as soon as you press a
+												valid combination; press Esc to cancel.
 											</div>
 										</div>
 										<HotkeyEditor
