@@ -50,37 +50,35 @@ export const useDocumentPersistence = ({
 	const savingChainRef = useRef<Promise<void>>(Promise.resolve());
 
 	// MRG-324: Compute blocks hash asynchronously to avoid blocking paint on every keystroke.
-	// The hash is computed once per content change (not per reference change) and cached.
+	// The hash is recomputed only when the blocks reference changes, and cached otherwise.
 	const [blocksHash, setBlocksHash] = useState(() => computeContentHash(formData.blocks));
 	const lastBlocksRef = useRef(formData.blocks);
 	const pendingHashRef = useRef<number | null>(null);
 
 	useEffect(() => {
-		// Only recompute if blocks reference changed AND content actually changed
-		if (formData.blocks === lastBlocksRef.current) {
-			return;
-		}
-		lastBlocksRef.current = formData.blocks;
-
-		// Cancel any pending hash computation
-		if (pendingHashRef.current !== null) {
-			cancelAnimationFrame(pendingHashRef.current);
-		}
-
-		// Defer hash computation to next frame to avoid blocking paint
-		pendingHashRef.current = requestAnimationFrame(() => {
-			pendingHashRef.current = null;
-			setBlocksHash(computeContentHash(formData.blocks));
-		});
-	}, [formData.blocks]);
-
-	useEffect(() => {
-		return () => {
+		const cancelPending = () => {
 			if (pendingHashRef.current !== null) {
 				cancelAnimationFrame(pendingHashRef.current);
 			}
 		};
-	}, []);
+
+		// Only recompute when the blocks reference actually changed.
+		if (formData.blocks === lastBlocksRef.current) {
+			return cancelPending;
+		}
+		lastBlocksRef.current = formData.blocks;
+
+		// Cancel any pending hash computation before scheduling a new one.
+		cancelPending();
+
+		// Defer hash computation to next frame to avoid blocking paint.
+		pendingHashRef.current = requestAnimationFrame(() => {
+			pendingHashRef.current = null;
+			setBlocksHash(computeContentHash(formData.blocks));
+		});
+
+		return cancelPending;
+	}, [formData.blocks]);
 
 	useEffect(() => {
 		latestFormRef.current = formData;

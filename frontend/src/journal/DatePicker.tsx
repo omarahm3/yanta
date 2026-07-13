@@ -86,8 +86,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 						<button
 							ref={triggerRef}
 							type="button"
-							aria-haspopup="dialog"
-							aria-expanded={undefined}
 							className="px-4 py-2 text-sm font-medium text-text-primary hover:text-accent transition-colors"
 						>
 							{formattedDate}
@@ -191,6 +189,13 @@ const Calendar: React.FC<CalendarProps> = ({
 
 	const gridRef = useRef<HTMLDivElement>(null);
 	const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+
+	// Clamp the focused day when the visible month changes; otherwise a stale day
+	// (e.g. 31 → February) leaves every cell with tabIndex={-1} and no tabbable
+	// cell, breaking keyboard navigation of the grid.
+	useEffect(() => {
+		setFocusedDay((prev) => (prev === null ? 1 : Math.min(prev, daysInMonth)));
+	}, [daysInMonth]);
 
 	const setButtonRef = useCallback((day: number, el: HTMLButtonElement | null) => {
 		if (el) {
@@ -302,6 +307,7 @@ const Calendar: React.FC<CalendarProps> = ({
 				ref={gridRef}
 				role="grid"
 				aria-label={monthName}
+				data-testid="calendar-grid"
 				className="grid grid-cols-7 gap-1"
 				onKeyDown={handleGridKeyDown}
 			>

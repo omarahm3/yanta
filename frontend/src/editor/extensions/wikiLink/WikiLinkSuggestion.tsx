@@ -1,11 +1,11 @@
-import type { BlockNoteEditor } from "@blocknote/core";
 import { SuggestionMenuController } from "@blocknote/react";
 import type React from "react";
 import { useCallback, useMemo } from "react";
 import { useSearchIndexStore } from "../../../search-index/searchIndex.store";
+import type { EditorHandle } from "../../types";
 
 interface WikiLinkSuggestionProps {
-	editor: BlockNoteEditor;
+	editor: EditorHandle;
 	editable: boolean;
 }
 
@@ -28,7 +28,9 @@ export const WikiLinkSuggestion: React.FC<WikiLinkSuggestionProps> = ({ editor, 
 
 	const getItems = useCallback(
 		async (query: string) => {
-			const lowerQuery = query.toLowerCase();
+			// The "[" trigger keeps the second "[" of the "[[" wiki-link syntax in the
+			// query, so strip any leading brackets before matching titles.
+			const lowerQuery = query.replace(/^\[+/, "").toLowerCase();
 			return suggestions
 				.filter((s) => s.title.toLowerCase().includes(lowerQuery))
 				.slice(0, 10)
@@ -47,7 +49,7 @@ export const WikiLinkSuggestion: React.FC<WikiLinkSuggestionProps> = ({ editor, 
 	return <SuggestionMenuController triggerCharacter="[" getItems={getItems} />;
 };
 
-function insertWikiLink(editor: BlockNoteEditor, title: string) {
+function insertWikiLink(editor: EditorHandle, title: string) {
 	const selection = editor.getSelection();
 	if (!selection || selection.blocks.length === 0) return;
 

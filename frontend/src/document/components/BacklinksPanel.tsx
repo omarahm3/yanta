@@ -23,10 +23,16 @@ export const BacklinksPanel: React.FC<BacklinksPanelProps> = ({
 	const backlinks = useMemo(() => {
 		if (status !== "ready" || !documentPath) return [];
 
+		// Wiki-links are inserted as `[[<title>]]` (see WikiLinkSuggestion), so match
+		// against this document's title rather than its path. Skip empty/default
+		// titles — they'd match unrelated placeholder links.
+		const currentTitle = docsById.get(documentPath)?.title;
+		if (!currentTitle || currentTitle === "Untitled") return [];
+
 		const linkingDocs: { path: string; title: string }[] = [];
 		for (const doc of docsById.values()) {
 			if (doc.id === documentPath) continue;
-			if (doc.body?.includes(`[[${documentPath}]]`)) {
+			if (doc.body?.includes(`[[${currentTitle}]]`)) {
 				linkingDocs.push({
 					path: doc.id,
 					title: doc.title || "Untitled",
@@ -55,7 +61,9 @@ export const BacklinksPanel: React.FC<BacklinksPanelProps> = ({
 				</button>
 			</div>
 			<div className="flex-1 overflow-y-auto px-2 py-2">
-				{backlinks.length === 0 ? (
+				{status !== "ready" ? (
+					<div className="text-xs text-text-dim px-2 py-4 text-center">Loading backlinks…</div>
+				) : backlinks.length === 0 ? (
 					<div className="text-xs text-text-dim px-2 py-4 text-center">
 						No documents link to this one yet.
 					</div>

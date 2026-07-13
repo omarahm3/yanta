@@ -264,9 +264,10 @@ func run() {
 	appSubMenu := appMenu.AddSubmenu("App")
 	aboutItem := appSubMenu.Add("About YANTA")
 	aboutItem.OnClick(func(ctx *application.Context) {
-		mainWindow.Show()
-		mainWindow.Restore()
-		mainWindow.Focus()
+		wailsApp.Dialog.Info().
+			SetTitle("About YANTA").
+			SetMessage(fmt.Sprintf("YANTA\n\nVersion: %s\nCommit: %s\nBuilt: %s", app.BuildVersion, app.BuildCommit, app.BuildDate)).
+			Show()
 	})
 	settingsItem := appSubMenu.Add("Settings")
 	settingsItem.OnClick(func(ctx *application.Context) {
@@ -292,28 +293,30 @@ func run() {
 		mainWindow.ExecJS("window.dispatchEvent(new CustomEvent('yanta:sync-now'))")
 	})
 
-	// Edit menu (standard cut/copy/paste/undo/redo)
+	// Edit menu — use Wails' built-in roles so Undo/Redo/Cut/Copy/Paste/Select All
+	// are wired to native (and webview) editing actions with the correct
+	// per-platform labels and accelerators, rather than inert plain items.
 	editMenu := appMenu.AddSubmenu("Edit")
-	undoItem := editMenu.Add("Undo")
-	undoItem.SetAccelerator("CmdOrCtrl+Z")
-	redoItem := editMenu.Add("Redo")
-	redoItem.SetAccelerator("CmdOrCtrl+Shift+Z")
+	editMenu.AddRole(application.Undo)
+	editMenu.AddRole(application.Redo)
 	editMenu.AddSeparator()
-	cutItem := editMenu.Add("Cut")
-	cutItem.SetAccelerator("CmdOrCtrl+X")
-	copyItem := editMenu.Add("Copy")
-	copyItem.SetAccelerator("CmdOrCtrl+C")
-	pasteItem := editMenu.Add("Paste")
-	pasteItem.SetAccelerator("CmdOrCtrl+V")
-	selectAllItem := editMenu.Add("Select All")
-	selectAllItem.SetAccelerator("CmdOrCtrl+A")
+	editMenu.AddRole(application.Cut)
+	editMenu.AddRole(application.Copy)
+	editMenu.AddRole(application.Paste)
+	editMenu.AddRole(application.SelectAll)
 
 	// View menu
 	viewMenu := appMenu.AddSubmenu("View")
 	reloadItem := viewMenu.Add("Reload")
 	reloadItem.SetAccelerator("CmdOrCtrl+R")
+	reloadItem.OnClick(func(ctx *application.Context) {
+		mainWindow.Reload()
+	})
 	fullScreenItem := viewMenu.Add("Toggle Full Screen")
 	fullScreenItem.SetAccelerator("CmdOrCtrl+Shift+F")
+	fullScreenItem.OnClick(func(ctx *application.Context) {
+		mainWindow.ToggleFullscreen()
+	})
 
 	wailsApp.Menu.SetApplicationMenu(appMenu)
 	logger.Debug("native application menu created")

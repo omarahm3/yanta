@@ -159,7 +159,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 							editable={editable}
 							items={pluginSlashMenuItems}
 						/>
-						<WikiLinkSuggestion editor={editor} editable={editable} />
+						<WikiLinkSuggestion editor={toEditorHandle(editor)} editable={editable} />
 					</BlockNoteView>
 				</div>
 				{find?.isOpen && (
