@@ -13,6 +13,7 @@ import { FirstRunOnboarding } from "./components/FirstRunOnboarding";
 import { MoveDocumentDialog } from "./components/MoveDocumentDialog";
 import { StatusBar } from "./components/StatusBar";
 import { useDashboardController } from "./hooks/useDashboardController";
+import { useDocumentSort } from "./hooks/useDocumentSort";
 
 interface DashboardProps {
 	onNavigate?: (page: PageName, state?: NavigationState) => void;
@@ -40,7 +41,7 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 	const newDocKey = formatShortcutKeyForDisplay(shortcuts.dashboard.newDocument.key);
 	const archivedKey = formatShortcutKeyForDisplay(shortcuts.dashboard.toggleArchived.key);
 	const {
-		documents,
+		documents: rawDocuments,
 		sidebarSections,
 		handleDocumentClick,
 		documentList,
@@ -57,6 +58,8 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 		handleCreateFirstNote,
 		handleStartFirstProject,
 	} = controller;
+
+	const { sort, setSort, sortedDocuments: documents } = useDocumentSort(rawDocuments);
 
 	const headerActions = (
 		<div className="flex items-center gap-2">
@@ -145,6 +148,25 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 							onExportSelectedPDF={
 								statusBar.selectedCount > 0 ? controller.handleExportSelectedPDF : undefined
 							}
+							onArchiveSelected={
+								statusBar.selectedCount > 0 && !showArchived
+									? () => void controller.handleArchiveSelectedDocuments()
+									: undefined
+							}
+							onRestoreSelected={
+								statusBar.selectedCount > 0 && showArchived
+									? () => void controller.handleRestoreSelectedDocuments()
+									: undefined
+							}
+							onMoveSelected={
+								statusBar.selectedCount > 0 ? controller.handleMoveSelectedDocuments : undefined
+							}
+							onDeleteSelected={
+								statusBar.selectedCount > 0 ? controller.handleDeleteSelectedDocuments : undefined
+							}
+							sortField={sort.field}
+							sortDirection={sort.direction}
+							onSortChange={setSort}
 						/>
 					</div>
 				)}

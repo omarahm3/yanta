@@ -1,8 +1,9 @@
-import { ChevronsUpDown } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronsUpDown, FolderInput, Trash2 } from "lucide-react";
 import type React from "react";
 import { useProjectSwitcherStore } from "../../project-switcher";
 import { Button } from "../../shared/ui/Button";
 import { StatusBarItem } from "../../shared/ui/StatusBarItem";
+import type { DocumentSortField, SortDirection } from "../hooks/useDocumentSort";
 
 interface StatusBarProps {
 	totalEntries: number;
@@ -12,6 +13,13 @@ interface StatusBarProps {
 	onClearSelection?: () => void;
 	onExportSelectedMarkdown?: () => void;
 	onExportSelectedPDF?: () => void;
+	onArchiveSelected?: () => void;
+	onRestoreSelected?: () => void;
+	onMoveSelected?: () => void;
+	onDeleteSelected?: () => void;
+	sortField?: DocumentSortField;
+	sortDirection?: SortDirection;
+	onSortChange?: (field: DocumentSortField) => void;
 }
 
 export const StatusBar: React.FC<StatusBarProps> = ({
@@ -22,6 +30,13 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 	onClearSelection,
 	onExportSelectedMarkdown,
 	onExportSelectedPDF,
+	onArchiveSelected,
+	onRestoreSelected,
+	onMoveSelected,
+	onDeleteSelected,
+	sortField = "updated",
+	sortDirection = "desc",
+	onSortChange,
 }) => {
 	const openProjectSwitcher = useProjectSwitcherStore((s) => s.open);
 	const hasSelection = selectedCount > 0;
@@ -77,6 +92,72 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 							Export PDF
 						</Button>
 					)}
+					{onArchiveSelected && !showArchived && (
+						<Button
+							variant="secondary"
+							size="sm"
+							onClick={onArchiveSelected}
+							className="px-2 py-1 text-xs"
+						>
+							<Archive className="h-3 w-3 mr-1" aria-hidden="true" />
+							Archive
+						</Button>
+					)}
+					{onRestoreSelected && showArchived && (
+						<Button
+							variant="secondary"
+							size="sm"
+							onClick={onRestoreSelected}
+							className="px-2 py-1 text-xs"
+						>
+							<ArchiveRestore className="h-3 w-3 mr-1" aria-hidden="true" />
+							Restore
+						</Button>
+					)}
+					{onMoveSelected && (
+						<Button variant="secondary" size="sm" onClick={onMoveSelected} className="px-2 py-1 text-xs">
+							<FolderInput className="h-3 w-3 mr-1" aria-hidden="true" />
+							Move
+						</Button>
+					)}
+					{onDeleteSelected && (
+						<Button
+							variant="destructive"
+							size="sm"
+							onClick={onDeleteSelected}
+							className="px-2 py-1 text-xs"
+						>
+							<Trash2 className="h-3 w-3 mr-1" aria-hidden="true" />
+							Delete
+						</Button>
+					)}
+				</div>
+			)}
+			{onSortChange && (
+				<div className="flex items-center gap-1">
+					<span className="text-text-dim mr-1">Sort:</span>
+					{(["updated", "created", "title"] as DocumentSortField[]).map((field) => {
+						const label = field === "updated" ? "Updated" : field === "created" ? "Created" : "Title";
+						return (
+							<button
+								key={field}
+								type="button"
+								onClick={() => onSortChange(field)}
+								aria-label={`Sort by ${label}${sortField === field ? ` (${sortDirection === "asc" ? "ascending" : "descending"})` : ""}`}
+								aria-pressed={sortField === field}
+								className={`px-1.5 py-0.5 rounded text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+									sortField === field
+										? "bg-accent/15 text-text-bright font-medium"
+										: "text-text-dim hover:text-text hover:bg-accent/8"
+								}`}
+							>
+								{label}
+								{sortField === field && (
+									<span className="ml-0.5">{sortDirection === "asc" ? "\u2191" : "\u2193"}</span>
+								)}
+							</button>
+						);
+					})}
 				</div>
 			)}
 			<button

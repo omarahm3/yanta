@@ -22,6 +22,67 @@ import { RenameProjectDialog } from "./components/RenameProjectDialog";
 import { useProjectContext } from "./context";
 import { useProjectManageStore } from "./projectManage.store";
 
+type ProjectSortField = "name" | "alias" | "entryCount" | "lastEntry";
+type SortDir = "asc" | "desc";
+
+const PROJECT_SORT_KEY = "yanta:projectSort";
+
+function readProjectSort(): { field: ProjectSortField; direction: SortDir } {
+	try {
+		if (typeof window === "undefined") return { field: "name", direction: "asc" };
+		const raw = window.localStorage.getItem(PROJECT_SORT_KEY);
+		if (!raw) return { field: "name", direction: "asc" };
+		const parsed = JSON.parse(raw);
+		if (
+			parsed &&
+			["name", "alias", "entryCount", "lastEntry"].includes(parsed.field) &&
+			(parsed.direction === "asc" || parsed.direction === "desc")
+		) {
+			return parsed;
+		}
+	} catch {
+		// ignore
+	}
+	return { field: "name", direction: "asc" };
+}
+
+function writeProjectSort(config: { field: ProjectSortField; direction: SortDir }): void {
+	try {
+		if (typeof window === "undefined") return;
+		window.localStorage.setItem(PROJECT_SORT_KEY, JSON.stringify(config));
+	} catch {
+		// ignore
+	}
+}
+
+/**
+ * Sorts the (already-extended) project rows. Shared by the active and archived
+ * lists so their ordering rules can never drift apart. The `lastEntry`
+ * comparator returns 0 when both entries are missing so it stays a valid strict
+ * weak ordering (returning 1 both ways would violate the sort contract).
+ */
+export function sortExtendedProjects<
+	T extends { name: string; alias: string; entryCount: number; lastEntry: unknown },
+>(list: T[], { field, direction }: { field: ProjectSortField; direction: SortDir }): T[] {
+	const mult = direction === "asc" ? 1 : -1;
+	return [...list].sort((a, b) => {
+		if (field === "name") return mult * a.name.localeCompare(b.name);
+		if (field === "alias") return mult * a.alias.localeCompare(b.alias);
+		if (field === "entryCount") return mult * (a.entryCount - b.entryCount);
+		if (field === "lastEntry") {
+			const aRaw = String(a.lastEntry).replace(/\s+/g, " ").trim();
+			const bRaw = String(b.lastEntry).replace(/\s+/g, " ").trim();
+			const aMissing = !aRaw || aRaw === "-";
+			const bMissing = !bRaw || bRaw === "-";
+			if (aMissing && bMissing) return 0;
+			if (aMissing) return 1;
+			if (bMissing) return -1;
+			return mult * (new Date(aRaw).getTime() - new Date(bRaw).getTime());
+		}
+		return 0;
+	});
+}
+
 /** Alias + name is all the row actions and rename dialog need. */
 interface ProjectActionTarget {
 	alias: string;
@@ -67,6 +128,7 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 	});
 	const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
 	const [renameTarget, setRenameTarget] = useState<ProjectActionTarget | null>(null);
+	const [projectSort, setProjectSort] = useState(readProjectSort);
 	const { success, error: notifyError } = useNotification();
 	const projectsRef = useRef(projects);
 	const archivedProjectsRef = useRef(archivedProjects);
@@ -107,33 +169,59 @@ const ProjectsComponent: React.FC<ProjectsProps> = ({ onNavigate, onRegisterTogg
 		}
 	}, [projects, selectedProjectId]);
 
-	const activeProjectDetails = useMemo(
-		() =>
-			projects.map((p) => ({
-				...extendProject(p, false),
-				entryCount: documentCounts[p.id] || 0,
-				lastEntry: lastDocumentDates[p.id] || "-",
-			})),
-		[projects, documentCounts, lastDocumentDates],
-	);
+	const activeProjectDetails = useMemo(() => {
+		const extended = projects.map((p) => ({
+			...extendProject(p, false),
+			entryCount: documentCounts[p.id] || 0,
+			lastEntry: lastDocumentDates[p.id] || "-",
+		}));
+		return sortExtendedProjects(extended, projectSort);
+	}, [projects, documentCounts, lastDocumentDates, projectSort]);
 
-	const archivedProjectDetails = useMemo(
-		() =>
-			archivedProjects.map((p) => ({
-				...extendProject(p, true),
-				entryCount: documentCounts[p.id] || 0,
-				lastEntry: lastDocumentDates[p.id] || "-",
-			})),
-		[archivedProjects, documentCounts, lastDocumentDates],
-	);
+	const archivedProjectDetails = useMemo(() => {
+		const extended = archivedProjects.map((p) => ({
+			...extendProject(p, true),
+			entryCount: documentCounts[p.id] || 0,
+			lastEntry: lastDocumentDates[p.id] || "-",
+		}));
+		return sortExtendedProjects(extended, projectSort);
+	}, [archivedProjects, documentCounts, lastDocumentDates, projectSort]);
+
+	const handleProjectSort = useCallback((field: ProjectSortField) => {
+		setProjectSort((prev) => {
+			const next =
+				prev.field === field
+					? { field, direction: (prev.direction === "asc" ? "desc" : "asc") as SortDir }
+					: { field, direction: (field === "name" || field === "alias" ? "asc" : "desc") as SortDir };
+			writeProjectSort(next);
+			return next;
+		});
+	}, []);
+
+	const sortColumn = (field: ProjectSortField): Partial<TableColumn> => ({
+		sortable: true,
+		sortDirection: projectSort.field === field ? projectSort.direction : null,
+		onSort: () => handleProjectSort(field),
+	});
 
 	const tableColumns: TableColumn[] = [
 		{ key: "number", label: "", width: "30px" },
-		{ key: "name", label: "NAME", width: "minmax(100px, 2fr)" },
-		{ key: "alias", label: "ALIAS", width: "minmax(80px, 1fr)" },
+		{ key: "name", label: "NAME", width: "minmax(100px, 2fr)", ...sortColumn("name") },
+		{ key: "alias", label: "ALIAS", width: "minmax(80px, 1fr)", ...sortColumn("alias") },
 		{ key: "type", label: "TYPE", width: "minmax(80px, 0.8fr)" },
-		{ key: "entryCount", label: "ENTRIES", width: "minmax(60px, 0.5fr)", align: "right" },
-		{ key: "lastEntry", label: "LAST ENTRY", width: "minmax(120px, 1.2fr)" },
+		{
+			key: "entryCount",
+			label: "ENTRIES",
+			width: "minmax(60px, 0.5fr)",
+			align: "right",
+			...sortColumn("entryCount"),
+		},
+		{
+			key: "lastEntry",
+			label: "LAST ENTRY",
+			width: "minmax(120px, 1.2fr)",
+			...sortColumn("lastEntry"),
+		},
 		{ key: "status", label: "STATUS", width: "minmax(5rem, 0.8fr)" },
 		{ key: "actions", label: "", width: "minmax(6rem, auto)", align: "right" },
 	];
