@@ -4,6 +4,7 @@ import {
 	selectCanGoForward,
 	useNavHistoryStore,
 } from "@/shared/stores/navHistory.store";
+import { useSyncStore } from "@/shared/stores/sync.store";
 import { usePaneLayout } from "../pane";
 import type { NavigationState, PageName } from "../shared/types";
 import { useNavGuard } from "./hooks/useNavGuard";
@@ -99,6 +100,30 @@ export function useAppNavigation(): UseAppNavigationReturn {
 			toggleSidebarRef.current();
 		}
 	}, []);
+
+	// The native application menu (main.go) dispatches these window events; wire
+	// them to the in-app navigation and sync actions so the Settings and Sync Now
+	// menu items actually do something.
+	React.useEffect(() => {
+		if (typeof window === "undefined") {
+			return;
+		}
+		const handleNavigate = (event: Event) => {
+			const detail = (event as CustomEvent<{ page?: PageName }>).detail;
+			if (detail?.page) {
+				onNavigate(detail.page);
+			}
+		};
+		const handleSyncNow = () => {
+			void useSyncStore.getState().syncNow();
+		};
+		window.addEventListener("yanta:navigate", handleNavigate);
+		window.addEventListener("yanta:sync-now", handleSyncNow);
+		return () => {
+			window.removeEventListener("yanta:navigate", handleNavigate);
+			window.removeEventListener("yanta:sync-now", handleSyncNow);
+		};
+	}, [onNavigate]);
 
 	const canGoBack = useNavHistoryStore(selectCanGoBack);
 	const canGoForward = useNavHistoryStore(selectCanGoForward);

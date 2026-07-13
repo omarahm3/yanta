@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAutoSave } from "../../shared/hooks";
 import { DocumentServiceWrapper } from "../../shared/services/DocumentService";
 import type { BlockNoteBlock } from "../../shared/types/Document";
@@ -49,13 +49,36 @@ export const useDocumentPersistence = ({
 	const currentDocumentPathRef = useRef(documentPath);
 	const savingChainRef = useRef<Promise<void>>(Promise.resolve());
 
-	// Compute blocks hash in layout effect to avoid formData.blocks in useMemo deps
-	// (reference equality causes re-computation on every render; hash is content-based)
+	// MRG-324: Compute blocks hash asynchronously to avoid blocking paint on every keystroke.
+	// The hash is recomputed only when the blocks reference changes, and cached otherwise.
 	const [blocksHash, setBlocksHash] = useState(() => computeContentHash(formData.blocks));
+	const lastBlocksRef = useRef(formData.blocks);
+	const pendingHashRef = useRef<number | null>(null);
 
-	useLayoutEffect(() => {
-		setBlocksHash(computeContentHash(formData.blocks));
-	}, [formData]);
+	useEffect(() => {
+		const cancelPending = () => {
+			if (pendingHashRef.current !== null) {
+				cancelAnimationFrame(pendingHashRef.current);
+			}
+		};
+
+		// Only recompute when the blocks reference actually changed.
+		if (formData.blocks === lastBlocksRef.current) {
+			return cancelPending;
+		}
+		lastBlocksRef.current = formData.blocks;
+
+		// Cancel any pending hash computation before scheduling a new one.
+		cancelPending();
+
+		// Defer hash computation to next frame to avoid blocking paint.
+		pendingHashRef.current = requestAnimationFrame(() => {
+			pendingHashRef.current = null;
+			setBlocksHash(computeContentHash(formData.blocks));
+		});
+
+		return cancelPending;
+	}, [formData.blocks]);
 
 	useEffect(() => {
 		latestFormRef.current = formData;

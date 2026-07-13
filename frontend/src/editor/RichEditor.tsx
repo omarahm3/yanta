@@ -12,6 +12,7 @@ import "../styles/blocknote-dark.css";
 import "../styles/blocknote-scale.css";
 import type { EditorSlashMenuItemContribution } from "./extensions/registry/editorExtensionRegistry";
 import "./extensions/rtl/rtl.css";
+import { WikiLinkSuggestion } from "./extensions/wikiLink/WikiLinkSuggestion";
 import { type DocumentFindControls, FindBar } from "./find";
 import { useRichEditorInner } from "./hooks/useRichEditorInner";
 import { portalledShadCNComponents } from "./portalledShadCN";
@@ -158,6 +159,7 @@ const EditorInner = React.forwardRef<HTMLDivElement, EditorInnerProps>(
 							editable={editable}
 							items={pluginSlashMenuItems}
 						/>
+						<WikiLinkSuggestion editor={toEditorHandle(editor)} editable={editable} />
 					</BlockNoteView>
 				</div>
 				{find?.isOpen && (
