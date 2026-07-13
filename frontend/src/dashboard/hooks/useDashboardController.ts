@@ -306,7 +306,11 @@ export function useDashboardController({
 										// best-effort undo
 									}
 								}
-								await reloadDocuments();
+								try {
+									await reloadDocuments();
+								} catch {
+									// best-effort reload
+								}
 							})();
 						},
 					},

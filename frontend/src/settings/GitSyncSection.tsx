@@ -50,6 +50,7 @@ interface GitSyncSectionProps {
 	gitStatusError?: string | null;
 	lastSync?: LastSync | null;
 	settingsLoadError?: string | null;
+	isLoadingSettings?: boolean;
 	onRetryLoadSettings?: () => void;
 	onGitSyncToggle: (enabled: boolean) => void;
 	onCommitIntervalChange: (interval: number) => void;
@@ -398,6 +399,7 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 			gitStatusError,
 			lastSync,
 			settingsLoadError,
+			isLoadingSettings = false,
 			onRetryLoadSettings,
 			onGitSyncToggle,
 			onCommitIntervalChange,
@@ -457,8 +459,13 @@ export const GitSyncSection = React.forwardRef<HTMLDivElement, GitSyncSectionPro
 								<div className="flex items-center gap-3">
 									<span className="text-xs text-text-dim">{settingsLoadError}</span>
 									{onRetryLoadSettings && (
-										<Button variant="secondary" size="sm" onClick={onRetryLoadSettings}>
-											Retry
+										<Button
+											variant="secondary"
+											size="sm"
+											onClick={onRetryLoadSettings}
+											disabled={isLoadingSettings}
+										>
+											{isLoadingSettings ? "Retrying…" : "Retry"}
 										</Button>
 									)}
 								</div>

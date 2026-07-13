@@ -69,7 +69,11 @@ export function registerDocumentCommands(
 						action: {
 							label: "Undo",
 							onClick: () => {
-								Restore(archivedPath).catch(() => {});
+								// Reopen the restored document so the UI reflects the undo —
+								// the palette has no handle to refresh the dashboard list.
+								Restore(archivedPath)
+									.then(() => onNavigate("document", { documentPath: archivedPath }))
+									.catch(() => {});
 							},
 						},
 					});

@@ -1,7 +1,7 @@
-import type { ToastOptions } from "../../shared/ui/Toast";
 import type { Project } from "../../shared/types";
 import type { NavigationState, PageName } from "../../shared/types/navigation";
 import type { CommandOption } from "../../shared/ui";
+import type { ToastOptions } from "../../shared/ui/Toast";
 
 /**
  * Context passed to domain command registration functions.

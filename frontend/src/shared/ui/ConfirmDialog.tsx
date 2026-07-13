@@ -77,13 +77,16 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 	};
 
 	const handleContentKeyDown = (e: React.KeyboardEvent) => {
-		if (e.key === "Enter" && !inputPrompt) {
-			e.preventDefault();
-			if (danger) {
-				onCancel();
-			} else {
-				handleConfirm();
-			}
+		if (e.key !== "Enter" || inputPrompt) return;
+		// Let focused interactive controls handle Enter themselves — otherwise
+		// pressing Enter on Cancel/checkbox would be hijacked by the default action.
+		const target = e.target as HTMLElement;
+		if (target.closest("button, [role='checkbox'], input, textarea, select")) return;
+		e.preventDefault();
+		if (danger) {
+			onCancel();
+		} else {
+			handleConfirm();
 		}
 	};
 

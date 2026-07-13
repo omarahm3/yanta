@@ -422,6 +422,7 @@ const SettingsComponent: React.FC<SettingsProps> = ({ onNavigate, onRegisterTogg
 									gitStatusError={gitStatusError}
 									lastSync={controller.lastSync}
 									settingsLoadError={controller.settingsLoadError}
+									isLoadingSettings={controller.isLoadingSettings}
 									onRetryLoadSettings={controller.retryLoadSettings}
 									onGitSyncToggle={controller.handlers.handleGitSyncToggle}
 									onCommitIntervalChange={controller.handlers.handleCommitIntervalChange}

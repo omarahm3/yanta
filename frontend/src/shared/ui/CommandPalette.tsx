@@ -171,6 +171,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 }) => {
 	const isSubPaletteMode = !!subPaletteItems;
 	const [search, setSearch] = React.useState("");
+	// Clear the query on close so reopening starts fresh and shows "Recently used".
+	React.useEffect(() => {
+		if (!isOpen) {
+			setSearch("");
+		}
+	}, [isOpen]);
 	const showRecent =
 		!isSubPaletteMode && search === "" && recentCommands && recentCommands.length > 0;
 
