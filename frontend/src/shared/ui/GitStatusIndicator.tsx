@@ -90,6 +90,7 @@ export const GitStatusIndicator: React.FC<GitStatusIndicatorProps> = ({
 				onClick={onClick}
 				className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${getStatusColor()} hover:bg-glass-bg/30 transition-colors`}
 				title={getTooltip()}
+				aria-label={`Git: ${getStatusText()}`}
 			>
 				{getStatusIcon()}
 				{(isAhead || isBehind) && (

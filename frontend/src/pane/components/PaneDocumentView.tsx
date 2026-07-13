@@ -18,6 +18,7 @@ export interface PaneDocumentViewProps {
 	paneId: string;
 	documentPath: string;
 	onNavigate?: (page: PageName, state?: NavigationState) => void;
+	onOpenPicker?: () => void;
 	suppressEscape?: boolean;
 }
 
@@ -27,7 +28,7 @@ export interface PaneDocumentViewProps {
  * Each instance is independent with its own editor, auto-save, and scroll position.
  */
 export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
-	({ paneId, documentPath, onNavigate, suppressEscape }) => {
+	({ paneId, documentPath, onNavigate, onOpenPicker, suppressEscape }) => {
 		const controller = useDocumentController({
 			documentPath,
 			onNavigate,
@@ -134,6 +135,18 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 						<div className="text-sm text-red font-medium">Document Not Found</div>
 						<div className="text-text-dim text-xs text-center">
 							Document could not be loaded. It may have been deleted.
+						</div>
+						<div className="flex gap-2">
+							{onOpenPicker && (
+								<Button variant="primary" size="sm" onClick={onOpenPicker}>
+									Open a document
+								</Button>
+							)}
+							{onNavigate && (
+								<Button variant="ghost" size="sm" onClick={() => onNavigate("dashboard")}>
+									Go to dashboard
+								</Button>
+							)}
 						</div>
 					</div>
 				</div>

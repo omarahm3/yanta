@@ -64,6 +64,12 @@ describe("GitStatusIndicator", () => {
 		expect(container.querySelector("button")).toBeInTheDocument();
 	});
 
+	it("has aria-label on compact variant", () => {
+		const { container } = render(<GitStatusIndicator status={baseStatus} compact />);
+		const button = container.querySelector("button");
+		expect(button).toHaveAttribute("aria-label", "Git: Clean");
+	});
+
 	it("applies green color for clean state", () => {
 		const { container } = render(<GitStatusIndicator status={baseStatus} />);
 		const button = container.querySelector("button");

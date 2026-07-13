@@ -126,6 +126,7 @@ export const PaneContent: React.FC<PaneContentProps> = ({ paneId, documentPath }
 							paneId={paneId}
 							documentPath={documentPath}
 							onNavigate={handlePaneNavigate}
+							onOpenPicker={() => setShowPicker(true)}
 							suppressEscape={showPicker}
 						/>
 					</div>

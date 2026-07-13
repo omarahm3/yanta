@@ -93,21 +93,6 @@
 	align-items: center;
 }
 
-.command-input {
-	flex: 1;
-	background: transparent;
-	border: none;
-	padding: 12px 16px;
-	color: var(--color-text-bright);
-	font-family: inherit;
-	font-size: 14px;
-	outline: none;
-}
-
-.command-input::placeholder {
-	color: var(--color-text-dim);
-}
-
 /* Content Area */
 .content {
 	flex: 1;
@@ -220,50 +205,6 @@
 
 .command-palette.active {
 	display: block;
-}
-
-.palette-input {
-	width: 100%;
-	padding: 12px 16px;
-	background: var(--color-bg);
-	border: none;
-	border-bottom: 1px solid var(--color-border);
-	color: var(--color-text-bright);
-	font-family: inherit;
-	font-size: 14px;
-	outline: none;
-}
-
-.palette-options {
-	max-height: 350px;
-	overflow-y: auto;
-}
-
-.palette-option {
-	padding: 8px 16px;
-	cursor: pointer;
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
-
-.palette-option:hover,
-.palette-option.selected {
-	background: var(--color-border);
-}
-
-.palette-icon {
-	color: var(--color-text-dim);
-	width: 20px;
-}
-
-.palette-text {
-	flex: 1;
-}
-
-.palette-hint {
-	color: var(--color-text-dim);
-	font-size: 11px;
 }
 
 /* Scrollbar */

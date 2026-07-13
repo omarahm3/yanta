@@ -29,6 +29,7 @@ import {
 } from "../shared/ui";
 import { cn } from "../shared/utils/cn";
 import { useTitleBarContext } from "./context";
+import { useProjectSwitchNotification } from "./hooks/useProjectSwitchNotification";
 
 function formatLastSync(timestamp: number): string {
 	if (!timestamp || !Number.isFinite(timestamp)) return "never";
@@ -125,6 +126,7 @@ export const Layout: React.FC<LayoutProps> = ({
 	const { sidebarVisible, toggleSidebar, isLoading: sidebarLoading } = useSidebarSetting();
 	const { showFooterHints, isLoading: footerHintsLoading } = useFooterHintsSetting();
 	const { currentProject } = useProjectContext();
+	useProjectSwitchNotification();
 	const { heightInRem } = useTitleBarContext();
 	const { hints: footerHints } = useFooterHints({ currentPage, hasSelection, documentCount });
 	const { isBelowLg } = useResponsive();

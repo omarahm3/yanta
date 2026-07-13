@@ -77,6 +77,12 @@ vi.mock("../hotkeys", () => ({
 	createHotkeyMatcher: vi.fn(),
 }));
 
+// Layout's project-switch toast hook needs a ToastProvider; this test mocks
+// `../shared/ui`, so stub the side-effect hook rather than wire a real provider.
+vi.mock("../app/hooks/useProjectSwitchNotification", () => ({
+	useProjectSwitchNotification: () => {},
+}));
+
 import type React from "react";
 import { Layout } from "../app";
 

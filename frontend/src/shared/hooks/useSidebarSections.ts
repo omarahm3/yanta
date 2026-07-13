@@ -7,7 +7,6 @@ import { useRecentDocumentsStore } from "../stores/recentDocuments.store";
 import { useSidebarStateStore } from "../stores/sidebarState.store";
 import type { Filter, NavigationState, PageName } from "../types";
 import type { SidebarSection } from "../ui";
-import { useNotification } from "./useNotification";
 
 const MAX_RECENTS_IN_SIDEBAR = 5;
 const NAV_ICON_CLASS = "h-[1.125rem] w-[1.125rem]";
@@ -31,7 +30,6 @@ export const useSidebarSections = ({
 }: UseSidebarSectionsProps): SidebarSection[] => {
 	const { currentProject, projects, archivedProjects, setCurrentProject } = useProjectContext();
 	const { getCount } = useDocumentCount();
-	const { success } = useNotification();
 	const sidebarSources = useSidebarRegistryStore((s) => s.sources);
 	const pluginSections = useMemo(
 		() => useSidebarRegistryStore.getState().getAllSections(),
@@ -48,10 +46,9 @@ export const useSidebarSections = ({
 			const project = allProjects.find((p) => p.id === projectId);
 			if (project) {
 				setCurrentProject(project);
-				success(`Switched to ${project.name}`);
 			}
 		},
-		[projects, archivedProjects, setCurrentProject, success],
+		[projects, archivedProjects, setCurrentProject],
 	);
 
 	return useMemo(() => {
