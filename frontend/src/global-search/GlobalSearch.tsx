@@ -49,8 +49,19 @@ function GlobalSearchInner({
 	onClose: () => void;
 }) {
 	const { projects, setCurrentProject } = useProjectContext();
-	const { query, setQuery, items, isLoading, error, hasQuery, isUpdating, isError, rebuild } =
-		useDocumentSearch();
+	const {
+		query,
+		setQuery,
+		items,
+		isLoading,
+		error,
+		hasQuery,
+		isUpdating,
+		isError,
+		rebuild,
+		recentError,
+		retryRecent,
+	} = useDocumentSearch();
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const listRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -188,6 +199,8 @@ function GlobalSearchInner({
 								error={error}
 								isError={isError}
 								onRebuild={rebuild}
+								recentError={recentError}
+								onRetryRecent={retryRecent}
 							/>
 						) : (
 							items.map((item, index) => (
@@ -294,6 +307,8 @@ function ListEmpty({
 	isLoading,
 	query,
 	error,
+	recentError,
+	onRetryRecent,
 }: {
 	hasQuery: boolean;
 	isLoading: boolean;
@@ -301,6 +316,8 @@ function ListEmpty({
 	error: string | null;
 	isError: boolean;
 	onRebuild: () => void;
+	recentError: string | null;
+	onRetryRecent: () => void;
 }) {
 	if (isError) {
 		return (
@@ -312,6 +329,20 @@ function ListEmpty({
 					className="rounded-md bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/20 transition-colors"
 				>
 					Rebuild Index
+				</button>
+			</div>
+		);
+	}
+	if (recentError && !hasQuery) {
+		return (
+			<div className="flex flex-col items-center gap-3 px-3 py-12 text-center text-sm">
+				<span className="text-red">{recentError}</span>
+				<button
+					type="button"
+					onClick={onRetryRecent}
+					className="rounded-md bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/20 transition-colors"
+				>
+					Retry
 				</button>
 			</div>
 		);

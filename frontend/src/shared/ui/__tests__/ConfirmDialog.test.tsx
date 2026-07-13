@@ -1,7 +1,21 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { DialogProvider } from "../../../app/context";
 import { ConfirmDialog } from "../ConfirmDialog";
+
+const renderDialog = (props: Partial<React.ComponentProps<typeof ConfirmDialog>> = {}) =>
+	render(
+		<DialogProvider>
+			<ConfirmDialog
+				isOpen={true}
+				title="Test"
+				message="Test message"
+				onConfirm={() => {}}
+				onCancel={() => {}}
+				{...props}
+			/>
+		</DialogProvider>,
+	);
 
 describe("ConfirmDialog", () => {
 	it("renders nothing when closed", () => {
@@ -374,5 +388,67 @@ describe("ConfirmDialog", () => {
 
 		fireEvent.click(checkbox);
 		expect(checkbox).toHaveAttribute("aria-checked", "true");
+	});
+
+	it("focuses Confirm button for safe dialogs and Cancel for dangerous ones", async () => {
+		const { rerender } = renderDialog({ danger: false });
+		await waitFor(() => {
+			expect(document.activeElement).toBe(screen.getByText("Confirm"));
+		});
+
+		rerender(
+			<DialogProvider>
+				<ConfirmDialog
+					isOpen={true}
+					title="Test"
+					message="Test message"
+					onConfirm={() => {}}
+					onCancel={() => {}}
+					danger={true}
+				/>
+			</DialogProvider>,
+		);
+		await waitFor(() => {
+			expect(document.activeElement).toBe(screen.getByText("Cancel"));
+		});
+	});
+
+	it("Enter triggers Confirm for safe dialogs and Cancel for dangerous ones", () => {
+		const onConfirm = vi.fn();
+		const onCancel = vi.fn();
+
+		const { rerender } = renderDialog({
+			danger: false,
+			onConfirm,
+			onCancel,
+		});
+
+		fireEvent.keyDown(screen.getByText("Test message").closest('[role="dialog"]')!, {
+			key: "Enter",
+		});
+		expect(onConfirm).toHaveBeenCalledTimes(1);
+		expect(onCancel).not.toHaveBeenCalled();
+
+		onConfirm.mockClear();
+		onCancel.mockClear();
+
+		rerender(
+			<DialogProvider>
+				<ConfirmDialog
+					isOpen={true}
+					title="Test"
+					message="Danger!"
+					onConfirm={onConfirm}
+					onCancel={onCancel}
+					danger={true}
+				/>
+			</DialogProvider>,
+		);
+
+		fireEvent.keyDown(screen.getByText("Danger!").closest('[role="dialog"]')!, {
+			key: "Enter",
+		});
+		expect(onCancel).toHaveBeenCalledTimes(1);
+		expect(onConfirm).not.toHaveBeenCalled();
 	});
 });

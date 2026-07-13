@@ -60,6 +60,33 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 		}
 	}, [isOpen, openDialog, closeDialog]);
 
+	React.useEffect(() => {
+		if (!isOpen || inputPrompt) return;
+		const id = requestAnimationFrame(() => {
+			const target = danger ? cancelButtonRef.current : confirmButtonRef.current;
+			target?.focus();
+		});
+		return () => cancelAnimationFrame(id);
+	}, [isOpen, danger, inputPrompt]);
+
+	const handleOpenAutoFocus = (e: Event) => {
+		if (inputPrompt) return;
+		e.preventDefault();
+		const target = danger ? cancelButtonRef.current : confirmButtonRef.current;
+		target?.focus();
+	};
+
+	const handleContentKeyDown = (e: React.KeyboardEvent) => {
+		if (e.key === "Enter" && !inputPrompt) {
+			e.preventDefault();
+			if (danger) {
+				onCancel();
+			} else {
+				handleConfirm();
+			}
+		}
+	};
+
 	const isInputValid = !expectedInput || inputValue === expectedInput;
 	const isCheckboxValid = !showCheckbox || isChecked;
 	const canConfirm = isInputValid && isCheckboxValid;
@@ -78,7 +105,12 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
 	return (
 		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
-			<DialogContent className="sm:max-w-md" showCloseButton={false}>
+			<DialogContent
+				className="sm:max-w-md"
+				showCloseButton={false}
+				onKeyDown={handleContentKeyDown}
+				onOpenAutoFocus={handleOpenAutoFocus}
+			>
 				<DialogHeader>
 					<DialogTitle>{title}</DialogTitle>
 				</DialogHeader>

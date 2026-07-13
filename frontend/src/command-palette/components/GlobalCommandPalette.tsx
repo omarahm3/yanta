@@ -8,7 +8,7 @@ import {
 export type GlobalCommandPaletteProps = UseGlobalCommandPaletteProps;
 
 export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = (props) => {
-	const { isOpen, handleClose, handleCommandSelect, sortedCommands } =
+	const { isOpen, handleClose, handleCommandSelect, sortedCommands, recentCommands } =
 		useGlobalCommandPalette(props);
 
 	return (
@@ -17,6 +17,7 @@ export const GlobalCommandPalette: React.FC<GlobalCommandPaletteProps> = (props)
 			onClose={handleClose}
 			onCommandSelect={handleCommandSelect}
 			commands={sortedCommands}
+			recentCommands={recentCommands}
 			placeholder="Type a command or search documents..."
 		/>
 	);

@@ -17,6 +17,10 @@ export interface UseDocumentSearchReturn {
 	isError: boolean;
 	/** Trigger a rebuild of the search index. */
 	rebuild: () => Promise<void>;
+	/** Retry loading recent documents (for the empty-query state). */
+	retryRecent: () => void;
+	/** Recent-documents load failed — surface inline. */
+	recentError: string | null;
 }
 
 /**
@@ -29,6 +33,8 @@ export interface UseDocumentSearchReturn {
 export function useDocumentSearch(): UseDocumentSearchReturn {
 	const [query, setQuery] = useState("");
 	const [recentItems, setRecentItems] = useState<FinderItem[]>([]);
+	const [recentError, setRecentError] = useState<string | null>(null);
+	const [recentRetryKey, setRecentRetryKey] = useState(0);
 
 	const status = useSearchIndexStore((s) => s.status);
 	const search = useSearchIndexStore((s) => s.search);
@@ -37,10 +43,9 @@ export function useDocumentSearch(): UseDocumentSearchReturn {
 	const trimmed = query.trim();
 	const hasQuery = trimmed.length > 0;
 
-	// Load recent documents once for the empty-query state (a separate backend
-	// call so it also lists documents not opened this session).
 	useEffect(() => {
 		let cancelled = false;
+		setRecentError(null);
 		void (async () => {
 			try {
 				const docs = await listRecentDocuments(50);
@@ -58,14 +63,15 @@ export function useDocumentSearch(): UseDocumentSearchReturn {
 						isRecent: true,
 					})),
 				);
-			} catch {
-				// Recent list is best-effort; typed search still works independently.
+			} catch (err) {
+				if (cancelled) return;
+				setRecentError(err instanceof Error ? err.message : "Failed to load recent documents");
 			}
 		})();
 		return () => {
 			cancelled = true;
 		};
-	}, []);
+	}, [recentRetryKey]);
 
 	// Synchronous in-memory search. `status` is a dependency so results fill in
 	// automatically once the index finishes (re)building — no keystroke needed.
@@ -82,6 +88,7 @@ export function useDocumentSearch(): UseDocumentSearchReturn {
 
 	const stableSetQuery = useCallback((next: string) => setQuery(next), []);
 	const stableRebuild = useCallback(() => build(), [build]);
+	const retryRecent = useCallback(() => setRecentRetryKey((k) => k + 1), []);
 
 	return {
 		query,
@@ -93,5 +100,7 @@ export function useDocumentSearch(): UseDocumentSearchReturn {
 		isUpdating,
 		isError,
 		rebuild: stableRebuild,
+		retryRecent,
+		recentError,
 	};
 }

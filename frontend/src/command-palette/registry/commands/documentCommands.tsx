@@ -1,6 +1,10 @@
 import { Archive, ArchiveRestore, FileDown, Save, Search } from "lucide-react";
 import { ExportDocumentRequest } from "../../../../bindings/yanta/internal/document/models";
-import { ExportDocument, SoftDelete } from "../../../../bindings/yanta/internal/document/service";
+import {
+	ExportDocument,
+	Restore,
+	SoftDelete,
+} from "../../../../bindings/yanta/internal/document/service";
 import { ExportRequest } from "../../../../bindings/yanta/internal/export";
 import { ExportToPDF } from "../../../../bindings/yanta/internal/export/service";
 import { OpenDirectoryDialog } from "../../../../bindings/yanta/internal/system/service";
@@ -59,10 +63,16 @@ export function registerDocumentCommands(
 					return;
 				}
 				try {
-					await SoftDelete(currentDocument.path);
-					notification.success("Document archived");
-					// The editor is still showing the now-archived document; leave it
-					// so the user can't keep editing a soft-deleted doc.
+					const archivedPath = currentDocument.path;
+					await SoftDelete(archivedPath);
+					notification.success("Document archived", {
+						action: {
+							label: "Undo",
+							onClick: () => {
+								Restore(archivedPath).catch(() => {});
+							},
+						},
+					});
 					onNavigate("dashboard");
 				} catch (err) {
 					notification.error(`Archive failed: ${err}`);

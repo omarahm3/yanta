@@ -153,7 +153,9 @@ describe("registerDocumentCommands", () => {
 			await archiveCommand?.action();
 
 			expect(SoftDelete).toHaveBeenCalledWith("docs/test.json");
-			expect(ctx.notification.success).toHaveBeenCalledWith("Document archived");
+			expect(ctx.notification.success).toHaveBeenCalledWith("Document archived", {
+				action: { label: "Undo", onClick: expect.any(Function) },
+			});
 			// Leave the archived document's editor so it can't keep being edited.
 			expect(ctx.onNavigate).toHaveBeenCalledWith("dashboard");
 		});

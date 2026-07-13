@@ -44,49 +44,76 @@ export function useGitSyncSettings() {
 	});
 	const [gitBranches, setGitBranches] = useState<string[]>([]);
 	const [currentGitBranch, setCurrentGitBranch] = useState<string>("");
+	const [settingsLoadError, setSettingsLoadError] = useState<string | null>(null);
 	const syncNowInFlight = useSyncStore((s) => s.inProgress);
 	const lastSync = useSyncStore((s) => s.lastSynced);
 	const { success, error, info, warning } = useNotification();
 
-	useEffect(() => {
-		CheckGitInstalled()
+	const loadSettings = useCallback(async () => {
+		setSettingsLoadError(null);
+		const errors: string[] = [];
+
+		await CheckGitInstalled()
 			.then((installed) => setGitInstalled(installed))
 			.catch(() => setGitInstalled(false));
 
-		GetCurrentDataDirectory()
+		await GetCurrentDataDirectory()
 			.then((dir) => setCurrentDataDir(dir))
-			.catch((err) => BackendLogger.error("Failed to get current data directory:", err));
+			.catch((err) => {
+				BackendLogger.error("Failed to get current data directory:", err);
+				errors.push("data directory");
+			});
 
-		IsDataDirectoryOverridden()
+		await IsDataDirectoryOverridden()
 			.then((overridden) => setDataDirOverridden(overridden))
-			.catch((err) => BackendLogger.error("Failed to check data directory override:", err));
+			.catch((err) => {
+				BackendLogger.error("Failed to check data directory override:", err);
+				errors.push("override check");
+			});
 
-		GetAppHomeEnvVar()
+		await GetAppHomeEnvVar()
 			.then((envVar) => setDataDirEnvVar(envVar))
-			.catch((err) => BackendLogger.error("Failed to get data directory env var:", err));
+			.catch((err) => {
+				BackendLogger.error("Failed to get data directory env var:", err);
+				errors.push("env var");
+			});
 
-		GetGitSyncConfig()
+		await GetGitSyncConfig()
 			.then((config) => {
 				setGitSync({
 					enabled: config.Enabled,
-					// Use the persisted value as-is (0 = "Manual only"); don't
-					// coerce 0 -> 10, which used to mask a saved "Manual only"
-					// and could silently re-enable auto-commit on an unrelated edit.
 					commitInterval: config.CommitInterval,
 					autoPush: config.AutoPush,
 					branch: config.Branch || "",
 				});
 			})
-			.catch((err) => BackendLogger.error("Failed to get git sync config:", err));
+			.catch((err) => {
+				BackendLogger.error("Failed to get git sync config:", err);
+				errors.push("sync config");
+			});
 
-		GetGitBranches()
+		await GetGitBranches()
 			.then((branches) => setGitBranches(branches || []))
-			.catch((err) => BackendLogger.error("Failed to get git branches:", err));
+			.catch((err) => {
+				BackendLogger.error("Failed to get git branches:", err);
+				errors.push("branches");
+			});
 
-		GetCurrentGitBranch()
+		await GetCurrentGitBranch()
 			.then((branch) => setCurrentGitBranch(branch || ""))
-			.catch((err) => BackendLogger.error("Failed to get current git branch:", err));
+			.catch((err) => {
+				BackendLogger.error("Failed to get current git branch:", err);
+				errors.push("current branch");
+			});
+
+		if (errors.length > 0) {
+			setSettingsLoadError(`Failed to load: ${errors.join(", ")}`);
+		}
 	}, []);
+
+	useEffect(() => {
+		loadSettings();
+	}, [loadSettings]);
 
 	const handleGitSyncToggle = useCallback(
 		async (enabled: boolean) => {
@@ -228,5 +255,7 @@ export function useGitSyncSettings() {
 		handleSyncNow,
 		syncNowInFlight,
 		lastSync,
+		settingsLoadError,
+		retryLoadSettings: loadSettings,
 	};
 }

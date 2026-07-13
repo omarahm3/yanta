@@ -1,3 +1,4 @@
+import type { ToastOptions } from "../../shared/ui/Toast";
 import type { Project } from "../../shared/types";
 import type { NavigationState, PageName } from "../../shared/types/navigation";
 import type { CommandOption } from "../../shared/ui";
@@ -18,7 +19,7 @@ export interface CommandRegistryContext {
 	switchToLastProject: () => void;
 	getSelectedDocument: () => { path?: string } | null;
 	notification: {
-		success: (msg: string) => void;
+		success: (msg: string, options?: ToastOptions) => void;
 		error: (msg: string) => void;
 		info: (msg: string) => void;
 		warning: (msg: string) => void;

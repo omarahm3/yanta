@@ -294,7 +294,23 @@ export function useDashboardController({
 				}
 				await reloadDocuments();
 				clearSelection();
-				success(paths.length === 1 ? "Document archived" : `${paths.length} documents archived`);
+				success(paths.length === 1 ? "Document archived" : `${paths.length} documents archived`, {
+					action: {
+						label: "Undo",
+						onClick: () => {
+							(async () => {
+								for (const path of paths) {
+									try {
+										await Restore(path);
+									} catch {
+										// best-effort undo
+									}
+								}
+								await reloadDocuments();
+							})();
+						},
+					},
+				});
 			} catch (err) {
 				error(err instanceof Error ? err.message : "Failed to archive");
 			}

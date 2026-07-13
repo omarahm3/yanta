@@ -58,14 +58,12 @@ export const HotkeyInput: React.FC<HotkeyInputProps> = ({
 			e.preventDefault();
 			e.stopPropagation();
 
-			// Escape resets to original value
 			if (e.key === "Escape") {
 				setPendingHotkey(null);
 				setIsCapturing(false);
 				return;
 			}
 
-			// Enter confirms the pending hotkey
 			if (e.key === "Enter") {
 				if (pendingHotkey) {
 					onChange(pendingHotkey);
@@ -75,10 +73,11 @@ export const HotkeyInput: React.FC<HotkeyInputProps> = ({
 				return;
 			}
 
-			// Build the hotkey string
 			const hotkey = buildHotkeyString(e);
 			if (hotkey) {
-				setPendingHotkey(hotkey);
+				onChange(hotkey);
+				setPendingHotkey(null);
+				setIsCapturing(false);
 			}
 		},
 		[disabled, pendingHotkey, onChange, buildHotkeyString],
@@ -92,9 +91,12 @@ export const HotkeyInput: React.FC<HotkeyInputProps> = ({
 	}, [disabled]);
 
 	const handleBlur = useCallback(() => {
+		if (pendingHotkey) {
+			onChange(pendingHotkey);
+		}
 		setIsCapturing(false);
 		setPendingHotkey(null);
-	}, []);
+	}, [pendingHotkey, onChange]);
 
 	const displayValue = isCapturing ? pendingHotkey || "Press keys..." : value || placeholder;
 
@@ -116,9 +118,7 @@ export const HotkeyInput: React.FC<HotkeyInputProps> = ({
 			)}
 		>
 			{displayValue}
-			{isCapturing && (
-				<span className="ml-2 text-xs text-text-dim">(Enter to save, Esc to cancel)</span>
-			)}
+			{isCapturing && <span className="ml-2 text-xs text-text-dim">(Esc to cancel)</span>}
 		</div>
 	);
 };

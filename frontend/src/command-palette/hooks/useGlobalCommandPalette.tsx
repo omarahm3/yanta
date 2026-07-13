@@ -20,7 +20,11 @@ import {
 	registerProjectCommands,
 	useCommandRegistryStore,
 } from "../registry";
-import { getTopRecentCommandIds, sortCommandsByUsage } from "../utils/commandSorting";
+import {
+	getRecentlyUsedCommands,
+	getTopRecentCommandIds,
+	sortCommandsByUsage,
+} from "../utils/commandSorting";
 import { useCommandUsage } from "./useCommandUsage";
 
 const REGISTRY_SOURCES = [
@@ -47,6 +51,7 @@ export interface UseGlobalCommandPaletteReturn {
 	handleClose: () => void;
 	handleCommandSelect: (command: CommandOption) => void;
 	sortedCommands: CommandOption[];
+	recentCommands: CommandOption[];
 }
 
 export function useGlobalCommandPalette(
@@ -209,7 +214,8 @@ export function useGlobalCommandPalette(
 			switchToLastProject,
 			getSelectedDocument: getSelectedDocumentLatest,
 			notification: {
-				success: (msg: string) => notificationRef.current.success(msg),
+				success: (msg: string, options?: { action?: { label: string; onClick: () => void } }) =>
+					notificationRef.current.success(msg, options),
 				error: (msg: string) => notificationRef.current.error(msg),
 				info: (msg: string) => notificationRef.current.info(msg),
 				warning: (msg: string) => notificationRef.current.warning(msg),
@@ -282,10 +288,16 @@ export function useGlobalCommandPalette(
 		return [...documentCommands, ...marked];
 	}, [commandOptions, getAllCommandUsage, documentCommands]);
 
+	const recentCommands = useMemo(() => {
+		const usage = getAllCommandUsage();
+		return getRecentlyUsedCommands(commandOptions, usage, 5);
+	}, [commandOptions, getAllCommandUsage]);
+
 	return {
 		isOpen,
 		handleClose,
 		handleCommandSelect,
 		sortedCommands,
+		recentCommands,
 	};
 }
