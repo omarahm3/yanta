@@ -16,7 +16,7 @@ const PaneResizeHandle: React.FC<PaneResizeHandleProps> = React.memo(({ directio
 		className={cn(
 			"relative flex items-center justify-center transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out-quart)]",
 			"bg-border hover:bg-accent/50 active:bg-accent",
-			direction === "horizontal" ? "w-1" : "h-1",
+			direction === "horizontal" ? "w-1 px-1.5 -mx-1.5" : "h-1 py-1.5 -my-1.5",
 		)}
 	/>
 ));

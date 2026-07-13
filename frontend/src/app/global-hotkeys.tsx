@@ -7,6 +7,7 @@ import { useHelp } from "../help";
 import { useHotkey } from "../hotkeys";
 import { useProjectContext } from "../project";
 import { ProjectSwitcher, useProjectSwitcherStore } from "../project-switcher";
+import { useNotification } from "../shared/hooks";
 import { useSyncStore } from "../shared/stores/sync.store";
 import { SyncToast } from "../shared/ui";
 import { useAppGlobalEffects } from "./hooks";
@@ -55,6 +56,7 @@ const GlobalCommandHotkey = () => {
 	});
 
 	const { switchToLastProject, previousProject, projects, setCurrentProject } = useProjectContext();
+	const { info } = useNotification();
 	const openProjectSwitcher = useProjectSwitcherStore((s) => s.open);
 	const openGlobalSearch = useGlobalSearchStore((s) => s.open);
 
@@ -67,6 +69,8 @@ const GlobalCommandHotkey = () => {
 			e.preventDefault();
 			if (previousProject) {
 				switchToLastProject();
+			} else {
+				info("No previous project to switch to");
 			}
 		},
 		allowInInput: true,
