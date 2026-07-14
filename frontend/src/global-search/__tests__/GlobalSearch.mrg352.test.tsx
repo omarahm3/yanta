@@ -17,6 +17,18 @@ vi.mock("../../shared/stores/documentCommand.store", () => ({
 	},
 }));
 
+vi.mock("../../shared/hooks/useNotification", () => ({
+	useNotification: () => ({
+		success: vi.fn(),
+		error: vi.fn(),
+		info: vi.fn(),
+		warning: vi.fn(),
+		dismiss: vi.fn(),
+		dismissAll: vi.fn(),
+		show: vi.fn(),
+	}),
+}));
+
 const mockUseDocumentSearch = vi.fn();
 
 vi.mock("../useDocumentSearch", () => ({
@@ -24,10 +36,15 @@ vi.mock("../useDocumentSearch", () => ({
 }));
 
 vi.mock("../globalSearch.store", () => ({
-	useGlobalSearchStore: () => ({
-		isOpen: true,
-		close: vi.fn(),
-	}),
+	useGlobalSearchStore: (selector?: (s: Record<string, unknown>) => unknown) => {
+		const state = {
+			isOpen: true,
+			close: vi.fn(),
+			lastQuery: "",
+			setLastQuery: vi.fn(),
+		};
+		return selector ? selector(state) : state;
+	},
 }));
 
 vi.mock("../GlobalSearchPreview", () => ({
@@ -70,6 +87,8 @@ describe("GlobalSearch — MRG-352", () => {
 			isUpdating: false,
 			isError: false,
 			rebuild: vi.fn(),
+			retryRecent: vi.fn(),
+			recentError: null,
 		});
 
 		render(<GlobalSearch onNavigate={vi.fn()} />);
@@ -99,6 +118,8 @@ describe("GlobalSearch — MRG-352", () => {
 			isUpdating: false,
 			isError: false,
 			rebuild: vi.fn(),
+			retryRecent: vi.fn(),
+			recentError: null,
 		});
 
 		render(<GlobalSearch onNavigate={vi.fn()} />);

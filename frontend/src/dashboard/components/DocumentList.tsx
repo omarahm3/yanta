@@ -1,5 +1,5 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Archive, FilePlus, FolderPlus } from "lucide-react";
+import { Archive, FilePlus, FolderPlus, Split } from "lucide-react";
 import React, { useEffect, useRef } from "react";
 import { useSidebarStateStore } from "../../shared/stores/sidebarState.store";
 import type { Document } from "../../shared/types/Document";
@@ -42,6 +42,8 @@ interface DocumentListProps {
 	onRestoreDocument?: (path: string) => void;
 	/** Optional: open move dialog for a single document. */
 	onMoveDocument?: (path: string) => void;
+	/** Optional: open a document in a new split pane. */
+	onOpenInSplit?: (path: string) => void;
 	/** Whether the list is showing archived documents (affects context menu labels). */
 	showArchived?: boolean;
 	currentProjectAlias?: string | null;
@@ -62,6 +64,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 	onArchiveDocument,
 	onRestoreDocument,
 	onMoveDocument,
+	onOpenInSplit,
 	showArchived = false,
 	currentProjectAlias,
 	hasProjects = false,
@@ -169,6 +172,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 								onArchiveDocument={onArchiveDocument}
 								onRestoreDocument={onRestoreDocument}
 								onMoveDocument={onMoveDocument}
+								onOpenInSplit={onOpenInSplit}
 								showArchived={showArchived}
 							/>
 						</div>
@@ -196,6 +200,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 						onArchiveDocument={onArchiveDocument}
 						onRestoreDocument={onRestoreDocument}
 						onMoveDocument={onMoveDocument}
+						onOpenInSplit={onOpenInSplit}
 						showArchived={showArchived}
 					/>
 				);
@@ -215,6 +220,7 @@ interface DocumentListItemProps {
 	onArchiveDocument?: (path: string) => void;
 	onRestoreDocument?: (path: string) => void;
 	onMoveDocument?: (path: string) => void;
+	onOpenInSplit?: (path: string) => void;
 	showArchived?: boolean;
 }
 
@@ -230,6 +236,7 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 		onArchiveDocument,
 		onRestoreDocument,
 		onMoveDocument,
+		onOpenInSplit,
 		showArchived = false,
 	}) => {
 		const backgroundStyle = isHighlighted || isSelected ? STYLE_BG_HIGHLIGHTED : STYLE_EMPTY;
@@ -261,6 +268,16 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 			onDocumentClick(doc.path);
 		};
 
+		// Middle-click fires `auxclick`, not `click`, so open-in-split must be wired
+		// via onAuxClick or it never triggers.
+		const handleItemAuxClick: React.MouseEventHandler<HTMLDivElement> = (event) => {
+			if (event.button === 1 && onOpenInSplit) {
+				event.preventDefault();
+				onHighlightDocument?.(index);
+				onOpenInSplit(doc.path);
+			}
+		};
+
 		const handleDragStart: React.DragEventHandler<HTMLDivElement> = (e) => {
 			e.dataTransfer.setData("application/x-yanta-document-path", doc.path);
 			e.dataTransfer.effectAllowed = "copyMove";
@@ -276,7 +293,14 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 		};
 
 		const handleItemClickKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (event) => {
-			if (event.key === "Enter" || event.key === " ") {
+			if (event.key === "Enter") {
+				event.preventDefault();
+				if ((event.metaKey || event.ctrlKey) && onOpenInSplit) {
+					onOpenInSplit(doc.path);
+				} else {
+					handleOpen();
+				}
+			} else if (event.key === " ") {
 				event.preventDefault();
 				handleOpen();
 			}
@@ -334,6 +358,7 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 								role="button"
 								tabIndex={0}
 								onClick={handleItemClick}
+								onAuxClick={handleItemAuxClick}
 								onKeyDown={handleItemClickKeyDown}
 							>
 								<div className="flex items-center gap-2">
@@ -366,6 +391,14 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 				</ContextMenuTrigger>
 				<ContextMenuContent>
 					<ContextMenuItem onSelect={handleOpen}>Open</ContextMenuItem>
+					{onOpenInSplit && (
+						<ContextMenuItem onSelect={() => onOpenInSplit(doc.path)}>
+							<span className="flex items-center gap-2">
+								<Split className="h-3.5 w-3.5" aria-hidden="true" />
+								Open in split
+							</span>
+						</ContextMenuItem>
+					)}
 					<ContextMenuItem onSelect={handleToggleSelect}>
 						{isSelected ? "Deselect" : "Select"}
 					</ContextMenuItem>

@@ -3,9 +3,11 @@ import { useDialogStore } from "../shared/stores/dialog.store";
 
 interface GlobalSearchState {
 	isOpen: boolean;
+	lastQuery: string;
 	open: () => void;
 	close: () => void;
 	toggle: () => void;
+	setLastQuery: (query: string) => void;
 	/** For tests: reset open state. */
 	reset: () => void;
 }
@@ -17,6 +19,7 @@ interface GlobalSearchState {
  */
 export const useGlobalSearchStore = create<GlobalSearchState>((set, get) => ({
 	isOpen: false,
+	lastQuery: "",
 	open: () => {
 		// Idempotent: the ⌘F hotkey fires in inputs, so guard against a second
 		// openDialog() (which would leave the dialog counter permanently raised).
@@ -32,8 +35,9 @@ export const useGlobalSearchStore = create<GlobalSearchState>((set, get) => ({
 		if (get().isOpen) get().close();
 		else get().open();
 	},
+	setLastQuery: (query: string) => set({ lastQuery: query }),
 	reset: () => {
 		if (get().isOpen) useDialogStore.getState().closeDialog();
-		set({ isOpen: false });
+		set({ isOpen: false, lastQuery: "" });
 	},
 }));

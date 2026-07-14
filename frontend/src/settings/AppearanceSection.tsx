@@ -1,5 +1,6 @@
 import React from "react";
 import type { LinuxGraphicsMode } from "@/config/preferences";
+import { formatShortcutKeyForDisplay } from "../config/shortcuts";
 import { useAppearanceStore } from "../shared/stores/appearance.store";
 import { type DensityMode, useDensityStore } from "../shared/stores/density.store";
 import type { ThemeMode } from "../shared/stores/theme.store";
@@ -111,9 +112,10 @@ export const AppearanceSection = React.forwardRef<HTMLDivElement, AppearanceSect
 
 						<div className="flex items-center justify-between">
 							<div>
-								<div className="text-sm text-text">Show Sidebar</div>
+								<div className="text-sm text-text">Expanded Sidebar</div>
 								<div className="text-xs text-text-dim">
-									Display the navigation sidebar. Use Ctrl+B to toggle.
+									Show the full sidebar panel. When off, only the icon rail is visible. Use{" "}
+									{formatShortcutKeyForDisplay("mod+b")} to toggle.
 								</div>
 							</div>
 							<Toggle

@@ -1,5 +1,5 @@
 import { Archive, FilePlus } from "lucide-react";
-import React, { useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { GranularErrorBoundary, Layout } from "@/app";
 import { formatShortcutKeyForDisplay } from "@/config/shortcuts";
 import { useMergedConfig } from "@/config/usePreferencesOverrides";
@@ -60,6 +60,13 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 	} = controller;
 
 	const { sort, setSort, sortedDocuments: documents } = useDocumentSort(rawDocuments);
+
+	const handleOpenInSplit = useCallback(
+		(path: string) => {
+			onNavigate?.("document", { documentPath: path, openInSplit: true });
+		},
+		[onNavigate],
+	);
 
 	const headerActions = (
 		<div className="flex items-center gap-2">
@@ -127,6 +134,7 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 									onArchiveDocument={controller.handleArchiveDocument}
 									onRestoreDocument={controller.handleRestoreDocument}
 									onMoveDocument={controller.handleOpenMoveDialog}
+									onOpenInSplit={handleOpenInSplit}
 									showArchived={showArchived}
 									currentProjectAlias={controller.currentProjectAlias}
 									hasProjects={controller.hasProjects}

@@ -32,6 +32,18 @@ vi.mock("../../shared/hooks/useRecentDocuments", () => ({
 	}),
 }));
 
+vi.mock("../../shared/hooks/useNotification", () => ({
+	useNotification: () => ({
+		success: vi.fn(),
+		error: vi.fn(),
+		info: vi.fn(),
+		warning: vi.fn(),
+		dismiss: vi.fn(),
+		dismissAll: vi.fn(),
+		show: vi.fn(),
+	}),
+}));
+
 // The finder now searches an in-memory MiniSearch index (searchIndex.store)
 // instead of round-tripping to the backend. Mock the store so this component
 // test stays focused on rendering, selection and open behaviour.

@@ -12,14 +12,16 @@ export interface PaneLayoutViewProps {
 	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
 	documentPath?: string;
+	openInSplit?: boolean;
 }
 
 export const PaneLayoutView: React.FC<PaneLayoutViewProps> = ({
 	onNavigate,
 	onRegisterToggleSidebar,
 	documentPath,
+	openInSplit,
 }) => {
-	const { layout, activePaneId, openDocumentInPane } = usePaneLayout();
+	const { layout, activePaneId, openDocumentInPane, splitAndOpenDocument } = usePaneLayout();
 
 	usePaneHotkeys();
 
@@ -44,10 +46,15 @@ export const PaneLayoutView: React.FC<PaneLayoutViewProps> = ({
 
 	useEffect(() => {
 		if (documentPath && documentPath !== lastOpenedPathRef.current) {
-			openDocumentInPane(activePaneId, documentPath);
+			if (openInSplit) {
+				// Atomic split + open so the doc always lands in the new pane.
+				splitAndOpenDocument(activePaneId, "horizontal", documentPath);
+			} else {
+				openDocumentInPane(activePaneId, documentPath);
+			}
 			lastOpenedPathRef.current = documentPath;
 		}
-	}, [documentPath, activePaneId, openDocumentInPane]);
+	}, [documentPath, activePaneId, openDocumentInPane, openInSplit, splitAndOpenDocument]);
 
 	return (
 		<PaneNavigateProvider value={onNavigate ?? (() => {})}>

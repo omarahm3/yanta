@@ -9,6 +9,7 @@ import { ReducedEffectsInit } from "../shared/stores/appearance.store";
 import { DensityInit } from "../shared/stores/density.store";
 import { ThemeInit } from "../shared/stores/theme.store";
 import { ToastProvider } from "../shared/ui";
+import { GlobalEscapeListener } from "../shared/ui/GlobalEscapeListener";
 import { AppMonitorInit } from "./AppMonitorInit";
 import { ResizeHandles, SaveErrorBanner, TitleBar, UpdateBanner } from "./components";
 import { DocumentCountStoreInit } from "./DocumentCountStoreInit";
@@ -37,6 +38,7 @@ export function AppProviders() {
 				<HelpProvider>
 					<DocumentProvider>
 						<PaneLayoutProvider>
+							<GlobalEscapeListener />
 							<ResizeHandles />
 							<TitleBar />
 							<UpdateBanner />

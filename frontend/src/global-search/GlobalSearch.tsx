@@ -1,8 +1,10 @@
-import { FileText, NotebookPen, Search } from "lucide-react";
+import { ClipboardCopy, FileText, NotebookPen, Search } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { formatShortcutKeyForDisplay } from "../config/shortcuts";
 import { useProjectContext } from "../project";
 import { getFinderUnsupportedWarning } from "../search-index/queryParser";
+import { useNotification } from "../shared/hooks";
 import { useDocumentCommandStore } from "../shared/stores/documentCommand.store";
 import type { NavigationState, PageName } from "../shared/types";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../shared/ui/dialog";
@@ -62,16 +64,32 @@ function GlobalSearchInner({
 		recentError,
 		retryRecent,
 	} = useDocumentSearch();
+	const lastQuery = useGlobalSearchStore((s) => s.lastQuery);
+	const setLastQuery = useGlobalSearchStore((s) => s.setLastQuery);
+	const { success: notifySuccess, error: notifyError } = useNotification();
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const listRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const listId = useId();
 	const optionId = (index: number) => `${listId}-opt-${index}`;
 
-	// Focus the search box as soon as the finder opens.
+	// Restore last query on open and focus the search box.
 	useEffect(() => {
+		if (lastQuery) {
+			setQuery(lastQuery);
+		}
 		inputRef.current?.focus();
 	}, []);
+
+	// Persist the query on close only. Keep the latest value in a ref so the
+	// unmount cleanup doesn't re-run (and re-render subscribers) on every keystroke.
+	const queryRef = useRef(query);
+	queryRef.current = query;
+	useEffect(() => {
+		return () => {
+			setLastQuery(queryRef.current);
+		};
+	}, [setLastQuery]);
 
 	// New result set → jump selection back to the top.
 	useEffect(() => {
@@ -82,7 +100,7 @@ function GlobalSearchInner({
 	const selected = items[safeIndex];
 
 	const openItem = useCallback(
-		(item: FinderItem | undefined) => {
+		(item: FinderItem | undefined, split = false) => {
 			if (!item) return;
 			// Aliases may or may not carry a leading "@" depending on the source;
 			// compare without it so the active project still switches correctly.
@@ -93,7 +111,10 @@ function GlobalSearchInner({
 			if (item.type === "note") {
 				onNavigate("journal", { date: item.updated, noteId: item.noteId });
 			} else {
-				onNavigate("document", { documentPath: item.path });
+				onNavigate("document", {
+					documentPath: item.path,
+					...(split ? { openInSplit: true } : {}),
+				});
 				// Pass the query to the find bar so the doc opens at the match
 				if (query.trim()) {
 					// Use setTimeout to ensure navigation completes before triggering find
@@ -105,6 +126,23 @@ function GlobalSearchInner({
 			onClose();
 		},
 		[projects, setCurrentProject, onNavigate, onClose, query],
+	);
+
+	const copyLink = useCallback(
+		(item: FinderItem | undefined) => {
+			if (!item) return;
+			// navigator.clipboard is undefined in non-secure contexts, and writeText
+			// can reject if permission is denied — guard and surface both.
+			if (!navigator.clipboard?.writeText) {
+				notifyError("Clipboard unavailable");
+				return;
+			}
+			navigator.clipboard
+				.writeText(item.path)
+				.then(() => notifySuccess("Link copied"))
+				.catch(() => notifyError("Couldn't copy link"));
+		},
+		[notifySuccess, notifyError],
 	);
 
 	const moveSelection = useCallback((delta: number) => {
@@ -121,7 +159,8 @@ function GlobalSearchInner({
 
 	const handleKeyDown = useCallback(
 		(event: React.KeyboardEvent) => {
-			const { key, ctrlKey } = event;
+			const { key, ctrlKey, metaKey, shiftKey } = event;
+			const mod = metaKey || ctrlKey;
 			if (key === "ArrowDown" || (ctrlKey && (key === "n" || key === "j"))) {
 				event.preventDefault();
 				moveSelection(1);
@@ -130,7 +169,11 @@ function GlobalSearchInner({
 				moveSelection(-1);
 			} else if (key === "Enter") {
 				event.preventDefault();
-				openItem(items[safeIndex]);
+				if (mod && !shiftKey) {
+					openItem(items[safeIndex], true);
+				} else {
+					openItem(items[safeIndex]);
+				}
 			}
 			// Escape is handled by the Radix Dialog (closes the finder).
 		},
@@ -212,6 +255,7 @@ function GlobalSearchInner({
 									selected={index === safeIndex}
 									onSelect={setSelectedIndex}
 									onOpen={openItem}
+									onCopyLink={copyLink}
 								/>
 							))
 						)}
@@ -225,6 +269,9 @@ function GlobalSearchInner({
 				<div className="flex h-9 shrink-0 items-center gap-4 border-t border-border px-4 text-[11px] text-text-dim">
 					<FooterHint keyLabel="↑↓" label="Navigate" />
 					<FooterHint keyLabel="↵" label="Open" />
+					{selected?.type !== "note" && (
+						<FooterHint keyLabel={formatShortcutKeyForDisplay("mod+enter")} label="Open in split" />
+					)}
 					<FooterHint keyLabel="esc" label="Close" />
 					{unsupportedWarning ? (
 						<span className="ml-auto text-yellow truncate max-w-[50%]" title={unsupportedWarning}>
@@ -249,10 +296,11 @@ interface ResultRowProps {
 	index: number;
 	selected: boolean;
 	onSelect: (index: number) => void;
-	onOpen: (item: FinderItem) => void;
+	onOpen: (item: FinderItem, split?: boolean) => void;
+	onCopyLink: (item: FinderItem) => void;
 }
 
-function ResultRow({ id, item, index, selected, onSelect, onOpen }: ResultRowProps) {
+function ResultRow({ id, item, index, selected, onSelect, onOpen, onCopyLink }: ResultRowProps) {
 	const isNote = item.type === "note";
 	const Icon = isNote ? NotebookPen : FileText;
 
@@ -288,11 +336,25 @@ function ResultRow({ id, item, index, selected, onSelect, onOpen }: ResultRowPro
 						{item.matchCount} {item.matchCount === 1 ? "match" : "matches"}
 					</span>
 				)}
+				{selected && (
+					<button
+						type="button"
+						onClick={(e) => {
+							e.stopPropagation();
+							onCopyLink(item);
+						}}
+						className="shrink-0 rounded p-1 hover:bg-accent/20 transition-colors"
+						title="Copy link"
+						aria-label="Copy link"
+					>
+						<ClipboardCopy className="size-3.5" aria-hidden="true" />
+					</button>
+				)}
 			</div>
 			{item.snippets.length > 0 && (
 				<div
-					// biome-ignore lint/security/noDangerouslySetInnerHtml: snippets are trusted HTML from buildSnippet with only <mark> tags
 					className="truncate text-xs text-text-dim [&_mark]:bg-yellow/20 [&_mark]:text-yellow [&_mark]:px-0.5 [&_mark]:rounded"
+					// biome-ignore lint/security/noDangerouslySetInnerHtml: snippets are trusted HTML from buildSnippet with only <mark> tags
 					dangerouslySetInnerHTML={{ __html: item.snippets[0] }}
 				/>
 			)}

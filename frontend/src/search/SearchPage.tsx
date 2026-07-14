@@ -10,10 +10,18 @@ import { useHelp } from "../help";
 import { useProjectContext } from "../project";
 import { SEARCH_OPERATORS } from "../search-index/queryParser";
 import { useNotification, useSidebarSections } from "../shared/hooks";
+import { useLifoEscape } from "../shared/hooks/useLifoEscape";
 import type { NavigationState, PageName } from "../shared/types";
 import { Button, EmptyState, Input } from "../shared/ui";
 import { BackendLogger } from "../shared/utils/backendLogger";
 import { SearchResultsSkeleton } from "./SearchResultsSkeleton";
+
+const QUERY_CHIPS = [
+	{ label: "tag:idea", insert: "tag:idea" },
+	{ label: "project:@work", insert: "project:@work" },
+	{ label: 'title:"meeting"', insert: 'title:"meeting"' },
+	{ label: '"exact phrase"', insert: '"exact phrase"' },
+] as const;
 
 interface SearchResult {
 	path: string;
@@ -274,16 +282,6 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 				return;
 			}
 
-			if (e.key === "Escape" && isSearchInputFocused) {
-				e.preventDefault();
-				searchInputRef.current?.blur();
-				if (groupedResults.length > 0) {
-					const firstResult = document.querySelector('[data-result-item="true"]') as HTMLElement;
-					firstResult?.focus();
-				}
-				return;
-			}
-
 			if (isSearchInputFocused) return;
 			if (focused?.tagName === "INPUT") return;
 
@@ -320,6 +318,25 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 		document.addEventListener("keydown", onKeyDown);
 		return () => document.removeEventListener("keydown", onKeyDown);
 	}, [groupedResults.length, openResult, selectedIndex]);
+
+	useLifoEscape({
+		when: true,
+		onEscape: () => {
+			const focused = document.activeElement as HTMLElement | null;
+			const isSearchInputFocused = focused === (searchInputRef.current as unknown as HTMLElement);
+			// Only handle Escape when the search input is focused; otherwise decline
+			// so Escape isn't swallowed for other consumers.
+			if (isSearchInputFocused) {
+				searchInputRef.current?.blur();
+				if (groupedResults.length > 0) {
+					const firstResult = document.querySelector('[data-result-item="true"]') as HTMLElement;
+					firstResult?.focus();
+				}
+				return true;
+			}
+			return false;
+		},
+	});
 
 	const sidebarSections = useSidebarSections({
 		currentPage: "search",
@@ -432,15 +449,28 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 								<EmptyState
 									icon={<FolderSearch className="h-6 w-6" aria-hidden="true" />}
 									title="Search your notes"
-									description="Start with plain text or jump in with a project or tag filter."
-									actionLabel={
-										(currentProject?.alias ?? projects[0]?.alias)
-											? `Search @${currentProject?.alias ?? projects[0]?.alias}`
-											: "Focus search"
-									}
-									onAction={handleSeedProjectSearch}
+									description="Start with plain text or try a filter:"
 									className="min-h-[22rem]"
-								/>
+								>
+									<div className="flex flex-wrap justify-center gap-2 mt-2">
+										{QUERY_CHIPS.map((chip) => (
+											<button
+												key={chip.label}
+												type="button"
+												onClick={() => {
+													setRawQuery((prev) => {
+														const trimmed = prev.trim();
+														return trimmed ? `${trimmed} ${chip.insert}` : chip.insert;
+													});
+													searchInputRef.current?.focus();
+												}}
+												className="px-3 py-1.5 text-xs font-mono rounded-md border border-accent/30 text-accent hover:bg-accent/10 transition-colors"
+											>
+												{chip.label}
+											</button>
+										))}
+									</div>
+								</EmptyState>
 							)
 						) : (
 							<div className="space-y-5" role="listbox" aria-label="Search results">
