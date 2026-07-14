@@ -842,7 +842,7 @@ func TestSyncManager_PushWithRebaseRetry_TriggersReindex(t *testing.T) {
 	defer sm.Shutdown()
 
 	var reindexCalled int
-	sm.SetReindexFunc(func(ctx context.Context) {
+	sm.SetReindexFunc(func(ctx context.Context, headBefore, headAfter string) {
 		reindexCalled++
 	})
 
@@ -893,7 +893,7 @@ func TestSyncManager_PushWithRebaseRetry_NoReindexOnCleanPush(t *testing.T) {
 	defer sm.Shutdown()
 
 	var reindexCalled int
-	sm.SetReindexFunc(func(ctx context.Context) {
+	sm.SetReindexFunc(func(ctx context.Context, headBefore, headAfter string) {
 		reindexCalled++
 	})
 

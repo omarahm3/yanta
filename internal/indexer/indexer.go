@@ -579,3 +579,123 @@ func (idx *Indexer) IndexAllJournals(ctx context.Context) error {
 	logger.WithField("totalEntries", totalEntries).Info("indexed journal entries")
 	return nil
 }
+
+type PathChange struct {
+	Status  string
+	Path    string
+	OldPath string
+}
+
+func (idx *Indexer) ReindexPaths(ctx context.Context, changes []PathChange) ([]string, error) {
+	var corruptPaths []string
+	var journalDates map[string]map[string]bool
+
+	for _, change := range changes {
+		p := change.Path
+		if !strings.HasPrefix(p, "projects/") || !strings.HasSuffix(p, ".json") {
+			continue
+		}
+
+		if isJournalPath(p) {
+			if journalDates == nil {
+				journalDates = make(map[string]map[string]bool)
+			}
+			alias, date := parseJournalPath(p)
+			if alias != "" && date != "" {
+				if journalDates[alias] == nil {
+					journalDates[alias] = make(map[string]bool)
+				}
+				journalDates[alias][date] = true
+			}
+			continue
+		}
+
+		switch change.Status {
+		case "D":
+			if err := idx.RemoveDocumentCompletely(ctx, p); err != nil {
+				logger.Warnf("failed to remove deleted document %s: %v", p, err)
+			}
+		case "A", "M":
+			if err := idx.IndexDocument(ctx, p); err != nil {
+				if errors.Is(err, document.ErrCorrupted) {
+					logger.Warnf("skipping corrupt document %s: %v", p, err)
+					corruptPaths = append(corruptPaths, p)
+					continue
+				}
+				return corruptPaths, fmt.Errorf("indexing document %s: %w", p, err)
+			}
+		case "R", "C":
+			if change.OldPath != "" {
+				if err := idx.RemoveDocumentCompletely(ctx, change.OldPath); err != nil {
+					logger.Warnf("failed to remove old path %s during rename: %v", change.OldPath, err)
+				}
+			}
+			if err := idx.IndexDocument(ctx, p); err != nil {
+				if errors.Is(err, document.ErrCorrupted) {
+					logger.Warnf("skipping corrupt document %s: %v", p, err)
+					corruptPaths = append(corruptPaths, p)
+					continue
+				}
+				return corruptPaths, fmt.Errorf("indexing document %s: %w", p, err)
+			}
+		}
+	}
+
+	for alias, dates := range journalDates {
+		for date := range dates {
+			if err := idx.reindexJournalDate(ctx, alias, date); err != nil {
+				logger.Warnf("failed to reindex journal %s/%s: %v", alias, date, err)
+			}
+		}
+	}
+
+	return corruptPaths, nil
+}
+
+func isJournalPath(p string) bool {
+	parts := strings.Split(p, "/")
+	return len(parts) >= 4 && parts[2] == "journal"
+}
+
+func parseJournalPath(p string) (alias, date string) {
+	parts := strings.Split(p, "/")
+	if len(parts) < 4 || parts[2] != "journal" {
+		return "", ""
+	}
+	alias = parts[1]
+	date = strings.TrimSuffix(parts[3], ".json")
+	return alias, date
+}
+
+func (idx *Indexer) reindexJournalDate(ctx context.Context, projectAlias, date string) error {
+	if err := idx.ftsStore.DeleteJournalEntriesByDate(ctx, projectAlias, date); err != nil {
+		return fmt.Errorf("clearing journal entries for %s/%s: %w", projectAlias, date, err)
+	}
+
+	journalDir := filepath.Join(idx.vault.RootPath(), "projects", projectAlias, "journal")
+	journalFile := filepath.Join(journalDir, date+".json")
+
+	data, err := os.ReadFile(journalFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("reading journal file: %w", err)
+	}
+
+	var file journal.JournalFile
+	if err := json.Unmarshal(data, &file); err != nil {
+		logger.Warnf("failed to parse journal file %s: %v", journalFile, err)
+		return nil
+	}
+
+	for _, entry := range file.Entries {
+		if entry.Deleted {
+			continue
+		}
+		if err := idx.ftsStore.InsertJournalEntry(ctx, projectAlias, date, entry.ID, entry.Content, entry.Tags); err != nil {
+			logger.Warnf("failed to index journal entry %s/%s/%s: %v", projectAlias, date, entry.ID, err)
+		}
+	}
+	return nil
+}

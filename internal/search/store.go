@@ -214,6 +214,15 @@ func (s *Store) DeleteAllJournalEntriesTx(ctx context.Context, q Queryer) error 
 	return nil
 }
 
+func (s *Store) DeleteJournalEntriesByDate(ctx context.Context, projectAlias, date string) error {
+	query := `DELETE FROM fts_journal WHERE project_alias = ? AND date = ?`
+	_, err := s.db.ExecContext(ctx, query, projectAlias, date)
+	if err != nil {
+		return fmt.Errorf("deleting journal entries for %s/%s from fts_journal: %w", projectAlias, date, err)
+	}
+	return nil
+}
+
 // SearchJournalEntries searches the fts_journal table and returns matching entries.
 func (s *Store) SearchJournalEntries(ctx context.Context, fts5Query string) ([]JournalSearchResult, error) {
 	return s.SearchJournalEntriesTx(ctx, s.db, fts5Query)

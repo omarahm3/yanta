@@ -854,3 +854,41 @@ func TestSelfHealUnblocksSyncWithDeletedLegacyBackups(t *testing.T) {
 	assert.Contains(t, gitTracked(t, dir), filepath.ToSlash("vault/note.json"),
 		"vault content must remain tracked")
 }
+
+func TestGetDiffNameStatus(t *testing.T) {
+	skipIfNoGit(t)
+
+	service := NewService()
+	tempDir := t.TempDir()
+	ctx := context.Background()
+
+	require.NoError(t, service.Init(ctx, tempDir))
+	configureGitUser(t, tempDir)
+
+	writeRepoFile(t, tempDir, "vault/projects/@test/doc-1.json", `{"title":"first"}`)
+	require.NoError(t, service.Add(ctx, tempDir, SyncPaths...))
+	require.NoError(t, service.Commit(ctx, tempDir, "initial"))
+
+	headBefore, err := service.GetLastCommitHash(ctx, tempDir)
+	require.NoError(t, err)
+	require.NotEmpty(t, headBefore)
+
+	writeRepoFile(t, tempDir, "vault/projects/@test/doc-2.json", `{"title":"new"}`)
+	writeRepoFile(t, tempDir, "vault/projects/@test/doc-1.json", `{"title":"modified"}`)
+	require.NoError(t, service.Add(ctx, tempDir, SyncPaths...))
+	require.NoError(t, service.Commit(ctx, tempDir, "add and modify"))
+
+	headAfter, err := service.GetLastCommitHash(ctx, tempDir)
+	require.NoError(t, err)
+	require.NotEmpty(t, headAfter)
+
+	entries, err := service.GetDiffNameStatus(ctx, tempDir, headBefore, headAfter)
+	require.NoError(t, err)
+
+	statusMap := make(map[string]string)
+	for _, e := range entries {
+		statusMap[e.Path] = e.Status
+	}
+	assert.Equal(t, "A", statusMap["vault/projects/@test/doc-2.json"])
+	assert.Equal(t, "M", statusMap["vault/projects/@test/doc-1.json"])
+}

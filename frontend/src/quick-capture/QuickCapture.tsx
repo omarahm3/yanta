@@ -314,7 +314,7 @@ export const QuickCapture: React.FC = () => {
 								onClick={() => void handleSave(false)}
 							>
 								Save
-								<span className="ml-1.5 font-mono text-[11px] opacity-70">Ctrl ↵</span>
+								<span className="ml-1.5 font-mono text-xs opacity-70">Ctrl ↵</span>
 							</Button>
 							<FooterAction
 								kbd="Shift ↵"
@@ -343,7 +343,7 @@ const FooterAction: React.FC<{
 		disabled={disabled}
 		className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-text-dim transition-colors hover:bg-accent/8 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 disabled:pointer-events-none"
 	>
-		{kbd && <Kbd className="text-[10px]">{kbd}</Kbd>}
+		{kbd && <Kbd>{kbd}</Kbd>}
 		<span>{label}</span>
 	</button>
 );

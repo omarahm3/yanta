@@ -39,7 +39,6 @@ describe("DatePicker", () => {
 		const dateButton = screen.getByRole("button", { name: /January 30, 2026/ });
 		fireEvent.click(dateButton);
 
-		// Calendar should be visible
 		expect(screen.getByTestId("calendar-grid")).toBeInTheDocument();
 	});
 
@@ -49,11 +48,9 @@ describe("DatePicker", () => {
 			<DatePicker selectedDate={today} onDateChange={vi.fn()} datesWithEntries={datesWithEntries} />,
 		);
 
-		// Open calendar
 		const dateButton = screen.getByRole("button", { name: /January 30, 2026/ });
 		fireEvent.click(dateButton);
 
-		// Days with entries should have a marker
 		const day28 = screen.getByText("28");
 		const day30 = screen.getByText("30");
 
@@ -65,11 +62,9 @@ describe("DatePicker", () => {
 		const onDateChange = vi.fn();
 		render(<DatePicker selectedDate={today} onDateChange={onDateChange} />);
 
-		// Open calendar
 		const dateButton = screen.getByRole("button", { name: /January 30, 2026/ });
 		fireEvent.click(dateButton);
 
-		// Click on day 25
 		const day25 = screen.getByText("25");
 		fireEvent.click(day25);
 
@@ -79,11 +74,9 @@ describe("DatePicker", () => {
 	it("navigates months in calendar", () => {
 		render(<DatePicker selectedDate={today} onDateChange={vi.fn()} />);
 
-		// Open calendar
 		const dateButton = screen.getByRole("button", { name: /January 30, 2026/ });
 		fireEvent.click(dateButton);
 
-		// Click previous month
 		const prevMonthButton = screen.getByLabelText("Previous month");
 		fireEvent.click(prevMonthButton);
 
@@ -104,7 +97,6 @@ describe("DatePicker", () => {
 		const todayButton = screen.getByRole("button", { name: /today/i });
 		fireEvent.click(todayButton);
 
-		// Verify that onDateChange was called with a date string in correct format
 		expect(onDateChange).toHaveBeenCalledWith(expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
 	});
 });

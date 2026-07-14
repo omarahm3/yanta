@@ -491,9 +491,10 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 	// index). Deferred with a fresh context — the sync ctx may already be spent —
 	// and best-effort: it never changes the sync's own result.
 	var pulledRemoteChanges bool
+	var syncHeadBefore, syncHeadAfter string
 	defer func() {
 		if pulledRemoteChanges {
-			s.ReindexAfterSyncPull(context.Background())
+			s.ReindexAfterSyncPull(context.Background(), syncHeadBefore, syncHeadAfter)
 		}
 	}()
 
@@ -601,6 +602,7 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 	// 2) Integrate remote changes with a REBASE (never a merge — a merge could
 	//    leave conflict markers on disk). PullRebase aborts cleanly on conflict.
 	headBefore, _ := gitService.GetLastCommitHash(ctx, dataDir)
+	syncHeadBefore = headBefore
 	logger.Info("integrating remote changes (rebase)")
 	if err := gitService.PullRebase(ctx, dataDir, "origin", branch); err != nil {
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
@@ -629,6 +631,7 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 		// detail, and result.Pulled is true even for a no-op rebase).
 		if headAfter, _ := gitService.GetLastCommitHash(ctx, dataDir); headAfter != "" && headAfter != headBefore {
 			pulledRemoteChanges = true
+			syncHeadAfter = headAfter
 		}
 	}
 
@@ -661,14 +664,52 @@ func (s *Service) SyncNow(ctx context.Context) (*git.SyncResult, error) {
 }
 
 // ReindexAfterSyncPull re-indexes the vault after a sync pull brought in remote
-// changes, then notifies the frontend to rebuild its search index. Failures are
-// logged but never surfaced — search freshness is best-effort and must not fail
-// an otherwise-successful sync.
-func (s *Service) ReindexAfterSyncPull(ctx context.Context) {
+// changes, then notifies the frontend to rebuild its search index. When headBefore
+// and headAfter are both available, it performs a diff-scoped reindex (only the
+// changed paths). Otherwise it falls back to a full ScanAndIndexVault. Failures
+// are logged but never surfaced — search freshness is best-effort and must not
+// fail an otherwise-successful sync.
+func (s *Service) ReindexAfterSyncPull(ctx context.Context, headBefore, headAfter string) {
 	if s.indexer == nil {
 		return
 	}
-	logger.Info("reindexing vault after sync pull")
+
+	if headBefore != "" && headAfter != "" && headBefore != headAfter {
+		dataDir := config.GetDataDirectory()
+		gitService := git.NewService()
+		entries, err := gitService.GetDiffNameStatus(ctx, dataDir, headBefore, headAfter)
+		if err != nil {
+			logger.WithError(err).Warn("diff-scoped reindex failed, falling back to full scan")
+		} else {
+			changes := make([]indexer.PathChange, 0, len(entries))
+			for _, e := range entries {
+				p := e.Path
+				if strings.HasPrefix(p, "vault/") {
+					p = strings.TrimPrefix(p, "vault/")
+				}
+				oldP := e.OldPath
+				if strings.HasPrefix(oldP, "vault/") {
+					oldP = strings.TrimPrefix(oldP, "vault/")
+				}
+				changes = append(changes, indexer.PathChange{Status: e.Status, Path: p, OldPath: oldP})
+			}
+			corruptPaths, reindexErr := s.indexer.ReindexPaths(ctx, changes)
+			if reindexErr != nil {
+				logger.WithError(reindexErr).Warn("diff-scoped reindex failed, falling back to full scan")
+			} else {
+				if len(corruptPaths) > 0 {
+					logger.Warnf("%d corrupt vault file(s) skipped during sync reindex: %v", len(corruptPaths), corruptPaths)
+				}
+				logger.WithField("changedPaths", len(changes)).Info("diff-scoped reindex after sync pull completed")
+				if s.eventBus != nil {
+					s.eventBus.Emit(events.VaultReindexed, map[string]any{"reason": "sync-pull"})
+				}
+				return
+			}
+		}
+	}
+
+	logger.Info("reindexing vault after sync pull (full scan)")
 	if _, err := s.indexer.ScanAndIndexVault(ctx); err != nil {
 		logger.WithError(err).Warn("reindex after sync pull failed")
 		return
@@ -896,7 +937,7 @@ func (s *Service) GitPull(ctx context.Context) error {
 		// Fresh context: reindex is best-effort and must not inherit the pull's
 		// (possibly nearly-spent) timeout, which would truncate the scan and
 		// leave the index stale. Matches SyncNow and the auto-sync path.
-		s.ReindexAfterSyncPull(context.Background())
+		s.ReindexAfterSyncPull(context.Background(), headBefore, headAfter)
 	}
 
 	logger.Info("pull completed successfully")

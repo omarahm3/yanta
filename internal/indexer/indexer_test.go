@@ -993,3 +993,187 @@ func TestScanAndIndexVault_NonCorruptErrorAbortsScan(t *testing.T) {
 		t.Fatalf("ScanAndIndexVault() error = %v, want indexing document context", err)
 	}
 }
+
+func TestReindexPaths_AddAndModify(t *testing.T) {
+	db, v := setupTestEnv(t)
+	defer testutil.CleanupTestDB(t, db)
+
+	docStore := document.NewStore(db)
+	projectStore := project.NewStore(db)
+	ftsStore := search.NewStore(db)
+	tagStore := tag.NewStore(db)
+	linkStore := link.NewStore(db)
+	assetStore := asset.NewStore(db)
+
+	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
+	ctx := context.Background()
+
+	doc1Path := createTestDocument(t, v, "@test-project", "Doc One", []string{})
+	doc2Path := createTestDocument(t, v, "@test-project", "Doc Two", []string{})
+
+	changes := []PathChange{
+		{Status: "A", Path: doc1Path},
+		{Status: "M", Path: doc2Path},
+	}
+
+	corruptPaths, err := idx.ReindexPaths(ctx, changes)
+	if err != nil {
+		t.Fatalf("ReindexPaths() error = %v", err)
+	}
+	if len(corruptPaths) != 0 {
+		t.Errorf("ReindexPaths() corruptPaths = %v, want empty", corruptPaths)
+	}
+
+	if _, err := docStore.GetByPath(ctx, doc1Path); err != nil {
+		t.Errorf("doc1 not indexed after add: %v", err)
+	}
+	if _, err := docStore.GetByPath(ctx, doc2Path); err != nil {
+		t.Errorf("doc2 not indexed after modify: %v", err)
+	}
+}
+
+func TestReindexPaths_Delete(t *testing.T) {
+	db, v := setupTestEnv(t)
+	defer testutil.CleanupTestDB(t, db)
+
+	docStore := document.NewStore(db)
+	projectStore := project.NewStore(db)
+	ftsStore := search.NewStore(db)
+	tagStore := tag.NewStore(db)
+	linkStore := link.NewStore(db)
+	assetStore := asset.NewStore(db)
+
+	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
+	ctx := context.Background()
+
+	docPath := createTestDocument(t, v, "@test-project", "To Delete", []string{})
+	if err := idx.IndexDocument(ctx, docPath); err != nil {
+		t.Fatalf("IndexDocument() failed: %v", err)
+	}
+
+	changes := []PathChange{{Status: "D", Path: docPath}}
+	corruptPaths, err := idx.ReindexPaths(ctx, changes)
+	if err != nil {
+		t.Fatalf("ReindexPaths() error = %v", err)
+	}
+	if len(corruptPaths) != 0 {
+		t.Errorf("ReindexPaths() corruptPaths = %v, want empty", corruptPaths)
+	}
+
+	if _, err := docStore.GetByPath(ctx, docPath); err == nil {
+		t.Error("deleted document still in doc store")
+	}
+}
+
+func TestReindexPaths_Rename(t *testing.T) {
+	db, v := setupTestEnv(t)
+	defer testutil.CleanupTestDB(t, db)
+
+	docStore := document.NewStore(db)
+	projectStore := project.NewStore(db)
+	ftsStore := search.NewStore(db)
+	tagStore := tag.NewStore(db)
+	linkStore := link.NewStore(db)
+	assetStore := asset.NewStore(db)
+
+	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
+	ctx := context.Background()
+
+	oldPath := createTestDocument(t, v, "@test-project", "Renamed Doc", []string{})
+	if err := idx.IndexDocument(ctx, oldPath); err != nil {
+		t.Fatalf("IndexDocument() failed: %v", err)
+	}
+
+	newPath := "projects/@test-project/doc-renamed.json"
+	docFile := document.NewDocumentFile("@test-project", "Renamed Doc", []string{})
+	writer := document.NewFileWriter(v)
+	if err := writer.WriteFile(newPath, docFile); err != nil {
+		t.Fatalf("WriteFile() failed: %v", err)
+	}
+
+	changes := []PathChange{{Status: "R", Path: newPath, OldPath: oldPath}}
+	corruptPaths, err := idx.ReindexPaths(ctx, changes)
+	if err != nil {
+		t.Fatalf("ReindexPaths() error = %v", err)
+	}
+	if len(corruptPaths) != 0 {
+		t.Errorf("ReindexPaths() corruptPaths = %v, want empty", corruptPaths)
+	}
+
+	if _, err := docStore.GetByPath(ctx, oldPath); err == nil {
+		t.Error("old path still in doc store after rename")
+	}
+	if _, err := docStore.GetByPath(ctx, newPath); err != nil {
+		t.Errorf("new path not indexed after rename: %v", err)
+	}
+}
+
+func TestReindexPaths_CorruptFileSkipped(t *testing.T) {
+	db, v := setupTestEnv(t)
+	defer testutil.CleanupTestDB(t, db)
+
+	docStore := document.NewStore(db)
+	projectStore := project.NewStore(db)
+	ftsStore := search.NewStore(db)
+	tagStore := tag.NewStore(db)
+	linkStore := link.NewStore(db)
+	assetStore := asset.NewStore(db)
+
+	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
+	ctx := context.Background()
+
+	corruptPath := "projects/@test-project/doc-corrupt.json"
+	aliasSlug := "test-project"
+	corruptFile := filepath.Join(v.RootPath(), corruptPath)
+	if err := os.MkdirAll(filepath.Dir(corruptFile), 0755); err != nil {
+		t.Fatalf("MkdirAll() failed: %v", err)
+	}
+	if err := os.WriteFile(corruptFile, []byte("not valid json"), 0644); err != nil {
+		t.Fatalf("WriteFile() failed: %v", err)
+	}
+	_ = aliasSlug
+
+	changes := []PathChange{{Status: "A", Path: corruptPath}}
+	corruptPaths, err := idx.ReindexPaths(ctx, changes)
+	if err != nil {
+		t.Fatalf("ReindexPaths() error = %v", err)
+	}
+	if len(corruptPaths) != 1 || corruptPaths[0] != corruptPath {
+		t.Errorf("ReindexPaths() corruptPaths = %v, want [%s]", corruptPaths, corruptPath)
+	}
+}
+
+func TestReindexPaths_Journal(t *testing.T) {
+	db, v := setupTestEnv(t)
+	defer testutil.CleanupTestDB(t, db)
+
+	docStore := document.NewStore(db)
+	projectStore := project.NewStore(db)
+	ftsStore := search.NewStore(db)
+	tagStore := tag.NewStore(db)
+	linkStore := link.NewStore(db)
+	assetStore := asset.NewStore(db)
+
+	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
+	ctx := context.Background()
+
+	journalDir := filepath.Join(v.RootPath(), "projects", "@test-project", "journal")
+	if err := os.MkdirAll(journalDir, 0755); err != nil {
+		t.Fatalf("MkdirAll() failed: %v", err)
+	}
+	journalFile := filepath.Join(journalDir, "2026-01-30.json")
+	journalContent := `{"entries":[{"id":"entry-1","content":"Test journal entry","tags":["test"],"deleted":false}]}`
+	if err := os.WriteFile(journalFile, []byte(journalContent), 0644); err != nil {
+		t.Fatalf("WriteFile() failed: %v", err)
+	}
+
+	journalPath := "projects/@test-project/journal/2026-01-30.json"
+	changes := []PathChange{{Status: "A", Path: journalPath}}
+	corruptPaths, err := idx.ReindexPaths(ctx, changes)
+	if err != nil {
+		t.Fatalf("ReindexPaths() error = %v", err)
+	}
+	if len(corruptPaths) != 0 {
+		t.Errorf("ReindexPaths() corruptPaths = %v, want empty", corruptPaths)
+	}
+}

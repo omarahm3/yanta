@@ -631,6 +631,57 @@ func (s *Service) GetLastCommitHash(ctx context.Context, path string) (string, e
 	return strings.TrimSpace(stdout.String()), nil
 }
 
+type DiffEntry struct {
+	Status  string
+	Path    string
+	OldPath string
+}
+
+func (s *Service) GetDiffNameStatus(ctx context.Context, repoPath, from, to string) ([]DiffEntry, error) {
+	if err := s.validateRepoPath(repoPath); err != nil {
+		return nil, fmt.Errorf("git diff: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	cmd := s.newGitCmd(ctx, repoPath, "diff", "--name-status", from+".."+to)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("git diff --name-status: %w: %s", err, stderr.String())
+	}
+
+	var entries []DiffEntry
+	for _, line := range strings.Split(stdout.String(), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		parts := strings.Split(line, "\t")
+		if len(parts) < 2 {
+			continue
+		}
+		status := parts[0]
+		statusCode := status
+		if len(status) > 1 && (status[0] == 'R' || status[0] == 'C') {
+			statusCode = status[:1]
+		}
+		switch statusCode {
+		case "R", "C":
+			if len(parts) >= 3 {
+				entries = append(entries, DiffEntry{Status: statusCode, OldPath: parts[1], Path: parts[2]})
+			}
+		default:
+			entries = append(entries, DiffEntry{Status: statusCode, Path: parts[1]})
+		}
+	}
+	return entries, nil
+}
+
 func (s *Service) Pull(ctx context.Context, path, remote, branch string) error {
 	if err := s.validateRepoPath(path); err != nil {
 		return fmt.Errorf("git pull: %w", err)

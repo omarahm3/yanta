@@ -266,7 +266,7 @@ function GlobalSearchInner({
 					</div>
 				</div>
 
-				<div className="flex h-9 shrink-0 items-center gap-4 border-t border-border px-4 text-[11px] text-text-dim">
+				<div className="flex h-9 shrink-0 items-center gap-4 border-t border-border px-4 text-xs text-text-dim">
 					<FooterHint keyLabel="↑↓" label="Navigate" />
 					<FooterHint keyLabel="↵" label="Open" />
 					{selected?.type !== "note" && (
@@ -433,7 +433,7 @@ function ListEmpty({
 function FooterHint({ keyLabel, label }: { keyLabel: string; label: string }) {
 	return (
 		<span className="flex items-center gap-1.5">
-			<Kbd className="text-[10px]">{keyLabel}</Kbd>
+			<Kbd>{keyLabel}</Kbd>
 			<span>{label}</span>
 		</span>
 	);
