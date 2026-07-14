@@ -80,8 +80,12 @@ const WEEK_START_FALLBACK: Record<string, 0 | 1 | 6> = {
 };
 
 export function getLocaleWeekStart(): 0 | 1 | 6 {
+	// navigator is undefined in non-browser environments (SSR/tests); guard it.
+	const lang = typeof navigator !== "undefined" ? navigator.language : "";
+	if (!lang) return 0;
+
 	try {
-		const locale = new Intl.Locale(navigator.language);
+		const locale = new Intl.Locale(lang);
 		const weekInfo = (
 			locale as Intl.Locale & { getWeekInfo?: () => { firstDay: number } }
 		).getWeekInfo?.();
@@ -93,7 +97,6 @@ export function getLocaleWeekStart(): 0 | 1 | 6 {
 		}
 	} catch {}
 
-	const lang = navigator.language;
 	const short = lang.split("-")[0];
 	if (lang in WEEK_START_FALLBACK) return WEEK_START_FALLBACK[lang];
 	if (short in WEEK_START_FALLBACK) return WEEK_START_FALLBACK[short];

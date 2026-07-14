@@ -600,12 +600,22 @@ func (idx *Indexer) ReindexPaths(ctx context.Context, changes []PathChange) ([]s
 			if journalDates == nil {
 				journalDates = make(map[string]map[string]bool)
 			}
-			alias, date := parseJournalPath(p)
-			if alias != "" && date != "" {
+			addJournalDate := func(alias, date string) {
+				if alias == "" || date == "" {
+					return
+				}
 				if journalDates[alias] == nil {
 					journalDates[alias] = make(map[string]bool)
 				}
 				journalDates[alias][date] = true
+			}
+			alias, date := parseJournalPath(p)
+			addJournalDate(alias, date)
+			// On rename/copy also reindex the old date so its stale entries are
+			// cleared instead of orphaned in fts_journal.
+			if change.OldPath != "" && isJournalPath(change.OldPath) {
+				oldAlias, oldDate := parseJournalPath(change.OldPath)
+				addJournalDate(oldAlias, oldDate)
 			}
 			continue
 		}
@@ -668,17 +678,14 @@ func parseJournalPath(p string) (alias, date string) {
 }
 
 func (idx *Indexer) reindexJournalDate(ctx context.Context, projectAlias, date string) error {
-	if err := idx.ftsStore.DeleteJournalEntriesByDate(ctx, projectAlias, date); err != nil {
-		return fmt.Errorf("clearing journal entries for %s/%s: %w", projectAlias, date, err)
-	}
-
 	journalDir := filepath.Join(idx.vault.RootPath(), "projects", projectAlias, "journal")
 	journalFile := filepath.Join(journalDir, date+".json")
 
 	data, err := os.ReadFile(journalFile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil
+			// File gone (deleted/renamed away): just clear its stale entries.
+			return idx.ftsStore.DeleteJournalEntriesByDate(ctx, projectAlias, date)
 		}
 		return fmt.Errorf("reading journal file: %w", err)
 	}
@@ -689,13 +696,25 @@ func (idx *Indexer) reindexJournalDate(ctx context.Context, projectAlias, date s
 		return nil
 	}
 
+	// Clear + reinsert in a single transaction so a mid-way failure can't leave
+	// the journal FTS index for this date partially populated.
+	tx, err := idx.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("beginning transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err := idx.ftsStore.DeleteJournalEntriesByDateTx(ctx, tx, projectAlias, date); err != nil {
+		return fmt.Errorf("clearing journal entries for %s/%s: %w", projectAlias, date, err)
+	}
+
 	for _, entry := range file.Entries {
 		if entry.Deleted {
 			continue
 		}
-		if err := idx.ftsStore.InsertJournalEntry(ctx, projectAlias, date, entry.ID, entry.Content, entry.Tags); err != nil {
+		if err := idx.ftsStore.InsertJournalEntryTx(ctx, tx, projectAlias, date, entry.ID, entry.Content, entry.Tags); err != nil {
 			logger.Warnf("failed to index journal entry %s/%s/%s: %v", projectAlias, date, entry.ID, err)
 		}
 	}
-	return nil
+	return tx.Commit()
 }

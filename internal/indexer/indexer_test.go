@@ -1177,3 +1177,56 @@ func TestReindexPaths_Journal(t *testing.T) {
 		t.Errorf("ReindexPaths() corruptPaths = %v, want empty", corruptPaths)
 	}
 }
+
+// A journal file renamed to a new date must clear the old date's FTS entries
+// (not leave them orphaned) and index the entry under the new date.
+func TestReindexPaths_JournalRename(t *testing.T) {
+	db, v := setupTestEnv(t)
+	defer testutil.CleanupTestDB(t, db)
+
+	docStore := document.NewStore(db)
+	projectStore := project.NewStore(db)
+	ftsStore := search.NewStore(db)
+	tagStore := tag.NewStore(db)
+	linkStore := link.NewStore(db)
+	assetStore := asset.NewStore(db)
+
+	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
+	ctx := context.Background()
+
+	journalDir := filepath.Join(v.RootPath(), "projects", "@test-project", "journal")
+	if err := os.MkdirAll(journalDir, 0755); err != nil {
+		t.Fatalf("MkdirAll() failed: %v", err)
+	}
+	content := `{"entries":[{"id":"entry-1","content":"uniquejournaltoken","tags":["test"],"deleted":false}]}`
+	oldFile := filepath.Join(journalDir, "2026-01-30.json")
+	if err := os.WriteFile(oldFile, []byte(content), 0644); err != nil {
+		t.Fatalf("WriteFile() failed: %v", err)
+	}
+
+	oldPath := "projects/@test-project/journal/2026-01-30.json"
+	if _, err := idx.ReindexPaths(ctx, []PathChange{{Status: "A", Path: oldPath}}); err != nil {
+		t.Fatalf("initial ReindexPaths() error = %v", err)
+	}
+
+	// Rename the journal file from 2026-01-30 to 2026-02-15 on disk.
+	newFile := filepath.Join(journalDir, "2026-02-15.json")
+	if err := os.Rename(oldFile, newFile); err != nil {
+		t.Fatalf("Rename() failed: %v", err)
+	}
+	newPath := "projects/@test-project/journal/2026-02-15.json"
+	if _, err := idx.ReindexPaths(ctx, []PathChange{{Status: "R", Path: newPath, OldPath: oldPath}}); err != nil {
+		t.Fatalf("rename ReindexPaths() error = %v", err)
+	}
+
+	results, err := ftsStore.SearchJournalEntries(ctx, "uniquejournaltoken")
+	if err != nil {
+		t.Fatalf("SearchJournalEntries() error = %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("SearchJournalEntries() returned %d results, want 1 (old date should be cleared)", len(results))
+	}
+	if results[0].Date != "2026-02-15" {
+		t.Errorf("journal entry indexed under date %q, want 2026-02-15", results[0].Date)
+	}
+}
