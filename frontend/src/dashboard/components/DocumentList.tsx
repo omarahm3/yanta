@@ -263,13 +263,18 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 			onToggleSelection?.(doc.path);
 		};
 
-		const handleItemClick: React.MouseEventHandler<HTMLDivElement> = (event) => {
+		const handleItemClick: React.MouseEventHandler<HTMLDivElement> = () => {
 			onHighlightDocument?.(index);
+			onDocumentClick(doc.path);
+		};
+
+		// Middle-click fires `auxclick`, not `click`, so open-in-split must be wired
+		// via onAuxClick or it never triggers.
+		const handleItemAuxClick: React.MouseEventHandler<HTMLDivElement> = (event) => {
 			if (event.button === 1 && onOpenInSplit) {
 				event.preventDefault();
+				onHighlightDocument?.(index);
 				onOpenInSplit(doc.path);
-			} else {
-				onDocumentClick(doc.path);
 			}
 		};
 
@@ -353,6 +358,7 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 								role="button"
 								tabIndex={0}
 								onClick={handleItemClick}
+								onAuxClick={handleItemAuxClick}
 								onKeyDown={handleItemClickKeyDown}
 							>
 								<div className="flex items-center gap-2">

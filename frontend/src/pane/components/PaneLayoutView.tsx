@@ -21,7 +21,7 @@ export const PaneLayoutView: React.FC<PaneLayoutViewProps> = ({
 	documentPath,
 	openInSplit,
 }) => {
-	const { layout, activePaneId, openDocumentInPane, splitPane } = usePaneLayout();
+	const { layout, activePaneId, openDocumentInPane, splitAndOpenDocument } = usePaneLayout();
 
 	usePaneHotkeys();
 
@@ -43,26 +43,18 @@ export const PaneLayoutView: React.FC<PaneLayoutViewProps> = ({
 	});
 
 	const lastOpenedPathRef = useRef<string | undefined>(documentPath);
-	const pendingSplitOpenRef = useRef<string | null>(null);
 
 	useEffect(() => {
 		if (documentPath && documentPath !== lastOpenedPathRef.current) {
 			if (openInSplit) {
-				pendingSplitOpenRef.current = documentPath;
-				splitPane(activePaneId, "horizontal");
+				// Atomic split + open so the doc always lands in the new pane.
+				splitAndOpenDocument(activePaneId, "horizontal", documentPath);
 			} else {
 				openDocumentInPane(activePaneId, documentPath);
 			}
 			lastOpenedPathRef.current = documentPath;
 		}
-	}, [documentPath, activePaneId, openDocumentInPane, openInSplit, splitPane]);
-
-	useEffect(() => {
-		if (pendingSplitOpenRef.current) {
-			openDocumentInPane(activePaneId, pendingSplitOpenRef.current);
-			pendingSplitOpenRef.current = null;
-		}
-	}, [activePaneId, openDocumentInPane]);
+	}, [documentPath, activePaneId, openDocumentInPane, openInSplit, splitAndOpenDocument]);
 
 	return (
 		<PaneNavigateProvider value={onNavigate ?? (() => {})}>

@@ -30,8 +30,10 @@ describe("LIFO escape registry", () => {
 		const handler1 = vi.fn();
 		const handler2 = vi.fn();
 
-		const { unmount } = renderHook(() => useLifoEscape({ when: true, onEscape: handler2 }));
+		// handler2 is registered last (topmost); unmounting it must fall back to
+		// handler1, which is now the top of the stack.
 		renderHook(() => useLifoEscape({ when: true, onEscape: handler1 }));
+		const { unmount } = renderHook(() => useLifoEscape({ when: true, onEscape: handler2 }));
 
 		unmount();
 
@@ -40,6 +42,18 @@ describe("LIFO escape registry", () => {
 
 		expect(handler1).toHaveBeenCalledTimes(1);
 		expect(handler2).not.toHaveBeenCalled();
+	});
+
+	it("reports handled status from the topmost handler", () => {
+		renderHook(() => useLifoEscape({ when: true, onEscape: () => false }));
+		const declined = dispatchEscape(new KeyboardEvent("keydown", { key: "Escape" }));
+		expect(declined).toBe(false);
+
+		useEscapeRegistryStore.getState().reset();
+
+		renderHook(() => useLifoEscape({ when: true, onEscape: () => true }));
+		const handled = dispatchEscape(new KeyboardEvent("keydown", { key: "Escape" }));
+		expect(handled).toBe(true);
 	});
 
 	it("does not call handlers when stack is empty", () => {

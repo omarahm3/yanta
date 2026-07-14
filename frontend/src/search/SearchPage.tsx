@@ -18,9 +18,9 @@ import { SearchResultsSkeleton } from "./SearchResultsSkeleton";
 
 const QUERY_CHIPS = [
 	{ label: "tag:idea", insert: "tag:idea" },
-	{ label: "project:@work", insert: "project:" },
-	{ label: 'title:"meeting"', insert: "title:" },
-	{ label: '"exact phrase"', insert: '""' },
+	{ label: "project:@work", insert: "project:@work" },
+	{ label: 'title:"meeting"', insert: 'title:"meeting"' },
+	{ label: '"exact phrase"', insert: '"exact phrase"' },
 ] as const;
 
 interface SearchResult {
@@ -324,13 +324,17 @@ const SearchComponent: React.FC<SearchProps> = ({ onNavigate, onRegisterToggleSi
 		onEscape: () => {
 			const focused = document.activeElement as HTMLElement | null;
 			const isSearchInputFocused = focused === (searchInputRef.current as unknown as HTMLElement);
+			// Only handle Escape when the search input is focused; otherwise decline
+			// so Escape isn't swallowed for other consumers.
 			if (isSearchInputFocused) {
 				searchInputRef.current?.blur();
 				if (groupedResults.length > 0) {
 					const firstResult = document.querySelector('[data-result-item="true"]') as HTMLElement;
 					firstResult?.focus();
 				}
+				return true;
 			}
+			return false;
 		},
 	});
 

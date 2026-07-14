@@ -1,16 +1,25 @@
 import { create } from "zustand";
 
-export type EscapeHandler = (e: KeyboardEvent) => void;
+/**
+ * Escape handler. Return `true` (or `void`) when the Escape was handled so the
+ * caller suppresses the native event; return `false` to decline and let Escape
+ * fall through to native/Radix handling (e.g. so a Radix Dialog can still close).
+ */
+export type EscapeHandler = (e: KeyboardEvent) => boolean | void;
+
+interface RegistryEntry {
+	id: string;
+	handler: EscapeHandler;
+}
 
 interface EscapeRegistryState {
-	stack: EscapeHandler[];
+	stack: RegistryEntry[];
 	push: (handler: EscapeHandler) => string;
 	remove: (id: string) => void;
 	reset: () => void;
 }
 
 let nextId = 0;
-const idToIndex = new Map<string, number>();
 
 /**
  * LIFO escape registry. Consumers register an Escape handler; only the topmost
@@ -18,48 +27,29 @@ const idToIndex = new Map<string, number>();
  * capture-phase Escape handlers from firing multiple unrelated actions on one
  * keypress.
  */
-export const useEscapeRegistryStore = create<EscapeRegistryState>((set, get) => ({
+export const useEscapeRegistryStore = create<EscapeRegistryState>((set) => ({
 	stack: [],
 	push: (handler: EscapeHandler) => {
 		const id = `escape-${nextId++}`;
-		set((s) => {
-			const newStack = [...s.stack, handler];
-			idToIndex.set(id, newStack.length - 1);
-			return { stack: newStack };
-		});
+		set((s) => ({ stack: [...s.stack, { id, handler }] }));
 		return id;
 	},
 	remove: (id: string) => {
-		set((s) => {
-			const idx = idToIndex.get(id);
-			if (idx === undefined) return s;
-			const newStack = s.stack.filter((_, i) => i !== idx);
-			idToIndex.delete(id);
-			for (const [key, val] of idToIndex) {
-				if (val > idx) {
-					idToIndex.set(key, val - 1);
-				}
-			}
-			return { stack: newStack };
-		});
+		set((s) => ({ stack: s.stack.filter((item) => item.id !== id) }));
 	},
 	reset: () => {
-		idToIndex.clear();
 		set({ stack: [] });
 	},
 }));
 
 /**
- * Dispatch Escape to the topmost registered handler. Returns true if a handler
- * was called, false if the stack was empty.
+ * Dispatch Escape to the topmost registered handler. Returns true only when that
+ * handler actually handled the event (so the caller knows whether to suppress
+ * it); false when the stack is empty or the top handler declined.
  */
 export function dispatchEscape(e: KeyboardEvent): boolean {
-	const stack = useEscapeRegistryStore.getState().stack;
-	if (stack.length === 0) return false;
-	const topHandler = stack[stack.length - 1];
-	if (topHandler) {
-		topHandler(e);
-		return true;
-	}
-	return false;
+	const { stack } = useEscapeRegistryStore.getState();
+	const top = stack[stack.length - 1];
+	if (!top) return false;
+	return top.handler(e) !== false;
 }

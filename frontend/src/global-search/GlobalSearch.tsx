@@ -1,6 +1,7 @@
 import { ClipboardCopy, FileText, NotebookPen, Search } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { formatShortcutKeyForDisplay } from "../config/shortcuts";
 import { useProjectContext } from "../project";
 import { getFinderUnsupportedWarning } from "../search-index/queryParser";
 import { useNotification } from "../shared/hooks";
@@ -65,7 +66,7 @@ function GlobalSearchInner({
 	} = useDocumentSearch();
 	const lastQuery = useGlobalSearchStore((s) => s.lastQuery);
 	const setLastQuery = useGlobalSearchStore((s) => s.setLastQuery);
-	const { success: notifySuccess } = useNotification();
+	const { success: notifySuccess, error: notifyError } = useNotification();
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const listRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -80,12 +81,15 @@ function GlobalSearchInner({
 		inputRef.current?.focus();
 	}, []);
 
-	// Persist query on close.
+	// Persist the query on close only. Keep the latest value in a ref so the
+	// unmount cleanup doesn't re-run (and re-render subscribers) on every keystroke.
+	const queryRef = useRef(query);
+	queryRef.current = query;
 	useEffect(() => {
 		return () => {
-			setLastQuery(query);
+			setLastQuery(queryRef.current);
 		};
-	}, [query, setLastQuery]);
+	}, [setLastQuery]);
 
 	// New result set → jump selection back to the top.
 	useEffect(() => {
@@ -127,11 +131,18 @@ function GlobalSearchInner({
 	const copyLink = useCallback(
 		(item: FinderItem | undefined) => {
 			if (!item) return;
-			navigator.clipboard.writeText(item.path).then(() => {
-				notifySuccess("Link copied");
-			});
+			// navigator.clipboard is undefined in non-secure contexts, and writeText
+			// can reject if permission is denied — guard and surface both.
+			if (!navigator.clipboard?.writeText) {
+				notifyError("Clipboard unavailable");
+				return;
+			}
+			navigator.clipboard
+				.writeText(item.path)
+				.then(() => notifySuccess("Link copied"))
+				.catch(() => notifyError("Couldn't copy link"));
 		},
-		[notifySuccess],
+		[notifySuccess, notifyError],
 	);
 
 	const moveSelection = useCallback((delta: number) => {
@@ -258,7 +269,9 @@ function GlobalSearchInner({
 				<div className="flex h-9 shrink-0 items-center gap-4 border-t border-border px-4 text-[11px] text-text-dim">
 					<FooterHint keyLabel="↑↓" label="Navigate" />
 					<FooterHint keyLabel="↵" label="Open" />
-					<FooterHint keyLabel="⌘↵" label="Open in split" />
+					{selected?.type !== "note" && (
+						<FooterHint keyLabel={formatShortcutKeyForDisplay("mod+enter")} label="Open in split" />
+					)}
 					<FooterHint keyLabel="esc" label="Close" />
 					{unsupportedWarning ? (
 						<span className="ml-auto text-yellow truncate max-w-[50%]" title={unsupportedWarning}>

@@ -24,6 +24,12 @@ import {
 
 type PaneLayoutAction =
 	| { type: "SPLIT_PANE"; paneId: string; direction: SplitDirection }
+	| {
+			type: "SPLIT_AND_OPEN_DOCUMENT";
+			paneId: string;
+			direction: SplitDirection;
+			documentPath: string;
+	  }
 	| { type: "CLOSE_PANE"; paneId: string }
 	| { type: "RESIZE_PANE"; splitId: string; sizes: [number, number] }
 	| { type: "OPEN_DOCUMENT"; paneId: string; documentPath: string | null }
@@ -47,6 +53,21 @@ function paneLayoutReducer(state: PaneLayoutState, action: PaneLayoutAction): Pa
 				...state,
 				root: newRoot,
 				activePaneId: newPane ? newPane.id : state.activePaneId,
+			};
+		}
+		case "SPLIT_AND_OPEN_DOCUMENT": {
+			// Split and open the document in the newly created pane in one atomic
+			// update, so no follow-up effect can open it in the wrong pane.
+			const splitRoot = splitPaneUtil(state.root, action.paneId, action.direction);
+			if (splitRoot === state.root) return state;
+			const oldLeafIds = new Set(getLeaves(state.root).map((l) => l.id));
+			const newPane = getLeaves(splitRoot).find((l) => !oldLeafIds.has(l.id));
+			const targetPaneId = newPane ? newPane.id : action.paneId;
+			const newRoot = openDocumentInPaneUtil(splitRoot, targetPaneId, action.documentPath);
+			return {
+				...state,
+				root: newRoot,
+				activePaneId: targetPaneId,
 			};
 		}
 		case "CLOSE_PANE": {
@@ -116,6 +137,7 @@ export interface PaneLayoutContextValue {
 	layout: PaneLayoutState;
 	activePaneId: string;
 	splitPane: (paneId: string, direction: SplitDirection) => void;
+	splitAndOpenDocument: (paneId: string, direction: SplitDirection, documentPath: string) => void;
 	closePane: (paneId: string) => void;
 	resizePane: (splitId: string, sizes: [number, number]) => void;
 	openDocumentInPane: (paneId: string, documentPath: string | null) => void;
@@ -141,6 +163,13 @@ export const PaneLayoutProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 	const splitPane = useCallback((paneId: string, direction: SplitDirection) => {
 		dispatch({ type: "SPLIT_PANE", paneId, direction });
 	}, []);
+
+	const splitAndOpenDocument = useCallback(
+		(paneId: string, direction: SplitDirection, documentPath: string) => {
+			dispatch({ type: "SPLIT_AND_OPEN_DOCUMENT", paneId, direction, documentPath });
+		},
+		[],
+	);
 
 	const closePane = useCallback((paneId: string) => {
 		dispatch({ type: "CLOSE_PANE", paneId });
@@ -190,6 +219,7 @@ export const PaneLayoutProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 			layout: state,
 			activePaneId: state.activePaneId,
 			splitPane,
+			splitAndOpenDocument,
 			closePane,
 			resizePane,
 			openDocumentInPane,
@@ -203,6 +233,7 @@ export const PaneLayoutProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 		[
 			state,
 			splitPane,
+			splitAndOpenDocument,
 			closePane,
 			resizePane,
 			openDocumentInPane,

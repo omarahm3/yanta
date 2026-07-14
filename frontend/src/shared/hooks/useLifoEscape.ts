@@ -40,9 +40,11 @@ export function useLifoEscape({
 		}
 
 		const handler: EscapeHandler = (e) => {
-			if (!whenRef.current) return;
-			if (skipRef.current && isDialogOpenRef.current) return;
-			onEscapeRef.current(e);
+			// Decline (return false) when gated so Escape falls through to native
+			// handling instead of being swallowed.
+			if (!whenRef.current) return false;
+			if (skipRef.current && isDialogOpenRef.current) return false;
+			return onEscapeRef.current(e);
 		};
 
 		if (!registeredIdRef.current) {
@@ -55,5 +57,7 @@ export function useLifoEscape({
 				registeredIdRef.current = null;
 			}
 		};
-	}, [when, skipWhenDialogOpen]);
+		// `skipWhenDialogOpen` is read via skipRef so it must NOT re-run this effect
+		// — re-registering would move the handler to the top of the LIFO stack.
+	}, [when]);
 }

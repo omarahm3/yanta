@@ -113,11 +113,15 @@ export function useHelpModalController(): UseHelpModalControllerResult {
 	useLifoEscape({
 		when: isOpen,
 		onEscape: () => {
+			// Only handle Escape when there's a search to clear; otherwise decline
+			// so Escape falls through to the Radix Dialog and closes Help.
 			if (searchInputRef.current?.value.trim()) {
 				setSearchQuery("");
 				searchInputRef.current?.focus();
 				announce("Search cleared");
+				return true;
 			}
+			return false;
 		},
 		skipWhenDialogOpen: false,
 	});
