@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	addDaysLocalString,
 	formatLocalDateString,
+	getLocaleWeekStart,
 	parseLocalDate,
 	todayLocalString,
 } from "../date";
@@ -37,5 +38,10 @@ describe("local-date helpers", () => {
 		expect(todayLocalString()).toBe(formatLocalDateString(now));
 		// And it is a well-formed YYYY-MM-DD.
 		expect(todayLocalString()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+	});
+
+	it("getLocaleWeekStart returns a valid day (0, 1, or 6)", () => {
+		const day = getLocaleWeekStart();
+		expect([0, 1, 6]).toContain(day);
 	});
 });

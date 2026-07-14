@@ -87,8 +87,8 @@ export const ProjectSwitcher: React.FC = () => {
 			</CommandList>
 			<div className="flex items-center gap-4 border-t border-border px-4 py-2">
 				{FOOTER_HINTS.map((hint) => (
-					<span key={hint.key} className="flex items-center gap-1.5 text-[11px] text-text-dim">
-						<Kbd className="text-[10px]">{hint.key}</Kbd>
+					<span key={hint.key} className="flex items-center gap-1.5 text-xs text-text-dim">
+						<Kbd>{hint.key}</Kbd>
 						<span>{hint.label}</span>
 					</span>
 				))}

@@ -3,7 +3,12 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "../shared/utils/cn";
-import { formatLocalDateString, parseLocalDate, todayLocalString } from "../shared/utils/date";
+import {
+	formatLocalDateString,
+	getLocaleWeekStart,
+	parseLocalDate,
+	todayLocalString,
+} from "../shared/utils/date";
 
 export interface DatePickerProps {
 	selectedDate: string;
@@ -164,11 +169,16 @@ const Calendar: React.FC<CalendarProps> = ({
 		year: "numeric",
 	});
 
+	const weekStart = getLocaleWeekStart();
+	const allDayLabels = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+	const dayLabels = [...allDayLabels.slice(weekStart), ...allDayLabels.slice(0, weekStart)];
+
 	const daysInMonth = new Date(year, month + 1, 0).getDate();
 	const firstDayOfMonth = new Date(year, month, 1).getDay();
+	const leadingBlanks = (firstDayOfMonth - weekStart + 7) % 7;
 
 	const days: (number | null)[] = [];
-	for (let i = 0; i < firstDayOfMonth; i++) {
+	for (let i = 0; i < leadingBlanks; i++) {
 		days.push(null);
 	}
 	for (let i = 1; i <= daysInMonth; i++) {
@@ -292,7 +302,7 @@ const Calendar: React.FC<CalendarProps> = ({
 			</div>
 
 			<div className="grid grid-cols-7 gap-1 mb-1">
-				{["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+				{dayLabels.map((day) => (
 					<div
 						key={day}
 						className="w-8 h-8 flex items-center justify-center text-xs text-text-secondary"

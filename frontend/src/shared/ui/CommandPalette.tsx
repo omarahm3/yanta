@@ -106,7 +106,7 @@ const CommandPaletteItem: React.FC<CommandPaletteItemProps> = React.memo(
 				{command.shortcut ? (
 					<Kbd className="ml-2 tracking-wider">{command.shortcut}</Kbd>
 				) : command.hint ? (
-					<span data-slot="command-shortcut" className="ml-2 shrink-0 text-[11px] text-text-dim">
+					<span data-slot="command-shortcut" className="ml-2 shrink-0 text-xs text-text-dim">
 						{command.hint}
 					</span>
 				) : null}
@@ -134,7 +134,7 @@ const SubPaletteItemRow: React.FC<SubPaletteItemRowProps> = React.memo(({ item, 
 				<span className="w-4 shrink-0" />
 			)}
 			<span className="flex-1 truncate">{item.text}</span>
-			{item.hint && <span className="ml-2 shrink-0 text-[11px] text-text-dim">{item.hint}</span>}
+			{item.hint && <span className="ml-2 shrink-0 text-xs text-text-dim">{item.hint}</span>}
 		</CommandItem>
 	);
 });
@@ -254,8 +254,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 		() => (
 			<div className="flex items-center gap-4 border-t border-border px-4 py-2">
 				{FOOTER_HINTS.map((hint) => (
-					<span key={hint.key} className="flex items-center gap-1.5 text-[11px] text-text-dim">
-						<Kbd className="text-[10px]">{hint.key}</Kbd>
+					<span key={hint.key} className="flex items-center gap-1.5 text-xs text-text-dim">
+						<Kbd>{hint.key}</Kbd>
 						<span>{hint.label}</span>
 					</span>
 				))}

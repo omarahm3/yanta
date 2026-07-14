@@ -66,7 +66,7 @@ export const FooterHintBar: React.FC<FooterHintBarProps> = ({ hints, className }
 						className={cn("items-center gap-1", priorityClasses(priority))}
 						data-priority={priority}
 					>
-						<kbd className="font-mono text-[10px] bg-bg-dark px-1 py-0.5 rounded mr-1 text-text-dim border border-border">
+						<kbd className="font-mono text-xs bg-bg-dark px-1 py-0.5 rounded mr-1 text-text-dim border border-border">
 							{hint.key}
 						</kbd>
 						<span>{hint.label}</span>

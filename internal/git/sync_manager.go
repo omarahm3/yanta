@@ -41,7 +41,7 @@ type SyncManager struct {
 	oplock         *OperationLock // shared with the manual sync path; serializes all git ops
 
 	emitter        toastEmitter
-	reindexFunc    func(ctx context.Context) // called after a pull brings in remote changes; nil = no-op
+	reindexFunc    func(ctx context.Context, headBefore, headAfter string) // called after a pull brings in remote changes; nil = no-op
 	lastFailureKey string                    // "" = healthy; guarded by mu. Drives notify() dedup.
 	needsPush      bool                      // guarded by mu; a local commit failed to push and should be retried
 }
@@ -87,7 +87,7 @@ func (sm *SyncManager) SetEmitter(e toastEmitter) {
 // SetReindexFunc wires a callback invoked after a pull brings in remote
 // changes so the vault is reindexed. Called once at app startup; when unset
 // (e.g. in tests) no reindex is triggered.
-func (sm *SyncManager) SetReindexFunc(f func(ctx context.Context)) {
+func (sm *SyncManager) SetReindexFunc(f func(ctx context.Context, headBefore, headAfter string)) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	sm.reindexFunc = f
@@ -401,13 +401,14 @@ const commitFailureMessage = "Auto-sync couldn't save your changes to Git (see l
 // every failure case the local commit is intact.
 func (sm *SyncManager) pushWithRebaseRetry(ctx context.Context, dataDir, branch string) SyncStatus {
 	var pulledRemoteChanges bool
+	var autoHeadBefore, autoHeadAfter string
 	defer func() {
 		if pulledRemoteChanges {
 			sm.mu.Lock()
 			f := sm.reindexFunc
 			sm.mu.Unlock()
 			if f != nil {
-				f(context.Background())
+				f(context.Background(), autoHeadBefore, autoHeadAfter)
 			}
 		}
 	}()
@@ -428,6 +429,7 @@ func (sm *SyncManager) pushWithRebaseRetry(ctx context.Context, dataDir, branch 
 	}
 
 	logger.WithField("branch", branch).Info("auto-sync: push rejected (remote ahead); attempting pull --rebase")
+	autoHeadBefore, _ = sm.gitService.GetLastCommitHash(ctx, dataDir)
 	if rebaseErr := sm.gitService.PullRebase(ctx, dataDir, "origin", branch); rebaseErr != nil {
 		if strings.HasPrefix(rebaseErr.Error(), "REBASE_CONFLICT:") {
 			logger.WithField("error", rebaseErr).Warn("auto-sync: rebase conflict; manual resolution required (local commit intact)")
@@ -437,6 +439,7 @@ func (sm *SyncManager) pushWithRebaseRetry(ctx context.Context, dataDir, branch 
 		return SyncStatusPushFailed
 	}
 
+	autoHeadAfter, _ = sm.gitService.GetLastCommitHash(ctx, dataDir)
 	pulledRemoteChanges = true
 
 	logger.Debug("auto-sync: rebase succeeded; retrying push")

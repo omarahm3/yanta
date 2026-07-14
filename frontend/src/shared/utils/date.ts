@@ -62,6 +62,47 @@ export function formatRelativeTime(dateString: string): string {
 		.replace("less than a minute", "Just now");
 }
 
+const WEEK_START_FALLBACK: Record<string, 0 | 1 | 6> = {
+	en: 0,
+	"en-US": 0,
+	"en-GB": 1,
+	de: 1,
+	fr: 1,
+	es: 1,
+	it: 1,
+	pt: 1,
+	nl: 1,
+	ru: 1,
+	ja: 0,
+	"zh-CN": 1,
+	ko: 0,
+	ar: 6,
+};
+
+export function getLocaleWeekStart(): 0 | 1 | 6 {
+	// navigator is undefined in non-browser environments (SSR/tests); guard it.
+	const lang = typeof navigator !== "undefined" ? navigator.language : "";
+	if (!lang) return 0;
+
+	try {
+		const locale = new Intl.Locale(lang);
+		const weekInfo = (
+			locale as Intl.Locale & { getWeekInfo?: () => { firstDay: number } }
+		).getWeekInfo?.();
+		if (weekInfo && typeof weekInfo.firstDay === "number") {
+			const day = weekInfo.firstDay;
+			if (day === 0 || day === 1 || day === 6) return day as 0 | 1 | 6;
+			if (day >= 2 && day <= 5) return 1;
+			return 0;
+		}
+	} catch {}
+
+	const short = lang.split("-")[0];
+	if (lang in WEEK_START_FALLBACK) return WEEK_START_FALLBACK[lang];
+	if (short in WEEK_START_FALLBACK) return WEEK_START_FALLBACK[short];
+	return 0;
+}
+
 export function formatShortDate(dateString: string): string {
 	if (!dateString) return "Unknown";
 
