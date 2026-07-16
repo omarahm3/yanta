@@ -259,16 +259,18 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 			};
 		}, [flushSave]);
 
-		// Excalidraw's custom fonts (e.g. Excalifont) load asynchronously. Text
-		// measured/painted before the font arrives renders blank until something
-		// forces a re-measure (like double-clicking it). Nudge a refresh once fonts
-		// are ready — and once more shortly after mount as a fallback — so restored
-		// text appears without user interaction.
+		// Excalidraw's custom fonts (e.g. Excalifont) load a tick after first paint.
+		// Text measured before the font applies renders blank until something forces
+		// a re-render (double-clicking it). Re-feeding the elements via updateScene
+		// once fonts are ready forces that re-measure/repaint. The scene version is
+		// unchanged, so handleChange's version gate skips it — no spurious save.
 		useEffect(() => {
 			if (!isReady) return;
 			let cancelled = false;
 			const nudge = () => {
-				if (!cancelled) excalidrawAPI.current?.refresh();
+				const api = excalidrawAPI.current;
+				if (cancelled || !api) return;
+				api.updateScene({ elements: api.getSceneElements() });
 			};
 			if (typeof document !== "undefined" && document.fonts?.ready) {
 				document.fonts.ready.then(nudge).catch(() => {});
