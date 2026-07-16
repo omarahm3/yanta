@@ -48,6 +48,16 @@ type ExcalidrawFile = {
 	[key: string]: unknown;
 };
 
+// Excalidraw's appState carries runtime-only fields that don't survive JSON
+// (notably `collaborators`, a Map that serializes to {} and then crashes
+// InteractiveCanvas on mount). Remove them so what we persist and what we hand
+// back to Excalidraw is plain, safe data.
+function stripRuntimeAppState<T>(appState: T): T {
+	const cleaned = { ...(appState as unknown as Record<string, unknown>) };
+	delete cleaned.collaborators;
+	return cleaned as unknown as T;
+}
+
 export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 	({ initialScene, projectAlias, onChange, className, editable: _editable = true }) => {
 		const excalidrawAPI = useRef<ExcalidrawImperativeAPI | null>(null);
@@ -139,7 +149,10 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 
 				setHydratedInitialData({
 					elements: restored.elements,
-					appState: restored.appState,
+					// Excalidraw copies appState.collaborators verbatim and only falls back
+					// to a fresh Map when the key is absent; our persisted {} is not a Map and
+					// crashes InteractiveCanvas. Drop it so Excalidraw supplies its own.
+					appState: stripRuntimeAppState(restored.appState),
 					files: restored.files,
 				});
 				setIsReady(true);
@@ -196,7 +209,9 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 
 				const scene: ExcalidrawScene = {
 					elements: elements as ExcalidrawElement[],
-					appState: appState as unknown as Record<string, unknown>,
+					// Strip runtime-only appState (e.g. collaborators, a Map) before persisting
+					// so the stored JSON stays clean and reload never sees a non-Map value.
+					appState: stripRuntimeAppState(appState) as unknown as Record<string, unknown>,
 					files: processedFiles as ExcalidrawScene["files"],
 				};
 
