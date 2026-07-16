@@ -168,9 +168,19 @@ export const useDocumentPersistence = ({
 		}
 	}, [shouldAutoSave, currentProject, isLoading, handleSave, onAutoSaveComplete]);
 
+	// Canvas edits change the scene, not blocks/title/tags. Without a scene
+	// signature here, useAutoSave sees "no change" and shows "saved" while the
+	// drawing is actually dirty (only saveOnBlur would rescue it). Hash the
+	// scene elements so canvas changes trigger autosave like block edits do.
+	// Recomputed only when the scene reference changes (setScene makes a new one).
+	const sceneKey = useMemo(
+		() => (formData.scene ? JSON.stringify(formData.scene.elements) : ""),
+		[formData.scene],
+	);
+
 	const compareKey = useMemo(
-		() => `${blocksHash}\n${formData.title}\n${formData.tags.join(",")}`,
-		[blocksHash, formData.title, formData.tags],
+		() => `${blocksHash}\n${formData.title}\n${formData.tags.join(",")}\n${sceneKey}`,
+		[blocksHash, formData.title, formData.tags, sceneKey],
 	);
 
 	const autoSaveHook = useAutoSave({
