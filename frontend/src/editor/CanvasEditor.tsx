@@ -1,4 +1,10 @@
-import { Excalidraw, exportToBlob, exportToSvg, getSceneVersion } from "@excalidraw/excalidraw";
+import {
+	Excalidraw,
+	exportToBlob,
+	exportToSvg,
+	getSceneVersion,
+	restore,
+} from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
 import type {
 	ExcalidrawElement,
@@ -116,10 +122,25 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 
 				assetsRef.current = assets;
 
+				// Run persisted data through Excalidraw's restoration layer. Our stored
+				// appState is a plain JSON object, but Excalidraw expects runtime types
+				// (e.g. appState.collaborators must be a Map, not {}), so mounting the raw
+				// object crashes InteractiveCanvas. restore() normalizes appState, repairs
+				// element bindings, and migrates older schemas.
+				const restored = restore(
+					{
+						elements: initialScene.elements as NonDeletedExcalidrawElement[],
+						appState: initialScene.appState as unknown as AppState,
+						files: files as unknown as BinaryFiles,
+					},
+					null,
+					null,
+				);
+
 				setHydratedInitialData({
-					elements: initialScene.elements as NonDeletedExcalidrawElement[],
-					appState: (initialScene.appState as unknown as AppState) || {},
-					files: files as unknown as BinaryFiles,
+					elements: restored.elements,
+					appState: restored.appState,
+					files: restored.files,
 				});
 				setIsReady(true);
 			};
