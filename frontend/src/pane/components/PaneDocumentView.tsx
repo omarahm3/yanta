@@ -186,12 +186,16 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 					<DocumentEditorForm
 						blocks={contentProps.formData.blocks}
 						tags={contentProps.formData.tags}
+						kind={contentProps.formData.kind}
+						scene={contentProps.formData.scene}
+						projectAlias={contentProps.currentProject?.alias ?? ""}
 						isEditMode={contentProps.isEditMode}
 						isLoading={contentProps.isLoading}
 						isReadOnly={contentProps.isArchived}
 						autoFocus={activePaneId === paneId}
 						onTitleChange={contentProps.onTitleChange}
 						onBlocksChange={contentProps.onBlocksChange}
+						onSceneChange={contentProps.onSceneChange}
 						onTagRemove={contentProps.onTagRemove}
 						onEditorReady={contentProps.onEditorReady}
 						find={contentProps.find}
