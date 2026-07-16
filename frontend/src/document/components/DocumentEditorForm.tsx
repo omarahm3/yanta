@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { GranularErrorBoundary } from "@/app";
+import { CanvasEditor } from "../../editor/CanvasEditor";
 import type { DocumentFindControls } from "../../editor/find";
 import { RichEditor } from "../../editor/RichEditor";
 import type { EditorHandle } from "../../editor/types";
@@ -9,7 +10,7 @@ import {
 	hasActiveExternalPlugins,
 } from "../../plugins/registry";
 import { useNotification } from "../../shared/hooks";
-import type { BlockNoteBlock } from "../../shared/types/Document";
+import type { BlockNoteBlock, DocumentKind, ExcalidrawScene } from "../../shared/types/Document";
 import type { NavigationState, PageName } from "../../shared/types/navigation";
 import { Button } from "../../shared/ui";
 import { countChars, countWords } from "../utils/editorCountUtils";
@@ -18,12 +19,16 @@ import { getDocumentText, getSelectedText } from "../utils/editorSelection";
 interface DocumentEditorFormProps {
 	blocks: BlockNoteBlock[];
 	tags: string[];
+	kind?: DocumentKind;
+	scene?: ExcalidrawScene;
+	projectAlias?: string;
 	isEditMode: boolean;
 	isLoading: boolean;
 	isReadOnly?: boolean;
 	autoFocus?: boolean;
 	onTitleChange: (title: string) => void;
 	onBlocksChange: (blocks: BlockNoteBlock[]) => void;
+	onSceneChange?: (scene: ExcalidrawScene, assets: Record<string, string>) => void;
 	onTagRemove: (tag: string) => void;
 	onEditorReady?: (editor: EditorHandle) => void;
 	find?: DocumentFindControls;
@@ -39,12 +44,16 @@ interface DocumentEditorFormProps {
 export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 	blocks,
 	tags,
+	kind = "document",
+	scene,
+	projectAlias = "",
 	isEditMode,
 	isLoading,
 	isReadOnly = false,
 	autoFocus = true,
 	onTitleChange,
 	onBlocksChange,
+	onSceneChange,
 	onTagRemove,
 	onEditorReady,
 	find,
@@ -181,20 +190,30 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 					onRetry={() => setEditorKey((k) => k + 1)}
 					onError={handleEditorBoundaryError}
 				>
-					<RichEditor
-						initialContent={blocksJson}
-						docKey={isEditMode ? `edit:${blocksJson ? "loaded" : "pending"}` : "new"}
-						onChange={handleBlocksChange}
-						onTitleChange={handleTitleChange}
-						onReady={handleEditorReady}
-						editable={!isLoading && !isReadOnly}
-						isLoading={isLoading && isEditMode}
-						autoFocus={autoFocus}
-						disablePluginContributions={editorRecoveryMode}
-						find={find}
-						findBarRef={findBarRef}
-						className="h-full"
-					/>
+					{kind === "canvas" ? (
+						<CanvasEditor
+							initialScene={scene}
+							projectAlias={projectAlias}
+							onChange={onSceneChange}
+							editable={!isLoading && !isReadOnly}
+							className="h-full"
+						/>
+					) : (
+						<RichEditor
+							initialContent={blocksJson}
+							docKey={isEditMode ? `edit:${blocksJson ? "loaded" : "pending"}` : "new"}
+							onChange={handleBlocksChange}
+							onTitleChange={handleTitleChange}
+							onReady={handleEditorReady}
+							editable={!isLoading && !isReadOnly}
+							isLoading={isLoading && isEditMode}
+							autoFocus={autoFocus}
+							disablePluginContributions={editorRecoveryMode}
+							find={find}
+							findBarRef={findBarRef}
+							className="h-full"
+						/>
+					)}
 				</GranularErrorBoundary>
 			</div>
 			{tags.length > 0 && (

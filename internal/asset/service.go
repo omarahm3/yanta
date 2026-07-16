@@ -297,3 +297,74 @@ func (s *Service) AbortChunkedUpload(ctx context.Context, uploadID string) error
 	logger.WithField("uploadId", uploadID).Debug("chunked upload aborted")
 	return nil
 }
+
+// StoreDataURL stores image data from a dataURL as a vault asset and returns
+// a reference in the format "/assets/{projectAlias}/{hash}{ext}" (matching the
+// existing asset URL scheme used by image blocks).
+func (s *Service) StoreDataURL(ctx context.Context, projectAlias string, dataURL string) (string, error) {
+	if s.vault == nil || s.store == nil || s.db == nil {
+		return "", fmt.Errorf("service not initialised correctly")
+	}
+
+	if strings.TrimSpace(projectAlias) == "" {
+		return "", fmt.Errorf("project alias is required")
+	}
+
+	mimeType, data, err := ParseDataURL(dataURL)
+	if err != nil {
+		return "", fmt.Errorf("parsing dataURL: %w", err)
+	}
+
+	ext := MIMEToExtension(mimeType)
+	if ext == "" {
+		return "", fmt.Errorf("unsupported MIME type: %s", mimeType)
+	}
+
+	info, err := WriteAsset(s.vault, projectAlias, data, ext)
+	if err != nil {
+		return "", fmt.Errorf("writing asset: %w", err)
+	}
+
+	a := &Asset{
+		Hash:      info.Hash,
+		Ext:       info.Ext,
+		Bytes:     info.Bytes,
+		MIME:      info.MIME,
+		CreatedAt: time.Now(),
+	}
+
+	if _, err := s.store.Upsert(ctx, a); err != nil {
+		return "", fmt.Errorf("inserting asset into database: %w", err)
+	}
+
+	s.syncManager.NotifyChange(fmt.Sprintf("stored canvas asset %s%s", info.Hash, info.Ext))
+
+	// Return the existing asset URL scheme so the indexer's linker can parse it
+	return fmt.Sprintf("/assets/%s/%s%s", projectAlias, info.Hash, info.Ext), nil
+}
+
+// ResolveDataURL converts an asset reference back to a dataURL.
+// The reference can be in the format "/assets/{projectAlias}/{hash}{ext}".
+func (s *Service) ResolveDataURL(ctx context.Context, projectAlias string, ref string) (string, error) {
+	if s.vault == nil {
+		return "", fmt.Errorf("service not initialised correctly")
+	}
+
+	if strings.TrimSpace(projectAlias) == "" {
+		return "", fmt.Errorf("project alias is required")
+	}
+
+	// Parse "/assets/{projectAlias}/{hash}{ext}" format
+	hash, ext, err := ParseAssetRef(ref)
+	if err != nil {
+		return "", fmt.Errorf("parsing asset reference: %w", err)
+	}
+
+	data, err := ReadAsset(s.vault, projectAlias, hash, ext)
+	if err != nil {
+		return "", fmt.Errorf("reading asset: %w", err)
+	}
+
+	mime := DetectMIME(ext)
+	return EncodeDataURL(mime, data), nil
+}

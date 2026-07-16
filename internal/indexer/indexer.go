@@ -285,10 +285,16 @@ func (idx *Indexer) IndexDocument(ctx context.Context, docPath string) error {
 	}
 	defer tx.Rollback()
 
+	kind := docFile.Kind
+	if kind == "" {
+		kind = document.DocumentKindDocument
+	}
+
 	doc := &document.Document{
 		Path:             docPath,
 		ProjectAlias:     docFile.Meta.Project,
 		Title:            docFile.Meta.Title,
+		Kind:             kind,
 		ModificationTime: stat.ModTime().UnixNano(),
 		Size:             stat.Size(),
 		HasCode:          content.HasCode,

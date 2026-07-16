@@ -6,7 +6,7 @@ import type { EditorHandle } from "../../editor/types";
 import type { SaveState } from "../../shared/hooks";
 import { useSidebarStateStore } from "../../shared/stores/sidebarState.store";
 import type { NavigationState, PageName } from "../../shared/types";
-import type { BlockNoteBlock } from "../../shared/types/Document";
+import type { BlockNoteBlock, ExcalidrawScene } from "../../shared/types/Document";
 import type { Project } from "../../shared/types/Project";
 import { Button, type SidebarSection } from "../../shared/ui";
 import { ConflictBanner } from "./ConflictBanner";
@@ -24,6 +24,9 @@ export interface DocumentContentProps {
 	formData: {
 		blocks: BlockNoteBlock[];
 		tags: string[];
+		kind?: "document" | "canvas";
+		scene?: ExcalidrawScene;
+		assets?: Record<string, string>;
 	};
 	isEditMode: boolean;
 	isLoading: boolean;
@@ -37,6 +40,7 @@ export interface DocumentContentProps {
 	};
 	onTitleChange: (title: string) => void;
 	onBlocksChange: (blocks: BlockNoteBlock[]) => void;
+	onSceneChange?: (scene: ExcalidrawScene, assets: Record<string, string>) => void;
 	onTagRemove: (tag: string) => void;
 	onEditorReady: (editor: EditorHandle) => void;
 	onRestore?: () => void;
@@ -103,6 +107,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 		autoSave,
 		onTitleChange,
 		onBlocksChange,
+		onSceneChange,
 		onTagRemove,
 		onEditorReady,
 		onRestore,
@@ -208,11 +213,15 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 						<DocumentEditorForm
 							blocks={formData.blocks}
 							tags={formData.tags}
+							kind={formData.kind}
+							scene={formData.scene}
+							projectAlias={currentProject?.alias || ""}
 							isEditMode={isEditMode}
 							isLoading={isLoading}
 							isReadOnly={isArchived}
 							onTitleChange={onTitleChange}
 							onBlocksChange={onBlocksChange}
+							onSceneChange={onSceneChange}
 							onTagRemove={onTagRemove}
 							onEditorReady={handleEditorReadyWithRef}
 							find={find}

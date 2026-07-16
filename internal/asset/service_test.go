@@ -593,3 +593,179 @@ func TestService_LinkToDocument_PreservesOtherLinks(t *testing.T) {
 		t.Errorf("Expected doc-2 to still have 1 asset, got %d", len(doc2AssetsAfter))
 	}
 }
+
+func TestService_StoreDataURL(t *testing.T) {
+	db := testutil.SetupTestDB(t)
+	defer testutil.CleanupTestDB(t, db)
+
+	s := NewStore(db)
+	v := &testVault{root: t.TempDir()}
+	svc := NewService(
+		ServiceConfig{DB: db, Store: s, Vault: v, SyncManager: git.NewMockSyncManager()},
+	)
+
+	ctx := context.Background()
+
+	// Test storing a PNG dataURL
+	dataURL := "data:image/png;base64,aGVsbG8gd29ybGQ=" // "hello world"
+	ref, err := svc.StoreDataURL(ctx, "@proj", dataURL)
+	if err != nil {
+		t.Fatalf("StoreDataURL failed: %v", err)
+	}
+
+	// Should return an asset reference
+	if ref == "" {
+		t.Fatal("Expected non-empty reference")
+	}
+	if len(ref) < 8 || ref[:8] != "/assets/" {
+		t.Fatalf("Expected /assets/ prefix, got %s", ref)
+	}
+
+	// Verify asset was stored in DB
+	hash, ext, err := ParseAssetRef(ref)
+	if err != nil {
+		t.Fatalf("ParseVaultRef failed: %v", err)
+	}
+	if ext != ".png" {
+		t.Fatalf("Expected .png extension, got %s", ext)
+	}
+
+	asset, err := s.GetByHash(ctx, hash)
+	if err != nil {
+		t.Fatalf("GetByHash failed: %v", err)
+	}
+	if asset.MIME != "image/png" {
+		t.Fatalf("Expected image/png MIME, got %s", asset.MIME)
+	}
+	if asset.Bytes != 11 { // len("hello world")
+		t.Fatalf("Expected 11 bytes, got %d", asset.Bytes)
+	}
+
+	// Verify file exists on disk
+	filePath := filepath.Join(v.AssetsPath("@proj"), hash+ext)
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		t.Fatal("Asset file was not created")
+	}
+}
+
+func TestService_StoreDataURL_InvalidDataURL(t *testing.T) {
+	db := testutil.SetupTestDB(t)
+	defer testutil.CleanupTestDB(t, db)
+
+	svc := NewService(
+		ServiceConfig{
+			DB:          db,
+			Store:       NewStore(db),
+			Vault:       &testVault{root: t.TempDir()},
+			SyncManager: git.NewMockSyncManager(),
+		},
+	)
+
+	ctx := context.Background()
+
+	// Test with invalid dataURL
+	_, err := svc.StoreDataURL(ctx, "@proj", "not-a-data-url")
+	if err == nil {
+		t.Fatal("Expected error for invalid dataURL")
+	}
+}
+
+func TestService_StoreDataURL_UnsupportedMIME(t *testing.T) {
+	db := testutil.SetupTestDB(t)
+	defer testutil.CleanupTestDB(t, db)
+
+	svc := NewService(
+		ServiceConfig{
+			DB:          db,
+			Store:       NewStore(db),
+			Vault:       &testVault{root: t.TempDir()},
+			SyncManager: git.NewMockSyncManager(),
+		},
+	)
+
+	ctx := context.Background()
+
+	// Test with unsupported MIME type
+	dataURL := "data:application/pdf;base64,dGVzdA=="
+	_, err := svc.StoreDataURL(ctx, "@proj", dataURL)
+	if err == nil {
+		t.Fatal("Expected error for unsupported MIME type")
+	}
+}
+
+func TestService_ResolveDataURL(t *testing.T) {
+	db := testutil.SetupTestDB(t)
+	defer testutil.CleanupTestDB(t, db)
+
+	s := NewStore(db)
+	v := &testVault{root: t.TempDir()}
+	svc := NewService(
+		ServiceConfig{DB: db, Store: s, Vault: v, SyncManager: git.NewMockSyncManager()},
+	)
+
+	ctx := context.Background()
+
+	// First store a dataURL
+	originalDataURL := "data:image/png;base64,aGVsbG8gd29ybGQ="
+	ref, err := svc.StoreDataURL(ctx, "@proj", originalDataURL)
+	if err != nil {
+		t.Fatalf("StoreDataURL failed: %v", err)
+	}
+
+	// Now resolve it back
+	resolvedDataURL, err := svc.ResolveDataURL(ctx, "@proj", ref)
+	if err != nil {
+		t.Fatalf("ResolveDataURL failed: %v", err)
+	}
+
+	// Should match the original
+	if resolvedDataURL != originalDataURL {
+		t.Fatalf("Resolved dataURL doesn't match original.\nGot: %s\nWant: %s", resolvedDataURL, originalDataURL)
+	}
+}
+
+func TestService_ResolveDataURL_InvalidRef(t *testing.T) {
+	db := testutil.SetupTestDB(t)
+	defer testutil.CleanupTestDB(t, db)
+
+	svc := NewService(
+		ServiceConfig{
+			DB:          db,
+			Store:       NewStore(db),
+			Vault:       &testVault{root: t.TempDir()},
+			SyncManager: git.NewMockSyncManager(),
+		},
+	)
+
+	ctx := context.Background()
+
+	// Test with invalid reference
+	_, err := svc.ResolveDataURL(ctx, "@proj", "not-a-vault-ref")
+	if err == nil {
+		t.Fatal("Expected error for invalid vault reference")
+	}
+}
+
+func TestService_ResolveDataURL_MissingAsset(t *testing.T) {
+	db := testutil.SetupTestDB(t)
+	defer testutil.CleanupTestDB(t, db)
+
+	svc := NewService(
+		ServiceConfig{
+			DB:          db,
+			Store:       NewStore(db),
+			Vault:       &testVault{root: t.TempDir()},
+			SyncManager: git.NewMockSyncManager(),
+		},
+	)
+
+	ctx := context.Background()
+
+	// Test with valid ref format but missing asset
+	hash := "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
+	ref := "/assets/@proj/" + hash + ".png"
+	_, err := svc.ResolveDataURL(ctx, "@proj", ref)
+	if err == nil {
+		t.Fatal("Expected error for missing asset")
+	}
+}

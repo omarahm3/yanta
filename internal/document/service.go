@@ -100,7 +100,9 @@ type SaveRequest struct {
 	Path         string
 	ProjectAlias string
 	Title        string
+	Kind         string
 	Blocks       []BlockNoteBlock
+	Scene        json.RawMessage
 	Tags         []string
 	ExpectedHash string
 }
@@ -135,16 +137,22 @@ func (s *Service) Save(ctx context.Context, req SaveRequest) (string, error) {
 		docPath = req.Path
 	}
 
-	docFile := &DocumentFile{
-		Meta: DocumentMeta{
-			Project: req.ProjectAlias,
-			Title:   req.Title,
-			Tags:    req.Tags,
-			Created: time.Now(),
-			Updated: time.Now(),
-		},
-		Blocks: req.Blocks,
+	kind := req.Kind
+	if kind == "" {
+		kind = DocumentKindDocument
 	}
+
+	var docFile *DocumentFile
+	switch kind {
+	case DocumentKindCanvas:
+		docFile = NewCanvasFile(req.ProjectAlias, req.Title, req.Tags, req.Scene)
+	case DocumentKindDocument:
+		docFile = NewDocumentFile(req.ProjectAlias, req.Title, req.Tags)
+		docFile.Blocks = req.Blocks
+	}
+
+	// Note: Canvas documents are indexed by title only until Phase 2 implements
+	// full scene content indexing. See excalidraw-canvas-plan.md Phase 2.
 
 	if !isNew {
 		existing, err := s.fm.ReadFile(docPath)

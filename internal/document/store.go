@@ -222,13 +222,18 @@ func (s *Store) create(ctx context.Context, qe queryExecer, d *Document) (*Docum
 		return nil, fmt.Errorf("validation failed: %w", err)
 	}
 
+	kind := d.Kind
+	if kind == "" {
+		kind = DocumentKindDocument
+	}
+
 	query := `
-		INSERT INTO doc (path, project_alias, title, mtime_ns, size_bytes, has_code, has_images, has_links)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO doc (path, project_alias, title, kind, mtime_ns, size_bytes, has_code, has_images, has_links)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		RETURNING created_at, updated_at;
 	`
 
-	err := qe.QueryRowContext(ctx, query, d.Path, d.ProjectAlias, d.Title, d.ModificationTime, d.Size, boolToInt(d.HasCode), boolToInt(d.HasImages), boolToInt(d.HasLinks)).Scan(&d.CreatedAt, &d.UpdatedAt)
+	err := qe.QueryRowContext(ctx, query, d.Path, d.ProjectAlias, d.Title, kind, d.ModificationTime, d.Size, boolToInt(d.HasCode), boolToInt(d.HasImages), boolToInt(d.HasLinks)).Scan(&d.CreatedAt, &d.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create document: %w", err)
 	}
@@ -240,7 +245,7 @@ func (s *Store) getByPath(ctx context.Context, q queryer, path string) (*Documen
 	d := new(Document)
 
 	query := `
-		SELECT path, project_alias, title, mtime_ns, size_bytes, has_code, has_images, has_links, created_at, updated_at, COALESCE(deleted_at, '')
+		SELECT path, project_alias, title, kind, mtime_ns, size_bytes, has_code, has_images, has_links, created_at, updated_at, COALESCE(deleted_at, '')
 		FROM doc
 		WHERE path = ? AND deleted_at IS NULL;
 	`
@@ -250,6 +255,7 @@ func (s *Store) getByPath(ctx context.Context, q queryer, path string) (*Documen
 		&d.Path,
 		&d.ProjectAlias,
 		&d.Title,
+		&d.Kind,
 		&d.ModificationTime,
 		&d.Size,
 		&hasCodeInt,
@@ -274,7 +280,7 @@ func (s *Store) getByPathIncludingDeleted(ctx context.Context, q queryer, path s
 	d := new(Document)
 
 	query := `
-		SELECT path, project_alias, title, mtime_ns, size_bytes, has_code, has_images, has_links, created_at, updated_at, COALESCE(deleted_at, '')
+		SELECT path, project_alias, title, kind, mtime_ns, size_bytes, has_code, has_images, has_links, created_at, updated_at, COALESCE(deleted_at, '')
 		FROM doc
 		WHERE path = ?;
 	`
@@ -284,6 +290,7 @@ func (s *Store) getByPathIncludingDeleted(ctx context.Context, q queryer, path s
 		&d.Path,
 		&d.ProjectAlias,
 		&d.Title,
+		&d.Kind,
 		&d.ModificationTime,
 		&d.Size,
 		&hasCodeInt,
@@ -338,7 +345,7 @@ func (s *Store) get(ctx context.Context, q queryer, filters *GetFilters) ([]*Doc
 	}
 
 	query := `
-		SELECT path, project_alias, title, mtime_ns, size_bytes, has_code, has_images, has_links, created_at, updated_at, COALESCE(deleted_at, '')
+		SELECT path, project_alias, title, kind, mtime_ns, size_bytes, has_code, has_images, has_links, created_at, updated_at, COALESCE(deleted_at, '')
 		FROM doc
 	`
 
@@ -371,6 +378,7 @@ func (s *Store) get(ctx context.Context, q queryer, filters *GetFilters) ([]*Doc
 			&d.Path,
 			&d.ProjectAlias,
 			&d.Title,
+			&d.Kind,
 			&d.ModificationTime,
 			&d.Size,
 			&hasCodeInt,
@@ -439,19 +447,25 @@ func (s *Store) update(ctx context.Context, qe queryExecer, d *Document) (*Docum
 		return nil, fmt.Errorf("validation failed: %w", err)
 	}
 
+	kind := d.Kind
+	if kind == "" {
+		kind = DocumentKindDocument
+	}
+
 	query := `
 		UPDATE doc
-		SET project_alias = ?, title = ?, mtime_ns = ?, size_bytes = ?, has_code = ?, has_images = ?, has_links = ?, updated_at = strftime('%Y-%m-%d %H:%M:%f', 'now')
+		SET project_alias = ?, title = ?, kind = ?, mtime_ns = ?, size_bytes = ?, has_code = ?, has_images = ?, has_links = ?, updated_at = strftime('%Y-%m-%d %H:%M:%f', 'now')
 		WHERE path = ? AND deleted_at IS NULL
-		RETURNING path, project_alias, title, mtime_ns, size_bytes, has_code, has_images, has_links, created_at, updated_at, COALESCE(deleted_at, '');
+		RETURNING path, project_alias, title, kind, mtime_ns, size_bytes, has_code, has_images, has_links, created_at, updated_at, COALESCE(deleted_at, '');
 	`
 
 	updatedDocument := &Document{}
 	var hasCodeInt, hasImagesInt, hasLinksInt int
-	err := qe.QueryRowContext(ctx, query, d.ProjectAlias, d.Title, d.ModificationTime, d.Size, boolToInt(d.HasCode), boolToInt(d.HasImages), boolToInt(d.HasLinks), d.Path).Scan(
+	err := qe.QueryRowContext(ctx, query, d.ProjectAlias, d.Title, kind, d.ModificationTime, d.Size, boolToInt(d.HasCode), boolToInt(d.HasImages), boolToInt(d.HasLinks), d.Path).Scan(
 		&updatedDocument.Path,
 		&updatedDocument.ProjectAlias,
 		&updatedDocument.Title,
+		&updatedDocument.Kind,
 		&updatedDocument.ModificationTime,
 		&updatedDocument.Size,
 		&hasCodeInt,

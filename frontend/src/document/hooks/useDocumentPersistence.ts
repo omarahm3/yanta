@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAutoSave } from "../../shared/hooks";
 import { DocumentServiceWrapper } from "../../shared/services/DocumentService";
-import type { BlockNoteBlock } from "../../shared/types/Document";
+import type { BlockNoteBlock, DocumentKind, ExcalidrawScene } from "../../shared/types/Document";
 import type { Project } from "../../shared/types/Project";
 import { BackendLogger } from "../../shared/utils/backendLogger";
 import { computeContentHash } from "../../shared/utils/contentHash";
@@ -11,6 +11,9 @@ interface DocumentFormData {
 	title: string;
 	blocks: BlockNoteBlock[];
 	tags: string[];
+	kind: DocumentKind;
+	scene?: ExcalidrawScene;
+	assets?: Record<string, string>;
 }
 
 interface UseDocumentPersistenceProps {
@@ -107,6 +110,9 @@ export const useDocumentPersistence = ({
 				documentPath: currentPath,
 				projectAlias: currentProject.alias,
 				expectedHash: documentHash || undefined,
+				kind: currentFormData.kind,
+				scene: currentFormData.scene,
+				assets: currentFormData.assets,
 			});
 
 			if (savedPath) {

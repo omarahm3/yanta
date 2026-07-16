@@ -83,6 +83,7 @@ export function useDocumentController({
 		hasChanges,
 		setTitle,
 		setBlocks,
+		setScene,
 		removeTag,
 		setTags,
 		resetChanges,
@@ -467,6 +468,9 @@ export function useDocumentController({
 				title: doc.title,
 				blocks: doc.blocks,
 				tags: doc.tags,
+				kind: doc.kind,
+				scene: doc.scene,
+				assets: doc.assets,
 			});
 			await refreshHash();
 			setHasConflict(false);
@@ -499,6 +503,7 @@ export function useDocumentController({
 		autoSave,
 		onTitleChange: setTitle,
 		onBlocksChange: setBlocks,
+		onSceneChange: setScene,
 		onTagRemove: removeTag,
 		onEditorReady: handleEditorReadyWithRef,
 		onRestore: isArchived ? handleRestore : undefined,

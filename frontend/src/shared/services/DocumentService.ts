@@ -24,7 +24,9 @@ export async function saveDocument(request: SaveDocumentRequest): Promise<string
 		Path: request.path || "",
 		ProjectAlias: request.projectAlias,
 		Title: request.title,
-		Blocks: blocksToModel(request.blocks),
+		Kind: request.kind || "document",
+		Blocks: request.blocks ? blocksToModel(request.blocks) : [],
+		Scene: request.scene ? JSON.stringify(request.scene) : null,
 		Tags: request.tags,
 		ExpectedHash: request.expectedHash || "",
 	});

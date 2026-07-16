@@ -870,3 +870,237 @@ func TestStore_Tx_Operations(t *testing.T) {
 		t.Errorf("Hash mismatch after commit")
 	}
 }
+
+func TestParseDataURL(t *testing.T) {
+	tests := []struct {
+		name     string
+		dataURL  string
+		wantMIME string
+		wantData string
+		wantErr  bool
+	}{
+		{
+			name:     "valid PNG",
+			dataURL:  "data:image/png;base64,aGVsbG8gd29ybGQ=",
+			wantMIME: "image/png",
+			wantData: "hello world",
+			wantErr:  false,
+		},
+		{
+			name:     "valid JPEG",
+			dataURL:  "data:image/jpeg;base64,dGVzdA==",
+			wantMIME: "image/jpeg",
+			wantData: "test",
+			wantErr:  false,
+		},
+		{
+			name:    "not a data URL",
+			dataURL: "http://example.com/image.png",
+			wantErr: true,
+		},
+		{
+			name:    "missing comma",
+			dataURL: "data:image/png;base64",
+			wantErr: true,
+		},
+		{
+			name:    "not base64",
+			dataURL: "data:image/png;utf8,aGVsbG8=",
+			wantErr: true,
+		},
+		{
+			name:    "invalid base64",
+			dataURL: "data:image/png;base64,not-valid!!!",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mime, data, err := ParseDataURL(tt.dataURL)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseDataURL() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr {
+				if mime != tt.wantMIME {
+					t.Errorf("ParseDataURL() mime = %q, want %q", mime, tt.wantMIME)
+				}
+				if string(data) != tt.wantData {
+					t.Errorf("ParseDataURL() data = %q, want %q", string(data), tt.wantData)
+				}
+			}
+		})
+	}
+}
+
+func TestEncodeDataURL(t *testing.T) {
+	data := []byte("hello world")
+	result := EncodeDataURL("image/png", data)
+	expected := "data:image/png;base64,aGVsbG8gd29ybGQ="
+	if result != expected {
+		t.Errorf("EncodeDataURL() = %q, want %q", result, expected)
+	}
+}
+
+func TestMIMEToExtension(t *testing.T) {
+	tests := []struct {
+		mime string
+		want string
+	}{
+		{"image/png", ".png"},
+		{"image/jpeg", ".jpg"},
+		{"image/gif", ".gif"},
+		{"image/webp", ".webp"},
+		{"image/svg+xml", ".svg"},
+		{"unknown/type", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.mime, func(t *testing.T) {
+			got := MIMEToExtension(tt.mime)
+			if got != tt.want {
+				t.Errorf("MIMEToExtension(%q) = %q, want %q", tt.mime, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseAssetRef(t *testing.T) {
+	hash := "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
+
+	tests := []struct {
+		name     string
+		ref      string
+		wantHash string
+		wantExt  string
+		wantErr  bool
+	}{
+		{
+			name:     "valid PNG",
+			ref:      "/assets/@proj/" + hash + ".png",
+			wantHash: hash,
+			wantExt:  ".png",
+			wantErr:  false,
+		},
+		{
+			name:     "valid JPEG",
+			ref:      "/assets/@proj/" + hash + ".jpg",
+			wantHash: hash,
+			wantExt:  ".jpg",
+			wantErr:  false,
+		},
+		{
+			name:     "no extension",
+			ref:      "/assets/@proj/" + hash,
+			wantHash: hash,
+			wantExt:  "",
+			wantErr:  false,
+		},
+		{
+			name:    "not an asset ref",
+			ref:     "http://example.com/asset.png",
+			wantErr: true,
+		},
+		{
+			name:    "missing project alias",
+			ref:     "/assets/" + hash + ".png",
+			wantErr: true,
+		},
+		{
+			name:    "hash too short",
+			ref:     "/assets/@proj/abc123.png",
+			wantErr: true,
+		},
+		{
+			name:    "invalid hash chars",
+			ref:     "/assets/@proj/b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcdeX.png",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hash, ext, err := ParseAssetRef(tt.ref)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseAssetRef() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr {
+				if hash != tt.wantHash {
+					t.Errorf("ParseAssetRef() hash = %q, want %q", hash, tt.wantHash)
+				}
+				if ext != tt.wantExt {
+					t.Errorf("ParseAssetRef() ext = %q, want %q", ext, tt.wantExt)
+				}
+			}
+		})
+	}
+}
+
+func TestParseVaultRef(t *testing.T) {
+	hash := "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
+
+	tests := []struct {
+		name     string
+		ref      string
+		wantHash string
+		wantExt  string
+		wantErr  bool
+	}{
+		{
+			name:     "valid PNG",
+			ref:      "vault://" + hash + ".png",
+			wantHash: hash,
+			wantExt:  ".png",
+			wantErr:  false,
+		},
+		{
+			name:     "valid JPEG",
+			ref:      "vault://" + hash + ".jpg",
+			wantHash: hash,
+			wantExt:  ".jpg",
+			wantErr:  false,
+		},
+		{
+			name:     "no extension",
+			ref:      "vault://" + hash,
+			wantHash: hash,
+			wantExt:  "",
+			wantErr:  false,
+		},
+		{
+			name:    "not a vault ref",
+			ref:     "http://example.com/asset.png",
+			wantErr: true,
+		},
+		{
+			name:    "hash too short",
+			ref:     "vault://abc123.png",
+			wantErr: true,
+		},
+		{
+			name:    "invalid hash chars",
+			ref:     "vault://b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcdeX.png",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hash, ext, err := ParseVaultRef(tt.ref)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseVaultRef() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr {
+				if hash != tt.wantHash {
+					t.Errorf("ParseVaultRef() hash = %q, want %q", hash, tt.wantHash)
+				}
+				if ext != tt.wantExt {
+					t.Errorf("ParseVaultRef() ext = %q, want %q", ext, tt.wantExt)
+				}
+			}
+		})
+	}
+}

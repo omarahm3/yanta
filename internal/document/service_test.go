@@ -2,6 +2,7 @@ package document
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"testing"
 	"time"
@@ -161,6 +162,96 @@ func TestService_Save_Create(t *testing.T) {
 	assert.Equal(t, "Test Document", doc.Title)
 	assert.Equal(t, "@test", doc.ProjectAlias)
 	assert.Len(t, doc.Tags, 2)
+}
+
+func TestService_Save_NilBlocks(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	req := SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "Document With Nil Blocks",
+		Blocks:       nil,
+		Tags:         []string{},
+	}
+
+	path, err := service.Save(context.Background(), req)
+	require.NoError(t, err, "Save() should succeed with nil blocks")
+	require.NotEmpty(t, path, "Expected non-empty path")
+
+	doc, err := service.Get(context.Background(), path)
+	require.NoError(t, err, "Get() failed")
+	assert.Equal(t, "Document With Nil Blocks", doc.Title)
+	require.NotNil(t, doc.File, "File should not be nil")
+	require.NotNil(t, doc.File.Blocks, "Blocks should be normalized to empty slice, not nil")
+	assert.Len(t, doc.File.Blocks, 0, "Blocks should be empty")
+}
+
+func TestService_Save_Canvas(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	scene := json.RawMessage(`{"elements":[{"id":"rect1","type":"rectangle","x":100,"y":100}],"appState":{}}`)
+
+	req := SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "Test Canvas",
+		Kind:         DocumentKindCanvas,
+		Scene:        scene,
+		Tags:         []string{"diagram"},
+	}
+
+	path, err := service.Save(context.Background(), req)
+	require.NoError(t, err, "Save() failed for canvas")
+	require.NotEmpty(t, path, "Expected non-empty path")
+
+	doc, err := service.Get(context.Background(), path)
+	require.NoError(t, err, "Get() failed")
+	assert.Equal(t, "Test Canvas", doc.Title)
+	assert.Equal(t, "@test", doc.ProjectAlias)
+	assert.Len(t, doc.Tags, 1)
+
+	require.NotNil(t, doc.File, "File should not be nil")
+	assert.Equal(t, DocumentKindCanvas, doc.File.Kind)
+	assert.NotNil(t, doc.File.Scene, "Scene should not be nil")
+	assert.Nil(t, doc.File.Blocks, "Blocks should be nil for canvas")
+}
+
+func TestService_Save_Canvas_Update(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	scene := json.RawMessage(`{"elements":[],"appState":{}}`)
+
+	createReq := SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "Original Canvas",
+		Kind:         DocumentKindCanvas,
+		Scene:        scene,
+		Tags:         []string{"diagram"},
+	}
+
+	path, err := service.Save(context.Background(), createReq)
+	require.NoError(t, err, "Create canvas failed")
+
+	updatedScene := json.RawMessage(`{"elements":[{"id":"text1","type":"text","x":50,"y":50,"text":"Hello"}],"appState":{}}`)
+	updateReq := SaveRequest{
+		Path:         path,
+		ProjectAlias: "@test",
+		Title:        "Updated Canvas",
+		Kind:         DocumentKindCanvas,
+		Scene:        updatedScene,
+		Tags:         []string{"diagram", "updated"},
+	}
+
+	updatedPath, err := service.Save(context.Background(), updateReq)
+	require.NoError(t, err, "Update canvas failed")
+	assert.Equal(t, path, updatedPath, "Path should remain the same")
+
+	doc, err := service.Get(context.Background(), path)
+	require.NoError(t, err, "Get() failed")
+	assert.Equal(t, "Updated Canvas", doc.Title)
+	assert.Equal(t, DocumentKindCanvas, doc.File.Kind)
 }
 
 func TestService_Save_Update(t *testing.T) {

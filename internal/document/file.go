@@ -10,9 +10,17 @@ import (
 	"yanta/internal/project"
 )
 
+const (
+	DocumentKindDocument = "document"
+	DocumentKindCanvas   = "canvas"
+)
+
 type DocumentFile struct {
-	Meta   DocumentMeta     `json:"meta"`
-	Blocks []BlockNoteBlock `json:"blocks"`
+	Meta   DocumentMeta      `json:"meta"`
+	Kind   string            `json:"kind,omitempty"`
+	Scene  json.RawMessage   `json:"scene,omitempty"`
+	Blocks []BlockNoteBlock  `json:"blocks,omitempty"`
+	Assets map[string]string `json:"assets,omitempty"` // For canvas: maps Excalidraw fileId -> vault ref
 }
 
 type DocumentMeta struct {
@@ -45,17 +53,43 @@ func (df *DocumentFile) Validate() error {
 		return fmt.Errorf("meta validation failed: %w", err)
 	}
 
-	if df.Blocks == nil {
-		return fmt.Errorf("blocks cannot be nil (use empty array for empty document)")
+	kind := df.Kind
+	if kind == "" {
+		kind = DocumentKindDocument
 	}
 
-	for i, block := range df.Blocks {
-		if err := validateBlock(block, 0); err != nil {
-			return fmt.Errorf("block %d validation failed: %w", i, err)
+	switch kind {
+	case DocumentKindDocument:
+		if df.Blocks == nil {
+			return fmt.Errorf("blocks cannot be nil for document kind (use empty array)")
 		}
+		for i, block := range df.Blocks {
+			if err := validateBlock(block, 0); err != nil {
+				return fmt.Errorf("block %d validation failed: %w", i, err)
+			}
+		}
+	case DocumentKindCanvas:
+		if len(df.Scene) == 0 || !json.Valid(df.Scene) {
+			return fmt.Errorf("scene is required for canvas kind and must be valid JSON")
+		}
+		if string(df.Scene) == "null" {
+			return fmt.Errorf("scene cannot be null for canvas kind")
+		}
+	default:
+		return fmt.Errorf("unknown document kind: %s", kind)
 	}
 
 	return nil
+}
+
+func (df *DocumentFile) Normalize() {
+	df.Meta.NormalizeTags()
+	if df.Kind == "" {
+		df.Kind = DocumentKindDocument
+	}
+	if df.Kind == DocumentKindDocument && df.Blocks == nil {
+		df.Blocks = []BlockNoteBlock{}
+	}
 }
 
 func (m *DocumentMeta) Validate() error {
@@ -102,7 +136,11 @@ func (m *DocumentMeta) NormalizeTags() {
 }
 
 func (df *DocumentFile) ToJSON() ([]byte, error) {
-	df.Meta.NormalizeTags()
+	df.Normalize()
+
+	if err := df.Validate(); err != nil {
+		return nil, fmt.Errorf("validation failed: %w", err)
+	}
 
 	data, err := json.MarshalIndent(df, "", "  ")
 	if err != nil {
@@ -119,7 +157,7 @@ func FromJSON(data []byte) (*DocumentFile, error) {
 		return nil, fmt.Errorf("unmarshaling JSON: %w", err)
 	}
 
-	df.Meta.NormalizeTags()
+	df.Normalize()
 
 	if err := df.Validate(); err != nil {
 		return nil, fmt.Errorf("validation failed: %w", err)
@@ -257,7 +295,25 @@ func NewDocumentFile(project, title string, tags []string) *DocumentFile {
 			Created: now,
 			Updated: now,
 		},
+		Kind:   DocumentKindDocument,
 		Blocks: []BlockNoteBlock{},
+	}
+}
+
+func NewCanvasFile(project, title string, tags []string, scene json.RawMessage) *DocumentFile {
+	now := time.Now()
+
+	return &DocumentFile{
+		Meta: DocumentMeta{
+			Project: strings.ToLower(project),
+			Title:   strings.TrimSpace(title),
+			Tags:    tags,
+			Aliases: []string{},
+			Created: now,
+			Updated: now,
+		},
+		Kind:  DocumentKindCanvas,
+		Scene: scene,
 	}
 }
 

@@ -24,8 +24,18 @@ func (p *Parser) Parse(doc *DocumentFile) (*ExtractedContent, error) {
 		Assets:   []Asset{},
 	}
 
-	for _, block := range doc.Blocks {
-		p.parseBlock(block, content)
+	kind := doc.Kind
+	if kind == "" {
+		kind = DocumentKindDocument
+	}
+
+	switch kind {
+	case DocumentKindCanvas:
+		p.parseCanvas(doc, content)
+	case DocumentKindDocument:
+		for _, block := range doc.Blocks {
+			p.parseBlock(block, content)
+		}
 	}
 
 	if content.Title == "" && len(content.Headings) > 0 {
@@ -37,6 +47,45 @@ func (p *Parser) Parse(doc *DocumentFile) (*ExtractedContent, error) {
 	content.HasLinks = len(content.Links) > 0
 
 	return content, nil
+}
+
+func (p *Parser) parseCanvas(doc *DocumentFile, content *ExtractedContent) {
+	if len(doc.Scene) == 0 {
+		return
+	}
+
+	var scene map[string]any
+	if err := json.Unmarshal(doc.Scene, &scene); err != nil {
+		return
+	}
+
+	elements, ok := scene["elements"].([]any)
+	if !ok {
+		return
+	}
+
+	for _, elem := range elements {
+		elemMap, ok := elem.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		elemType, _ := elemMap["type"].(string)
+		if elemType != "text" {
+			continue
+		}
+
+		if text, ok := elemMap["text"].(string); ok && text != "" {
+			content.Body = append(content.Body, text)
+		}
+	}
+
+	// Extract asset references from the Assets map
+	for _, ref := range doc.Assets {
+		if ref != "" {
+			content.Assets = append(content.Assets, Asset{Path: ref})
+		}
+	}
 }
 
 func (p *Parser) parseBlock(block BlockNoteBlock, content *ExtractedContent) {

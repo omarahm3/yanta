@@ -836,7 +836,7 @@ func TestIndexer_ScanAndIndexVault(t *testing.T) {
 
 		// Write directly to filesystem to bypass writer validation
 		invalidDocPath := filepath.Join(invalidProjectPath, "test-doc.json")
-		data, err := docFile.ToJSON()
+		data, err := json.MarshalIndent(docFile, "", "  ")
 		if err != nil {
 			t.Fatalf("Failed to marshal document: %v", err)
 		}
@@ -1228,5 +1228,327 @@ func TestReindexPaths_JournalRename(t *testing.T) {
 	}
 	if results[0].Date != "2026-02-15" {
 		t.Errorf("journal entry indexed under date %q, want 2026-02-15", results[0].Date)
+	}
+}
+
+func TestIndexer_CanvasDocument(t *testing.T) {
+	db, v := setupTestEnv(t)
+	defer testutil.CleanupTestDB(t, db)
+
+	docStore := document.NewStore(db)
+	projectStore := project.NewStore(db)
+	ftsStore := search.NewStore(db)
+	tagStore := tag.NewStore(db)
+	linkStore := link.NewStore(db)
+	assetStore := asset.NewStore(db)
+
+	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
+
+	ctx := context.Background()
+
+	t.Run("indexes canvas document with text elements", func(t *testing.T) {
+		projectAlias := "@test-project"
+		if err := v.EnsureProjectDir(projectAlias); err != nil {
+			t.Fatalf("Failed to create project dir: %v", err)
+		}
+
+		scene := map[string]any{
+			"elements": []any{
+				map[string]any{
+					"id":   "text1",
+					"type": "text",
+					"text": "unique canvas text searchable",
+				},
+				map[string]any{
+					"id":   "rect1",
+					"type": "rectangle",
+				},
+				map[string]any{
+					"id":   "text2",
+					"type": "text",
+					"text": "another searchable phrase",
+				},
+			},
+			"appState": map[string]any{},
+		}
+		sceneJSON, err := json.Marshal(scene)
+		if err != nil {
+			t.Fatalf("Failed to marshal scene: %v", err)
+		}
+
+		docFile := &document.DocumentFile{
+			Meta: document.DocumentMeta{
+				Project: projectAlias,
+				Title:   "Test Canvas",
+				Tags:    []string{"canvas-test"},
+				Created: time.Now().Add(-time.Hour),
+				Updated: time.Now(),
+			},
+			Kind:  document.DocumentKindCanvas,
+			Scene: sceneJSON,
+		}
+
+		relativePath := "projects/@test-project/doc-canvas-test.json"
+		writer := document.NewFileWriter(v)
+		if err := writer.WriteFile(relativePath, docFile); err != nil {
+			t.Fatalf("WriteFile() failed: %v", err)
+		}
+
+		if err := idx.IndexDocument(ctx, relativePath); err != nil {
+			t.Fatalf("IndexDocument() failed: %v", err)
+		}
+
+		doc, err := docStore.GetByPath(ctx, relativePath)
+		if err != nil {
+			t.Fatalf("GetByPath() failed: %v", err)
+		}
+
+		if doc.Kind != document.DocumentKindCanvas {
+			t.Errorf("Kind = %q, want %q", doc.Kind, document.DocumentKindCanvas)
+		}
+
+		results, err := ftsStore.Search(ctx, "unique")
+		if err != nil {
+			t.Fatalf("Search() failed: %v", err)
+		}
+
+		found := false
+		for _, path := range results {
+			if path == relativePath {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("Canvas document not found in search results for 'unique'")
+		}
+
+		results2, err := ftsStore.Search(ctx, "searchable")
+		if err != nil {
+			t.Fatalf("Search() failed: %v", err)
+		}
+
+		found2 := false
+		for _, path := range results2 {
+			if path == relativePath {
+				found2 = true
+				break
+			}
+		}
+		if !found2 {
+			t.Errorf("Canvas document not found in search results for 'searchable'")
+		}
+	})
+
+	t.Run("canvas document appears in list queries", func(t *testing.T) {
+		docs, err := docStore.Get(ctx, &document.GetFilters{
+			ProjectAlias:   strPtr("@test-project"),
+			IncludeDeleted: false,
+		})
+		if err != nil {
+			t.Fatalf("Get() failed: %v", err)
+		}
+
+		canvasCount := 0
+		for _, doc := range docs {
+			if doc.Kind == document.DocumentKindCanvas {
+				canvasCount++
+			}
+		}
+
+		if canvasCount == 0 {
+			t.Error("No canvas documents found in list query")
+		}
+	})
+
+	t.Run("reindex updates canvas content", func(t *testing.T) {
+		relativePath := "projects/@test-project/doc-canvas-test.json"
+
+		scene := map[string]any{
+			"elements": []any{
+				map[string]any{
+					"id":   "text1",
+					"type": "text",
+					"text": "updated unique canvas content xyz123",
+				},
+			},
+			"appState": map[string]any{},
+		}
+		sceneJSON, err := json.Marshal(scene)
+		if err != nil {
+			t.Fatalf("Failed to marshal scene: %v", err)
+		}
+
+		docFile := &document.DocumentFile{
+			Meta: document.DocumentMeta{
+				Project: "@test-project",
+				Title:   "Test Canvas Updated",
+				Tags:    []string{"canvas-test"},
+				Created: time.Now().Add(-time.Hour),
+				Updated: time.Now(),
+			},
+			Kind:  document.DocumentKindCanvas,
+			Scene: sceneJSON,
+		}
+
+		writer := document.NewFileWriter(v)
+		if err := writer.WriteFile(relativePath, docFile); err != nil {
+			t.Fatalf("WriteFile() failed: %v", err)
+		}
+
+		if err := idx.ReindexDocument(ctx, relativePath); err != nil {
+			t.Fatalf("ReindexDocument() failed: %v", err)
+		}
+
+		results, err := ftsStore.Search(ctx, "xyz123")
+		if err != nil {
+			t.Fatalf("Search() failed: %v", err)
+		}
+
+		found := false
+		for _, path := range results {
+			if path == relativePath {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Error("Updated canvas content not found in search results")
+		}
+	})
+}
+
+func strPtr(s string) *string {
+	return &s
+}
+
+func TestIndexer_CanvasAssetSurvivesCleanupOrphans(t *testing.T) {
+	db, v := setupTestEnv(t)
+	defer testutil.CleanupTestDB(t, db)
+
+	docStore := document.NewStore(db)
+	projectStore := project.NewStore(db)
+	ftsStore := search.NewStore(db)
+	tagStore := tag.NewStore(db)
+	linkStore := link.NewStore(db)
+	assetStore := asset.NewStore(db)
+	assetService := asset.NewService(asset.ServiceConfig{
+		DB:          db,
+		Store:       assetStore,
+		Vault:       v,
+		SyncManager: git.NewMockSyncManager(),
+	})
+
+	idx := New(db, v, docStore, projectStore, ftsStore, tagStore, linkStore, assetStore, git.NewMockSyncManager(), events.NewEventBus())
+
+	ctx := context.Background()
+
+	// Create a canvas document with an asset reference
+	projectAlias := "@test-project"
+	if err := v.EnsureProjectDir(projectAlias); err != nil {
+		t.Fatalf("Failed to create project dir: %v", err)
+	}
+
+	// Write a test asset file
+	testData := []byte("test image data")
+	testHash := asset.ComputeHash(testData)
+	testExt := ".png"
+	testRef := fmt.Sprintf("/assets/%s/%s%s", projectAlias, testHash, testExt)
+
+	assetsDir := v.AssetsPath(projectAlias)
+	if err := os.MkdirAll(assetsDir, 0755); err != nil {
+		t.Fatalf("Failed to create assets dir: %v", err)
+	}
+	assetPath := filepath.Join(assetsDir, testHash+testExt)
+	if err := os.WriteFile(assetPath, testData, 0644); err != nil {
+		t.Fatalf("Failed to write test asset: %v", err)
+	}
+
+	// Insert the asset into the database with an old timestamp (> 5 minutes ago)
+	// to ensure it would be considered for cleanup if not linked
+	oldTime := time.Now().Add(-10 * time.Minute)
+	testAsset := &asset.Asset{
+		Hash:      testHash,
+		Ext:       testExt,
+		Bytes:     int64(len(testData)),
+		MIME:      "image/png",
+		CreatedAt: oldTime,
+	}
+	if _, err := assetStore.Upsert(ctx, testAsset); err != nil {
+		t.Fatalf("Failed to insert test asset: %v", err)
+	}
+
+	// Create a canvas document that references this asset
+	scene := map[string]any{
+		"elements": []any{
+			map[string]any{
+				"id":   "text1",
+				"type": "text",
+				"text": "canvas with image",
+			},
+		},
+		"appState": map[string]any{},
+	}
+	sceneJSON, err := json.Marshal(scene)
+	if err != nil {
+		t.Fatalf("Failed to marshal scene: %v", err)
+	}
+
+	docFile := &document.DocumentFile{
+		Meta: document.DocumentMeta{
+			Project: projectAlias,
+			Title:   "Canvas With Asset",
+			Tags:    []string{"canvas-asset-test"},
+			Created: time.Now().Add(-time.Hour),
+			Updated: time.Now(),
+		},
+		Kind:   document.DocumentKindCanvas,
+		Scene:  sceneJSON,
+		Assets: map[string]string{"file1": testRef},
+	}
+
+	relativePath := "projects/@test-project/doc-canvas-asset-test.json"
+	writer := document.NewFileWriter(v)
+	if err := writer.WriteFile(relativePath, docFile); err != nil {
+		t.Fatalf("WriteFile() failed: %v", err)
+	}
+
+	// Index the document - this should create the doc_asset link
+	if err := idx.IndexDocument(ctx, relativePath); err != nil {
+		t.Fatalf("IndexDocument() failed: %v", err)
+	}
+
+	// Verify the asset is linked to the document
+	linkedAssets, err := assetStore.GetDocumentAssets(ctx, relativePath)
+	if err != nil {
+		t.Fatalf("GetDocumentAssets() failed: %v", err)
+	}
+	if len(linkedAssets) != 1 {
+		t.Fatalf("Expected 1 linked asset, got %d", len(linkedAssets))
+	}
+	if linkedAssets[0].Hash != testHash {
+		t.Errorf("Linked asset hash mismatch: got %s, want %s", linkedAssets[0].Hash, testHash)
+	}
+
+	// Now run CleanupOrphans - the asset should survive because it's linked
+	deleted, err := assetService.CleanupOrphans(ctx, projectAlias)
+	if err != nil {
+		t.Fatalf("CleanupOrphans() failed: %v", err)
+	}
+
+	// The asset should NOT have been deleted
+	if deleted > 0 {
+		t.Errorf("CleanupOrphans() deleted %d assets, expected 0 (asset should be linked)", deleted)
+	}
+
+	// Verify the asset still exists in the database
+	_, err = assetStore.GetByHash(ctx, testHash)
+	if err != nil {
+		t.Errorf("Asset was deleted despite being linked: %v", err)
+	}
+
+	// Verify the asset file still exists on disk
+	if _, err := os.Stat(assetPath); os.IsNotExist(err) {
+		t.Error("Asset file was deleted despite being linked")
 	}
 }

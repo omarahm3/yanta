@@ -1,4 +1,4 @@
-import { FilePlus } from "lucide-react";
+import { FilePlus, PenTool } from "lucide-react";
 import { DocumentServiceWrapper } from "../../../shared/services/DocumentService";
 import type { CommandOption } from "../../../shared/ui";
 import { getShortcutForCommand } from "../../../shared/utils/shortcuts";
@@ -40,6 +40,37 @@ export function registerCreateCommands(
 					onNavigate("document", { documentPath: newPath, newDocument: true });
 				} catch (err) {
 					notification.error(`Failed to create document: ${err}`);
+				}
+			},
+		});
+
+		commands.push({
+			id: "new-canvas",
+			icon: <PenTool className="text-lg" />,
+			text: "New Canvas",
+			hint: "Create new canvas",
+			shortcut: getShortcutForCommand("new-canvas"),
+			group: "Create",
+			keywords: ["create", "add", "canvas", "draw", "diagram"],
+			action: async () => {
+				handleClose();
+				if (!currentProject) return;
+				try {
+					const newPath = await DocumentServiceWrapper.save({
+						projectAlias: currentProject.alias,
+						title: "Untitled Canvas",
+						kind: "canvas",
+						scene: {
+							elements: [],
+							appState: {},
+							files: {},
+						},
+						assets: {},
+						tags: [],
+					});
+					onNavigate("document", { documentPath: newPath, newDocument: true });
+				} catch (err) {
+					notification.error(`Failed to create canvas: ${err}`);
 				}
 			},
 		});

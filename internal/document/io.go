@@ -89,6 +89,7 @@ func NewFileWriter(v *vault.Vault) *FileWriter {
 }
 
 func (w *FileWriter) WriteFile(relativePath string, doc *DocumentFile) error {
+	doc.Normalize()
 	if err := doc.Validate(); err != nil {
 		return wrapIOError("write", relativePath, fmt.Errorf("%w: %v", ErrValidation, err))
 	}
