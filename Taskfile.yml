@@ -134,6 +134,10 @@ tasks:
       BUILD_COMMAND: '{{if eq .PRODUCTION "true"}}build{{else}}build:dev{{end}}'
     env:
       PRODUCTION: '{{.PRODUCTION | default "false"}}'
+      # Excalidraw pulls in roughjs/mermaid/d3 transitively; Rollup holds the whole
+      # graph in memory while rendering chunks and blows Node's ~2GB default heap.
+      # Raise it so the bundle (incl. the split vendor-excalidraw chunk) can build.
+      NODE_OPTIONS: '--max-old-space-size=6144'
     cmds:
       - npm run {{.BUILD_COMMAND}}
 

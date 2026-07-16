@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { GranularErrorBoundary } from "@/app";
-import { CanvasEditor } from "../../editor/CanvasEditor";
 import type { DocumentFindControls } from "../../editor/find";
 import { RichEditor } from "../../editor/RichEditor";
 import type { EditorHandle } from "../../editor/types";
@@ -15,6 +14,13 @@ import type { NavigationState, PageName } from "../../shared/types/navigation";
 import { Button } from "../../shared/ui";
 import { countChars, countWords } from "../utils/editorCountUtils";
 import { getDocumentText, getSelectedText } from "../utils/editorSelection";
+
+// Excalidraw is heavy (roughjs/mermaid/d3 pulled in transitively). Lazy-load it
+// so it lands in its own chunk instead of the main bundle — keeps canvas support
+// off the critical path for note-only sessions and avoids ballooning the build.
+const CanvasEditor = React.lazy(() =>
+	import("../../editor/CanvasEditor").then((m) => ({ default: m.CanvasEditor })),
+);
 
 interface DocumentEditorFormProps {
 	blocks: BlockNoteBlock[];
@@ -191,13 +197,19 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 					onError={handleEditorBoundaryError}
 				>
 					{kind === "canvas" ? (
-						<CanvasEditor
-							initialScene={scene}
-							projectAlias={projectAlias}
-							onChange={onSceneChange}
-							editable={!isLoading && !isReadOnly}
-							className="h-full"
-						/>
+						<React.Suspense
+							fallback={
+								<div className="flex items-center justify-center h-full text-text-dim">Loading canvas…</div>
+							}
+						>
+							<CanvasEditor
+								initialScene={scene}
+								projectAlias={projectAlias}
+								onChange={onSceneChange}
+								editable={!isLoading && !isReadOnly}
+								className="h-full"
+							/>
+						</React.Suspense>
 					) : (
 						<RichEditor
 							initialContent={blocksJson}

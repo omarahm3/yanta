@@ -91,6 +91,7 @@ export default defineConfig({
 					"vendor-react": ["react", "react-dom"],
 					"vendor-blocknote": ["@blocknote/core", "@blocknote/react", "@blocknote/shadcn"],
 					"vendor-utils": ["clsx", "class-variance-authority", "tailwind-merge"],
+					"vendor-excalidraw": ["@excalidraw/excalidraw"],
 				},
 			},
 		},
@@ -117,6 +118,7 @@ export default defineConfig({
 			"@blocknote/core/extensions",
 			"@blocknote/shadcn",
 			"@blocknote/code-block",
+			"@excalidraw/excalidraw",
 		],
 	},
 });
