@@ -63,6 +63,10 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 		const excalidrawAPI = useRef<ExcalidrawImperativeAPI | null>(null);
 		const resolvedTheme = useResolvedTheme();
 		const [isReady, setIsReady] = useState(false);
+		// Bumped once after mount to remount Excalidraw with a fresh render cache so
+		// restored text repaints with the (now-loaded) custom font. See below.
+		const [fontRepaintKey, setFontRepaintKey] = useState(0);
+		const fontRepaintDoneRef = useRef(false);
 		const lastVersionRef = useRef<number>(0);
 		const projectAliasRef = useRef(projectAlias);
 		const onChangeRef = useRef(onChange);
@@ -259,28 +263,48 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 			};
 		}, [flushSave]);
 
-		// Excalidraw's custom fonts (e.g. Excalifont) load a tick after first paint.
-		// Text measured before the font applies renders blank until something forces
-		// a re-render (double-clicking it). Re-feeding the elements via updateScene
-		// once fonts are ready forces that re-measure/repaint. The scene version is
-		// unchanged, so handleChange's version gate skips it — no spurious save.
+		// Excalidraw caches a per-element bitmap keyed by version. On reopen, text is
+		// painted before its custom font (Excalifont) is ready and a BLANK bitmap is
+		// cached; because the font is served from cache, Excalidraw's internal
+		// font-loaded handler fires before the scene exists, so that blank cache is
+		// never invalidated (text stays blank until you edit the element). The public
+		// API exposes no cache-invalidation hook, so we remount Excalidraw ONCE with
+		// the live scene captured: a fresh instance has an empty cache and paints text
+		// with the now-loaded font on first frame. Only fires when the opened scene
+		// already contains text (the only case that can be blank), and captures live
+		// elements so any edits made in the first moments survive the remount.
+		const repaintTextForFonts = useCallback(() => {
+			if (fontRepaintDoneRef.current) return;
+			const api = excalidrawAPI.current;
+			if (!api) return;
+			const elements = api.getSceneElements();
+			fontRepaintDoneRef.current = true;
+			if (!elements.some((el) => el.type === "text")) return;
+			setHydratedInitialData({
+				elements: elements as NonDeletedExcalidrawElement[],
+				appState: stripRuntimeAppState(api.getAppState()),
+				files: api.getFiles(),
+			});
+			setFontRepaintKey((k) => k + 1);
+		}, []);
+
+		// Trigger the one-time font repaint once fonts are ready (near-instant for a
+		// cached font), with a short fallback in case the ready event already fired.
 		useEffect(() => {
 			if (!isReady) return;
 			let cancelled = false;
-			const nudge = () => {
-				const api = excalidrawAPI.current;
-				if (cancelled || !api) return;
-				api.updateScene({ elements: api.getSceneElements() });
+			const run = () => {
+				if (!cancelled) repaintTextForFonts();
 			};
 			if (typeof document !== "undefined" && document.fonts?.ready) {
-				document.fonts.ready.then(nudge).catch(() => {});
+				document.fonts.ready.then(run).catch(() => {});
 			}
-			const timer = setTimeout(nudge, 400);
+			const timer = setTimeout(run, 500);
 			return () => {
 				cancelled = true;
 				clearTimeout(timer);
 			};
-		}, [isReady]);
+		}, [isReady, repaintTextForFonts]);
 
 		if (!isReady || !hydratedInitialData) {
 			return (
@@ -293,6 +317,7 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 		return (
 			<div className={cn("h-full w-full", className)}>
 				<Excalidraw
+					key={fontRepaintKey}
 					initialData={hydratedInitialData}
 					onChange={handleChange}
 					theme={resolvedTheme === "dark" ? "dark" : "light"}
