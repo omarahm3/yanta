@@ -259,6 +259,27 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 			};
 		}, [flushSave]);
 
+		// Excalidraw's custom fonts (e.g. Excalifont) load asynchronously. Text
+		// measured/painted before the font arrives renders blank until something
+		// forces a re-measure (like double-clicking it). Nudge a refresh once fonts
+		// are ready — and once more shortly after mount as a fallback — so restored
+		// text appears without user interaction.
+		useEffect(() => {
+			if (!isReady) return;
+			let cancelled = false;
+			const nudge = () => {
+				if (!cancelled) excalidrawAPI.current?.refresh();
+			};
+			if (typeof document !== "undefined" && document.fonts?.ready) {
+				document.fonts.ready.then(nudge).catch(() => {});
+			}
+			const timer = setTimeout(nudge, 400);
+			return () => {
+				cancelled = true;
+				clearTimeout(timer);
+			};
+		}, [isReady]);
+
 		if (!isReady || !hydratedInitialData) {
 			return (
 				<div className={cn("flex items-center justify-center h-full", className)}>
