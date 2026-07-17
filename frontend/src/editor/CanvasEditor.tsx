@@ -23,11 +23,17 @@ import { useResolvedTheme } from "../shared/stores/theme.store";
 import type { ExcalidrawScene } from "../shared/types/Document";
 import { BackendLogger } from "../shared/utils/backendLogger";
 import { cn } from "../shared/utils/cn";
+import type { CanvasExportHandle } from "./types";
 
 export interface CanvasEditorProps {
 	initialScene?: ExcalidrawScene;
 	projectAlias: string;
 	onChange?: (scene: ExcalidrawScene, assets: Record<string, string>) => void;
+	/**
+	 * Called once the canvas is mounted with a handle that renders the live scene
+	 * to an image, and with `null` on unmount so the consumer can drop its ref.
+	 */
+	onExportReady?: (handle: CanvasExportHandle | null) => void;
 	className?: string;
 	editable?: boolean;
 }
@@ -97,7 +103,14 @@ function sanitizeAppState<T>(appState: T): T {
 }
 
 export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
-	({ initialScene, projectAlias, onChange, className, editable: _editable = true }) => {
+	({
+		initialScene,
+		projectAlias,
+		onChange,
+		onExportReady,
+		className,
+		editable: _editable = true,
+	}) => {
 		const excalidrawAPI = useRef<ExcalidrawImperativeAPI | null>(null);
 		const resolvedTheme = useResolvedTheme();
 		const [isReady, setIsReady] = useState(false);
@@ -108,10 +121,12 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 		const lastVersionRef = useRef<number>(0);
 		const projectAliasRef = useRef(projectAlias);
 		const onChangeRef = useRef(onChange);
+		const onExportReadyRef = useRef(onExportReady);
 		const assetsRef = useRef<Record<string, string>>({});
 
 		projectAliasRef.current = projectAlias;
 		onChangeRef.current = onChange;
+		onExportReadyRef.current = onExportReady;
 
 		// Hydrate vault references to dataURLs on mount
 		const [hydratedInitialData, setHydratedInitialData] = useState<ExcalidrawInitialDataState | null>(
@@ -348,9 +363,7 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 				);
 
 				const repainted = elements.map((el) =>
-					el.type === "text"
-						? { ...el, version: el.version + 1, versionNonce: randomInteger() }
-						: el,
+					el.type === "text" ? { ...el, version: el.version + 1, versionNonce: randomInteger() } : el,
 				) as NonDeletedExcalidrawElement[];
 
 				programmaticRepaintRef.current = true;
@@ -393,6 +406,41 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 			};
 		}, [isReady]);
 
+		// Publish an export handle to the parent once mounted. Rendering pulls from
+		// the live Excalidraw API — not the persisted scene — because getFiles()
+		// returns the hydrated image dataURLs (the saved scene only keeps vault
+		// refs) and getSceneElements/getAppState reflect exactly what's on screen,
+		// including edits still inside the autosave debounce.
+		useEffect(() => {
+			if (!isReady) return;
+			const handle: CanvasExportHandle = {
+				toPNG: () => {
+					const api = excalidrawAPI.current;
+					if (!api) return Promise.reject(new Error("Canvas not ready"));
+					return exportToBlob({
+						elements: api.getSceneElements(),
+						appState: api.getAppState(),
+						files: api.getFiles(),
+						mimeType: "image/png",
+					});
+				},
+				toSVG: async () => {
+					const api = excalidrawAPI.current;
+					if (!api) throw new Error("Canvas not ready");
+					const svg = await exportToSvg({
+						elements: api.getSceneElements(),
+						appState: api.getAppState(),
+						files: api.getFiles(),
+					});
+					return new XMLSerializer().serializeToString(svg);
+				},
+			};
+			onExportReadyRef.current?.(handle);
+			return () => {
+				onExportReadyRef.current?.(null);
+			};
+		}, [isReady]);
+
 		if (!isReady || !hydratedInitialData) {
 			return (
 				<div className={cn("flex items-center justify-center h-full", className)}>
@@ -425,24 +473,3 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 );
 
 CanvasEditor.displayName = "CanvasEditor";
-
-// Export utilities for PNG/SVG export
-export async function exportCanvasToPNG(scene: ExcalidrawScene, files: BinaryFiles): Promise<Blob> {
-	return exportToBlob({
-		elements: scene.elements as NonDeletedExcalidrawElement[],
-		appState: scene.appState as unknown as AppState,
-		files,
-		mimeType: "image/png",
-	});
-}
-
-export async function exportCanvasToSVG(
-	scene: ExcalidrawScene,
-	files: BinaryFiles,
-): Promise<SVGSVGElement> {
-	return exportToSvg({
-		elements: scene.elements as NonDeletedExcalidrawElement[],
-		appState: scene.appState as unknown as AppState,
-		files,
-	});
-}

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { GranularErrorBoundary } from "@/app";
 import type { DocumentFindControls } from "../../editor/find";
 import { RichEditor } from "../../editor/RichEditor";
-import type { EditorHandle } from "../../editor/types";
+import type { CanvasExportHandle, EditorHandle } from "../../editor/types";
 import {
 	disableExternalPluginsForEditorRecovery,
 	getActiveExternalPluginIds,
@@ -37,6 +37,7 @@ interface DocumentEditorFormProps {
 	onSceneChange?: (scene: ExcalidrawScene, assets: Record<string, string>) => void;
 	onTagRemove: (tag: string) => void;
 	onEditorReady?: (editor: EditorHandle) => void;
+	onCanvasExportReady?: (handle: CanvasExportHandle | null) => void;
 	find?: DocumentFindControls;
 	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	onCountChange?: (counts: {
@@ -62,6 +63,7 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 	onSceneChange,
 	onTagRemove,
 	onEditorReady,
+	onCanvasExportReady,
 	find,
 	onNavigate,
 	onCountChange,
@@ -206,6 +208,7 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 								initialScene={scene}
 								projectAlias={projectAlias}
 								onChange={onSceneChange}
+								onExportReady={onCanvasExportReady}
 								editable={!isLoading && !isReadOnly}
 								className="h-full"
 							/>

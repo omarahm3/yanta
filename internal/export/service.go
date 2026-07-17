@@ -2,6 +2,7 @@ package export
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -115,6 +116,51 @@ func (s *Service) ExportToPDF(ctx context.Context, req ExportRequest) error {
 		"outputPath": req.OutputPath,
 		"title":      docWithTags.File.Meta.Title,
 	}).Info("PDF export completed successfully")
+
+	return nil
+}
+
+// ExportImageRequest carries a rendered canvas image to be written to disk.
+// The image is rendered client-side by Excalidraw (PNG via exportToBlob, SVG via
+// exportToSvg) — Go cannot render a canvas — so the frontend hands the bytes over
+// base64-encoded and this service just decodes and writes them to the chosen path.
+type ExportImageRequest struct {
+	OutputPath string // Absolute path where the image file should be written
+	Data       string // base64-encoded image bytes (PNG or SVG)
+}
+
+// ExportCanvasImage decodes a base64 image payload and writes it to OutputPath,
+// creating the parent directory if needed.
+func (s *Service) ExportCanvasImage(ctx context.Context, req ExportImageRequest) error {
+	_ = ctx // no server-side work; kept for binding/signature consistency
+
+	if strings.TrimSpace(req.OutputPath) == "" {
+		return fmt.Errorf("output path is required")
+	}
+	if strings.TrimSpace(req.Data) == "" {
+		return fmt.Errorf("image data is required")
+	}
+
+	data, err := base64.StdEncoding.DecodeString(req.Data)
+	if err != nil {
+		return fmt.Errorf("decoding image data: %w", err)
+	}
+
+	outputDir := filepath.Dir(req.OutputPath)
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		logger.WithError(err).WithField("dir", outputDir).Error("failed to create output directory")
+		return fmt.Errorf("creating output directory: %w", err)
+	}
+
+	if err := os.WriteFile(req.OutputPath, data, 0644); err != nil {
+		logger.WithError(err).WithField("path", req.OutputPath).Error("failed to write canvas image")
+		return fmt.Errorf("writing image file: %w", err)
+	}
+
+	logger.WithFields(map[string]any{
+		"outputPath": req.OutputPath,
+		"bytes":      len(data),
+	}).Info("canvas image export completed successfully")
 
 	return nil
 }

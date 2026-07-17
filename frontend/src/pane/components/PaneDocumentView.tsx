@@ -203,6 +203,7 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 						onSceneChange={contentProps.onSceneChange}
 						onTagRemove={contentProps.onTagRemove}
 						onEditorReady={contentProps.onEditorReady}
+						onCanvasExportReady={contentProps.onCanvasExportReady}
 						find={contentProps.find}
 					/>
 				</div>

@@ -1,7 +1,7 @@
 import { Events } from "@wailsio/runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GetDocumentTags } from "../../../bindings/yanta/internal/tag/service";
-import type { EditorHandle } from "../../editor/types";
+import type { CanvasExportHandle, EditorHandle } from "../../editor/types";
 import { useHelp } from "../../help";
 import { useUserProgressContext } from "../../onboarding";
 import { usePaneLayout } from "../../pane";
@@ -110,9 +110,17 @@ export function useDocumentController({
 
 	const { handleEditorReady } = useDocumentEditor();
 	const { addRecentDocument } = useRecentDocuments();
-	const { handleExportToMarkdown, handleExportToPDF } = useDocumentExports({
+	// Live canvas export handle, set by the mounted CanvasEditor while this is the
+	// active pane and cleared on unmount. Held in a ref because export is fired
+	// imperatively from the command palette, not on render.
+	const canvasExportRef = useRef<CanvasExportHandle | null>(null);
+	const handleCanvasExportReady = useCallback((handle: CanvasExportHandle | null) => {
+		canvasExportRef.current = handle;
+	}, []);
+	const { handleExportToMarkdown, handleExportToPDF, handleExportCanvasImage } = useDocumentExports({
 		documentPath,
 		documentTitle: formData.title,
+		canvasExportRef,
 	});
 
 	const editorRef = useRef<EditorHandle | null>(null);
@@ -419,14 +427,24 @@ export function useDocumentController({
 		store.registerFindHandler(openFind);
 		store.registerReplaceHandler(openReplace);
 		store.registerRestoreHandler(handleRestore);
+		store.registerExportImageHandler(handleExportCanvasImage);
 		return () => {
 			const s = useDocumentCommandStore.getState();
 			s.registerSaveHandler(null);
 			s.registerFindHandler(null);
 			s.registerReplaceHandler(null);
 			s.registerRestoreHandler(null);
+			s.registerExportImageHandler(null);
 		};
-	}, [error, loadError, openFind, openReplace, handleRestore, isActivePane]);
+	}, [
+		error,
+		loadError,
+		openFind,
+		openReplace,
+		handleRestore,
+		handleExportCanvasImage,
+		isActivePane,
+	]);
 
 	useEffect(() => {
 		const refreshTags = async () => {
@@ -506,6 +524,7 @@ export function useDocumentController({
 		onSceneChange: setScene,
 		onTagRemove: removeTag,
 		onEditorReady: handleEditorReadyWithRef,
+		onCanvasExportReady: handleCanvasExportReady,
 		onRestore: isArchived ? handleRestore : undefined,
 		onRegisterToggleSidebar,
 		onNavigate,

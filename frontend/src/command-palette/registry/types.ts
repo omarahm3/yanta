@@ -17,7 +17,7 @@ export interface CommandRegistryContext {
 	projects: Project[];
 	setCurrentProject: (project: Project | undefined) => void;
 	switchToLastProject: () => void;
-	getSelectedDocument: () => { path?: string } | null;
+	getSelectedDocument: () => { path?: string; kind?: string } | null;
 	notification: {
 		success: (msg: string, options?: ToastOptions) => void;
 		error: (msg: string) => void;

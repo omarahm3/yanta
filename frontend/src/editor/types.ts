@@ -27,6 +27,19 @@ import type { BlockNoteBlock } from "../shared/types/Document";
 // that seam only through `toEditorHandle`.
 export type EditorHandle = BlockNoteEditor;
 
+/**
+ * Imperative export handle a mounted CanvasEditor hands up to the controller so
+ * the command palette can render the live canvas to an image. Rendering must run
+ * against Excalidraw's live API (it holds the hydrated image dataURLs and the
+ * exact on-screen viewport), so the editor owns it and exposes it as bytes/text.
+ */
+export interface CanvasExportHandle {
+	/** Render the current scene to a PNG blob. */
+	toPNG: () => Promise<Blob>;
+	/** Render the current scene to serialized SVG markup. */
+	toSVG: () => Promise<string>;
+}
+
 export type EditorExtensionInstance = ExtensionFactoryInstance;
 export type EditorTipTapExtension = AnyExtension;
 export type EditorBlockSpecMap = BlockSpecs;

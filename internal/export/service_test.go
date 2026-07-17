@@ -2,6 +2,7 @@ package export
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -422,4 +423,68 @@ func TestService_ExportToPDF_CreatesOutputDirectory(t *testing.T) {
 	// Verify output file exists
 	_, err = os.Stat(outputPath)
 	assert.NoError(t, err, "Output PDF file should exist in nested directory")
+}
+
+func TestService_ExportCanvasImage_Success(t *testing.T) {
+	service, _, _ := setupServiceTest(t)
+	ctx := context.Background()
+
+	tmpDir := t.TempDir()
+	outputPath := filepath.Join(tmpDir, "canvas.png")
+
+	// A minimal PNG header is enough to prove bytes round-trip verbatim.
+	original := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x01, 0x02}
+	encoded := base64.StdEncoding.EncodeToString(original)
+
+	err := service.ExportCanvasImage(ctx, ExportImageRequest{
+		OutputPath: outputPath,
+		Data:       encoded,
+	})
+	require.NoError(t, err)
+
+	written, err := os.ReadFile(outputPath)
+	require.NoError(t, err)
+	assert.Equal(t, original, written, "written bytes should match decoded input")
+}
+
+func TestService_ExportCanvasImage_CreatesNestedDir(t *testing.T) {
+	service, _, _ := setupServiceTest(t)
+	ctx := context.Background()
+
+	tmpDir := t.TempDir()
+	outputPath := filepath.Join(tmpDir, "nested", "sub", "canvas.svg")
+
+	encoded := base64.StdEncoding.EncodeToString([]byte("<svg></svg>"))
+
+	err := service.ExportCanvasImage(ctx, ExportImageRequest{
+		OutputPath: outputPath,
+		Data:       encoded,
+	})
+	require.NoError(t, err)
+
+	_, err = os.Stat(outputPath)
+	assert.NoError(t, err, "output file should exist in nested directory")
+}
+
+func TestService_ExportCanvasImage_Validation(t *testing.T) {
+	service, _, _ := setupServiceTest(t)
+	ctx := context.Background()
+
+	t.Run("missing output path", func(t *testing.T) {
+		err := service.ExportCanvasImage(ctx, ExportImageRequest{Data: "abc"})
+		assert.Error(t, err)
+	})
+
+	t.Run("missing data", func(t *testing.T) {
+		err := service.ExportCanvasImage(ctx, ExportImageRequest{OutputPath: "/tmp/x.png"})
+		assert.Error(t, err)
+	})
+
+	t.Run("invalid base64", func(t *testing.T) {
+		err := service.ExportCanvasImage(ctx, ExportImageRequest{
+			OutputPath: filepath.Join(t.TempDir(), "x.png"),
+			Data:       "not!valid!base64!",
+		})
+		assert.Error(t, err)
+	})
 }

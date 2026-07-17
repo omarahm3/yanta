@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, FileDown, Save, Search } from "lucide-react";
+import { Archive, ArchiveRestore, FileDown, Image, Save, Search } from "lucide-react";
 import { ExportDocumentRequest } from "../../../../bindings/yanta/internal/document/models";
 import {
 	ExportDocument,
@@ -19,7 +19,9 @@ export function registerDocumentCommands(
 ): void {
 	const { handleClose, currentPage, getSelectedDocument, notification, onNavigate } = ctx;
 	const commands: CommandOption[] = [];
-	const hasDocument = currentPage === "document" && Boolean(getSelectedDocument()?.path);
+	const selectedDocument = getSelectedDocument();
+	const hasDocument = currentPage === "document" && Boolean(selectedDocument?.path);
+	const isCanvas = hasDocument && selectedDocument?.kind === "canvas";
 
 	if (hasDocument) {
 		commands.push({
@@ -159,6 +161,36 @@ export function registerDocumentCommands(
 				} catch (err) {
 					notification.error(`Export failed: ${err}`);
 				}
+			},
+		});
+	}
+
+	if (isCanvas) {
+		commands.push({
+			id: "export-canvas-png",
+			icon: <Image className="text-lg" />,
+			text: "Export Canvas as PNG",
+			hint: "Export the canvas to a PNG image",
+			group: "Document",
+			keywords: ["export", "canvas", "png", "image"],
+			// Route through the active canvas pane's live export handle — only it
+			// holds the hydrated image files and the on-screen viewport.
+			action: () => {
+				handleClose();
+				useDocumentCommandStore.getState().requestExportImage("png");
+			},
+		});
+
+		commands.push({
+			id: "export-canvas-svg",
+			icon: <Image className="text-lg" />,
+			text: "Export Canvas as SVG",
+			hint: "Export the canvas to an SVG image",
+			group: "Document",
+			keywords: ["export", "canvas", "svg", "vector", "image"],
+			action: () => {
+				handleClose();
+				useDocumentCommandStore.getState().requestExportImage("svg");
 			},
 		});
 	}
