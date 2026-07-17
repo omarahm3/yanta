@@ -163,3 +163,48 @@ describe("useDocumentHotkeysConfig - deleteBlock", () => {
 		expect(error).toHaveBeenCalledWith("Restore the document before editing.");
 	});
 });
+
+describe("useDocumentHotkeysConfig - canvas gating", () => {
+	const baseOptions = () => ({
+		isActivePaneRef: { current: true },
+		isArchived: false,
+		error: vi.fn(),
+		saveNow: vi.fn(),
+		handleExportToMarkdown: vi.fn(),
+		handleExportToPDF: vi.fn(),
+		handleEscape: vi.fn(),
+		handleUnfocus: vi.fn(),
+		focusEditor: vi.fn(),
+		openFind: vi.fn(),
+		openReplace: vi.fn(),
+		deleteBlock: vi.fn(),
+		moveBlockUp: vi.fn(),
+		moveBlockDown: vi.fn(),
+		duplicateBlock: vi.fn(),
+		toggleOutline: vi.fn(),
+		editorRef: { current: null },
+	});
+
+	it("exposes only the Save hotkey on a canvas so Excalidraw owns the rest", () => {
+		const { result } = renderHook(() =>
+			useDocumentHotkeysConfig({ ...baseOptions(), isCanvas: true }),
+		);
+
+		expect(result.current).toHaveLength(1);
+		expect(result.current[0].key).toBe("mod+s");
+		// Keys Excalidraw needs must not be intercepted by document hotkeys.
+		expect(result.current.find((h) => h.key === "Escape")).toBeUndefined();
+		expect(result.current.find((h) => h.key === "ctrl+d")).toBeUndefined();
+		expect(result.current.find((h) => h.key === "Enter")).toBeUndefined();
+	});
+
+	it("registers the full document hotkey set for non-canvas documents", () => {
+		const { result } = renderHook(() =>
+			useDocumentHotkeysConfig({ ...baseOptions(), isCanvas: false }),
+		);
+
+		expect(result.current.length).toBeGreaterThan(1);
+		expect(result.current.find((h) => h.key === "Escape")).toBeDefined();
+		expect(result.current.find((h) => h.key === "ctrl+d")).toBeDefined();
+	});
+});

@@ -6,6 +6,13 @@ import type { HotkeyConfig } from "../../shared/types/hotkeys";
 export interface UseDocumentHotkeysConfigOptions {
 	/** Ref whose .current is updated with the active pane state (read in handlers). */
 	isActivePaneRef: { current: boolean };
+	/**
+	 * True for canvas documents. On a canvas, Excalidraw owns Escape / Enter /
+	 * Ctrl+D / arrow chords etc.; registering the BlockNote document hotkeys would
+	 * `preventDefault` those keys before the canvas sees them. So a canvas exposes
+	 * only Save (which flushes autosave and doesn't collide with Excalidraw).
+	 */
+	isCanvas?: boolean;
 	isArchived: boolean;
 	error: (message: string) => void;
 	saveNow: () => Promise<unknown>;
@@ -26,6 +33,7 @@ export interface UseDocumentHotkeysConfigOptions {
 
 export function useDocumentHotkeysConfig({
 	isActivePaneRef,
+	isCanvas = false,
 	isArchived,
 	error,
 	saveNow,
@@ -46,23 +54,28 @@ export function useDocumentHotkeysConfig({
 	const { shortcuts } = useMergedConfig();
 	const document = shortcuts.document;
 
-	return useMemo(
-		() => [
-			{
-				...document.save,
-				handler: (event: KeyboardEvent) => {
-					if (!isActivePaneRef.current) return false;
-					event.preventDefault();
-					event.stopPropagation();
-					if (isArchived) {
-						error("Restore the document before editing.");
-						return;
-					}
-					void saveNow();
-				},
-				allowInInput: true,
-				capture: true,
+	return useMemo(() => {
+		const saveHotkey: HotkeyConfig = {
+			...document.save,
+			handler: (event: KeyboardEvent) => {
+				if (!isActivePaneRef.current) return false;
+				event.preventDefault();
+				event.stopPropagation();
+				if (isArchived) {
+					error("Restore the document before editing.");
+					return;
+				}
+				void saveNow();
 			},
+			allowInInput: true,
+			capture: true,
+		};
+
+		// On a canvas pane, hand every other chord to Excalidraw (see isCanvas doc).
+		if (isCanvas) return [saveHotkey];
+
+		return [
+			saveHotkey,
 			{
 				...document.documentSearch,
 				handler: (event: KeyboardEvent) => {
@@ -212,26 +225,26 @@ export function useDocumentHotkeysConfig({
 				allowInInput: true,
 				capture: true,
 			},
-		],
-		[
-			document,
-			saveNow,
-			error,
-			focusEditor,
-			handleEscape,
-			handleUnfocus,
-			isArchived,
-			handleExportToMarkdown,
-			handleExportToPDF,
-			isActivePaneRef,
-			openFind,
-			openReplace,
-			deleteBlock,
-			moveBlockUp,
-			moveBlockDown,
-			duplicateBlock,
-			toggleOutline,
-			editorRef,
-		],
-	);
+		];
+	}, [
+		document,
+		saveNow,
+		error,
+		focusEditor,
+		handleEscape,
+		handleUnfocus,
+		isCanvas,
+		isArchived,
+		handleExportToMarkdown,
+		handleExportToPDF,
+		isActivePaneRef,
+		openFind,
+		openReplace,
+		deleteBlock,
+		moveBlockUp,
+		moveBlockDown,
+		duplicateBlock,
+		toggleOutline,
+		editorRef,
+	]);
 }

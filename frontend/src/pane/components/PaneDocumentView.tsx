@@ -40,8 +40,13 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 		const layoutRef = useLatestRef(layout);
 		const suppressEscapeRef = useLatestRef(suppressEscape);
 
+		// On a canvas pane, Excalidraw owns Escape (deselect / exit tool / close its
+		// menus), so the pane's Escape-to-blur/back handler stands down. The document
+		// hotkeys are likewise reduced to Save-only for canvases (useDocumentHotkeysConfig).
+		const isCanvas = controller.contentProps.formData.kind === "canvas";
+
 		useEscapeHandler({
-			when: activePaneId === paneId,
+			when: activePaneId === paneId && !isCanvas,
 			onEscape: (e) => {
 				if (suppressEscapeRef.current) {
 					controller.escapeHandler(e);

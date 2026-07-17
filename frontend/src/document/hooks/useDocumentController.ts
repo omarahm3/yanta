@@ -368,6 +368,7 @@ export function useDocumentController({
 
 	const hotkeys = useDocumentHotkeysConfig({
 		isActivePaneRef,
+		isCanvas: formData.kind === "canvas",
 		isArchived,
 		error,
 		saveNow: saveNowForHotkey,
