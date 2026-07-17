@@ -1,0 +1,10 @@
+/*
+ * Trim Excalidraw chrome Yanta doesn't want: the library button, the main
+ * hamburger menu, and the help (?) button. Excalidraw exposes no props for
+ * these, so hide them by class. Scoped to .excalidraw so nothing else is hit.
+ */
+.excalidraw .default-sidebar-trigger,
+.excalidraw .main-menu-trigger,
+.excalidraw .help-icon {
+	display: none !important;
+}

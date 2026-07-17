@@ -7,6 +7,7 @@ import {
 	restore,
 } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
+import "./CanvasEditor.css";
 import type {
 	ExcalidrawElement,
 	NonDeletedExcalidrawElement,
