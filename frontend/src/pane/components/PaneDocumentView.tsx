@@ -40,12 +40,12 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 		const layoutRef = useLatestRef(layout);
 		const suppressEscapeRef = useLatestRef(suppressEscape);
 
-		// On a canvas pane, Escape is layered: controller.escapeHandler
-		// (handleCanvasEscape) yields to Excalidraw while it's mid-interaction
-		// (deselect / exit tool / finish text / close menu) and only consumes Escape
-		// to navigate back once the canvas is idle. So for canvases we must NOT stop
-		// propagation here — that would block Excalidraw from ever seeing Escape. The
-		// document hotkeys are separately reduced to Save-only (useDocumentHotkeysConfig).
+		// On a canvas pane, Escape is layered (see useCanvasEscapeSequence): the 1st
+		// tap is yielded to Excalidraw, the 2nd unfocuses the canvas, the 3rd navigates
+		// back. controller.escapeHandler owns that decision AND the propagation control
+		// — it stops propagation only for the 2nd/3rd taps — so we must NOT stop it here
+		// or the 1st tap would never reach Excalidraw. The document hotkeys are also
+		// reduced to Save-only for canvases (useDocumentHotkeysConfig).
 		const isCanvas = controller.contentProps.formData.kind === "canvas";
 
 		useEscapeHandler({

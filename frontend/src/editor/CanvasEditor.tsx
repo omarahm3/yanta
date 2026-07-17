@@ -36,6 +36,13 @@ export interface CanvasEditorProps {
 	onCanvasReady?: (handle: CanvasHandle | null) => void;
 	className?: string;
 	editable?: boolean;
+	/**
+	 * When true, focus the Excalidraw container on mount. Excalidraw scopes its
+	 * keyboard handling to a focused container, so without this the canvas never
+	 * receives keys (Space-pan, tool shortcuts, Delete) until the user happens to
+	 * click into it.
+	 */
+	autoFocus?: boolean;
 }
 
 interface HydratedFiles {
@@ -110,8 +117,10 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 		onCanvasReady,
 		className,
 		editable: _editable = true,
+		autoFocus = true,
 	}) => {
 		const excalidrawAPI = useRef<ExcalidrawImperativeAPI | null>(null);
+		const containerRef = useRef<HTMLDivElement>(null);
 		const resolvedTheme = useResolvedTheme();
 		const [isReady, setIsReady] = useState(false);
 		// `programmaticRepaintRef` marks the font-repaint updateScene we trigger
@@ -406,6 +415,81 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 			};
 		}, [isReady]);
 
+		// Excalidraw scopes its keyboard handling to its focused container, but in the
+		// pane shell the canvas mounts without focus (keydowns land on <body>), so
+		// Space-pan / tool shortcuts / Delete never reach it. Focus the container once
+		// it's on screen so the canvas owns the keyboard immediately. Retry across a few
+		// frames because the `.excalidraw` node isn't in the DOM the instant isReady flips.
+		useEffect(() => {
+			if (!isReady || !autoFocus) return;
+			let cancelled = false;
+			let attempts = 0;
+			const focusCanvas = () => {
+				if (cancelled) return;
+				const el = containerRef.current?.querySelector<HTMLElement>(".excalidraw");
+				if (el) {
+					el.focus({ preventScroll: true });
+					return;
+				}
+				if (attempts++ < 10) requestAnimationFrame(focusCanvas);
+			};
+			focusCanvas();
+			return () => {
+				cancelled = true;
+			};
+		}, [isReady, autoFocus]);
+
+		// Excalidraw arms Space-pan via an internal isHoldingSpace flag set on Space
+		// keydown — but it resets that flag on ANY window blur, and focus loss also
+		// swallows the auto-repeat keydowns that would re-arm it (X11 additionally
+		// synthesizes a Space keyup on focus-out). So after any transient blur, a
+		// click while physically holding Space silently loses pan: at pointerdown the
+		// flag is false, and once the pointer is down Excalidraw refuses to re-arm
+		// (its Space handler requires zero active pointers). Track the physical key
+		// ourselves and, when a left-click lands on the canvas while Space is held but
+		// Excalidraw is disarmed (no grab cursor), re-arm it with a synthetic Space
+		// keydown BEFORE the pointerdown reaches it — window capture runs first, and
+		// at that instant its zero-pointers guard still passes.
+		useEffect(() => {
+			if (!isReady) return;
+			const spaceHeld = { current: false };
+			const isTyping = (t: EventTarget | null) =>
+				t instanceof Element && Boolean(t.closest("input, textarea, [contenteditable]"));
+			const cursor = () =>
+				(containerRef.current?.querySelector(".excalidraw__canvas.interactive") as HTMLElement | null)
+					?.style.cursor;
+
+			const onKeyDown = (e: KeyboardEvent) => {
+				if (e.key === " " && e.isTrusted && !isTyping(e.target)) spaceHeld.current = true;
+			};
+			const onKeyUp = (e: KeyboardEvent) => {
+				if (e.key === " " && e.isTrusted) spaceHeld.current = false;
+			};
+			// Clear on blur: while unfocused we can't see a physical release, so a held
+			// flag could go stale and cause a surprise pan later. The auto-repeat that
+			// resumes on refocus re-arms us within ~30ms when Space really is still down.
+			const onBlur = () => {
+				spaceHeld.current = false;
+			};
+			const onPointerDown = (e: PointerEvent) => {
+				if (e.button !== 0 || !spaceHeld.current) return;
+				if (!containerRef.current?.contains(e.target as Node)) return;
+				if (cursor() === "grab") return;
+				document.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+			};
+
+			window.addEventListener("keydown", onKeyDown, true);
+			window.addEventListener("keyup", onKeyUp, true);
+			window.addEventListener("blur", onBlur);
+			window.addEventListener("pointerdown", onPointerDown, true);
+			return () => {
+				window.removeEventListener("keydown", onKeyDown, true);
+				window.removeEventListener("keyup", onKeyUp, true);
+				window.removeEventListener("blur", onBlur);
+				window.removeEventListener("pointerdown", onPointerDown, true);
+			};
+		}, [isReady]);
+
 		// Publish an imperative handle to the parent once mounted. Everything pulls
 		// from the live Excalidraw API — not the persisted scene — because getFiles()
 		// returns the hydrated image dataURLs (the saved scene only keeps vault refs),
@@ -435,25 +519,11 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 					});
 					return new XMLSerializer().serializeToString(svg);
 				},
-				isInteracting: () => {
-					const api = excalidrawAPI.current;
-					if (!api) return false;
-					const st = api.getAppState();
-					return Boolean(
-						// mid-interaction: editing text, drawing, or dragging a selection box
-						st.editingTextElement ||
-							st.newElement ||
-							st.selectionElement ||
-							st.editingLinearElement ||
-							// something Escape would clear/reset
-							Object.keys(st.selectedElementIds ?? {}).length > 0 ||
-							(st.activeTool && st.activeTool.type !== "selection") ||
-							// an open Excalidraw overlay that Escape would close
-							st.openMenu ||
-							st.openPopup ||
-							st.openDialog ||
-							st.contextMenu,
-					);
+				blur: () => {
+					const active = document.activeElement;
+					if (active instanceof HTMLElement && containerRef.current?.contains(active)) {
+						active.blur();
+					}
 				},
 			};
 			onCanvasReadyRef.current?.(handle);
@@ -471,12 +541,17 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 		}
 
 		return (
-			<div className={cn("h-full w-full", className)}>
+			<div ref={containerRef} className={cn("h-full w-full", className)}>
 				<Excalidraw
 					initialData={hydratedInitialData}
 					onChange={handleChange}
 					theme={resolvedTheme === "dark" ? "dark" : "light"}
 					viewModeEnabled={!_editable}
+					// Without this, Excalidraw binds its keyboard handler to its own
+					// container, so Space-pan / tool shortcuts / Delete only work while that
+					// container holds DOM focus — which it doesn't reliably in the pane shell.
+					// Binding globally (to document) lets the canvas own its chords regardless.
+					handleKeyboardGlobally={true}
 					UIOptions={{
 						canvasActions: {
 							saveToActiveFile: false,

@@ -29,22 +29,16 @@ export type EditorHandle = BlockNoteEditor;
 
 /**
  * Imperative handle a mounted CanvasEditor hands up to the controller. It wraps
- * Excalidraw's live API (which holds the hydrated image dataURLs, the on-screen
- * viewport, and the live interaction state) so the shell can render exports and
- * make canvas-aware keyboard decisions without reaching into Excalidraw itself.
+ * Excalidraw's live API (which holds the hydrated image dataURLs) so the shell
+ * can render exports without reaching into Excalidraw itself.
  */
 export interface CanvasHandle {
 	/** Render the current scene to a PNG blob. */
 	toPNG: () => Promise<Blob>;
 	/** Render the current scene to serialized SVG markup. */
 	toSVG: () => Promise<string>;
-	/**
-	 * True when Excalidraw has an interaction that should consume Escape — editing
-	 * text, a live selection, a non-default tool, or an open menu/dialog. The shell
-	 * yields Escape to the canvas when this is true and takes it for its own
-	 * back-navigation only when the canvas is idle.
-	 */
-	isInteracting: () => boolean;
+	/** Drop keyboard focus from the canvas if it currently holds it. */
+	blur: () => void;
 }
 
 export type EditorExtensionInstance = ExtensionFactoryInstance;

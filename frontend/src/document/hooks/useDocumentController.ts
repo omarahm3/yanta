@@ -15,6 +15,7 @@ import { BackendLogger } from "../../shared/utils/backendLogger";
 import type { DocumentContentProps } from "../components/DocumentContent";
 import { createEmptyDocument } from "../utils/documentBlockUtils";
 import { getSelectedText } from "../utils/editorSelection";
+import { useCanvasEscapeSequence } from "./useCanvasEscapeSequence";
 import { useDocumentEditor } from "./useDocumentEditor";
 import { useDocumentEscapeHandling } from "./useDocumentEscapeHandling";
 import { useDocumentExports } from "./useDocumentExports";
@@ -310,23 +311,12 @@ export function useDocumentController({
 
 	const isCanvas = formData.kind === "canvas";
 
-	// Layered Escape for canvases: if Excalidraw has a live interaction (editing
-	// text, a selection, a non-default tool, an open menu), yield Escape to it by
-	// doing nothing — the un-stopped event reaches Excalidraw's own handler. Only
-	// when the canvas is idle does the shell consume Escape and navigate back,
-	// mirroring a document's Esc-to-blur-then-Esc-back. PaneDocumentView must NOT
-	// unconditionally stop propagation for canvases, or the yield case never works.
-	const handleCanvasEscape = useCallback(
-		(e: KeyboardEvent) => {
-			if (!isActivePaneRef.current) return;
-			if (canvasHandleRef.current?.isInteracting()) return;
-			e.preventDefault();
-			e.stopPropagation();
-			e.stopImmediatePropagation();
-			handleCancel();
-		},
-		[handleCancel],
-	);
+	const handleCanvasEscape = useCanvasEscapeSequence({
+		isActivePaneRef,
+		isCanvas,
+		onUnfocus: () => canvasHandleRef.current?.blur(),
+		onExit: handleCancel,
+	});
 
 	const focusEditor = useCallback(() => {
 		const editor = editorRef.current;

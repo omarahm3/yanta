@@ -210,6 +210,7 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 								onChange={onSceneChange}
 								onCanvasReady={onCanvasReady}
 								editable={!isLoading && !isReadOnly}
+								autoFocus={autoFocus}
 								className="h-full"
 							/>
 						</React.Suspense>
