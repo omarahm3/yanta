@@ -1,4 +1,4 @@
-import { FileText, Pin, PinOff } from "lucide-react";
+import { FileText, PenTool, Pin, PinOff } from "lucide-react";
 import React, { useCallback, useRef, useState } from "react";
 import { Layout } from "@/app";
 import type { DocumentFindControls } from "../../editor/find";
@@ -181,13 +181,24 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 						{/* Page header with mode icon */}
 						<div className="px-4 pt-4 pb-2 border-b border-glass-border">
 							<div className="flex items-center gap-2">
-								<FileText
-									className="w-5 h-5"
-									style={{ color: "var(--mode-accent)" }}
-									aria-hidden="true"
-									data-testid="page-header-icon"
-								/>
-								<span className="text-sm text-text-dim">Document</span>
+								{formData.kind === "canvas" ? (
+									<PenTool
+										className="w-5 h-5"
+										style={{ color: "var(--mode-accent)" }}
+										aria-hidden="true"
+										data-testid="page-header-icon"
+									/>
+								) : (
+									<FileText
+										className="w-5 h-5"
+										style={{ color: "var(--mode-accent)" }}
+										aria-hidden="true"
+										data-testid="page-header-icon"
+									/>
+								)}
+								<span className="text-sm text-text-dim">
+									{formData.kind === "canvas" ? "Canvas" : "Document"}
+								</span>
 							</div>
 						</div>
 						{isArchived && (

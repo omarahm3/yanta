@@ -1,5 +1,5 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Archive, FilePlus, FolderPlus, Split } from "lucide-react";
+import { Archive, FilePlus, FileText, FolderPlus, PenTool, Split } from "lucide-react";
 import React, { useEffect, useRef } from "react";
 import { useSidebarStateStore } from "../../shared/stores/sidebarState.store";
 import type { Document } from "../../shared/types/Document";
@@ -362,6 +362,11 @@ const DocumentListItem: React.FC<DocumentListItemProps> = React.memo(
 								onKeyDown={handleItemClickKeyDown}
 							>
 								<div className="flex items-center gap-2">
+									{doc.kind === "canvas" ? (
+										<PenTool className="h-4 w-4 shrink-0 text-text-dim" aria-label="Canvas" />
+									) : (
+										<FileText className="h-4 w-4 shrink-0 text-text-dim" aria-label="Document" />
+									)}
 									<Heading as="h3" size="base">
 										{doc.title}
 									</Heading>

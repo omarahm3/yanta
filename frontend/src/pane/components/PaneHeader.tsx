@@ -1,7 +1,8 @@
-import { Columns, Rows, X } from "lucide-react";
+import { Columns, FileText, PenTool, Rows, X } from "lucide-react";
 import type React from "react";
 import { useCallback, useMemo } from "react";
 import { useDensity } from "../../shared/stores/density.store";
+import type { DocumentKind } from "../../shared/types/Document";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -15,6 +16,7 @@ export interface PaneHeaderProps {
 	paneId: string;
 	documentPath: string | null;
 	title?: string;
+	kind?: DocumentKind;
 	className?: string;
 }
 
@@ -24,6 +26,7 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({
 	paneId,
 	documentPath,
 	title: titleProp,
+	kind,
 	className,
 }) => {
 	const { layout, activePaneId, splitPane, closePane } = usePaneLayout();
@@ -84,13 +87,19 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({
 				>
 					<span
 						className={cn(
-							"truncate mr-2",
+							"truncate mr-2 flex items-center gap-1.5 min-w-0",
 							isCompact ? "text-[11px]" : "text-xs",
 							documentPath ? "text-text-bright font-medium" : "text-text-dim",
 						)}
 						title={documentPath ?? undefined}
 					>
-						{title}
+						{documentPath &&
+							(kind === "canvas" ? (
+								<PenTool className="w-3.5 h-3.5 shrink-0 text-text-dim" aria-label="Canvas" />
+							) : (
+								<FileText className="w-3.5 h-3.5 shrink-0 text-text-dim" aria-label="Document" />
+							))}
+						<span className="truncate">{title}</span>
 					</span>
 
 					<div className="flex items-center gap-0.5 shrink-0">

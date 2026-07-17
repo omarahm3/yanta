@@ -1,9 +1,37 @@
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { visualizer } from "rollup-plugin-visualizer";
-import { defineConfig, type BuildOptions } from "vite";
+import { defineConfig, type BuildOptions, type Plugin } from "vite";
 import wails from "@wailsio/runtime/plugins/vite";
+import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "path";
+
+// Copy Excalidraw's runtime fonts (Excalifont, ComicShanns, Xiaolai, …) into the
+// build output at dist/fonts. Excalidraw fetches them relative to
+// window.EXCALIDRAW_ASSET_PATH (set to "/" in production, see src/main.tsx); Wails
+// embeds and serves dist at the app root, so /fonts/<Family>/<file>.woff2 resolves
+// offline instead of hitting Excalidraw's CDN. Build-only; dev uses Excalidraw's
+// default which the Vite dev server already resolves.
+function excalidrawFonts(): Plugin {
+	const require = createRequire(import.meta.url);
+	// package.json isn't in the package's exports map; resolve the entry instead.
+	const entry = require.resolve("@excalidraw/excalidraw");
+	const fontsDir = path.join(path.dirname(entry), "fonts");
+	return {
+		name: "excalidraw-fonts",
+		apply: "build",
+		writeBundle(outputOptions) {
+			const outDir = outputOptions.dir ?? path.resolve(__dirname, "dist");
+			const dest = path.join(outDir, "fonts");
+			if (!fs.existsSync(fontsDir)) {
+				this.warn(`excalidraw fonts dir not found at ${fontsDir}; canvas fonts will fall back to CDN`);
+				return;
+			}
+			fs.cpSync(fontsDir, dest, { recursive: true });
+		},
+	};
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -46,6 +74,7 @@ export default defineConfig({
 		react(),
 		tailwindcss(),
 		wails("./bindings"),
+		excalidrawFonts(),
 		visualizer({
 			open: false,
 			gzipSize: true,
