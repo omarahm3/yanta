@@ -83,9 +83,11 @@ export const useDocumentPersistence = ({
 		return cancelPending;
 	}, [formData.blocks]);
 
-	useEffect(() => {
-		latestFormRef.current = formData;
-	}, [formData]);
+	// Mirror the latest form state on every render (not via an effect) so the
+	// synchronous save paths — Ctrl+S and save-on-unmount — read the newest scene
+	// immediately instead of one paint behind. Canvas edits propagate into formData
+	// within their own event now, and this keeps doSave's snapshot current with them.
+	latestFormRef.current = formData;
 
 	useEffect(() => {
 		currentDocumentPathRef.current = documentPath;

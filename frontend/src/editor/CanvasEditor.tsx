@@ -1,4 +1,5 @@
 import {
+	CaptureUpdateAction,
 	Excalidraw,
 	exportToBlob,
 	exportToSvg,
@@ -48,13 +49,50 @@ type ExcalidrawFile = {
 	[key: string]: unknown;
 };
 
-// Excalidraw's appState carries runtime-only fields that don't survive JSON
-// (notably `collaborators`, a Map that serializes to {} and then crashes
-// InteractiveCanvas on mount). Remove them so what we persist and what we hand
-// back to Excalidraw is plain, safe data.
-function stripRuntimeAppState<T>(appState: T): T {
-	const cleaned = { ...(appState as unknown as Record<string, unknown>) };
-	delete cleaned.collaborators;
+// Excalidraw's runtime appState is mostly transient interaction state that must
+// NOT survive a save/load round-trip. Persisting it raw caused two bug classes:
+// class-shaped values that JSON-mangle and crash on reload (`collaborators`, a
+// Map; `selectedLinearElement`, a LinearElementEditor), and in-progress
+// interaction state that Excalidraw "resumes" on mount — a persisted
+// `editingTextElement` makes it treat that text element as still being edited on
+// reopen: the canvas hides its text and the "finish editing" banner appears.
+// Whitelist the few fields that are meaningful across sessions (viewport,
+// canvas settings, last-used tool styles) so no future runtime field can leak
+// into persistence. Excalidraw fills everything else with defaults.
+const PERSISTED_APP_STATE_KEYS = [
+	"scrollX",
+	"scrollY",
+	"zoom",
+	"viewBackgroundColor",
+	"gridSize",
+	"gridStep",
+	"gridModeEnabled",
+	"zenModeEnabled",
+	"objectsSnapModeEnabled",
+	"currentItemStrokeColor",
+	"currentItemBackgroundColor",
+	"currentItemFillStyle",
+	"currentItemStrokeWidth",
+	"currentItemStrokeStyle",
+	"currentItemRoughness",
+	"currentItemOpacity",
+	"currentItemFontFamily",
+	"currentItemFontSize",
+	"currentItemTextAlign",
+	"currentItemStartArrowhead",
+	"currentItemEndArrowhead",
+	"currentItemRoundness",
+	"currentItemArrowType",
+] as const;
+
+function sanitizeAppState<T>(appState: T): T {
+	const source = appState as unknown as Record<string, unknown>;
+	const cleaned: Record<string, unknown> = {};
+	for (const key of PERSISTED_APP_STATE_KEYS) {
+		if (source[key] !== undefined) {
+			cleaned[key] = source[key];
+		}
+	}
 	return cleaned as unknown as T;
 }
 
@@ -63,20 +101,14 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 		const excalidrawAPI = useRef<ExcalidrawImperativeAPI | null>(null);
 		const resolvedTheme = useResolvedTheme();
 		const [isReady, setIsReady] = useState(false);
-		// Bumped once after mount to remount Excalidraw with a fresh render cache so
-		// restored text repaints with the (now-loaded) custom font. See below.
-		const [fontRepaintKey, setFontRepaintKey] = useState(0);
-		const fontRepaintDoneRef = useRef(false);
+		// `programmaticRepaintRef` marks the font-repaint updateScene we trigger
+		// ourselves (see the effect near the bottom) so its onChange isn't persisted
+		// as if it were a user edit.
+		const programmaticRepaintRef = useRef(false);
 		const lastVersionRef = useRef<number>(0);
 		const projectAliasRef = useRef(projectAlias);
 		const onChangeRef = useRef(onChange);
-		const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 		const assetsRef = useRef<Record<string, string>>({});
-		const pendingSaveRef = useRef<{
-			elements: readonly ExcalidrawElement[];
-			appState: AppState;
-			files: BinaryFiles;
-		} | null>(null);
 
 		projectAliasRef.current = projectAlias;
 		onChangeRef.current = onChange;
@@ -153,10 +185,12 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 
 				setHydratedInitialData({
 					elements: restored.elements,
-					// Excalidraw copies appState.collaborators verbatim and only falls back
-					// to a fresh Map when the key is absent; our persisted {} is not a Map and
-					// crashes InteractiveCanvas. Drop it so Excalidraw supplies its own.
-					appState: stripRuntimeAppState(restored.appState),
+					// Sanitize on load too, not just on save: documents saved before the
+					// whitelist existed already carry stale runtime state (a persisted
+					// editingTextElement hides that element's text on reopen; a persisted
+					// non-Map collaborators crashes InteractiveCanvas). initialData.appState
+					// may be partial — Excalidraw merges in its own defaults.
+					appState: sanitizeAppState(restored.appState),
 					files: restored.files,
 				});
 				setIsReady(true);
@@ -213,9 +247,10 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 
 				const scene: ExcalidrawScene = {
 					elements: elements as ExcalidrawElement[],
-					// Strip runtime-only appState (e.g. collaborators, a Map) before persisting
-					// so the stored JSON stays clean and reload never sees a non-Map value.
-					appState: stripRuntimeAppState(appState) as unknown as Record<string, unknown>,
+					// Persist only the whitelisted appState so a save fired mid-interaction
+					// (e.g. autosave while a text editor is open) can never freeze that
+					// interaction state into the document.
+					appState: sanitizeAppState(appState) as unknown as Record<string, unknown>,
 					files: processedFiles as ExcalidrawScene["files"],
 				};
 
@@ -224,87 +259,139 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 			[],
 		);
 
-		// Extract dataURLs to vault assets on change
+		// Propagate scene changes to the parent immediately — deliberately NOT
+		// debounced here. The parent (useAutoSave) already owns the single disk-write
+		// debounce (2s), and every save path — Ctrl+S, save-on-unmount, autosave,
+		// window blur, flush-on-quit — persists the PARENT's form state. When
+		// CanvasEditor debounced internally (1s) it sat on the latest scene before
+		// calling onChange, so any save fired inside that window wrote a scene missing
+		// the most recent edits, and the save-on-unmount couldn't rescue it (its React
+		// state update never reaches the disk writer during teardown). That was the
+		// "my last shape/text didn't save" bug. Pushing every real change up keeps the
+		// parent's form state current so all of those save paths capture the newest
+		// scene; the parent's own debounce still prevents excessive disk writes.
 		const handleChange = useCallback(
-			async (elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
+			(elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
 				if (!excalidrawAPI.current) return;
 
 				const sceneVersion = getSceneVersion(elements);
 				if (sceneVersion === lastVersionRef.current) return;
 				lastVersionRef.current = sceneVersion;
 
-				// Store pending save data
-				pendingSaveRef.current = { elements, appState, files };
-
-				// Debounce the save
-				if (saveTimeoutRef.current) {
-					clearTimeout(saveTimeoutRef.current);
+				// The font-repaint effect below bumps text element versions purely to
+				// invalidate Excalidraw's stale render cache — not a user edit — so
+				// swallow the resulting onChange instead of persisting it.
+				if (programmaticRepaintRef.current) {
+					programmaticRepaintRef.current = false;
+					return;
 				}
 
-				saveTimeoutRef.current = setTimeout(async () => {
-					await flushSave(elements, appState, files);
-					pendingSaveRef.current = null;
-				}, 1000);
+				// flushSave extracts any new image assets to the vault, then hands the
+				// scene to onChange. It runs synchronously up to onChange when there are
+				// no new files (the common shapes/text case), so the parent's form state
+				// updates within this same event — before any close/save can race it.
+				void flushSave(elements, appState, files);
 			},
 			[flushSave],
 		);
 
-		// Cleanup: flush pending save on unmount
-		useEffect(() => {
-			return () => {
-				if (saveTimeoutRef.current) {
-					clearTimeout(saveTimeoutRef.current);
-					// Flush pending save synchronously
-					if (pendingSaveRef.current) {
-						const { elements, appState, files } = pendingSaveRef.current;
-						void flushSave(elements, appState, files);
-					}
-				}
-			};
-		}, [flushSave]);
-
-		// Excalidraw caches a per-element bitmap keyed by version. On reopen, text is
-		// painted before its custom font (Excalifont) is ready and a BLANK bitmap is
-		// cached; because the font is served from cache, Excalidraw's internal
-		// font-loaded handler fires before the scene exists, so that blank cache is
-		// never invalidated (text stays blank until you edit the element). The public
-		// API exposes no cache-invalidation hook, so we remount Excalidraw ONCE with
-		// the live scene captured: a fresh instance has an empty cache and paints text
-		// with the now-loaded font on first frame. Only fires when the opened scene
-		// already contains text (the only case that can be blank), and captures live
-		// elements so any edits made in the first moments survive the remount.
-		const repaintTextForFonts = useCallback(() => {
-			if (fontRepaintDoneRef.current) return;
-			const api = excalidrawAPI.current;
-			if (!api) return;
-			const elements = api.getSceneElements();
-			fontRepaintDoneRef.current = true;
-			if (!elements.some((el) => el.type === "text")) return;
-			setHydratedInitialData({
-				elements: elements as NonDeletedExcalidrawElement[],
-				appState: stripRuntimeAppState(api.getAppState()),
-				files: api.getFiles(),
-			});
-			setFontRepaintKey((k) => k + 1);
-		}, []);
-
-		// Trigger the one-time font repaint once fonts are ready (near-instant for a
-		// cached font), with a short fallback in case the ready event already fired.
+		// On reopen, Excalidraw paints restored text before its custom hand-drawn font
+		// finishes loading, caching a BLANK per-element bitmap. Its built-in
+		// "font loaded -> invalidate + repaint" path (Fonts.onLoaded) only ever runs
+		// ONCE per font per page load — a static loadedFontsCache guards it — so on
+		// every reopen after the first it bails out and the blank bitmap is never
+		// refreshed; the text stays blank until you edit it.
+		//
+		// Editing fixes it because it assigns the element a fresh versionNonce, so
+		// Excalidraw treats it as a new object and regenerates both its shape
+		// (ShapeCache) and bitmap (elementWithCanvasCache) — both WeakMaps keyed by
+		// element identity. We reproduce that: re-stamp every text element's version
+		// via the public updateScene so it repaints with the loaded font.
+		// captureUpdate: NEVER keeps it out of undo/redo; the programmatic-repaint
+		// guard in handleChange keeps it from being persisted. We fire it across a few
+		// beats after document.fonts.ready (the face can become usable for canvas a
+		// tick after `ready` resolves, and a cached font emits no `loadingdone`) and
+		// again on any later `loadingdone`. It's cheap and a no-op once text is right.
 		useEffect(() => {
 			if (!isReady) return;
 			let cancelled = false;
-			const run = () => {
-				if (!cancelled) repaintTextForFonts();
+
+			const randomInteger = () => Math.floor(Math.random() * 2 ** 31);
+
+			const repaintText = (reason: string) => {
+				if (cancelled) return;
+				const api = excalidrawAPI.current;
+				if (!api) return;
+				const elements = api.getSceneElements();
+				const textEls = elements.filter((el) => el.type === "text");
+				if (textEls.length === 0) return;
+
+				// Don't clobber an in-progress text edit — Excalidraw owns that
+				// element's rendering while its editor is open.
+				const appState = api.getAppState();
+				if (appState.editingTextElement) return;
+
+				const fontsReady =
+					typeof document !== "undefined" && document.fonts
+						? document.fonts.check("20px Excalifont")
+						: true;
+				BackendLogger.info(
+					`[canvas-font-repaint] reason=${reason} texts=${textEls.length} ` +
+						`excalifontReady=${fontsReady} ` +
+						`fontsStatus=${typeof document !== "undefined" ? document.fonts?.status : "n/a"} ` +
+						textEls
+							.map((t) => {
+								const tt = t as { fontFamily?: number; width: number; height: number };
+								return `{ff:${tt.fontFamily},w:${Math.round(tt.width)},h:${Math.round(tt.height)}}`;
+							})
+							.join(","),
+				);
+
+				const repainted = elements.map((el) =>
+					el.type === "text"
+						? { ...el, version: el.version + 1, versionNonce: randomInteger() }
+						: el,
+				) as NonDeletedExcalidrawElement[];
+
+				programmaticRepaintRef.current = true;
+				api.updateScene({ elements: repainted, captureUpdate: CaptureUpdateAction.NEVER });
+				// Never leave the guard stuck true (that would swallow a real edit). If
+				// updateScene's onChange didn't clear it, a redundant bump merely gets
+				// persisted once — harmless (versionNonce is just a change token).
+				setTimeout(() => {
+					programmaticRepaintRef.current = false;
+				}, 0);
 			};
-			if (typeof document !== "undefined" && document.fonts?.ready) {
-				document.fonts.ready.then(run).catch(() => {});
+
+			void (async () => {
+				if (typeof document !== "undefined" && document.fonts) {
+					try {
+						await document.fonts.ready;
+					} catch {
+						/* ignore */
+					}
+				}
+				for (let i = 0; i < 3; i++) {
+					if (cancelled) return;
+					repaintText(`ready#${i}`);
+					await new Promise<void>((resolve) => {
+						requestAnimationFrame(() => setTimeout(resolve, 250));
+					});
+				}
+			})();
+
+			const onLoadingDone = () => repaintText("loadingdone");
+			if (typeof document !== "undefined" && document.fonts?.addEventListener) {
+				document.fonts.addEventListener("loadingdone", onLoadingDone);
 			}
-			const timer = setTimeout(run, 500);
+
 			return () => {
 				cancelled = true;
-				clearTimeout(timer);
+				if (typeof document !== "undefined" && document.fonts?.removeEventListener) {
+					document.fonts.removeEventListener("loadingdone", onLoadingDone);
+				}
 			};
-		}, [isReady, repaintTextForFonts]);
+		}, [isReady]);
 
 		if (!isReady || !hydratedInitialData) {
 			return (
@@ -317,7 +404,6 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 		return (
 			<div className={cn("h-full w-full", className)}>
 				<Excalidraw
-					key={fontRepaintKey}
 					initialData={hydratedInitialData}
 					onChange={handleChange}
 					theme={resolvedTheme === "dark" ? "dark" : "light"}
