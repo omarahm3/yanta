@@ -2,7 +2,7 @@ import { FileText, PenTool, Pin, PinOff } from "lucide-react";
 import React, { useCallback, useRef, useState } from "react";
 import { Layout } from "@/app";
 import type { DocumentFindControls } from "../../editor/find";
-import type { CanvasExportHandle, EditorHandle } from "../../editor/types";
+import type { CanvasHandle, EditorHandle } from "../../editor/types";
 import type { SaveState } from "../../shared/hooks";
 import { useSidebarStateStore } from "../../shared/stores/sidebarState.store";
 import type { NavigationState, PageName } from "../../shared/types";
@@ -43,8 +43,8 @@ export interface DocumentContentProps {
 	onSceneChange?: (scene: ExcalidrawScene, assets: Record<string, string>) => void;
 	onTagRemove: (tag: string) => void;
 	onEditorReady: (editor: EditorHandle) => void;
-	/** Receives the live canvas export handle (canvas docs only). */
-	onCanvasExportReady?: (handle: CanvasExportHandle | null) => void;
+	/** Receives the live canvas handle (canvas docs only). */
+	onCanvasReady?: (handle: CanvasHandle | null) => void;
 	onRestore?: () => void;
 	isRestoring?: boolean;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
@@ -112,7 +112,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 		onSceneChange,
 		onTagRemove,
 		onEditorReady,
-		onCanvasExportReady,
+		onCanvasReady,
 		onRestore,
 		isRestoring = false,
 		onRegisterToggleSidebar,
@@ -238,7 +238,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 							onSceneChange={onSceneChange}
 							onTagRemove={onTagRemove}
 							onEditorReady={handleEditorReadyWithRef}
-							onCanvasExportReady={onCanvasExportReady}
+							onCanvasReady={onCanvasReady}
 							find={find}
 							onNavigate={onNavigate}
 							onCountChange={handleCountChange}

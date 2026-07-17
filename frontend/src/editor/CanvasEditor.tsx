@@ -23,17 +23,17 @@ import { useResolvedTheme } from "../shared/stores/theme.store";
 import type { ExcalidrawScene } from "../shared/types/Document";
 import { BackendLogger } from "../shared/utils/backendLogger";
 import { cn } from "../shared/utils/cn";
-import type { CanvasExportHandle } from "./types";
+import type { CanvasHandle } from "./types";
 
 export interface CanvasEditorProps {
 	initialScene?: ExcalidrawScene;
 	projectAlias: string;
 	onChange?: (scene: ExcalidrawScene, assets: Record<string, string>) => void;
 	/**
-	 * Called once the canvas is mounted with a handle that renders the live scene
-	 * to an image, and with `null` on unmount so the consumer can drop its ref.
+	 * Called once the canvas is mounted with an imperative handle (export + live
+	 * interaction state), and with `null` on unmount so the consumer drops its ref.
 	 */
-	onExportReady?: (handle: CanvasExportHandle | null) => void;
+	onCanvasReady?: (handle: CanvasHandle | null) => void;
 	className?: string;
 	editable?: boolean;
 }
@@ -107,7 +107,7 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 		initialScene,
 		projectAlias,
 		onChange,
-		onExportReady,
+		onCanvasReady,
 		className,
 		editable: _editable = true,
 	}) => {
@@ -121,12 +121,12 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 		const lastVersionRef = useRef<number>(0);
 		const projectAliasRef = useRef(projectAlias);
 		const onChangeRef = useRef(onChange);
-		const onExportReadyRef = useRef(onExportReady);
+		const onCanvasReadyRef = useRef(onCanvasReady);
 		const assetsRef = useRef<Record<string, string>>({});
 
 		projectAliasRef.current = projectAlias;
 		onChangeRef.current = onChange;
-		onExportReadyRef.current = onExportReady;
+		onCanvasReadyRef.current = onCanvasReady;
 
 		// Hydrate vault references to dataURLs on mount
 		const [hydratedInitialData, setHydratedInitialData] = useState<ExcalidrawInitialDataState | null>(
@@ -406,14 +406,15 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 			};
 		}, [isReady]);
 
-		// Publish an export handle to the parent once mounted. Rendering pulls from
-		// the live Excalidraw API — not the persisted scene — because getFiles()
-		// returns the hydrated image dataURLs (the saved scene only keeps vault
-		// refs) and getSceneElements/getAppState reflect exactly what's on screen,
-		// including edits still inside the autosave debounce.
+		// Publish an imperative handle to the parent once mounted. Everything pulls
+		// from the live Excalidraw API — not the persisted scene — because getFiles()
+		// returns the hydrated image dataURLs (the saved scene only keeps vault refs),
+		// getSceneElements/getAppState reflect exactly what's on screen (including
+		// edits still inside the autosave debounce), and only the live appState knows
+		// the current interaction state used for Escape routing.
 		useEffect(() => {
 			if (!isReady) return;
-			const handle: CanvasExportHandle = {
+			const handle: CanvasHandle = {
 				toPNG: () => {
 					const api = excalidrawAPI.current;
 					if (!api) return Promise.reject(new Error("Canvas not ready"));
@@ -434,10 +435,30 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 					});
 					return new XMLSerializer().serializeToString(svg);
 				},
+				isInteracting: () => {
+					const api = excalidrawAPI.current;
+					if (!api) return false;
+					const st = api.getAppState();
+					return Boolean(
+						// mid-interaction: editing text, drawing, or dragging a selection box
+						st.editingTextElement ||
+							st.newElement ||
+							st.selectionElement ||
+							st.editingLinearElement ||
+							// something Escape would clear/reset
+							Object.keys(st.selectedElementIds ?? {}).length > 0 ||
+							(st.activeTool && st.activeTool.type !== "selection") ||
+							// an open Excalidraw overlay that Escape would close
+							st.openMenu ||
+							st.openPopup ||
+							st.openDialog ||
+							st.contextMenu,
+					);
+				},
 			};
-			onExportReadyRef.current?.(handle);
+			onCanvasReadyRef.current?.(handle);
 			return () => {
-				onExportReadyRef.current?.(null);
+				onCanvasReadyRef.current?.(null);
 			};
 		}, [isReady]);
 

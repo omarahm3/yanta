@@ -4,15 +4,15 @@ import { ExportDocumentRequest } from "../../../bindings/yanta/internal/document
 import { ExportDocument } from "../../../bindings/yanta/internal/document/service";
 import { ExportImageRequest, ExportRequest } from "../../../bindings/yanta/internal/export/models";
 import { ExportCanvasImage, ExportToPDF } from "../../../bindings/yanta/internal/export/service";
-import type { CanvasExportHandle } from "../../editor/types";
+import type { CanvasHandle } from "../../editor/types";
 import { useNotification } from "../../shared/hooks";
 import type { CanvasExportFormat } from "../../shared/stores/documentCommand.store";
 
 export interface UseDocumentExportsOptions {
 	documentPath?: string;
 	documentTitle: string;
-	/** Live canvas export handle, present only while a canvas is the active pane. */
-	canvasExportRef?: React.RefObject<CanvasExportHandle | null>;
+	/** Live canvas handle, present only while a canvas is the active pane. */
+	canvasHandleRef?: React.RefObject<CanvasHandle | null>;
 }
 
 // Encode arbitrary bytes as base64 for the backend ExportCanvasImage payload.
@@ -29,7 +29,7 @@ function bytesToBase64(bytes: Uint8Array): string {
 export function useDocumentExports({
 	documentPath,
 	documentTitle,
-	canvasExportRef,
+	canvasHandleRef,
 }: UseDocumentExportsOptions) {
 	const { error } = useNotification();
 
@@ -101,7 +101,7 @@ export function useDocumentExports({
 
 	const handleExportCanvasImage = useCallback(
 		async (format: CanvasExportFormat) => {
-			const handle = canvasExportRef?.current;
+			const handle = canvasHandleRef?.current;
 			if (!handle) {
 				error("No canvas open");
 				return;
@@ -142,7 +142,7 @@ export function useDocumentExports({
 				error(err instanceof Error ? err.message : `Failed to export ${format.toUpperCase()}`);
 			}
 		},
-		[canvasExportRef, documentTitle, error],
+		[canvasHandleRef, documentTitle, error],
 	);
 
 	return { handleExportToMarkdown, handleExportToPDF, handleExportCanvasImage };

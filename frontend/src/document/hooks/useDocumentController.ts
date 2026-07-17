@@ -1,7 +1,7 @@
 import { Events } from "@wailsio/runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GetDocumentTags } from "../../../bindings/yanta/internal/tag/service";
-import type { CanvasExportHandle, EditorHandle } from "../../editor/types";
+import type { CanvasHandle, EditorHandle } from "../../editor/types";
 import { useHelp } from "../../help";
 import { useUserProgressContext } from "../../onboarding";
 import { usePaneLayout } from "../../pane";
@@ -110,17 +110,17 @@ export function useDocumentController({
 
 	const { handleEditorReady } = useDocumentEditor();
 	const { addRecentDocument } = useRecentDocuments();
-	// Live canvas export handle, set by the mounted CanvasEditor while this is the
-	// active pane and cleared on unmount. Held in a ref because export is fired
-	// imperatively from the command palette, not on render.
-	const canvasExportRef = useRef<CanvasExportHandle | null>(null);
-	const handleCanvasExportReady = useCallback((handle: CanvasExportHandle | null) => {
-		canvasExportRef.current = handle;
+	// Live canvas handle, set by the mounted CanvasEditor while this is the active
+	// pane and cleared on unmount. Held in a ref because it is consumed imperatively
+	// (command-palette export, Escape routing), not on render.
+	const canvasHandleRef = useRef<CanvasHandle | null>(null);
+	const handleCanvasReady = useCallback((handle: CanvasHandle | null) => {
+		canvasHandleRef.current = handle;
 	}, []);
 	const { handleExportToMarkdown, handleExportToPDF, handleExportCanvasImage } = useDocumentExports({
 		documentPath,
 		documentTitle: formData.title,
-		canvasExportRef,
+		canvasHandleRef,
 	});
 
 	const editorRef = useRef<EditorHandle | null>(null);
@@ -308,6 +308,26 @@ export function useDocumentController({
 		isActivePane,
 	});
 
+	const isCanvas = formData.kind === "canvas";
+
+	// Layered Escape for canvases: if Excalidraw has a live interaction (editing
+	// text, a selection, a non-default tool, an open menu), yield Escape to it by
+	// doing nothing — the un-stopped event reaches Excalidraw's own handler. Only
+	// when the canvas is idle does the shell consume Escape and navigate back,
+	// mirroring a document's Esc-to-blur-then-Esc-back. PaneDocumentView must NOT
+	// unconditionally stop propagation for canvases, or the yield case never works.
+	const handleCanvasEscape = useCallback(
+		(e: KeyboardEvent) => {
+			if (!isActivePaneRef.current) return;
+			if (canvasHandleRef.current?.isInteracting()) return;
+			e.preventDefault();
+			e.stopPropagation();
+			e.stopImmediatePropagation();
+			handleCancel();
+		},
+		[handleCancel],
+	);
+
 	const focusEditor = useCallback(() => {
 		const editor = editorRef.current;
 		if (editor && !editor.isFocused()) {
@@ -368,7 +388,7 @@ export function useDocumentController({
 
 	const hotkeys = useDocumentHotkeysConfig({
 		isActivePaneRef,
-		isCanvas: formData.kind === "canvas",
+		isCanvas,
 		isArchived,
 		error,
 		saveNow: saveNowForHotkey,
@@ -525,7 +545,7 @@ export function useDocumentController({
 		onSceneChange: setScene,
 		onTagRemove: removeTag,
 		onEditorReady: handleEditorReadyWithRef,
-		onCanvasExportReady: handleCanvasExportReady,
+		onCanvasReady: handleCanvasReady,
 		onRestore: isArchived ? handleRestore : undefined,
 		onRegisterToggleSidebar,
 		onNavigate,
@@ -553,7 +573,7 @@ export function useDocumentController({
 		contentProps,
 		hotkeys,
 		documentTitle: formData.title,
-		escapeHandler: handleEscape,
+		escapeHandler: isCanvas ? handleCanvasEscape : handleEscape,
 		hasConflict,
 		onReloadFromDisk: handleReloadFromDisk,
 		onKeepMine: handleKeepMine,
