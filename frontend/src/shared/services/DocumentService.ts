@@ -26,7 +26,11 @@ export async function saveDocument(request: SaveDocumentRequest): Promise<string
 		Title: request.title,
 		Kind: request.kind || "document",
 		Blocks: request.blocks ? blocksToModel(request.blocks) : [],
-		Scene: request.scene ? JSON.stringify(request.scene) : null,
+		// Send the scene as a JSON object, not a stringified blob: the backend stores
+		// it in a json.RawMessage and validates it must be a JSON object for canvas
+		// kind. Double-encoding it to a string fails that validation and corrupts the
+		// file (scene reads back as a bare string).
+		Scene: request.scene ?? null,
 		// Persist the fileId -> vault ref map for canvas docs so the backend can
 		// link these images in doc_asset (keeps them out of orphan cleanup).
 		Assets: request.assets || {},

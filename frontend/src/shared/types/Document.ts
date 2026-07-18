@@ -113,15 +113,19 @@ export function documentWithTagsFromModel(
 	const kind = (model.kind || file?.kind || "document") as DocumentKind;
 
 	let scene: ExcalidrawScene | undefined;
-	if (file?.scene && typeof file.scene === "string") {
-		try {
-			scene = JSON.parse(file.scene) as ExcalidrawScene;
-		} catch (err) {
-			// A canvas whose scene JSON won't parse would otherwise open silently
-			// blank, inviting the user to overwrite a recoverable file. Surface it so
-			// it's diagnosable rather than a mystery blank canvas.
-			scene = undefined;
-			BackendLogger.error(`[document] failed to parse scene JSON for ${model.path}:`, err);
+	if (file?.scene != null) {
+		if (typeof file.scene === "string") {
+			// Legacy files persisted the scene as a JSON-encoded string. A canvas whose
+			// scene JSON won't parse would otherwise open silently blank, inviting the
+			// user to overwrite a recoverable file — surface it so it's diagnosable.
+			try {
+				scene = JSON.parse(file.scene) as ExcalidrawScene;
+			} catch (err) {
+				scene = undefined;
+				BackendLogger.error(`[document] failed to parse scene JSON for ${model.path}:`, err);
+			}
+		} else {
+			scene = file.scene as ExcalidrawScene;
 		}
 	}
 
