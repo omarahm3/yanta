@@ -1,25 +1,30 @@
 import {
 	CaptureUpdateAction,
+	convertToExcalidrawElements,
 	Excalidraw,
 	exportToBlob,
 	exportToSvg,
 	getSceneVersion,
 	restore,
+	viewportCoordsToSceneCoords,
 } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
 import "./CanvasEditor.css";
 import type {
 	ExcalidrawElement,
+	FileId,
 	NonDeletedExcalidrawElement,
 } from "@excalidraw/excalidraw/element/types";
 import type {
 	AppState,
+	BinaryFileData,
 	BinaryFiles,
 	ExcalidrawImperativeAPI,
 	ExcalidrawInitialDataState,
 } from "@excalidraw/excalidraw/types";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ResolveDataURL, StoreDataURL } from "../../bindings/yanta/internal/asset/service";
+import { ReadClipboardImage } from "../../bindings/yanta/internal/system/service";
 import { useResolvedTheme } from "../shared/stores/theme.store";
 import type { ExcalidrawScene } from "../shared/types/Document";
 import { BackendLogger } from "../shared/utils/backendLogger";
@@ -490,6 +495,87 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 				window.removeEventListener("pointerdown", onPointerDown, true);
 			};
 		}, [isReady]);
+
+		// Image paste. The WebKitGTK webview denies the browser Clipboard API and
+		// never fires a paste event on the (non-editable) canvas, so intercept Ctrl/⌘+V
+		// while the canvas holds focus and read the image from the system clipboard
+		// natively (Go: wl-paste/xclip). Insert it via the Excalidraw API and let the
+		// normal onChange/flushSave path persist the dataURL into the vault.
+		useEffect(() => {
+			if (!isReady || !_editable) return;
+			const container = containerRef.current;
+			if (!container) return;
+
+			const naturalSize = (dataURL: string) =>
+				new Promise<{ width: number; height: number }>((resolve) => {
+					const img = new Image();
+					img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+					img.onerror = () => resolve({ width: 320, height: 320 });
+					img.src = dataURL;
+				});
+
+			const insertImage = async (dataURL: string) => {
+				const api = excalidrawAPI.current;
+				if (!api) return;
+				const { width, height } = await naturalSize(dataURL);
+				const maxDim = 800;
+				const scale = Math.max(width, height) > maxDim ? maxDim / Math.max(width, height) : 1;
+				const mimeType = (/^data:([^;]+);/.exec(dataURL)?.[1] ??
+					"image/png") as BinaryFileData["mimeType"];
+				const fileId = crypto.randomUUID() as FileId;
+				api.addFiles([
+					{
+						id: fileId,
+						dataURL: dataURL as BinaryFileData["dataURL"],
+						mimeType,
+						created: Date.now(),
+					},
+				]);
+				const rect = container.getBoundingClientRect();
+				const origin = viewportCoordsToSceneCoords(
+					{ clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 },
+					api.getAppState(),
+				);
+				const added = convertToExcalidrawElements([
+					{
+						type: "image",
+						fileId,
+						status: "saved",
+						x: origin.x,
+						y: origin.y,
+						width: Math.round(width * scale),
+						height: Math.round(height * scale),
+					},
+				]);
+				api.updateScene({
+					elements: [...api.getSceneElements(), ...added],
+					captureUpdate: CaptureUpdateAction.IMMEDIATELY,
+				});
+			};
+
+			const onKeyDown = (e: KeyboardEvent) => {
+				const isPaste =
+					(e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "v";
+				if (!isPaste) return;
+				if (!container.contains(document.activeElement)) return;
+				// Own the paste: Excalidraw's native path only reaches a permission-blocked
+				// Clipboard API here, so let it not bother.
+				e.preventDefault();
+				e.stopPropagation();
+				void (async () => {
+					try {
+						const dataURL = await ReadClipboardImage();
+						BackendLogger.info(`[canvas-paste] Ctrl+V; clipboard image len=${dataURL.length}`);
+						if (dataURL) await insertImage(dataURL);
+					} catch (err) {
+						BackendLogger.error("[canvas] clipboard image paste failed:", err);
+					}
+				})();
+			};
+
+			document.addEventListener("keydown", onKeyDown, true);
+			return () => document.removeEventListener("keydown", onKeyDown, true);
+		}, [isReady, _editable]);
 
 		// Publish an imperative handle to the parent once mounted. Everything pulls
 		// from the live Excalidraw API — not the persisted scene — because getFiles()
