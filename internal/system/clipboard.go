@@ -4,13 +4,22 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
+
+	"yanta/internal/asset"
 )
 
 var preferredImageMIMEs = []string{"image/png", "image/jpeg", "image/webp", "image/gif"}
+
+// maxClipboardImageBytes caps how many bytes we read from the clipboard tool's
+// stdout. A pasted image is ultimately stored as an asset (bounded by
+// asset.MaxAssetBytes), so reading past that only risks exhausting memory on a
+// hostile/huge bitmap — reject it instead.
+const maxClipboardImageBytes = asset.MaxAssetBytes
 
 // ReadClipboardImage returns the current clipboard image as a data URL
 // (data:<mime>;base64,<data>), or an empty string when the clipboard holds no
@@ -35,9 +44,11 @@ func (s *Service) ReadClipboardImage(ctx context.Context) (string, error) {
 	}
 
 	for _, mime := range mimes {
-		out, err := exec.CommandContext(ctx, reader.tool, reader.readArgs(mime)...).Output()
+		out, err := readClipboardBounded(ctx, reader, mime)
 		if err != nil {
-			continue // non-zero exit = type not on clipboard; try the next
+			// non-zero exit = type not on clipboard, or the payload was oversized;
+			// either way skip this type and try the next.
+			continue
 		}
 		if len(out) == 0 {
 			continue
@@ -46,6 +57,41 @@ func (s *Service) ReadClipboardImage(ctx context.Context) (string, error) {
 	}
 
 	return "", nil
+}
+
+// readClipboardBounded runs the clipboard read command and returns its stdout,
+// streaming through an io.LimitReader so a huge bitmap can't be buffered
+// wholesale into memory. Anything larger than maxClipboardImageBytes is rejected
+// (and the producer is killed so Wait doesn't block on a full pipe).
+func readClipboardBounded(ctx context.Context, reader *clipboardTool, mime string) ([]byte, error) {
+	cmd := exec.CommandContext(ctx, reader.tool, reader.readArgs(mime)...)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+
+	// Read one byte past the cap so we can detect an overflow.
+	out, readErr := io.ReadAll(io.LimitReader(stdout, maxClipboardImageBytes+1))
+	overflow := int64(len(out)) > maxClipboardImageBytes
+	if overflow {
+		// Stop the producer: if it's still writing, Wait would otherwise block on
+		// a full pipe that we've stopped draining.
+		_ = cmd.Process.Kill()
+	}
+	waitErr := cmd.Wait()
+
+	switch {
+	case overflow:
+		return nil, fmt.Errorf("clipboard image exceeds %d bytes", int64(maxClipboardImageBytes))
+	case readErr != nil:
+		return nil, readErr
+	case waitErr != nil:
+		return nil, waitErr
+	}
+	return out, nil
 }
 
 type clipboardTool struct {

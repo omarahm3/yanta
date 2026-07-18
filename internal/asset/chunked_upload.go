@@ -166,11 +166,6 @@ func (m *ChunkedUploadManager) AddChunk(uploadID string, chunkIndex int, base64D
 		return 0, false, fmt.Errorf("chunk %d already received", chunkIndex)
 	}
 
-	data, err := base64.StdEncoding.DecodeString(base64Data)
-	if err != nil {
-		return 0, false, fmt.Errorf("invalid base64 data: %w", err)
-	}
-
 	// Bound accumulated bytes as chunks arrive. CreateSession only validates the
 	// client-declared TotalSize; without this a client could stream chunks whose
 	// real total far exceeds it, holding unbounded data in memory until assembly.
@@ -178,6 +173,25 @@ func (m *ChunkedUploadManager) AddChunk(uploadID string, chunkIndex int, base64D
 	if limit > MaxUploadSize {
 		limit = MaxUploadSize
 	}
+
+	// Preflight the ENCODED length before decoding: base64.DecodeString allocates
+	// the whole decoded chunk up front, so a huge payload aimed at a small session
+	// could exhaust memory before the decoded-size check below ever rejects it.
+	remaining := limit - session.receivedBytes
+	if remaining < 0 {
+		remaining = 0
+	}
+	if len(base64Data) > base64.StdEncoding.EncodedLen(int(remaining)) {
+		return 0, false, fmt.Errorf("upload exceeds declared size of %d bytes", session.totalSize)
+	}
+
+	data, err := base64.StdEncoding.DecodeString(base64Data)
+	if err != nil {
+		return 0, false, fmt.Errorf("invalid base64 data: %w", err)
+	}
+
+	// Second gate on the decoded size: base64 padding/formatting makes the encoded
+	// length only an upper bound, so re-check the exact decoded byte count.
 	if session.receivedBytes+int64(len(data)) > limit {
 		return 0, false, fmt.Errorf("upload exceeds declared size of %d bytes", session.totalSize)
 	}

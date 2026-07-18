@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PERSISTED_APP_STATE_KEYS } from "../../editor/canvasScene";
 import { useAutoSave } from "../../shared/hooks";
 import { DocumentServiceWrapper } from "../../shared/services/DocumentService";
 import type { BlockNoteBlock, DocumentKind, ExcalidrawScene } from "../../shared/types/Document";
@@ -189,9 +190,37 @@ export const useDocumentPersistence = ({
 		return key;
 	}, [formData.scene]);
 
+	// The element digest above ignores appState, so an appState-only edit
+	// (background color, grid/zen/snap toggles, last-used tool styles, viewport)
+	// leaves the key unchanged and useAutoSave shows "saved" while the doc is dirty.
+	// Digest the same whitelist that gets persisted (sanitizeAppState) so those
+	// edits mark the doc dirty and get saved.
+	const appStateKey = useMemo(() => {
+		const appState = formData.scene?.appState;
+		if (!appState) return "";
+		let key = "";
+		for (const k of PERSISTED_APP_STATE_KEYS) {
+			key += `${k}=${JSON.stringify(appState[k])};`;
+		}
+		return key;
+	}, [formData.scene]);
+
+	// Assets can, in principle, change independently of the element digest (e.g. a
+	// vault ref re-injected on save), so fold a stable signature of the ref map in
+	// too. Small map (one entry per image), sorted for order-independence.
+	const assetsKey = useMemo(() => {
+		const assets = formData.assets;
+		if (!assets) return "";
+		return Object.keys(assets)
+			.sort()
+			.map((k) => `${k}=${assets[k]}`)
+			.join(";");
+	}, [formData.assets]);
+
 	const compareKey = useMemo(
-		() => `${blocksHash}\n${formData.title}\n${formData.tags.join(",")}\n${sceneKey}`,
-		[blocksHash, formData.title, formData.tags, sceneKey],
+		() =>
+			`${blocksHash}\n${formData.title}\n${formData.tags.join(",")}\n${sceneKey}\n${appStateKey}\n${assetsKey}`,
+		[blocksHash, formData.title, formData.tags, sceneKey, appStateKey, assetsKey],
 	);
 
 	const autoSaveHook = useAutoSave({

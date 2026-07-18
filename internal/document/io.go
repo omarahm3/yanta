@@ -61,6 +61,15 @@ func (r *FileReader) ReadFile(relativePath string) (*DocumentFile, error) {
 		"fileSize": len(data),
 	}).Debug("file read from disk successfully")
 
+	// Re-check the bytes actually read: the Stat above races with a concurrent
+	// writer that could have grown the file past the limit after we stat'd it.
+	if len(data) > maxDocumentFileBytes {
+		logger.WithFields(map[string]any{"absPath": absPath, "size": len(data)}).
+			Error("document file exceeds size limit")
+		return nil, wrapIOError("read", relativePath,
+			fmt.Errorf("%w: file too large (%d bytes)", ErrCorrupted, len(data)))
+	}
+
 	logger.WithField("relativePath", relativePath).Debug("parsing JSON")
 	doc, err := FromJSON(data)
 	if err != nil {
@@ -120,6 +129,15 @@ func (w *FileWriter) WriteFile(relativePath string, doc *DocumentFile) error {
 	jsonData, err := doc.ToJSON()
 	if err != nil {
 		return wrapIOError("write", relativePath, fmt.Errorf("serializing: %w", err))
+	}
+
+	// Enforce the same ceiling the read path uses, before replacing the file on
+	// disk. Otherwise an over-limit document is written, then rejected on the
+	// read-back during indexing — and Service.Save deletes the path on index
+	// failure, destroying the existing document on what was meant to be an update.
+	if len(jsonData) > maxDocumentFileBytes {
+		return wrapIOError("write", relativePath,
+			fmt.Errorf("%w: file too large (%d bytes)", ErrValidation, len(jsonData)))
 	}
 
 	if err := writeFileAtomic(absPath, jsonData); err != nil {

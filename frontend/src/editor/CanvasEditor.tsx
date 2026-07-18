@@ -123,6 +123,11 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 		// Vault refs whose dataURL failed to resolve on load. Kept so a transient
 		// resolve error doesn't permanently strip the reference from the saved scene.
 		const unresolvedRefsRef = useRef<Record<string, { vaultRef: string; mimeType?: string }>>({});
+		// Monotonic flush counter. Every flushSave stamps a generation on entry;
+		// because asset writes await, a slower older flush can otherwise resolve last
+		// and overwrite the parent with stale elements. A completion whose generation
+		// is no longer current is dropped (see flushSave).
+		const flushGenerationRef = useRef(0);
 
 		projectAliasRef.current = projectAlias;
 		onChangeRef.current = onChange;
@@ -151,41 +156,45 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 				const assets: Record<string, string> = {};
 				const unresolved: Record<string, { vaultRef: string; mimeType?: string }> = {};
 
-				// Hydrate files from vault references
+				// Hydrate files from vault references. Each unresolved ref is an IPC
+				// round-trip to Go, so resolve them in parallel — a sequential await
+				// per file makes canvases with many images slow to open. Writes are
+				// keyed by fileId and JS is single-threaded, so no ordering hazard.
 				if (scene.files) {
-					for (const [fileId, file] of Object.entries(scene.files)) {
-						const fileObj = file as ExcalidrawFile;
-						if (fileObj.dataURL) {
-							// Already a dataURL (legacy or direct)
-							files[fileId] = {
-								id: fileId,
-								dataURL: fileObj.dataURL,
-								mimeType: fileObj.mimeType || "image/png",
-								created: Date.now(),
-							};
-						} else {
+					await Promise.all(
+						Object.entries(scene.files).map(async ([fileId, file]) => {
+							const fileObj = file as ExcalidrawFile;
+							if (fileObj.dataURL) {
+								// Already a dataURL (legacy or direct)
+								files[fileId] = {
+									id: fileId,
+									dataURL: fileObj.dataURL,
+									mimeType: fileObj.mimeType || "image/png",
+									created: Date.now(),
+								};
+								return;
+							}
 							// Try to resolve from vault reference
 							const ref = fileObj.vaultRef;
-							if (ref) {
-								try {
-									const dataURL = await ResolveDataURL(projectAliasRef.current, ref);
-									files[fileId] = {
-										id: fileId,
-										dataURL,
-										mimeType: fileObj.mimeType || "image/png",
-										created: Date.now(),
-									};
-									assets[fileId] = ref;
-								} catch (err) {
-									BackendLogger.error(`Failed to resolve asset ${fileId}:`, err);
-									// Remember the ref so flushSave can round-trip it back to disk
-									// instead of silently dropping the reference forever.
-									unresolved[fileId] = { vaultRef: ref, mimeType: fileObj.mimeType };
-									assets[fileId] = ref;
-								}
+							if (!ref) return;
+							try {
+								const dataURL = await ResolveDataURL(projectAliasRef.current, ref);
+								files[fileId] = {
+									id: fileId,
+									dataURL,
+									mimeType: fileObj.mimeType || "image/png",
+									created: Date.now(),
+								};
+								assets[fileId] = ref;
+							} catch (err) {
+								BackendLogger.error(`Failed to resolve asset ${fileId}:`, err);
+								// Remember the ref so flushSave can round-trip it back to disk
+								// instead of silently dropping the reference forever.
+								unresolved[fileId] = { vaultRef: ref, mimeType: fileObj.mimeType };
+								assets[fileId] = ref;
 							}
-						}
-					}
+						}),
+					);
 				}
 
 				if (cancelled) return;
@@ -233,7 +242,14 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 		// Flush pending save - called from timeout or cleanup
 		const flushSave = useCallback(
 			async (elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
+				// Stamp this flush. If a newer flush starts while our asset writes await,
+				// this one's elements are stale and its completion is dropped below.
+				const myGeneration = ++flushGenerationRef.current;
 				const newAssets: Record<string, string> = { ...assetsRef.current };
+				// Vault refs stored by THIS flush, merged into assetsRef even if the
+				// completion is later dropped as stale — StoreDataURL is content-addressed,
+				// so this never loses a newer flush's work and avoids re-storing the image.
+				const newlyStored: Record<string, string> = {};
 				const processedFiles: Record<string, unknown> = {};
 
 				// Files actually referenced by a live image element. Excalidraw retains
@@ -254,6 +270,7 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 						try {
 							const ref = await StoreDataURL(projectAliasRef.current, file.dataURL);
 							newAssets[fileId] = ref;
+							newlyStored[fileId] = ref;
 							processedFiles[fileId] = {
 								...file,
 								vaultRef: ref,
@@ -275,6 +292,20 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 					} else {
 						processedFiles[fileId] = file;
 					}
+				}
+
+				// Persist vault refs this flush stored regardless of whether we go on to
+				// emit — so a concurrent/later flush (and the store-check above) reuse them.
+				for (const [fileId, ref] of Object.entries(newlyStored)) {
+					assetsRef.current[fileId] = ref;
+				}
+
+				// A newer flush began while our asset writes awaited: its element set is
+				// fresher, so dropping this stale completion prevents overwriting the
+				// parent with older elements/asset map. The merge above already kept our
+				// stored refs for that newer flush to pick up.
+				if (myGeneration !== flushGenerationRef.current) {
+					return;
 				}
 
 				// Re-inject any vault ref whose dataURL failed to resolve on load: it's
@@ -655,13 +686,34 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 				);
 			};
 
+			// Only the canvas that actually owns focus should consume a paste. These
+			// listeners live on `document`, so in split view every mounted canvas sees
+			// the same event; without this gate one Ctrl+V would fire on all of them.
+			const paneHasFocus = () => {
+				const el = containerRef.current;
+				return el != null && el.contains(document.activeElement);
+			};
+
+			// True when the clipboard actually carries an image (advertised MIME on a
+			// type or item). Used to avoid claiming plain-text / Excalidraw-clipboard
+			// pastes, which must keep their native path.
+			const clipboardHasImage = (data: DataTransfer | null) => {
+				if (!data) return false;
+				if (Array.from(data.types ?? []).some((t) => t.startsWith("image/"))) return true;
+				return Array.from(data.items ?? []).some((it) => it.type.startsWith("image/"));
+			};
+
 			const onPaste = (e: ClipboardEvent) => {
 				// Pastes aimed at a text field (Excalidraw's text editor, a note editor
 				// in a split pane) keep their native path.
 				if (focusInEditable()) return;
+				if (!paneHasFocus()) return;
 				// If the webview actually delivered image files, Excalidraw's own paste
 				// handles them fine — only claim the event when it didn't.
 				if (e.clipboardData?.files?.length) return;
+				// Don't swallow non-image pastes (plain text, Excalidraw's own clipboard
+				// payload): only preventDefault when an image is actually present.
+				if (!clipboardHasImage(e.clipboardData)) return;
 				e.preventDefault();
 				e.stopImmediatePropagation();
 				handlePasteIntent("paste-event");
@@ -672,6 +724,7 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 					(e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "v";
 				if (!isPaste || e.defaultPrevented) return;
 				if (focusInEditable()) return;
+				if (!paneHasFocus()) return;
 				e.preventDefault();
 				e.stopPropagation();
 				handlePasteIntent("ctrl-v-keydown");
@@ -686,6 +739,7 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 					// event) — the Go side surfaces it via a GTK capture-phase observer.
 					const offCtrlV = Events.On("native:ctrl-v", () => {
 						if (focusInEditable()) return;
+						if (!paneHasFocus()) return;
 						handlePasteIntent("gtk-capture");
 					});
 					window.addEventListener("pointermove", trackPointer, { passive: true });

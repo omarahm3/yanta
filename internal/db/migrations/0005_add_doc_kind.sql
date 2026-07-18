@@ -1,7 +1,7 @@
 -- +goose Up
 -- Add kind column to doc table to distinguish between document and canvas types
 
-ALTER TABLE doc ADD COLUMN kind TEXT NOT NULL DEFAULT 'document';
+ALTER TABLE doc ADD COLUMN kind TEXT NOT NULL DEFAULT 'document' CHECK (kind IN ('document', 'canvas'));
 
 CREATE INDEX IF NOT EXISTS idx_doc_kind ON doc (kind)
 WHERE

@@ -76,8 +76,9 @@ func extractCanvasText(scene json.RawMessage) []string {
 
 	var parsed struct {
 		Elements []struct {
-			Type string `json:"type"`
-			Text string `json:"text"`
+			Type      string `json:"type"`
+			Text      string `json:"text"`
+			IsDeleted bool   `json:"isDeleted"`
 		} `json:"elements"`
 	}
 	if err := json.Unmarshal(scene, &parsed); err != nil {
@@ -86,6 +87,12 @@ func extractCanvasText(scene json.RawMessage) []string {
 
 	var out []string
 	for _, el := range parsed.Elements {
+		// Excalidraw soft-deletes elements by flagging isDeleted rather than
+		// removing them; skip those so removed text stays out of the search
+		// index and the markdown export.
+		if el.IsDeleted {
+			continue
+		}
 		if el.Type == "text" && el.Text != "" {
 			out = append(out, el.Text)
 		}

@@ -154,6 +154,11 @@ func (s *Service) Save(ctx context.Context, req SaveRequest) (string, error) {
 	case DocumentKindDocument:
 		docFile = NewDocumentFile(req.ProjectAlias, req.Title, req.Tags)
 		docFile.Blocks = req.Blocks
+	default:
+		// Kind is a closed enum: reject anything unrecognized here rather than
+		// leaving docFile nil and panicking on the dereferences below (or in
+		// WriteFile). Empty is already normalized to "document" above.
+		return "", fmt.Errorf("unsupported document kind: %q", kind)
 	}
 
 	if !isNew {
@@ -170,9 +175,15 @@ func (s *Service) Save(ctx context.Context, req SaveRequest) (string, error) {
 
 		// Refuse to silently convert a document's kind on update — canvas and
 		// document files have incompatible payloads, and a flip would drop the
-		// other kind's content.
-		if existing.Kind != "" && existing.Kind != kind {
-			return "", fmt.Errorf("cannot change document kind from %q to %q", existing.Kind, kind)
+		// other kind's content. Legacy files predate the Kind field (empty), so
+		// normalize empty to "document" before comparing; otherwise a legacy doc
+		// could be flipped to canvas and have its blocks silently discarded.
+		existingKind := existing.Kind
+		if existingKind == "" {
+			existingKind = DocumentKindDocument
+		}
+		if existingKind != kind {
+			return "", fmt.Errorf("cannot change document kind from %q to %q", existingKind, kind)
 		}
 
 		if req.ExpectedHash != "" {

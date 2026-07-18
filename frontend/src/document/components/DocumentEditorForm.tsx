@@ -170,6 +170,15 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 	const { error: notifyError } = useNotification();
 
 	const handleEditorBoundaryError = useCallback(() => {
+		// This boundary wraps both the canvas and the rich editor. Only the rich
+		// editor loads external plugins, so a canvas (Excalidraw) crash must not
+		// trigger plugin recovery — doing so would globally disable the user's
+		// plugins for a failure that has nothing to do with them.
+		if (kind === "canvas") {
+			setEditorBoundaryMessage("Something went wrong in the canvas.");
+			return;
+		}
+
 		if (editorRecoveryMode) {
 			setEditorBoundaryMessage("Something went wrong in the editor.");
 			return;
@@ -194,7 +203,7 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 			`Plugin issue detected: ${pluginLabel}. Disabled external plugins and reopened editor.`,
 		);
 		void disableExternalPluginsForEditorRecovery(reason);
-	}, [editorRecoveryMode, notifyError]);
+	}, [editorRecoveryMode, notifyError, kind]);
 
 	return (
 		<div className="document-editor-form flex flex-col min-h-full w-full">

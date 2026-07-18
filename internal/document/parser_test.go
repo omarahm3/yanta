@@ -1080,3 +1080,16 @@ func TestExtractCanvasText_SizeGuard(t *testing.T) {
 		t.Errorf("extractCanvasText on oversized scene = %v, want nil", got)
 	}
 }
+
+func TestExtractCanvasText_SkipsDeleted(t *testing.T) {
+	// Excalidraw soft-deletes elements via isDeleted; their text must not leak
+	// into the search index or markdown export.
+	scene := json.RawMessage(`{"elements":[
+		{"type":"text","text":"keep me"},
+		{"type":"text","text":"deleted text","isDeleted":true}
+	]}`)
+	got := extractCanvasText(scene)
+	if len(got) != 1 || got[0] != "keep me" {
+		t.Errorf("extractCanvasText = %v, want only [\"keep me\"] (deleted element skipped)", got)
+	}
+}

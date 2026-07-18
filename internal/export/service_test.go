@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"yanta/internal/asset"
 	"yanta/internal/document"
 	"yanta/internal/logger"
 
@@ -486,5 +488,20 @@ func TestService_ExportCanvasImage_Validation(t *testing.T) {
 			Data:       "not!valid!base64!",
 		})
 		assert.Error(t, err)
+	})
+
+	t.Run("oversized payload rejected before decode", func(t *testing.T) {
+		// An encoded string longer than the max asset size must be rejected on the
+		// encoded-length preflight, before the decoded buffer is ever allocated.
+		outputPath := filepath.Join(t.TempDir(), "big.png")
+		oversized := strings.Repeat("A", base64.StdEncoding.EncodedLen(int(asset.MaxAssetBytes))+4)
+		err := service.ExportCanvasImage(ctx, ExportImageRequest{
+			OutputPath: outputPath,
+			Data:       oversized,
+		})
+		assert.Error(t, err)
+		// Nothing should have been written.
+		_, statErr := os.Stat(outputPath)
+		assert.True(t, os.IsNotExist(statErr), "no file should be written for an oversized payload")
 	})
 }

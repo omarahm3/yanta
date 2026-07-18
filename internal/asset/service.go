@@ -185,7 +185,13 @@ func (s *Service) CleanupOrphans(ctx context.Context, projectAlias string) (int,
 		// the next cleanup simply retries (the file is already gone, a no-op) — far
 		// safer than dropping the row first and leaking a file with nothing left to
 		// find it by.
-		s.deleteOrphanFiles(projectAlias, a.Hash, a.Ext)
+		if !s.deleteOrphanFiles(projectAlias, a.Hash, a.Ext) {
+			// A physical copy couldn't be removed (locked/permission-denied).
+			// Keep the DB row so a later cleanup can retry rather than deleting
+			// the row and orphaning the file on disk forever.
+			logger.WithField("hash", a.Hash).Warn("keeping orphaned asset row; file removal incomplete")
+			continue
+		}
 
 		if err := s.store.Delete(ctx, a.Hash); err != nil {
 			logger.WithError(err).WithField("hash", a.Hash).Warn("failed to delete orphaned asset row")
@@ -204,37 +210,66 @@ func (s *Service) CleanupOrphans(ctx context.Context, projectAlias string) (int,
 // deleteOrphanFiles removes an orphaned asset's file from the caller's project
 // and from every other project dir. The asset table dedups to one row per hash,
 // but each project keeps its own physical copy; once that shared row is gone,
-// copies under other projects would leak with no row to reclaim them. Best
-// effort — failures are non-fatal (the row is what makes an asset trackable).
-func (s *Service) deleteOrphanFiles(projectAlias, hash, ext string) {
+// copies under other projects would leak with no row to reclaim them.
+//
+// Returns true only when every physical copy was removed (or was already
+// absent). On false the caller keeps the DB row so a locked/permission-denied
+// file gets retried on a later cleanup instead of being orphaned forever.
+func (s *Service) deleteOrphanFiles(projectAlias, hash, ext string) bool {
 	if s.vault == nil {
-		return
+		return false
 	}
+	allRemoved := true
 	if projectAlias != "" {
-		_ = DeleteAsset(s.vault, projectAlias, hash, ext)
+		if err := DeleteAsset(s.vault, projectAlias, hash, ext); err != nil {
+			// A missing file is fine — there's nothing left to leak. Any other
+			// failure (locked/permission) means a real copy may still be on disk,
+			// so signal the caller to keep the row for a later retry.
+			if exists, _ := AssetExists(s.vault, projectAlias, hash, ext); exists {
+				allRemoved = false
+			}
+		}
 	}
 	// Sweep the remaining project dirs. Requires a concrete vault exposing its
 	// root (real *vault.Vault does; test mocks may not — they only need the
 	// per-project delete above).
-	rp, ok := s.vault.(interface{ RootPath() string })
-	if !ok {
-		return
+	rp, hasRoot := s.vault.(interface{ RootPath() string })
+	if !hasRoot {
+		return allRemoved
 	}
 	if err := ValidateHash(hash); err != nil {
-		return
+		return false
 	}
 	if ext != "" {
 		if err := ValidateExtension(ext); err != nil {
-			return
+			return false
 		}
 	}
-	// Safe glob: hash is validated hex and ext is validated, so no wildcards leak
-	// in from the hash/ext segments.
-	pattern := filepath.Join(rp.RootPath(), "projects", "*", "assets", hash+ext)
-	matches, _ := filepath.Glob(pattern)
-	for _, m := range matches {
-		_ = os.Remove(m)
+	// Read the projects dir directly rather than globbing: filepath.Glob would
+	// misparse a RootPath() that contains glob metacharacters (e.g. "[" or "]").
+	// hash/ext are already validated above, so the per-project path is literal.
+	projectsDir := filepath.Join(rp.RootPath(), "projects")
+	entries, err := os.ReadDir(projectsDir)
+	if err != nil {
+		// An absent projects dir means no other copies exist; any other error
+		// means we couldn't verify, so keep the row to be safe.
+		if os.IsNotExist(err) {
+			return allRemoved
+		}
+		return false
 	}
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		m := filepath.Join(projectsDir, entry.Name(), "assets", hash+ext)
+		if _, err := os.Stat(m); err == nil {
+			if err := os.Remove(m); err != nil {
+				allRemoved = false
+			}
+		}
+	}
+	return allRemoved
 }
 
 func (s *Service) StartChunkedUpload(ctx context.Context, req StartChunkedUploadRequest) (*StartChunkedUploadResponse, error) {

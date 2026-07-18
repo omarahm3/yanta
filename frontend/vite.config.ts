@@ -25,8 +25,11 @@ function excalidrawFonts(): Plugin {
 			const outDir = outputOptions.dir ?? path.resolve(__dirname, "dist");
 			const dest = path.join(outDir, "fonts");
 			if (!fs.existsSync(fontsDir)) {
-				this.warn(`excalidraw fonts dir not found at ${fontsDir}; canvas fonts will fall back to CDN`);
-				return;
+				// A production build sets EXCALIDRAW_ASSET_PATH="/" (see src/main.tsx),
+				// so shipping without these fonts serves /fonts/... 404s to users with
+				// no CDN fallback. Fail the build (this hook is build-only) instead of
+				// only warning, so a missing-fonts regression can't reach production.
+				this.error(`excalidraw fonts dir not found at ${fontsDir}; cannot bundle canvas fonts`);
 			}
 			fs.cpSync(fontsDir, dest, { recursive: true });
 		},
