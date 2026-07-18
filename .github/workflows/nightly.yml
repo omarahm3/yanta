@@ -1,0 +1,117 @@
+name: Nightly
+
+# Canary channel: builds master on a schedule and publishes a single rolling
+# `nightly` GitHub prerelease (deleted + recreated each run, so there is always
+# exactly one "latest nightly"). Reuses build-release.yml verbatim — same matrix,
+# same packaging, same production-hardened build (release:* tasks default
+# PRODUCTION=true → `-tags production`). Step 1 of docs/RELEASE-CHANNELS.md.
+
+on:
+  schedule:
+    # 03:00 UTC daily. Scheduled runs always use the default branch (master).
+    - cron: '0 3 * * *'
+  workflow_dispatch: {}
+
+# Never run two nightlies at once; don't cancel a run mid-publish.
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: Decide whether to build
+    runs-on: ubuntu-latest
+    # Never runs on forks (schedule/dispatch would otherwise fire there).
+    if: github.repository == 'omarahm3/yanta'
+    outputs:
+      should_build: ${{ steps.decide.outputs.should_build }}
+      date: ${{ steps.decide.outputs.date }}
+    steps:
+      - name: Decide
+        id: decide
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "date=$(date -u +%Y%m%d)" >> "$GITHUB_OUTPUT"
+
+          # Manual dispatch always forces a build.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual dispatch — forcing build."
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Scheduled: build only if HEAD moved since the last nightly. The
+          # `nightly` tag is lightweight (created by action-gh-release), so
+          # .object.sha is the commit it points at. Missing tag => first run.
+          last_sha=$(gh api "repos/${{ github.repository }}/git/ref/tags/nightly" --jq '.object.sha' 2>/dev/null || echo "")
+          echo "current HEAD:  ${{ github.sha }}"
+          echo "last nightly:  ${last_sha:-<none>}"
+          if [ -n "$last_sha" ] && [ "$last_sha" = "${{ github.sha }}" ]; then
+            echo "No new commits since last nightly — skipping."
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: Build nightly artifacts
+    needs: guard
+    if: needs.guard.outputs.should_build == 'true'
+    # Mirrors release-test.yml's pre-release shape (0.0.0-<id>.<n>) so every
+    # existing packaging/version path is exercised unchanged. Sorts below every
+    # real stable/beta by SemVer. Commit sha is already embedded via the
+    # BuildCommit ldflag, so it stays visible in About/logs.
+    uses: ./.github/workflows/build-release.yml
+    with:
+      version: 0.0.0-nightly.${{ needs.guard.outputs.date }}
+
+  publish:
+    name: Publish rolling nightly release
+    needs: [guard, build]
+    if: needs.guard.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: artifacts
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          # Filenames are unique across platforms, so a flat copy can't collide
+          # (same approach as release.yml). No MSIX is produced for a pre-release
+          # version, so none is attached — matches test-build behaviour.
+          find artifacts -type f -exec cp {} release/ \;
+          echo "=== Release files ==="
+          ls -lh release/
+
+      - name: Delete previous nightly release + tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # --cleanup-tag removes the old tag too, so it can be re-pointed at HEAD.
+        # Tolerate "release not found" on the very first run.
+        run: gh release delete nightly --cleanup-tag --yes --repo "${{ github.repository }}" || true
+
+      - name: Publish nightly release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: nightly
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          name: YANTA Nightly ${{ needs.guard.outputs.date }}
+          body: |
+            Automated nightly build of `master` @ ${{ github.sha }}.
+
+            ⚠️ Unstable canary channel — expect breakage. Not for production use.
+            For the tested release, use the latest stable version instead.
+          files: release/*
