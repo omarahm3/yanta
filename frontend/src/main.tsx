@@ -12,6 +12,7 @@ import { HotkeyProvider } from "./hotkeys";
 import { QuickCapture } from "./quick-capture";
 import { ToastProvider } from "./shared/ui";
 import { BackendLogger, enableBackendLogging } from "./shared/utils/backendLogger";
+import { installProductionLockdown } from "./shared/utils/productionLockdown";
 import "./styles/tailwind.css";
 import "./styles/yanta.css";
 
@@ -44,6 +45,10 @@ if (typeof window !== "undefined") {
 }
 
 enableBackendLogging();
+
+// Disable native right-click menu and reload/devtools keys in production so the
+// packaged app behaves identically on Windows, macOS, and Linux. No-op in dev.
+installProductionLockdown();
 
 const container = document.getElementById("root");
 

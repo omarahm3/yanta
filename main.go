@@ -224,6 +224,12 @@ func run() {
 			WindowIsTranslucent: false,
 			WebviewGpuPolicy:    graphicsState.GpuPolicy,
 		},
+		// Kill the webview's built-in right-click menu (Reload / Back / Forward /
+		// Save as / Print / Inspect). Wails keeps it in debug builds regardless of
+		// this flag (debugMode || !DefaultContextMenuDisabled), so devs still get
+		// it locally; in a `production`-tagged build debugMode is false and this
+		// flag takes effect, leaving only the app's own React context menus.
+		DefaultContextMenuDisabled: true,
 	})
 
 	a.SetMainWindow(mainWindow)
@@ -308,11 +314,15 @@ func run() {
 
 	// View menu
 	viewMenu := appMenu.AddSubmenu("View")
-	reloadItem := viewMenu.Add("Reload")
-	reloadItem.SetAccelerator("CmdOrCtrl+R")
-	reloadItem.OnClick(func(ctx *application.Context) {
-		mainWindow.Reload()
-	})
+	// Webview reload is a dev affordance (it discards in-memory editor state), so
+	// it ships only in debug builds. Production-tagged builds omit it entirely.
+	if !isProductionBuild {
+		reloadItem := viewMenu.Add("Reload")
+		reloadItem.SetAccelerator("CmdOrCtrl+R")
+		reloadItem.OnClick(func(ctx *application.Context) {
+			mainWindow.Reload()
+		})
+	}
 	fullScreenItem := viewMenu.Add("Toggle Full Screen")
 	fullScreenItem.SetAccelerator("CmdOrCtrl+Shift+F")
 	fullScreenItem.OnClick(func(ctx *application.Context) {

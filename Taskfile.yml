@@ -186,6 +186,7 @@ tasks:
         vars:
           TARGET: "{{.TARGET}}"
           DEBUG: "{{.DEBUG}}"
+          PRODUCTION: "{{.PRODUCTION}}"
 
   build:win:
     label: "build:win (PRODUCTION={{.PRODUCTION}})"
@@ -200,6 +201,7 @@ tasks:
       - task: build:go:build
         vars:
           TARGET: win
+          PRODUCTION: "{{.PRODUCTION}}"
 
   build:linux:
     label: "build:linux (PRODUCTION={{.PRODUCTION}})"
@@ -214,6 +216,7 @@ tasks:
       - task: build:go:build
         vars:
           TARGET: ubuntu
+          PRODUCTION: "{{.PRODUCTION}}"
 
   build:arch:
     label: "build:arch (PRODUCTION={{.PRODUCTION}})"
@@ -228,6 +231,7 @@ tasks:
       - task: build:go:build
         vars:
           TARGET: arch
+          PRODUCTION: "{{.PRODUCTION}}"
 
   build:osx:
     label: "build:osx (PRODUCTION={{.PRODUCTION}})"
@@ -242,6 +246,7 @@ tasks:
       - task: build:go:build
         vars:
           TARGET: osx
+          PRODUCTION: "{{.PRODUCTION}}"
 
   # ============================================================================
   # Run & Package

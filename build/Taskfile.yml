@@ -237,12 +237,17 @@ tasks:
     vars:
       TARGET: '{{.TARGET | default "local"}}'
       DEBUG: '{{.DEBUG | default "0"}}'
+      # Secure by default: a bare `build:go:build` produces a production binary
+      # (no Wails DevTools, no default webview context menu). Dev builds must
+      # opt in with PRODUCTION=false.
+      PRODUCTION: '{{.PRODUCTION | default "true"}}'
       # Cross-platform: Use Taskfile default syntax
       GO_CACHE_DIR: '{{.GO_CACHE_DIR | default ".gocache"}}'
     env:
       # Pass build parameters to PowerShell script via environment variables
       BUILD_TARGET: "{{.TARGET}}"
       BUILD_DEBUG: "{{.DEBUG}}"
+      BUILD_PRODUCTION: "{{.PRODUCTION}}"
       APP_NAME: "{{.APP_NAME}}"
       BIN_DIR: "{{.BIN_DIR}}"
       GO_CACHE_DIR: "{{.GO_CACHE_DIR}}"
@@ -272,6 +277,7 @@ tasks:
 
         TARGET="{{.TARGET}}"
         DEBUG="{{.DEBUG}}"
+        PRODUCTION="{{.PRODUCTION}}"
         APP_NAME="{{.APP_NAME}}"
         BIN_DIR="{{.BIN_DIR}}"
 
@@ -437,6 +443,17 @@ tasks:
         if [ "$DEBUG" = "1" ]; then
           export YANTA_DEBUG_BUILD=1
           echo "Debug mode enabled"
+        fi
+
+        # Production builds get the `production` Go tag, which flips Wails out of
+        # debug mode (disables DevTools/inspector and the default webview context
+        # menu) and strips our own debug-only menu items.
+        if [ "$PRODUCTION" = "true" ]; then
+          case "$BUILD_TAGS" in
+            "") BUILD_TAGS="-tags production" ;;
+            *)  BUILD_TAGS="${BUILD_TAGS},production" ;;
+          esac
+          echo "Production build: applying '-tags production'"
         fi
 
         # Execute build
