@@ -22,7 +22,7 @@ import type {
 	ExcalidrawImperativeAPI,
 	ExcalidrawInitialDataState,
 } from "@excalidraw/excalidraw/types";
-import { System } from "@wailsio/runtime";
+import { Events, System } from "@wailsio/runtime";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ResolveDataURL, StoreDataURL } from "../../bindings/yanta/internal/asset/service";
 import { ReadClipboardImage } from "../../bindings/yanta/internal/system/service";
@@ -69,6 +69,26 @@ type ExcalidrawFile = {
 	vaultRef?: string;
 	[key: string]: unknown;
 };
+
+// WebKitGTK permission-blocks navigator.clipboard.read(), which is what
+// Excalidraw's right-click → Paste calls directly (no DOM event involved).
+// Route read() to the native Go clipboard reader so Excalidraw's own paste
+// pipeline works. Patched once for the app lifetime, Linux only — the original
+// is permission-blocked on this platform anyway, so there is nothing to restore.
+let clipboardReadPatched = false;
+function patchClipboardReadForLinux() {
+	if (clipboardReadPatched) return;
+	if (typeof Clipboard === "undefined" || typeof ClipboardItem === "undefined") return;
+	clipboardReadPatched = true;
+	Clipboard.prototype.read = async function read(): Promise<ClipboardItem[]> {
+		const dataURL = await ReadClipboardImage();
+		if (!dataURL) {
+			throw new DOMException("No image on clipboard", "NotAllowedError");
+		}
+		const blob = await (await fetch(dataURL)).blob();
+		return [new ClipboardItem({ [blob.type]: blob })];
+	};
+}
 
 export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 	({
@@ -519,12 +539,28 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 		// Ctrl+V and read the image from the system clipboard natively (Go:
 		// wl-paste/xclip), inserting it via the Excalidraw API. On Windows/macOS the
 		// webview fires a real paste event Excalidraw handles itself, and this
-		// interceptor's preventDefault() would kill it — hence the IsLinux() gate.
+		// interceptor's preventDefault() would kill it — hence the Linux gate.
+		//
+		// The gate must NOT use the sync System.IsLinux(): it reads
+		// window._wails.environment, which Linux injects only at WindowLoadFinished —
+		// after React effects already ran — so it races to false on direct loads and
+		// this effect would bail permanently. Resolve the OS via the async runtime
+		// call instead, and attach the listener when it lands.
 		useEffect(() => {
 			if (!isReady || !_editable) return;
-			if (!System.IsLinux()) return;
 			const container = containerRef.current;
 			if (!container) return;
+			let disposed = false;
+			let detach: (() => void) | null = null;
+
+			// Last known mouse position, so a paste lands at the cursor. Tracked here
+			// because the GTK-keybinding path arrives as a Wails event with no DOM
+			// coordinates attached. Attached (Linux-only) together with the other
+			// listeners below.
+			const lastPointerRef = { current: null as { x: number; y: number } | null };
+			const trackPointer = (e: PointerEvent) => {
+				lastPointerRef.current = { x: e.clientX, y: e.clientY };
+			};
 
 			const naturalSize = (dataURL: string) =>
 				new Promise<{ width: number; height: number }>((resolve) => {
@@ -555,20 +591,34 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 						created: Date.now(),
 					},
 				]);
+				// Drop the image centred on the mouse cursor (matching Excalidraw's own
+				// paste), falling back to the viewport centre when the pointer isn't
+				// over the canvas (e.g. Ctrl+V while hovering the toolbar).
 				const rect = container.getBoundingClientRect();
+				const p = lastPointerRef.current;
+				const overCanvas =
+					p !== null &&
+					p.x >= rect.left &&
+					p.x <= rect.right &&
+					p.y >= rect.top &&
+					p.y <= rect.bottom;
 				const origin = viewportCoordsToSceneCoords(
-					{ clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 },
+					overCanvas
+						? { clientX: p.x, clientY: p.y }
+						: { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 },
 					api.getAppState(),
 				);
+				const scaledWidth = Math.round(width * scale);
+				const scaledHeight = Math.round(height * scale);
 				const added = convertToExcalidrawElements([
 					{
 						type: "image",
 						fileId,
 						status: "saved",
-						x: origin.x,
-						y: origin.y,
-						width: Math.round(width * scale),
-						height: Math.round(height * scale),
+						x: origin.x - scaledWidth / 2,
+						y: origin.y - scaledHeight / 2,
+						width: scaledWidth,
+						height: scaledHeight,
 					},
 				]);
 				api.updateScene({
@@ -577,34 +627,84 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 				});
 			};
 
-			const onKeyDown = (e: KeyboardEvent) => {
-				const isPaste =
-					(e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "v";
-				if (!isPaste) return;
-				// Never steal a paste aimed at a text field (Excalidraw's own text
-				// editor is a textarea inside our container).
-				const active = document.activeElement;
-				if (active instanceof Element && active.closest("input, textarea, [contenteditable]")) {
-					return;
-				}
-				// Trigger on focus OR hover — focus can drift to <body> (toolbar
-				// clicks, pane switches), and a focus-only guard left Ctrl+V dead there.
-				if (!container.contains(active) && !container.matches(":hover")) return;
-				e.preventDefault();
-				e.stopPropagation();
+			// WebKitGTK translates Ctrl+V into its internal Paste editor command and
+			// fires a DOM `paste` event WITHOUT a preceding DOM keydown (verified: a
+			// document-capture keydown listener never saw Ctrl+V while Excalidraw's
+			// document-level paste listener ran). So the paste event is the primary
+			// hook; the keydown handler stays as a fallback for environments that do
+			// deliver it, with a timestamp guard so one Ctrl+V can't insert twice.
+			let lastHandledAt = 0;
+			const handlePasteIntent = (source: string) => {
+				const now = Date.now();
+				if (now - lastHandledAt < 500) return;
+				lastHandledAt = now;
 				void (async () => {
 					try {
 						const dataURL = await ReadClipboardImage();
-						BackendLogger.info(`[canvas-paste] Ctrl+V; clipboard image len=${dataURL.length}`);
 						if (dataURL) await insertImage(dataURL);
 					} catch (err) {
-						BackendLogger.error("[canvas] clipboard image paste failed:", err);
+						BackendLogger.error(`[canvas] clipboard image paste (${source}) failed:`, err);
 					}
 				})();
 			};
 
-			document.addEventListener("keydown", onKeyDown, true);
-			return () => document.removeEventListener("keydown", onKeyDown, true);
+			const focusInEditable = () => {
+				const active = document.activeElement;
+				return (
+					active instanceof Element && active.closest("input, textarea, [contenteditable]") !== null
+				);
+			};
+
+			const onPaste = (e: ClipboardEvent) => {
+				// Pastes aimed at a text field (Excalidraw's text editor, a note editor
+				// in a split pane) keep their native path.
+				if (focusInEditable()) return;
+				// If the webview actually delivered image files, Excalidraw's own paste
+				// handles them fine — only claim the event when it didn't.
+				if (e.clipboardData?.files?.length) return;
+				e.preventDefault();
+				e.stopImmediatePropagation();
+				handlePasteIntent("paste-event");
+			};
+
+			const onKeyDown = (e: KeyboardEvent) => {
+				const isPaste =
+					(e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "v";
+				if (!isPaste || e.defaultPrevented) return;
+				if (focusInEditable()) return;
+				e.preventDefault();
+				e.stopPropagation();
+				handlePasteIntent("ctrl-v-keydown");
+			};
+
+			void System.Environment()
+				.then((env) => {
+					if (disposed || env.OS !== "linux") return;
+					// Right-click → Paste goes through navigator.clipboard.read().
+					patchClipboardReadForLinux();
+					// Ctrl+V never reaches the DOM on WebKitGTK (no keydown, no paste
+					// event) — the Go side surfaces it via a GTK capture-phase observer.
+					const offCtrlV = Events.On("native:ctrl-v", () => {
+						if (focusInEditable()) return;
+						handlePasteIntent("gtk-capture");
+					});
+					window.addEventListener("pointermove", trackPointer, { passive: true });
+					document.addEventListener("paste", onPaste, true);
+					document.addEventListener("keydown", onKeyDown, true);
+					detach = () => {
+						offCtrlV();
+						window.removeEventListener("pointermove", trackPointer);
+						document.removeEventListener("paste", onPaste, true);
+						document.removeEventListener("keydown", onKeyDown, true);
+					};
+				})
+				.catch((err: unknown) => {
+					BackendLogger.error("[canvas] failed to resolve OS for paste handler:", err);
+				});
+			return () => {
+				disposed = true;
+				detach?.();
+			};
 		}, [isReady, _editable]);
 
 		// Publish an imperative handle to the parent once mounted. Everything pulls

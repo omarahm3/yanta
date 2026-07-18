@@ -25,6 +25,7 @@ import (
 	"yanta/internal/db"
 	"yanta/internal/logger"
 	"yanta/internal/mcpbridge"
+	"yanta/internal/nativeinput"
 	"yanta/internal/quickcapture"
 	"yanta/internal/vault"
 	windowcfg "yanta/internal/window"
@@ -346,6 +347,19 @@ func run() {
 			if isQuickLaunch {
 				logger.Info("opening Quick Capture window on startup")
 				quickcapture.CreateWindow(wailsApp)
+			}
+
+			// Linux: WebKitGTK claims Ctrl+V before the DOM (and before Wails'
+			// bubble-phase key controller) ever sees it, so observe it with a
+			// capture-phase GTK controller and surface it to the frontend, which
+			// reads the clipboard natively (ReadClipboardImage). No-op elsewhere.
+			if runtimePkg.GOOS == "linux" {
+				application.InvokeSync(func() {
+					nativeinput.AttachCtrlVCapture(mainWindow.NativeWindow(), func() {
+						wailsApp.Event.Emit("native:ctrl-v", nil)
+					})
+				})
+				logger.Debug("GTK capture-phase Ctrl+V observer attached")
 			}
 		},
 	)
