@@ -170,6 +170,44 @@ func TestIndexer_IndexDocument(t *testing.T) {
 	}
 }
 
+func TestIndexer_ReindexSoftDeletedDoc(t *testing.T) {
+	db, v := setupTestEnv(t)
+	defer testutil.CleanupTestDB(t, db)
+
+	docStore := document.NewStore(db)
+	idx := New(db, v, docStore, project.NewStore(db), search.NewStore(db), tag.NewStore(db),
+		link.NewStore(db), asset.NewStore(db), git.NewMockSyncManager(), events.NewEventBus())
+
+	ctx := context.Background()
+	docPath := createTestDocument(t, v, "@test-project", "Archived Doc", []string{"test"})
+	if err := idx.IndexDocument(ctx, docPath); err != nil {
+		t.Fatalf("initial IndexDocument failed: %v", err)
+	}
+
+	// Archive it — the row is soft-deleted but the .json stays on disk.
+	if err := docStore.SoftDelete(ctx, docPath); err != nil {
+		t.Fatalf("SoftDelete failed: %v", err)
+	}
+
+	// Reindexing the still-on-disk archived doc must NOT INSERT-conflict (that
+	// used to abort a full vault scan), and must NOT resurrect it into the
+	// active index.
+	if err := idx.IndexDocument(ctx, docPath); err != nil {
+		t.Fatalf("reindex of soft-deleted doc should be a no-op, got: %v", err)
+	}
+
+	if _, err := docStore.GetByPath(ctx, docPath); err == nil {
+		t.Error("archived doc should stay out of the active index after reindex")
+	}
+	stillThere, err := docStore.GetByPathIncludingDeleted(ctx, docPath)
+	if err != nil {
+		t.Fatalf("GetByPathIncludingDeleted failed: %v", err)
+	}
+	if stillThere.DeletedAt == "" {
+		t.Error("archived doc should remain soft-deleted after reindex")
+	}
+}
+
 func TestIndexer_ReindexDocument(t *testing.T) {
 	db, v := setupTestEnv(t)
 	defer testutil.CleanupTestDB(t, db)

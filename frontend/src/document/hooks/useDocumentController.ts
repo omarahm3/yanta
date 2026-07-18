@@ -126,6 +126,9 @@ export function useDocumentController({
 	const [hasRestored, setHasRestored] = useState(false);
 	const [isRestoring, setIsRestoring] = useState(false);
 	const [isEditorReady, setIsEditorReady] = useState(false);
+	// Bumped on reload-from-disk to force a CanvasEditor remount (see
+	// handleReloadFromDisk); Excalidraw only ingests its scene at mount.
+	const [reloadNonce, setReloadNonce] = useState(0);
 	// Canvas docs render CanvasEditor, not RichEditor, so they never hit the
 	// onEditorReady path that flips isEditorReady. Drive it from the canvas handle
 	// instead: without this, isInitialized stays false for canvases, autosave
@@ -507,6 +510,11 @@ export function useDocumentController({
 				scene: doc.scene,
 				assets: doc.assets,
 			});
+			// Excalidraw only reads initialData at mount, so updating formData.scene
+			// alone leaves the live canvas showing the stale pre-reload scene (which
+			// the next edit would then flush back over disk). Bump a nonce that keys
+			// the CanvasEditor so a reload remounts it with the disk scene.
+			setReloadNonce((n) => n + 1);
 			await refreshHash();
 			setHasConflict(false);
 		} catch (err) {
@@ -531,6 +539,7 @@ export function useDocumentController({
 		documentPath,
 		documentTitle: formData.title,
 		formData,
+		reloadNonce,
 		isEditMode,
 		isLoading,
 		isArchived,

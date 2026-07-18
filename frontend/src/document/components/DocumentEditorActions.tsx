@@ -11,6 +11,12 @@ interface DocumentEditorActionsProps {
 	wordCount?: number;
 	charCount?: number;
 	selectionCount?: number;
+	/**
+	 * Whether to show the word/char count. False for canvas docs (no text-editor
+	 * counts) and for the pane view (which doesn't compute counts), so neither
+	 * shows a misleading "0 words · 0 chars".
+	 */
+	showCounts?: boolean;
 }
 
 const formatTimeSince = (date: Date): string => {
@@ -32,6 +38,7 @@ export const DocumentEditorActions: FC<DocumentEditorActionsProps> = ({
 	wordCount = 0,
 	charCount = 0,
 	selectionCount,
+	showCounts = true,
 }) => {
 	const [, setTick] = useState(0);
 	useEffect(() => {
@@ -103,7 +110,7 @@ export const DocumentEditorActions: FC<DocumentEditorActionsProps> = ({
 				<IconComponent className={status.iconClass} />
 				<span>{status.text}</span>
 			</div>
-			<div className="text-xs text-text-dim tabular-nums">{countDisplay}</div>
+			{showCounts && <div className="text-xs text-text-dim tabular-nums">{countDisplay}</div>}
 		</div>
 	);
 };

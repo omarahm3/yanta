@@ -12,6 +12,12 @@ import (
 	"yanta/internal/vault"
 )
 
+// maxDocumentFileBytes bounds how large a document JSON we'll read into memory
+// before parsing. Canvas files can embed base64 image fallbacks when a vault
+// store fails, so the cap is generous; anything past it is treated as corrupt
+// rather than read unbounded (protects against a hostile/huge synced file).
+const maxDocumentFileBytes = 50 * 1024 * 1024 // 50MB
+
 type FileReader struct {
 	vault *vault.Vault
 }
@@ -32,6 +38,13 @@ func (r *FileReader) ReadFile(relativePath string) (*DocumentFile, error) {
 		"relativePath": relativePath,
 		"absPath":      absPath,
 	}).Debug("document path resolved")
+
+	if info, statErr := os.Stat(absPath); statErr == nil && info.Size() > maxDocumentFileBytes {
+		logger.WithFields(map[string]any{"absPath": absPath, "size": info.Size()}).
+			Error("document file exceeds size limit")
+		return nil, wrapIOError("read", relativePath,
+			fmt.Errorf("%w: file too large (%d bytes)", ErrCorrupted, info.Size()))
+	}
 
 	logger.WithField("absPath", absPath).Debug("reading file from disk")
 	data, err := os.ReadFile(absPath)

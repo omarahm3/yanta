@@ -245,7 +245,7 @@ func (s *Store) getByPath(ctx context.Context, q queryer, path string) (*Documen
 	d := new(Document)
 
 	query := `
-		SELECT path, project_alias, title, kind, mtime_ns, size_bytes, has_code, has_images, has_links, created_at, updated_at, COALESCE(deleted_at, '')
+		SELECT path, project_alias, COALESCE(title, ''), kind, mtime_ns, size_bytes, has_code, has_images, has_links, created_at, updated_at, COALESCE(deleted_at, '')
 		FROM doc
 		WHERE path = ? AND deleted_at IS NULL;
 	`
@@ -280,7 +280,7 @@ func (s *Store) getByPathIncludingDeleted(ctx context.Context, q queryer, path s
 	d := new(Document)
 
 	query := `
-		SELECT path, project_alias, title, kind, mtime_ns, size_bytes, has_code, has_images, has_links, created_at, updated_at, COALESCE(deleted_at, '')
+		SELECT path, project_alias, COALESCE(title, ''), kind, mtime_ns, size_bytes, has_code, has_images, has_links, created_at, updated_at, COALESCE(deleted_at, '')
 		FROM doc
 		WHERE path = ?;
 	`
@@ -329,23 +329,25 @@ func (s *Store) get(ctx context.Context, q queryer, filters *GetFilters) ([]*Doc
 		args = append(args, "%"+*filters.TitleLike+"%")
 	}
 
+	// Bind via boolToInt to match how these columns are written (0/1); binding a
+	// raw Go bool only works by driver coincidence.
 	if filters.HasCode != nil {
 		conditions = append(conditions, "has_code = ?")
-		args = append(args, *filters.HasCode)
+		args = append(args, boolToInt(*filters.HasCode))
 	}
 
 	if filters.HasImages != nil {
 		conditions = append(conditions, "has_images = ?")
-		args = append(args, *filters.HasImages)
+		args = append(args, boolToInt(*filters.HasImages))
 	}
 
 	if filters.HasLinks != nil {
 		conditions = append(conditions, "has_links = ?")
-		args = append(args, *filters.HasLinks)
+		args = append(args, boolToInt(*filters.HasLinks))
 	}
 
 	query := `
-		SELECT path, project_alias, title, kind, mtime_ns, size_bytes, has_code, has_images, has_links, created_at, updated_at, COALESCE(deleted_at, '')
+		SELECT path, project_alias, COALESCE(title, ''), kind, mtime_ns, size_bytes, has_code, has_images, has_links, created_at, updated_at, COALESCE(deleted_at, '')
 		FROM doc
 	`
 

@@ -302,19 +302,27 @@ func (idx *Indexer) IndexDocument(ctx context.Context, docPath string) error {
 		HasLinks:         content.HasLinks,
 	}
 
-	_, err = idx.docStore.GetByPathTx(ctx, tx, docPath)
-	exists := (err == nil)
-
-	if exists {
-		_, err = idx.docStore.UpdateTx(ctx, tx, doc)
-		if err != nil {
+	// Resolve existence against ALL rows, including soft-deleted ones. A
+	// soft-deleted (archived) document keeps its .json on disk, so a plain
+	// GetByPathTx (which hides deleted rows) would report "not found" and send us
+	// to CreateTx — an INSERT that conflicts on the still-present path PRIMARY KEY,
+	// failing the index and aborting a whole vault scan. Skip archived docs (they
+	// belong out of the active index until restored), update active ones, create
+	// genuinely new ones.
+	existing, err := idx.docStore.GetByPathIncludingDeletedTx(ctx, tx, docPath)
+	switch {
+	case err == nil && existing.DeletedAt != "":
+		return nil
+	case err == nil:
+		if _, err = idx.docStore.UpdateTx(ctx, tx, doc); err != nil {
 			return fmt.Errorf("updating doc table: %w", err)
 		}
-	} else {
-		_, err = idx.docStore.CreateTx(ctx, tx, doc)
-		if err != nil {
+	case errors.Is(err, sql.ErrNoRows):
+		if _, err = idx.docStore.CreateTx(ctx, tx, doc); err != nil {
 			return fmt.Errorf("creating doc table entry: %w", err)
 		}
+	default:
+		return fmt.Errorf("checking existing doc: %w", err)
 	}
 
 	headingsText := strings.Join(content.Headings, " ")
@@ -368,23 +376,16 @@ func (idx *Indexer) IndexDocument(ctx context.Context, docPath string) error {
 	if len(content.Assets) > 0 {
 		for _, as := range content.Assets {
 			url := as.Path
-			// Expected form: /assets/{projectAlias}/{hash}{ext} or wails://assets/... (both contain "/assets/")
+			// Refs come as /assets/{projectAlias}/{hash}{ext} or wails://assets/...
+			// (both contain "/assets/"). Parse from that segment with the canonical
+			// asset.ParseAssetRef so the hash is the fixed 64-char prefix and
+			// extension-less refs are handled the same way everywhere.
 			i := strings.Index(url, "/assets/")
 			if i == -1 {
 				continue
 			}
-			tail := url[i+len("/assets/"):]
-			parts := strings.SplitN(tail, "/", 2)
-			if len(parts) != 2 {
-				continue
-			}
-			file := parts[1]
-			dot := strings.LastIndex(file, ".")
-			if dot <= 0 {
-				continue
-			}
-			hash := file[:dot]
-			if err := asset.ValidateHash(hash); err != nil {
+			hash, _, err := asset.ParseAssetRef(url[i:])
+			if err != nil {
 				continue
 			}
 

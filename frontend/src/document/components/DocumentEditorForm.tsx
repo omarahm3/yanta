@@ -27,6 +27,12 @@ interface DocumentEditorFormProps {
 	tags: string[];
 	kind?: DocumentKind;
 	scene?: ExcalidrawScene;
+	/**
+	 * Bumped by the controller on reload-from-disk. Used to key the CanvasEditor
+	 * so a reload remounts it — Excalidraw only ingests its scene at mount, so
+	 * updating `scene` alone would leave the live canvas stale.
+	 */
+	reloadNonce?: number;
 	projectAlias?: string;
 	isEditMode: boolean;
 	isLoading: boolean;
@@ -53,6 +59,7 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 	tags,
 	kind = "document",
 	scene,
+	reloadNonce = 0,
 	projectAlias = "",
 	isEditMode,
 	isLoading,
@@ -205,6 +212,7 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 							}
 						>
 							<CanvasEditor
+								key={`canvas-${reloadNonce}`}
 								initialScene={scene}
 								projectAlias={projectAlias}
 								onChange={onSceneChange}

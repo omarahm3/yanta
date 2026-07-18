@@ -43,7 +43,10 @@ export const PaneHeader: React.FC<PaneHeaderProps> = ({
 		if (!documentPath) return "Empty";
 		const segments = documentPath.split("/");
 		const fileName = segments[segments.length - 1] ?? documentPath;
-		return fileName.replace(/\.md$/, "");
+		// Documents are stored as doc-<alias>-<id>.json, so a ".md" strip never
+		// matched and the raw ".json" filename leaked into the header. Strip the
+		// real trailing extension.
+		return fileName.replace(/\.[^./]+$/, "");
 	}, [titleProp, documentPath]);
 
 	const handleSplitHorizontal = useCallback(() => {

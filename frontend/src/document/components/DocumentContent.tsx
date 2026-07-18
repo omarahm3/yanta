@@ -28,6 +28,8 @@ export interface DocumentContentProps {
 		scene?: ExcalidrawScene;
 		assets?: Record<string, string>;
 	};
+	/** Bumped on reload-from-disk to force a CanvasEditor remount. */
+	reloadNonce?: number;
 	isEditMode: boolean;
 	isLoading: boolean;
 	isArchived?: boolean;
@@ -103,6 +105,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 		documentPath,
 		documentTitle,
 		formData,
+		reloadNonce,
 		isEditMode,
 		isLoading,
 		isArchived = false,
@@ -229,6 +232,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 							tags={formData.tags}
 							kind={formData.kind}
 							scene={formData.scene}
+							reloadNonce={reloadNonce}
 							projectAlias={currentProject?.alias || ""}
 							isEditMode={isEditMode}
 							isLoading={isLoading}
@@ -254,14 +258,20 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 							wordCount={counts.wordCount}
 							charCount={counts.charCount}
 							selectionCount={counts.selectionCount}
+							// Canvas docs have no text-editor counts (they'd read 0/0).
+							showCounts={formData.kind !== "canvas"}
 						/>
 					</div>
-					<DocumentOutline
-						editor={editorRef.current}
-						blocks={formData.blocks}
-						isOpen={isOutlineOpen}
-						onClose={onCloseOutline ?? (() => {})}
-					/>
+					{/* The outline is derived from BlockNote blocks; a canvas has none, so
+					    it would render an empty panel. */}
+					{formData.kind !== "canvas" && (
+						<DocumentOutline
+							editor={editorRef.current}
+							blocks={formData.blocks}
+							isOpen={isOutlineOpen}
+							onClose={onCloseOutline ?? (() => {})}
+						/>
+					)}
 				</div>
 			</Layout>
 		);

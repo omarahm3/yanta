@@ -207,6 +207,7 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 						tags={contentProps.formData.tags}
 						kind={contentProps.formData.kind}
 						scene={contentProps.formData.scene}
+						reloadNonce={contentProps.reloadNonce}
 						projectAlias={contentProps.currentProject?.alias ?? ""}
 						isEditMode={contentProps.isEditMode}
 						isLoading={contentProps.isLoading}
@@ -227,6 +228,9 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 					hasUnsavedChanges={contentProps.autoSave.hasUnsavedChanges}
 					saveError={contentProps.autoSave.saveError}
 					isArchived={contentProps.isArchived}
+					// The pane view doesn't compute word/char counts, so don't render a
+					// misleading "0 words · 0 chars".
+					showCounts={false}
 				/>
 			</div>
 		);
