@@ -22,6 +22,7 @@ import type {
 	ExcalidrawImperativeAPI,
 	ExcalidrawInitialDataState,
 } from "@excalidraw/excalidraw/types";
+import { System } from "@wailsio/runtime";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ResolveDataURL, StoreDataURL } from "../../bindings/yanta/internal/asset/service";
 import { ReadClipboardImage } from "../../bindings/yanta/internal/system/service";
@@ -496,13 +497,15 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 			};
 		}, [isReady]);
 
-		// Image paste. The WebKitGTK webview denies the browser Clipboard API and
-		// never fires a paste event on the (non-editable) canvas, so intercept Ctrl/⌘+V
-		// while the canvas holds focus and read the image from the system clipboard
-		// natively (Go: wl-paste/xclip). Insert it via the Excalidraw API and let the
-		// normal onChange/flushSave path persist the dataURL into the vault.
+		// Image paste — Linux/WebKitGTK ONLY. That webview denies the browser
+		// Clipboard API and never fires a paste event on the canvas, so intercept
+		// Ctrl+V and read the image from the system clipboard natively (Go:
+		// wl-paste/xclip), inserting it via the Excalidraw API. On Windows/macOS the
+		// webview fires a real paste event Excalidraw handles itself, and this
+		// interceptor's preventDefault() would kill it — hence the IsLinux() gate.
 		useEffect(() => {
 			if (!isReady || !_editable) return;
+			if (!System.IsLinux()) return;
 			const container = containerRef.current;
 			if (!container) return;
 
@@ -557,9 +560,15 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 				const isPaste =
 					(e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "v";
 				if (!isPaste) return;
-				if (!container.contains(document.activeElement)) return;
-				// Own the paste: Excalidraw's native path only reaches a permission-blocked
-				// Clipboard API here, so let it not bother.
+				// Never steal a paste aimed at a text field (Excalidraw's own text
+				// editor is a textarea inside our container).
+				const active = document.activeElement;
+				if (active instanceof Element && active.closest("input, textarea, [contenteditable]")) {
+					return;
+				}
+				// Trigger on focus OR hover — focus can drift to <body> (toolbar
+				// clicks, pane switches), and a focus-only guard left Ctrl+V dead there.
+				if (!container.contains(active) && !container.matches(":hover")) return;
 				e.preventDefault();
 				e.stopPropagation();
 				void (async () => {
