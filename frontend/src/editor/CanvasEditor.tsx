@@ -30,6 +30,7 @@ import { useResolvedTheme } from "../shared/stores/theme.store";
 import type { ExcalidrawScene } from "../shared/types/Document";
 import { BackendLogger } from "../shared/utils/backendLogger";
 import { cn } from "../shared/utils/cn";
+import { appStateSignature, referencedImageFileIds, sanitizeAppState } from "./canvasScene";
 import type { CanvasHandle } from "./types";
 
 export interface CanvasEditorProps {
@@ -69,53 +70,6 @@ type ExcalidrawFile = {
 	[key: string]: unknown;
 };
 
-// Excalidraw's runtime appState is mostly transient interaction state that must
-// NOT survive a save/load round-trip. Persisting it raw caused two bug classes:
-// class-shaped values that JSON-mangle and crash on reload (`collaborators`, a
-// Map; `selectedLinearElement`, a LinearElementEditor), and in-progress
-// interaction state that Excalidraw "resumes" on mount — a persisted
-// `editingTextElement` makes it treat that text element as still being edited on
-// reopen: the canvas hides its text and the "finish editing" banner appears.
-// Whitelist the few fields that are meaningful across sessions (viewport,
-// canvas settings, last-used tool styles) so no future runtime field can leak
-// into persistence. Excalidraw fills everything else with defaults.
-const PERSISTED_APP_STATE_KEYS = [
-	"scrollX",
-	"scrollY",
-	"zoom",
-	"viewBackgroundColor",
-	"gridSize",
-	"gridStep",
-	"gridModeEnabled",
-	"zenModeEnabled",
-	"objectsSnapModeEnabled",
-	"currentItemStrokeColor",
-	"currentItemBackgroundColor",
-	"currentItemFillStyle",
-	"currentItemStrokeWidth",
-	"currentItemStrokeStyle",
-	"currentItemRoughness",
-	"currentItemOpacity",
-	"currentItemFontFamily",
-	"currentItemFontSize",
-	"currentItemTextAlign",
-	"currentItemStartArrowhead",
-	"currentItemEndArrowhead",
-	"currentItemRoundness",
-	"currentItemArrowType",
-] as const;
-
-function sanitizeAppState<T>(appState: T): T {
-	const source = appState as unknown as Record<string, unknown>;
-	const cleaned: Record<string, unknown> = {};
-	for (const key of PERSISTED_APP_STATE_KEYS) {
-		if (source[key] !== undefined) {
-			cleaned[key] = source[key];
-		}
-	}
-	return cleaned as unknown as T;
-}
-
 export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 	({
 		initialScene,
@@ -135,10 +89,20 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 		// as if it were a user edit.
 		const programmaticRepaintRef = useRef(false);
 		const lastVersionRef = useRef<number>(0);
+		const lastAppStateSigRef = useRef<string>("");
 		const projectAliasRef = useRef(projectAlias);
 		const onChangeRef = useRef(onChange);
 		const onCanvasReadyRef = useRef(onCanvasReady);
 		const assetsRef = useRef<Record<string, string>>({});
+		// The scene to hydrate is captured ONCE at mount. The parent feeds the
+		// just-saved scene back in as `initialScene` on every onChange, so depending
+		// on its identity would re-run hydration on every edit (re-resolving every
+		// image against the backend). A genuine re-ingest (reload-from-disk) instead
+		// remounts this component via its `reloadNonce` key, so mount-time is correct.
+		const initialSceneRef = useRef(initialScene);
+		// Vault refs whose dataURL failed to resolve on load. Kept so a transient
+		// resolve error doesn't permanently strip the reference from the saved scene.
+		const unresolvedRefsRef = useRef<Record<string, { vaultRef: string; mimeType?: string }>>({});
 
 		projectAliasRef.current = projectAlias;
 		onChangeRef.current = onChange;
@@ -150,23 +114,26 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 		);
 
 		useEffect(() => {
+			// Runs once at mount (see initialSceneRef). A `cancelled` guard prevents an
+			// in-flight ResolveDataURL from writing refs/state after unmount.
+			let cancelled = false;
+			const scene = initialSceneRef.current;
+
 			const hydrateAssets = async () => {
-				if (!initialScene) {
-					setHydratedInitialData({
-						elements: [],
-						appState: {},
-						files: {},
-					});
+				if (!scene) {
+					if (cancelled) return;
+					setHydratedInitialData({ elements: [], appState: {}, files: {} });
 					setIsReady(true);
 					return;
 				}
 
 				const files: HydratedFiles = {};
 				const assets: Record<string, string> = {};
+				const unresolved: Record<string, { vaultRef: string; mimeType?: string }> = {};
 
 				// Hydrate files from vault references
-				if (initialScene.files) {
-					for (const [fileId, file] of Object.entries(initialScene.files)) {
+				if (scene.files) {
+					for (const [fileId, file] of Object.entries(scene.files)) {
 						const fileObj = file as ExcalidrawFile;
 						if (fileObj.dataURL) {
 							// Already a dataURL (legacy or direct)
@@ -191,13 +158,19 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 									assets[fileId] = ref;
 								} catch (err) {
 									BackendLogger.error(`Failed to resolve asset ${fileId}:`, err);
+									// Remember the ref so flushSave can round-trip it back to disk
+									// instead of silently dropping the reference forever.
+									unresolved[fileId] = { vaultRef: ref, mimeType: fileObj.mimeType };
+									assets[fileId] = ref;
 								}
 							}
 						}
 					}
 				}
 
+				if (cancelled) return;
 				assetsRef.current = assets;
+				unresolvedRefsRef.current = unresolved;
 
 				// Run persisted data through Excalidraw's restoration layer. Our stored
 				// appState is a plain JSON object, but Excalidraw expects runtime types
@@ -206,14 +179,15 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 				// element bindings, and migrates older schemas.
 				const restored = restore(
 					{
-						elements: initialScene.elements as NonDeletedExcalidrawElement[],
-						appState: initialScene.appState as unknown as AppState,
+						elements: scene.elements as NonDeletedExcalidrawElement[],
+						appState: scene.appState as unknown as AppState,
 						files: files as unknown as BinaryFiles,
 					},
 					null,
 					null,
 				);
 
+				if (cancelled) return;
 				setHydratedInitialData({
 					elements: restored.elements,
 					// Sanitize on load too, not just on save: documents saved before the
@@ -228,7 +202,13 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 			};
 
 			void hydrateAssets();
-		}, [initialScene]);
+			return () => {
+				cancelled = true;
+			};
+			// Mount-only: initialScene is captured via initialSceneRef, and a real
+			// re-ingest remounts this component (reloadNonce key). All other values
+			// used here are stable refs/setters.
+		}, []);
 
 		// Flush pending save - called from timeout or cleanup
 		const flushSave = useCallback(
@@ -236,8 +216,19 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 				const newAssets: Record<string, string> = { ...assetsRef.current };
 				const processedFiles: Record<string, unknown> = {};
 
+				// Files actually referenced by a live image element. Excalidraw retains
+				// file-map entries for deleted images, so keying off elements (not the
+				// file map) keeps deleted images out of the saved scene and stops the
+				// asset map from growing without bound.
+				const referencedFileIds = referencedImageFileIds(
+					elements as readonly { type?: string; fileId?: string }[],
+				);
+
 				// Process files - extract dataURLs to vault
 				for (const [fileId, file] of Object.entries(files)) {
+					if (!referencedFileIds.has(fileId)) {
+						continue; // file for a deleted image element — don't persist it
+					}
 					if (file.dataURL && !newAssets[fileId]) {
 						// New file - store to vault
 						try {
@@ -266,11 +257,29 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 					}
 				}
 
-				// Remove assets that are no longer in the scene
-				const currentFileIds = new Set(Object.keys(files));
+				// Re-inject any vault ref whose dataURL failed to resolve on load: it's
+				// absent from Excalidraw's live file map (never added), so without this
+				// the reference would be stripped from the saved scene permanently. Only
+				// keep it while an image element still points at it.
+				for (const [fileId, entry] of Object.entries(unresolvedRefsRef.current)) {
+					if (referencedFileIds.has(fileId) && !processedFiles[fileId]) {
+						processedFiles[fileId] = {
+							id: fileId,
+							vaultRef: entry.vaultRef,
+							mimeType: entry.mimeType,
+							dataURL: undefined,
+						};
+						newAssets[fileId] = entry.vaultRef;
+					}
+				}
+
+				// Drop assets no longer referenced by any element. Keying off referenced
+				// image elements (not Excalidraw's file map, which retains entries for
+				// deleted images) keeps the asset map from growing without bound.
 				for (const fileId of Object.keys(newAssets)) {
-					if (!currentFileIds.has(fileId)) {
+					if (!referencedFileIds.has(fileId)) {
 						delete newAssets[fileId];
+						delete unresolvedRefsRef.current[fileId];
 					}
 				}
 
@@ -305,9 +314,17 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 			(elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
 				if (!excalidrawAPI.current) return;
 
+				// Gate on BOTH the element hash and a low-frequency appState signature:
+				// element edits bump the hash, while appState-only edits (background
+				// color, grid/zen/snap, last-used tool styles) don't touch any element
+				// version and would otherwise never be persisted.
 				const sceneVersion = hashElementsVersion(elements);
-				if (sceneVersion === lastVersionRef.current) return;
+				const appStateSig = appStateSignature(appState);
+				if (sceneVersion === lastVersionRef.current && appStateSig === lastAppStateSigRef.current) {
+					return;
+				}
 				lastVersionRef.current = sceneVersion;
+				lastAppStateSigRef.current = appStateSig;
 
 				// The font-repaint effect below bumps text element versions purely to
 				// invalidate Excalidraw's stale render cache — not a user edit — so
@@ -518,12 +535,16 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 				});
 
 			const insertImage = async (dataURL: string) => {
+				const { width, height } = await naturalSize(dataURL);
+				// Re-read the API AFTER the await: a fast unmount mid-await would
+				// otherwise call into a torn-down Excalidraw instance.
 				const api = excalidrawAPI.current;
 				if (!api) return;
-				const { width, height } = await naturalSize(dataURL);
 				const maxDim = 800;
 				const scale = Math.max(width, height) > maxDim ? maxDim / Math.max(width, height) : 1;
-				const mimeType = (/^data:([^;]+);/.exec(dataURL)?.[1] ??
+				// Match the MIME up to `;` or `,` so comma-form (non-base64) data URLs
+				// like "data:image/svg+xml,%3Csvg..." aren't misread as PNG.
+				const mimeType = (/^data:([^;,]+)[;,]/.exec(dataURL)?.[1] ??
 					"image/png") as BinaryFileData["mimeType"];
 				const fileId = crypto.randomUUID() as FileId;
 				api.addFiles([
