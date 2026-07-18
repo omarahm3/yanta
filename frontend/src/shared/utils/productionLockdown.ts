@@ -27,9 +27,7 @@ export function installProductionLockdown(): void {
 		(event) => {
 			if (event.defaultPrevented) return;
 			const target = event.target as Element | null;
-			if (
-				target?.closest('input, textarea, [contenteditable="true"], [contenteditable=""]')
-			) {
+			if (target?.closest('input, textarea, [contenteditable="true"], [contenteditable=""]')) {
 				return;
 			}
 			event.preventDefault();

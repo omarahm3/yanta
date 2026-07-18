@@ -628,11 +628,7 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 				const rect = container.getBoundingClientRect();
 				const p = lastPointerRef.current;
 				const overCanvas =
-					p !== null &&
-					p.x >= rect.left &&
-					p.x <= rect.right &&
-					p.y >= rect.top &&
-					p.y <= rect.bottom;
+					p !== null && p.x >= rect.left && p.x <= rect.right && p.y >= rect.top && p.y <= rect.bottom;
 				const origin = viewportCoordsToSceneCoords(
 					overCanvas
 						? { clientX: p.x, clientY: p.y }
