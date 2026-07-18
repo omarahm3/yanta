@@ -115,9 +115,6 @@ export function useDocumentController({
 	// pane and cleared on unmount. Held in a ref because it is consumed imperatively
 	// (command-palette export, Escape routing), not on render.
 	const canvasHandleRef = useRef<CanvasHandle | null>(null);
-	const handleCanvasReady = useCallback((handle: CanvasHandle | null) => {
-		canvasHandleRef.current = handle;
-	}, []);
 	const { handleExportToMarkdown, handleExportToPDF, handleExportCanvasImage } = useDocumentExports({
 		documentPath,
 		documentTitle: formData.title,
@@ -129,6 +126,15 @@ export function useDocumentController({
 	const [hasRestored, setHasRestored] = useState(false);
 	const [isRestoring, setIsRestoring] = useState(false);
 	const [isEditorReady, setIsEditorReady] = useState(false);
+	// Canvas docs render CanvasEditor, not RichEditor, so they never hit the
+	// onEditorReady path that flips isEditorReady. Drive it from the canvas handle
+	// instead: without this, isInitialized stays false for canvases, autosave
+	// never snapshots its baseline (so an untouched canvas reads as dirty and
+	// fires a spurious save on close), and saveOnBlur never registers.
+	const handleCanvasReady = useCallback((handle: CanvasHandle | null) => {
+		canvasHandleRef.current = handle;
+		setIsEditorReady(handle !== null);
+	}, []);
 	const [isFindOpen, setFindOpen] = useState(false);
 	const [isReplaceOpen, setReplaceOpen] = useState(false);
 	const [isOutlineOpen, setOutlineOpen] = useState(false);

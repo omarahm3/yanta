@@ -168,13 +168,20 @@ func ParseDataURL(dataURL string) (mimeType string, data []byte, err error) {
 	header := parts[0]
 	payload := parts[1]
 
-	headerParts := strings.SplitN(header, ";", 2)
-	if len(headerParts) == 0 {
-		return "", nil, fmt.Errorf("missing MIME type")
-	}
+	// header is "<mime>[;param=value...][;base64]". The MIME is the first
+	// segment; the base64 marker may sit after optional parameters (e.g.
+	// "image/png;charset=utf-8;base64"), so scan all segments for it rather than
+	// assuming it's exactly the second.
+	headerParts := strings.Split(header, ";")
 	mimeType = headerParts[0]
-
-	if len(headerParts) < 2 || headerParts[1] != "base64" {
+	isBase64 := false
+	for _, p := range headerParts[1:] {
+		if strings.EqualFold(strings.TrimSpace(p), "base64") {
+			isBase64 = true
+			break
+		}
+	}
+	if !isBase64 {
 		return "", nil, fmt.Errorf("only base64 data URLs are supported")
 	}
 
@@ -192,14 +199,15 @@ func EncodeDataURL(mimeType string, data []byte) string {
 	return fmt.Sprintf("data:%s;base64,%s", mimeType, encoded)
 }
 
-// MIMEToExtension converts a MIME type to a file extension.
+// MIMEToExtension converts a MIME type to a file extension. Deliberately raster
+// image types only — SVG is excluded because it can carry embedded script
+// (stored-XSS if ever rendered inline), matching Upload's allowlist.
 func MIMEToExtension(mime string) string {
 	mimeMap := map[string]string{
-		"image/png":     ".png",
-		"image/jpeg":    ".jpg",
-		"image/gif":     ".gif",
-		"image/webp":    ".webp",
-		"image/svg+xml": ".svg",
+		"image/png":  ".png",
+		"image/jpeg": ".jpg",
+		"image/gif":  ".gif",
+		"image/webp": ".webp",
 	}
 	if ext, ok := mimeMap[mime]; ok {
 		return ext

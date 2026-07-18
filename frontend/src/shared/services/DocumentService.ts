@@ -27,6 +27,9 @@ export async function saveDocument(request: SaveDocumentRequest): Promise<string
 		Kind: request.kind || "document",
 		Blocks: request.blocks ? blocksToModel(request.blocks) : [],
 		Scene: request.scene ? JSON.stringify(request.scene) : null,
+		// Persist the fileId -> vault ref map for canvas docs so the backend can
+		// link these images in doc_asset (keeps them out of orphan cleanup).
+		Assets: request.assets || {},
 		Tags: request.tags,
 		ExpectedHash: request.expectedHash || "",
 	});

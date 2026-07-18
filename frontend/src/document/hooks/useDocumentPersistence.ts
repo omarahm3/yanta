@@ -172,13 +172,22 @@ export const useDocumentPersistence = ({
 
 	// Canvas edits change the scene, not blocks/title/tags. Without a scene
 	// signature here, useAutoSave sees "no change" and shows "saved" while the
-	// drawing is actually dirty (only saveOnBlur would rescue it). Hash the
-	// scene elements so canvas changes trigger autosave like block edits do.
-	// Recomputed only when the scene reference changes (setScene makes a new one).
-	const sceneKey = useMemo(
-		() => (formData.scene ? JSON.stringify(formData.scene.elements) : ""),
-		[formData.scene],
-	);
+	// drawing is actually dirty. Build a compact id:version digest rather than
+	// JSON.stringify-ing every element: Excalidraw bumps an element's `version`
+	// (and marks deletes with isDeleted + a version bump) on any mutation, so this
+	// captures adds/edits/deletes while avoiding serializing all element geometry
+	// on the render hot path for large drawings.
+	const sceneKey = useMemo(() => {
+		const elements = formData.scene?.elements;
+		if (!elements || elements.length === 0) return "";
+		let key = "";
+		for (const el of elements) {
+			const id = (el as { id?: string }).id ?? "";
+			const version = (el as { version?: number }).version ?? 0;
+			key += `${id}:${version};`;
+		}
+		return key;
+	}, [formData.scene]);
 
 	const compareKey = useMemo(
 		() => `${blocksHash}\n${formData.title}\n${formData.tags.join(",")}\n${sceneKey}`,

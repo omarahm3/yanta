@@ -4,7 +4,7 @@ import {
 	Excalidraw,
 	exportToBlob,
 	exportToSvg,
-	getSceneVersion,
+	hashElementsVersion,
 	restore,
 	viewportCoordsToSceneCoords,
 } from "@excalidraw/excalidraw";
@@ -305,7 +305,7 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 			(elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
 				if (!excalidrawAPI.current) return;
 
-				const sceneVersion = getSceneVersion(elements);
+				const sceneVersion = hashElementsVersion(elements);
 				if (sceneVersion === lastVersionRef.current) return;
 				lastVersionRef.current = sceneVersion;
 

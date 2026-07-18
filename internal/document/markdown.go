@@ -21,6 +21,17 @@ func (m *MarkdownConverter) ToMarkdown(doc *DocumentFile) (string, error) {
 	frontmatter := m.generateFrontmatter(&doc.Meta)
 	lines = append(lines, frontmatter)
 
+	// Canvas docs have no blocks — a plain block loop would emit a frontmatter-
+	// only file and silently drop the whole drawing. Export the text elements so
+	// the markdown at least carries the canvas's readable content plus a note.
+	if doc.Kind == DocumentKindCanvas {
+		lines = append(lines, "", "> Canvas document — visual content is only viewable in the app; its text is exported below.")
+		for _, text := range extractCanvasText(doc.Scene) {
+			lines = append(lines, "", text)
+		}
+		return strings.Join(lines, "\n"), nil
+	}
+
 	for _, block := range doc.Blocks {
 		m.convertBlock(block, &lines, 0)
 	}

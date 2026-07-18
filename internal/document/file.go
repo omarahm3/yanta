@@ -72,8 +72,16 @@ func (df *DocumentFile) Validate() error {
 		if len(df.Scene) == 0 || !json.Valid(df.Scene) {
 			return fmt.Errorf("scene is required for canvas kind and must be valid JSON")
 		}
-		if string(df.Scene) == "null" {
+		if strings.TrimSpace(string(df.Scene)) == "null" {
 			return fmt.Errorf("scene cannot be null for canvas kind")
+		}
+		// The scene must be a JSON object (an Excalidraw scene). Bare JSON values
+		// like `42`, `"x"`, or `[]` are valid JSON but not a scene; without this
+		// check they'd be accepted and then silently index nothing. A nil map after
+		// a successful unmarshal means the value wasn't an object.
+		var sceneObj map[string]json.RawMessage
+		if err := json.Unmarshal(df.Scene, &sceneObj); err != nil || sceneObj == nil {
+			return fmt.Errorf("scene must be a JSON object for canvas kind")
 		}
 	default:
 		return fmt.Errorf("unknown document kind: %s", kind)
@@ -300,7 +308,7 @@ func NewDocumentFile(project, title string, tags []string) *DocumentFile {
 	}
 }
 
-func NewCanvasFile(project, title string, tags []string, scene json.RawMessage) *DocumentFile {
+func NewCanvasFile(project, title string, tags []string, scene json.RawMessage, assets map[string]string) *DocumentFile {
 	now := time.Now()
 
 	return &DocumentFile{
@@ -312,8 +320,9 @@ func NewCanvasFile(project, title string, tags []string, scene json.RawMessage) 
 			Created: now,
 			Updated: now,
 		},
-		Kind:  DocumentKindCanvas,
-		Scene: scene,
+		Kind:   DocumentKindCanvas,
+		Scene:  scene,
+		Assets: assets,
 	}
 }
 

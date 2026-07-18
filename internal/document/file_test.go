@@ -619,13 +619,17 @@ func TestDocumentFile_Canvas_ToJSON_FromJSON(t *testing.T) {
 
 func TestNewCanvasFile(t *testing.T) {
 	scene := json.RawMessage(`{"elements":[],"appState":{}}`)
-	cf := NewCanvasFile("yanta", "My Diagram", []string{"test"}, scene)
+	assets := map[string]string{"file1": "/assets/@yanta/" + strings.Repeat("a", 64) + ".png"}
+	cf := NewCanvasFile("yanta", "My Diagram", []string{"test"}, scene, assets)
 
 	if cf.Kind != DocumentKindCanvas {
 		t.Errorf("Kind = %q, want %q", cf.Kind, DocumentKindCanvas)
 	}
 	if cf.Scene == nil {
 		t.Error("Scene is nil")
+	}
+	if len(cf.Assets) != 1 || cf.Assets["file1"] == "" {
+		t.Errorf("Assets not set: %v", cf.Assets)
 	}
 	if cf.Blocks != nil {
 		t.Errorf("Blocks should be nil for canvas, got %v", cf.Blocks)

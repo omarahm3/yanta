@@ -1012,3 +1012,71 @@ func TestParser_FTSCodeFormat(t *testing.T) {
 		t.Errorf("FTSCode() = '%s', expected '%s'", content.FTSCode(), expected)
 	}
 }
+
+func TestParser_ParseCanvas(t *testing.T) {
+	p := NewParser()
+	hash := "a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9b94d27b9934d3e08"
+	ref := "/assets/@test/" + hash + ".png"
+
+	doc := &DocumentFile{
+		Meta: DocumentMeta{Project: "@test", Title: "My Canvas", Created: time.Now(), Updated: time.Now()},
+		Kind: DocumentKindCanvas,
+		Scene: json.RawMessage(`{"elements":[
+			{"type":"text","text":"hello canvas"},
+			{"type":"rectangle","text":""},
+			{"type":"text","text":"second label"}
+		]}`),
+		Assets: map[string]string{"file1": ref},
+	}
+
+	content, err := p.Parse(doc)
+	if err != nil {
+		t.Fatalf("Parse() error: %v", err)
+	}
+	if content.Title != "My Canvas" {
+		t.Errorf("Title = %q, want %q", content.Title, "My Canvas")
+	}
+	if len(content.Body) != 2 || content.Body[0] != "hello canvas" || content.Body[1] != "second label" {
+		t.Errorf("Body = %v, want the two text elements", content.Body)
+	}
+	if !content.HasImages || len(content.Assets) != 1 || content.Assets[0].Path != ref {
+		t.Errorf("Assets = %v (hasImages=%v), want the single vault ref", content.Assets, content.HasImages)
+	}
+}
+
+func TestParser_ParseCanvas_Malformed(t *testing.T) {
+	p := NewParser()
+	cases := map[string]json.RawMessage{
+		"invalid json": json.RawMessage(`{not json`),
+		"non-object":   json.RawMessage(`[1,2,3]`),
+		"no elements":  json.RawMessage(`{"appState":{}}`),
+		"empty":        json.RawMessage(``),
+	}
+	for name, scene := range cases {
+		t.Run(name, func(t *testing.T) {
+			doc := &DocumentFile{
+				Meta:  DocumentMeta{Project: "@test", Title: "T", Created: time.Now(), Updated: time.Now()},
+				Kind:  DocumentKindCanvas,
+				Scene: scene,
+			}
+			content, err := p.Parse(doc)
+			if err != nil {
+				t.Fatalf("Parse() error: %v", err)
+			}
+			if len(content.Body) != 0 {
+				t.Errorf("Body = %v, want empty for malformed scene", content.Body)
+			}
+		})
+	}
+}
+
+func TestExtractCanvasText_SizeGuard(t *testing.T) {
+	// A scene larger than the cap is skipped rather than scanned.
+	big := make([]byte, maxCanvasSceneBytes+1)
+	for i := range big {
+		big[i] = ' '
+	}
+	if got := extractCanvasText(json.RawMessage(big)); got != nil {
+		t.Errorf("extractCanvasText on oversized scene = %v, want nil", got)
+	}
+}

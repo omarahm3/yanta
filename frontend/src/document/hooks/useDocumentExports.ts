@@ -15,6 +15,19 @@ export interface UseDocumentExportsOptions {
 	canvasHandleRef?: React.RefObject<CanvasHandle | null>;
 }
 
+// Derive a safe export filename base from a document title. Sanitizing to
+// [a-z0-9_] can empty out entirely (blank or all-CJK/emoji titles), which would
+// yield a dotfile like ".md" or a string of bare underscores — fall back to a
+// sensible default and collapse underscore runs.
+export function exportBaseName(title: string): string {
+	const base = title
+		.replace(/[^a-z0-9]/gi, "_")
+		.replace(/_+/g, "_")
+		.replace(/^_|_$/g, "")
+		.toLowerCase();
+	return base || "untitled";
+}
+
 // Encode arbitrary bytes as base64 for the backend ExportCanvasImage payload.
 // Chunked to stay well under argument-count limits for large images.
 function bytesToBase64(bytes: Uint8Array): string {
@@ -39,7 +52,7 @@ export function useDocumentExports({
 			return;
 		}
 		try {
-			const defaultFilename = `${documentTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.md`;
+			const defaultFilename = `${exportBaseName(documentTitle)}.md`;
 			const outputPath = await Dialogs.SaveFile({
 				Title: "Export to Markdown",
 				Filename: defaultFilename,
@@ -72,7 +85,7 @@ export function useDocumentExports({
 			return;
 		}
 		try {
-			const defaultFilename = `${documentTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`;
+			const defaultFilename = `${exportBaseName(documentTitle)}.pdf`;
 			const outputPath = await Dialogs.SaveFile({
 				Title: "Export to PDF",
 				Filename: defaultFilename,
@@ -107,7 +120,7 @@ export function useDocumentExports({
 				return;
 			}
 			try {
-				const defaultFilename = `${documentTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.${format}`;
+				const defaultFilename = `${exportBaseName(documentTitle)}.${format}`;
 				const outputPath = await Dialogs.SaveFile({
 					Title: format === "png" ? "Export Canvas to PNG" : "Export Canvas to SVG",
 					Filename: defaultFilename,

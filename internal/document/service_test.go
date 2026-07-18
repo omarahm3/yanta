@@ -254,6 +254,90 @@ func TestService_Save_Canvas_Update(t *testing.T) {
 	assert.Equal(t, DocumentKindCanvas, doc.File.Kind)
 }
 
+func TestService_Save_Canvas_PersistsAssets(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	hash := "a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9b94d27b9934d3e08"
+	ref := "/assets/@test/" + hash + ".png"
+	req := SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "Canvas With Image",
+		Kind:         DocumentKindCanvas,
+		Scene:        json.RawMessage(`{"elements":[{"id":"img1","type":"image","fileId":"file1"}],"appState":{}}`),
+		Assets:       map[string]string{"file1": ref},
+	}
+
+	path, err := service.Save(context.Background(), req)
+	require.NoError(t, err, "Save() failed")
+
+	doc, err := service.Get(context.Background(), path)
+	require.NoError(t, err, "Get() failed")
+	require.NotNil(t, doc.File)
+	// Without this, canvas images are never linked in doc_asset and get reaped by
+	// orphan cleanup.
+	assert.Equal(t, ref, doc.File.Assets["file1"], "canvas asset ref should persist")
+}
+
+func TestService_Save_PreservesAliases(t *testing.T) {
+	service, v, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	path, err := service.Save(context.Background(), SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "Has Aliases",
+		Blocks:       []BlockNoteBlock{},
+		Tags:         []string{},
+	})
+	require.NoError(t, err)
+
+	// Aliases aren't part of SaveRequest; inject them onto the persisted file to
+	// simulate a doc that already carries aliases.
+	fm := NewFileManager(v)
+	file, err := fm.ReadFile(path)
+	require.NoError(t, err)
+	file.Meta.Aliases = []string{"nickname"}
+	require.NoError(t, fm.WriteFile(path, file))
+
+	_, err = service.Save(context.Background(), SaveRequest{
+		Path:         path,
+		ProjectAlias: "@test",
+		Title:        "Has Aliases Updated",
+		Blocks:       []BlockNoteBlock{},
+		Tags:         []string{},
+	})
+	require.NoError(t, err)
+
+	after, err := fm.ReadFile(path)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"nickname"}, after.Meta.Aliases, "aliases must survive a save")
+}
+
+func TestService_Save_RejectsKindFlip(t *testing.T) {
+	service, _, cleanup := setupServiceTest(t)
+	defer cleanup()
+
+	path, err := service.Save(context.Background(), SaveRequest{
+		ProjectAlias: "@test",
+		Title:        "A Canvas",
+		Kind:         DocumentKindCanvas,
+		Scene:        json.RawMessage(`{"elements":[],"appState":{}}`),
+		Tags:         []string{},
+	})
+	require.NoError(t, err)
+
+	_, err = service.Save(context.Background(), SaveRequest{
+		Path:         path,
+		ProjectAlias: "@test",
+		Title:        "Now A Document",
+		Kind:         DocumentKindDocument,
+		Blocks:       []BlockNoteBlock{},
+		Tags:         []string{},
+	})
+	require.Error(t, err, "flipping canvas -> document must be rejected")
+	assert.Contains(t, err.Error(), "cannot change document kind")
+}
+
 func TestService_Save_Update(t *testing.T) {
 	service, _, cleanup := setupServiceTest(t)
 	defer cleanup()

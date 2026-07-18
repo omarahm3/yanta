@@ -51,14 +51,16 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 		useEscapeHandler({
 			when: activePaneId === paneId,
 			onEscape: (e) => {
+				// A picker overlay is open on top of this pane — let ITS Escape
+				// handler run. Handling Escape here would close the underlying
+				// document, and stopImmediatePropagation would block the picker's own
+				// capture-phase close.
+				if (suppressEscapeRef.current) return;
 				if (isCanvas) {
+					// Layered canvas Escape: escapeHandler owns propagation control (it
+					// yields the 1st tap to Excalidraw, stops the 2nd/3rd), so we must
+					// not stop propagation here.
 					controller.escapeHandler(e);
-					return;
-				}
-				if (suppressEscapeRef.current) {
-					controller.escapeHandler(e);
-					e.stopPropagation();
-					e.stopImmediatePropagation();
 					return;
 				}
 				controller.escapeHandler(e);

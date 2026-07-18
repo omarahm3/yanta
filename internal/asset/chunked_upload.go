@@ -44,15 +44,16 @@ type FinalizeChunkedUploadResponse struct {
 }
 
 type uploadSession struct {
-	projectAlias string
-	filename     string
-	mimeType     string
-	totalSize    int64
-	totalChunks  int
-	chunks       map[int][]byte
-	mu           sync.Mutex
-	createdAt    time.Time
-	lastActivity time.Time
+	projectAlias  string
+	filename      string
+	mimeType      string
+	totalSize     int64
+	totalChunks   int
+	chunks        map[int][]byte
+	receivedBytes int64
+	mu            sync.Mutex
+	createdAt     time.Time
+	lastActivity  time.Time
 }
 
 type ChunkedUploadManager struct {
@@ -169,6 +170,18 @@ func (m *ChunkedUploadManager) AddChunk(uploadID string, chunkIndex int, base64D
 	if err != nil {
 		return 0, false, fmt.Errorf("invalid base64 data: %w", err)
 	}
+
+	// Bound accumulated bytes as chunks arrive. CreateSession only validates the
+	// client-declared TotalSize; without this a client could stream chunks whose
+	// real total far exceeds it, holding unbounded data in memory until assembly.
+	limit := session.totalSize
+	if limit > MaxUploadSize {
+		limit = MaxUploadSize
+	}
+	if session.receivedBytes+int64(len(data)) > limit {
+		return 0, false, fmt.Errorf("upload exceeds declared size of %d bytes", session.totalSize)
+	}
+	session.receivedBytes += int64(len(data))
 
 	session.chunks[chunkIndex] = data
 	session.lastActivity = time.Now()

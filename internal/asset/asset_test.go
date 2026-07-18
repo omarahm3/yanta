@@ -894,6 +894,14 @@ func TestParseDataURL(t *testing.T) {
 			wantErr:  false,
 		},
 		{
+			// Spec-valid: parameters may sit between the MIME and the base64 marker.
+			name:     "parameterized header with base64",
+			dataURL:  "data:image/png;charset=utf-8;base64,aGVsbG8gd29ybGQ=",
+			wantMIME: "image/png",
+			wantData: "hello world",
+			wantErr:  false,
+		},
+		{
 			name:    "not a data URL",
 			dataURL: "http://example.com/image.png",
 			wantErr: true,
@@ -952,7 +960,8 @@ func TestMIMEToExtension(t *testing.T) {
 		{"image/jpeg", ".jpg"},
 		{"image/gif", ".gif"},
 		{"image/webp", ".webp"},
-		{"image/svg+xml", ".svg"},
+		// SVG is deliberately unsupported (can embed script → stored-XSS).
+		{"image/svg+xml", ""},
 		{"unknown/type", ""},
 	}
 

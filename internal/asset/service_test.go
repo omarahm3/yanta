@@ -4,11 +4,13 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"yanta/internal/git"
 	"yanta/internal/testutil"
+	"yanta/internal/vault"
 )
 
 type testVault struct{ root string }
@@ -767,5 +769,106 @@ func TestService_ResolveDataURL_MissingAsset(t *testing.T) {
 	_, err := svc.ResolveDataURL(ctx, "@proj", ref)
 	if err == nil {
 		t.Fatal("Expected error for missing asset")
+	}
+}
+
+func newTestService(t *testing.T) *Service {
+	t.Helper()
+	db := testutil.SetupTestDB(t)
+	t.Cleanup(func() { testutil.CleanupTestDB(t, db) })
+	return NewService(ServiceConfig{
+		DB:          db,
+		Store:       NewStore(db),
+		Vault:       &testVault{root: t.TempDir()},
+		SyncManager: git.NewMockSyncManager(),
+	})
+}
+
+// 1x1 transparent PNG.
+const tinyPNGDataURL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+
+func TestService_StoreDataURL_RejectsSVG(t *testing.T) {
+	svc := newTestService(t)
+	// SVG can carry script — must be refused even though it's a valid image MIME.
+	svg := "data:image/svg+xml;base64,PHN2Zz48L3N2Zz4="
+	if _, err := svc.StoreDataURL(context.Background(), "@proj", svg); err == nil {
+		t.Fatal("expected StoreDataURL to reject SVG")
+	}
+}
+
+func TestService_StoreDataURL_RejectsOversized(t *testing.T) {
+	svc := newTestService(t)
+	// A dataURL string longer than 2x the byte cap is rejected before decoding.
+	huge := "data:image/png;base64," + strings.Repeat("A", int(MaxAssetBytes*2)+10)
+	if _, err := svc.StoreDataURL(context.Background(), "@proj", huge); err == nil {
+		t.Fatal("expected StoreDataURL to reject oversized payload")
+	}
+}
+
+func TestService_StoreDataURL_RejectsInvalidAlias(t *testing.T) {
+	svc := newTestService(t)
+	// A traversal alias must be rejected before it reaches the vault path join.
+	if _, err := svc.StoreDataURL(context.Background(), "@x/../../etc", tinyPNGDataURL); err == nil {
+		t.Fatal("expected StoreDataURL to reject traversal alias")
+	}
+}
+
+func TestService_StoreDataURL_RoundTrip(t *testing.T) {
+	svc := newTestService(t)
+	ctx := context.Background()
+	ref, err := svc.StoreDataURL(ctx, "@proj", tinyPNGDataURL)
+	if err != nil {
+		t.Fatalf("StoreDataURL failed: %v", err)
+	}
+	got, err := svc.ResolveDataURL(ctx, "@proj", ref)
+	if err != nil {
+		t.Fatalf("ResolveDataURL failed: %v", err)
+	}
+	if got != tinyPNGDataURL {
+		t.Fatalf("round-trip mismatch:\n got %q\nwant %q", got, tinyPNGDataURL)
+	}
+}
+
+func TestService_DeleteOrphanFiles_SweepsAllProjects(t *testing.T) {
+	db := testutil.SetupTestDB(t)
+	defer testutil.CleanupTestDB(t, db)
+
+	v, err := vault.New(vault.Config{RootPath: t.TempDir()})
+	if err != nil {
+		t.Fatalf("vault.New: %v", err)
+	}
+	svc := NewService(ServiceConfig{DB: db, Store: NewStore(db), Vault: v, SyncManager: git.NewMockSyncManager()})
+
+	// Store the same bytes under two projects: dedup keeps one DB row but each
+	// project gets its own file. Orphan cleanup must remove BOTH files, not just
+	// the caller's, or the other copy leaks once the shared row is gone.
+	ctx := context.Background()
+	refA, err := svc.StoreDataURL(ctx, "@proja", tinyPNGDataURL)
+	if err != nil {
+		t.Fatalf("StoreDataURL @proja: %v", err)
+	}
+	if _, err := svc.StoreDataURL(ctx, "@projb", tinyPNGDataURL); err != nil {
+		t.Fatalf("StoreDataURL @projb: %v", err)
+	}
+
+	hash, ext, err := ParseAssetRef(refA)
+	if err != nil {
+		t.Fatalf("ParseAssetRef: %v", err)
+	}
+	fileA := filepath.Join(v.AssetsPath("@proja"), hash+ext)
+	fileB := filepath.Join(v.AssetsPath("@projb"), hash+ext)
+	for _, f := range []string{fileA, fileB} {
+		if _, err := os.Stat(f); err != nil {
+			t.Fatalf("expected file %s to exist: %v", f, err)
+		}
+	}
+
+	// Cleanup triggered from @proja must sweep @projb's copy too.
+	svc.deleteOrphanFiles("@proja", hash, ext)
+
+	for _, f := range []string{fileA, fileB} {
+		if _, err := os.Stat(f); !os.IsNotExist(err) {
+			t.Errorf("expected file %s to be deleted, stat err=%v", f, err)
+		}
 	}
 }

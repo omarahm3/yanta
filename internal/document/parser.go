@@ -50,35 +50,7 @@ func (p *Parser) Parse(doc *DocumentFile) (*ExtractedContent, error) {
 }
 
 func (p *Parser) parseCanvas(doc *DocumentFile, content *ExtractedContent) {
-	if len(doc.Scene) == 0 {
-		return
-	}
-
-	var scene map[string]any
-	if err := json.Unmarshal(doc.Scene, &scene); err != nil {
-		return
-	}
-
-	elements, ok := scene["elements"].([]any)
-	if !ok {
-		return
-	}
-
-	for _, elem := range elements {
-		elemMap, ok := elem.(map[string]any)
-		if !ok {
-			continue
-		}
-
-		elemType, _ := elemMap["type"].(string)
-		if elemType != "text" {
-			continue
-		}
-
-		if text, ok := elemMap["text"].(string); ok && text != "" {
-			content.Body = append(content.Body, text)
-		}
-	}
+	content.Body = append(content.Body, extractCanvasText(doc.Scene)...)
 
 	// Extract asset references from the Assets map
 	for _, ref := range doc.Assets {
@@ -86,6 +58,39 @@ func (p *Parser) parseCanvas(doc *DocumentFile, content *ExtractedContent) {
 			content.Assets = append(content.Assets, Asset{Path: ref})
 		}
 	}
+}
+
+// maxCanvasSceneBytes caps the scene JSON we'll parse for text extraction. A
+// scene larger than this is almost certainly dominated by inline image data;
+// skip text extraction rather than scan it (the doc is still indexed by title).
+const maxCanvasSceneBytes = 20 * 1024 * 1024
+
+// extractCanvasText returns the text of every text element in an Excalidraw
+// scene, in document order. It decodes into a minimal typed struct so the
+// scene's `files` blob (potentially large inline base64) is scanned-and-skipped
+// rather than materialized into memory the way a map[string]any would.
+func extractCanvasText(scene json.RawMessage) []string {
+	if len(scene) == 0 || len(scene) > maxCanvasSceneBytes {
+		return nil
+	}
+
+	var parsed struct {
+		Elements []struct {
+			Type string `json:"type"`
+			Text string `json:"text"`
+		} `json:"elements"`
+	}
+	if err := json.Unmarshal(scene, &parsed); err != nil {
+		return nil
+	}
+
+	var out []string
+	for _, el := range parsed.Elements {
+		if el.Type == "text" && el.Text != "" {
+			out = append(out, el.Text)
+		}
+	}
+	return out
 }
 
 func (p *Parser) parseBlock(block BlockNoteBlock, content *ExtractedContent) {

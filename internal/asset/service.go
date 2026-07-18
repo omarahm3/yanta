@@ -4,13 +4,18 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"yanta/internal/git"
 	"yanta/internal/logger"
+	"yanta/internal/project"
 )
+
+// MaxAssetBytes bounds a single decoded asset payload (matches Upload's cap).
+const MaxAssetBytes int64 = 10 * 1024 * 1024 // 10MB
 
 type Service struct {
 	db            *sql.DB
@@ -42,15 +47,14 @@ func (s *Service) Upload(ctx context.Context, projectAlias string, data []byte, 
 		return nil, fmt.Errorf("service not initialised correctly")
 	}
 
-	if strings.TrimSpace(projectAlias) == "" {
-		return nil, fmt.Errorf("project alias is required")
+	if err := project.ValidateAlias(strings.TrimSpace(projectAlias)); err != nil {
+		return nil, fmt.Errorf("invalid project alias: %w", err)
 	}
 
-	const maxBytes int64 = 10 * 1024 * 1024 // 10MB
 	if int64(len(data)) <= 0 {
 		return nil, fmt.Errorf("file is empty")
 	}
-	if int64(len(data)) > maxBytes {
+	if int64(len(data)) > MaxAssetBytes {
 		return nil, fmt.Errorf("file too large: max 10MB")
 	}
 
@@ -88,6 +92,12 @@ func (s *Service) Upload(ctx context.Context, projectAlias string, data []byte, 
 
 	if _, err := s.store.Upsert(ctx, a); err != nil {
 		logger.WithError(err).WithField("hash", info.Hash).Error("failed to insert asset into database")
+		// Roll back the just-written file so it doesn't linger untracked (with no
+		// DB row, CleanupOrphans can never reclaim it). Skip if the bytes were
+		// already on disk from a prior store — another row may reference them.
+		if !info.AlreadyExist {
+			_ = DeleteAsset(s.vault, projectAlias, info.Hash, info.Ext)
+		}
 		return nil, err
 	}
 
@@ -171,14 +181,17 @@ func (s *Service) CleanupOrphans(ctx context.Context, projectAlias string) (int,
 
 	deleted := 0
 	for _, a := range orphans {
+		// Remove the vault file(s) BEFORE the DB row: if the row delete then fails,
+		// the next cleanup simply retries (the file is already gone, a no-op) — far
+		// safer than dropping the row first and leaking a file with nothing left to
+		// find it by.
+		s.deleteOrphanFiles(projectAlias, a.Hash, a.Ext)
+
 		if err := s.store.Delete(ctx, a.Hash); err != nil {
+			logger.WithError(err).WithField("hash", a.Hash).Warn("failed to delete orphaned asset row")
 			continue
 		}
 		deleted++
-
-		if projectAlias != "" && s.vault != nil {
-			_ = DeleteAsset(s.vault, projectAlias, a.Hash, a.Ext)
-		}
 	}
 
 	if deleted > 0 {
@@ -186,6 +199,42 @@ func (s *Service) CleanupOrphans(ctx context.Context, projectAlias string) (int,
 	}
 
 	return deleted, nil
+}
+
+// deleteOrphanFiles removes an orphaned asset's file from the caller's project
+// and from every other project dir. The asset table dedups to one row per hash,
+// but each project keeps its own physical copy; once that shared row is gone,
+// copies under other projects would leak with no row to reclaim them. Best
+// effort — failures are non-fatal (the row is what makes an asset trackable).
+func (s *Service) deleteOrphanFiles(projectAlias, hash, ext string) {
+	if s.vault == nil {
+		return
+	}
+	if projectAlias != "" {
+		_ = DeleteAsset(s.vault, projectAlias, hash, ext)
+	}
+	// Sweep the remaining project dirs. Requires a concrete vault exposing its
+	// root (real *vault.Vault does; test mocks may not — they only need the
+	// per-project delete above).
+	rp, ok := s.vault.(interface{ RootPath() string })
+	if !ok {
+		return
+	}
+	if err := ValidateHash(hash); err != nil {
+		return
+	}
+	if ext != "" {
+		if err := ValidateExtension(ext); err != nil {
+			return
+		}
+	}
+	// Safe glob: hash is validated hex and ext is validated, so no wildcards leak
+	// in from the hash/ext segments.
+	pattern := filepath.Join(rp.RootPath(), "projects", "*", "assets", hash+ext)
+	matches, _ := filepath.Glob(pattern)
+	for _, m := range matches {
+		_ = os.Remove(m)
+	}
 }
 
 func (s *Service) StartChunkedUpload(ctx context.Context, req StartChunkedUploadRequest) (*StartChunkedUploadResponse, error) {
@@ -306,13 +355,27 @@ func (s *Service) StoreDataURL(ctx context.Context, projectAlias string, dataURL
 		return "", fmt.Errorf("service not initialised correctly")
 	}
 
-	if strings.TrimSpace(projectAlias) == "" {
-		return "", fmt.Errorf("project alias is required")
+	if err := project.ValidateAlias(strings.TrimSpace(projectAlias)); err != nil {
+		return "", fmt.Errorf("invalid project alias: %w", err)
+	}
+
+	// Bound the encoded payload before decoding so an oversized dataURL can't
+	// balloon memory during base64 decode (a ~4/3 blowup of an already-huge
+	// string). The decoded bytes are re-checked below against the same cap.
+	if int64(len(dataURL)) > MaxAssetBytes*2 {
+		return "", fmt.Errorf("dataURL too large: max 10MB")
 	}
 
 	mimeType, data, err := ParseDataURL(dataURL)
 	if err != nil {
 		return "", fmt.Errorf("parsing dataURL: %w", err)
+	}
+
+	if int64(len(data)) <= 0 {
+		return "", fmt.Errorf("image data is empty")
+	}
+	if int64(len(data)) > MaxAssetBytes {
+		return "", fmt.Errorf("image too large: max 10MB")
 	}
 
 	ext := MIMEToExtension(mimeType)
@@ -334,6 +397,9 @@ func (s *Service) StoreDataURL(ctx context.Context, projectAlias string, dataURL
 	}
 
 	if _, err := s.store.Upsert(ctx, a); err != nil {
+		if !info.AlreadyExist {
+			_ = DeleteAsset(s.vault, projectAlias, info.Hash, info.Ext)
+		}
 		return "", fmt.Errorf("inserting asset into database: %w", err)
 	}
 
@@ -350,8 +416,11 @@ func (s *Service) ResolveDataURL(ctx context.Context, projectAlias string, ref s
 		return "", fmt.Errorf("service not initialised correctly")
 	}
 
-	if strings.TrimSpace(projectAlias) == "" {
-		return "", fmt.Errorf("project alias is required")
+	// Validate the alias (not just non-empty): AssetsPath joins it into the vault
+	// path unchecked, so a traversal alias like "@x/../../.." would otherwise let
+	// a crafted ref read files outside the vault.
+	if err := project.ValidateAlias(strings.TrimSpace(projectAlias)); err != nil {
+		return "", fmt.Errorf("invalid project alias: %w", err)
 	}
 
 	// Parse "/assets/{projectAlias}/{hash}{ext}" format
