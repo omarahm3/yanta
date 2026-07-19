@@ -1,12 +1,12 @@
-import { FileText, Pin, PinOff } from "lucide-react";
+import { FileText, PenTool, Pin, PinOff } from "lucide-react";
 import React, { useCallback, useRef, useState } from "react";
 import { Layout } from "@/app";
 import type { DocumentFindControls } from "../../editor/find";
-import type { EditorHandle } from "../../editor/types";
+import type { CanvasHandle, EditorHandle } from "../../editor/types";
 import type { SaveState } from "../../shared/hooks";
 import { useSidebarStateStore } from "../../shared/stores/sidebarState.store";
 import type { NavigationState, PageName } from "../../shared/types";
-import type { BlockNoteBlock } from "../../shared/types/Document";
+import type { BlockNoteBlock, ExcalidrawScene } from "../../shared/types/Document";
 import type { Project } from "../../shared/types/Project";
 import { Button, type SidebarSection } from "../../shared/ui";
 import { ConflictBanner } from "./ConflictBanner";
@@ -24,7 +24,12 @@ export interface DocumentContentProps {
 	formData: {
 		blocks: BlockNoteBlock[];
 		tags: string[];
+		kind?: "document" | "canvas";
+		scene?: ExcalidrawScene;
+		assets?: Record<string, string>;
 	};
+	/** Bumped on reload-from-disk to force a CanvasEditor remount. */
+	reloadNonce?: number;
 	isEditMode: boolean;
 	isLoading: boolean;
 	isArchived?: boolean;
@@ -37,8 +42,11 @@ export interface DocumentContentProps {
 	};
 	onTitleChange: (title: string) => void;
 	onBlocksChange: (blocks: BlockNoteBlock[]) => void;
+	onSceneChange?: (scene: ExcalidrawScene, assets: Record<string, string>) => void;
 	onTagRemove: (tag: string) => void;
 	onEditorReady: (editor: EditorHandle) => void;
+	/** Receives the live canvas handle (canvas docs only). */
+	onCanvasReady?: (handle: CanvasHandle | null) => void;
 	onRestore?: () => void;
 	isRestoring?: boolean;
 	onRegisterToggleSidebar?: (handler: () => void) => void;
@@ -97,14 +105,17 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 		documentPath,
 		documentTitle,
 		formData,
+		reloadNonce,
 		isEditMode,
 		isLoading,
 		isArchived = false,
 		autoSave,
 		onTitleChange,
 		onBlocksChange,
+		onSceneChange,
 		onTagRemove,
 		onEditorReady,
+		onCanvasReady,
 		onRestore,
 		isRestoring = false,
 		onRegisterToggleSidebar,
@@ -176,13 +187,24 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 						{/* Page header with mode icon */}
 						<div className="px-4 pt-4 pb-2 border-b border-glass-border">
 							<div className="flex items-center gap-2">
-								<FileText
-									className="w-5 h-5"
-									style={{ color: "var(--mode-accent)" }}
-									aria-hidden="true"
-									data-testid="page-header-icon"
-								/>
-								<span className="text-sm text-text-dim">Document</span>
+								{formData.kind === "canvas" ? (
+									<PenTool
+										className="w-5 h-5"
+										style={{ color: "var(--mode-accent)" }}
+										aria-hidden="true"
+										data-testid="page-header-icon"
+									/>
+								) : (
+									<FileText
+										className="w-5 h-5"
+										style={{ color: "var(--mode-accent)" }}
+										aria-hidden="true"
+										data-testid="page-header-icon"
+									/>
+								)}
+								<span className="text-sm text-text-dim">
+									{formData.kind === "canvas" ? "Canvas" : "Document"}
+								</span>
 							</div>
 						</div>
 						{isArchived && (
@@ -208,13 +230,19 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 						<DocumentEditorForm
 							blocks={formData.blocks}
 							tags={formData.tags}
+							kind={formData.kind}
+							scene={formData.scene}
+							reloadNonce={reloadNonce}
+							projectAlias={currentProject?.alias || ""}
 							isEditMode={isEditMode}
 							isLoading={isLoading}
 							isReadOnly={isArchived}
 							onTitleChange={onTitleChange}
 							onBlocksChange={onBlocksChange}
+							onSceneChange={onSceneChange}
 							onTagRemove={onTagRemove}
 							onEditorReady={handleEditorReadyWithRef}
+							onCanvasReady={onCanvasReady}
 							find={find}
 							onNavigate={onNavigate}
 							onCountChange={handleCountChange}
@@ -230,14 +258,20 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 							wordCount={counts.wordCount}
 							charCount={counts.charCount}
 							selectionCount={counts.selectionCount}
+							// Canvas docs have no text-editor counts (they'd read 0/0).
+							showCounts={formData.kind !== "canvas"}
 						/>
 					</div>
-					<DocumentOutline
-						editor={editorRef.current}
-						blocks={formData.blocks}
-						isOpen={isOutlineOpen}
-						onClose={onCloseOutline ?? (() => {})}
-					/>
+					{/* The outline is derived from BlockNote blocks; a canvas has none, so
+					    it would render an empty panel. */}
+					{formData.kind !== "canvas" && (
+						<DocumentOutline
+							editor={editorRef.current}
+							blocks={formData.blocks}
+							isOpen={isOutlineOpen}
+							onClose={onCloseOutline ?? (() => {})}
+						/>
+					)}
 				</div>
 			</Layout>
 		);

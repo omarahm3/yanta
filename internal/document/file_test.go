@@ -2,6 +2,7 @@ package document
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -256,7 +257,7 @@ func TestDocumentFile_Validate(t *testing.T) {
 			errMsg:  "meta validation failed",
 		},
 		{
-			name: "nil blocks",
+			name: "nil blocks fails validation",
 			file: DocumentFile{
 				Meta: DocumentMeta{
 					Project: "@yanta",
@@ -458,5 +459,342 @@ func TestValidateBlock_MaxDepth(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "exceeds maximum depth") {
 		t.Errorf("validateBlock() error = %v, want error about max depth", err)
+	}
+}
+
+func TestDocumentFile_Validate_Canvas(t *testing.T) {
+	now := time.Now()
+	validScene := json.RawMessage(`{"elements":[],"appState":{}}`)
+
+	tests := []struct {
+		name    string
+		file    DocumentFile
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid canvas with scene",
+			file: DocumentFile{
+				Meta: DocumentMeta{
+					Project: "@yanta",
+					Title:   "Test Canvas",
+					Created: now.Add(-time.Hour),
+					Updated: now,
+				},
+				Kind:  DocumentKindCanvas,
+				Scene: validScene,
+			},
+			wantErr: false,
+		},
+		{
+			name: "canvas without scene fails",
+			file: DocumentFile{
+				Meta: DocumentMeta{
+					Project: "@yanta",
+					Title:   "Test Canvas",
+					Created: now.Add(-time.Hour),
+					Updated: now,
+				},
+				Kind: DocumentKindCanvas,
+			},
+			wantErr: true,
+			errMsg:  "scene is required for canvas kind",
+		},
+		{
+			name: "unknown kind fails",
+			file: DocumentFile{
+				Meta: DocumentMeta{
+					Project: "@yanta",
+					Title:   "Test",
+					Created: now.Add(-time.Hour),
+					Updated: now,
+				},
+				Kind:   "unknown",
+				Blocks: []BlockNoteBlock{},
+			},
+			wantErr: true,
+			errMsg:  "unknown document kind",
+		},
+		{
+			name: "empty kind treated as document",
+			file: DocumentFile{
+				Meta: DocumentMeta{
+					Project: "@yanta",
+					Title:   "Test Doc",
+					Created: now.Add(-time.Hour),
+					Updated: now,
+				},
+				Kind:   "",
+				Blocks: []BlockNoteBlock{},
+			},
+			wantErr: false,
+		},
+		{
+			name: "nil blocks fails validation",
+			file: DocumentFile{
+				Meta: DocumentMeta{
+					Project: "@yanta",
+					Title:   "Test Doc",
+					Created: now.Add(-time.Hour),
+					Updated: now,
+				},
+				Kind:   DocumentKindDocument,
+				Blocks: nil,
+			},
+			wantErr: true,
+			errMsg:  "blocks cannot be nil",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.file.Validate()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if err != nil && tt.errMsg != "" {
+				if !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("Validate() error = %v, want error containing %q", err, tt.errMsg)
+				}
+			}
+		})
+	}
+}
+
+func TestDocumentFile_Canvas_ToJSON_FromJSON(t *testing.T) {
+	now := time.Now().Truncate(time.Second)
+	scene := json.RawMessage(`{"elements":[{"id":"rect1","type":"rectangle","x":100,"y":100}],"appState":{"viewBackgroundColor":"#ffffff"}}`)
+
+	original := &DocumentFile{
+		Meta: DocumentMeta{
+			Project: "@yanta",
+			Title:   "My Canvas",
+			Tags:    []string{"diagram"},
+			Aliases: []string{},
+			Created: now.Add(-time.Hour),
+			Updated: now,
+		},
+		Kind:  DocumentKindCanvas,
+		Scene: scene,
+	}
+
+	jsonData, err := original.ToJSON()
+	if err != nil {
+		t.Fatalf("ToJSON() error = %v", err)
+	}
+
+	var raw map[string]any
+	if err := json.Unmarshal(jsonData, &raw); err != nil {
+		t.Fatalf("Generated JSON is invalid: %v", err)
+	}
+
+	if raw["kind"] != DocumentKindCanvas {
+		t.Errorf("kind mismatch in JSON: got %v, want %v", raw["kind"], DocumentKindCanvas)
+	}
+
+	parsed, err := FromJSON(jsonData)
+	if err != nil {
+		t.Fatalf("FromJSON() error = %v", err)
+	}
+
+	if parsed.Kind != DocumentKindCanvas {
+		t.Errorf("Kind mismatch: got %q, want %q", parsed.Kind, DocumentKindCanvas)
+	}
+	if parsed.Meta.Title != "My Canvas" {
+		t.Errorf("Title mismatch: got %q, want %q", parsed.Meta.Title, "My Canvas")
+	}
+	if parsed.Scene == nil {
+		t.Fatal("Scene is nil after round-trip")
+	}
+
+	var parsedScene map[string]any
+	if err := json.Unmarshal(parsed.Scene, &parsedScene); err != nil {
+		t.Fatalf("Scene is invalid JSON: %v", err)
+	}
+	if elements, ok := parsedScene["elements"].([]any); !ok || len(elements) != 1 {
+		t.Errorf("Scene elements mismatch: got %v", parsedScene["elements"])
+	}
+}
+
+func TestNewCanvasFile(t *testing.T) {
+	scene := json.RawMessage(`{"elements":[],"appState":{}}`)
+	assets := map[string]string{"file1": "/assets/@yanta/" + strings.Repeat("a", 64) + ".png"}
+	cf := NewCanvasFile("yanta", "My Diagram", []string{"test"}, scene, assets)
+
+	if cf.Kind != DocumentKindCanvas {
+		t.Errorf("Kind = %q, want %q", cf.Kind, DocumentKindCanvas)
+	}
+	if cf.Scene == nil {
+		t.Error("Scene is nil")
+	}
+	if len(cf.Assets) != 1 || cf.Assets["file1"] == "" {
+		t.Errorf("Assets not set: %v", cf.Assets)
+	}
+	if cf.Blocks != nil {
+		t.Errorf("Blocks should be nil for canvas, got %v", cf.Blocks)
+	}
+	if cf.Meta.Title != "My Diagram" {
+		t.Errorf("Title = %q, want %q", cf.Meta.Title, "My Diagram")
+	}
+}
+
+func TestDocumentFile_Normalize(t *testing.T) {
+	t.Run("nil blocks normalized to empty for document", func(t *testing.T) {
+		df := &DocumentFile{
+			Meta: DocumentMeta{
+				Project: "@yanta",
+				Title:   "Test",
+				Tags:    []string{"Test", "DOCS"},
+				Created: time.Now().Add(-time.Hour),
+				Updated: time.Now(),
+			},
+			Blocks: nil,
+		}
+
+		df.Normalize()
+
+		if df.Blocks == nil {
+			t.Error("Normalize() should set nil blocks to empty slice")
+		}
+		if len(df.Blocks) != 0 {
+			t.Errorf("Normalize() blocks length = %d, want 0", len(df.Blocks))
+		}
+		if df.Kind != DocumentKindDocument {
+			t.Errorf("Normalize() Kind = %q, want %q", df.Kind, DocumentKindDocument)
+		}
+		if len(df.Meta.Tags) != 2 || df.Meta.Tags[0] != "test" {
+			t.Errorf("Normalize() tags not normalized: %v", df.Meta.Tags)
+		}
+	})
+
+	t.Run("empty kind defaults to document", func(t *testing.T) {
+		df := &DocumentFile{
+			Meta: DocumentMeta{
+				Project: "@yanta",
+				Title:   "Test",
+				Created: time.Now().Add(-time.Hour),
+				Updated: time.Now(),
+			},
+			Blocks: []BlockNoteBlock{},
+		}
+
+		df.Normalize()
+
+		if df.Kind != DocumentKindDocument {
+			t.Errorf("Kind = %q, want %q", df.Kind, DocumentKindDocument)
+		}
+	})
+
+	t.Run("canvas not affected by blocks normalization", func(t *testing.T) {
+		df := &DocumentFile{
+			Meta: DocumentMeta{
+				Project: "@yanta",
+				Title:   "Test",
+				Created: time.Now().Add(-time.Hour),
+				Updated: time.Now(),
+			},
+			Kind:  DocumentKindCanvas,
+			Scene: json.RawMessage(`{"elements":[]}`),
+		}
+
+		df.Normalize()
+
+		if df.Blocks != nil {
+			t.Errorf("Canvas should not get blocks assigned, got %v", df.Blocks)
+		}
+	})
+}
+
+func TestDocumentFile_Validate_SceneValidation(t *testing.T) {
+	now := time.Now()
+
+	tests := []struct {
+		name    string
+		scene   json.RawMessage
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name:    "valid scene",
+			scene:   json.RawMessage(`{"elements":[]}`),
+			wantErr: false,
+		},
+		{
+			name:    "nil scene fails",
+			scene:   nil,
+			wantErr: true,
+			errMsg:  "scene is required",
+		},
+		{
+			name:    "empty scene fails",
+			scene:   json.RawMessage{},
+			wantErr: true,
+			errMsg:  "scene is required",
+		},
+		{
+			name:    "invalid JSON scene fails",
+			scene:   json.RawMessage(`{invalid json`),
+			wantErr: true,
+			errMsg:  "must be valid JSON",
+		},
+		{
+			name:    "null JSON fails validation",
+			scene:   json.RawMessage(`null`),
+			wantErr: true,
+			errMsg:  "scene cannot be null",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			df := DocumentFile{
+				Meta: DocumentMeta{
+					Project: "@yanta",
+					Title:   "Test Canvas",
+					Created: now.Add(-time.Hour),
+					Updated: now,
+				},
+				Kind:  DocumentKindCanvas,
+				Scene: tt.scene,
+			}
+
+			err := df.Validate()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if err != nil && tt.errMsg != "" {
+				if !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("Validate() error = %v, want error containing %q", err, tt.errMsg)
+				}
+			}
+		})
+	}
+}
+
+func TestFromJSON_NormalizesBeforeValidation(t *testing.T) {
+	now := time.Now().Truncate(time.Second)
+
+	raw := fmt.Sprintf(`{
+		"meta": {
+			"project": "@yanta",
+			"title": "Test",
+			"tags": ["Test"],
+			"created": %q,
+			"updated": %q
+		}
+	}`, now.Add(-time.Hour).Format(time.RFC3339), now.Format(time.RFC3339))
+
+	df, err := FromJSON([]byte(raw))
+	if err != nil {
+		t.Fatalf("FromJSON() should succeed for document without blocks key: %v", err)
+	}
+
+	if df.Blocks == nil {
+		t.Error("FromJSON() should normalize nil blocks to empty slice")
+	}
+	if df.Kind != DocumentKindDocument {
+		t.Errorf("Kind = %q, want %q", df.Kind, DocumentKindDocument)
 	}
 }

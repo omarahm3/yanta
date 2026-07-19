@@ -40,13 +40,27 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 		const layoutRef = useLatestRef(layout);
 		const suppressEscapeRef = useLatestRef(suppressEscape);
 
+		// On a canvas pane, Escape is layered (see useCanvasEscapeSequence): the 1st
+		// tap is yielded to Excalidraw, the 2nd unfocuses the canvas, the 3rd navigates
+		// back. controller.escapeHandler owns that decision AND the propagation control
+		// — it stops propagation only for the 2nd/3rd taps — so we must NOT stop it here
+		// or the 1st tap would never reach Excalidraw. The document hotkeys are also
+		// reduced to Save-only for canvases (useDocumentHotkeysConfig).
+		const isCanvas = controller.contentProps.formData.kind === "canvas";
+
 		useEscapeHandler({
 			when: activePaneId === paneId,
 			onEscape: (e) => {
-				if (suppressEscapeRef.current) {
+				// A picker overlay is open on top of this pane — let ITS Escape
+				// handler run. Handling Escape here would close the underlying
+				// document, and stopImmediatePropagation would block the picker's own
+				// capture-phase close.
+				if (suppressEscapeRef.current) return;
+				if (isCanvas) {
+					// Layered canvas Escape: escapeHandler owns propagation control (it
+					// yields the 1st tap to Excalidraw, stops the 2nd/3rd), so we must
+					// not stop propagation here.
 					controller.escapeHandler(e);
-					e.stopPropagation();
-					e.stopImmediatePropagation();
 					return;
 				}
 				controller.escapeHandler(e);
@@ -157,7 +171,12 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 
 		return (
 			<div className="flex flex-col h-full w-full">
-				<PaneHeader paneId={paneId} documentPath={documentPath} title={controller.documentTitle} />
+				<PaneHeader
+					paneId={paneId}
+					documentPath={documentPath}
+					title={controller.documentTitle}
+					kind={contentProps.formData.kind}
+				/>
 				{contentProps.isArchived && (
 					<div className="flex flex-wrap items-center gap-3 border-b border-accent/30 bg-accent/10 px-4 py-2 text-xs uppercase tracking-widest text-accent">
 						<span className="font-semibold">Archived</span>
@@ -186,14 +205,20 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 					<DocumentEditorForm
 						blocks={contentProps.formData.blocks}
 						tags={contentProps.formData.tags}
+						kind={contentProps.formData.kind}
+						scene={contentProps.formData.scene}
+						reloadNonce={contentProps.reloadNonce}
+						projectAlias={contentProps.currentProject?.alias ?? ""}
 						isEditMode={contentProps.isEditMode}
 						isLoading={contentProps.isLoading}
 						isReadOnly={contentProps.isArchived}
 						autoFocus={activePaneId === paneId}
 						onTitleChange={contentProps.onTitleChange}
 						onBlocksChange={contentProps.onBlocksChange}
+						onSceneChange={contentProps.onSceneChange}
 						onTagRemove={contentProps.onTagRemove}
 						onEditorReady={contentProps.onEditorReady}
+						onCanvasReady={contentProps.onCanvasReady}
 						find={contentProps.find}
 					/>
 				</div>
@@ -203,6 +228,9 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 					hasUnsavedChanges={contentProps.autoSave.hasUnsavedChanges}
 					saveError={contentProps.autoSave.saveError}
 					isArchived={contentProps.isArchived}
+					// The pane view doesn't compute word/char counts, so don't render a
+					// misleading "0 words · 0 chars".
+					showCounts={false}
 				/>
 			</div>
 		);

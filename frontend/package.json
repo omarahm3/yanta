@@ -26,6 +26,7 @@
     "@blocknote/core": "0.51.4",
     "@blocknote/react": "0.51.4",
     "@blocknote/shadcn": "0.51.4",
+    "@excalidraw/excalidraw": "^0.18.1",
     "@fontsource-variable/geist": "^5.2.9",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@fontsource/outfit": "^5.2.8",
@@ -79,6 +80,8 @@
     "vitest-axe": "^0.1.0"
   },
   "overrides": {
-    "esbuild": "0.28.1"
+    "esbuild": "0.28.1",
+    "lodash-es": "^4.18.1",
+    "nanoid": "^3.3.8"
   }
 }

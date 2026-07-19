@@ -24,8 +24,18 @@ func (p *Parser) Parse(doc *DocumentFile) (*ExtractedContent, error) {
 		Assets:   []Asset{},
 	}
 
-	for _, block := range doc.Blocks {
-		p.parseBlock(block, content)
+	kind := doc.Kind
+	if kind == "" {
+		kind = DocumentKindDocument
+	}
+
+	switch kind {
+	case DocumentKindCanvas:
+		p.parseCanvas(doc, content)
+	case DocumentKindDocument:
+		for _, block := range doc.Blocks {
+			p.parseBlock(block, content)
+		}
 	}
 
 	if content.Title == "" && len(content.Headings) > 0 {
@@ -37,6 +47,57 @@ func (p *Parser) Parse(doc *DocumentFile) (*ExtractedContent, error) {
 	content.HasLinks = len(content.Links) > 0
 
 	return content, nil
+}
+
+func (p *Parser) parseCanvas(doc *DocumentFile, content *ExtractedContent) {
+	content.Body = append(content.Body, extractCanvasText(doc.Scene)...)
+
+	// Extract asset references from the Assets map
+	for _, ref := range doc.Assets {
+		if ref != "" {
+			content.Assets = append(content.Assets, Asset{Path: ref})
+		}
+	}
+}
+
+// maxCanvasSceneBytes caps the scene JSON we'll parse for text extraction. A
+// scene larger than this is almost certainly dominated by inline image data;
+// skip text extraction rather than scan it (the doc is still indexed by title).
+const maxCanvasSceneBytes = 20 * 1024 * 1024
+
+// extractCanvasText returns the text of every text element in an Excalidraw
+// scene, in document order. It decodes into a minimal typed struct so the
+// scene's `files` blob (potentially large inline base64) is scanned-and-skipped
+// rather than materialized into memory the way a map[string]any would.
+func extractCanvasText(scene json.RawMessage) []string {
+	if len(scene) == 0 || len(scene) > maxCanvasSceneBytes {
+		return nil
+	}
+
+	var parsed struct {
+		Elements []struct {
+			Type      string `json:"type"`
+			Text      string `json:"text"`
+			IsDeleted bool   `json:"isDeleted"`
+		} `json:"elements"`
+	}
+	if err := json.Unmarshal(scene, &parsed); err != nil {
+		return nil
+	}
+
+	var out []string
+	for _, el := range parsed.Elements {
+		// Excalidraw soft-deletes elements by flagging isDeleted rather than
+		// removing them; skip those so removed text stays out of the search
+		// index and the markdown export.
+		if el.IsDeleted {
+			continue
+		}
+		if el.Type == "text" && el.Text != "" {
+			out = append(out, el.Text)
+		}
+	}
+	return out
 }
 
 func (p *Parser) parseBlock(block BlockNoteBlock, content *ExtractedContent) {

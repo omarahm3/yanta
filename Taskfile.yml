@@ -134,6 +134,10 @@ tasks:
       BUILD_COMMAND: '{{if eq .PRODUCTION "true"}}build{{else}}build:dev{{end}}'
     env:
       PRODUCTION: '{{.PRODUCTION | default "false"}}'
+      # Excalidraw pulls in roughjs/mermaid/d3 transitively; Rollup holds the whole
+      # graph in memory while rendering chunks and blows Node's ~2GB default heap.
+      # Raise it so the bundle (incl. the split vendor-excalidraw chunk) can build.
+      NODE_OPTIONS: '--max-old-space-size=6144'
     cmds:
       - npm run {{.BUILD_COMMAND}}
 
@@ -182,6 +186,7 @@ tasks:
         vars:
           TARGET: "{{.TARGET}}"
           DEBUG: "{{.DEBUG}}"
+          PRODUCTION: "{{.PRODUCTION}}"
 
   build:win:
     label: "build:win (PRODUCTION={{.PRODUCTION}})"
@@ -196,6 +201,7 @@ tasks:
       - task: build:go:build
         vars:
           TARGET: win
+          PRODUCTION: "{{.PRODUCTION}}"
 
   build:linux:
     label: "build:linux (PRODUCTION={{.PRODUCTION}})"
@@ -210,6 +216,7 @@ tasks:
       - task: build:go:build
         vars:
           TARGET: ubuntu
+          PRODUCTION: "{{.PRODUCTION}}"
 
   build:arch:
     label: "build:arch (PRODUCTION={{.PRODUCTION}})"
@@ -224,6 +231,7 @@ tasks:
       - task: build:go:build
         vars:
           TARGET: arch
+          PRODUCTION: "{{.PRODUCTION}}"
 
   build:osx:
     label: "build:osx (PRODUCTION={{.PRODUCTION}})"
@@ -238,6 +246,7 @@ tasks:
       - task: build:go:build
         vars:
           TARGET: osx
+          PRODUCTION: "{{.PRODUCTION}}"
 
   # ============================================================================
   # Run & Package

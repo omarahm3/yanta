@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DocumentServiceWrapper } from "../../shared/services/DocumentService";
-import type { BlockNoteBlock } from "../../shared/types/Document";
+import type { BlockNoteBlock, DocumentKind, ExcalidrawScene } from "../../shared/types/Document";
 import { createEmptyDocument } from "../utils/documentBlockUtils";
 import { useDocumentLoader } from "./useDocumentLoader";
 
@@ -8,6 +8,9 @@ interface DocumentFormData {
 	title: string;
 	blocks: BlockNoteBlock[];
 	tags: string[];
+	kind: DocumentKind;
+	scene?: ExcalidrawScene;
+	assets?: Record<string, string>;
 }
 
 interface UseDocumentInitializationProps {
@@ -41,6 +44,9 @@ export const useDocumentInitialization = ({
 					title: data.title,
 					blocks: data.blocks,
 					tags: data.tags,
+					kind: data.kind,
+					scene: data.scene,
+					assets: data.assets,
 				});
 				initializedForPathRef.current = documentPath;
 

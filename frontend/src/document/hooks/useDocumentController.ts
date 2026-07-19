@@ -1,7 +1,7 @@
 import { Events } from "@wailsio/runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GetDocumentTags } from "../../../bindings/yanta/internal/tag/service";
-import type { EditorHandle } from "../../editor/types";
+import type { CanvasHandle, EditorHandle } from "../../editor/types";
 import { useHelp } from "../../help";
 import { useUserProgressContext } from "../../onboarding";
 import { usePaneLayout } from "../../pane";
@@ -15,6 +15,7 @@ import { BackendLogger } from "../../shared/utils/backendLogger";
 import type { DocumentContentProps } from "../components/DocumentContent";
 import { createEmptyDocument } from "../utils/documentBlockUtils";
 import { getSelectedText } from "../utils/editorSelection";
+import { useCanvasEscapeSequence } from "./useCanvasEscapeSequence";
 import { useDocumentEditor } from "./useDocumentEditor";
 import { useDocumentEscapeHandling } from "./useDocumentEscapeHandling";
 import { useDocumentExports } from "./useDocumentExports";
@@ -83,6 +84,7 @@ export function useDocumentController({
 		hasChanges,
 		setTitle,
 		setBlocks,
+		setScene,
 		removeTag,
 		setTags,
 		resetChanges,
@@ -109,9 +111,14 @@ export function useDocumentController({
 
 	const { handleEditorReady } = useDocumentEditor();
 	const { addRecentDocument } = useRecentDocuments();
-	const { handleExportToMarkdown, handleExportToPDF } = useDocumentExports({
+	// Live canvas handle, set by the mounted CanvasEditor while this is the active
+	// pane and cleared on unmount. Held in a ref because it is consumed imperatively
+	// (command-palette export, Escape routing), not on render.
+	const canvasHandleRef = useRef<CanvasHandle | null>(null);
+	const { handleExportToMarkdown, handleExportToPDF, handleExportCanvasImage } = useDocumentExports({
 		documentPath,
 		documentTitle: formData.title,
+		canvasHandleRef,
 	});
 
 	const editorRef = useRef<EditorHandle | null>(null);
@@ -119,6 +126,18 @@ export function useDocumentController({
 	const [hasRestored, setHasRestored] = useState(false);
 	const [isRestoring, setIsRestoring] = useState(false);
 	const [isEditorReady, setIsEditorReady] = useState(false);
+	// Bumped on reload-from-disk to force a CanvasEditor remount (see
+	// handleReloadFromDisk); Excalidraw only ingests its scene at mount.
+	const [reloadNonce, setReloadNonce] = useState(0);
+	// Canvas docs render CanvasEditor, not RichEditor, so they never hit the
+	// onEditorReady path that flips isEditorReady. Drive it from the canvas handle
+	// instead: without this, isInitialized stays false for canvases, autosave
+	// never snapshots its baseline (so an untouched canvas reads as dirty and
+	// fires a spurious save on close), and saveOnBlur never registers.
+	const handleCanvasReady = useCallback((handle: CanvasHandle | null) => {
+		canvasHandleRef.current = handle;
+		setIsEditorReady(handle !== null);
+	}, []);
 	const [isFindOpen, setFindOpen] = useState(false);
 	const [isReplaceOpen, setReplaceOpen] = useState(false);
 	const [isOutlineOpen, setOutlineOpen] = useState(false);
@@ -299,6 +318,15 @@ export function useDocumentController({
 		isActivePane,
 	});
 
+	const isCanvas = formData.kind === "canvas";
+
+	const handleCanvasEscape = useCanvasEscapeSequence({
+		isActivePaneRef,
+		isCanvas,
+		onUnfocus: () => canvasHandleRef.current?.blur(),
+		onExit: handleCancel,
+	});
+
 	const focusEditor = useCallback(() => {
 		const editor = editorRef.current;
 		if (editor && !editor.isFocused()) {
@@ -359,6 +387,7 @@ export function useDocumentController({
 
 	const hotkeys = useDocumentHotkeysConfig({
 		isActivePaneRef,
+		isCanvas,
 		isArchived,
 		error,
 		saveNow: saveNowForHotkey,
@@ -418,14 +447,24 @@ export function useDocumentController({
 		store.registerFindHandler(openFind);
 		store.registerReplaceHandler(openReplace);
 		store.registerRestoreHandler(handleRestore);
+		store.registerExportImageHandler(handleExportCanvasImage);
 		return () => {
 			const s = useDocumentCommandStore.getState();
 			s.registerSaveHandler(null);
 			s.registerFindHandler(null);
 			s.registerReplaceHandler(null);
 			s.registerRestoreHandler(null);
+			s.registerExportImageHandler(null);
 		};
-	}, [error, loadError, openFind, openReplace, handleRestore, isActivePane]);
+	}, [
+		error,
+		loadError,
+		openFind,
+		openReplace,
+		handleRestore,
+		handleExportCanvasImage,
+		isActivePane,
+	]);
 
 	useEffect(() => {
 		const refreshTags = async () => {
@@ -467,7 +506,15 @@ export function useDocumentController({
 				title: doc.title,
 				blocks: doc.blocks,
 				tags: doc.tags,
+				kind: doc.kind,
+				scene: doc.scene,
+				assets: doc.assets,
 			});
+			// Excalidraw only reads initialData at mount, so updating formData.scene
+			// alone leaves the live canvas showing the stale pre-reload scene (which
+			// the next edit would then flush back over disk). Bump a nonce that keys
+			// the CanvasEditor so a reload remounts it with the disk scene.
+			setReloadNonce((n) => n + 1);
 			await refreshHash();
 			setHasConflict(false);
 		} catch (err) {
@@ -492,6 +539,7 @@ export function useDocumentController({
 		documentPath,
 		documentTitle: formData.title,
 		formData,
+		reloadNonce,
 		isEditMode,
 		isLoading,
 		isArchived,
@@ -499,8 +547,10 @@ export function useDocumentController({
 		autoSave,
 		onTitleChange: setTitle,
 		onBlocksChange: setBlocks,
+		onSceneChange: setScene,
 		onTagRemove: removeTag,
 		onEditorReady: handleEditorReadyWithRef,
+		onCanvasReady: handleCanvasReady,
 		onRestore: isArchived ? handleRestore : undefined,
 		onRegisterToggleSidebar,
 		onNavigate,
@@ -528,7 +578,7 @@ export function useDocumentController({
 		contentProps,
 		hotkeys,
 		documentTitle: formData.title,
-		escapeHandler: handleEscape,
+		escapeHandler: isCanvas ? handleCanvasEscape : handleEscape,
 		hasConflict,
 		onReloadFromDisk: handleReloadFromDisk,
 		onKeepMine: handleKeepMine,

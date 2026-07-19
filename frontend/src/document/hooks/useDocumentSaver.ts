@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { CleanupOrphans, LinkToDocument } from "../../../bindings/yanta/internal/asset/service";
 import { isImageFileUrl } from "../../editor/utils/blockNormalize";
 import { DocumentServiceWrapper } from "../../shared/services/DocumentService";
-import type { BlockNoteBlock } from "../../shared/types/Document";
+import type { BlockNoteBlock, DocumentKind, ExcalidrawScene } from "../../shared/types/Document";
 import { extractAssetHashes } from "../utils/assetExtractor";
 
 interface SaveDocumentParams {
@@ -12,6 +12,9 @@ interface SaveDocumentParams {
 	documentPath?: string;
 	projectAlias: string;
 	expectedHash?: string;
+	kind?: DocumentKind;
+	scene?: ExcalidrawScene;
+	assets?: Record<string, string>;
 }
 
 // Orphan cleanup is a full-project scan; running it on every debounced autosave
@@ -47,9 +50,12 @@ export const useAutoDocumentSaver = () => {
 				path: params.documentPath || "",
 				projectAlias: params.projectAlias,
 				title: params.title || "Untitled",
-				blocks: normalizedBlocks,
+				blocks: params.kind === "canvas" ? [] : normalizedBlocks,
 				tags: params.tags,
 				expectedHash: params.expectedHash,
+				kind: params.kind || "document",
+				scene: params.scene,
+				assets: params.assets,
 			});
 
 			const assetHashes = extractAssetHashes(normalizedBlocks);

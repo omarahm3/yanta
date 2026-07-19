@@ -1,0 +1,838 @@
+import {
+	CaptureUpdateAction,
+	convertToExcalidrawElements,
+	Excalidraw,
+	exportToBlob,
+	exportToSvg,
+	hashElementsVersion,
+	restore,
+	viewportCoordsToSceneCoords,
+} from "@excalidraw/excalidraw";
+import "@excalidraw/excalidraw/index.css";
+import "./CanvasEditor.css";
+import type {
+	ExcalidrawElement,
+	FileId,
+	NonDeletedExcalidrawElement,
+} from "@excalidraw/excalidraw/element/types";
+import type {
+	AppState,
+	BinaryFileData,
+	BinaryFiles,
+	ExcalidrawImperativeAPI,
+	ExcalidrawInitialDataState,
+} from "@excalidraw/excalidraw/types";
+import { Events, System } from "@wailsio/runtime";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { ResolveDataURL, StoreDataURL } from "../../bindings/yanta/internal/asset/service";
+import { ReadClipboardImage } from "../../bindings/yanta/internal/system/service";
+import { useResolvedTheme } from "../shared/stores/theme.store";
+import type { ExcalidrawScene } from "../shared/types/Document";
+import { BackendLogger } from "../shared/utils/backendLogger";
+import { cn } from "../shared/utils/cn";
+import { appStateSignature, referencedImageFileIds, sanitizeAppState } from "./canvasScene";
+import type { CanvasHandle } from "./types";
+
+export interface CanvasEditorProps {
+	initialScene?: ExcalidrawScene;
+	projectAlias: string;
+	onChange?: (scene: ExcalidrawScene, assets: Record<string, string>) => void;
+	/**
+	 * Called once the canvas is mounted with an imperative handle (export + live
+	 * interaction state), and with `null` on unmount so the consumer drops its ref.
+	 */
+	onCanvasReady?: (handle: CanvasHandle | null) => void;
+	className?: string;
+	editable?: boolean;
+	/**
+	 * When true, focus the Excalidraw container on mount. Excalidraw scopes its
+	 * keyboard handling to a focused container, so without this the canvas never
+	 * receives keys (Space-pan, tool shortcuts, Delete) until the user happens to
+	 * click into it.
+	 */
+	autoFocus?: boolean;
+}
+
+interface HydratedFiles {
+	[id: string]: {
+		id: string;
+		dataURL: string;
+		mimeType: string;
+		created: number;
+		lastRetrieved?: number;
+	};
+}
+
+type ExcalidrawFile = {
+	dataURL?: string;
+	mimeType?: string;
+	vaultRef?: string;
+	[key: string]: unknown;
+};
+
+// WebKitGTK permission-blocks navigator.clipboard.read(), which is what
+// Excalidraw's right-click → Paste calls directly (no DOM event involved).
+// Route read() to the native Go clipboard reader so Excalidraw's own paste
+// pipeline works. Patched once for the app lifetime, Linux only — the original
+// is permission-blocked on this platform anyway, so there is nothing to restore.
+let clipboardReadPatched = false;
+function patchClipboardReadForLinux() {
+	if (clipboardReadPatched) return;
+	if (typeof Clipboard === "undefined" || typeof ClipboardItem === "undefined") return;
+	clipboardReadPatched = true;
+	Clipboard.prototype.read = async function read(): Promise<ClipboardItem[]> {
+		const dataURL = await ReadClipboardImage();
+		if (!dataURL) {
+			throw new DOMException("No image on clipboard", "NotAllowedError");
+		}
+		const blob = await (await fetch(dataURL)).blob();
+		return [new ClipboardItem({ [blob.type]: blob })];
+	};
+}
+
+export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
+	({
+		initialScene,
+		projectAlias,
+		onChange,
+		onCanvasReady,
+		className,
+		editable: _editable = true,
+		autoFocus = true,
+	}) => {
+		const excalidrawAPI = useRef<ExcalidrawImperativeAPI | null>(null);
+		const containerRef = useRef<HTMLDivElement>(null);
+		const resolvedTheme = useResolvedTheme();
+		const [isReady, setIsReady] = useState(false);
+		// `programmaticRepaintRef` marks the font-repaint updateScene we trigger
+		// ourselves (see the effect near the bottom) so its onChange isn't persisted
+		// as if it were a user edit.
+		const programmaticRepaintRef = useRef(false);
+		const lastVersionRef = useRef<number>(0);
+		const lastAppStateSigRef = useRef<string>("");
+		const projectAliasRef = useRef(projectAlias);
+		const onChangeRef = useRef(onChange);
+		const onCanvasReadyRef = useRef(onCanvasReady);
+		const assetsRef = useRef<Record<string, string>>({});
+		// The scene to hydrate is captured ONCE at mount. The parent feeds the
+		// just-saved scene back in as `initialScene` on every onChange, so depending
+		// on its identity would re-run hydration on every edit (re-resolving every
+		// image against the backend). A genuine re-ingest (reload-from-disk) instead
+		// remounts this component via its `reloadNonce` key, so mount-time is correct.
+		const initialSceneRef = useRef(initialScene);
+		// Vault refs whose dataURL failed to resolve on load. Kept so a transient
+		// resolve error doesn't permanently strip the reference from the saved scene.
+		const unresolvedRefsRef = useRef<Record<string, { vaultRef: string; mimeType?: string }>>({});
+		// Monotonic flush counter. Every flushSave stamps a generation on entry;
+		// because asset writes await, a slower older flush can otherwise resolve last
+		// and overwrite the parent with stale elements. A completion whose generation
+		// is no longer current is dropped (see flushSave).
+		const flushGenerationRef = useRef(0);
+
+		projectAliasRef.current = projectAlias;
+		onChangeRef.current = onChange;
+		onCanvasReadyRef.current = onCanvasReady;
+
+		// Hydrate vault references to dataURLs on mount
+		const [hydratedInitialData, setHydratedInitialData] = useState<ExcalidrawInitialDataState | null>(
+			null,
+		);
+
+		useEffect(() => {
+			// Runs once at mount (see initialSceneRef). A `cancelled` guard prevents an
+			// in-flight ResolveDataURL from writing refs/state after unmount.
+			let cancelled = false;
+			const scene = initialSceneRef.current;
+
+			const hydrateAssets = async () => {
+				if (!scene) {
+					if (cancelled) return;
+					setHydratedInitialData({ elements: [], appState: {}, files: {} });
+					setIsReady(true);
+					return;
+				}
+
+				const files: HydratedFiles = {};
+				const assets: Record<string, string> = {};
+				const unresolved: Record<string, { vaultRef: string; mimeType?: string }> = {};
+
+				// Hydrate files from vault references. Each unresolved ref is an IPC
+				// round-trip to Go, so resolve them in parallel — a sequential await
+				// per file makes canvases with many images slow to open. Writes are
+				// keyed by fileId and JS is single-threaded, so no ordering hazard.
+				if (scene.files) {
+					await Promise.all(
+						Object.entries(scene.files).map(async ([fileId, file]) => {
+							const fileObj = file as ExcalidrawFile;
+							if (fileObj.dataURL) {
+								// Already a dataURL (legacy or direct)
+								files[fileId] = {
+									id: fileId,
+									dataURL: fileObj.dataURL,
+									mimeType: fileObj.mimeType || "image/png",
+									created: Date.now(),
+								};
+								return;
+							}
+							// Try to resolve from vault reference
+							const ref = fileObj.vaultRef;
+							if (!ref) return;
+							try {
+								const dataURL = await ResolveDataURL(projectAliasRef.current, ref);
+								files[fileId] = {
+									id: fileId,
+									dataURL,
+									mimeType: fileObj.mimeType || "image/png",
+									created: Date.now(),
+								};
+								assets[fileId] = ref;
+							} catch (err) {
+								BackendLogger.error(`Failed to resolve asset ${fileId}:`, err);
+								// Remember the ref so flushSave can round-trip it back to disk
+								// instead of silently dropping the reference forever.
+								unresolved[fileId] = { vaultRef: ref, mimeType: fileObj.mimeType };
+								assets[fileId] = ref;
+							}
+						}),
+					);
+				}
+
+				if (cancelled) return;
+				assetsRef.current = assets;
+				unresolvedRefsRef.current = unresolved;
+
+				// Run persisted data through Excalidraw's restoration layer. Our stored
+				// appState is a plain JSON object, but Excalidraw expects runtime types
+				// (e.g. appState.collaborators must be a Map, not {}), so mounting the raw
+				// object crashes InteractiveCanvas. restore() normalizes appState, repairs
+				// element bindings, and migrates older schemas.
+				const restored = restore(
+					{
+						elements: scene.elements as NonDeletedExcalidrawElement[],
+						appState: scene.appState as unknown as AppState,
+						files: files as unknown as BinaryFiles,
+					},
+					null,
+					null,
+				);
+
+				if (cancelled) return;
+				setHydratedInitialData({
+					elements: restored.elements,
+					// Sanitize on load too, not just on save: documents saved before the
+					// whitelist existed already carry stale runtime state (a persisted
+					// editingTextElement hides that element's text on reopen; a persisted
+					// non-Map collaborators crashes InteractiveCanvas). initialData.appState
+					// may be partial — Excalidraw merges in its own defaults.
+					appState: sanitizeAppState(restored.appState),
+					files: restored.files,
+				});
+				setIsReady(true);
+			};
+
+			void hydrateAssets();
+			return () => {
+				cancelled = true;
+			};
+			// Mount-only: initialScene is captured via initialSceneRef, and a real
+			// re-ingest remounts this component (reloadNonce key). All other values
+			// used here are stable refs/setters.
+		}, []);
+
+		// Flush pending save - called from timeout or cleanup
+		const flushSave = useCallback(
+			async (elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
+				// Stamp this flush. If a newer flush starts while our asset writes await,
+				// this one's elements are stale and its completion is dropped below.
+				const myGeneration = ++flushGenerationRef.current;
+				const newAssets: Record<string, string> = { ...assetsRef.current };
+				// Vault refs stored by THIS flush, merged into assetsRef even if the
+				// completion is later dropped as stale — StoreDataURL is content-addressed,
+				// so this never loses a newer flush's work and avoids re-storing the image.
+				const newlyStored: Record<string, string> = {};
+				const processedFiles: Record<string, unknown> = {};
+
+				// Files actually referenced by a live image element. Excalidraw retains
+				// file-map entries for deleted images, so keying off elements (not the
+				// file map) keeps deleted images out of the saved scene and stops the
+				// asset map from growing without bound.
+				const referencedFileIds = referencedImageFileIds(
+					elements as readonly { type?: string; fileId?: string }[],
+				);
+
+				// Process files - extract dataURLs to vault
+				for (const [fileId, file] of Object.entries(files)) {
+					if (!referencedFileIds.has(fileId)) {
+						continue; // file for a deleted image element — don't persist it
+					}
+					if (file.dataURL && !newAssets[fileId]) {
+						// New file - store to vault
+						try {
+							const ref = await StoreDataURL(projectAliasRef.current, file.dataURL);
+							newAssets[fileId] = ref;
+							newlyStored[fileId] = ref;
+							processedFiles[fileId] = {
+								...file,
+								vaultRef: ref,
+								// Remove dataURL to keep scene JSON small
+								dataURL: undefined,
+							};
+						} catch (err) {
+							BackendLogger.error(`Failed to store asset ${fileId}:`, err);
+							// Keep dataURL inline if storage fails
+							processedFiles[fileId] = file;
+						}
+					} else if (newAssets[fileId]) {
+						// Already stored - just keep the reference
+						processedFiles[fileId] = {
+							...file,
+							vaultRef: newAssets[fileId],
+							dataURL: undefined,
+						};
+					} else {
+						processedFiles[fileId] = file;
+					}
+				}
+
+				// Persist vault refs this flush stored regardless of whether we go on to
+				// emit — so a concurrent/later flush (and the store-check above) reuse them.
+				for (const [fileId, ref] of Object.entries(newlyStored)) {
+					assetsRef.current[fileId] = ref;
+				}
+
+				// A newer flush began while our asset writes awaited: its element set is
+				// fresher, so dropping this stale completion prevents overwriting the
+				// parent with older elements/asset map. The merge above already kept our
+				// stored refs for that newer flush to pick up.
+				if (myGeneration !== flushGenerationRef.current) {
+					return;
+				}
+
+				// Re-inject any vault ref whose dataURL failed to resolve on load: it's
+				// absent from Excalidraw's live file map (never added), so without this
+				// the reference would be stripped from the saved scene permanently. Only
+				// keep it while an image element still points at it.
+				for (const [fileId, entry] of Object.entries(unresolvedRefsRef.current)) {
+					if (referencedFileIds.has(fileId) && !processedFiles[fileId]) {
+						processedFiles[fileId] = {
+							id: fileId,
+							vaultRef: entry.vaultRef,
+							mimeType: entry.mimeType,
+							dataURL: undefined,
+						};
+						newAssets[fileId] = entry.vaultRef;
+					}
+				}
+
+				// Drop assets no longer referenced by any element. Keying off referenced
+				// image elements (not Excalidraw's file map, which retains entries for
+				// deleted images) keeps the asset map from growing without bound.
+				for (const fileId of Object.keys(newAssets)) {
+					if (!referencedFileIds.has(fileId)) {
+						delete newAssets[fileId];
+						delete unresolvedRefsRef.current[fileId];
+					}
+				}
+
+				assetsRef.current = newAssets;
+
+				const scene: ExcalidrawScene = {
+					elements: elements as ExcalidrawElement[],
+					// Persist only the whitelisted appState so a save fired mid-interaction
+					// (e.g. autosave while a text editor is open) can never freeze that
+					// interaction state into the document.
+					appState: sanitizeAppState(appState) as unknown as Record<string, unknown>,
+					files: processedFiles as ExcalidrawScene["files"],
+				};
+
+				onChangeRef.current?.(scene, newAssets);
+			},
+			[],
+		);
+
+		// Propagate scene changes to the parent immediately — deliberately NOT
+		// debounced here. The parent (useAutoSave) already owns the single disk-write
+		// debounce (2s), and every save path — Ctrl+S, save-on-unmount, autosave,
+		// window blur, flush-on-quit — persists the PARENT's form state. When
+		// CanvasEditor debounced internally (1s) it sat on the latest scene before
+		// calling onChange, so any save fired inside that window wrote a scene missing
+		// the most recent edits, and the save-on-unmount couldn't rescue it (its React
+		// state update never reaches the disk writer during teardown). That was the
+		// "my last shape/text didn't save" bug. Pushing every real change up keeps the
+		// parent's form state current so all of those save paths capture the newest
+		// scene; the parent's own debounce still prevents excessive disk writes.
+		const handleChange = useCallback(
+			(elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
+				if (!excalidrawAPI.current) return;
+
+				// Gate on BOTH the element hash and a low-frequency appState signature:
+				// element edits bump the hash, while appState-only edits (background
+				// color, grid/zen/snap, last-used tool styles) don't touch any element
+				// version and would otherwise never be persisted.
+				const sceneVersion = hashElementsVersion(elements);
+				const appStateSig = appStateSignature(appState);
+				if (sceneVersion === lastVersionRef.current && appStateSig === lastAppStateSigRef.current) {
+					return;
+				}
+				lastVersionRef.current = sceneVersion;
+				lastAppStateSigRef.current = appStateSig;
+
+				// The font-repaint effect below bumps text element versions purely to
+				// invalidate Excalidraw's stale render cache — not a user edit — so
+				// swallow the resulting onChange instead of persisting it.
+				if (programmaticRepaintRef.current) {
+					programmaticRepaintRef.current = false;
+					return;
+				}
+
+				// flushSave extracts any new image assets to the vault, then hands the
+				// scene to onChange. It runs synchronously up to onChange when there are
+				// no new files (the common shapes/text case), so the parent's form state
+				// updates within this same event — before any close/save can race it.
+				void flushSave(elements, appState, files);
+			},
+			[flushSave],
+		);
+
+		// On reopen, Excalidraw paints restored text before its custom hand-drawn font
+		// finishes loading, caching a BLANK per-element bitmap. Its built-in
+		// "font loaded -> invalidate + repaint" path (Fonts.onLoaded) only ever runs
+		// ONCE per font per page load — a static loadedFontsCache guards it — so on
+		// every reopen after the first it bails out and the blank bitmap is never
+		// refreshed; the text stays blank until you edit it.
+		//
+		// Editing fixes it because it assigns the element a fresh versionNonce, so
+		// Excalidraw treats it as a new object and regenerates both its shape
+		// (ShapeCache) and bitmap (elementWithCanvasCache) — both WeakMaps keyed by
+		// element identity. We reproduce that: re-stamp every text element's version
+		// via the public updateScene so it repaints with the loaded font.
+		// captureUpdate: NEVER keeps it out of undo/redo; the programmatic-repaint
+		// guard in handleChange keeps it from being persisted. We fire it across a few
+		// beats after document.fonts.ready (the face can become usable for canvas a
+		// tick after `ready` resolves, and a cached font emits no `loadingdone`) and
+		// again on any later `loadingdone`. It's cheap and a no-op once text is right.
+		useEffect(() => {
+			if (!isReady) return;
+			let cancelled = false;
+
+			const randomInteger = () => Math.floor(Math.random() * 2 ** 31);
+
+			const repaintText = (reason: string) => {
+				if (cancelled) return;
+				const api = excalidrawAPI.current;
+				if (!api) return;
+				const elements = api.getSceneElements();
+				const textEls = elements.filter((el) => el.type === "text");
+				if (textEls.length === 0) return;
+
+				// Don't clobber an in-progress text edit — Excalidraw owns that
+				// element's rendering while its editor is open.
+				const appState = api.getAppState();
+				if (appState.editingTextElement) return;
+
+				const fontsReady =
+					typeof document !== "undefined" && document.fonts
+						? document.fonts.check("20px Excalifont")
+						: true;
+				BackendLogger.info(
+					`[canvas-font-repaint] reason=${reason} texts=${textEls.length} ` +
+						`excalifontReady=${fontsReady} ` +
+						`fontsStatus=${typeof document !== "undefined" ? document.fonts?.status : "n/a"} ` +
+						textEls
+							.map((t) => {
+								const tt = t as { fontFamily?: number; width: number; height: number };
+								return `{ff:${tt.fontFamily},w:${Math.round(tt.width)},h:${Math.round(tt.height)}}`;
+							})
+							.join(","),
+				);
+
+				const repainted = elements.map((el) =>
+					el.type === "text" ? { ...el, version: el.version + 1, versionNonce: randomInteger() } : el,
+				) as NonDeletedExcalidrawElement[];
+
+				programmaticRepaintRef.current = true;
+				api.updateScene({ elements: repainted, captureUpdate: CaptureUpdateAction.NEVER });
+				// Never leave the guard stuck true (that would swallow a real edit). If
+				// updateScene's onChange didn't clear it, a redundant bump merely gets
+				// persisted once — harmless (versionNonce is just a change token).
+				setTimeout(() => {
+					programmaticRepaintRef.current = false;
+				}, 0);
+			};
+
+			void (async () => {
+				if (typeof document !== "undefined" && document.fonts) {
+					try {
+						await document.fonts.ready;
+					} catch {
+						/* ignore */
+					}
+				}
+				for (let i = 0; i < 3; i++) {
+					if (cancelled) return;
+					repaintText(`ready#${i}`);
+					await new Promise<void>((resolve) => {
+						requestAnimationFrame(() => setTimeout(resolve, 250));
+					});
+				}
+			})();
+
+			const onLoadingDone = () => repaintText("loadingdone");
+			if (typeof document !== "undefined" && document.fonts?.addEventListener) {
+				document.fonts.addEventListener("loadingdone", onLoadingDone);
+			}
+
+			return () => {
+				cancelled = true;
+				if (typeof document !== "undefined" && document.fonts?.removeEventListener) {
+					document.fonts.removeEventListener("loadingdone", onLoadingDone);
+				}
+			};
+		}, [isReady]);
+
+		// Excalidraw scopes its keyboard handling to its focused container, but in the
+		// pane shell the canvas mounts without focus (keydowns land on <body>), so
+		// Space-pan / tool shortcuts / Delete never reach it. Focus the container once
+		// it's on screen so the canvas owns the keyboard immediately. Retry across a few
+		// frames because the `.excalidraw` node isn't in the DOM the instant isReady flips.
+		useEffect(() => {
+			if (!isReady || !autoFocus) return;
+			let cancelled = false;
+			let attempts = 0;
+			const focusCanvas = () => {
+				if (cancelled) return;
+				const el = containerRef.current?.querySelector<HTMLElement>(".excalidraw");
+				if (el) {
+					el.focus({ preventScroll: true });
+					return;
+				}
+				if (attempts++ < 10) requestAnimationFrame(focusCanvas);
+			};
+			focusCanvas();
+			return () => {
+				cancelled = true;
+			};
+		}, [isReady, autoFocus]);
+
+		// Excalidraw arms Space-pan via an internal isHoldingSpace flag set on Space
+		// keydown — but it resets that flag on ANY window blur, and focus loss also
+		// swallows the auto-repeat keydowns that would re-arm it (X11 additionally
+		// synthesizes a Space keyup on focus-out). So after any transient blur, a
+		// click while physically holding Space silently loses pan: at pointerdown the
+		// flag is false, and once the pointer is down Excalidraw refuses to re-arm
+		// (its Space handler requires zero active pointers). Track the physical key
+		// ourselves and, when a left-click lands on the canvas while Space is held but
+		// Excalidraw is disarmed (no grab cursor), re-arm it with a synthetic Space
+		// keydown BEFORE the pointerdown reaches it — window capture runs first, and
+		// at that instant its zero-pointers guard still passes.
+		useEffect(() => {
+			if (!isReady) return;
+			const spaceHeld = { current: false };
+			const isTyping = (t: EventTarget | null) =>
+				t instanceof Element && Boolean(t.closest("input, textarea, [contenteditable]"));
+			const cursor = () =>
+				(containerRef.current?.querySelector(".excalidraw__canvas.interactive") as HTMLElement | null)
+					?.style.cursor;
+
+			const onKeyDown = (e: KeyboardEvent) => {
+				if (e.key === " " && e.isTrusted && !isTyping(e.target)) spaceHeld.current = true;
+			};
+			const onKeyUp = (e: KeyboardEvent) => {
+				if (e.key === " " && e.isTrusted) spaceHeld.current = false;
+			};
+			// Clear on blur: while unfocused we can't see a physical release, so a held
+			// flag could go stale and cause a surprise pan later. The auto-repeat that
+			// resumes on refocus re-arms us within ~30ms when Space really is still down.
+			const onBlur = () => {
+				spaceHeld.current = false;
+			};
+			const onPointerDown = (e: PointerEvent) => {
+				if (e.button !== 0 || !spaceHeld.current) return;
+				if (!containerRef.current?.contains(e.target as Node)) return;
+				if (cursor() === "grab") return;
+				document.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+			};
+
+			window.addEventListener("keydown", onKeyDown, true);
+			window.addEventListener("keyup", onKeyUp, true);
+			window.addEventListener("blur", onBlur);
+			window.addEventListener("pointerdown", onPointerDown, true);
+			return () => {
+				window.removeEventListener("keydown", onKeyDown, true);
+				window.removeEventListener("keyup", onKeyUp, true);
+				window.removeEventListener("blur", onBlur);
+				window.removeEventListener("pointerdown", onPointerDown, true);
+			};
+		}, [isReady]);
+
+		// Image paste — Linux/WebKitGTK ONLY. That webview denies the browser
+		// Clipboard API and never fires a paste event on the canvas, so intercept
+		// Ctrl+V and read the image from the system clipboard natively (Go:
+		// wl-paste/xclip), inserting it via the Excalidraw API. On Windows/macOS the
+		// webview fires a real paste event Excalidraw handles itself, and this
+		// interceptor's preventDefault() would kill it — hence the Linux gate.
+		//
+		// The gate must NOT use the sync System.IsLinux(): it reads
+		// window._wails.environment, which Linux injects only at WindowLoadFinished —
+		// after React effects already ran — so it races to false on direct loads and
+		// this effect would bail permanently. Resolve the OS via the async runtime
+		// call instead, and attach the listener when it lands.
+		useEffect(() => {
+			if (!isReady || !_editable) return;
+			const container = containerRef.current;
+			if (!container) return;
+			let disposed = false;
+			let detach: (() => void) | null = null;
+
+			// Last known mouse position, so a paste lands at the cursor. Tracked here
+			// because the GTK-keybinding path arrives as a Wails event with no DOM
+			// coordinates attached. Attached (Linux-only) together with the other
+			// listeners below.
+			const lastPointerRef = { current: null as { x: number; y: number } | null };
+			const trackPointer = (e: PointerEvent) => {
+				lastPointerRef.current = { x: e.clientX, y: e.clientY };
+			};
+
+			const naturalSize = (dataURL: string) =>
+				new Promise<{ width: number; height: number }>((resolve) => {
+					const img = new Image();
+					img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+					img.onerror = () => resolve({ width: 320, height: 320 });
+					img.src = dataURL;
+				});
+
+			const insertImage = async (dataURL: string) => {
+				const { width, height } = await naturalSize(dataURL);
+				// Re-read the API AFTER the await: a fast unmount mid-await would
+				// otherwise call into a torn-down Excalidraw instance.
+				const api = excalidrawAPI.current;
+				if (!api) return;
+				const maxDim = 800;
+				const scale = Math.max(width, height) > maxDim ? maxDim / Math.max(width, height) : 1;
+				// Match the MIME up to `;` or `,` so comma-form (non-base64) data URLs
+				// like "data:image/svg+xml,%3Csvg..." aren't misread as PNG.
+				const mimeType = (/^data:([^;,]+)[;,]/.exec(dataURL)?.[1] ??
+					"image/png") as BinaryFileData["mimeType"];
+				const fileId = crypto.randomUUID() as FileId;
+				api.addFiles([
+					{
+						id: fileId,
+						dataURL: dataURL as BinaryFileData["dataURL"],
+						mimeType,
+						created: Date.now(),
+					},
+				]);
+				// Drop the image centred on the mouse cursor (matching Excalidraw's own
+				// paste), falling back to the viewport centre when the pointer isn't
+				// over the canvas (e.g. Ctrl+V while hovering the toolbar).
+				const rect = container.getBoundingClientRect();
+				const p = lastPointerRef.current;
+				const overCanvas =
+					p !== null && p.x >= rect.left && p.x <= rect.right && p.y >= rect.top && p.y <= rect.bottom;
+				const origin = viewportCoordsToSceneCoords(
+					overCanvas
+						? { clientX: p.x, clientY: p.y }
+						: { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 },
+					api.getAppState(),
+				);
+				const scaledWidth = Math.round(width * scale);
+				const scaledHeight = Math.round(height * scale);
+				const added = convertToExcalidrawElements([
+					{
+						type: "image",
+						fileId,
+						status: "saved",
+						x: origin.x - scaledWidth / 2,
+						y: origin.y - scaledHeight / 2,
+						width: scaledWidth,
+						height: scaledHeight,
+					},
+				]);
+				api.updateScene({
+					elements: [...api.getSceneElements(), ...added],
+					captureUpdate: CaptureUpdateAction.IMMEDIATELY,
+				});
+			};
+
+			// WebKitGTK translates Ctrl+V into its internal Paste editor command and
+			// fires a DOM `paste` event WITHOUT a preceding DOM keydown (verified: a
+			// document-capture keydown listener never saw Ctrl+V while Excalidraw's
+			// document-level paste listener ran). So the paste event is the primary
+			// hook; the keydown handler stays as a fallback for environments that do
+			// deliver it, with a timestamp guard so one Ctrl+V can't insert twice.
+			let lastHandledAt = 0;
+			const handlePasteIntent = (source: string) => {
+				const now = Date.now();
+				if (now - lastHandledAt < 500) return;
+				lastHandledAt = now;
+				void (async () => {
+					try {
+						const dataURL = await ReadClipboardImage();
+						if (dataURL) await insertImage(dataURL);
+					} catch (err) {
+						BackendLogger.error(`[canvas] clipboard image paste (${source}) failed:`, err);
+					}
+				})();
+			};
+
+			const focusInEditable = () => {
+				const active = document.activeElement;
+				return (
+					active instanceof Element && active.closest("input, textarea, [contenteditable]") !== null
+				);
+			};
+
+			// Only the canvas that actually owns focus should consume a paste. These
+			// listeners live on `document`, so in split view every mounted canvas sees
+			// the same event; without this gate one Ctrl+V would fire on all of them.
+			const paneHasFocus = () => {
+				const el = containerRef.current;
+				return el != null && el.contains(document.activeElement);
+			};
+
+			// True when the clipboard actually carries an image (advertised MIME on a
+			// type or item). Used to avoid claiming plain-text / Excalidraw-clipboard
+			// pastes, which must keep their native path.
+			const clipboardHasImage = (data: DataTransfer | null) => {
+				if (!data) return false;
+				if (Array.from(data.types ?? []).some((t) => t.startsWith("image/"))) return true;
+				return Array.from(data.items ?? []).some((it) => it.type.startsWith("image/"));
+			};
+
+			const onPaste = (e: ClipboardEvent) => {
+				// Pastes aimed at a text field (Excalidraw's text editor, a note editor
+				// in a split pane) keep their native path.
+				if (focusInEditable()) return;
+				if (!paneHasFocus()) return;
+				// If the webview actually delivered image files, Excalidraw's own paste
+				// handles them fine — only claim the event when it didn't.
+				if (e.clipboardData?.files?.length) return;
+				// Don't swallow non-image pastes (plain text, Excalidraw's own clipboard
+				// payload): only preventDefault when an image is actually present.
+				if (!clipboardHasImage(e.clipboardData)) return;
+				e.preventDefault();
+				e.stopImmediatePropagation();
+				handlePasteIntent("paste-event");
+			};
+
+			const onKeyDown = (e: KeyboardEvent) => {
+				const isPaste =
+					(e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "v";
+				if (!isPaste || e.defaultPrevented) return;
+				if (focusInEditable()) return;
+				if (!paneHasFocus()) return;
+				e.preventDefault();
+				e.stopPropagation();
+				handlePasteIntent("ctrl-v-keydown");
+			};
+
+			void System.Environment()
+				.then((env) => {
+					if (disposed || env.OS !== "linux") return;
+					// Right-click → Paste goes through navigator.clipboard.read().
+					patchClipboardReadForLinux();
+					// Ctrl+V never reaches the DOM on WebKitGTK (no keydown, no paste
+					// event) — the Go side surfaces it via a GTK capture-phase observer.
+					const offCtrlV = Events.On("native:ctrl-v", () => {
+						if (focusInEditable()) return;
+						if (!paneHasFocus()) return;
+						handlePasteIntent("gtk-capture");
+					});
+					window.addEventListener("pointermove", trackPointer, { passive: true });
+					document.addEventListener("paste", onPaste, true);
+					document.addEventListener("keydown", onKeyDown, true);
+					detach = () => {
+						offCtrlV();
+						window.removeEventListener("pointermove", trackPointer);
+						document.removeEventListener("paste", onPaste, true);
+						document.removeEventListener("keydown", onKeyDown, true);
+					};
+				})
+				.catch((err: unknown) => {
+					BackendLogger.error("[canvas] failed to resolve OS for paste handler:", err);
+				});
+			return () => {
+				disposed = true;
+				detach?.();
+			};
+		}, [isReady, _editable]);
+
+		// Publish an imperative handle to the parent once mounted. Everything pulls
+		// from the live Excalidraw API — not the persisted scene — because getFiles()
+		// returns the hydrated image dataURLs (the saved scene only keeps vault refs),
+		// getSceneElements/getAppState reflect exactly what's on screen (including
+		// edits still inside the autosave debounce), and only the live appState knows
+		// the current interaction state used for Escape routing.
+		useEffect(() => {
+			if (!isReady) return;
+			const handle: CanvasHandle = {
+				toPNG: () => {
+					const api = excalidrawAPI.current;
+					if (!api) return Promise.reject(new Error("Canvas not ready"));
+					return exportToBlob({
+						elements: api.getSceneElements(),
+						appState: api.getAppState(),
+						files: api.getFiles(),
+						mimeType: "image/png",
+					});
+				},
+				toSVG: async () => {
+					const api = excalidrawAPI.current;
+					if (!api) throw new Error("Canvas not ready");
+					const svg = await exportToSvg({
+						elements: api.getSceneElements(),
+						appState: api.getAppState(),
+						files: api.getFiles(),
+					});
+					return new XMLSerializer().serializeToString(svg);
+				},
+				blur: () => {
+					const active = document.activeElement;
+					if (active instanceof HTMLElement && containerRef.current?.contains(active)) {
+						active.blur();
+					}
+				},
+			};
+			onCanvasReadyRef.current?.(handle);
+			return () => {
+				onCanvasReadyRef.current?.(null);
+			};
+		}, [isReady]);
+
+		if (!isReady || !hydratedInitialData) {
+			return (
+				<div className={cn("flex items-center justify-center h-full", className)}>
+					<div className="text-text-dim">Loading canvas...</div>
+				</div>
+			);
+		}
+
+		return (
+			<div ref={containerRef} className={cn("h-full w-full", className)}>
+				<Excalidraw
+					initialData={hydratedInitialData}
+					onChange={handleChange}
+					theme={resolvedTheme === "dark" ? "dark" : "light"}
+					viewModeEnabled={!_editable}
+					// Without this, Excalidraw binds its keyboard handler to its own
+					// container, so Space-pan / tool shortcuts / Delete only work while that
+					// container holds DOM focus — which it doesn't reliably in the pane shell.
+					// Binding globally (to document) lets the canvas own its chords regardless.
+					handleKeyboardGlobally={true}
+					UIOptions={{
+						canvasActions: {
+							saveToActiveFile: false,
+							loadScene: false,
+							export: { saveFileToDisk: true },
+						},
+					}}
+					excalidrawAPI={(api) => {
+						excalidrawAPI.current = api;
+					}}
+				/>
+			</div>
+		);
+	},
+);
+
+CanvasEditor.displayName = "CanvasEditor";

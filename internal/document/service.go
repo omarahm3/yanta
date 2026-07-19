@@ -100,7 +100,14 @@ type SaveRequest struct {
 	Path         string
 	ProjectAlias string
 	Title        string
+	Kind         string
 	Blocks       []BlockNoteBlock
+	Scene        json.RawMessage
+	// Assets maps an Excalidraw fileId -> vault ref ("/assets/{alias}/{hash}{ext}")
+	// for canvas documents. Persisted into DocumentFile.Assets so the indexer can
+	// link these images in doc_asset; without it canvas images are never linked
+	// and are treated as orphans by asset GC.
+	Assets       map[string]string
 	Tags         []string
 	ExpectedHash string
 }
@@ -135,15 +142,23 @@ func (s *Service) Save(ctx context.Context, req SaveRequest) (string, error) {
 		docPath = req.Path
 	}
 
-	docFile := &DocumentFile{
-		Meta: DocumentMeta{
-			Project: req.ProjectAlias,
-			Title:   req.Title,
-			Tags:    req.Tags,
-			Created: time.Now(),
-			Updated: time.Now(),
-		},
-		Blocks: req.Blocks,
+	kind := req.Kind
+	if kind == "" {
+		kind = DocumentKindDocument
+	}
+
+	var docFile *DocumentFile
+	switch kind {
+	case DocumentKindCanvas:
+		docFile = NewCanvasFile(req.ProjectAlias, req.Title, req.Tags, req.Scene, req.Assets)
+	case DocumentKindDocument:
+		docFile = NewDocumentFile(req.ProjectAlias, req.Title, req.Tags)
+		docFile.Blocks = req.Blocks
+	default:
+		// Kind is a closed enum: reject anything unrecognized here rather than
+		// leaving docFile nil and panicking on the dereferences below (or in
+		// WriteFile). Empty is already normalized to "document" above.
+		return "", fmt.Errorf("unsupported document kind: %q", kind)
 	}
 
 	if !isNew {
@@ -153,6 +168,23 @@ func (s *Service) Save(ctx context.Context, req SaveRequest) (string, error) {
 			return "", fmt.Errorf("reading existing document: %w", err)
 		}
 		docFile.Meta.Created = existing.Meta.Created
+		// Preserve aliases across saves: SaveRequest carries none, and the file
+		// constructors reset them to an empty slice, so without this every save
+		// silently wipes a document's aliases.
+		docFile.Meta.Aliases = existing.Meta.Aliases
+
+		// Refuse to silently convert a document's kind on update — canvas and
+		// document files have incompatible payloads, and a flip would drop the
+		// other kind's content. Legacy files predate the Kind field (empty), so
+		// normalize empty to "document" before comparing; otherwise a legacy doc
+		// could be flipped to canvas and have its blocks silently discarded.
+		existingKind := existing.Kind
+		if existingKind == "" {
+			existingKind = DocumentKindDocument
+		}
+		if existingKind != kind {
+			return "", fmt.Errorf("cannot change document kind from %q to %q", existingKind, kind)
+		}
 
 		if req.ExpectedHash != "" {
 			currentHash := ComputeFileHash(existing)
@@ -313,6 +345,13 @@ func (s *Service) Preview(ctx context.Context, path string) (string, error) {
 	file, err := s.fm.ReadFile(path)
 	if err != nil {
 		return "", fmt.Errorf("reading document file: %w", err)
+	}
+
+	// Canvas docs carry no blocks, so marshaling file.Blocks (nil) would yield the
+	// literal "null" and break the finder's BlockNote preview. Return an empty
+	// block array so it renders cleanly instead.
+	if file.Kind == DocumentKindCanvas {
+		return "[]", nil
 	}
 
 	blocks := file.Blocks

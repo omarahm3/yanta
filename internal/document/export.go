@@ -152,7 +152,7 @@ func (e *Exporter) ExportProject(req ExportProjectRequest) error {
 	}
 
 	logger.WithFields(map[string]any{
-		"projectAlias": req.ProjectAlias,
+		"projectAlias":  req.ProjectAlias,
 		"documentCount": len(documentPaths),
 	}).Debug("found documents in project")
 

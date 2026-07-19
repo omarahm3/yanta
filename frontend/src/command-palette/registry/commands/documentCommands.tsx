@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, FileDown, Save, Search } from "lucide-react";
+import { Archive, ArchiveRestore, FileDown, Image, Save, Search } from "lucide-react";
 import { ExportDocumentRequest } from "../../../../bindings/yanta/internal/document/models";
 import {
 	ExportDocument,
@@ -19,7 +19,9 @@ export function registerDocumentCommands(
 ): void {
 	const { handleClose, currentPage, getSelectedDocument, notification, onNavigate } = ctx;
 	const commands: CommandOption[] = [];
-	const hasDocument = currentPage === "document" && Boolean(getSelectedDocument()?.path);
+	const selectedDocument = getSelectedDocument();
+	const hasDocument = currentPage === "document" && Boolean(selectedDocument?.path);
+	const isCanvas = hasDocument && selectedDocument?.kind === "canvas";
 
 	if (hasDocument) {
 		commands.push({
@@ -100,65 +102,100 @@ export function registerDocumentCommands(
 			},
 		});
 
+		// Markdown/PDF export render blocks, which a canvas doc doesn't have — the
+		// output would be an empty file. Offer these only for text documents;
+		// canvases get the PNG/SVG export commands below instead.
+		if (!isCanvas) {
+			commands.push({
+				id: "export-document",
+				icon: <FileDown className="text-lg" />,
+				text: "Export Document",
+				hint: "Export to markdown",
+				group: "Document",
+				action: async () => {
+					handleClose();
+					const currentDocument = getSelectedDocument();
+					if (!currentDocument?.path) {
+						notification.error("No document open");
+						return;
+					}
+					try {
+						const outputDir = await OpenDirectoryDialog();
+						if (!outputDir) return;
+						const documentName =
+							currentDocument.path.split("/").pop()?.replace(".json", ".md") || "document.md";
+						const outputPath = `${outputDir}/${documentName}`;
+						await ExportDocument(
+							new ExportDocumentRequest({
+								DocumentPath: currentDocument.path,
+								OutputPath: outputPath,
+							}),
+						);
+					} catch (err) {
+						notification.error(`Export failed: ${err}`);
+					}
+				},
+			});
+
+			commands.push({
+				id: "export-document-pdf",
+				icon: <FileDown className="text-lg" />,
+				text: "Export Document to PDF",
+				hint: "Export to PDF",
+				group: "Document",
+				action: async () => {
+					handleClose();
+					const currentDocument = getSelectedDocument();
+					if (!currentDocument?.path) {
+						notification.error("No document open");
+						return;
+					}
+					try {
+						const outputDir = await OpenDirectoryDialog();
+						if (!outputDir) return;
+						const documentName =
+							currentDocument.path.split("/").pop()?.replace(".json", ".pdf") || "document.pdf";
+						const outputPath = `${outputDir}/${documentName}`;
+						await ExportToPDF(
+							new ExportRequest({
+								DocumentPath: currentDocument.path,
+								OutputPath: outputPath,
+							}),
+						);
+					} catch (err) {
+						notification.error(`Export failed: ${err}`);
+					}
+				},
+			});
+		}
+	}
+
+	if (isCanvas) {
 		commands.push({
-			id: "export-document",
-			icon: <FileDown className="text-lg" />,
-			text: "Export Document",
-			hint: "Export to markdown",
+			id: "export-canvas-png",
+			icon: <Image className="text-lg" />,
+			text: "Export Canvas as PNG",
+			hint: "Export the canvas to a PNG image",
 			group: "Document",
-			action: async () => {
+			keywords: ["export", "canvas", "png", "image"],
+			// Route through the active canvas pane's live export handle — only it
+			// holds the hydrated image files and the on-screen viewport.
+			action: () => {
 				handleClose();
-				const currentDocument = getSelectedDocument();
-				if (!currentDocument?.path) {
-					notification.error("No document open");
-					return;
-				}
-				try {
-					const outputDir = await OpenDirectoryDialog();
-					if (!outputDir) return;
-					const documentName =
-						currentDocument.path.split("/").pop()?.replace(".json", ".md") || "document.md";
-					const outputPath = `${outputDir}/${documentName}`;
-					await ExportDocument(
-						new ExportDocumentRequest({
-							DocumentPath: currentDocument.path,
-							OutputPath: outputPath,
-						}),
-					);
-				} catch (err) {
-					notification.error(`Export failed: ${err}`);
-				}
+				useDocumentCommandStore.getState().requestExportImage("png");
 			},
 		});
 
 		commands.push({
-			id: "export-document-pdf",
-			icon: <FileDown className="text-lg" />,
-			text: "Export Document to PDF",
-			hint: "Export to PDF",
+			id: "export-canvas-svg",
+			icon: <Image className="text-lg" />,
+			text: "Export Canvas as SVG",
+			hint: "Export the canvas to an SVG image",
 			group: "Document",
-			action: async () => {
+			keywords: ["export", "canvas", "svg", "vector", "image"],
+			action: () => {
 				handleClose();
-				const currentDocument = getSelectedDocument();
-				if (!currentDocument?.path) {
-					notification.error("No document open");
-					return;
-				}
-				try {
-					const outputDir = await OpenDirectoryDialog();
-					if (!outputDir) return;
-					const documentName =
-						currentDocument.path.split("/").pop()?.replace(".json", ".pdf") || "document.pdf";
-					const outputPath = `${outputDir}/${documentName}`;
-					await ExportToPDF(
-						new ExportRequest({
-							DocumentPath: currentDocument.path,
-							OutputPath: outputPath,
-						}),
-					);
-				} catch (err) {
-					notification.error(`Export failed: ${err}`);
-				}
+				useDocumentCommandStore.getState().requestExportImage("svg");
 			},
 		});
 	}

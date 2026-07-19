@@ -12,6 +12,12 @@ import (
 	"yanta/internal/vault"
 )
 
+// maxDocumentFileBytes bounds how large a document JSON we'll read into memory
+// before parsing. Canvas files can embed base64 image fallbacks when a vault
+// store fails, so the cap is generous; anything past it is treated as corrupt
+// rather than read unbounded (protects against a hostile/huge synced file).
+const maxDocumentFileBytes = 50 * 1024 * 1024 // 50MB
+
 type FileReader struct {
 	vault *vault.Vault
 }
@@ -33,6 +39,13 @@ func (r *FileReader) ReadFile(relativePath string) (*DocumentFile, error) {
 		"absPath":      absPath,
 	}).Debug("document path resolved")
 
+	if info, statErr := os.Stat(absPath); statErr == nil && info.Size() > maxDocumentFileBytes {
+		logger.WithFields(map[string]any{"absPath": absPath, "size": info.Size()}).
+			Error("document file exceeds size limit")
+		return nil, wrapIOError("read", relativePath,
+			fmt.Errorf("%w: file too large (%d bytes)", ErrCorrupted, info.Size()))
+	}
+
 	logger.WithField("absPath", absPath).Debug("reading file from disk")
 	data, err := os.ReadFile(absPath)
 	if err != nil {
@@ -47,6 +60,15 @@ func (r *FileReader) ReadFile(relativePath string) (*DocumentFile, error) {
 		"absPath":  absPath,
 		"fileSize": len(data),
 	}).Debug("file read from disk successfully")
+
+	// Re-check the bytes actually read: the Stat above races with a concurrent
+	// writer that could have grown the file past the limit after we stat'd it.
+	if len(data) > maxDocumentFileBytes {
+		logger.WithFields(map[string]any{"absPath": absPath, "size": len(data)}).
+			Error("document file exceeds size limit")
+		return nil, wrapIOError("read", relativePath,
+			fmt.Errorf("%w: file too large (%d bytes)", ErrCorrupted, len(data)))
+	}
 
 	logger.WithField("relativePath", relativePath).Debug("parsing JSON")
 	doc, err := FromJSON(data)
@@ -89,6 +111,7 @@ func NewFileWriter(v *vault.Vault) *FileWriter {
 }
 
 func (w *FileWriter) WriteFile(relativePath string, doc *DocumentFile) error {
+	doc.Normalize()
 	if err := doc.Validate(); err != nil {
 		return wrapIOError("write", relativePath, fmt.Errorf("%w: %v", ErrValidation, err))
 	}
@@ -106,6 +129,15 @@ func (w *FileWriter) WriteFile(relativePath string, doc *DocumentFile) error {
 	jsonData, err := doc.ToJSON()
 	if err != nil {
 		return wrapIOError("write", relativePath, fmt.Errorf("serializing: %w", err))
+	}
+
+	// Enforce the same ceiling the read path uses, before replacing the file on
+	// disk. Otherwise an over-limit document is written, then rejected on the
+	// read-back during indexing — and Service.Save deletes the path on index
+	// failure, destroying the existing document on what was meant to be an update.
+	if len(jsonData) > maxDocumentFileBytes {
+		return wrapIOError("write", relativePath,
+			fmt.Errorf("%w: file too large (%d bytes)", ErrValidation, len(jsonData)))
 	}
 
 	if err := writeFileAtomic(absPath, jsonData); err != nil {

@@ -12,6 +12,7 @@ import { HotkeyProvider } from "./hotkeys";
 import { QuickCapture } from "./quick-capture";
 import { ToastProvider } from "./shared/ui";
 import { BackendLogger, enableBackendLogging } from "./shared/utils/backendLogger";
+import { installProductionLockdown } from "./shared/utils/productionLockdown";
 import "./styles/tailwind.css";
 import "./styles/yanta.css";
 
@@ -29,9 +30,25 @@ declare global {
 if (typeof window !== "undefined") {
 	window.__YANTA_DEBUG__ = window.__YANTA_DEBUG__ || {};
 	window.__YANTA_DEBUG__.jsLoaded = Date.now();
+
+	// Excalidraw loads its custom fonts (Excalifont, ComicShanns, Xiaolai, …) at
+	// runtime, relative to window.EXCALIDRAW_ASSET_PATH; when unset it fetches them
+	// from Excalidraw's CDN, which breaks in a packaged/offline desktop build. In
+	// production we self-host them: the Vite build copies the fonts into dist/fonts
+	// (see vite.config excalidrawFonts plugin) and Wails serves them at /fonts, so
+	// point the asset path at the app root. Dev is left on Excalidraw's default,
+	// which the Vite dev server already resolves, so this can't regress dev.
+	// Set before any lazy Excalidraw chunk evaluates (this entry runs first).
+	if (import.meta.env.PROD) {
+		(window as unknown as { EXCALIDRAW_ASSET_PATH?: string }).EXCALIDRAW_ASSET_PATH = "/";
+	}
 }
 
 enableBackendLogging();
+
+// Disable native right-click menu and reload/devtools keys in production so the
+// packaged app behaves identically on Windows, macOS, and Linux. No-op in dev.
+installProductionLockdown();
 
 const container = document.getElementById("root");
 

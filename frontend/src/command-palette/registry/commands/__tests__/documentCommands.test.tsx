@@ -106,6 +106,59 @@ describe("registerDocumentCommands", () => {
 			expect(ids).toContain("export-document");
 			expect(ids).toContain("export-document-pdf");
 		});
+
+		it("does not register canvas export commands for a non-canvas document", () => {
+			const registry = createMockRegistry();
+			const ctx = createMockCtx({
+				currentPage: "document",
+				getSelectedDocument: () => ({ path: "some/path.json", kind: "document" }),
+			});
+
+			registerDocumentCommands(registry, ctx);
+
+			const ids = getCommands(registry).map((c) => c.id);
+			expect(ids).not.toContain("export-canvas-png");
+			expect(ids).not.toContain("export-canvas-svg");
+		});
+
+		it("registers canvas export commands for a canvas document", () => {
+			const registry = createMockRegistry();
+			const ctx = createMockCtx({
+				currentPage: "document",
+				getSelectedDocument: () => ({ path: "some/canvas.json", kind: "canvas" }),
+			});
+
+			registerDocumentCommands(registry, ctx);
+
+			const ids = getCommands(registry).map((c) => c.id);
+			expect(ids).toContain("export-canvas-png");
+			expect(ids).toContain("export-canvas-svg");
+		});
+	});
+
+	describe("export-canvas", () => {
+		it("routes PNG/SVG export through requestExportImage with the right format", () => {
+			const requestExportImage = vi.fn();
+			vi.spyOn(useDocumentCommandStore, "getState").mockReturnValue({
+				requestExportImage,
+			} as unknown as ReturnType<typeof useDocumentCommandStore.getState>);
+
+			const registry = createMockRegistry();
+			const ctx = createMockCtx({
+				currentPage: "document",
+				getSelectedDocument: () => ({ path: "some/canvas.json", kind: "canvas" }),
+			});
+
+			registerDocumentCommands(registry, ctx);
+
+			const commands = getCommands(registry);
+			commands.find((cmd) => cmd.id === "export-canvas-png")?.action();
+			expect(requestExportImage).toHaveBeenCalledWith("png");
+
+			commands.find((cmd) => cmd.id === "export-canvas-svg")?.action();
+			expect(requestExportImage).toHaveBeenCalledWith("svg");
+			expect(ctx.handleClose).toHaveBeenCalled();
+		});
 	});
 
 	describe("find-in-document", () => {

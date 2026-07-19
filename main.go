@@ -25,6 +25,7 @@ import (
 	"yanta/internal/db"
 	"yanta/internal/logger"
 	"yanta/internal/mcpbridge"
+	"yanta/internal/nativeinput"
 	"yanta/internal/quickcapture"
 	"yanta/internal/vault"
 	windowcfg "yanta/internal/window"
@@ -223,6 +224,12 @@ func run() {
 			WindowIsTranslucent: false,
 			WebviewGpuPolicy:    graphicsState.GpuPolicy,
 		},
+		// Kill the webview's built-in right-click menu (Reload / Back / Forward /
+		// Save as / Print / Inspect). Wails keeps it in debug builds regardless of
+		// this flag (debugMode || !DefaultContextMenuDisabled), so devs still get
+		// it locally; in a `production`-tagged build debugMode is false and this
+		// flag takes effect, leaving only the app's own React context menus.
+		DefaultContextMenuDisabled: true,
 	})
 
 	a.SetMainWindow(mainWindow)
@@ -307,11 +314,15 @@ func run() {
 
 	// View menu
 	viewMenu := appMenu.AddSubmenu("View")
-	reloadItem := viewMenu.Add("Reload")
-	reloadItem.SetAccelerator("CmdOrCtrl+R")
-	reloadItem.OnClick(func(ctx *application.Context) {
-		mainWindow.Reload()
-	})
+	// Webview reload is a dev affordance (it discards in-memory editor state), so
+	// it ships only in debug builds. Production-tagged builds omit it entirely.
+	if !isProductionBuild {
+		reloadItem := viewMenu.Add("Reload")
+		reloadItem.SetAccelerator("CmdOrCtrl+R")
+		reloadItem.OnClick(func(ctx *application.Context) {
+			mainWindow.Reload()
+		})
+	}
 	fullScreenItem := viewMenu.Add("Toggle Full Screen")
 	fullScreenItem.SetAccelerator("CmdOrCtrl+Shift+F")
 	fullScreenItem.OnClick(func(ctx *application.Context) {
@@ -346,6 +357,19 @@ func run() {
 			if isQuickLaunch {
 				logger.Info("opening Quick Capture window on startup")
 				quickcapture.CreateWindow(wailsApp)
+			}
+
+			// Linux: WebKitGTK claims Ctrl+V before the DOM (and before Wails'
+			// bubble-phase key controller) ever sees it, so observe it with a
+			// capture-phase GTK controller and surface it to the frontend, which
+			// reads the clipboard natively (ReadClipboardImage). No-op elsewhere.
+			if runtimePkg.GOOS == "linux" {
+				application.InvokeSync(func() {
+					nativeinput.AttachCtrlVCapture(mainWindow.NativeWindow(), func() {
+						wailsApp.Event.Emit("native:ctrl-v", nil)
+					})
+				})
+				logger.Debug("GTK capture-phase Ctrl+V observer attached")
 			}
 		},
 	)

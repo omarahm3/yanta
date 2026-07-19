@@ -1,4 +1,5 @@
 import type * as documentModels from "../../../bindings/yanta/internal/document/models";
+import { BackendLogger } from "../utils/backendLogger";
 
 type BlockNoteStyleValue = boolean | string | number;
 
@@ -29,11 +30,16 @@ export interface DocumentMeta {
 	updated: string;
 }
 
+export type DocumentKind = "document" | "canvas";
+
 export interface Document {
 	path: string;
 	projectAlias: string;
 	title: string;
+	kind: DocumentKind;
 	blocks: BlockNoteBlock[];
+	scene?: ExcalidrawScene;
+	assets?: Record<string, string>;
 	tags: string[];
 	created: Date;
 	updated: Date;
@@ -41,6 +47,25 @@ export interface Document {
 	hasCode?: boolean;
 	hasImages?: boolean;
 	hasLinks?: boolean;
+}
+
+export interface ExcalidrawScene {
+	elements: ExcalidrawElement[];
+	appState?: Record<string, unknown>;
+	files?: Record<string, ExcalidrawFile>;
+}
+
+export interface ExcalidrawElement {
+	id: string;
+	type: string;
+	[key: string]: unknown;
+}
+
+export interface ExcalidrawFile {
+	id: string;
+	dataURL?: string;
+	mimeType?: string;
+	[key: string]: unknown;
 }
 
 export interface DocumentWithTags extends Document {
@@ -51,7 +76,10 @@ export interface SaveDocumentRequest {
 	path?: string;
 	projectAlias: string;
 	title: string;
-	blocks: BlockNoteBlock[];
+	kind?: DocumentKind;
+	blocks?: BlockNoteBlock[];
+	scene?: ExcalidrawScene;
+	assets?: Record<string, string>;
 	tags: string[];
 	expectedHash?: string;
 }
@@ -61,6 +89,7 @@ export function documentFromModel(model: documentModels.Document): Document {
 		path: model.path,
 		projectAlias: model.project_alias,
 		title: model.title || "Untitled",
+		kind: (model.kind || "document") as DocumentKind,
 		blocks: [],
 		tags: model.tags || [],
 		created: new Date(model.created_at || Date.now()),
@@ -78,14 +107,45 @@ export function documentWithTagsFromModel(
 	if (!model) {
 		throw new Error("Document model is null");
 	}
-	const blocks = model.File?.blocks || [];
+	const file = model.File;
+	const blocks = file?.blocks || [];
 	const tags = model.Tags || [];
+	const kind = (model.kind || file?.kind || "document") as DocumentKind;
+
+	let scene: ExcalidrawScene | undefined;
+	if (file?.scene != null) {
+		if (typeof file.scene === "string") {
+			// Legacy files persisted the scene as a JSON-encoded string. A canvas whose
+			// scene JSON won't parse must NOT open as a blank editable canvas: the next
+			// autosave would overwrite the still-recoverable payload on disk. Propagate
+			// a load error instead so the document surfaces the error/reload UI (which
+			// forces hasChanges false and disables autosave) rather than silently
+			// substituting an empty scene.
+			try {
+				scene = JSON.parse(file.scene) as ExcalidrawScene;
+			} catch (err) {
+				BackendLogger.error(`[document] failed to parse scene JSON for ${model.path}:`, err);
+				throw new Error(
+					`Failed to parse canvas scene for ${model.path}: ${
+						err instanceof Error ? err.message : String(err)
+					}`,
+				);
+			}
+		} else {
+			scene = file.scene as ExcalidrawScene;
+		}
+	}
+
+	const assets = file?.assets as Record<string, string> | undefined;
 
 	return {
 		path: model.path,
 		projectAlias: model.project_alias,
 		title: model.title || "Untitled",
+		kind,
 		blocks: blocks as BlockNoteBlock[],
+		scene,
+		assets,
 		tags: tags,
 		created: new Date(model.created_at || Date.now()),
 		updated: new Date(model.updated_at || Date.now()),
@@ -103,13 +163,18 @@ export function documentsFromModels(models: (documentModels.Document | null)[]):
 
 export function documentToSaveRequest(
 	doc: Document,
-	blocks: BlockNoteBlock[],
+	blocks?: BlockNoteBlock[],
+	scene?: ExcalidrawScene,
+	assets?: Record<string, string>,
 ): SaveDocumentRequest {
 	return {
 		path: doc.path || undefined,
 		projectAlias: doc.projectAlias,
 		title: doc.title,
-		blocks: blocks,
+		kind: doc.kind,
+		blocks: blocks ?? doc.blocks,
+		scene: scene ?? doc.scene,
+		assets: assets ?? doc.assets,
 		tags: doc.tags,
 	};
 }

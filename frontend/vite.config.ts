@@ -1,9 +1,40 @@
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { visualizer } from "rollup-plugin-visualizer";
-import { defineConfig, type BuildOptions } from "vite";
+import { defineConfig, type BuildOptions, type Plugin } from "vite";
 import wails from "@wailsio/runtime/plugins/vite";
+import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "path";
+
+// Copy Excalidraw's runtime fonts (Excalifont, ComicShanns, Xiaolai, …) into the
+// build output at dist/fonts. Excalidraw fetches them relative to
+// window.EXCALIDRAW_ASSET_PATH (set to "/" in production, see src/main.tsx); Wails
+// embeds and serves dist at the app root, so /fonts/<Family>/<file>.woff2 resolves
+// offline instead of hitting Excalidraw's CDN. Build-only; dev uses Excalidraw's
+// default which the Vite dev server already resolves.
+function excalidrawFonts(): Plugin {
+	const require = createRequire(import.meta.url);
+	// package.json isn't in the package's exports map; resolve the entry instead.
+	const entry = require.resolve("@excalidraw/excalidraw");
+	const fontsDir = path.join(path.dirname(entry), "fonts");
+	return {
+		name: "excalidraw-fonts",
+		apply: "build",
+		writeBundle(outputOptions) {
+			const outDir = outputOptions.dir ?? path.resolve(__dirname, "dist");
+			const dest = path.join(outDir, "fonts");
+			if (!fs.existsSync(fontsDir)) {
+				// A production build sets EXCALIDRAW_ASSET_PATH="/" (see src/main.tsx),
+				// so shipping without these fonts serves /fonts/... 404s to users with
+				// no CDN fallback. Fail the build (this hook is build-only) instead of
+				// only warning, so a missing-fonts regression can't reach production.
+				this.error(`excalidraw fonts dir not found at ${fontsDir}; cannot bundle canvas fonts`);
+			}
+			fs.cpSync(fontsDir, dest, { recursive: true });
+		},
+	};
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -46,6 +77,7 @@ export default defineConfig({
 		react(),
 		tailwindcss(),
 		wails("./bindings"),
+		excalidrawFonts(),
 		visualizer({
 			open: false,
 			gzipSize: true,
@@ -91,6 +123,7 @@ export default defineConfig({
 					"vendor-react": ["react", "react-dom"],
 					"vendor-blocknote": ["@blocknote/core", "@blocknote/react", "@blocknote/shadcn"],
 					"vendor-utils": ["clsx", "class-variance-authority", "tailwind-merge"],
+					"vendor-excalidraw": ["@excalidraw/excalidraw"],
 				},
 			},
 		},
@@ -117,6 +150,7 @@ export default defineConfig({
 			"@blocknote/core/extensions",
 			"@blocknote/shadcn",
 			"@blocknote/code-block",
+			"@excalidraw/excalidraw",
 		],
 	},
 });

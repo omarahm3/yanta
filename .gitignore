@@ -12,6 +12,7 @@ build/windows/installer/tmp/*
 
 yanta-windows-*.exe
 yanta-windows-*.msix
+/yanta
 
 # MSIX packaging: generated staged layout + throwaway local-test signing cert
 build/windows/msix/staged/

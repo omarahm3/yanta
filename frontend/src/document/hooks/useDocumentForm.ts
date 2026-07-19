@@ -1,17 +1,21 @@
 import { useCallback, useState } from "react";
-import type { BlockNoteBlock } from "../../shared/types/Document";
+import type { BlockNoteBlock, DocumentKind, ExcalidrawScene } from "../../shared/types/Document";
 import { extractTitleFromBlocks } from "../utils/documentUtils";
 
 interface DocumentFormData {
 	title: string;
 	blocks: BlockNoteBlock[];
 	tags: string[];
+	kind: DocumentKind;
+	scene?: ExcalidrawScene;
+	assets?: Record<string, string>;
 }
 
 const DEFAULT_FORM_DATA: DocumentFormData = {
 	title: "",
 	blocks: [],
 	tags: [],
+	kind: "document",
 };
 
 export const useDocumentForm = (initialData?: DocumentFormData) => {
@@ -49,6 +53,17 @@ export const useDocumentForm = (initialData?: DocumentFormData) => {
 				...prev,
 				blocks,
 				title: extractTitleFromBlocks(blocks),
+			}));
+		},
+		[updateFormData],
+	);
+
+	const setScene = useCallback(
+		(scene: ExcalidrawScene, assets: Record<string, string>) => {
+			updateFormData((prev) => ({
+				...prev,
+				scene,
+				assets,
 			}));
 		},
 		[updateFormData],
@@ -92,7 +107,8 @@ export const useDocumentForm = (initialData?: DocumentFormData) => {
 	);
 
 	const initializeForm = useCallback((data: DocumentFormData) => {
-		const title = data.title || extractTitleFromBlocks(data.blocks);
+		const title =
+			data.title || (data.kind === "document" ? extractTitleFromBlocks(data.blocks) : data.title);
 		const formData = { ...data, title };
 
 		setFormData(formData);
@@ -110,6 +126,7 @@ export const useDocumentForm = (initialData?: DocumentFormData) => {
 		hasChanges,
 		setTitle,
 		setBlocks,
+		setScene,
 		removeTag,
 		setTags,
 		initializeForm,

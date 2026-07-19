@@ -1,9 +1,41 @@
 package document
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 )
+
+func TestMarkdownConverter_Canvas(t *testing.T) {
+	converter := NewMarkdownConverter()
+
+	doc := &DocumentFile{
+		Meta: DocumentMeta{
+			Project: "@test",
+			Title:   "My Canvas",
+			Created: time.Now(),
+			Updated: time.Now(),
+		},
+		Kind: DocumentKindCanvas,
+		Scene: json.RawMessage(`{"elements":[
+			{"type":"text","text":"first label"},
+			{"type":"rectangle"},
+			{"type":"text","text":"second label"}
+		]}`),
+	}
+
+	markdown, err := converter.ToMarkdown(doc)
+	if err != nil {
+		t.Fatalf("ToMarkdown() error: %v", err)
+	}
+	// Canvas text must be exported (not silently dropped to a frontmatter-only file).
+	if !contains(markdown, "first label") || !contains(markdown, "second label") {
+		t.Errorf("expected canvas text in markdown, got:\n%s", markdown)
+	}
+	if !contains(markdown, "Canvas document") {
+		t.Errorf("expected canvas note in markdown, got:\n%s", markdown)
+	}
+}
 
 func TestMarkdownConverter(t *testing.T) {
 	converter := NewMarkdownConverter()
@@ -1315,8 +1347,8 @@ func TestMarkdownConverter_CodeBlockWithoutLanguage(t *testing.T) {
 		},
 		Blocks: []BlockNoteBlock{
 			{
-				ID:   "code1",
-				Type: "codeBlock",
+				ID:    "code1",
+				Type:  "codeBlock",
 				Props: map[string]any{
 					// No language
 				},

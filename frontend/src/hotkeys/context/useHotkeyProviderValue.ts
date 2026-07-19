@@ -252,6 +252,14 @@ export function useHotkeyProviderValue(): HotkeyContextValue {
 	useEffect(() => {
 		const handleSpaceKey = (event: KeyboardEvent) => {
 			const target = event.target as HTMLElement | null;
+
+			// Excalidraw owns Space as its hold-to-pan chord. This listener exists only
+			// to stop Space from scrolling the app shell; swallowing its default over a
+			// canvas kills panning, so hand Space entirely to Excalidraw there.
+			if (target?.closest?.(".excalidraw")) {
+				return;
+			}
+
 			const inInputField =
 				target?.tagName === "INPUT" ||
 				target?.tagName === "TEXTAREA" ||

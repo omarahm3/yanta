@@ -1,4 +1,4 @@
-import type { BlockNoteBlock } from "../../shared/types/Document";
+import type { BlockNoteBlock, DocumentKind } from "../../shared/types/Document";
 
 export const createTitleBlock = (title: string): BlockNoteBlock => ({
 	id: crypto.randomUUID(),
@@ -13,8 +13,16 @@ export const createTitleBlock = (title: string): BlockNoteBlock => ({
 	],
 });
 
-export const createEmptyDocument = (title?: string) => ({
+export const createEmptyDocument = (
+	title?: string,
+): {
+	title: string;
+	blocks: BlockNoteBlock[];
+	tags: string[];
+	kind: DocumentKind;
+} => ({
 	title: title || "",
 	blocks: title ? [createTitleBlock(title)] : [],
 	tags: [],
+	kind: "document",
 });

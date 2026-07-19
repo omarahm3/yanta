@@ -22,6 +22,9 @@ $Target = $env:BUILD_TARGET
 if (-not $Target) { $Target = "local" }
 $Debug = $env:BUILD_DEBUG
 if (-not $Debug) { $Debug = "0" }
+# Secure by default: only an explicit BUILD_PRODUCTION=false yields a debug build.
+$Production = $env:BUILD_PRODUCTION
+if (-not $Production) { $Production = "true" }
 $AppName = $env:APP_NAME
 if (-not $AppName) { $AppName = "yanta" }
 $BinDir = $env:BIN_DIR
@@ -155,6 +158,13 @@ if ($CcOverride) { $env:CC = $CcOverride; $env:CXX = $CxxOverride }
 if ($Debug -eq "1") {
     $env:YANTA_DEBUG_BUILD = "1"
     Write-Host "Debug mode enabled"
+}
+
+# Production builds get the `production` Go tag, which flips Wails out of debug
+# mode (disables DevTools/inspector) and strips our own debug-only menu items.
+if ($Production -eq "true") {
+    $BuildTags += "production"
+    Write-Host "Production build: applying '-tags production'"
 }
 
 # Execute build

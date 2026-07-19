@@ -2,30 +2,48 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { GranularErrorBoundary } from "@/app";
 import type { DocumentFindControls } from "../../editor/find";
 import { RichEditor } from "../../editor/RichEditor";
-import type { EditorHandle } from "../../editor/types";
+import type { CanvasHandle, EditorHandle } from "../../editor/types";
 import {
 	disableExternalPluginsForEditorRecovery,
 	getActiveExternalPluginIds,
 	hasActiveExternalPlugins,
 } from "../../plugins/registry";
 import { useNotification } from "../../shared/hooks";
-import type { BlockNoteBlock } from "../../shared/types/Document";
+import type { BlockNoteBlock, DocumentKind, ExcalidrawScene } from "../../shared/types/Document";
 import type { NavigationState, PageName } from "../../shared/types/navigation";
 import { Button } from "../../shared/ui";
 import { countChars, countWords } from "../utils/editorCountUtils";
 import { getDocumentText, getSelectedText } from "../utils/editorSelection";
 
+// Excalidraw is heavy (roughjs/mermaid/d3 pulled in transitively). Lazy-load it
+// so it lands in its own chunk instead of the main bundle — keeps canvas support
+// off the critical path for note-only sessions and avoids ballooning the build.
+const CanvasEditor = React.lazy(() =>
+	import("../../editor/CanvasEditor").then((m) => ({ default: m.CanvasEditor })),
+);
+
 interface DocumentEditorFormProps {
 	blocks: BlockNoteBlock[];
 	tags: string[];
+	kind?: DocumentKind;
+	scene?: ExcalidrawScene;
+	/**
+	 * Bumped by the controller on reload-from-disk. Used to key the CanvasEditor
+	 * so a reload remounts it — Excalidraw only ingests its scene at mount, so
+	 * updating `scene` alone would leave the live canvas stale.
+	 */
+	reloadNonce?: number;
+	projectAlias?: string;
 	isEditMode: boolean;
 	isLoading: boolean;
 	isReadOnly?: boolean;
 	autoFocus?: boolean;
 	onTitleChange: (title: string) => void;
 	onBlocksChange: (blocks: BlockNoteBlock[]) => void;
+	onSceneChange?: (scene: ExcalidrawScene, assets: Record<string, string>) => void;
 	onTagRemove: (tag: string) => void;
 	onEditorReady?: (editor: EditorHandle) => void;
+	onCanvasReady?: (handle: CanvasHandle | null) => void;
 	find?: DocumentFindControls;
 	onNavigate?: (page: PageName, state?: NavigationState) => void;
 	onCountChange?: (counts: {
@@ -39,14 +57,20 @@ interface DocumentEditorFormProps {
 export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 	blocks,
 	tags,
+	kind = "document",
+	scene,
+	reloadNonce = 0,
+	projectAlias = "",
 	isEditMode,
 	isLoading,
 	isReadOnly = false,
 	autoFocus = true,
 	onTitleChange,
 	onBlocksChange,
+	onSceneChange,
 	onTagRemove,
 	onEditorReady,
+	onCanvasReady,
 	find,
 	onNavigate,
 	onCountChange,
@@ -146,6 +170,15 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 	const { error: notifyError } = useNotification();
 
 	const handleEditorBoundaryError = useCallback(() => {
+		// This boundary wraps both the canvas and the rich editor. Only the rich
+		// editor loads external plugins, so a canvas (Excalidraw) crash must not
+		// trigger plugin recovery — doing so would globally disable the user's
+		// plugins for a failure that has nothing to do with them.
+		if (kind === "canvas") {
+			setEditorBoundaryMessage("Something went wrong in the canvas.");
+			return;
+		}
+
 		if (editorRecoveryMode) {
 			setEditorBoundaryMessage("Something went wrong in the editor.");
 			return;
@@ -170,7 +203,7 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 			`Plugin issue detected: ${pluginLabel}. Disabled external plugins and reopened editor.`,
 		);
 		void disableExternalPluginsForEditorRecovery(reason);
-	}, [editorRecoveryMode, notifyError]);
+	}, [editorRecoveryMode, notifyError, kind]);
 
 	return (
 		<div className="document-editor-form flex flex-col min-h-full w-full">
@@ -181,20 +214,39 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 					onRetry={() => setEditorKey((k) => k + 1)}
 					onError={handleEditorBoundaryError}
 				>
-					<RichEditor
-						initialContent={blocksJson}
-						docKey={isEditMode ? `edit:${blocksJson ? "loaded" : "pending"}` : "new"}
-						onChange={handleBlocksChange}
-						onTitleChange={handleTitleChange}
-						onReady={handleEditorReady}
-						editable={!isLoading && !isReadOnly}
-						isLoading={isLoading && isEditMode}
-						autoFocus={autoFocus}
-						disablePluginContributions={editorRecoveryMode}
-						find={find}
-						findBarRef={findBarRef}
-						className="h-full"
-					/>
+					{kind === "canvas" ? (
+						<React.Suspense
+							fallback={
+								<div className="flex items-center justify-center h-full text-text-dim">Loading canvas…</div>
+							}
+						>
+							<CanvasEditor
+								key={`canvas-${reloadNonce}`}
+								initialScene={scene}
+								projectAlias={projectAlias}
+								onChange={onSceneChange}
+								onCanvasReady={onCanvasReady}
+								editable={!isLoading && !isReadOnly}
+								autoFocus={autoFocus}
+								className="h-full"
+							/>
+						</React.Suspense>
+					) : (
+						<RichEditor
+							initialContent={blocksJson}
+							docKey={isEditMode ? `edit:${blocksJson ? "loaded" : "pending"}` : "new"}
+							onChange={handleBlocksChange}
+							onTitleChange={handleTitleChange}
+							onReady={handleEditorReady}
+							editable={!isLoading && !isReadOnly}
+							isLoading={isLoading && isEditMode}
+							autoFocus={autoFocus}
+							disablePluginContributions={editorRecoveryMode}
+							find={find}
+							findBarRef={findBarRef}
+							className="h-full"
+						/>
+					)}
 				</GranularErrorBoundary>
 			</div>
 			{tags.length > 0 && (

@@ -14,6 +14,7 @@ type Document struct {
 	Path             string   `json:"path"`
 	ProjectAlias     string   `json:"project_alias"`
 	Title            string   `json:"title"`
+	Kind             string   `json:"kind"`
 	ModificationTime int64    `json:"mtime_ns"`
 	Size             int64    `json:"size_bytes"`
 	HasCode          bool     `json:"has_code"`

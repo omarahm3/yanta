@@ -1,9 +1,12 @@
 import { create } from "zustand";
 
+export type CanvasExportFormat = "png" | "svg";
+
 let saveHandler: (() => void) | null = null;
 let findHandler: ((query?: string) => void) | null = null;
 let replaceHandler: (() => void) | null = null;
 let restoreHandler: (() => void) | null = null;
+let exportImageHandler: ((format: CanvasExportFormat) => void) | null = null;
 
 interface DocumentCommandState {
 	registerSaveHandler: (handler: (() => void) | null) => void;
@@ -14,6 +17,8 @@ interface DocumentCommandState {
 	requestReplace: () => void;
 	registerRestoreHandler: (handler: (() => void) | null) => void;
 	requestRestore: () => void;
+	registerExportImageHandler: (handler: ((format: CanvasExportFormat) => void) | null) => void;
+	requestExportImage: (format: CanvasExportFormat) => void;
 }
 
 export const useDocumentCommandStore = create<DocumentCommandState>(() => ({
@@ -40,5 +45,11 @@ export const useDocumentCommandStore = create<DocumentCommandState>(() => ({
 	},
 	requestRestore: () => {
 		if (restoreHandler) restoreHandler();
+	},
+	registerExportImageHandler: (handler) => {
+		exportImageHandler = handler;
+	},
+	requestExportImage: (format) => {
+		if (exportImageHandler) exportImageHandler(format);
 	},
 }));
