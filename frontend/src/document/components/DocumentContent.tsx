@@ -228,6 +228,7 @@ export const DocumentContent: React.FC<DocumentContentProps> = React.memo(
 							<ConflictBanner onKeepMine={onKeepMine} onReloadFromDisk={onReloadFromDisk} />
 						)}
 						<DocumentEditorForm
+							title={documentTitle ?? ""}
 							blocks={formData.blocks}
 							tags={formData.tags}
 							kind={formData.kind}

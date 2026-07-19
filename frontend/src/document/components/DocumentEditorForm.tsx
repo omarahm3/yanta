@@ -23,6 +23,7 @@ const CanvasEditor = React.lazy(() =>
 );
 
 interface DocumentEditorFormProps {
+	title: string;
 	blocks: BlockNoteBlock[];
 	tags: string[];
 	kind?: DocumentKind;
@@ -55,6 +56,7 @@ interface DocumentEditorFormProps {
 }
 
 export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
+	title,
 	blocks,
 	tags,
 	kind = "document",
@@ -215,22 +217,41 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 					onError={handleEditorBoundaryError}
 				>
 					{kind === "canvas" ? (
-						<React.Suspense
-							fallback={
-								<div className="flex items-center justify-center h-full text-text-dim">Loading canvas…</div>
-							}
-						>
-							<CanvasEditor
-								key={`canvas-${reloadNonce}`}
-								initialScene={scene}
-								projectAlias={projectAlias}
-								onChange={onSceneChange}
-								onCanvasReady={onCanvasReady}
-								editable={!isLoading && !isReadOnly}
-								autoFocus={autoFocus}
-								className="h-full"
+						// Unlike documents (whose title is the first H1 of the body), a
+						// canvas has no in-body text, so it needs an explicit title field.
+						// It writes through the same onTitleChange path documents use.
+						<div className="flex flex-col h-full">
+							<input
+								type="text"
+								value={title}
+								onChange={(e) => handleTitleChange(e.target.value)}
+								readOnly={isReadOnly}
+								placeholder="Untitled Canvas"
+								aria-label="Canvas title"
+								spellCheck={false}
+								className="w-full shrink-0 bg-transparent px-2 pt-1 pb-2 text-2xl font-semibold text-text-bright placeholder-text-dim border-b border-border focus:outline-none focus:border-accent read-only:cursor-default"
 							/>
-						</React.Suspense>
+							<div className="flex-1 min-h-0">
+								<React.Suspense
+									fallback={
+										<div className="flex items-center justify-center h-full text-text-dim">
+											Loading canvas…
+										</div>
+									}
+								>
+									<CanvasEditor
+										key={`canvas-${reloadNonce}`}
+										initialScene={scene}
+										projectAlias={projectAlias}
+										onChange={onSceneChange}
+										onCanvasReady={onCanvasReady}
+										editable={!isLoading && !isReadOnly}
+										autoFocus={autoFocus}
+										className="h-full"
+									/>
+								</React.Suspense>
+							</div>
+						</div>
 					) : (
 						<RichEditor
 							initialContent={blocksJson}
