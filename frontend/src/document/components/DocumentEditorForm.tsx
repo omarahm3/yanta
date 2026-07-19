@@ -225,11 +225,11 @@ export const DocumentEditorForm: React.FC<DocumentEditorFormProps> = ({
 								type="text"
 								value={title}
 								onChange={(e) => handleTitleChange(e.target.value)}
-								readOnly={isReadOnly}
+								readOnly={isReadOnly || isLoading}
 								placeholder="Untitled Canvas"
 								aria-label="Canvas title"
 								spellCheck={false}
-								className="w-full shrink-0 bg-transparent px-2 pt-1 pb-2 text-2xl font-semibold text-text-bright placeholder-text-dim border-b border-border focus:outline-none focus:border-accent read-only:cursor-default"
+								className="w-full shrink-0 bg-transparent px-2 pt-1 pb-2 text-2xl font-semibold text-text-bright placeholder-text-dim border-b border-border focus:outline-none focus:border-accent read-only:cursor-default read-only:focus:border-border"
 							/>
 							<div className="flex-1 min-h-0">
 								<React.Suspense
