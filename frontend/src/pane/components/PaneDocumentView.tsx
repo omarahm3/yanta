@@ -203,6 +203,7 @@ export const PaneDocumentView: React.FC<PaneDocumentViewProps> = React.memo(
 				)}
 				<div ref={scrollContainerRef} className="flex flex-col flex-1 min-h-0 overflow-auto">
 					<DocumentEditorForm
+						title={controller.documentTitle ?? ""}
 						blocks={contentProps.formData.blocks}
 						tags={contentProps.formData.tags}
 						kind={contentProps.formData.kind}
