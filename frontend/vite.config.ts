@@ -37,7 +37,7 @@ function excalidrawFonts(): Plugin {
 }
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
 	define: {
 		"import.meta.env.YANTA_ENABLE_TOOLTIP_HINTS": JSON.stringify(
 			process.env.YANTA_ENABLE_TOOLTIP_HINTS === "true",
@@ -108,7 +108,11 @@ export default defineConfig({
 	build: {
 		target: "es2020",
 		minify: "terser",
-		sourcemap: "hidden",
+		// Production ships with devtools disabled (see productionLockdown), so the
+		// sourcemaps are unusable in the shipped app — they only bloat the binary
+		// (~42MB embedded via go:embed) and filled the macOS runner during DMG
+		// creation. Keep them for dev builds, drop them from production.
+		sourcemap: mode === "production" ? false : "hidden",
 		terserOptions: {
 			compress: {
 				drop_console: true,
@@ -153,4 +157,4 @@ export default defineConfig({
 			"@excalidraw/excalidraw",
 		],
 	},
-});
+}));
