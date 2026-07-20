@@ -124,10 +124,15 @@ tasks:
       - "src/**/*"
       - "index.html"
       - "package.json"
+      - "package-lock.json"
       - "vite.config.ts"
       - "tsconfig.json"
       - "tsconfig.node.json"
       - "bindings/**/*"
+      # patch-package patches mutate node_modules at install time; without them
+      # here, a patch-only change (e.g. an Excalidraw fix) wouldn't invalidate the
+      # fingerprint and the frontend bundle would be silently stale.
+      - "patches/**/*"
     generates:
       - "dist/**/*"
     vars:
