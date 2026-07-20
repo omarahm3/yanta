@@ -6,7 +6,10 @@ import { ExportImageRequest, ExportRequest } from "../../../bindings/yanta/inter
 import { ExportCanvasImage, ExportToPDF } from "../../../bindings/yanta/internal/export/service";
 import type { CanvasHandle } from "../../editor/types";
 import { useNotification } from "../../shared/hooks";
-import type { CanvasExportFormat } from "../../shared/stores/documentCommand.store";
+import type {
+	CanvasExportFormat,
+	CanvasExportTheme,
+} from "../../shared/stores/documentCommand.store";
 
 export interface UseDocumentExportsOptions {
 	documentPath?: string;
@@ -113,16 +116,20 @@ export function useDocumentExports({
 	}, [documentPath, error, documentTitle]);
 
 	const handleExportCanvasImage = useCallback(
-		async (format: CanvasExportFormat) => {
+		async (format: CanvasExportFormat, theme?: CanvasExportTheme) => {
 			const handle = canvasHandleRef?.current;
 			if (!handle) {
 				error("No canvas open");
 				return;
 			}
 			try {
-				const defaultFilename = `${exportBaseName(documentTitle)}.${format}`;
+				// Suffix light/dark so exporting both themes doesn't silently overwrite.
+				const themeSuffix = theme ? `-${theme}` : "";
+				const themeLabel = theme === "dark" ? " (Dark)" : theme === "light" ? " (Light)" : "";
+				const defaultFilename = `${exportBaseName(documentTitle)}${themeSuffix}.${format}`;
 				const outputPath = await Dialogs.SaveFile({
-					Title: format === "png" ? "Export Canvas to PNG" : "Export Canvas to SVG",
+					Title:
+						format === "png" ? `Export Canvas to PNG${themeLabel}` : `Export Canvas to SVG${themeLabel}`,
 					Filename: defaultFilename,
 					Filters: [
 						{
@@ -138,10 +145,10 @@ export function useDocumentExports({
 
 				let data: string;
 				if (format === "png") {
-					const blob = await handle.toPNG();
+					const blob = await handle.toPNG({ theme });
 					data = bytesToBase64(new Uint8Array(await blob.arrayBuffer()));
 				} else {
-					const svg = await handle.toSVG();
+					const svg = await handle.toSVG({ theme });
 					data = bytesToBase64(new TextEncoder().encode(svg));
 				}
 

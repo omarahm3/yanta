@@ -1,10 +1,29 @@
 /*
- * Trim Excalidraw chrome Yanta doesn't want: the library button, the main
- * hamburger menu, and the help (?) button. Excalidraw exposes no props for
- * these, so hide them by class. Scoped to .excalidraw so nothing else is hit.
+ * Trim Excalidraw chrome Yanta doesn't want: the library button and the help
+ * (?) button. Excalidraw exposes no props for these, so hide them by class.
+ * Scoped to .excalidraw so nothing else is hit.
+ *
+ * The main hamburger menu is intentionally kept — it hosts our curated
+ * export items (see CanvasEditor's <MainMenu>).
  */
 .excalidraw .default-sidebar-trigger,
-.excalidraw .main-menu-trigger,
 .excalidraw .help-icon {
 	display: none !important;
+}
+
+/*
+ * Laser/eraser trail offset fix (upstream excalidraw#7113, unmerged PR #7114).
+ * Excalidraw's .SVGLayer is position:fixed and sized to the window, with trail
+ * path coords that include the canvas's window offset. Our pane shell uses
+ * backdrop-filter/transform, which turns `fixed` into "fixed relative to that
+ * ancestor" (CSS containing block) — displacing the trail by the canvas's
+ * on-screen position. Anchor the layer to the .excalidraw root (position:
+ * relative) instead, paired with the patch-package change that makes trail
+ * coords container-relative (patches/@excalidraw+excalidraw+0.18.1.patch).
+ * Both halves are required together.
+ */
+.excalidraw .SVGLayer {
+	position: absolute;
+	width: 100%;
+	height: 100%;
 }

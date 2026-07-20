@@ -61,6 +61,15 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 
 	const { sort, setSort, sortedDocuments: documents } = useDocumentSort(rawDocuments);
 
+	// Markdown/PDF export only applies to text documents (canvas docs have no
+	// blocks to render). Hide those actions unless the selection includes at
+	// least one text document.
+	const selectionHasTextDoc = React.useMemo(() => {
+		const selected = documentList.selectedDocuments;
+		if (selected.size === 0) return false;
+		return documents.some((doc) => selected.has(doc.path) && doc.kind !== "canvas");
+	}, [documents, documentList.selectedDocuments]);
+
 	const handleOpenInSplit = useCallback(
 		(path: string) => {
 			onNavigate?.("document", { documentPath: path, openInSplit: true });
@@ -151,10 +160,14 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 							selectedCount={statusBar.selectedCount}
 							onClearSelection={statusBar.selectedCount > 0 ? clearSelection : undefined}
 							onExportSelectedMarkdown={
-								statusBar.selectedCount > 0 ? controller.handleExportSelectedMarkdown : undefined
+								statusBar.selectedCount > 0 && selectionHasTextDoc
+									? controller.handleExportSelectedMarkdown
+									: undefined
 							}
 							onExportSelectedPDF={
-								statusBar.selectedCount > 0 ? controller.handleExportSelectedPDF : undefined
+								statusBar.selectedCount > 0 && selectionHasTextDoc
+									? controller.handleExportSelectedPDF
+									: undefined
 							}
 							onArchiveSelected={
 								statusBar.selectedCount > 0 && !showArchived

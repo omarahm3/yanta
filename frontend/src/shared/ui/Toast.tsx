@@ -45,7 +45,6 @@ interface Toast {
 }
 
 interface ToastContextValue {
-	toasts: Toast[];
 	show: (message: string, type?: ToastType, options?: ToastOptions) => string;
 	success: (message: string, options?: ToastOptions) => string;
 	error: (message: string, options?: ToastOptions) => string;
@@ -170,6 +169,24 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 			};
 
 			setToasts((prev) => {
+				// Re-showing an identical toast (same explicit id and content) is a
+				// no-op. Without this, a caller that re-fires on context change (e.g.
+				// an effect depending on the toast API) replaces the toast object
+				// every pass — each replacement re-renders the provider, which loops
+				// into "Maximum update depth exceeded" (React #185).
+				const existing = prev.find((t) => t.id === id);
+				if (
+					existing &&
+					existing.title === newToast.title &&
+					existing.message === newToast.message &&
+					existing.type === newToast.type &&
+					existing.duration === newToast.duration &&
+					existing.position === newToast.position &&
+					!existing.action &&
+					!newToast.action
+				) {
+					return prev;
+				}
 				const filtered = prev.filter((t) => t.id !== id);
 				return [...filtered, newToast];
 			});
@@ -226,9 +243,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 		{} as Record<string, Toast[]>,
 	);
 
+	// Actions only — deliberately NOT including `toasts`. Every callback here is
+	// identity-stable, so the context value never changes after mount. Including
+	// the toasts array made the API object change on every toast update, which
+	// re-fired consumer effects that show toasts (SyncToast) → infinite
+	// show/replace loop → React #185 crash.
 	const contextValue = useMemo<ToastContextValue>(
 		() => ({
-			toasts,
 			show,
 			success,
 			error,
@@ -237,7 +258,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 			dismiss,
 			dismissAll,
 		}),
-		[toasts, show, success, error, info, warning, dismiss, dismissAll],
+		[show, success, error, info, warning, dismiss, dismissAll],
 	);
 
 	return (

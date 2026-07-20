@@ -1,5 +1,7 @@
+import { Dialogs } from "@wailsio/runtime";
 import { AlertCircle } from "lucide-react";
 import React from "react";
+import { SaveCrashReport } from "../../bindings/yanta/internal/system/service";
 import { BackendLogger, getLogBuffer } from "../shared/utils/backendLogger";
 
 interface CrashBoundaryState {
@@ -54,7 +56,28 @@ function buildCrashReport(error: Error, componentStack: string | null): string {
 	return lines.join("\n");
 }
 
-function downloadCrashReport(report: string) {
+// Save via a native OS dialog + backend write. The old approach (blob +
+// anchor.click()) routed through the WebView's built-in browser download UI —
+// Edge's Downloads flyout popping over a desktop app. Kept only as a fallback
+// for when the backend is unreachable.
+async function saveCrashReportNative(report: string): Promise<void> {
+	const path = await Dialogs.SaveFile({
+		Title: "Save Crash Log",
+		Filename: `yanta-crash-${Date.now()}.log`,
+		Filters: [
+			{
+				DisplayName: "Log Files",
+				Pattern: "*.log",
+			},
+		],
+	});
+	if (!path) {
+		return; // user cancelled
+	}
+	await SaveCrashReport(path, report);
+}
+
+function downloadCrashReportFallback(report: string) {
 	const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement("a");
@@ -87,7 +110,12 @@ export class CrashBoundary extends React.Component<
 		const { error, componentStack } = this.state;
 		if (!error) return;
 		const report = buildCrashReport(error, componentStack);
-		downloadCrashReport(report);
+		saveCrashReportNative(report).catch((err) => {
+			// Backend/dialog unavailable (e.g. the crash took the runtime bridge
+			// down) — degrade to the browser download so the report isn't lost.
+			BackendLogger.error("[CrashBoundary] Native save failed, falling back:", err);
+			downloadCrashReportFallback(report);
+		});
 	};
 
 	handleReload = () => {
