@@ -1,12 +1,15 @@
 import { create } from "zustand";
 
 export type CanvasExportFormat = "png" | "svg";
+/** Theme to render an exported canvas image in. Omitted = current canvas theme. */
+export type CanvasExportTheme = "light" | "dark";
 
 let saveHandler: (() => void) | null = null;
 let findHandler: ((query?: string) => void) | null = null;
 let replaceHandler: (() => void) | null = null;
 let restoreHandler: (() => void) | null = null;
-let exportImageHandler: ((format: CanvasExportFormat) => void) | null = null;
+let exportImageHandler: ((format: CanvasExportFormat, theme?: CanvasExportTheme) => void) | null =
+	null;
 
 interface DocumentCommandState {
 	registerSaveHandler: (handler: (() => void) | null) => void;
@@ -17,8 +20,10 @@ interface DocumentCommandState {
 	requestReplace: () => void;
 	registerRestoreHandler: (handler: (() => void) | null) => void;
 	requestRestore: () => void;
-	registerExportImageHandler: (handler: ((format: CanvasExportFormat) => void) | null) => void;
-	requestExportImage: (format: CanvasExportFormat) => void;
+	registerExportImageHandler: (
+		handler: ((format: CanvasExportFormat, theme?: CanvasExportTheme) => void) | null,
+	) => void;
+	requestExportImage: (format: CanvasExportFormat, theme?: CanvasExportTheme) => void;
 }
 
 export const useDocumentCommandStore = create<DocumentCommandState>(() => ({
@@ -49,7 +54,7 @@ export const useDocumentCommandStore = create<DocumentCommandState>(() => ({
 	registerExportImageHandler: (handler) => {
 		exportImageHandler = handler;
 	},
-	requestExportImage: (format) => {
-		if (exportImageHandler) exportImageHandler(format);
+	requestExportImage: (format, theme) => {
+		if (exportImageHandler) exportImageHandler(format, theme);
 	},
 }));

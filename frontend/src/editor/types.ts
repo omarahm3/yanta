@@ -32,11 +32,17 @@ export type EditorHandle = BlockNoteEditor;
  * Excalidraw's live API (which holds the hydrated image dataURLs) so the shell
  * can render exports without reaching into Excalidraw itself.
  */
+/** Options for rendering a canvas export. */
+export interface CanvasExportOptions {
+	/** Force light/dark rendering; omitted uses the canvas's current theme. */
+	theme?: "light" | "dark";
+}
+
 export interface CanvasHandle {
 	/** Render the current scene to a PNG blob. */
-	toPNG: () => Promise<Blob>;
+	toPNG: (opts?: CanvasExportOptions) => Promise<Blob>;
 	/** Render the current scene to serialized SVG markup. */
-	toSVG: () => Promise<string>;
+	toSVG: (opts?: CanvasExportOptions) => Promise<string>;
 	/** Drop keyboard focus from the canvas if it currently holds it. */
 	blur: () => void;
 }

@@ -5,6 +5,7 @@ import {
 	exportToBlob,
 	exportToSvg,
 	hashElementsVersion,
+	MainMenu,
 	restore,
 	viewportCoordsToSceneCoords,
 } from "@excalidraw/excalidraw";
@@ -26,6 +27,7 @@ import { Events, System } from "@wailsio/runtime";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ResolveDataURL, StoreDataURL } from "../../bindings/yanta/internal/asset/service";
 import { ReadClipboardImage } from "../../bindings/yanta/internal/system/service";
+import { useDocumentCommandStore } from "../shared/stores/documentCommand.store";
 import { useResolvedTheme } from "../shared/stores/theme.store";
 import type { ExcalidrawScene } from "../shared/types/Document";
 import { BackendLogger } from "../shared/utils/backendLogger";
@@ -765,23 +767,33 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 		// the current interaction state used for Escape routing.
 		useEffect(() => {
 			if (!isReady) return;
+			// Build the appState for an export, optionally forcing a theme. Excalidraw
+			// honours `exportWithDarkMode` for the rendered image; `theme` keeps it
+			// internally consistent. Omitting a theme exports in the live canvas theme.
+			const exportAppState = (theme?: "light" | "dark") => {
+				const api = excalidrawAPI.current;
+				const appState = api?.getAppState();
+				if (!appState) return appState;
+				if (!theme) return appState;
+				return { ...appState, theme, exportWithDarkMode: theme === "dark" };
+			};
 			const handle: CanvasHandle = {
-				toPNG: () => {
+				toPNG: (opts) => {
 					const api = excalidrawAPI.current;
 					if (!api) return Promise.reject(new Error("Canvas not ready"));
 					return exportToBlob({
 						elements: api.getSceneElements(),
-						appState: api.getAppState(),
+						appState: exportAppState(opts?.theme),
 						files: api.getFiles(),
 						mimeType: "image/png",
 					});
 				},
-				toSVG: async () => {
+				toSVG: async (opts) => {
 					const api = excalidrawAPI.current;
 					if (!api) throw new Error("Canvas not ready");
 					const svg = await exportToSvg({
 						elements: api.getSceneElements(),
-						appState: api.getAppState(),
+						appState: exportAppState(opts?.theme),
 						files: api.getFiles(),
 					});
 					return new XMLSerializer().serializeToString(svg);
@@ -818,6 +830,9 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 					// container, so Space-pan / tool shortcuts / Delete only work while that
 					// container holds DOM focus — which it doesn't reliably in the pane shell.
 					// Binding globally (to document) lets the canvas own its chords regardless.
+					// App-level shortcuts that must win over Excalidraw (e.g. "?" help) are
+					// intercepted in the capture phase upstream (see useHelpHotkey), so global
+					// binding here no longer steals them.
 					handleKeyboardGlobally={true}
 					UIOptions={{
 						canvasActions: {
@@ -829,7 +844,37 @@ export const CanvasEditor: React.FC<CanvasEditorProps> = React.memo(
 					excalidrawAPI={(api) => {
 						excalidrawAPI.current = api;
 					}}
-				/>
+				>
+					{/*
+					 * Curated replacement for Excalidraw's default hamburger menu. We only
+					 * surface export, and route it through our own native save dialog
+					 * (requestExportImage -> Go SaveFile) instead of Excalidraw's built-in
+					 * export, which would fall back to the WebView browser-download popup.
+					 */}
+					<MainMenu>
+						<MainMenu.Item
+							onSelect={() => useDocumentCommandStore.getState().requestExportImage("png", "light")}
+						>
+							Export PNG (Light)
+						</MainMenu.Item>
+						<MainMenu.Item
+							onSelect={() => useDocumentCommandStore.getState().requestExportImage("png", "dark")}
+						>
+							Export PNG (Dark)
+						</MainMenu.Item>
+						<MainMenu.Separator />
+						<MainMenu.Item
+							onSelect={() => useDocumentCommandStore.getState().requestExportImage("svg", "light")}
+						>
+							Export SVG (Light)
+						</MainMenu.Item>
+						<MainMenu.Item
+							onSelect={() => useDocumentCommandStore.getState().requestExportImage("svg", "dark")}
+						>
+							Export SVG (Dark)
+						</MainMenu.Item>
+					</MainMenu>
+				</Excalidraw>
 			</div>
 		);
 	},
