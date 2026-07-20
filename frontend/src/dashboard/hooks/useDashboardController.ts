@@ -175,6 +175,7 @@ export function useDashboardController({
 
 	const { handleExportSelectedMarkdown, handleExportSelectedPDF } = useDashboardExports({
 		selectedDocumentsRef,
+		documentsRef,
 		error,
 	});
 

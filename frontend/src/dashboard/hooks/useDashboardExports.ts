@@ -4,9 +4,11 @@ import { ExportDocument } from "../../../bindings/yanta/internal/document/servic
 import { ExportRequest } from "../../../bindings/yanta/internal/export";
 import { ExportToPDF } from "../../../bindings/yanta/internal/export/service";
 import { OpenDirectoryDialog } from "../../../bindings/yanta/internal/system/service";
+import type { Document } from "../../shared/types/Document";
 
 export interface UseDashboardExportsOptions {
 	selectedDocumentsRef: React.RefObject<Set<string> | null> | React.MutableRefObject<Set<string>>;
+	documentsRef: React.RefObject<Document[] | null> | React.MutableRefObject<Document[]>;
 	error: (message: string) => void;
 }
 
@@ -17,17 +19,24 @@ export interface UseDashboardExportsResult {
 
 export function useDashboardExports({
 	selectedDocumentsRef,
+	documentsRef,
 	error,
 }: UseDashboardExportsOptions): UseDashboardExportsResult {
-	const getSelectedPaths = useCallback(
-		() => Array.from(selectedDocumentsRef.current ?? []),
-		[selectedDocumentsRef],
-	);
+	// Markdown/PDF are rendered from BlockNote blocks; a canvas doc has none, so
+	// exporting one produces an empty file. Skip canvases here (and hide the
+	// buttons when the selection has no text docs — see DashboardPage).
+	const getExportablePaths = useCallback(() => {
+		const selected = selectedDocumentsRef.current ?? new Set<string>();
+		const docs = documentsRef.current ?? [];
+		return docs
+			.filter((doc) => selected.has(doc.path) && doc.kind !== "canvas")
+			.map((doc) => doc.path);
+	}, [selectedDocumentsRef, documentsRef]);
 
 	const handleExportSelectedMarkdown = useCallback(async () => {
-		const paths = getSelectedPaths();
+		const paths = getExportablePaths();
 		if (paths.length === 0) {
-			error("No documents selected");
+			error("No text documents selected to export (canvas documents export as images).");
 			return;
 		}
 		try {
@@ -47,12 +56,12 @@ export function useDashboardExports({
 		} catch (err) {
 			error(err instanceof Error ? err.message : "Failed to export");
 		}
-	}, [getSelectedPaths, error]);
+	}, [getExportablePaths, error]);
 
 	const handleExportSelectedPDF = useCallback(async () => {
-		const paths = getSelectedPaths();
+		const paths = getExportablePaths();
 		if (paths.length === 0) {
-			error("No documents selected");
+			error("No text documents selected to export (canvas documents export as images).");
 			return;
 		}
 		try {
@@ -72,7 +81,7 @@ export function useDashboardExports({
 		} catch (err) {
 			error(err instanceof Error ? err.message : "Failed to export");
 		}
-	}, [getSelectedPaths, error]);
+	}, [getExportablePaths, error]);
 
 	return {
 		handleExportSelectedMarkdown,
