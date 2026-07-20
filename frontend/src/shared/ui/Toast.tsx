@@ -177,6 +177,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 				const existing = prev.find((t) => t.id === id);
 				if (
 					existing &&
+					existing.title === newToast.title &&
 					existing.message === newToast.message &&
 					existing.type === newToast.type &&
 					existing.duration === newToast.duration &&

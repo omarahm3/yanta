@@ -415,6 +415,14 @@ func (s *Service) SaveCrashReport(ctx context.Context, path string, content stri
 	if trimmed == "" {
 		return fmt.Errorf("no output path provided")
 	}
+	// Defense-in-depth: this method is exposed to the frontend, so a compromised
+	// renderer could call it with an arbitrary path/content and overwrite
+	// sensitive files (e.g. shell rc / startup scripts). Restrict writes to the
+	// .log extension the crash-log flow uses, which the native save dialog also
+	// filters to.
+	if !strings.HasSuffix(strings.ToLower(trimmed), ".log") {
+		return fmt.Errorf("invalid crash report path: only .log files are allowed")
+	}
 	if err := os.WriteFile(trimmed, []byte(content), 0644); err != nil {
 		logger.Errorf("failed to save crash report: %v", err)
 		return fmt.Errorf("failed to save crash report: %w", err)
