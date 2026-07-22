@@ -17,16 +17,37 @@
 import { ShadCNDefaultComponents } from "@blocknote/shadcn";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
+import { useResolvedTheme } from "../shared/stores/theme.store";
 
 const DefaultDropdownMenuContent = ShadCNDefaultComponents.DropdownMenu.DropdownMenuContent;
 const DefaultDropdownMenuSubContent = ShadCNDefaultComponents.DropdownMenu.DropdownMenuSubContent;
 const DefaultPopoverContent = ShadCNDefaultComponents.Popover.PopoverContent;
 
+/**
+ * Portalling menus to the document body escapes the editor's `.bn-root`
+ * ancestor, which is where BlockNote scopes all of its CSS variables
+ * (`.bn-root` / `.bn-root[data-color-scheme=dark]`) and descendant rules
+ * (`.bn-root .bn-color-icon`, `.bn-shadcn .bn-menu-dropdown`). Without it,
+ * the `--bn-colors-highlights-*` variables never resolve and the color
+ * picker swatches render as plain inherited text (MRG-459). This frame
+ * recreates the same class/attribute context around the portalled content.
+ */
+function BnRootFrame({ children }: { children: ReactNode }) {
+	const theme = useResolvedTheme();
+	return (
+		<div className="bn-root bn-shadcn" data-color-scheme={theme}>
+			{children}
+		</div>
+	);
+}
+
 function PortalledDropdownMenuContent(props: ComponentProps<typeof DefaultDropdownMenuContent>) {
 	return (
 		<DropdownMenuPrimitive.Portal>
-			<DefaultDropdownMenuContent {...props} />
+			<BnRootFrame>
+				<DefaultDropdownMenuContent {...props} />
+			</BnRootFrame>
 		</DropdownMenuPrimitive.Portal>
 	);
 }
@@ -36,7 +57,9 @@ function PortalledDropdownMenuSubContent(
 ) {
 	return (
 		<DropdownMenuPrimitive.Portal>
-			<DefaultDropdownMenuSubContent {...props} />
+			<BnRootFrame>
+				<DefaultDropdownMenuSubContent {...props} />
+			</BnRootFrame>
 		</DropdownMenuPrimitive.Portal>
 	);
 }
@@ -44,7 +67,9 @@ function PortalledDropdownMenuSubContent(
 function PortalledPopoverContent(props: ComponentProps<typeof DefaultPopoverContent>) {
 	return (
 		<PopoverPrimitive.Portal>
-			<DefaultPopoverContent {...props} />
+			<BnRootFrame>
+				<DefaultPopoverContent {...props} />
+			</BnRootFrame>
 		</PopoverPrimitive.Portal>
 	);
 }
