@@ -137,7 +137,7 @@ The following versions are required for development and **must** match CI/CD:
 
 - **Go:** 1.25.7+
 - **Node.js:** 22.12+
-- **Wails:** v3.0.0-alpha2.117+ (`wails3` command)
+- **Wails:** v3.0.0-alpha2.117 (`wails3` command; must match exactly)
 
 ### Initial Setup
 

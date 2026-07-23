@@ -30,10 +30,8 @@ describe("vite config: BlockNote single-instance guard", () => {
 	});
 
 	it("keeps BlockNote in a single vendor chunk", () => {
-		const groupStart = config.indexOf('name: "vendor-blocknote"');
-		expect(groupStart).toBeGreaterThan(-1);
-		expect(config.slice(groupStart, groupStart + 160)).toContain(
-			"test: /node_modules\\/@blocknote\\//",
-		);
+		const blocknoteGroup = config.match(/name: "vendor-blocknote"[\s\S]*?(?=\n\s*},)/)?.[0];
+		expect(blocknoteGroup).toBeDefined();
+		expect(blocknoteGroup).toContain("test: /node_modules[\\\\/]@blocknote[\\\\/]/");
 	});
 });

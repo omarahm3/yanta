@@ -127,19 +127,19 @@ export default defineConfig(({ mode }) => ({
 					groups: [
 						{
 							name: "vendor-react",
-							test: /node_modules\/react(?:-dom)?\//,
+							test: /node_modules[\\/]react(?:-dom)?[\\/]/,
 						},
 						{
 							name: "vendor-blocknote",
-							test: /node_modules\/@blocknote\//,
+							test: /node_modules[\\/]@blocknote[\\/]/,
 						},
 						{
 							name: "vendor-utils",
-							test: /node_modules\/(?:clsx|class-variance-authority|tailwind-merge)\//,
+							test: /node_modules[\\/](?:clsx|class-variance-authority|tailwind-merge)[\\/]/,
 						},
 						{
 							name: "vendor-excalidraw",
-							test: /node_modules\/@excalidraw\/excalidraw\//,
+							test: /node_modules[\\/]@excalidraw[\\/]excalidraw[\\/]/,
 						},
 					],
 				},
