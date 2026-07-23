@@ -123,11 +123,25 @@ export default defineConfig(({ mode }) => ({
 
 		rollupOptions: {
 			output: {
-				manualChunks: {
-					"vendor-react": ["react", "react-dom"],
-					"vendor-blocknote": ["@blocknote/core", "@blocknote/react", "@blocknote/shadcn"],
-					"vendor-utils": ["clsx", "class-variance-authority", "tailwind-merge"],
-					"vendor-excalidraw": ["@excalidraw/excalidraw"],
+				codeSplitting: {
+					groups: [
+						{
+							name: "vendor-react",
+							test: /node_modules[\\/]react(?:-dom)?[\\/]/,
+						},
+						{
+							name: "vendor-blocknote",
+							test: /node_modules[\\/]@blocknote[\\/]/,
+						},
+						{
+							name: "vendor-utils",
+							test: /node_modules[\\/](?:clsx|class-variance-authority|tailwind-merge)[\\/]/,
+						},
+						{
+							name: "vendor-excalidraw",
+							test: /node_modules[\\/]@excalidraw[\\/]excalidraw[\\/]/,
+						},
+					],
 				},
 			},
 		},

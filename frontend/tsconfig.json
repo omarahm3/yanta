@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "ignoreDeprecations": "5.0",
-    "baseUrl": ".",
     "paths": {
       "@/app": ["./src/app/index"],
       "@/*": ["./src/*"]
@@ -12,7 +11,6 @@
     "allowJs": true,
     "checkJs": false,
     "skipLibCheck": true,
-    "esModuleInterop": false,
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,

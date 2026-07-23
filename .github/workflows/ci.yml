@@ -29,7 +29,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v6
       with:
-        node-version: "20.x"
+        node-version: "22.x"
         cache: "npm"
         cache-dependency-path: frontend/package-lock.json
 
@@ -48,14 +48,14 @@ jobs:
       run: go install github.com/go-task/task/v3/cmd/task@latest
 
     - name: Install Wails v3
-      run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+      run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha2.117
 
     - name: Install frontend dependencies
       run: npm ci
       working-directory: frontend
 
     - name: Generate bindings
-      run: wails3 generate bindings
+      run: wails3 generate bindings -clean=true -ts
 
     - name: Build frontend
       run: npm run build
@@ -82,7 +82,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v6
       with:
-        node-version: "20.x"
+        node-version: "22.x"
         cache: "npm"
         cache-dependency-path: frontend/package-lock.json
 
@@ -98,14 +98,14 @@ jobs:
           pkg-config
 
     - name: Install Wails v3
-      run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+      run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha2.117
 
     - name: Install frontend dependencies
       run: npm ci
       working-directory: frontend
 
     - name: Generate bindings
-      run: wails3 generate bindings
+      run: wails3 generate bindings -clean=true -ts
 
     - name: TypeScript type check
       run: npx tsc --noEmit
@@ -137,7 +137,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v6
       with:
-        node-version: "20.x"
+        node-version: "22.x"
         cache: "npm"
         cache-dependency-path: frontend/package-lock.json
 
@@ -153,14 +153,14 @@ jobs:
           pkg-config
 
     - name: Install Wails v3
-      run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+      run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha2.117
 
     - name: Install frontend dependencies
       run: npm ci
       working-directory: frontend
 
     - name: Generate bindings
-      run: wails3 generate bindings
+      run: wails3 generate bindings -clean=true -ts
 
     - name: Build frontend
       run: npm run build
@@ -207,7 +207,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v6
       with:
-        node-version: "20.x"
+        node-version: "22.x"
         cache: "npm"
         cache-dependency-path: frontend/package-lock.json
 
@@ -227,7 +227,7 @@ jobs:
       run: go install github.com/go-task/task/v3/cmd/task@latest
 
     - name: Install Wails v3
-      run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+      run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha2.117
 
     - name: Build application
       run: task build

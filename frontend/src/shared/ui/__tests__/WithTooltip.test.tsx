@@ -621,11 +621,11 @@ describe("WithTooltip", () => {
 		it("works with anchor elements", () => {
 			render(
 				<WithTooltip tooltipId="test" description="Test tooltip">
-					<a href="/">Link</a>
+					<a href="/">Yanta home</a>
 				</WithTooltip>,
 			);
 
-			const link = screen.getByRole("link", { name: "Link" });
+			const link = screen.getByRole("link", { name: "Yanta home" });
 			fireEvent.focus(link);
 			act(() => {
 				vi.advanceTimersByTime(0);

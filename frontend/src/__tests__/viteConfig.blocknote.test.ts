@@ -29,7 +29,9 @@ describe("vite config: BlockNote single-instance guard", () => {
 		}
 	});
 
-	it("keeps BlockNote in a single manual vendor chunk", () => {
-		expect(config).toMatch(/"vendor-blocknote":\s*\[/);
+	it("keeps BlockNote in a single vendor chunk", () => {
+		const blocknoteGroup = config.match(/name: "vendor-blocknote"[\s\S]*?(?=\n\s*},)/)?.[0];
+		expect(blocknoteGroup).toBeDefined();
+		expect(blocknoteGroup).toContain("test: /node_modules[\\\\/]@blocknote[\\\\/]/");
 	});
 });
