@@ -25,7 +25,7 @@ export function validatePluginConfig<T>(
 		return { success: true, data: result.data as T };
 	}
 
-	const error = result.error.errors.map((e) => e.message).join("; ");
+	const error = result.error.issues.map((issue) => issue.message).join("; ");
 	if (typeof console !== "undefined" && console.warn) {
 		console.warn(`[pluginConfig] Invalid config for plugin "${pluginId}":`, error, "Using defaults.");
 	}

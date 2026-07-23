@@ -58,7 +58,9 @@ func Run(ctx context.Context) error {
 		}
 		return fmt.Errorf("cannot reach Yanta at %s — is the app running with its MCP server enabled? (%w)", disc.URL, err)
 	}
-	defer upstream.Close()
+	defer func() {
+		_ = upstream.Close()
+	}()
 
 	// Mirror the upstream tools onto a stdio server, forwarding each call
 	// through to the upstream session.

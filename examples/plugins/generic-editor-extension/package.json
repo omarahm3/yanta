@@ -6,7 +6,7 @@
     "build": "go run ../../../cmd/yanta-plugin build -plugin . -entry plugin.ts -out main.js -meta main.meta.json"
   },
   "dependencies": {
-    "@blocknote/core": "^0.43.0",
-    "@tiptap/core": "^3.11.0"
+    "@blocknote/core": "^0.52.1",
+    "@tiptap/core": "^3.28.0"
   }
 }

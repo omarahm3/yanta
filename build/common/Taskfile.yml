@@ -95,7 +95,7 @@ tasks:
     internal: true
     silent: true
     vars:
-      MSG: "wails3 CLI not found. Install it with 'go install github.com/wailsapp/wails/v3/cmd/wails3@latest'"
+      MSG: "wails3 CLI not found. Install it with 'go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha2.117'"
     cmds:
     # Cross-platform: Use wails3 version command which works on all platforms
     - |

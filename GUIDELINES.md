@@ -135,9 +135,9 @@ Backend (Go) → Wails Models → Converters → Frontend Types → UI
 
 The following versions are required for development and **must** match CI/CD:
 
-- **Go:** 1.24+ (toolchain: go1.24.10)
-- **Node.js:** 20.x
-- **Wails:** v3.0.0-alpha.40+ (`wails3` command)
+- **Go:** 1.25.7+
+- **Node.js:** 22.12+
+- **Wails:** v3.0.0-alpha2.117+ (`wails3` command)
 
 ### Initial Setup
 
@@ -157,7 +157,7 @@ make build          # Build frontend + backend
 
 ```bash
 # Install Wails v3 CLI
-go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha2.117
 
 # Install frontend dependencies
 cd frontend && npm ci

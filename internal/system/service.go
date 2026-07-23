@@ -707,14 +707,8 @@ func (s *Service) ReindexAfterSyncPull(ctx context.Context, headBefore, headAfte
 		} else {
 			changes := make([]indexer.PathChange, 0, len(entries))
 			for _, e := range entries {
-				p := e.Path
-				if strings.HasPrefix(p, "vault/") {
-					p = strings.TrimPrefix(p, "vault/")
-				}
-				oldP := e.OldPath
-				if strings.HasPrefix(oldP, "vault/") {
-					oldP = strings.TrimPrefix(oldP, "vault/")
-				}
+				p := strings.TrimPrefix(e.Path, "vault/")
+				oldP := strings.TrimPrefix(e.OldPath, "vault/")
 				changes = append(changes, indexer.PathChange{Status: e.Status, Path: p, OldPath: oldP})
 			}
 			corruptPaths, reindexErr := s.indexer.ReindexPaths(ctx, changes)
