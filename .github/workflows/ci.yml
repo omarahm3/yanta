@@ -55,7 +55,7 @@ jobs:
       working-directory: frontend
 
     - name: Generate bindings
-      run: wails3 generate bindings
+      run: wails3 generate bindings -clean=true -ts
 
     - name: Build frontend
       run: npm run build
@@ -105,7 +105,7 @@ jobs:
       working-directory: frontend
 
     - name: Generate bindings
-      run: wails3 generate bindings
+      run: wails3 generate bindings -clean=true -ts
 
     - name: TypeScript type check
       run: npx tsc --noEmit
@@ -160,7 +160,7 @@ jobs:
       working-directory: frontend
 
     - name: Generate bindings
-      run: wails3 generate bindings
+      run: wails3 generate bindings -clean=true -ts
 
     - name: Build frontend
       run: npm run build
