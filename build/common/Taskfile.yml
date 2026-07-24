@@ -99,9 +99,14 @@ tasks:
       INSTALL: "go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha2.117"
     cmds:
     # Binding output is only compatible when the CLI matches the runtime in go.mod.
+    # Task runs commands through its own POSIX shell on every OS, so PowerShell
+    # variables must be written `\$name` or the shell expands them away first.
+    # wails3 prints its version on stderr, so the Windows branch merges 2>&1 and
+    # calls ToString() on each record — piping straight to Out-String would yield
+    # PowerShell's decorated NativeCommandError text instead of the bare version.
     - |
       {{if eq OS "windows"}}
-      powershell -NoProfile -Command "if (-not (Get-Command 'wails3' -ErrorAction SilentlyContinue)) { Write-Error 'wails3 CLI not found. Install it with: {{.INSTALL}}'; exit 1 }; $output = & wails3 version 2>&1; $exitCode = $LASTEXITCODE; $actual = ($output | Out-String).Trim(); if ($exitCode -ne 0 -or $actual -ne '{{.VERSION}}') { Write-Error \"Expected wails3 {{.VERSION}}, found '$actual'. Install it with: {{.INSTALL}}\"; exit 1 }"
+      powershell -NoProfile -Command "if (-not (Get-Command 'wails3' -ErrorAction SilentlyContinue)) { Write-Error 'wails3 CLI not found. Install it with: {{.INSTALL}}'; exit 1 }; \$actual = ((& wails3 version 2>&1 | ForEach-Object { \$_.ToString() }) -join ' ').Trim(); if (\$actual -ne '{{.VERSION}}') { Write-Error \"Expected wails3 {{.VERSION}}, found '\$actual'. Install it with: {{.INSTALL}}\"; exit 1 }"
       {{else}}
       actual="$(wails3 version 2>&1)" || {
         echo "Error: wails3 CLI not found. Install it with: {{.INSTALL}}" >&2
